@@ -1,0 +1,30 @@
+{
+  "name": "jsprismarine",
+  "version": "1.0.0",
+  "description": "Basic Minecraft Bedrock Edition software ",
+  "main": "bootstrap.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HerryYT/JSPrismarine.git"
+  },
+  "keywords": [
+    "nodejs",
+    "javascript",
+    "minecraft",
+    "be"
+  ],
+  "author": "HerryYT",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HerryYT/JSPrismarine/issues"
+  },
+  "homepage": "https://github.com/HerryYT/JSPrismarine#readme",
+  "dependencies": {
+    "jsbinaryutils": "1.0.7",
+    "jsraknet": "^1.0.4",
+    "jwt-decode": "^2.2.0"
+  }
+}
