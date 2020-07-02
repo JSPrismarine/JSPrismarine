@@ -5,10 +5,10 @@ const DataPacket = require("./data_packet")
 class SetLocalPlayerAsInitializedPacket extends DataPacket {
     static NetID = 0x71
 
-    entityRuntimeId
+    runtimeEntityId
 
     decodePayload() {
-        this.entityRuntimeId = this.readUnsignedVarLong()
+        this.runtimeEntityId = this.readUnsignedVarLong()
     }
 }
 module.exports = SetLocalPlayerAsInitializedPacket

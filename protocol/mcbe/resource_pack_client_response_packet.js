@@ -1,4 +1,5 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
@@ -9,7 +10,7 @@ const ResourcePackStatus = {
     Completed: 4
 }
 class ResourcePackClientResponsePacket extends DataPacket {
-    static NetID = 0x08  // TODO
+    static NetID = Identifiers.ResourcePackClientResponsePacket
 
     status
     packIds = []

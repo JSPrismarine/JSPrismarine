@@ -3,11 +3,12 @@ const jwt_decode = require('jwt-decode')
 const DataPacket = require("./data_packet")
 const BinaryStream = require("jsbinaryutils")
 const Skin = require('../../utils/skin')
+const Identifiers = require('../identifiers')
 
 'use strict'
 
 class LoginPacket extends DataPacket {
-    static NetID = 0x01  // TODO
+    static NetID = Identifiers.LoginPacket
 
     XUID
     identity

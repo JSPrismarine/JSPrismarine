@@ -1,4 +1,5 @@
 const DataPacket = require('./data_packet')
+const Identifiers = require('../identifiers')
 
 'use strict'
 
@@ -12,7 +13,7 @@ const Status = {
     LoginFailedEduVanilla: 6
 }
 class PlayStatusPacket extends DataPacket {
-    static NetID = 0x02  // TODO
+    static NetID = Identifiers.PlayStatusPacket
 
     status
 

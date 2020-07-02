@@ -1,18 +1,21 @@
 const fs = require('fs')
-const util = require('util')
 
 const DataPacket = require("./data_packet")
 const ItemTable = require("../../resources/item_id_map.json")
 const PacketBinaryStream = require('../packet_binary_stream')
+const Identifiers = require('../identifiers')
 
 'use strict'
 
 class StartGamePacket extends DataPacket {
-    static NetID = 0x0b
+    static NetID = Identifiers.StartGamePacket
+
+    entityId
+    runtimeEntityId
 
     encodePayload() {
-        this.writeVarLong(1)
-        this.writeUnsignedVarLong(1)
+        this.writeVarLong(this.entityId)
+        this.writeUnsignedVarLong(this.runtimeEntityId)
 
         this.writeVarInt(0) // game mode
 

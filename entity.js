@@ -1,14 +1,17 @@
+const Vector3 = require('./math/vector3')
+
 'use strict'
 
 // All entities will extend this base class
-class Entity {
+class Entity extends Vector3 {
 
     static runtimeIdCount = 0
 
     runtimeId
 
     constructor() {
-        this
+        super()
+        this.runtimeId = Entity.runtimeIdCount += 1
     }
 
 }
