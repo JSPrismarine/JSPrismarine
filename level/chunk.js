@@ -71,7 +71,7 @@ class Chunk {
     }
 
     setBlockId(x, y, z, id) {
-        if (this.getSubChunk(y >> 4, true).setBlockId(x, y, 0x0f, z, id)) {
+        if (this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id)) {
             this._hasChanged = true
         }
     }

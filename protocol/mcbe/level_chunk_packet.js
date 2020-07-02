@@ -1,4 +1,4 @@
-const DataPacket = require("./data_packet");
+const DataPacket = require("./data_packet")
 
 'use strict'
 

@@ -7,7 +7,7 @@ const BinaryStream = require('jsbinaryutils')
 class PacketBinaryStream extends BinaryStream {
 
     readString() {
-        return this.read(this.readUnsignedVarInt())
+        return this.read(this.readUnsignedVarInt()).toString()
     }
 
     writeString(v) {

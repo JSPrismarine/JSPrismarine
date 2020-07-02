@@ -20,20 +20,23 @@ class Player extends Entity {
     #connection
 
     #address
-    #name
-    #locale 
-    #randomId
+    name
+    locale 
+    randomId
 
     // TODO, UUID class and converter  
-    #uuid
-    #xuid
-    #skin
+    uuid
+    xuid
+    skin
 
-    #viewDistance
-    #gamemode = 0
+    viewDistance
+    gamemode = 0
 
-    #pitch = 0
-    #yaw = 0
+    pitch = 0
+    yaw = 0
+    headYaw = 0
+
+    onGround = false
 
     // Device
     #deviceOS
@@ -50,16 +53,16 @@ class Player extends Entity {
         let pk
         switch (packet.id) {
             case Identifiers.LoginPacket:  // Login 
-                this.#name = packet.displayName
-                this.#locale = packet.languageCode
-                this.#randomId = packet.randomClientId
-                this.#uuid = packet.identity
+                this.name = packet.displayName
+                this.locale = packet.languageCode
+                this.randomId = packet.randomClientId
+                this.uuid = packet.identity
 
                 this.#deviceId = packet.deviceId
                 this.#deviceOS = packet.deviceOS
                 this.#deviceModel = packet.deviceModel
                 
-                this.#skin = packet.skin
+                this.skin = packet.skin
 
                 this.sendPlayStatus(Status.LoginSuccess)
 
@@ -95,13 +98,13 @@ class Player extends Entity {
                 this.sendDataPacket(pk)
 
                 // Update player vieww distance
-                this.#viewDistance = pk.radius
+                this.viewDistance = pk.radius
 
                 new Promise((resolve, reject) => {
                     setImmediate(() => {
                         try {
                             resolve(() => {
-                                let distance = this.#viewDistance
+                                let distance = this.viewDistance
                                 for (let chunkX = -distance; chunkX <= distance; chunkX++) {
                                     for (let chunkZ = -distance; chunkZ <= distance; chunkZ++) {
                                         let chunk = new Chunk()
@@ -128,13 +131,23 @@ class Player extends Entity {
                         }
                     })
                 }).then(() => {
-                    console.log('Done sending chunks')
                     this.sendPlayStatus(Status.PlayerSpawn)
                 }) 
                 break
             case Identifiers.MovePlayerPacket:
+                this.x = packet.positionX
+                this.y = packet.positionY
+                this.z = packet.positionZ
+                this.pitch = packet.pitch
+                this.yaw = packet.yaw 
+                this.headYaw = packet.headYaw
+                this.onGround = packet.onGround
+                // We still have some fileds 
+                // at the moment we don't need them
+                break   
+            case 0x7b:
                 console.log(packet)
-                break        
+                break         
         }
     }
 
