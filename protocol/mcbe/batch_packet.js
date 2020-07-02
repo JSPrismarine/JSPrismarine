@@ -66,7 +66,7 @@ class BatchPacket extends DataPacket {
             if (count++ >= 500) {
                 throw new Error('Too many packets in a single batch')
             }
-            packets.push(stream.readString())
+            packets.push(stream.read(stream.readUnsignedVarInt()))
         }
         return packets
     }

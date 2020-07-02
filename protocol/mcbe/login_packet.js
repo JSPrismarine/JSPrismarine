@@ -30,7 +30,7 @@ class LoginPacket extends DataPacket {
     decodePayload() {
         this.protocol = this.readInt()
 
-        let stream = new BinaryStream(this.readString())
+        let stream = new BinaryStream(this.read(this.readUnsignedVarInt()))
         let chainData = JSON.parse(stream.read(stream.readLInt()).toString())
 
         for (let chain of chainData.chain) {
