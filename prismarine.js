@@ -34,11 +34,14 @@ class Prismarine {
 
             // Read all packets inside batch and handle them
             for (let buf of pk.getPackets()) {
-                console.log(buf)
-                let packet = new (this.#packetRegistry.get(buf[0]))()  // Get packet from registry
-                packet.buffer = buf
-                packet.decode()
-                player.handleDataPacket(packet)
+                if (this.#packetRegistry.has(buf[0])) {
+                    let packet = new (this.#packetRegistry.get(buf[0]))()  // Get packet from registry
+                    packet.buffer = buf
+                    packet.decode()
+                    player.handleDataPacket(packet)
+                } else {
+                    console.log('Unhandled packet: ', buf)
+                }
             }
         })
 

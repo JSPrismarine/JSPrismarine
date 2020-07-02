@@ -1,7 +1,8 @@
 const fs = require('fs')
+const util = require('util')
 
 const DataPacket = require("./data_packet")
-const ItemTable = require("../../item_id_map.json")
+const ItemTable = require("../../resources/item_id_map.json")
 const PacketBinaryStream = require('../packet_binary_stream')
 
 'use strict'
@@ -91,19 +92,12 @@ class StartGamePacket extends DataPacket {
         this.writeVarInt(0) // enchantment seed
 
         // PMMP states
-        this.append(fs.readFileSync(__dirname + '/../../states.nbt'))
-
-        // TODO: block states
-        // let blocks = fs.readFileSync(__dirname + '/../../blocks.nbt')
-        // let buf = Buffer.from(blocks, 'base64')
-        // this.append(buf)
+        this.append(fs.readFileSync(__dirname + '/../../resources/states.nbt'))
 
         this.append(this.serializeItemTable(ItemTable))
 
         this.writeString('')
-        this.writeBool(false)
-
-        console.log(this.buffer.length)
+        this.writeBool(false) 
     }
 
     serializeItemTable(table) {

@@ -4,6 +4,9 @@ const ClientCacheStatusPacket = require('./mcbe/client_cache_status_packet')
 const { ResourcePackClientResponsePacket } = require('./mcbe/resource_pack_client_response_packet')
 const ResourcePackStackPacket = require('./mcbe/resource_pack_stack_packet')
 const { PacketViolationWarning } = require('./mcbe/packet_violation_warning')
+const RequestChunkRadiusPacket = require('./mcbe/request_chunk_radius_packet')
+const TickSyncPacket = require('./mcbe/tick_sync_packet')
+const SetLocalPlayerAsInitializedPacket = require('./mcbe/set_local_player_as_initialized_packet')
 
 'use strict'
 
@@ -27,6 +30,9 @@ class PacketRegistry extends Map {
         this.registerPacket(ResourcePackClientResponsePacket)
         this.registerPacket(ResourcePackStackPacket)
         this.registerPacket(PacketViolationWarning)
+        this.registerPacket(RequestChunkRadiusPacket)
+        this.registerPacket(TickSyncPacket)
+        this.registerPacket(SetLocalPlayerAsInitializedPacket)
     }
     
 }

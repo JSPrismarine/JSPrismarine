@@ -19,7 +19,7 @@ class PacketViolationWarning extends DataPacket {
         this.type = this.readVarInt()
         this.severity = this.readVarInt()
         this.packetId = this.readVarInt()
-        this.violationContext = this.readString()
+        this.violationContext = this.readRemaining()
     }
 }
 module.exports = { PacketViolationWarning, ViolationType }
