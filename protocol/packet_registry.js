@@ -7,6 +7,7 @@ const { PacketViolationWarning } = require('./mcbe/packet_violation_warning')
 const RequestChunkRadiusPacket = require('./mcbe/request_chunk_radius_packet')
 const TickSyncPacket = require('./mcbe/tick_sync_packet')
 const SetLocalPlayerAsInitializedPacket = require('./mcbe/set_local_player_as_initialized_packet')
+const { MovePlayerPacket } = require('./mcbe/move_player_packet')
 
 'use strict'
 
@@ -33,6 +34,7 @@ class PacketRegistry extends Map {
         this.registerPacket(RequestChunkRadiusPacket)
         this.registerPacket(TickSyncPacket)
         this.registerPacket(SetLocalPlayerAsInitializedPacket)
+        this.registerPacket(MovePlayerPacket)
     }
     
 }

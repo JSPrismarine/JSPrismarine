@@ -1,9 +1,10 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require('../identifiers')
 
 'use strict'
 
 class ResourcePacksInfoPacket extends DataPacket {
-    static NetID = 0x06
+    static NetID = Identifiers.ResourcePacksInfoPacket
 
     mustAccept = false
     hasScripts = false 
@@ -15,11 +16,11 @@ class ResourcePacksInfoPacket extends DataPacket {
         this.writeBool(this.mustAccept)
         this.writeBool(this.hasScripts)
         this.writeLShort(this.behaviorPackEntries.length)
-        for (let behaviorEntry of this.behaviorPackEntries) {
+        for (let _behaviorEntry of this.behaviorPackEntries) {
             // TODO: we don't need them for now
         }
         this.writeLShort(this.resourcePackEntries.length)
-        for (let resourceEntry of this.resourcePackEntries) {
+        for (let _resourceEntry of this.resourcePackEntries) {
             // TODO: we don't need them for now
         }
     }

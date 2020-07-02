@@ -11,6 +11,7 @@ const ChunkRadiusUpdatedPacket = require('./protocol/mcbe/chunk_radius_updated_p
 const Chunk = require('./level/chunk')
 const LevelChunkPacket = require("./protocol/mcbe/level_chunk_packet")
 const BiomeDefinitionListPacket = require('./protocol/mcbe/biome_definition_list_packet')
+const Identifiers = require("./protocol/identifiers")
 
 'use strict'
 
@@ -21,13 +22,18 @@ class Player extends Entity {
     #address
     #name
     #locale 
-    #runtimeId
+    #randomId
+
     // TODO, UUID class and converter  
     #uuid
     #xuid
     #skin
 
     #viewDistance
+    #gamemode = 0
+
+    #pitch = 0
+    #yaw = 0
 
     // Device
     #deviceOS
@@ -43,10 +49,10 @@ class Player extends Entity {
     handleDataPacket(packet) {
         let pk
         switch (packet.id) {
-            case 0x01:  // Login 
+            case Identifiers.LoginPacket:  // Login 
                 this.#name = packet.displayName
                 this.#locale = packet.languageCode
-                this.#runtimeId = packet.randomClientId
+                this.#randomId = packet.randomClientId
                 this.#uuid = packet.identity
 
                 this.#deviceId = packet.deviceId
@@ -60,13 +66,20 @@ class Player extends Entity {
                 pk = new ResourcePacksInfoPacket()
                 this.sendDataPacket(pk)
                 break
-            case 0x08:  // Resource pack client response    
+            case Identifiers.ResourcePackClientResponsePacket:  
                 if (packet.status === ResourcePackStatus.HaveAllPacks) {
                     pk = new ResourcePackStackPacket()
                     this.sendDataPacket(pk)
                 } else if (packet.status === ResourcePackStatus.Completed) {
-                    console.log('Completed!')
                     pk = new StartGamePacket()
+                    pk.entityId = this.runtimeId
+                    pk.runtimeEntityId = this.runtimeId
+                    // pk.playerGamemode = this.gamemode
+                    // pk.playerX = this.x
+                    // pk.playerY = this.y
+                    // pk.playerZ = this.z
+                    // pk.playerPitch = this.#pitch
+                    // pk.playerYaw = this.#yaw
                     this.sendDataPacket(pk)
 
                     this.sendDataPacket(new AvailableActorIdentifiersPacket())
@@ -118,7 +131,10 @@ class Player extends Entity {
                     console.log('Done sending chunks')
                     this.sendPlayStatus(Status.PlayerSpawn)
                 }) 
-                break    
+                break
+            case Identifiers.MovePlayerPacket:
+                console.log(packet)
+                break        
         }
     }
 

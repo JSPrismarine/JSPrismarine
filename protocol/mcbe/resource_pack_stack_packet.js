@@ -1,33 +1,35 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
 class ResourcePackStackPacket extends DataPacket {
-    static NetID = 0x07  // TODO
+    static NetID = Identifiers.ResourcePackStackPacket
 
     mustAccept = false
 
     behaviorPackStack = []
     resourcePackStack = []
 
-    experimental = false
-    vanillaVersion = '1.16.0'  // Soon fix
-
     encodePayload() {
         this.writeBool(this.mustAccept)
 
         this.writeUnsignedVarInt(this.behaviorPackStack.length)
-        // for (let behaviorPackStack of this.behaviorPackStack) {
-            // TODO: not needed for now
-        // }
+        for (let _behaviorPackStack of this.behaviorPackStack) {
+            this.writeString('')
+            this.writeString('')
+            this.writeString('')
+        }
 
         this.writeUnsignedVarInt(this.resourcePackStack.length)
-        // for (let resourcePackStack of this.resourcePackStack) {
-            // TODO: not needed for now
-        // }
+        for (let _resourcePackStack of this.resourcePackStack) {
+            this.writeString('')
+            this.writeString('')
+            this.writeString('')
+        }
 
-        this.writeBool(this.experimental)
-        this.writeString(this.vanillaVersion)
+        this.writeBool(false)  // experimental
+        this.writeString(Identifiers.MinecraftVersion)
     }
 }
 module.exports = ResourcePackStackPacket
