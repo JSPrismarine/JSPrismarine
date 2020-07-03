@@ -25,6 +25,7 @@
   "dependencies": {
     "jsbinaryutils": "1.0.7",
     "jsraknet": "^1.0.5",
-    "jwt-decode": "^2.2.0"
+    "jwt-decode": "^2.2.0",
+    "winston": "^3.3.3"
   }
 }
