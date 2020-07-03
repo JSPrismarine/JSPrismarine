@@ -1,3 +1,6 @@
+const winston = require('winston')
+
+const Connection = require('jsraknet/connection')
 const Entity = require('./entity')
 const EncapsulatedPacket = require('jsraknet/protocol/encapsulated_packet')
 const { PlayStatusPacket, Status } = require('./protocol/mcbe/play_status_packet')
@@ -17,9 +20,12 @@ const Identifiers = require("./protocol/identifiers")
 
 class Player extends Entity {
 
+    /** @type {Connection} */
     #connection
-
+    /** @type {winston.Logger} */
+    #logger
     #address
+
     name
     locale 
     randomId
@@ -43,10 +49,11 @@ class Player extends Entity {
     #deviceModel
     #deviceId
 
-    constructor(connection, address) {
+    constructor(connection, address, logger) {
         super()
         this.#connection = connection
         this.#address = address
+        this.#logger = logger
     }
 
     handleDataPacket(packet) {
@@ -55,8 +62,9 @@ class Player extends Entity {
             case Identifiers.LoginPacket:  
                 this.name = packet.displayName
                 this.locale = packet.languageCode
-                this.randomId = packet.randomClientId
+                this.randomId = packet.clientRandomId
                 this.uuid = packet.identity
+                this.xuid = packet.XUID
 
                 this.#deviceId = packet.deviceId
                 this.#deviceOS = packet.deviceOS
@@ -87,6 +95,11 @@ class Player extends Entity {
 
                     this.sendDataPacket(new AvailableActorIdentifiersPacket())
                     this.sendDataPacket(new BiomeDefinitionListPacket())
+
+                    this.#logger.log({
+                        level: 'info',
+                        message: `${this.name} is attempting to join with id ${this.runtimeId} from ${this.#address.address}:${this.#address.port}`
+                    })
                 }
                break
             case 0x9c:

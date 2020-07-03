@@ -1,3 +1,5 @@
+const winston = require('winston')
+
 const Listener = require('jsraknet')
 const Player = require('./player')
 const BatchPacket = require('./protocol/mcbe/batch_packet')
@@ -8,18 +10,27 @@ const PacketRegistry = require('./protocol/packet_registry')
 class Prismarine {
 
     /** @type {Listener} */
-    #raknet 
+    #raknet
+    /** @type {winston.Logger} */ 
+    #logger
     /** @type {Map<string, Player>} */
     #players = new Map()
     /** @type {PacketRegistry} */
     #packetRegistry = new PacketRegistry()
+
+    constructor(logger) {
+        // Pass default server logger
+        this.#logger = logger
+    }
 
     listen() {
         this.#raknet = (new Listener).listen('0.0.0.0', 19132)
 
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
-            this.#players.set(connection.address.address, new Player(connection, connection.address))
+            this.#players.set(connection.address.address, new Player(
+                connection, connection.address, this.#logger
+            ))
         })
 
         // Get player from map by address, then handle packet
@@ -40,15 +51,20 @@ class Prismarine {
                     packet.decode()
                     player.handleDataPacket(packet)
                 } else {
-                    console.log('Unhandled packet: ', buf)
+                    this.#logger.log({
+                        level: 'debug', 
+                        message: 'Unhandled packet: ', buf
+                    })
                 }
             }
         })
 
         this.#raknet.on('closeConnection', (inetAddress, reason) => {
-            console.log(`${inetAddress.address}:${inetAddress.port} disconnected due to ${reason}`)
+            this.#logger.log({
+                level: 'info',
+                message: `${inetAddress.address}:${inetAddress.port} disconnected due to ${reason}`
+            })
         })
     }
-
 }
 module.exports = Prismarine

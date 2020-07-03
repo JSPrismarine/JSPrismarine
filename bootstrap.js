@@ -1,20 +1,29 @@
-const winston = require('winston')
+const { createLogger, format, transports } = require('winston')
+const { combine, timestamp, label, printf, prettyPrint } = format
 
 const Prismarine = require('./prismarine')
 
 'use strict'
 
 // Construct a new logger
-let logger = winston.createLogger({
+
+  
+
+let logger = createLogger({
     transports: [
-        new winston.transports.Console({
-            format: winston.format.combine(
-                winston.format.colorize(),
-                winston.format.simple()
+        new transports.Console({
+            format: combine(
+                timestamp({format: 'HH:mm:ss'}),
+                format.colorize(),
+                format.simple(),
+                printf(({ level, message, timestamp }) => {
+                    return `[${timestamp}] ${level}: ${message}`;
+                })
             ),
         })
     ]
 })
-logger.log({level: 'info', message: 'test'})
-const server = new Prismarine()
+
+// TODO: read config
+const server = new Prismarine(logger)
 server.listen()
