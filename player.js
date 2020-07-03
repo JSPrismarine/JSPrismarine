@@ -52,7 +52,7 @@ class Player extends Entity {
     handleDataPacket(packet) {
         let pk
         switch (packet.id) {
-            case Identifiers.LoginPacket:  // Login 
+            case Identifiers.LoginPacket:  
                 this.name = packet.displayName
                 this.locale = packet.languageCode
                 this.randomId = packet.randomClientId
@@ -148,7 +148,10 @@ class Player extends Entity {
                 break   
             case 0x7b:  // Level sound event packet
                 // console.log(packet)
-                break         
+                break   
+            case Identifiers.TextPacket:
+                console.log(`${packet.sourceName} > ${packet.message}`)  
+                break        
         }
     }
 

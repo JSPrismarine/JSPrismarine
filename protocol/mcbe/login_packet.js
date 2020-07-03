@@ -88,7 +88,7 @@ class LoginPacket extends DataPacket {
         this.skin = skin
 
         this.deviceId = decodedJWT.DeviceId
-        this.deviceModel = decodedJWT.DeviceOS
+        this.deviceOS = decodedJWT.DeviceOS
         this.deviceModel = decodedJWT.DeviceModel
 
         this.clientRandomID = decodedJWT.ClientRandomId

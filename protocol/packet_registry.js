@@ -9,6 +9,11 @@ const TickSyncPacket = require('./mcbe/tick_sync_packet')
 const SetLocalPlayerAsInitializedPacket = require('./mcbe/set_local_player_as_initialized_packet')
 const { MovePlayerPacket } = require('./mcbe/move_player_packet')
 const LevelSoundEventPacket = require('./mcbe/level_sound_event_packet')
+const { InteractPacket } = require('./mcbe/interact_packet')
+const { AnimatePacket } = require('./mcbe/animate_packet')
+const { PlayerActionPacket } = require('./mcbe/player_action_packet')
+const ServerSettingsRequestPacket = require('./mcbe/server_settings_request_packet')
+const { TextPacket } = require('./mcbe/text_packet')
 
 'use strict'
 
@@ -37,6 +42,11 @@ class PacketRegistry extends Map {
         this.registerPacket(SetLocalPlayerAsInitializedPacket)
         this.registerPacket(MovePlayerPacket)
         this.registerPacket(LevelSoundEventPacket)
+        this.registerPacket(InteractPacket)
+        this.registerPacket(AnimatePacket)
+        this.registerPacket(PlayerActionPacket)
+        this.registerPacket(ServerSettingsRequestPacket)
+        this.registerPacket(TextPacket)
     }
     
 }

@@ -40,7 +40,7 @@ class DataPacket extends PacketBinaryStream {
         this.#receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK
     }
 
-    encodePayload() {
+    decodePayload() {
 
     }
 
@@ -59,7 +59,7 @@ class DataPacket extends PacketBinaryStream {
         )
     }
 
-    writePayload() {
+    encodePayload() {
 
     }
 
