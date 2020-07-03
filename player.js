@@ -1,4 +1,4 @@
-const Entity = require("./entity")
+const Entity = require('./entity')
 const EncapsulatedPacket = require('jsraknet/protocol/encapsulated_packet')
 const { PlayStatusPacket, Status } = require('./protocol/mcbe/play_status_packet')
 const ResourcePacksInfoPacket = require('./protocol/mcbe/resource_packs_info_packet')
@@ -6,7 +6,7 @@ const BatchPacket = require("./protocol/mcbe/batch_packet")
 const { ResourcePackStatus } = require('./protocol/mcbe/resource_pack_client_response_packet')
 const ResourcePackStackPacket = require('./protocol/mcbe/resource_pack_stack_packet')
 const StartGamePacket = require("./protocol/mcbe/start_game_packet")
-const AvailableActorIdentifiersPacket = require("./protocol/mcbe/available_actor_identifiers_packet")
+const AvailableActorIdentifiersPacket = require('./protocol/mcbe/available_actor_identifiers_packet')
 const ChunkRadiusUpdatedPacket = require('./protocol/mcbe/chunk_radius_updated_packet')
 const Chunk = require('./level/chunk')
 const LevelChunkPacket = require("./protocol/mcbe/level_chunk_packet")
@@ -100,6 +100,7 @@ class Player extends Entity {
                 // Update player vieww distance
                 this.viewDistance = pk.radius
 
+                // Send chunks
                 new Promise((resolve, reject) => {
                     setImmediate(() => {
                         try {
@@ -107,7 +108,7 @@ class Player extends Entity {
                                 let distance = this.viewDistance
                                 for (let chunkX = -distance; chunkX <= distance; chunkX++) {
                                     for (let chunkZ = -distance; chunkZ <= distance; chunkZ++) {
-                                        let chunk = new Chunk()
+                                        let chunk = new Chunk(chunkX, chunkZ)
                         
                                         for (let x = 0; x < 16; x++) {
                                             for (let z = 0; z < 16; z++) {
@@ -145,8 +146,8 @@ class Player extends Entity {
                 // We still have some fileds 
                 // at the moment we don't need them
                 break   
-            case 0x7b:
-                console.log(packet)
+            case 0x7b:  // Level sound event packet
+                // console.log(packet)
                 break         
         }
     }
