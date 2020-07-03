@@ -6,9 +6,6 @@ const Prismarine = require('./prismarine')
 'use strict'
 
 // Construct a new logger
-
-  
-
 let logger = createLogger({
     transports: [
         new transports.Console({
