@@ -39,7 +39,7 @@ class LoginPacket extends DataPacket {
             if (decodedChain.extraData) {
                 this.XUID = decodedChain.extraData.XUID
                 this.identity = decodedChain.extraData.identity
-                this.disaplayName = decodedChain.extraData.displayName
+                this.displayName = decodedChain.extraData.displayName
             }
 
             this.identityPublicKey = decodedChain.identityPublicKey
