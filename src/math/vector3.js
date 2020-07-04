@@ -2,11 +2,14 @@
 
 class Vector3 {
 
-    x = 0
-    y = 0
-    z = 0
+    /** @type {number} */
+    x 
+    /** @type {number} */
+    y 
+    /** @type {number} */
+    z
 
-    constructor(x, y, z) {
+    constructor(x = 0, y = 0, z = 0) {
         this.x = x 
         this.y = y
         this.z = z

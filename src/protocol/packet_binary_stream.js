@@ -27,6 +27,9 @@ class PacketBinaryStream extends BinaryStream {
     }
 
     writeUUID(uuid) {
+        if (typeof uuid === 'string') {
+            uuid = UUID.fromString(uuid)
+        }
         this.writeLInt(uuid.parts[1])
         this.writeLInt(uuid.parts[0])
         this.writeLInt(uuid.parts[3])
@@ -44,12 +47,13 @@ class PacketBinaryStream extends BinaryStream {
         // Read animations
         let animationCount = this.readLInt()
         for (let i = 0; i < animationCount; i++) {
+            // Names are from LoginPacket skin
             skin.animations.push({
                 ImageWidth: this.readLInt(),
                 ImageHeight: this.readLInt(),
-                ImageData: this.readString(),
-                AnimationType: this.readLInt(),
-                FrameCount: this.readLFloat()
+                Image: this.readString(),
+                Type: this.readLInt(),
+                Frames: this.readLFloat()
             })
         }
 
@@ -108,9 +112,9 @@ class PacketBinaryStream extends BinaryStream {
         for (let animation of skin.animations) {
             this.writeLInt(animation.ImageWidth)
             this.writeLInt(animation.ImageHeight)
-            this.writeString(animation.ImageData)
-            this.writeLInt(animation.AnimationType)
-            this.writeLFloat(animation.FrameCount)
+            this.writeString(animation.Image)
+            this.writeLInt(animation.Type)
+            this.writeLFloat(animation.Frames)
         }
         this.writeLInt(skin.capeImageWidth)
         this.writeLInt(skin.capeImageHeight)
@@ -126,11 +130,11 @@ class PacketBinaryStream extends BinaryStream {
         this.writeString(skin.skinColor)
         this.writeLInt(skin.personaPieces.length)
         for (let personaPiece of skin.personaPieces) {
-            this.writeString(personaPiece.PieceID)
+            this.writeString(personaPiece.PieceId)
             this.writeString(personaPiece.PieceType)
-            this.writeString(personaPiece.PackID)
-            this.writeBool(personaPiece.Default)
-            this.writeString(personaPiece.ProductID)
+            this.writeString(personaPiece.PackId)
+            this.writeBool(personaPiece.IsDefault)
+            this.writeString(personaPiece.ProductId)
         }
         this.writeLInt(skin.pieceTintColors.length)
         for (let tint of skin.pieceTintColors) {
@@ -140,6 +144,18 @@ class PacketBinaryStream extends BinaryStream {
                 this.writeString(color)
             }
         }
+    }
+
+    writePlayerAddEntry(entry) {
+        this.writeUUID(entry.uuid) 
+        this.writeVarLong(entry.uniqueEntityId)
+        this.writeString(entry.name) 
+        this.writeString(entry.xuid)
+        this.writeString(entry.platformChatId)
+        this.writeLInt(entry.buildPlatform)
+        this.writeSkin(entry.skin)
+        this.writeBool(entry.teacher)
+        this.writeBool(entry.host)
     }
 
 }   
