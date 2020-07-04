@@ -158,5 +158,9 @@ class PacketBinaryStream extends BinaryStream {
         this.writeBool(entry.host)
     }
 
+    writePlayerRemoveEntry(entry) {
+        this.writeUUID(entry.uuid)
+    }
+
 }   
 module.exports = PacketBinaryStream

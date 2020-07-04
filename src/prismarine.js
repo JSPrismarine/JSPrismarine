@@ -29,7 +29,7 @@ class Prismarine {
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
             this.#players.set(connection.address.address, new Player(
-                connection, connection.address, this.#logger, this
+                connection, connection.address, this.#logger,
             ))
         })
 
