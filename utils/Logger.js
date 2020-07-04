@@ -1,6 +1,7 @@
 "use strict";
 
 const textFormat = require("./TextFormat.js");
+const timestamp = require("time-stamp");
 
 class Logger {
     static log(type_, content) {
