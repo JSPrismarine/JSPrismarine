@@ -7,7 +7,7 @@ class Skin {
     skinImageWidth
     skinImageHeight
     skinData
-    animations
+    animations = []
     capeImageWidth
     capeImageHeight
     capeData
@@ -19,8 +19,12 @@ class Skin {
     capeId
     skinColor
     armSize
-    personaPieces
-    peieceTintColors
+    personaPieces = []
+    pieceTintColors = []
+
+    // Computed  
+    fullId  
+    trusted = true 
 
 }
 module.exports = Skin

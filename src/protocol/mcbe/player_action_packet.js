@@ -1,4 +1,5 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
@@ -31,7 +32,7 @@ const PlayerAction = {
     InteractBlock: 25
 }
 class PlayerActionPacket extends DataPacket {
-    static NetID = 0x24  // TODO
+    static NetID = Identifiers.PlayerActionPacket
 
     runtimeEntityId
     action

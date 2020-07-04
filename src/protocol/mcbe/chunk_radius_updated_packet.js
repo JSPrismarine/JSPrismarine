@@ -1,9 +1,10 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
 class ChunkRadiusUpdatedPacket extends DataPacket {
-    static NetID = 0x46  // TODO
+    static NetID = Identifiers.ChunkRadiusUpdatedPacket
 
     radius
 

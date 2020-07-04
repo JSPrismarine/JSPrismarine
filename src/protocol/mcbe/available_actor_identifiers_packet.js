@@ -1,11 +1,12 @@
 const fs = require('fs')
 
 const DataPacket = require("./data_packet")
+const Identifiers = require('../identifiers')
 
 'use strict'
 
 class AvailableActorIdentifiersPacket extends DataPacket {
-    static NetID = 0x77
+    static NetID = Identifiers.AvailableActorIdentifiersPacket
 
     #cachedNBT
 

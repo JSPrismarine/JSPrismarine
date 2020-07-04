@@ -7,7 +7,6 @@ const PacketBinaryStream = require('../packet_binary_stream')
 'use strict'
 
 class BatchPacket extends DataPacket {
-
     static NetID = 0xfe
 
     payload = Buffer.alloc(0)

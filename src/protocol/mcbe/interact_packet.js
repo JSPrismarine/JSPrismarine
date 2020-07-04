@@ -1,4 +1,5 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
@@ -9,7 +10,7 @@ const InteractAction = {
     OpneInventory: 6
 }
 class InteractPacket extends DataPacket {
-    static NetID = 0x21  // TODO
+    static NetID = Identifiers.InteractPacket
 
     action
     target

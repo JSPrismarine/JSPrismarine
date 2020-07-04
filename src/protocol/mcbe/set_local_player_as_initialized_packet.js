@@ -1,9 +1,10 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
 class SetLocalPlayerAsInitializedPacket extends DataPacket {
-    static NetID = 0x71
+    static NetID = Identifiers.SetLocalPlayerAsInitializedPacket
 
     runtimeEntityId
 

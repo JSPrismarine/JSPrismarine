@@ -84,7 +84,8 @@ class LoginPacket extends DataPacket {
         skin.skinColor = decodedJWT.SkinColor
         skin.armSize = decodedJWT.ArmSize
         skin.personaPieces = personaPieces
-        skin.peieceTintColors = pieceTintColors
+        skin.pieceTintColors = pieceTintColors
+        skin.fullId = skin.capeId + skin.skinId  // Computed
         this.skin = skin
 
         this.deviceId = decodedJWT.DeviceId

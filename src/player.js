@@ -15,6 +15,7 @@ const Chunk = require('./level/chunk')
 const LevelChunkPacket = require("./protocol/mcbe/level_chunk_packet")
 const BiomeDefinitionListPacket = require('./protocol/mcbe/biome_definition_list_packet')
 const Identifiers = require("./protocol/identifiers")
+const UUID = require('./utils/uuid')
 
 'use strict'
 
@@ -96,10 +97,7 @@ class Player extends Entity {
                     this.sendDataPacket(new AvailableActorIdentifiersPacket())
                     this.sendDataPacket(new BiomeDefinitionListPacket())
 
-                    this.#logger.log({
-                        level: 'info',
-                        message: `${this.name} is attempting to join with id ${this.runtimeId} from ${this.#address.address}:${this.#address.port}`
-                    })
+                    this.#logger.info(`${this.name} is attempting to join with id ${this.runtimeId} from ${this.#address.address}:${this.#address.port}`)
                 }
                break
             case 0x9c:
@@ -163,7 +161,7 @@ class Player extends Entity {
                 // console.log(packet)
                 break   
             case Identifiers.TextPacket:
-                console.log(`${packet.sourceName} > ${packet.message}`)
+                this.#logger.silly(`<${packet.sourceName}> ${packet.message}`)
                 break        
         }
     }
