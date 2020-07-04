@@ -51,10 +51,7 @@ class Prismarine {
                     packet.decode()
                     player.handleDataPacket(packet)
                 } else {
-                    this.#logger.log({
-                        level: 'debug', 
-                        message: 'Unhandled packet: ', buf
-                    })
+                    console.log('Unhandled packet', buf)  // The new logger won't work
                 }
             }
         })

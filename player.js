@@ -163,7 +163,7 @@ class Player extends Entity {
                 // console.log(packet)
                 break   
             case Identifiers.TextPacket:
-                console.log(`${packet.sourceName} > ${packet.message}`)  
+                console.log(`${packet.sourceName} > ${packet.message}`)
                 break        
         }
     }
