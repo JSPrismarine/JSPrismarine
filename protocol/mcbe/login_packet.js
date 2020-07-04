@@ -49,18 +49,18 @@ class LoginPacket extends DataPacket {
 
         // Skin data
         let animations = []
-        for (animation of decodedJWT.AnimatedImageData) {
+        for (let animation of decodedJWT.AnimatedImageData) {
             animations.push(animation)
         }
 
         let personaPieces = []
-        for (personaPiece of decodedJWT.PersonaPieces) {
+        for (let personaPiece of decodedJWT.PersonaPieces) {
             personaPieces.push(personaPiece)
         }
 
         let pieceTintColors = []
-        for (peieceTintColor of decodedJWT.PieceTintColors) {
-            pieceTintColors.push(PieceTintColor)
+        for (let pieceTintColor of decodedJWT.PieceTintColors) {
+            pieceTintColors.push(pieceTintColor)
         }
         
         // Sometimes using a constructor is a bad idea...

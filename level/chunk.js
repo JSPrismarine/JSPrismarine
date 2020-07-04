@@ -91,15 +91,14 @@ class Chunk {
     }
 
     getHighestSubChunkIndex() {
-        let y
-        for (y = this._subChunks.size - 1; y >= 0; --y) {
+        for (let y = this._subChunks.size - 1; y >= 0; --y) {
             if (this._subChunks.get(y) instanceof EmptySubChunk) {
                 continue
             }
-            break
+            return y
         }
 
-        return y
+        return -1
     }
 
     getHighestBlock(x, z) {
