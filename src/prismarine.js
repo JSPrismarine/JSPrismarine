@@ -29,7 +29,7 @@ class Prismarine {
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
             this.#players.set(connection.address.address, new Player(
-                connection, connection.address, this.#logger
+                connection, connection.address, this.#logger, this
             ))
         })
 
@@ -57,8 +57,13 @@ class Prismarine {
         })
 
         this.#raknet.on('closeConnection', (inetAddress, reason) => {
-            this.#logger.info(`${inetAddress.address}:${inetAddress.port} disconnected due to ${reason})`)
+            this.#logger.info(`${inetAddress.address}:${inetAddress.port} disconnected due to ${reason}`)
         })
     }
+
+    get players() {
+        return this.#players
+    }
+
 }
 module.exports = Prismarine

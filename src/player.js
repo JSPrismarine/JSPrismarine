@@ -3,6 +3,7 @@ const winston = require('winston')
 const Connection = require('jsraknet/connection')
 const Entity = require('./entity')
 const EncapsulatedPacket = require('jsraknet/protocol/encapsulated_packet')
+const InetAddress = require('jsraknet/utils/inet_address')
 const { PlayStatusPacket, Status } = require('./protocol/mcbe/play_status_packet')
 const ResourcePacksInfoPacket = require('./protocol/mcbe/resource_packs_info_packet')
 const BatchPacket = require("./protocol/mcbe/batch_packet")
@@ -15,7 +16,11 @@ const Chunk = require('./level/chunk')
 const LevelChunkPacket = require("./protocol/mcbe/level_chunk_packet")
 const BiomeDefinitionListPacket = require('./protocol/mcbe/biome_definition_list_packet')
 const Identifiers = require("./protocol/identifiers")
+const Skin = require('./utils/skin')
 const UUID = require('./utils/uuid')
+const Prismarine = require('./prismarine')
+const { PlayerListPacket, PlayerListAction, PlayerListEntry } = require('./protocol/mcbe/player_list_packet')
+const AddPlayerPacket = require('./protocol/mcbe/add_player_packet')
 
 'use strict'
 
@@ -23,26 +28,40 @@ class Player extends Entity {
 
     /** @type {Connection} */
     #connection
+    /** @type {Prismarine} */
+    #server
     /** @type {winston.Logger} */
     #logger
+    /** @type {InetAddress} */
     #address
 
+    /** @type {string} */
     name
+    /** @type {string} */
     locale 
+    /** @type {number} */
     randomId
 
-    // TODO, UUID class and converter  
+    /** @type {string} */
     uuid
+    /** @type {string} */
     xuid
+    /** @type {Skin} */
     skin
 
+    /** @type {number} */
     viewDistance
+    /** @type {number} */
     gamemode = 0
 
+    /** @type {number} */
     pitch = 0
+    /** @type {number} */
     yaw = 0
+    /** @type {number} */
     headYaw = 0
 
+    /** @type {boolean} */
     onGround = false
 
     // Device
@@ -50,11 +69,12 @@ class Player extends Entity {
     #deviceModel
     #deviceId
 
-    constructor(connection, address, logger) {
+    constructor(connection, address, logger, server) {
         super()
         this.#connection = connection
         this.#address = address
         this.#logger = logger
+        this.#server = server
     }
 
     handleDataPacket(packet) {
@@ -98,6 +118,9 @@ class Player extends Entity {
                     this.sendDataPacket(new BiomeDefinitionListPacket())
 
                     this.#logger.info(`${this.name} is attempting to join with id ${this.runtimeId} from ${this.#address.address}:${this.#address.port}`)
+
+                    // Send player list
+                    this.sendPlayerList() 
                 }
                break
             case 0x9c:
@@ -159,7 +182,13 @@ class Player extends Entity {
                 break   
             case 0x7b:  // Level sound event packet
                 // console.log(packet)
-                break   
+                break  
+            case Identifiers.SetLocalPlayerAsInitializedPacket:
+                for (const [_, player] of this.#server.players) {
+                    if (player === this) return
+                    this.sendSpawn(player)
+                }
+                break     
             case Identifiers.TextPacket:
                 this.#logger.silly(`<${packet.sourceName}> ${packet.message}`)
                 break        
@@ -176,6 +205,48 @@ class Player extends Entity {
         pk.subChunkCount = chunk.getSubChunkSendCount()
         pk.data = chunk.toBinary()
         this.sendDataPacket(pk)
+    }
+
+    sendPlayerList() {
+        let pk = new PlayerListPacket()
+        pk.type = PlayerListAction.Add
+        for (const [_, player] of this.#server.players) {
+            let entry = new PlayerListEntry()
+            entry.uuid = UUID.fromString(player.uuid)
+            entry.uniqueEntityId = player.runtimeId
+            entry.name = player.name
+            entry.xuid = player.xuid
+            entry.platformChatId = ''  // TODO: read this value from StartGamePacket
+            entry.buildPlatform = 0  // TODO: read also this
+            entry.skin = player.skin
+            entry.teacher = false  // TODO: figure out where to read teacher and host
+            entry.host = false
+            pk.entries.push(entry)
+        }
+        this.sendDataPacket(pk)
+    }
+
+    sendSpawn(player) {
+        let pk = new AddPlayerPacket()
+        pk.uuid = UUID.fromString(this.uuid)
+        pk.runtimeEntityId = this.runtimeId
+        pk.name = this.name
+
+        pk.positionX = this.x
+        pk.positionY = this.y
+        pk.positionZ = this.z
+
+        // TODO: motion
+        pk.motionX = 0
+        pk.motionY = 0
+        pk.motionZ = 0
+
+        pk.pitch = this.pitch
+        pk.yaw = this.yaw
+        pk.headYaw = this.headYaw
+
+        pk.deviceId = this.#deviceId
+        player.sendDataPacket(pk)
     }
 
     /**

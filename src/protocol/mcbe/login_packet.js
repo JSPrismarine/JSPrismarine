@@ -16,7 +16,7 @@ class LoginPacket extends DataPacket {
     protocol
     identityPublicKey
 
-    clientRandomID
+    clientRandomId
     serverAddress
     languageCode
 
@@ -92,7 +92,7 @@ class LoginPacket extends DataPacket {
         this.deviceOS = decodedJWT.DeviceOS
         this.deviceModel = decodedJWT.DeviceModel
 
-        this.clientRandomID = decodedJWT.ClientRandomId
+        this.clientRandomId = decodedJWT.ClientRandomId
         this.serverAddress = decodedJWT.ServerAddress
         this.languageCode = decodedJWT.LanguageCode
     }
