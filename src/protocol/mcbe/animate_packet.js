@@ -1,4 +1,5 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
@@ -11,7 +12,7 @@ const AnimateAction = {
     RowLeft: 129
 }
 class AnimatePacket extends DataPacket {
-    static NetID = 0x2c  // TODO
+    static NetID = Identifiers.AnimatePacket
 
     action
     runtimeEntityId

@@ -1,9 +1,10 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
 class TickSyncPacket extends DataPacket {
-    static NetID = 0x17  // TODO
+    static NetID = Identifiers.TickSyncPacket
 
     clientRequestTimestamp
     serverReceptionTimestamp

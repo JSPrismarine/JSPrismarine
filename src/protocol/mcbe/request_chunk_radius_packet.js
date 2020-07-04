@@ -1,9 +1,10 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
 class RequestChunkRadiusPacket extends DataPacket {
-    static NetID = 0x45  // TODO
+    static NetID = Identifiers.RequestChunkRadiusPacket
 
     radius
 

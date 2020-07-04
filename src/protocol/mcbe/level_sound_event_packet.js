@@ -1,7 +1,8 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 class LevelSoundEventPacket extends DataPacket {
-    static NetID = 0x7b 
+    static NetID = Identifiers.LevelSoundEventPacket
 
     sound
     

@@ -3,7 +3,7 @@ const LoginPacket = require('./mcbe/login_packet')
 const ClientCacheStatusPacket = require('./mcbe/client_cache_status_packet')
 const { ResourcePackClientResponsePacket } = require('./mcbe/resource_pack_client_response_packet')
 const ResourcePackStackPacket = require('./mcbe/resource_pack_stack_packet')
-const { PacketViolationWarning } = require('./mcbe/packet_violation_warning')
+const { PacketViolationWarningPacket } = require('./mcbe/packet_violation_warning')
 const RequestChunkRadiusPacket = require('./mcbe/request_chunk_radius_packet')
 const TickSyncPacket = require('./mcbe/tick_sync_packet')
 const SetLocalPlayerAsInitializedPacket = require('./mcbe/set_local_player_as_initialized_packet')
@@ -14,6 +14,7 @@ const { AnimatePacket } = require('./mcbe/animate_packet')
 const { PlayerActionPacket } = require('./mcbe/player_action_packet')
 const ServerSettingsRequestPacket = require('./mcbe/server_settings_request_packet')
 const { TextPacket } = require('./mcbe/text_packet')
+const PlayerSkinPacket = require('./mcbe/player_skin_packet')
 
 'use strict'
 
@@ -36,7 +37,7 @@ class PacketRegistry extends Map {
         this.registerPacket(ClientCacheStatusPacket)
         this.registerPacket(ResourcePackClientResponsePacket)
         this.registerPacket(ResourcePackStackPacket)
-        this.registerPacket(PacketViolationWarning)
+        this.registerPacket(PacketViolationWarningPacket)
         this.registerPacket(RequestChunkRadiusPacket)
         this.registerPacket(TickSyncPacket)
         this.registerPacket(SetLocalPlayerAsInitializedPacket)
@@ -47,6 +48,7 @@ class PacketRegistry extends Map {
         this.registerPacket(PlayerActionPacket)
         this.registerPacket(ServerSettingsRequestPacket)
         this.registerPacket(TextPacket)
+        this.registerPacket(PlayerSkinPacket)
     }
     
 }

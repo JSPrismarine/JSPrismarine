@@ -57,10 +57,7 @@ class Prismarine {
         })
 
         this.#raknet.on('closeConnection', (inetAddress, reason) => {
-            this.#logger.log({
-                level: 'info',
-                message: `${inetAddress.address}:${inetAddress.port} disconnected due to ${reason}`
-            })
+            this.#logger.info(`${inetAddress.address}:${inetAddress.port} disconnected due to ${reason})`)
         })
     }
 }

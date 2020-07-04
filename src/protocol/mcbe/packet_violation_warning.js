@@ -1,4 +1,5 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
@@ -7,8 +8,8 @@ const ViolationType = {
     SeverityFinalWarning: 1,
     SeverityTerminatingConnection: 2
 }
-class PacketViolationWarning extends DataPacket {
-    static NetID = 0x9c  // TODO
+class PacketViolationWarningPacket extends DataPacket {
+    static NetID = Identifiers.PacketViolationWarningPacket
 
     type
     severity
@@ -22,4 +23,4 @@ class PacketViolationWarning extends DataPacket {
         this.violationContext = this.readRemaining()
     }
 }
-module.exports = { PacketViolationWarning, ViolationType }
+module.exports = { PacketViolationWarningPacket, ViolationType }

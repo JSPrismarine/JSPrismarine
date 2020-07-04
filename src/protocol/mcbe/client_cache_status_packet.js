@@ -1,9 +1,10 @@
 const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
 
 'use strict'
 
 class ClientCacheStatusPacket extends DataPacket {
-    static NetID = 0x81  // TODO
+    static NetID = Identifiers.ClientCacheStatusPacket
 
     enabled
 
