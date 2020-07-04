@@ -207,8 +207,6 @@ class Player extends Entity {
         this.sendDataPacket(pk)
     }
 
-    // Update the PlayerList for every player, so also the player 
-    // joined before can have an updated list
     sendPlayerList() {
         let pk = new PlayerListPacket()
         pk.type = PlayerListAction.Add
@@ -224,8 +222,8 @@ class Player extends Entity {
             entry.teacher = false  // TODO: figure out where to read teacher and host
             entry.host = false
             pk.entries.push(entry)
-            player.sendDataPacket(pk)
         }
+        this.sendDataPacket(pk)
     }
 
     sendSpawn(player) {
