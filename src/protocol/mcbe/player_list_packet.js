@@ -1,6 +1,8 @@
-const DataPacket = require("./data_packet");
-const Identifiers = require("../identifiers");
-const UUID = require("../../utils/uuid");
+const logger = require('../../utils/logger')
+
+const DataPacket = require("./data_packet")
+const Identifiers = require("../identifiers")
+const UUID = require("../../utils/uuid")
 
 'use strict'
 
@@ -45,9 +47,15 @@ class PlayerListPacket extends DataPacket {
             if (this.type === PlayerListAction.Add) {
                 this.writePlayerAddEntry(entry)
             } else if (this.type === PlayerListPacket.Remove) {
-                
+                this.writePlayerRemoveEntry(entry)
             } else {
+                logger.warn(`Invalid player list action type ${this.type}`)
+            }
+        }
 
+        if (this.type === PlayerListAction.Add) {
+            for (let entry of this.entries) {
+                this.writeBool(entry.skin.trusted)
             }
         }
     }
