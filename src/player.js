@@ -21,6 +21,8 @@ const UUID = require('./utils/uuid')
 const Prismarine = require('./prismarine')
 const { PlayerListPacket, PlayerListAction, PlayerListEntry } = require('./protocol/mcbe/player_list_packet')
 const AddPlayerPacket = require('./protocol/mcbe/add_player_packet')
+const { MovePlayerPacket, MovementMode } = require('./protocol/mcbe/move_player_packet')
+const { TextType, TextPacket } = require('./protocol/mcbe/text_packet')
 
 'use strict'
 
@@ -180,6 +182,14 @@ class Player extends Entity {
                 this.onGround = packet.onGround
                 // We still have some fileds 
                 // at the moment we don't need them
+
+                // Broadcast movement to all online players
+                for (const [_, player] of this.#server.players) {
+                    if (player === this) return
+                    player.broadcastMove(this)
+                    this.broadcastMove(player)
+                }
+
                 break   
             case 0x7b:  // Level sound event packet
                 // console.log(packet)
@@ -193,7 +203,20 @@ class Player extends Entity {
                 break     
             case Identifiers.TextPacket:
                 this.#logger.silly(`<${packet.sourceName}> ${packet.message}`)
-                break        
+
+                // Broadcast chat message to every player
+                for (const [_, player] of this.#server.players) {
+                    if (packet.type === TextType.Chat) {
+                        let pk = new TextPacket()
+                        pk.type = TextType.Raw
+                        pk.message = packet.message
+                        pk.sourceName = packet.sourceName
+                        pk.XUID = packet.XUID
+                        pk.platformChatId = ''
+                        player.sendDataPacket(pk)
+                    }
+                }
+                break            
         }
     }
 
@@ -207,6 +230,27 @@ class Player extends Entity {
         pk.subChunkCount = chunk.getSubChunkSendCount()
         pk.data = chunk.toBinary()
         this.sendDataPacket(pk)
+    }
+
+    // Broadcast the movement to a defined player
+    broadcastMove(player) {
+        let pk = new MovePlayerPacket()
+        pk.runtimeEntityId = this.runtimeId
+
+        pk.positionX = this.x
+        pk.positionY = this.y
+        pk.positionZ = this.z
+
+        pk.pitch = this.pitch
+        pk.yaw = this.yaw
+        pk.headYaw = this.headYaw
+
+        pk.mode = MovementMode.Normal
+
+        pk.onGround = this.onGround
+
+        pk.ridingEntityRuntimeId = 0
+        player.sendDataPacket(pk)
     }
 
     // Add the player to the client player list
