@@ -119,7 +119,9 @@ class Player extends Entity {
 
                     this.#logger.info(`${this.name} is attempting to join with id ${this.runtimeId} from ${this.#address.address}:${this.#address.port}`)
 
-                    // Send player list
+                    // First add
+                    this.addToPlayerList()
+                    // Then retrive other players
                     this.sendPlayerList() 
                 }
                break
@@ -143,10 +145,9 @@ class Player extends Entity {
                                 for (let chunkX = -distance; chunkX <= distance; chunkX++) {
                                     for (let chunkZ = -distance; chunkZ <= distance; chunkZ++) {
                                         let chunk = new Chunk(chunkX, chunkZ)
-                        
                                         for (let x = 0; x < 16; x++) {
                                             for (let z = 0; z < 16; z++) {
-                                                let y = 0;
+                                                let y = 0
                                                 chunk.setBlockId(x, y++, z, 7)
                                                 chunk.setBlockId(x, y++, z, 3)
                                                 chunk.setBlockId(x, y++, z, 3)
@@ -187,6 +188,7 @@ class Player extends Entity {
                 for (const [_, player] of this.#server.players) {
                     if (player === this) return
                     player.sendSpawn(this)
+                    this.sendSpawn(player)
                 }
                 break     
             case Identifiers.TextPacket:
@@ -207,8 +209,28 @@ class Player extends Entity {
         this.sendDataPacket(pk)
     }
 
-    // Update the PlayerList for every player, so also the player 
-    // joined before can have an updated list
+    // Add the player to the client player list
+    addToPlayerList() {
+        let pk = new PlayerListPacket()
+        pk.type = PlayerListAction.Add
+        let entry = new PlayerListEntry()
+        entry.uuid = UUID.fromString(this.uuid)
+        entry.uniqueEntityId = this.runtimeId
+        entry.name = this.name
+        entry.xuid = this.xuid
+        entry.platformChatId = ''  // TODO: read this value from StartGamePacket
+        entry.buildPlatform = 0  // TODO: read also this
+        entry.skin = this.skin
+        entry.teacher = false  // TODO: figure out where to read teacher and host
+        entry.host = false
+        pk.entries.push(entry)
+        for (const [_, player] of this.#server.players) {
+            player.sendDataPacket(pk)
+        }
+    }
+
+    // Retrive all other player in server
+    // And add them in the player list
     sendPlayerList() {
         let pk = new PlayerListPacket()
         pk.type = PlayerListAction.Add
@@ -224,8 +246,8 @@ class Player extends Entity {
             entry.teacher = false  // TODO: figure out where to read teacher and host
             entry.host = false
             pk.entries.push(entry)
-            player.sendDataPacket(pk)
         }
+        this.sendDataPacket(pk)
     }
 
     sendSpawn(player) {
