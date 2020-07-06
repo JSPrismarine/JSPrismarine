@@ -66,6 +66,9 @@ class Player extends Entity {
     /** @type {boolean} */
     onGround = false
 
+    /** @type {string} */
+    platformChatId = ''
+
     // Device
     #deviceOS
     #deviceModel
@@ -202,22 +205,31 @@ class Player extends Entity {
                 }
                 break     
             case Identifiers.TextPacket:
-                this.#logger.silly(`<${packet.sourceName}> ${packet.message}`)
+                let vanillaFormat = `<${packet.sourceName}> ${packet.message}`
+                this.#logger.silly(vanillaFormat)
 
                 // Broadcast chat message to every player
-                for (const [_, player] of this.#server.players) {
-                    if (packet.type === TextType.Chat) {
-                        let pk = new TextPacket()
-                        pk.type = TextType.Raw
-                        pk.message = packet.message
-                        pk.sourceName = packet.sourceName
-                        pk.XUID = packet.XUID
-                        pk.platformChatId = ''
-                        player.sendDataPacket(pk)
+                if (packet.type == TextType.Chat) {
+                    for (const [_, player] of this.#server.players) {
+                        player.sendMessage(vanillaFormat)
                     }
                 }
                 break            
         }
+    }
+
+    /**
+     * @param {string} message 
+     * @param {boolean} needsTranslation
+     */
+    sendMessage(message, needsTranslation = false) {
+        let pk = new TextPacket()
+        pk.type = TextType.Raw
+        pk.message = message
+        pk.needsTranslation = needsTranslation
+        pk.xuid = this.xuid  
+        pk.platformChatId = ''
+        this.sendDataPacket(pk)
     }
 
     /**
@@ -267,6 +279,18 @@ class Player extends Entity {
         entry.skin = this.skin
         entry.teacher = false  // TODO: figure out where to read teacher and host
         entry.host = false
+        pk.entries.push(entry)
+        for (const [_, player] of this.#server.players) {
+            player.sendDataPacket(pk)
+        }
+    }
+
+    // Removes a player from other players list
+    removeFromPlayerList() {
+        let pk = new PlayerListPacket()
+        pk.type = PlayerListAction.Remove
+        let entry = new PlayerListEntry()
+        entry.uuid = UUID.fromString(this.uuid)
         pk.entries.push(entry)
         for (const [_, player] of this.#server.players) {
             player.sendDataPacket(pk)

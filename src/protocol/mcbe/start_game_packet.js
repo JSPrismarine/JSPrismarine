@@ -1,7 +1,7 @@
 const fs = require('fs')
 
-const DataPacket = require("./data_packet")
-const ItemTable = require("../../resources/item_id_map.json")
+const DataPacket = require('./data_packet')
+const ItemTable = require('../../resources/item_id_map.json')
 const PacketBinaryStream = require('../packet_binary_stream')
 const Identifiers = require('../identifiers')
 
