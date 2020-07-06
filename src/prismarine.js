@@ -57,6 +57,11 @@ class Prismarine {
         })
 
         this.#raknet.on('closeConnection', (inetAddress, reason) => {
+            if (this.#players.has(inetAddress.address)) {
+                let player = this.#players.get(inetAddress.address)
+                player.removeFromPlayerList()
+                this.#players.delete(inetAddress.address)
+            }
             this.#logger.info(`${inetAddress.address}:${inetAddress.port} disconnected due to ${reason}`)
         })
     }

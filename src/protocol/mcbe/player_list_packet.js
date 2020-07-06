@@ -46,7 +46,7 @@ class PlayerListPacket extends DataPacket {
         for (let entry of this.entries) {
             if (this.type === PlayerListAction.Add) {
                 this.writePlayerAddEntry(entry)
-            } else if (this.type === PlayerListPacket.Remove) {
+            } else if (this.type === PlayerListAction.Remove) {
                 this.writePlayerRemoveEntry(entry)
             } else {
                 logger.warn(`Invalid player list action type ${this.type}`)

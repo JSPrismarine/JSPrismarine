@@ -20,12 +20,12 @@ class TextPacket extends DataPacket {
     static NetID = Identifiers.TextPacket
 
     type
-    needsTranslation
+    needsTranslation 
     sourceName
     message
     parameters = []
-    XUID
-    platformChatId
+    xuid
+    platformChatId = ''
 
     decodePayload() {
         this.type = this.readByte()
@@ -55,8 +55,40 @@ class TextPacket extends DataPacket {
                 break
         }
 
-        this.XUID = this.readString()
+        this.xuid = this.readString()
         this.platformChatId = this.readString()
+    }
+
+    encodePayload() {
+        this.writeByte(this.type)
+        this.writeBool(this.needsTranslation)
+
+        switch (this.type) {
+            case TextType.Chat:
+            case TextType.Whisper:
+            case TextType.Announcement:
+                this.writeString(this.sourceName)
+            case TextType.Raw:
+            case TextType.Tip:
+            case TextType.System:
+            case TextType.JsonWhisper:
+            case TextType.Json:
+                this.writeString(this.message)
+                break
+                
+            case TextType.Translation:
+            case TextType.Popup:
+            case TextType.JukeboxPopup:
+                this.writeString(this.message)
+                this.writeUnsignedVarInt(this.parameters.length)
+                for (const parameter of this.parameters) {
+                    this.writeString(parameter)
+                }
+                break
+        }
+
+        this.writeString(this.xuid)
+        this.writeString(this.platformChatId)
     }
 }
 module.exports =  { TextPacket, TextType }
