@@ -15,6 +15,7 @@ const { PlayerActionPacket } = require('./mcbe/player_action_packet')
 const ServerSettingsRequestPacket = require('./mcbe/server_settings_request_packet')
 const { TextPacket } = require('./mcbe/text_packet')
 const PlayerSkinPacket = require('./mcbe/player_skin_packet')
+const { InventoryTransactionPacket } = require('./mcbe/inventory_transaction_packet')
 
 'use strict'
 
@@ -49,6 +50,7 @@ class PacketRegistry extends Map {
         this.registerPacket(ServerSettingsRequestPacket)
         this.registerPacket(TextPacket)
         this.registerPacket(PlayerSkinPacket)
+        this.registerPacket(InventoryTransactionPacket)
     }
     
 }

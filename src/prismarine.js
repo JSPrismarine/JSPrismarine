@@ -63,7 +63,7 @@ class Prismarine {
                 // Despawn the player to all online players
                 player.removeFromPlayerList()
                 for (const [_, onlinePlayer] of this.#players) {
-                    if (onlinePlayer === player) return
+                    if (onlinePlayer === player) continue
                     player.sendDespawn(onlinePlayer)
                 }
 
