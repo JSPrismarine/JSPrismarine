@@ -23,6 +23,7 @@ const { PlayerListPacket, PlayerListAction, PlayerListEntry } = require('./proto
 const AddPlayerPacket = require('./protocol/mcbe/add_player_packet')
 const { MovePlayerPacket, MovementMode } = require('./protocol/mcbe/move_player_packet')
 const { TextType, TextPacket } = require('./protocol/mcbe/text_packet')
+const RemoveActorPacket = require('./protocol/mcbe/remove_actor_packet')
 
 'use strict'
 
@@ -318,6 +319,7 @@ class Player extends Entity {
         this.sendDataPacket(pk)
     }
 
+    // Spawn the player to another player
     sendSpawn(player) {
         let pk = new AddPlayerPacket()
         pk.uuid = UUID.fromString(this.uuid)
@@ -338,6 +340,13 @@ class Player extends Entity {
         pk.headYaw = this.headYaw
 
         pk.deviceId = this.#deviceId
+        player.sendDataPacket(pk)
+    }
+
+    // Despawn the player entity from another player
+    sendDespawn(player) {
+        let pk = new RemoveActorPacket()
+        pk.uniqueEntityId = this.runtimeId  // We use runtime as unique
         player.sendDataPacket(pk)
     }
 
