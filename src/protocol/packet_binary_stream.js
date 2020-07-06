@@ -162,5 +162,26 @@ class PacketBinaryStream extends BinaryStream {
         this.writeUUID(entry.uuid)
     }
 
+    readLegacySetItemSlot() {
+        let legacySetItemSlot = {containerId, slots: []}
+        legacySetItemSlot.containerId = this.readByte()
+        let length = this.readUnsignedVarInt()
+        for (let i = 0; i < length; i++) {
+            legacySetItemSlot.slots.push(this.readByte())
+        }
+        return legacySetItemSlot
+    }
+
+    // TODO: not implemented yet
+    readInventoryAction() {
+        let sourceType = this.readUnsignedVarInt()
+        
+        switch(sourceType) {
+            case 0:  //hardcoded source container
+        }
+
+        return 0
+    }
+
 }   
 module.exports = PacketBinaryStream

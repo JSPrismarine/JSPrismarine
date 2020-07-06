@@ -189,7 +189,7 @@ class Player extends Entity {
 
                 // Broadcast movement to all online players
                 for (const [_, player] of this.#server.players) {
-                    if (player === this) return
+                    if (player === this) continue
                     player.broadcastMove(this)
                     this.broadcastMove(player)
                 }
@@ -200,7 +200,7 @@ class Player extends Entity {
                 break  
             case Identifiers.SetLocalPlayerAsInitializedPacket:
                 for (const [_, player] of this.#server.players) {
-                    if (player === this) return
+                    if (player === this) continue
                     player.sendSpawn(this)
                     this.sendSpawn(player)
                 }
