@@ -4,17 +4,17 @@ const Vector3 = require("./vector3");
 
 class AxisAlignedBB {
 
-    /** @public */
+    /** @type number */
     minX;
-    /** @protected */
+    /** @type number */
     minY;
-    /** @protected */
+    /** @type number */
     minZ;
-    /** @protected */
+    /** @type number */
     maxX;
-    /** @protected */
+    /** @type number */
     maxY;
-    /** @protected */
+    /** @type number */
     maxZ;
 
     /**
