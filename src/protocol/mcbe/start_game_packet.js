@@ -20,9 +20,9 @@ class StartGamePacket extends DataPacket {
         this.writeVarInt(0) // game mode
 
         // vector 3
-        this.writeLFloat(0)
-        this.writeLFloat(4)
-        this.writeLFloat(0)
+        this.writeLFloat(5)
+        this.writeLFloat(5.50)
+        this.writeLFloat(5)
 
         this.writeLFloat(0) // pitch
         this.writeLFloat(0) // yaw
