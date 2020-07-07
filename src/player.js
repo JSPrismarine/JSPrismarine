@@ -1,6 +1,7 @@
 const winston = require('winston')
 
 const Connection = require('jsraknet/connection')
+const Async = require('./utils/async')
 const Entity = require('./entity')
 const EncapsulatedPacket = require('jsraknet/protocol/encapsulated_packet')
 const InetAddress = require('jsraknet/utils/inet_address')
@@ -143,38 +144,33 @@ class Player extends Entity {
                 this.viewDistance = pk.radius
 
                 // Send chunks
-                new Promise((resolve, reject) => {
-                    setImmediate(() => {
-                        try {
-                            resolve(() => {
-                                let distance = this.viewDistance
-                                for (let chunkX = -distance; chunkX <= distance; chunkX++) {
-                                    for (let chunkZ = -distance; chunkZ <= distance; chunkZ++) {
-                                        let chunk = new Chunk(chunkX, chunkZ)
-                                        for (let x = 0; x < 16; x++) {
-                                            for (let z = 0; z < 16; z++) {
-                                                let y = 0
-                                                chunk.setBlockId(x, y++, z, 7)
-                                                chunk.setBlockId(x, y++, z, 3)
-                                                chunk.setBlockId(x, y++, z, 3)
-                                                chunk.setBlockId(x, y, z, 2)
-                                            
-                                                // TODO: block light
-                                            }
-                                        }
-                        
-                                        chunk.recalculateHeightMap()
-                                        this.sendChunk(chunk)
-                                    }
+                Async(function () {
+                    // As is really slow to send chunks, i have to send less chunks
+                    let distance = this.viewDistance - Math.ceil(this.viewDistance / 2)
+                    for (let chunkX = -distance; chunkX <= distance; chunkX++) {
+                        for (let chunkZ = -distance; chunkZ <= distance; chunkZ++) {
+                            let chunk = new Chunk(chunkX, chunkZ)
+                            for (let x = 0; x < 16; x++) {
+                                for (let z = 0; z < 16; z++) {
+                                    chunk.setBiomeId(x, z, 1)
+
+                                    let y = 0
+                                    chunk.setBlockId(x, y++, z, 7)
+                                    chunk.setBlockId(x, y++, z, 3)
+                                    chunk.setBlockId(x, y++, z, 3)
+                                    chunk.setBlockId(x, y, z, 2)
+                                
+                                    // TODO: block light
                                 }
-                            })
-                        } catch (e) {
-                            reject(e)
+                            }
+            
+                            chunk.recalculateHeightMap()
+                            this.sendChunk(chunk)
                         }
-                    })
-                }).then(() => {
+                    }
+                }.bind(this)).then(function() {
                     this.sendPlayStatus(Status.PlayerSpawn)
-                }) 
+                }.bind(this))
                 break
             case Identifiers.MovePlayerPacket:
                 this.x = packet.positionX
@@ -304,6 +300,7 @@ class Player extends Entity {
         let pk = new PlayerListPacket()
         pk.type = PlayerListAction.Add
         for (const [_, player] of this.#server.players) {
+            if (player === this) continue
             let entry = new PlayerListEntry()
             entry.uuid = UUID.fromString(player.uuid)
             entry.uniqueEntityId = player.runtimeId

@@ -63,11 +63,16 @@ class Chunk {
     }
 
     static getBiomeIndex(x, z) {
-        return (x << 4) | z
+        return (z << 4) | x
     }
 
     static getHeightMapIndex(x, z) {
-        return (z << 4) | z
+        return (z << 4) | x
+    }
+
+    setBiomeId(x, z, biomeId) {
+        this._hasChanged = true
+        this._biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff
     }
 
     setBlockId(x, y, z, id) {
