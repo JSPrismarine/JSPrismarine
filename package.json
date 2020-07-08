@@ -24,7 +24,7 @@
   "homepage": "https://github.com/HerryYT/JSPrismarine#readme",
   "dependencies": {
     "jsbinaryutils": "1.0.7",
-    "jsraknet": "^1.1.4",
+    "jsraknet": "^1.1.7",
     "jwt-decode": "^2.2.0",
     "winston": "^3.3.3"
   }

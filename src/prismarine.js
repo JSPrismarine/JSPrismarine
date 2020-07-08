@@ -28,15 +28,17 @@ class Prismarine {
 
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
-            this.#players.set(connection.address.address, new Player(
+            let inetAddr = connection.address
+            this.#players.set(`${inetAddr.address}:${inetAddr.port}`, new Player(
                 connection, connection.address, this.#logger, this
             ))
         })
 
         // Get player from map by address, then handle packet
         this.#raknet.on('encapsulated', (packet, inetAddr) => {
-            if (!this.#players.has(inetAddr.address)) return
-            let player = this.#players.get(inetAddr.address)
+            let token = `${inetAddr.address}:${inetAddr.port}`
+            if (!this.#players.has(token)) return
+            let player = this.#players.get(token)
 
             // Read batch content and handle them
             let pk = new BatchPacket()
@@ -56,9 +58,10 @@ class Prismarine {
             }
         })
 
-        this.#raknet.on('closeConnection', (inetAddress, reason) => {
-            if (this.#players.has(inetAddress.address)) {
-                let player = this.#players.get(inetAddress.address)
+        this.#raknet.on('closeConnection', (inetAddr, reason) => {
+            let token = `${inetAddr.address}:${inetAddr.port}`
+            if (this.#players.has(token)) {
+                let player = this.#players.get(token)
 
                 // Despawn the player to all online players
                 player.removeFromPlayerList()
@@ -67,9 +70,9 @@ class Prismarine {
                     player.sendDespawn(onlinePlayer)
                 }
 
-                this.#players.delete(inetAddress.address)
+                this.#players.delete(token)
             }
-            this.#logger.info(`${inetAddress.address}:${inetAddress.port} disconnected due to ${reason}`)
+            this.#logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`)
         })
     }
 
