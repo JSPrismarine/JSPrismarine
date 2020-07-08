@@ -208,7 +208,7 @@ class Player extends Entity {
                 // Broadcast chat message to every player
                 if (packet.type == TextType.Chat) {
                     for (const [_, player] of this.#server.players) {
-                        player.sendMessage(vanillaFormat)
+                        player.sendMessage(vanillaFormat, packet.xuid)
                     }
                 }
                 break            
@@ -219,12 +219,12 @@ class Player extends Entity {
      * @param {string} message 
      * @param {boolean} needsTranslation
      */
-    sendMessage(message, needsTranslation = false) {
+    sendMessage(message, xuid = '', needsTranslation = false) {
         let pk = new TextPacket()
         pk.type = TextType.Raw
         pk.message = message
         pk.needsTranslation = needsTranslation
-        pk.xuid = this.xuid  
+        pk.xuid = xuid 
         pk.platformChatId = ''
         this.sendDataPacket(pk)
     }
