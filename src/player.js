@@ -25,6 +25,7 @@ const AddPlayerPacket = require('./protocol/mcbe/add_player_packet')
 const { MovePlayerPacket, MovementMode } = require('./protocol/mcbe/move_player_packet')
 const { TextType, TextPacket } = require('./protocol/mcbe/text_packet')
 const RemoveActorPacket = require('./protocol/mcbe/remove_actor_packet')
+const NetworkChunkPublisherUpdatePacket = require('./protocol/mcbe/network_chunk_publisher_update_packet')
 
 'use strict'
 
@@ -129,7 +130,9 @@ class Player extends Entity {
                     // First add
                     this.addToPlayerList()
                     // Then retrive other players
-                    this.sendPlayerList() 
+                    if (this.#server.players.length > 1) {
+                        this.sendPlayerList() 
+                    }
                 }
                break
             case 0x9c:
@@ -143,16 +146,24 @@ class Player extends Entity {
                 // Update player vieww distance
                 this.viewDistance = pk.radius
 
+                // Show chunks to the player
+                pk = new NetworkChunkPublisherUpdatePacket()
+                pk.x = 5
+                pk.y = 5
+                pk.z = 5
+                pk.radius = this.viewDistance * 16 
+                this.sendDataPacket(pk)
+
                 // Send chunks
                 Async(function () {
                     // As is really slow to send chunks, i have to send less chunks
-                    let distance = this.viewDistance - Math.ceil(this.viewDistance / 2)
+                    let distance = this.viewDistance 
                     for (let chunkX = -distance; chunkX <= distance; chunkX++) {
                         for (let chunkZ = -distance; chunkZ <= distance; chunkZ++) {
                             let chunk = new Chunk(chunkX, chunkZ)
                             for (let x = 0; x < 16; x++) {
                                 for (let z = 0; z < 16; z++) {
-                                    chunk.setBiomeId(x, z, 1)
+                                    // chunk.setBiomeId(x, z, 1)
 
                                     let y = 0
                                     chunk.setBlockId(x, y++, z, 7)
@@ -169,6 +180,7 @@ class Player extends Entity {
                         }
                     }
                 }.bind(this)).then(function() {
+                    console.log('LevelChunkPacket')
                     this.sendPlayStatus(Status.PlayerSpawn)
                 }.bind(this))
                 break
