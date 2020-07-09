@@ -30,17 +30,17 @@ class StartGamePacket extends DataPacket {
         this.writeVarInt(0) //  seed
 
         this.writeLShort(0) // default biome type
-        this.writeString('plains') // biome name
+        this.writeString('') // biome name
         this.writeVarInt(0) // dimension
 
-        this.writeVarInt(2) // generator
+        this.writeVarInt(1) // generator
         this.writeVarInt(0)
         this.writeVarInt(0) // difficulty
 
         // world spawn vector 3
-        this.writeVarInt(0)
-        this.writeUnsignedVarInt(4)
-        this.writeVarInt(0)
+        this.writeVarInt(5)
+        this.writeUnsignedVarInt(5)
+        this.writeVarInt(5)
 
         this.writeByte(1) // achievement disabled
 
@@ -78,7 +78,7 @@ class StartGamePacket extends DataPacket {
         this.writeByte(0) // from world template
         this.writeByte(0) // world template option locked
         this.writeByte(1) // only spawn v1 villagers
-        this.writeString('1.16.0') // vanilla version
+        this.writeString('1.16.1') // vanilla version
         this.writeLInt(0) // limited world height
         this.writeLInt(0) // limited world length
         this.writeBool(false) // has new nether
