@@ -58,6 +58,14 @@ class Chunk {
         }
     }
 
+    getChunkX() {
+        return this._x
+    }
+
+    getChunkZ() {
+        return this._z
+    }
+
     static getIdIndex(x, y, z) {
         return (x << 12) | (z << 8) | y
     }
