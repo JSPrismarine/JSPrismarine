@@ -26,6 +26,7 @@ const { MovePlayerPacket, MovementMode } = require('./protocol/mcbe/move_player_
 const { TextType, TextPacket } = require('./protocol/mcbe/text_packet')
 const RemoveActorPacket = require('./protocol/mcbe/remove_actor_packet')
 const NetworkChunkPublisherUpdatePacket = require('./protocol/mcbe/network_chunk_publisher_update_packet')
+const CoordinateUtils = require('./level/coordinate_utils')
 
 'use strict'
 
@@ -76,6 +77,9 @@ class Player extends Entity {
     #deviceOS
     #deviceModel
     #deviceId
+
+    /** @type {number[]} */
+    chunks = []
 
     constructor(connection, address, logger, server) {
         super()
@@ -148,9 +152,9 @@ class Player extends Entity {
 
                 // Show chunks to the player
                 pk = new NetworkChunkPublisherUpdatePacket()
-                pk.x = 5
-                pk.y = 5
-                pk.z = 5
+                pk.x = this.x
+                pk.y = this.y
+                pk.z = this.z
                 pk.radius = this.viewDistance * 16 
                 this.sendDataPacket(pk)
 
@@ -160,16 +164,16 @@ class Player extends Entity {
                     let distance = this.viewDistance 
                     for (let chunkX = -distance; chunkX <= distance; chunkX++) {
                         for (let chunkZ = -distance; chunkZ <= distance; chunkZ++) {
+                            let hash = CoordinateUtils.toLong(chunkX, chunkZ)
                             let chunk = new Chunk(chunkX, chunkZ)
                             for (let x = 0; x < 16; x++) {
                                 for (let z = 0; z < 16; z++) {
-                                    // chunk.setBiomeId(x, z, 1)
 
                                     let y = 0
                                     chunk.setBlockId(x, y++, z, 7)
                                     chunk.setBlockId(x, y++, z, 3)
                                     chunk.setBlockId(x, y++, z, 3)
-                                    chunk.setBlockId(x, y, z, 2)
+                                    chunk.setBlockId(x, y, z, 2) 
                                 
                                     // TODO: block light
                                 }
@@ -177,10 +181,11 @@ class Player extends Entity {
             
                             chunk.recalculateHeightMap()
                             this.sendChunk(chunk)
+
+                            this.chunks.push(hash)
                         }
                     }
                 }.bind(this)).then(function() {
-                    console.log('LevelChunkPacket')
                     this.sendPlayStatus(Status.PlayerSpawn)
                 }.bind(this))
                 break
@@ -203,7 +208,7 @@ class Player extends Entity {
                 }
 
                 break   
-            case 0x7b:  // Level sound event packet
+            case Identifiers.LevelSoundEventPacket:
                 // console.log(packet)
                 break  
             case Identifiers.SetLocalPlayerAsInitializedPacket:
@@ -212,6 +217,52 @@ class Player extends Entity {
                     player.sendSpawn(this)
                     this.sendSpawn(player)
                 }
+
+                // Check for new chunks
+                // Credits for logic: geNAZt
+                Async(function () {
+                    setInterval(() => {
+                        Async(function () {
+                            let currentXChunk = CoordinateUtils.fromBlockToChunk(this.x)
+                            let currentZChunk = CoordinateUtils.fromBlockToChunk(this.z)
+
+                            let viewDistance = this.viewDistance;
+                            for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
+                                for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
+                                    let distance = Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk)
+                                    let chunkDistance = Math.round(distance)
+
+                                    if (chunkDistance <= viewDistance) {
+                                        let hash = CoordinateUtils.toLong(currentXChunk + sendXChunk, currentZChunk + sendZChunk)
+                                        if (!this.chunks.includes(hash)) {
+                                            let chunk = new Chunk(currentXChunk + sendXChunk, currentZChunk + sendZChunk)
+                                            for (let x = 0; x < 16; x++) {
+                                                for (let z = 0; z < 16; z++) {
+                
+                                                    let y = 0
+                                                    chunk.setBlockId(x, y++, z, 7)
+                                                    chunk.setBlockId(x, y++, z, 3)
+                                                    chunk.setBlockId(x, y++, z, 3)
+                                                    chunk.setBlockId(x, y, z, 2)
+                                                
+                                                    // TODO: block light
+                                                }
+                                            }
+                            
+                                            chunk.recalculateHeightMap()
+                                            this.sendChunk(chunk)
+
+                                            console.log('sent')
+
+                                            // Add into loaded chunks
+                                            this.chunks.push(hash)
+                                        }
+                                    }
+                                }
+                            } 
+                        }.bind(this))
+                    }, 1000)
+                }.bind(this)) 
                 break     
             case Identifiers.TextPacket:
                 let vanillaFormat = `<${packet.sourceName}> ${packet.message}`
@@ -246,8 +297,8 @@ class Player extends Entity {
      */
     sendChunk(chunk) {
         let pk = new LevelChunkPacket()
-        pk.chunkX = chunk.chunkX
-        pk.chunkZ = chunk.chunkZ
+        pk.chunkX = chunk.getChunkX()
+        pk.chunkZ = chunk.getChunkZ()
         pk.subChunkCount = chunk.getSubChunkSendCount()
         pk.data = chunk.toBinary()
         this.sendDataPacket(pk)
