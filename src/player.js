@@ -452,7 +452,7 @@ class Player extends Entity {
         pk.headYaw = this.headYaw
 
         pk.deviceId = this.#deviceId
-        pk.metadata = this.metadata
+        pk.metadata = this.metadata.properties
         player.sendDataPacket(pk)
     }
 
