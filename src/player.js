@@ -2,7 +2,6 @@ const winston = require('winston')
 const { Worker, parentPort, workerData } = require('worker_threads');
 
 const Connection = require('jsraknet/connection')
-const Async = require('./utils/async')
 const Entity = require('./entity/entity')
 const EncapsulatedPacket = require('jsraknet/protocol/encapsulated_packet')
 const InetAddress = require('jsraknet/utils/inet_address')
@@ -27,10 +26,11 @@ const { MovePlayerPacket, MovementMode } = require('./protocol/mcbe/move_player_
 const { TextType, TextPacket } = require('./protocol/mcbe/text_packet')
 const RemoveActorPacket = require('./protocol/mcbe/remove_actor_packet')
 const NetworkChunkPublisherUpdatePacket = require('./protocol/mcbe/network_chunk_publisher_update_packet')
-const CoordinateUtils = require('./level/coordinate_utils')
 const EventManager = require('./events/event_manager')
+const PlayerChatEvent = require('./events/player/player_chat_event')
 const UpdateAttributesPacket = require('./protocol/mcbe/update_attributes_packet')
 const SetActorDataPacket = require('./protocol/mcbe/set_actor_data_packet')
+const { AnimatePacket } = require('./protocol/mcbe/animate_packet')
 
 'use strict'
 
@@ -204,19 +204,25 @@ class Player extends Entity {
                 pk.radius = this.viewDistance * 16 
                 this.sendDataPacket(pk)
 
-                // Broadcast movement to all online players
-                for (const [_, player] of this.#server.players) {
-                    if (player === this) continue
-                    player.broadcastMove(this)
-                    this.broadcastMove(player)
-                }
-
                 break   
             case Identifiers.LevelSoundEventPacket:
-                // console.log(packet)
+                /* for (const [_, player] of this.#server.players) {
+                    if (player === this) return
+                    player.sendDataPacket(packet)
+                } */
                 break  
             case Identifiers.SetLocalPlayerAsInitializedPacket:
+                // TODO: event
                 EventManager.emit('player_join', this)
+
+                setInterval(function() {
+                    // Broadcast movement to all online players
+                    for (const [_, player] of this.#server.players) {
+                        if (player === this) continue
+                        player.broadcastMove(this)
+                        this.broadcastMove(player)
+                    }
+                }.bind(this), 1000 / 20)
 
                 for (const [_, player] of this.#server.players) {
                     if (player === this) continue
@@ -225,6 +231,10 @@ class Player extends Entity {
                 }
                 break    
             case Identifiers.TextPacket:
+                let event = new PlayerChatEvent(this, packet.message)
+                EventManager.emit('player_chat', event)
+                if (event.isCancelled()) return
+
                 let vanillaFormat = `<${packet.sourceName}> ${packet.message}`
                 this.#logger.silly(vanillaFormat)
 
@@ -234,7 +244,19 @@ class Player extends Entity {
                         player.sendMessage(vanillaFormat, packet.xuid)
                     }
                 }
-                break            
+                break   
+            case Identifiers.AnimatePacket:
+                // TODO: event
+                EventManager.emit('player_animate', this)
+
+                pk = new AnimatePacket()
+                pk.runtimeEntityId = this.runtimeId
+                pk.action = packet.action
+
+                for (const [_, player] of this.#server.players) {
+                    player.sendDataPacket(pk)
+                }
+                break             
         }
     }
 
@@ -415,6 +437,10 @@ class Player extends Entity {
         sendPacket.buffer = batch.buffer
 
         this.#connection.addEncapsulatedToQueue(sendPacket)
+    }
+
+    getServer() {
+        return this.#server
     }
 
 }
