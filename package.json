@@ -23,6 +23,8 @@
   },
   "homepage": "https://github.com/HerryYT/JSPrismarine#readme",
   "dependencies": {
+    "async": "^3.2.0",
+    "glob": "^7.1.6",
     "jsbinaryutils": "1.0.7",
     "jsraknet": "^1.1.7",
     "jwt-decode": "^2.2.0",

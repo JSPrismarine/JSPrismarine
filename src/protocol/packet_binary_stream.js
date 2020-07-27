@@ -1,6 +1,7 @@
 const BinaryStream = require('jsbinaryutils')
 const UUID = require('../utils/uuid')
 const Skin = require('../utils/skin')
+const { FlagType } = require('../entity/metadata')
 
 'use strict'
 
@@ -160,6 +161,52 @@ class PacketBinaryStream extends BinaryStream {
 
     writePlayerRemoveEntry(entry) {
         this.writeUUID(entry.uuid)
+    }
+
+    writeAttributes(attributes) {
+        this.writeUnsignedVarInt(attributes.length)
+        for (let attribute of attributes) {
+            this.writeLFloat(attribute.min)
+            this.writeLFloat(attribute.max)
+            this.writeLFloat(attribute.value)
+            this.writeLFloat(attribute.default)
+            this.writeString(attribute.name)
+        }
+    }
+
+    writeEntityMetadata(metadata) {
+        this.writeUnsignedVarInt(metadata.size)
+        for (const [index, value] of metadata) {
+            this.writeUnsignedVarInt(index)
+            this.writeUnsignedVarInt(value[0])
+            switch(value[0]) {
+                case FlagType.Byte:
+                    this.writeByte(value[1])
+                    break
+                case FlagType.Float:
+                    this.writeLFloat(value[1])
+                    break
+                case FlagType.Long:
+                    // this.writeVarLong(value[1])    
+                    // TODO: this is just a temp solution to avoid 
+                    // the not working var long
+                    this.append(Buffer.from('8080c2808080c001', 'hex'))
+                    break
+                case FlagType.String:
+                    this.writeString(value[1])
+                    break
+                case FlagType.Short:
+                    this.writeLShort(value[1])
+                    break        
+                default:
+                    console.log(`Unknown meta type ${value}`)    
+            } 
+        } 
+        
+        // Broken (probably because is not a big int)
+        // let stream = new PacketBinaryStream()
+        // stream.writeVarLong(422212465606656)
+        // console.log(stream.buffer) 
     }
 
     readLegacySetItemSlot() {
