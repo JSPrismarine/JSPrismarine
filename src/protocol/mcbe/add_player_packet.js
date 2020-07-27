@@ -27,6 +27,8 @@ class AddPlayerPacket extends DataPacket {
     deviceId
     buildPlatform = 0  // TODO
 
+    metadata
+
     encodePayload() {
         this.writeUUID(this.uuid)
         this.writeString(this.name)
@@ -47,7 +49,7 @@ class AddPlayerPacket extends DataPacket {
         this.writeLFloat(this.headYaw)
 
         this.writeVarInt(0)  // TODO: Item id
-        this.writeUnsignedVarInt(0)  // TODO: Entity metadata
+        this.writeEntityMetadata(this.metadata)
 
         for (let i = 0; i < 5; i++) {
             this.writeUnsignedVarInt(0)  // TODO: Adventure settings

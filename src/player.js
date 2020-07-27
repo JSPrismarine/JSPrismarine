@@ -2,7 +2,7 @@ const winston = require('winston')
 
 const Connection = require('jsraknet/connection')
 const Async = require('./utils/async')
-const Entity = require('./entity')
+const Entity = require('./entity/entity')
 const EncapsulatedPacket = require('jsraknet/protocol/encapsulated_packet')
 const InetAddress = require('jsraknet/utils/inet_address')
 const { PlayStatusPacket, Status } = require('./protocol/mcbe/play_status_packet')
@@ -27,6 +27,9 @@ const { TextType, TextPacket } = require('./protocol/mcbe/text_packet')
 const RemoveActorPacket = require('./protocol/mcbe/remove_actor_packet')
 const NetworkChunkPublisherUpdatePacket = require('./protocol/mcbe/network_chunk_publisher_update_packet')
 const CoordinateUtils = require('./level/coordinate_utils')
+const EventManager = require('./events/event_manager')
+const UpdateAttributesPacket = require('./protocol/mcbe/update_attributes_packet')
+const SetActorDataPacket = require('./protocol/mcbe/set_actor_data_packet')
 
 'use strict'
 
@@ -129,7 +132,13 @@ class Player extends Entity {
                     this.sendDataPacket(new AvailableActorIdentifiersPacket())
                     this.sendDataPacket(new BiomeDefinitionListPacket())
 
+                    this.sendAttributes()
+
                     this.#logger.info(`${this.name} is attempting to join with id ${this.runtimeId} from ${this.#address.address}:${this.#address.port}`)
+
+                    this.setNameTag(this.name)
+                    // TODO: always visible nametag
+                    this.sendMetadata()
 
                     // First add
                     this.addToPlayerList()
@@ -139,10 +148,10 @@ class Player extends Entity {
                     }
                 }
                break
-            case 0x9c:
+            case Identifiers.PacketViolationWarningPacket:
                 console.log(packet)
                 break   
-            case 0x45:
+            case Identifiers.RequestChunkRadiusPacket:
                 pk = new ChunkRadiusUpdatedPacket()
                 pk.radius = packet.radius
                 this.sendDataPacket(pk)
@@ -161,14 +170,13 @@ class Player extends Entity {
                 // Send chunks
                 Async(function () {
                     // As is really slow to send chunks, i have to send less chunks
-                    let distance = this.viewDistance 
+                    let distance = this.viewDistance
                     for (let chunkX = -distance; chunkX <= distance; chunkX++) {
                         for (let chunkZ = -distance; chunkZ <= distance; chunkZ++) {
                             let hash = CoordinateUtils.toLong(chunkX, chunkZ)
                             let chunk = new Chunk(chunkX, chunkZ)
                             for (let x = 0; x < 16; x++) {
                                 for (let z = 0; z < 16; z++) {
-
                                     let y = 0
                                     chunk.setBlockId(x, y++, z, 7)
                                     chunk.setBlockId(x, y++, z, 3)
@@ -200,6 +208,17 @@ class Player extends Entity {
                 // We still have some fileds 
                 // at the moment we don't need them
 
+                EventManager.emit('player_move', this)
+
+                // Show chunks to the player
+                // TODO: check this
+                pk = new NetworkChunkPublisherUpdatePacket()
+                pk.x = this.x
+                pk.y = this.y
+                pk.z = this.z
+                pk.radius = this.viewDistance * 16 
+                this.sendDataPacket(pk)
+
                 // Broadcast movement to all online players
                 for (const [_, player] of this.#server.players) {
                     if (player === this) continue
@@ -212,47 +231,50 @@ class Player extends Entity {
                 // console.log(packet)
                 break  
             case Identifiers.SetLocalPlayerAsInitializedPacket:
+                EventManager.emit('player_join', this)
+
                 for (const [_, player] of this.#server.players) {
                     if (player === this) continue
                     player.sendSpawn(this)
                     this.sendSpawn(player)
                 }
 
-                // Check for new chunks
+                setInterval(function() {
+                    this.sendAttributes2()
+                }.bind(this), 1000 / 20)
+
+                // Check for new chunks [WIP]
                 // Credits for logic: geNAZt
-                Async(function () {
-                    setInterval(() => {
-                        Async(function () {
-                            let currentXChunk = CoordinateUtils.fromBlockToChunk(this.x)
-                            let currentZChunk = CoordinateUtils.fromBlockToChunk(this.z)
+                // Not working for now
+                /* let that = this
+                setInterval(function () {
+                    Async(function () {
+                        let currentXChunk = CoordinateUtils.fromBlockToChunk(this.x)
+                        let currentZChunk = CoordinateUtils.fromBlockToChunk(this.z)
 
-                            let viewDistance = this.viewDistance;
-                            for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
-                                for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
-                                    let distance = Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk)
-                                    let chunkDistance = Math.round(distance)
+                        console.log(currentXChunk)
+                        let viewDistance = this.viewDistance
+                        for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
+                            for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
+                                let distance = Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk)
+                                let chunkDistance = Math.round(distance)
 
-                                    if (chunkDistance <= viewDistance) {
-                                        let hash = CoordinateUtils.toLong(currentXChunk + sendXChunk, currentZChunk + sendZChunk)
-                                        if (!this.chunks.includes(hash)) {
-                                            let chunk = new Chunk(currentXChunk + sendXChunk, currentZChunk + sendZChunk)
-                                            for (let x = 0; x < 16; x++) {
-                                                for (let z = 0; z < 16; z++) {
-                
-                                                    let y = 0
-                                                    chunk.setBlockId(x, y++, z, 7)
-                                                    chunk.setBlockId(x, y++, z, 3)
-                                                    chunk.setBlockId(x, y++, z, 3)
-                                                    chunk.setBlockId(x, y, z, 2)
-                                                
-                                                    // TODO: block light
-                                                }
+                                if (chunkDistance <= viewDistance) {
+                                    let hash = CoordinateUtils.toLong(currentXChunk + sendXChunk, currentZChunk + sendZChunk)
+                                    if (!this.chunks.includes(hash)) {
+                                        let chunk = new Chunk(currentXChunk + sendXChunk, currentZChunk + sendZChunk)
+                                        for (let x = 0; x < 16; x++) {
+                                            for (let z = 0; z < 16; z++) {
+                                                let y = 0
+                                                chunk.setBlockId(x, y++, z, 7)
+                                                chunk.setBlockId(x, y++, z, 3)
+                                                chunk.setBlockId(x, y++, z, 3)
+                                                chunk.setBlockId(x, y, z, 2)
+                                                // TODO: block light
                                             }
                             
                                             chunk.recalculateHeightMap()
                                             this.sendChunk(chunk)
-
-                                            console.log('sent')
 
                                             // Add into loaded chunks
                                             this.chunks.push(hash)
@@ -260,10 +282,12 @@ class Player extends Entity {
                                     }
                                 }
                             } 
-                        }.bind(this))
-                    }, 1000)
-                }.bind(this)) 
-                break     
+                        }
+                    }.bind(that).then(function() {
+
+                    }).bind(that))
+                }, 1000) */
+                break    
             case Identifiers.TextPacket:
                 let vanillaFormat = `<${packet.sourceName}> ${packet.message}`
                 this.#logger.silly(vanillaFormat)
@@ -278,6 +302,38 @@ class Player extends Entity {
         }
     }
 
+    /* sendAttributes() {
+        let pk = new UpdateAttributesPacket()
+        pk.runtimeEntityId = this.runtimeId
+        pk.attributes = [
+            {name: 'minecraft:absorption', min: 0.00, max: 340282346638528859811704183484516925440.00, default: 0.00},
+            {name: 'minecraft:player.saturation', min: 0.00, max: 20.00, default: 20.00},
+            {name: 'minecraft:player.exhaustion', min: 0.00, max: 5.00, default: 0.00},
+            {name: 'minecraft:knockback_resistance', min: 0.00, max: 1.00, default: 0.00},
+            {name: 'minecraft:health', min: 0.00, max: 20.00, default: 20.00},
+            {name: 'minecraft:movement', min: 0.00, max: 340282346638528859811704183484516925440.00, default: 0.10},
+            {name: 'minecraft:follow_range', min: 0.00, max: 2048.00, default: 16.00},
+            {name: 'minecraft:player.hunger', min: 0.00, max: 20.00, default: 20.00},
+            {name: 'minecraft:attack_damage', min: 0.00, max: 340282346638528859811704183484516925440.00, default: 1.00},
+            {name: 'minecraft:player.level', min: 0.00, max: 24791.00, default: 0.00},
+            {name: 'minecraft:player.experience', min: 0.00, max: 1.00, default: 0.00},
+            {name: 'minecraft:underwater_movement', min: 0.0, max: 340282346638528859811704183484516925440.0, default: 0.02},
+            {name: 'minecraft:luck', min: -1024.0, max: 1024.0, default: 0.0},
+            {name: 'minecraft:fall_damage', min: 0.0, max: 340282346638528859811704183484516925440.0, default: 1.0},
+            {name: 'minecraft:horse.jump_strength', min: 0.0, max: 2.0, default: 0.7},
+            {name: 'minecraft:zombie.spawn_reinforcements', min: 0.0, max: 1.0, default: 0.0},
+            {name: 'minecraft:lava_movement', min: 0.0, max: 340282346638528859811704183484516925440.0, default: 0.02}
+        ]
+        this.sendDataPacket(pk)
+    } */
+
+    sendMetadata() {
+        let pk = new SetActorDataPacket()
+        pk.runtimeEntityId = this.runtimeId
+        pk.metadata = this.metadata.properties
+        this.sendDataPacket(pk)
+    }
+
     /**
      * @param {string} message 
      * @param {boolean} needsTranslation
@@ -288,7 +344,7 @@ class Player extends Entity {
         pk.message = message
         pk.needsTranslation = needsTranslation
         pk.xuid = xuid 
-        pk.platformChatId = ''
+        pk.platformChatId = ''  // TODO
         this.sendDataPacket(pk)
     }
 
@@ -400,6 +456,7 @@ class Player extends Entity {
         pk.headYaw = this.headYaw
 
         pk.deviceId = this.#deviceId
+        pk.metadata = this.metadata
         player.sendDataPacket(pk)
     }
 

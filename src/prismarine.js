@@ -1,9 +1,11 @@
 const winston = require('winston')
+const async = require('async')
 
 const Listener = require('jsraknet')
 const Player = require('./player')
 const BatchPacket = require('./protocol/mcbe/batch_packet')
 const PacketRegistry = require('./protocol/packet_registry')
+const logger = require('./utils/logger')
 
 'use strict'
 
@@ -40,22 +42,30 @@ class Prismarine {
             if (!this.#players.has(token)) return
             let player = this.#players.get(token)
 
-            // Read batch content and handle them
-            let pk = new BatchPacket()
-            pk.buffer = packet.buffer
-            pk.decode()
-
-            // Read all packets inside batch and handle them
-            for (let buf of pk.getPackets()) {
-                if (this.#packetRegistry.has(buf[0])) {
-                    let packet = new (this.#packetRegistry.get(buf[0]))()  // Get packet from registry
-                    packet.buffer = buf
-                    packet.decode()
-                    player.handleDataPacket(packet)
-                } else {
-                    console.log('Unhandled packet', buf)  // The new logger won't work
-                }
-            }
+            async.waterfall([
+                function(callback) {
+                    // Read batch content and handle them
+                    let pk = new BatchPacket()
+                    pk.buffer = packet.buffer
+                    pk.decode()
+                    return callback(null, pk)
+                }, function(pk, callback) {
+                    // Read all packets inside batch and handle them
+                    for (let buf of pk.getPackets()) {
+                        if (this.#packetRegistry.has(buf[0])) {
+                            let packet = new (this.#packetRegistry.get(buf[0]))()  // Get packet from registry
+                            packet.buffer = buf
+                            packet.decode()
+                            return callback(null, packet)
+                        } else {
+                            console.log('Unhandled packet', buf)  // The new logger won't work
+                        }
+                    }
+                }.bind(this)
+            ], function(err, packet) {
+                if (err) this.#logger.console.error(err)
+                player.handleDataPacket(packet)
+            }.bind(this))
         })
 
         this.#raknet.on('closeConnection', (inetAddr, reason) => {
