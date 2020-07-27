@@ -27,7 +27,7 @@ class AddPlayerPacket extends DataPacket {
     deviceId
     buildPlatform = 0  // TODO
 
-    metadata
+    metadata = new Map()
 
     encodePayload() {
         this.writeUUID(this.uuid)
