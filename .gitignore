@@ -1,7 +1,7 @@
 # Node.js things
-node_modules/
+node_modules
 package-lock.json
 
 # Text editors/IDE things
-.idea/
-.vscode/
+.idea
+.vscode
