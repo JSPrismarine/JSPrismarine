@@ -25,7 +25,7 @@
   "dependencies": {
     "async": "^3.2.0",
     "glob": "^7.1.6",
-    "jsbinaryutils": "1.0.7",
+    "jsbinaryutils": "1.0.8",
     "jsraknet": "^1.1.8",
     "jwt-decode": "^2.2.0",
     "winston": "^3.3.3"

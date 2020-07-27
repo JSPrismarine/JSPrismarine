@@ -1,5 +1,6 @@
 const Vector3 = require('../math/vector3')
-const { MetadataManager, MetaFlags, FlagType} = require('./metadata')
+const { MetadataManager, MetadataFlag, FlagType} = require('./metadata')
+const { AttributeManager } = require('./attribute')
 
 'use strict'
 
@@ -8,37 +9,38 @@ class Entity extends Vector3 {
 
     static runtimeIdCount = 0
 
+    /** @type {number} */
     runtimeId
 
     metadata = new MetadataManager()
+    attributes = new AttributeManager()
 
     constructor() {
         super()
         this.runtimeId = Entity.runtimeIdCount += 1
 
-        this.metadata.setLong(MetaFlags.Index, 0)
-        this.metadata.setShort(MetaFlags.MaxAir, 400)
-        this.metadata.setLong(MetaFlags.EntityLeadHolderId, -1)
-        this.metadata.setFloat(MetaFlags.Scale, 1)
-        this.metadata.setFloat(MetaFlags.BoundingBoxWidth, 0.6)
-        this.metadata.setFloat(MetaFlags.BoundingBoxHeight, 1.8)
-        this.metadata.setShort(MetaFlags.Air, 0) 
+        this.metadata.setLong(MetadataFlag.Index, 0)
+        this.metadata.setShort(MetadataFlag.MaxAir, 400)
+        this.metadata.setLong(MetadataFlag.EntityLeadHolderId, -1)
+        this.metadata.setFloat(MetadataFlag.Scale, 1)
+        this.metadata.setFloat(MetadataFlag.BoundingBoxWidth, 0.6)
+        this.metadata.setFloat(MetadataFlag.BoundingBoxHeight, 1.8)
+        this.metadata.setShort(MetadataFlag.Air, 0) 
 
-        // TODO: fix broken writeVarLong
-        // this.setGenericFlag(MetaFlags.AffectedByGravity, true)
-        // this.setGenericFlag(MetaFlags.HasCollision, true)
+        this.setGenericFlag(MetadataFlag.AffectedByGravity, true)
+        // this.setGenericFlag(MetadataFlag.HasCollision, true)
     }
 
     setNameTag(name) {
-        this.metadata.setString(MetaFlags.Nametag, name)
+        this.metadata.setString(MetadataFlag.Nametag, name)
     }
 
     setDataFlag(propertyId, flagId, value = true, propertyType = FlagType.Long) {
         if (this.getDataFlag(propertyId, flagId) !== value) {
             let flags = this.metadata.getPropertyValue(propertyId, propertyType)
-            console.log(flags)
-            flags ^= 1 << flagId
-            this.metadata.setPropertyValue(propertyId, propertyType, flags)
+            let biFlags = BigInt(flags)
+            biFlags ^= (1n << BigInt(flagId))
+            this.metadata.setPropertyValue(propertyId, propertyType, biFlags)
         }
     }
 
@@ -47,7 +49,7 @@ class Entity extends Vector3 {
     }
 
     setGenericFlag(flagId, value = true) {
-        this.setDataFlag(flagId >= 64 ? 94 : MetaFlags.Index, flagId % 64, value, FlagType.Long)
+        this.setDataFlag(flagId >= 64 ? 94 : MetadataFlag.Index, flagId % 64, value, FlagType.Long)
     }
 
 }

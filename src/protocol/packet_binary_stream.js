@@ -187,10 +187,7 @@ class PacketBinaryStream extends BinaryStream {
                     this.writeLFloat(value[1])
                     break
                 case FlagType.Long:
-                    // this.writeVarLong(value[1])    
-                    // TODO: this is just a temp solution to avoid 
-                    // the not working var long
-                    this.append(Buffer.from('8080c2808080c001', 'hex'))
+                    this.writeVarLong(value[1])    
                     break
                 case FlagType.String:
                     this.writeString(value[1])
