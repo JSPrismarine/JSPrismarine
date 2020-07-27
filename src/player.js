@@ -1,4 +1,5 @@
 const winston = require('winston')
+const { Worker, parentPort, workerData } = require('worker_threads');
 
 const Connection = require('jsraknet/connection')
 const Async = require('./utils/async')
@@ -167,35 +168,19 @@ class Player extends Entity {
                 pk.radius = this.viewDistance * 16 
                 this.sendDataPacket(pk)
 
-                // Send chunks
-                Async(function () {
-                    // As is really slow to send chunks, i have to send less chunks
-                    let distance = this.viewDistance
-                    for (let chunkX = -distance; chunkX <= distance; chunkX++) {
-                        for (let chunkZ = -distance; chunkZ <= distance; chunkZ++) {
-                            let hash = CoordinateUtils.toLong(chunkX, chunkZ)
-                            let chunk = new Chunk(chunkX, chunkZ)
-                            for (let x = 0; x < 16; x++) {
-                                for (let z = 0; z < 16; z++) {
-                                    let y = 0
-                                    chunk.setBlockId(x, y++, z, 7)
-                                    chunk.setBlockId(x, y++, z, 3)
-                                    chunk.setBlockId(x, y++, z, 3)
-                                    chunk.setBlockId(x, y, z, 2) 
-                                
-                                    // TODO: block light
-                                }
-                            }
-            
-                            chunk.recalculateHeightMap()
-                            this.sendChunk(chunk)
-
-                            this.chunks.push(hash)
-                        }
-                    }
-                }.bind(this)).then(function() {
-                    this.sendPlayStatus(Status.PlayerSpawn)
+                let worker = new Worker(__dirname + '/level/flat_generator_test.js')
+                worker.postMessage(this.viewDistance)
+                
+                worker.on('message', function(chunk) {
+                    this.sendCustomChunk(
+                        chunk.chunkX,
+                        chunk.chunkZ,
+                        chunk.subCount,
+                        chunk.data
+                    )
                 }.bind(this))
+
+                this.sendPlayStatus(Status.PlayerSpawn)
                 break
             case Identifiers.MovePlayerPacket:
                 this.x = packet.positionX
@@ -323,6 +308,15 @@ class Player extends Entity {
         pk.needsTranslation = needsTranslation
         pk.xuid = xuid 
         pk.platformChatId = ''  // TODO
+        this.sendDataPacket(pk)
+    }
+
+    sendCustomChunk(chunkX, chunkZ, subCount, data) {
+        let pk = new LevelChunkPacket()
+        pk.chunkX = chunkX
+        pk.chunkZ = chunkZ
+        pk.subChunkCount = subCount
+        pk.data = data
         this.sendDataPacket(pk)
     }
 
