@@ -132,7 +132,7 @@ class Player extends Entity {
                     this.sendDataPacket(new AvailableActorIdentifiersPacket())
                     this.sendDataPacket(new BiomeDefinitionListPacket())
 
-                    this.sendAttributes()
+                    // this.sendAttributes()
 
                     this.#logger.info(`${this.name} is attempting to join with id ${this.runtimeId} from ${this.#address.address}:${this.#address.port}`)
 
@@ -238,10 +238,6 @@ class Player extends Entity {
                     player.sendSpawn(this)
                     this.sendSpawn(player)
                 }
-
-                setInterval(function() {
-                    this.sendAttributes2()
-                }.bind(this), 1000 / 20)
 
                 // Check for new chunks [WIP]
                 // Credits for logic: geNAZt
