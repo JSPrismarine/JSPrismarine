@@ -31,6 +31,8 @@ const PlayerChatEvent = require('./events/player/player_chat_event')
 const UpdateAttributesPacket = require('./protocol/mcbe/update_attributes_packet')
 const SetActorDataPacket = require('./protocol/mcbe/set_actor_data_packet')
 const { AnimatePacket } = require('./protocol/mcbe/animate_packet')
+const { PlayerAction } = require('./protocol/mcbe/player_action_packet');
+const { LevelEventPacket, LevelEventIds } = require('./protocol/mcbe/level_event_packet');
 
 'use strict'
 
@@ -254,9 +256,50 @@ class Player extends Entity {
                 pk.action = packet.action
 
                 for (const [_, player] of this.#server.players) {
+                    if (player === this) continue
                     player.sendDataPacket(pk)
                 }
-                break             
+                break   
+            case Identifiers.PlayerActionPacket:
+                switch (packet.action) {
+                    case PlayerAction.StartBreak:
+                        pk = new LevelEventPacket()
+                        pk.eventId = LevelEventIds.BlockStartBreak
+                        pk.x = packet.x
+                        pk.y = packet.y
+                        pk.z = packet.z
+                        pk.data = 65535 / 5 * 20
+                        for (const [_, player] of this.#server.players) {
+                            player.sendDataPacket(pk)
+                        }
+                        break
+                    case PlayerAction.AbortBreak:
+                    case PlayerAction.StopBreak:
+                        pk = new LevelEventPacket()
+                        pk.eventId = LevelEventIds.BlockStopBreak
+                        pk.x = packet.x
+                        pk.y = packet.y
+                        pk.z = packet.z
+                        pk.data = 0
+                        for (const [_, player] of this.#server.players) {
+                            player.sendDataPacket(pk)
+                        }        
+                        break
+                    case PlayerAction.ContinueBreak:
+                        pk = new LevelEventPacket()
+                        pk.eventId = LevelEventIds.ParticlePunchBlock
+                        pk.x = packet.x
+                        pk.y = packet.y
+                        pk.z = packet.z
+                        pk.data = 7  // TODO: runtime ID
+                        for (const [_, player] of this.#server.players) {
+                            player.sendDataPacket(pk)
+                        }   
+                        break 
+                    default:
+                        this.#logger.debug(`Unknown PlayerAction: ${packet.action}`)
+                }
+                break              
         }
     }
 
