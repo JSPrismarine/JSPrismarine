@@ -1,7 +1,7 @@
 'use strict'
 
 // TODO: Still missing flags
-const MetaFlags = {
+const MetadataFlag = {
     Index: 0,
     Health: 1,
     Variant: 2,
@@ -37,6 +37,8 @@ const FlagType = {
     Long: 7,
     Vector: 8
 }
+/* 
+For future enchancement
 class Metadata {
     key
     type
@@ -47,16 +49,18 @@ class Metadata {
         this.type = type
         this.value = value
     }
-}
+} 
+*/
 class MetadataManager {
-    properties = new Map()
+    /** @type {Map<number, []>} */
+    #metadata = new Map()
 
-    getPropertyValue(key, type) {
-        return this.properties.has(key) ? this.properties.get(key)[1] : null
+    getPropertyValue(key) {
+        return this.#metadata.has(key) ? this.#metadata.get(key)[1] : null
     }
 
     setPropertyValue(key, type, value) {
-        this.properties.set(key, [type, value])
+        this.#metadata.set(key, [type, value])
     }
 
     setLong(key, value) {
@@ -74,5 +78,10 @@ class MetadataManager {
     setFloat(key, value) {
         this.setPropertyValue(key, FlagType.Float, value)
     }
+
+    getMetadata() {
+        return this.#metadata
+    }
+    
 }
-module.exports = { MetaFlags, FlagType, Metadata, MetadataManager }
+module.exports = { MetadataFlag, FlagType, MetadataManager }
