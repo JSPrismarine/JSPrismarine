@@ -1,4 +1,4 @@
-<p align="center"><img src="https://user-images.githubusercontent.com/34418030/88539249-3165d480-d011-11ea-82d3-ecfebfffa3bd.png"></p>
+<p align="center"><img width=200 height=200 src="https://user-images.githubusercontent.com/34418030/88539249-3165d480-d011-11ea-82d3-ecfebfffa3bd.png"></p>
 
 # JSPrismarine
 
