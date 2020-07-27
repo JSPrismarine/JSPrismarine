@@ -1,0 +1,11 @@
+# Node.js things
+node_modules
+package-lock.json
+
+# JSPRismarine things
+plugins
+worlds
+
+# Text editors/IDE things
+.idea
+.vscode
