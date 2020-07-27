@@ -132,7 +132,7 @@ class Player extends Entity {
                     this.sendDataPacket(new AvailableActorIdentifiersPacket())
                     this.sendDataPacket(new BiomeDefinitionListPacket())
 
-                    // this.sendAttributes()
+                    this.sendAttributes()
 
                     this.#logger.info(`${this.name} is attempting to join with id ${this.runtimeId} from ${this.#address.address}:${this.#address.port}`)
 
@@ -298,30 +298,30 @@ class Player extends Entity {
         }
     }
 
-    /* sendAttributes() {
+    sendAttributes() {
         let pk = new UpdateAttributesPacket()
         pk.runtimeEntityId = this.runtimeId
         pk.attributes = [
-            {name: 'minecraft:absorption', min: 0.00, max: 340282346638528859811704183484516925440.00, default: 0.00},
-            {name: 'minecraft:player.saturation', min: 0.00, max: 20.00, default: 20.00},
-            {name: 'minecraft:player.exhaustion', min: 0.00, max: 5.00, default: 0.00},
-            {name: 'minecraft:knockback_resistance', min: 0.00, max: 1.00, default: 0.00},
-            {name: 'minecraft:health', min: 0.00, max: 20.00, default: 20.00},
-            {name: 'minecraft:movement', min: 0.00, max: 340282346638528859811704183484516925440.00, default: 0.10},
-            {name: 'minecraft:follow_range', min: 0.00, max: 2048.00, default: 16.00},
-            {name: 'minecraft:player.hunger', min: 0.00, max: 20.00, default: 20.00},
-            {name: 'minecraft:attack_damage', min: 0.00, max: 340282346638528859811704183484516925440.00, default: 1.00},
-            {name: 'minecraft:player.level', min: 0.00, max: 24791.00, default: 0.00},
-            {name: 'minecraft:player.experience', min: 0.00, max: 1.00, default: 0.00},
-            {name: 'minecraft:underwater_movement', min: 0.0, max: 340282346638528859811704183484516925440.0, default: 0.02},
-            {name: 'minecraft:luck', min: -1024.0, max: 1024.0, default: 0.0},
-            {name: 'minecraft:fall_damage', min: 0.0, max: 340282346638528859811704183484516925440.0, default: 1.0},
-            {name: 'minecraft:horse.jump_strength', min: 0.0, max: 2.0, default: 0.7},
-            {name: 'minecraft:zombie.spawn_reinforcements', min: 0.0, max: 1.0, default: 0.0},
-            {name: 'minecraft:lava_movement', min: 0.0, max: 340282346638528859811704183484516925440.0, default: 0.02}
+            {name: 'minecraft:absorption', min: 0.00, max: 340282346638528859811704183484516925440.00, default: 0.00, value: 0.00},
+            {name: 'minecraft:player.saturation', min: 0.00, max: 20.00, default: 20.00, value: 20.00},
+            {name: 'minecraft:player.exhaustion', min: 0.00, max: 5.00, default: 0.00, value: 0.00},
+            {name: 'minecraft:knockback_resistance', min: 0.00, max: 1.00, default: 0.00, value: 0.00},
+            {name: 'minecraft:health', min: 0.00, max: 20.00, default: 20.00, value: 20.00},
+            {name: 'minecraft:movement', min: 0.00, max: 340282346638528859811704183484516925440.00, default: 0.10, value: 0.10},
+            {name: 'minecraft:follow_range', min: 0.00, max: 2048.00, default: 16.00, value: 16.00},
+            {name: 'minecraft:player.hunger', min: 0.00, max: 20.00, default: 20.00, value: 20.00},
+            {name: 'minecraft:attack_damage', min: 0.00, max: 340282346638528859811704183484516925440.00, default: 1.00, value: 1.00},
+            {name: 'minecraft:player.level', min: 0.00, max: 24791.00, default: 0.00, value: 0.00},
+            {name: 'minecraft:player.experience', min: 0.00, max: 1.00, default: 0.00, value: 0.00},
+            {name: 'minecraft:underwater_movement', min: 0.0, max: 340282346638528859811704183484516925440.0, default: 0.02, value: 0.02},
+            {name: 'minecraft:luck', min: -1024.0, max: 1024.0, default: 0.0, value: 0.0},
+            {name: 'minecraft:fall_damage', min: 0.0, max: 340282346638528859811704183484516925440.0, default: 1.0, value: 1.0},
+            {name: 'minecraft:horse.jump_strength', min: 0.0, max: 2.0, default: 0.7, value: 0.7},
+            {name: 'minecraft:zombie.spawn_reinforcements', min: 0.0, max: 1.0, default: 0.0, value: 0.0},
+            {name: 'minecraft:lava_movement', min: 0.0, max: 340282346638528859811704183484516925440.0, default: 0.02, value: 0.02}
         ]
         this.sendDataPacket(pk)
-    } */
+    } 
 
     sendMetadata() {
         let pk = new SetActorDataPacket()
