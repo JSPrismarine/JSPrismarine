@@ -1,5 +1,5 @@
-<p align="center"><img src="https://gamepedia.cursecdn.com/minecraft_gamepedia/d/d9/Prismarine_JE2_BE2.gif?version=c410cca3afa3a744a5f460eb70573772"></p>
+<p align="center"><img src="https://user-images.githubusercontent.com/34418030/88539249-3165d480-d011-11ea-82d3-ecfebfffa3bd.png"></p>
 
 # JSPrismarine
 
-![Development status](https://user-images.githubusercontent.com/34418030/86368986-2623c100-bc7e-11ea-9913-e09349535293.png)
+![Development status](https://user-images.githubusercontent.com/34418030/88540607-8d315d00-d013-11ea-8be3-f10216bb699e.png)
