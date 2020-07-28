@@ -1,7 +1,7 @@
 <p id="top" align="center"><img width="100" height="100" src="https://user-images.githubusercontent.com/34418030/88539249-3165d480-d011-11ea-82d3-ecfebfffa3bd.png" alt="JSPrismarine logo"/></p>
 <h1><a href="https://github.com/HerryYT/JSPrismarine">JSPrismarine</a></h1>
 
-<p align="center"><a href="https://discord.gg/fGkHZhu"><img src="https://img.shields.io/discord/704967868885762108?style=flat-square"/></p>
+<p align="center"><a href="https://discord.gg/fGkHZhu"><img src="https://img.shields.io/discord/704967868885762108?style=flat-square"/></a></p>
 
 Why JSPrismarine?
   - Written in Javascript, that means it's easy to use and create plugins for, you can also make plugins in other languages that transpile into Javascript (such as Typescript, Kotlin, Coffescript, Asm.js and etc...).
