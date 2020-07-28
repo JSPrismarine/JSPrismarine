@@ -4,7 +4,8 @@ if exist "./node_modules/" (
     goto launch
 ) else (
     echo Installing dependencies.
-    npm i
+    call npm i
+    cls
     goto launch
 )
 
