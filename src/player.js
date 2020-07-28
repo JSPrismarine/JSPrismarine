@@ -1,38 +1,28 @@
 const winston = require('winston')
-const { Worker, parentPort, workerData } = require('worker_threads');
 
 const Connection = require('jsraknet/connection')
 const Entity = require('./entity/entity')
 const EncapsulatedPacket = require('jsraknet/protocol/encapsulated_packet')
 const InetAddress = require('jsraknet/utils/inet_address')
-const { PlayStatusPacket, Status } = require('./protocol/mcbe/play_status_packet')
-const ResourcePacksInfoPacket = require('./protocol/mcbe/resource_packs_info_packet')
-const BatchPacket = require("./protocol/mcbe/batch_packet")
-const { ResourcePackStatus } = require('./protocol/mcbe/resource_pack_client_response_packet')
-const ResourcePackStackPacket = require('./protocol/mcbe/resource_pack_stack_packet')
-const StartGamePacket = require("./protocol/mcbe/start_game_packet")
-const AvailableActorIdentifiersPacket = require('./protocol/mcbe/available_actor_identifiers_packet')
-const ChunkRadiusUpdatedPacket = require('./protocol/mcbe/chunk_radius_updated_packet')
-const Chunk = require('./level/chunk')
-const LevelChunkPacket = require("./protocol/mcbe/level_chunk_packet")
-const BiomeDefinitionListPacket = require('./protocol/mcbe/biome_definition_list_packet')
-const Identifiers = require("./protocol/identifiers")
+const PlayStatusPacket= require('./network/packet/play-status')
+const BatchPacket = require("./network/packet/batch")
+const ChunkRadiusUpdatedPacket = require('./network/packet/chunk-radius-updated')
+const Chunk = require('./level/chunk/chunk')
+const LevelChunkPacket = require("./network/packet/level-chunk")
 const Skin = require('./utils/skin')
 const UUID = require('./utils/uuid')
 const Prismarine = require('./prismarine')
-const { PlayerListPacket, PlayerListAction, PlayerListEntry } = require('./protocol/mcbe/player_list_packet')
-const AddPlayerPacket = require('./protocol/mcbe/add_player_packet')
-const { MovePlayerPacket, MovementMode } = require('./protocol/mcbe/move_player_packet')
-const { TextType, TextPacket } = require('./protocol/mcbe/text_packet')
-const RemoveActorPacket = require('./protocol/mcbe/remove_actor_packet')
-const NetworkChunkPublisherUpdatePacket = require('./protocol/mcbe/network_chunk_publisher_update_packet')
-const EventManager = require('./events/event_manager')
-const PlayerChatEvent = require('./events/player/player_chat_event')
-const UpdateAttributesPacket = require('./protocol/mcbe/update_attributes_packet')
-const SetActorDataPacket = require('./protocol/mcbe/set_actor_data_packet')
-const { AnimatePacket } = require('./protocol/mcbe/animate_packet')
-const { PlayerAction } = require('./protocol/mcbe/player_action_packet');
-const { LevelEventPacket, LevelEventIds } = require('./protocol/mcbe/level_event_packet');
+const PlayerListPacket = require('./network/packet/player-list')
+const PlayerListAction = require('./network/type/player-list-action')
+const PlayerListEntry = require('./network/type/player-list-entry') 
+const AddPlayerPacket = require('./network/packet/add-player')
+const MovePlayerPacket = require('./network/packet/move-player')
+const MovementType = require('./network/type/movement-type')
+const TextPacket = require('./network/packet/text')
+const TextType = require('./network/type/text-type')
+const RemoveActorPacket = require('./network/packet/remove-actor')
+const UpdateAttributesPacket = require('./network/packet/update-attributes')
+const SetActorDataPacket = require('./network/packet/set-actor-data')
 
 'use strict'
 
@@ -80,9 +70,9 @@ class Player extends Entity {
     platformChatId = ''
 
     // Device
-    #deviceOS
-    #deviceModel
-    #deviceId
+    deviceOS
+    deviceModel
+    deviceId
 
     /** @type {number[]} */
     chunks = []
@@ -95,212 +85,12 @@ class Player extends Entity {
         this.#server = server
     }
 
-    handleDataPacket(packet) {
-        let pk
-        switch (packet.id) {
-            case Identifiers.LoginPacket:  
-                this.name = packet.displayName
-                this.locale = packet.languageCode
-                this.randomId = packet.clientRandomId
-                this.uuid = packet.identity
-                this.xuid = packet.XUID
-
-                this.#deviceId = packet.deviceId
-                this.#deviceOS = packet.deviceOS
-                this.#deviceModel = packet.deviceModel
-                
-                this.skin = packet.skin
-
-                this.sendPlayStatus(Status.LoginSuccess)
-
-                pk = new ResourcePacksInfoPacket()
-                this.sendDataPacket(pk)
-                break
-            case Identifiers.ResourcePackClientResponsePacket:  
-                if (packet.status === ResourcePackStatus.HaveAllPacks) {
-                    pk = new ResourcePackStackPacket()
-                    this.sendDataPacket(pk)
-                } else if (packet.status === ResourcePackStatus.Completed) {
-                    pk = new StartGamePacket()
-                    pk.entityId = this.runtimeId
-                    pk.runtimeEntityId = this.runtimeId
-                    // pk.playerGamemode = this.gamemode
-                    // pk.playerX = this.x
-                    // pk.playerY = this.y
-                    // pk.playerZ = this.z
-                    // pk.playerPitch = this.#pitch
-                    // pk.playerYaw = this.#yaw
-                    this.sendDataPacket(pk)
-
-                    this.sendDataPacket(new AvailableActorIdentifiersPacket())
-                    this.sendDataPacket(new BiomeDefinitionListPacket())
-                    
-                    this.sendAttributes(this.attributes.getDefaults())
-
-                    this.#logger.info(`${this.name} is attempting to join with id ${this.runtimeId} from ${this.#address.address}:${this.#address.port}`)
-
-                    this.setNameTag(this.name)
-                    // TODO: always visible nametag
-                    this.sendMetadata()
-
-                    // First add
-                    this.addToPlayerList()
-                    // Then retrive other players
-                    if (this.#server.players.size > 1) {
-                        this.sendPlayerList() 
-                    }
-                }
-               break
-            case Identifiers.PacketViolationWarningPacket:
-                console.log(packet)
-                break   
-            case Identifiers.RequestChunkRadiusPacket:
-                pk = new ChunkRadiusUpdatedPacket()
-                pk.radius = packet.radius
-                this.sendDataPacket(pk)
-
-                // Update player vieww distance
-                this.viewDistance = pk.radius
-
-                // Show chunks to the player
-                pk = new NetworkChunkPublisherUpdatePacket()
-                pk.x = this.x
-                pk.y = this.y
-                pk.z = this.z
-                pk.radius = this.viewDistance * 16 
-                this.sendDataPacket(pk)
-
-                let worker = new Worker(__dirname + '/level/flat_generator_test.js')
-                worker.postMessage(this.viewDistance)
-                
-                worker.on('message', function(chunk) {
-                    this.sendCustomChunk(
-                        chunk.chunkX,
-                        chunk.chunkZ,
-                        chunk.subCount,
-                        chunk.data
-                    )
-                }.bind(this))
-
-                this.sendPlayStatus(Status.PlayerSpawn)
-                break
-            case Identifiers.MovePlayerPacket:
-                this.x = packet.positionX
-                this.y = packet.positionY
-                this.z = packet.positionZ
-                this.pitch = packet.pitch
-                this.yaw = packet.yaw 
-                this.headYaw = packet.headYaw
-                this.onGround = packet.onGround
-                // We still have some fileds 
-                // at the moment we don't need them
-
-                EventManager.emit('player_move', this)
-
-                // Show chunks to the player
-                // TODO: check this
-                pk = new NetworkChunkPublisherUpdatePacket()
-                pk.x = this.x
-                pk.y = this.y
-                pk.z = this.z
-                pk.radius = this.viewDistance * 16 
-                this.sendDataPacket(pk)
-
-                break   
-            case Identifiers.LevelSoundEventPacket:
-                /* for (const [_, player] of this.#server.players) {
-                    if (player === this) return
-                    player.sendDataPacket(packet)
-                } */
-                break  
-            case Identifiers.SetLocalPlayerAsInitializedPacket:
-                // TODO: event
-                EventManager.emit('player_join', this)
-
-                setInterval(function() {
-                    // Broadcast movement to all online players
-                    for (const [_, player] of this.#server.players) {
-                        if (player === this) continue
-                        player.broadcastMove(this)
-                        this.broadcastMove(player)
-                    }
-                }.bind(this), 1000 / 20)
-
-                for (const [_, player] of this.#server.players) {
-                    if (player === this) continue
-                    player.sendSpawn(this)
-                    this.sendSpawn(player)
-                }
-                break    
-            case Identifiers.TextPacket:
-                let event = new PlayerChatEvent(this, packet.message)
-                EventManager.emit('player_chat', event)
-                if (event.isCancelled()) return
-
-                let vanillaFormat = `<${packet.sourceName}> ${packet.message}`
-                this.#logger.silly(vanillaFormat)
-
-                // Broadcast chat message to every player
-                if (packet.type == TextType.Chat) {
-                    for (const [_, player] of this.#server.players) {
-                        player.sendMessage(vanillaFormat, packet.xuid)
-                    }
-                }
-                break   
-            case Identifiers.AnimatePacket:
-                // TODO: event
-                EventManager.emit('player_animate', this)
-
-                pk = new AnimatePacket()
-                pk.runtimeEntityId = this.runtimeId
-                pk.action = packet.action
-
-                for (const [_, player] of this.#server.players) {
-                    if (player === this) continue
-                    player.sendDataPacket(pk)
-                }
-                break   
-            case Identifiers.PlayerActionPacket:
-                switch (packet.action) {
-                    case PlayerAction.StartBreak:
-                        pk = new LevelEventPacket()
-                        pk.eventId = LevelEventIds.BlockStartBreak
-                        pk.x = packet.x
-                        pk.y = packet.y
-                        pk.z = packet.z
-                        pk.data = 65535 / 5 * 20
-                        for (const [_, player] of this.#server.players) {
-                            player.sendDataPacket(pk)
-                        }
-                        break
-                    case PlayerAction.AbortBreak:
-                    case PlayerAction.StopBreak:
-                        pk = new LevelEventPacket()
-                        pk.eventId = LevelEventIds.BlockStopBreak
-                        pk.x = packet.x
-                        pk.y = packet.y
-                        pk.z = packet.z
-                        pk.data = 0
-                        for (const [_, player] of this.#server.players) {
-                            player.sendDataPacket(pk)
-                        }        
-                        break
-                    case PlayerAction.ContinueBreak:
-                        pk = new LevelEventPacket()
-                        pk.eventId = LevelEventIds.ParticlePunchBlock
-                        pk.x = packet.x
-                        pk.y = packet.y
-                        pk.z = packet.z
-                        pk.data = 7  // TODO: runtime ID
-                        for (const [_, player] of this.#server.players) {
-                            player.sendDataPacket(pk)
-                        }   
-                        break 
-                    default:
-                        this.#logger.debug(`Unknown PlayerAction: ${packet.action}`)
-                }
-                break              
-        }
+    // Updates the player view distance
+    sendViewDistance(distance) {
+        this.viewDistance = distance
+        let pk = new ChunkRadiusUpdatedPacket()
+        pk.radius = distance
+        this.sendDataPacket(pk)
     }
 
     sendAttributes(attributes) {
@@ -365,7 +155,7 @@ class Player extends Entity {
         pk.yaw = this.yaw
         pk.headYaw = this.headYaw
 
-        pk.mode = MovementMode.Normal
+        pk.mode = MovementType.Normal
 
         pk.onGround = this.onGround
 
@@ -447,7 +237,7 @@ class Player extends Entity {
         pk.yaw = this.yaw
         pk.headYaw = this.headYaw
 
-        pk.deviceId = this.#deviceId
+        pk.deviceId = this.deviceId
         pk.metadata = this.metadata.getMetadata()
         player.sendDataPacket(pk)
     }
@@ -484,6 +274,10 @@ class Player extends Entity {
 
     getServer() {
         return this.#server
+    }
+
+    getAddress() {
+        return this.#address
     }
 
 }
