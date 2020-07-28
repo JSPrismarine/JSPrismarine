@@ -10,7 +10,7 @@ Why JSPrismarine?
 
 How to use? (Linux/Windows/MacOS)
   - You need [Node.js](https://nodejs.org) 12.x and [Npm](https://www.npmjs.com/) (Npm is included with Node.js).
-  - Clone the repository `git clone https://github.com/HerryYT/JSPrismarine.git`
+  - Clone the repository `git clone https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/nougator/JSPrismarine/archive/master.zip)).
   - Go in the cloned repository `cd JSPrismarine`
   - Install dependencies `npm i`
   - You're done, you can run it `node bootstrap.js`
@@ -25,9 +25,11 @@ Faq:
   > With which devices devices can I join?
   - PC/Windows, Android, iOS and with some tricks you can join with Xbox (one), Switch and PS4.
   > Which OS can run JSPrismarine?
-  - Linux, Windows, MacOS or any other OS that can run Node.js there's no guarantee that it will run on these other OS (like FreeBSD, Solaris and Android).
+  - Linux, Windows, MacOS or any other OS that can run Node.js but there's no guarantee that it will run on these other OS (like FreeBSD, Solaris and Android).
   > Does it support plugins?
   - Yes but the plugin API isn't stable yet.
+  > If my question isn't here what should I do?
+  - You can join the [discord](https://discord.gg/fGkHZhu) server or open an [issue](https://github.com/HerryYT/JSPrismarine/issues/new).
 
 Remarks:
   - JSPrismarine still in developement, no stable version.
