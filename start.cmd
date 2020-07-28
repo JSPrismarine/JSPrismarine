@@ -6,7 +6,7 @@ where node.exe >nul 2>&1 && goto checkBeforeLaunch || goto nodeNotInstalled
 if exist "./node_modules/" (
     goto launch
 ) else (
-    echo Installing dependencies.
+    echo Installing dependencies...
     call npm i
     cls
     goto launch
