@@ -13,13 +13,12 @@ How to use? (Linux/Windows/MacOS)
   - You need [Node.js](https://nodejs.org) 12.x and [Npm](https://www.npmjs.com/) (Npm is included with Node.js).
   - Clone the repository `git clone https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/nougator/JSPrismarine/archive/master.zip)).
   - Go in the cloned repository `cd JSPrismarine`
-  - Install dependencies `npm i`
-  - You're done, you can run it `node bootstrap.js`
+  - You're done, you can run it `./start.sh`
   > Windows
   - You need [Node.js](https://nodejs.org) 12.x and [Npm](https://www.npmjs.com/) (Npm is included with Node.js).
   - Clone the repository `git clone https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/nougator/JSPrismarine/archive/master.zip)).
   - Go in the cloned repository `cd JSPrismarine`
-  - Launch the server `call start.cmd`
+  - You're done, you can run it `call start.cmd`
   
 Faq:
   > How do I uninstall it? 
