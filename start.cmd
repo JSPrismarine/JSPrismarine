@@ -1,5 +1,8 @@
 @echo off
 
+where node.exe >nul 2>&1 && goto checkBeforeLaunch || goto nodeNotInstalled
+
+:checkBeforeLaunch
 if exist "./node_modules/" (
     goto launch
 ) else (
@@ -8,6 +11,10 @@ if exist "./node_modules/" (
     cls
     goto launch
 )
+
+:nodeNotInstalled
+echo You have to install Node.js
+exit
 
 :launch
 node bootstrap.js
