@@ -8,8 +8,8 @@ Why JSPrismarine?
   - Open source with the permissive [GPLv3](https://raw.githubusercontent.com/HerryYT/JSPrismarine/master/LICENSE) license.
   - Active developement.
 
-How to use? (Linux/Windows/MacOS)
-  > Linux/MacOS
+How to use?
+  > Linux/MacOS/Unix based OS
   - You need [Node.js](https://nodejs.org) 12.x and [Npm](https://www.npmjs.com/) (Npm is included with Node.js).
   - Clone the repository `git clone https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/nougator/JSPrismarine/archive/master.zip)).
   - Go in the cloned repository `cd JSPrismarine`
