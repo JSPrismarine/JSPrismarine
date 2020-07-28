@@ -3,7 +3,7 @@
 if exist "./node_modules/" (
     goto launch
 ) else (
-    echo Installing dependencies
+    echo Installing dependencies.
     npm i
     goto launch
 )
