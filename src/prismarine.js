@@ -3,9 +3,8 @@ const async = require('async')
 
 const Listener = require('jsraknet')
 const Player = require('./player')
-const BatchPacket = require('./protocol/mcbe/batch_packet')
-const PacketRegistry = require('./protocol/packet_registry')
-const logger = require('./utils/logger')
+const BatchPacket = require('./network/packet/batch')
+const PacketRegistry = require('./network/packet-registry')
 
 'use strict'
 
@@ -52,19 +51,26 @@ class Prismarine {
                 }, function(pk, callback) {
                     // Read all packets inside batch and handle them
                     for (let buf of pk.getPackets()) {
-                        if (this.#packetRegistry.has(buf[0])) {
-                            let packet = new (this.#packetRegistry.get(buf[0]))()  // Get packet from registry
+                        if (this.#packetRegistry.packets.has(buf[0])) {
+                            // Get packet from registry
+                            let packet = new (this.#packetRegistry.packets.get(buf[0]))()  
                             packet.buffer = buf
                             packet.decode()
                             return callback(null, packet)
                         } else {
-                            console.log('Unhandled packet', buf)  // The new logger won't work
+                            // The new logger won't work
+                            console.log('Unhandled packet', buf)  
                         }
                     }
                 }.bind(this)
             ], function(err, packet) {
                 if (err) this.#logger.console.error(err)
-                player.handleDataPacket(packet)
+                if (this.#packetRegistry.handlers.has(packet.id)) {
+                    let handler = this.#packetRegistry.handlers.get(packet.id)
+                    handler.handle(packet, player)
+                } else {
+                    this.#logger.debug(`Unhandled packet: ${packet.id}`)
+                }
             }.bind(this))
         })
 
