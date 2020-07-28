@@ -4,6 +4,7 @@ const TextPacket = require('../packet/text')
 const EventManager = require('../../events/event-manager')
 const logger = require('../../utils/logger')
 const PlayerChatEvent = require('../../events/player/player-chat-event')
+const TextType = require('../type/text-type')
 
 'use strict'
 
