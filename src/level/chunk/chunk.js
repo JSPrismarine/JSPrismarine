@@ -7,63 +7,54 @@ const BinaryStream = require('jsbinaryutils')
 const MaxSubChunks = 16
 class Chunk {
 
-    /** @protected */
-    _x
-    /** @protected */
-    _z
+    x
+    z
 
-    /** @protected */
-    _hasChanged = false
+    hasChanged = false
 
-    /** @protected */
-    _height = MaxSubChunks
+    height = MaxSubChunks
 
     /**
      * @type {Map<number, SubChunk>}
-     * @protected
      */
-    _subChunks = new Map()
+    subChunks = new Map()
 
-    /** @protected */
-    _biomes = []
+    biomes = []
 
-    /** @protected */
-    _tiles = []
-    /** @protected */
-    _entities = []
+    tiles = []
+    entities = []
 
-    /** @protected */
-    _heightMap = []
+    heightMap = []
 
     constructor(chunkX, chunkZ, subChunks = new Map(), entities = new Map(), tiles = new Map(), biomes = [], heightMap = []) {
-        this._x = chunkX
-        this._z = chunkZ
+        this.x = chunkX
+        this.z = chunkZ
 
-        for (let y = 0; y < this._height; y++) {
-            this._subChunks.set(y, subChunks.has(y) ? subChunks.get(y) : new EmptySubChunk())
+        for (let y = 0; y < this.height; y++) {
+            this.subChunks.set(y, subChunks.has(y) ? subChunks.get(y) : new EmptySubChunk())
         }
 
         if (heightMap.length === 256) {
-            this._height = heightMap
+            this.height = heightMap
         } else {
             if (heightMap.length !== 0) throw new Error(`Wrong HrightMap value count, expected 256, got ${heightMap.length}`)
-            this._heightMap = new Array(256).fill(this._height * 16)
+            this.heightMap = new Array(256).fill(this.height * 16)
         }
 
         if (biomes.length === 256) {
-            this._biomes = biomes
+            this.biomes = biomes
         } else {
             if (biomes.length !== 0) throw new Error(`Wrong Biomes value count, expected 256, got ${biomes.length}`)
-            this._biomes = new Array(256).fill(0x00)
+            this.biomes = new Array(256).fill(0x00)
         }
     }
 
     getChunkX() {
-        return this._x
+        return this.x
     }
 
     getChunkZ() {
-        return this._z
+        return this.z
     }
 
     static getIdIndex(x, y, z) {
@@ -79,33 +70,33 @@ class Chunk {
     }
 
     setBiomeId(x, z, biomeId) {
-        this._hasChanged = true
-        this._biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff
+        this.hasChanged = true
+        this.biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff
     }
 
     setBlockId(x, y, z, id) {
         if (this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id)) {
-            this._hasChanged = true
+            this.hasChanged = true
         }
     }
 
     getSubChunk(y, generateNew = false) {
-        if (y < 0 || y >= this._height) {
+        if (y < 0 || y >= this.height) {
             return new EmptySubChunk()
-        } else if (generateNew && this._subChunks.get(y) instanceof EmptySubChunk) {
-            this._subChunks.set(y, new SubChunk())
+        } else if (generateNew && this.subChunks.get(y) instanceof EmptySubChunk) {
+            this.subChunks.set(y, new SubChunk())
         }
 
-        return this._subChunks.get(y)
+        return this.subChunks.get(y)
     }
 
     setHeightMap(x, z, value) {
-        this._heightMap[Chunk.getHeightMapIndex(x, z)] = value
+        this.heightMap[Chunk.getHeightMapIndex(x, z)] = value
     }
 
     getHighestSubChunkIndex() {
-        for (let y = this._subChunks.size - 1; y >= 0; --y) {
-            if (this._subChunks.get(y) instanceof EmptySubChunk) {
+        for (let y = this.subChunks.size - 1; y >= 0; --y) {
+            if (this.subChunks.get(y) instanceof EmptySubChunk) {
                 continue
             }
             return y
@@ -146,9 +137,9 @@ class Chunk {
         let stream = new BinaryStream()
         let subChunkCount = this.getSubChunkSendCount()
         for (let y = 0; y < subChunkCount; ++y) {
-            stream.append(this._subChunks.get(y).toBinary())
+            stream.append(this.subChunks.get(y).toBinary())
         }
-        for (let biome of this._biomes) {
+        for (let biome of this.biomes) {
             stream.writeByte(biome)
         }
         stream.writeByte(0)
