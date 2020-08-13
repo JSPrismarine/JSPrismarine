@@ -1,9 +1,9 @@
 'use strict'
 
 const Identifiers = {
-    Protocol: 407,
+    Protocol: 408,
 
-    MinecraftVersion: '1.16.0',
+    MinecraftVersion: '1.16.20',
 
     LoginPacket: 0x01,
     PlayStatusPacket: 0x02,
