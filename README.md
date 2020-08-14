@@ -36,7 +36,7 @@ FAQ:
   > If my question isn't here what should I do?
   - You can join the [Discord server](https://discord.gg/fGkHZhu) or open an [issue](https://github.com/HerryYT/JSPrismarine/issues/new).
   > I cannot join the server when hosting it on my pc.
-  - Open Windows PowerShell
+  - Open Windows PowerShell as administrator
   - Run this command: `CheckNetIsolation LoopbackExempt -a -n="Microsoft.MinecraftUWP_8wekyb3d8bbwe"` 
   - Open Minecraft and add a server with the ip `127.0.0.1`
 
