@@ -4,7 +4,7 @@
 <p align="center"><a href="https://discord.gg/fGkHZhu"><img src="https://img.shields.io/discord/704967868885762108?style=flat-square"/></a></p>
 
 Why JSPrismarine?
-  - Written in JavaScript, that means it's easy to use and create plugins for, you can also make plugins in other languages that transpile into JavaScript (such as [TypeScript](http://typescriptlang.org/), [Kotlin](https://kotlinlang.org/), [CoffeeScript](https://coffeescript.org/), [asm.js](http://asmjs.org/) and more).
+  - Written in JavaScript, that means it's easy to use and create plugins for, you can also make plugins in other languages that transpile into JavaScript (such as TypeScript, Kotlin, CoffeeScript, asm.js and more).
   - Open source with the permissive [GPLv3](https://raw.githubusercontent.com/HerryYT/JSPrismarine/master/LICENSE) license.
   - Active development.
 
@@ -28,7 +28,7 @@ FAQ:
   > Is it for minecraft Bedrock or Java?
   - It's only for Bedrock.
   > With which devices devices can I join?
-  - PC/Windows, Android, iOS and [with some tricks you can join with Xbox (one), Switch and PS4](https://github.com/Pugmatt/BedrockConnect).
+  - PC/Windows, Android, iOS and with some tricks you can join with Xbox (one), Switch and PS4.
   > Which OS can run JSPrismarine?
   - Linux, Windows, MacOS or any other OS that can run Node.js but there's no guarantee that it will run on these other OS (like FreeBSD, Solaris and Android).
   > Does it support plugins?
