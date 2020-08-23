@@ -78,7 +78,7 @@ class PacketBinaryStream extends BinaryStream {
                 PieceID: this.readString(),
                 PieceType: this.readString(),
                 PackID: this.readString(),
-                Default: this.readBool(),
+                IsDefault: this.readBool(),
                 ProductID: this.readString()
             })
         }
@@ -199,11 +199,6 @@ class PacketBinaryStream extends BinaryStream {
                     console.log(`Unknown meta type ${value}`)    
             } 
         } 
-        
-        // Broken (probably because is not a big int)
-        // let stream = new PacketBinaryStream()
-        // stream.writeVarLong(422212465606656)
-        // console.log(stream.buffer) 
     }
 
     readLegacySetItemSlot() {

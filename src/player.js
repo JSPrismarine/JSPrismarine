@@ -74,6 +74,8 @@ class Player extends Entity {
     deviceModel
     deviceId
 
+    cacheSupport
+
     /** @type {number[]} */
     chunks = []
 
