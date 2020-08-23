@@ -1,11 +1,12 @@
 const Player = require('../../player')
 const Identifiers = require('../identifiers')
+const EventManager = require('../../events/event-manager')
 const AnimatePacket = require('../packet/animate')
 
 'use strict'
 
 class AnimateHandler {
-    static NetID = Identifiers.NetID
+    static NetID = Identifiers.AnimatePacket
 
     /**
      * @param {AnimatePacket} packet 
