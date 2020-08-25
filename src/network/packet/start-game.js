@@ -10,14 +10,19 @@ const Identifiers = require('../identifiers')
 class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket
 
+    // Entity properties
     entityId
     runtimeEntityId
+    gamemode 
+
+    levelId
+    worldName
 
     encodePayload() {
         this.writeVarLong(this.entityId)
         this.writeUnsignedVarLong(this.runtimeEntityId)
 
-        this.writeVarInt(0) // game mode
+        this.writeVarInt(this.gamemode) 
 
         // vector 3
         this.writeLFloat(5)
@@ -84,8 +89,8 @@ class StartGamePacket extends DataPacket {
         this.writeBool(false) // has new nether
         this.writeBool(false) // experimental gameplay
 
-        this.writeString('') // random level uuid
-        this.writeString('test') // world name
+        this.writeString(this.levelId) // random level uuid
+        this.writeString(this.worldName) // world name
         this.writeString('') // template content identity
 
         this.writeByte(0) // is trial

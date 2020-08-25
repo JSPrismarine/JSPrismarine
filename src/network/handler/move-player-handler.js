@@ -3,6 +3,9 @@ const MovePlayerPacket = require('../packet/move-player')
 const Player = require('../../player')
 const EventManager = require('../../events/event-manager')
 const NetworkChunkPublisherUpdatePacket = require('../packet/network-chunk-publisher-update')
+const CoordinateUtils = require('../../level/coordinate-utils')
+const TextPacket = require('../packet/text')
+const TextType = require('../type/text-type')
 
 'use strict'
 
@@ -35,6 +38,18 @@ class MovePlayerHandler {
         pk.z = player.z
         pk.radius = player.viewDistance * 16 
         player.sendDataPacket(pk)
+
+        // let index = CoordinateUtils.chunkId(player.x >> 4, player.z >> 4)
+        // if (!(player.chunks.includes(index))) {
+        /* setImmediate(function() {
+            for (let chunkX = player.x; chunkX < player.x + 16; chunkX++) {
+                for (let chunkZ = player.z; chunkZ < player.z + 16; chunkZ++) {
+                    let chunk = player.getLevel().getChunkAt(chunkX, chunkZ, true)
+                    if (chunk) player.sendChunk(chunk)
+                }
+            }
+        }.bind(player)) */
+        // }  
     }
 }
 module.exports = MovePlayerHandler

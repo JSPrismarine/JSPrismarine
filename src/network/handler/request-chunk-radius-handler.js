@@ -39,7 +39,13 @@ class RequestChunkRadiusHandler {
                 chunk.subCount,
                 chunk.data
             )
-        })
+        }) 
+
+        // works :=)
+        /* setImmediate(function() {
+            let chunk = player.level.getChunkAt(player.x, player.z)
+            player.sendChunk(chunk)
+        }.bind(player)) */
 
         player.sendPlayStatus(PlayStatus.PlayerSpawn)
     }

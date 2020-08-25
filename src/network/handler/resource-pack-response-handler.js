@@ -26,12 +26,10 @@ class ResourcePackResponseHandler {
             pk = new StartGamePacket()
             pk.entityId = player.runtimeId
             pk.runtimeEntityId = player.runtimeId
-            // pk.playerGamemode = this.gamemode
-            // pk.playerX = this.x
-            // pk.playerY = this.y
-            // pk.playerZ = this.z
-            // pk.playerPitch = this.#pitch
-            // pk.playerYaw = this.#yaw
+            pk.gamemode = player.gamemode
+
+            pk.levelId = player.getServer().defaultLevel.uniqueId
+            pk.worldName = player.getServer().defaultLevel.name
             player.sendDataPacket(pk)
 
             player.sendDataPacket(new AvailableActorIdentifiersPacket())

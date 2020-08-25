@@ -1,10 +1,13 @@
 const winston = require('winston')
 const async = require('async')
+const path = require('path')
 
 const Listener = require('jsraknet')
 const Player = require('./player')
 const BatchPacket = require('./network/packet/batch')
 const PacketRegistry = require('./network/packet-registry')
+const Level = require('./level/level')
+const LevelDB = require('./level/leveldb/leveldb')
 
 'use strict'
 
@@ -18,10 +21,19 @@ class Prismarine {
     #players = new Map()
     /** @type {PacketRegistry} */
     #packetRegistry = new PacketRegistry()
+    /** @type {Level|null} */
+    #defaultLevel = null
+    /** @type {Map<String, Level>} */
+    #levels = new Map()
+    /** @type {Map<String, Object>} */
+    #plugins = new Map()
+    /** @type {null|Prismarine} */
+    static instance = null
 
     constructor(logger) {
         // Pass default server logger
         this.#logger = logger
+        Prismarine.instance = this
     }
 
     listen() {
@@ -90,6 +102,51 @@ class Prismarine {
             }
             this.#logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`)
         })
+
+        // Load default level (this is just a test)
+        if (this.#defaultLevel === null) {
+            this.#defaultLevel = new Level(this, "LevelName", undefined)
+        }
+
+        // this.loadLevel('world')
+    }
+
+    // TODO: it is now used just to test 
+    // a random default level
+    loadLevel(folderName) {
+        // TODO: check if it's already loaded
+        let levelPath = __dirname + `/../worlds/${folderName}/`
+        let provider = new LevelDB(levelPath)
+        let level = new Level(this, folderName, provider)
+        this.#levels.set(level.uniqueId, level)
+    } 
+
+    /**
+     * Loads a plugin form a given file even in runtime.
+     * 
+     * @param {string} file 
+     */
+    loadPlugin(file) {
+        let plugin = require(path.resolve(file))
+        let manifest = plugin.manifest
+        let name = file.replace('.js', '').replace('./plugins/', '')
+        // if manifest is not defined in the plugin
+        // just warn the user :), it's just unstable
+        if (typeof manifest === "undefined") {
+            this.#logger.warn(
+                `PLugin ${name} doesn't have a manifest so i can't check the target API version`
+            )
+        } else {
+            // TODO: all other manifest cheks
+            // if manifest has plugin name use them
+        } 
+        plugin.server = this 
+        this.#plugins.set(name, plugin)
+        this.#logger.info(`Plugin ${name} loaded!`)
+    }
+
+    get defaultLevel() {
+        return this.#defaultLevel
     }
 
     get players() {
