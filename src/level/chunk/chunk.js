@@ -1,6 +1,7 @@
 const SubChunk = require('./sub-chunk')
 const EmptySubChunk = require('./empty-sub-chunk')
 const BinaryStream = require('jsbinaryutils')
+const Entity = require('../../entity/entity')
 
 'use strict'
 
@@ -22,6 +23,7 @@ class Chunk {
     biomes = []
 
     tiles = []
+    /** @type {Entity[]} */
     entities = []
 
     heightMap = []
@@ -131,6 +133,15 @@ class Chunk {
                 this.setHeightMap(x, z, this.getHighestBlock(x, z) + 1)
             }
         }
+    }
+
+    /**
+     * Adds an entity into the chunk
+     * 
+     * @param {Entity} entity 
+     */
+    addEntity(entity) {
+        this.entities.push(entity)
     }
 
     toBinary() {

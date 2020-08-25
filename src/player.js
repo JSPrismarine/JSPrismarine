@@ -23,6 +23,7 @@ const TextType = require('./network/type/text-type')
 const RemoveActorPacket = require('./network/packet/remove-actor')
 const UpdateAttributesPacket = require('./network/packet/update-attributes')
 const SetActorDataPacket = require('./network/packet/set-actor-data')
+const CoordinateUtils = require('./level/coordinate-utils')
 
 'use strict'
 
@@ -54,7 +55,7 @@ class Player extends Entity {
     /** @type {number} */
     viewDistance
     /** @type {number} */
-    gamemode = 0
+    gamemode = 0 
 
     /** @type {number} */
     pitch = 0
@@ -80,11 +81,13 @@ class Player extends Entity {
     chunks = []
 
     constructor(connection, address, logger, server) {
-        super()
+        super(server.defaultLevel)
         this.#connection = connection
         this.#address = address
         this.#logger = logger
         this.#server = server
+        
+        server.defaultLevel.addPlayer(this)
     }
 
     // Updates the player view distance
@@ -130,6 +133,9 @@ class Player extends Entity {
         pk.subChunkCount = subCount
         pk.data = data
         this.sendDataPacket(pk)
+
+        let index = CoordinateUtils.chunkId(chunkX, chunkZ)
+        this.chunks.push(index)
     }
 
     /**
@@ -142,6 +148,11 @@ class Player extends Entity {
         pk.subChunkCount = chunk.getSubChunkSendCount()
         pk.data = chunk.toBinary()
         this.sendDataPacket(pk)
+
+        let index = CoordinateUtils.chunkId(
+            chunk.getChunkX(), chunk.getChunkZ()
+        )
+        this.chunks.push(index)
     }
 
     // Broadcast the movement to a defined player

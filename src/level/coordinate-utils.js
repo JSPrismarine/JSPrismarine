@@ -14,7 +14,7 @@ class CoordinateUtils {
         return ((v + 1) << 4) - 1
     }
 
-    static toLong(x, z) {
+    static chunkId(x, z) {
         return (x << 32) + z - Number.MIN_VALUE
     }
 }

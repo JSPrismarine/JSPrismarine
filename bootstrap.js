@@ -1,5 +1,6 @@
 const glob = require('glob')
 const path = require('path')
+const fs = require('fs')
 
 const Prismarine = require('./src/prismarine')
 const logger = require('./src/utils/logger')
@@ -8,10 +9,20 @@ const logger = require('./src/utils/logger')
 
 // TODO: read config
 
-// TODO: check if plugin have their info (name, author etc...)
+const server = new Prismarine(logger)
+
+// Create folders
+if (!(fs.existsSync(__dirname + '/plugins'))) {
+    fs.mkdirSync(__dirname + '/plugins')
+}
+if (!(fs.existsSync(__dirname + '/worlds'))) {
+    fs.mkdirSync(__dirname + '/worlds')
+}
+
+// Load all plugins
 glob.sync('./plugins/*.js').map(
-    file => require(path.resolve(file))
+    file => server.loadPlugin(file)
 )
 
-const server = new Prismarine(logger)
 server.listen()
+

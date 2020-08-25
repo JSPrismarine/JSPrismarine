@@ -1,11 +1,12 @@
-const Vector3 = require('../math/vector3')
 const { MetadataManager, MetadataFlag, FlagType} = require('./metadata')
 const { AttributeManager } = require('./attribute')
+const Level = require('../level/level')
+const Position = require('../level/position')
 
 'use strict'
 
 // All entities will extend this base class
-class Entity extends Vector3 {
+class Entity extends Position {
 
     static runtimeIdCount = 0
 
@@ -15,8 +16,15 @@ class Entity extends Vector3 {
     metadata = new MetadataManager()
     attributes = new AttributeManager()
 
-    constructor() {
-        super()
+    chunk
+
+    /**
+     * Entity constructor.
+     * 
+     * @param {Level} level 
+     */
+    constructor(level) {
+        super(undefined, undefined, undefined, level)  // TODO
         this.runtimeId = Entity.runtimeIdCount += 1
 
         this.metadata.setLong(MetadataFlag.Index, 0)
@@ -28,7 +36,9 @@ class Entity extends Vector3 {
         this.metadata.setShort(MetadataFlag.Air, 0) 
 
         this.setGenericFlag(MetadataFlag.AffectedByGravity, true)
-        // this.setGenericFlag(MetadataFlag.HasCollision, true)
+        this.setGenericFlag(MetadataFlag.HasCollision, true)
+
+        level.addEntity(this)
     }
 
     setNameTag(name) {
@@ -45,7 +55,12 @@ class Entity extends Vector3 {
     }
 
     getDataFlag(propertyId, flagId) {
-        return (this.metadata.getPropertyValue(propertyId, -1) & (1 << flagId)) > 0
+        // After appending the first flag, it is now a bigint and for further flags
+        // we need to handle it like that
+        if (typeof this.metadata.getPropertyValue(propertyId) === 'bigint') {
+            return (this.metadata.getPropertyValue(propertyId) & (1n << BigInt(flagId))) > 0
+        } 
+        return (this.metadata.getPropertyValue(propertyId) & (1 << flagId)) > 0
     }
 
     setGenericFlag(flagId, value = true) {
