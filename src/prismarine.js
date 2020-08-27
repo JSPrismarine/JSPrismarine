@@ -8,7 +8,8 @@ const BatchPacket = require('./network/packet/batch')
 const PacketRegistry = require('./network/packet-registry')
 const Level = require('./level/level')
 const LevelDB = require('./level/leveldb/leveldb')
-const CommandManager = require('./command/command-manager')
+const CommandManager = require('./command/command-manager');
+const bufferToConsoleString = require("./utils/buffer-to-console-string");
 
 'use strict'
 
@@ -39,8 +40,8 @@ class Prismarine {
         Prismarine.instance = this
     }
 
-    listen() {
-        this.#raknet = (new Listener).listen('0.0.0.0', 19132)
+    listen(_port=19132) {
+        this.#raknet = (new Listener).listen('0.0.0.0', _port)
 
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
@@ -74,7 +75,8 @@ class Prismarine {
                             return callback(null, packet)
                         } else {
                             // The new logger won't work
-                            console.log('Unhandled packet', buf)  
+                            // console.log('Unhandled packet', buf);
+                            this.#logger.debug("Unhandled packet: "+bufferToConsoleString(buf))
                         }
                     }
                 }.bind(this)
