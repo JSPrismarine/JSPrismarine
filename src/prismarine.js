@@ -8,8 +8,9 @@ const BatchPacket = require('./network/packet/batch')
 const PacketRegistry = require('./network/packet-registry')
 const Level = require('./level/level')
 const LevelDB = require('./level/leveldb/leveldb')
-const CommandManager = require('./command/command-manager');
-const bufferToConsoleString = require("./utils/buffer-to-console-string");
+const CommandManager = require('./command/command-manager')
+const Experimental = require('./level/experimental/experimental')
+const bufferToConsoleString = require("./utils/buffer-to-console-string")
 
 'use strict'
 
@@ -110,7 +111,7 @@ class Prismarine {
 
         // Load default level (this is just a test)
         if (this.#defaultLevel === null) {
-            this.#defaultLevel = new Level(this, "LevelName", undefined)
+            this.#defaultLevel = new Level(this, "World", new Experimental(__dirname + `/../worlds/world/`))
         }
 
         // this.loadLevel('world')

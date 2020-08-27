@@ -2,7 +2,6 @@ const Command = require('../command')
 const Player = require('../../player')
 const logger = require('../../utils/logger')
 const ConsoleSender = require('../console-sender')
-const Prismarine = require('../../prismarine')
 const Gamemode = require('../../level/gamemode')
 
 'use strict'
