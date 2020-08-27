@@ -7,9 +7,9 @@ class LevelEventPacket extends DataPacket {
     static NetID = Identifiers.LevelEventPacket
 
     eventId
-    x
-    y
-    z
+    x = 0.0
+    y = 0.0
+    z = 0.0
     data
 
     encodePayload() {

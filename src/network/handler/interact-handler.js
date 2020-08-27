@@ -24,7 +24,7 @@ class InteractHandler {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:
                 break
-            case InteractAction.OpneInventory:
+            case InteractAction.OpenInventory:
                 let pk = new ContainerOpenPacket()
                 pk.windowId = 1  // TODO
                 pk.containerType = 1  // -> inventory (TODO)

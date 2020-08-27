@@ -2,6 +2,7 @@ const Entity = require('../entity/entity')
 const UUID = require('../utils/uuid')
 const Chunk = require('./chunk/chunk')
 const CoordinateUtils = require('../level/coordinate-utils')
+const Provider = require('./provider')
 
 'use strict'
 
@@ -17,9 +18,12 @@ class Level {
     #entities = new Map()
     /** @type {Map<Number, Chunk>} */
     #chunks = new Map()
+    /** @type {Provider} */
+    #provider
 
     constructor(server, name, provider) {
         this.#name = name
+        this.#provider = provider
     }
 
     /**
@@ -55,6 +59,7 @@ class Level {
         }
 
         let chunk = null
+        chunk = this.#provider.readChunk(x, z)
         // TODO: providers, this is just an experiment
         // generate is used if the chunk from the provider cannot
         // be loaded, so a flat chunk is generated (convention)
@@ -104,6 +109,10 @@ class Level {
      */
     addPlayer(player) {
         this.#players[player.runtimeId] = player
+    }
+
+    get provider() {
+        return this.#provider
     }
 
     // this is used for example in start game packet

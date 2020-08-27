@@ -5,6 +5,8 @@ const RequestChunkRadiusPacket = require('../packet/request-chunk-radius')
 const NetworkChunkPublisherUpdatePacket = require('../packet/network-chunk-publisher-update')
 const PlayStatus = require('../type/play-status')
 const Player = require('../../player')
+const Chunk = require('../../level/chunk/chunk')
+const SubChunk = require('../../level/chunk/sub-chunk')
 
 'use strict'
 
@@ -41,10 +43,16 @@ class RequestChunkRadiusHandler {
             )
         }) 
 
-        // works :=)
+        // TO FIX, BUT WORKED!! 
+        // The first time worked, then i touched the code (don't touch it if it works!!!)
+        // and now the terrain is loaded from files but is invisible!
         /* setImmediate(function() {
-            let chunk = player.level.getChunkAt(player.x, player.z)
-            player.sendChunk(chunk)
+            for (let chunkX = 0; chunkX < 16; chunkX++) {
+                for (let chunkZ = 0; chunkZ < 16; chunkZ++) {
+                    let chunk = player.getServer().defaultLevel.getChunk(chunkX, chunkZ)
+                    player.sendChunk(chunk)
+                }
+            }
         }.bind(player)) */
 
         player.sendPlayStatus(PlayStatus.PlayerSpawn)
