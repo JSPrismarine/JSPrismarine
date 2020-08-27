@@ -26,13 +26,13 @@ class CommandManager {
      * @param {Function} execute 
      */
     registerCommand(name = '', description = '', execute = function(sender) {}) {
-        let command = new Command(name, description)
+        let command = new Command({name, description})
 
         let parameter = new CommandParameter()
         parameter.name = 'args'
         parameter.type = 0x100000 | 0x22  // TODO: hardcoded values
         parameter.optional = true
-        command.data.parameters.add(parameter)
+        command.parameters.add(parameter)
         
         command.execute = execute
 
@@ -49,7 +49,7 @@ class CommandManager {
         parameter.name = 'args'
         parameter.type = 0x100000 | 0x22  // TODO: hardcoded values
         parameter.optional = true
-        command.data.parameters.add(parameter)
+        command.parameters.add(parameter)
         this.#commands.add(command)
     }
     
@@ -78,7 +78,7 @@ class CommandManager {
         }
 
         for (let command of this.#commands) {
-            if (command.data.name === commandName.substr(1)) {
+            if (command.name === commandName.substr(1)) {
                 return command.execute(sender, commandParts)
             }
         }

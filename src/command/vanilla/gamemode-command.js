@@ -10,7 +10,7 @@ const Gamemode = require('../../level/gamemode')
 class GamemodeCommand extends Command {
 
     constructor() {
-        super('gamemode', 'Sets a player\'s game mode.')
+        super({name: 'gamemode', description: 'Sets a player\'s game mode.'})
     }
 
     /**
@@ -36,7 +36,7 @@ class GamemodeCommand extends Command {
                 break
             default:
                 if (sender instanceof Player) {
-                    sender.sendMessage('§cGamemode not found!')
+                    sender.sendMessage('§eGamemode not found!')
                 } else {
                     logger.warn('Gamemode not found!')
                 }  
@@ -47,17 +47,17 @@ class GamemodeCommand extends Command {
         if (args.length > 1 && typeof args[1] === 'string') {
             if ((target = sender.getServer().getPlayerByName(args[1])) === null) {
                 if (sender instanceof Player) {
-                    sender.sendMessage('§cTarget player is not online!')
+                    sender.sendMessage('§eTarget player is not online!')
                 } else {
                     logger.warn('Target player is not online!')
                 }
                 return
             } 
             target.setGamemode(mode)
-            target.sendMessage('§cYour game mode has been updated to ' + Gamemode.getGamemodeName(mode))
+            target.sendMessage('§eYour game mode has been updated to ' + Gamemode.getGamemodeName(mode))
         } else if (args.length > 1 && typeof args[1] === 'number') {
             if (sender instanceof Player) {
-                sender.sendMessage('§cTarget player is not online!')
+                sender.sendMessage('§eTarget player is not online!')
             } else {
                 logger.warn('Target player is not online!')
             }
@@ -67,7 +67,7 @@ class GamemodeCommand extends Command {
                 return logger.warn('You can run this command just in-game!')
             } 
             target.setGamemode(mode)
-            target.sendMessage('§cYour game mode has been updated to ' + Gamemode.getGamemodeName(mode))
+            target.sendMessage('§eYour game mode has been updated to ' + Gamemode.getGamemodeName(mode))
         }
     }
 }

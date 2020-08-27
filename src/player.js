@@ -102,7 +102,7 @@ class Player extends Entity {
         let pk = new AvailableCommandsPacket()
 
         for (let command of this.#server.getCommandManager().commands) {
-            pk.commandData.add(command.data)
+            pk.commandData.add({...command, execute: undefined})
         }
         this.sendDataPacket(pk)
     }
