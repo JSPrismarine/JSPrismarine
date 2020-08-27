@@ -24,6 +24,8 @@ const RemoveActorPacket = require('./network/packet/remove-actor')
 const UpdateAttributesPacket = require('./network/packet/update-attributes')
 const SetActorDataPacket = require('./network/packet/set-actor-data')
 const CoordinateUtils = require('./level/coordinate-utils')
+const AvailableCommandsPacket = require('./network/packet/available-commands')
+const SetGamemodePacket = require('./network/packet/set-gamemode')
 
 'use strict'
 
@@ -88,6 +90,21 @@ class Player extends Entity {
         this.#server = server
         
         server.defaultLevel.addPlayer(this)
+    }
+
+    setGamemode(mode) {
+        let pk = new SetGamemodePacket() 
+        pk.gamemode = mode
+        this.sendDataPacket(pk)
+    }
+
+    sendAvailableCommands() {
+        let pk = new AvailableCommandsPacket()
+
+        for (let command of this.#server.getCommandManager().commands) {
+            pk.commandData.add(command.data)
+        }
+        this.sendDataPacket(pk)
     }
 
     // Updates the player view distance

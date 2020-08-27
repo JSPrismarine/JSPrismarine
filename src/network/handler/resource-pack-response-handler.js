@@ -43,6 +43,8 @@ class ResourcePackResponseHandler {
             // TODO: always visible nametag
             player.sendMetadata()
 
+            player.sendAvailableCommands()
+
             // First add
             player.addToPlayerList()
             // Then retrive other players

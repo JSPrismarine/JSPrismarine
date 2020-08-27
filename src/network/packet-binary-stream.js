@@ -2,6 +2,8 @@ const BinaryStream = require('jsbinaryutils')
 const UUID = require('../utils/uuid')
 const Skin = require('../utils/skin')
 const { FlagType } = require('../entity/metadata')
+const CommandOriginData = require('./type/command-origin-data')
+const CommandOrigin = require('./type/command-origin')
 
 'use strict'
 
@@ -220,6 +222,19 @@ class PacketBinaryStream extends BinaryStream {
         }
 
         return 0
+    }
+
+    readCommandOriginData() {
+        let data = new CommandOriginData()
+        data.type = this.readUnsignedVarInt()
+        data.uuid = this.readUUID()
+        data.requestId = this.readString()
+
+        if (data.type === CommandOrigin.DevConsole || 
+            data.type === CommandOrigin.Test) {
+            data.uniqueEntityId = this.readVarLong()
+        }
+        return data
     }
 
 }   
