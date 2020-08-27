@@ -8,6 +8,7 @@ const BatchPacket = require('./network/packet/batch')
 const PacketRegistry = require('./network/packet-registry')
 const Level = require('./level/level')
 const LevelDB = require('./level/leveldb/leveldb')
+const CommandManager = require('./command/command-manager')
 
 'use strict'
 
@@ -27,6 +28,8 @@ class Prismarine {
     #levels = new Map()
     /** @type {Map<String, Object>} */
     #plugins = new Map()
+    /** @type {CommandManager} */   
+    #commandManager = new CommandManager()
     /** @type {null|Prismarine} */
     static instance = null
 
@@ -144,6 +147,69 @@ class Prismarine {
         this.#plugins.set(name, plugin)
         this.#logger.info(`Plugin ${name} loaded!`)
     }
+
+    /**
+     * Returns an online player by its runtime ID,
+     * if it is not found, null is returned.
+     * 
+     * @param {number} id 
+     */
+    getPlayerById(id) {
+        for (let player of this.#players.values()) {
+            if (player.runtimeId === id) return player
+        }
+
+        return null
+    }
+
+    /**
+     * Returns an online player by its name,
+     * if it is not found, null is returned.
+     * 
+     * CASE INSENSITIVE.
+     * 
+     * @param {String} name 
+     */
+    getPlayerByName(name) {
+        for (let player of this.#players.values()) {
+            if (player.name.toLowerCase() === name.toLowerCase()) return player
+        }
+
+        return null
+    }
+
+    /**
+     * Returns an online player by its name,
+     * if it is not found, null is returned.
+     * 
+     * CASE SENSITIVE.
+     * 
+     * @param {String} name 
+     */
+    getPlayerByExactName(name) {
+        for (let player of this.#players.values()) {
+            if (player.name === name) return player
+        }
+
+        return null
+    }
+
+    getCommandManager() {
+        return this.#commandManager
+    }
+
+    /**
+     * Dispatch a command as console sender.
+     * 
+     * @param {String} command 
+     */
+    dispatchCommand(command) {
+        if (!(command.startsWith('/'))) {
+            this.#logger.error(
+                'Command not found, try /help for a complete list of available commands.'
+            )
+        }
+    } 
 
     get defaultLevel() {
         return this.#defaultLevel
