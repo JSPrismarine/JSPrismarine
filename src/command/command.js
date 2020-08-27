@@ -1,19 +1,22 @@
 const CommandData = require('../network/type/command-data')
 
+
 'use strict'
 
-class Command  {
-    
-    /** @type {CommandData} */
-    data = new CommandData()
+class Command extends CommandData {
 
-    constructor(name = '', description = '', flags = 0, permission = 0, aliases = [], parameters = new Set()) {
-        this.data.name = name
-        this.data.description = description
-        this.data.flags = flags
-        this.data.permission = permission
-        this.data.aliases = aliases
-        this.data.parameters = parameters
+    /**
+     * 
+     * @param {{name: string, description: string, flags: number, permission: 0, aliases: Array<string>, parameters: Set<string>}} param0 
+     */
+    constructor({name = '', description = '', flags = 0, permission = 0, aliases = [], parameters = new Set()}) {
+        super();
+        this.name = name
+        this.description = description
+        this.flags = flags
+        this.permission = permission
+        this.aliases = aliases
+        this.parameters = parameters
     }
 
     /**
