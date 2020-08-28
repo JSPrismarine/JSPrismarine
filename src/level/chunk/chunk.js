@@ -92,6 +92,10 @@ class Chunk {
         return this.subChunks.get(y)
     }
 
+    getSubChunks() {
+        return this.subChunks
+    }
+
     setHeightMap(x, z, value) {
         this.heightMap[Chunk.getHeightMapIndex(x, z)] = value
     }

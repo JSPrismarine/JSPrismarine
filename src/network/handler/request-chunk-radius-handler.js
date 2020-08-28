@@ -43,6 +43,15 @@ class RequestChunkRadiusHandler {
             )
         }) 
 
+        /* setImmediate(function() {
+            for (let chunkX = 0; chunkX < 41; chunkX++) {
+                for (let chunkZ = 0; chunkZ < 41; chunkZ++) {
+                    let chunk = player.getServer().defaultLevel.getChunk(chunkX, chunkZ)
+                    player.sendChunk(chunk)
+                }
+            }
+        }.bind(player)) */
+
         // TO FIX, BUT WORKED!! 
         // The first time worked, then i touched the code (don't touch it if it works!!!)
         // and now the terrain is loaded from files but is invisible!

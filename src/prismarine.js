@@ -11,6 +11,8 @@ const LevelDB = require('./level/leveldb/leveldb')
 const CommandManager = require('./command/command-manager')
 const Experimental = require('./level/experimental/experimental')
 const bufferToConsoleString = require("./utils/buffer-to-console-string")
+const Chunk = require('./level/chunk/chunk')
+const { level } = require('winston')
 
 'use strict'
 
@@ -111,10 +113,31 @@ class Prismarine {
 
         // Load default level (this is just a test)
         if (this.#defaultLevel === null) {
-            this.#defaultLevel = new Level(this, "World", new Experimental(__dirname + `/../worlds/world/`))
+            this.#defaultLevel = new Level(
+                this, 
+                "World",
+                /* new Experimental(__dirname + `/../worlds/world/`) */
+                new LevelDB( __dirname + `/../worlds/world9/`)
+            )
         }
 
-        // this.loadLevel('world')
+        /* 
+        let chunk = new Chunk(5, 5)
+        for (let x = 0; x < 16; x++) {
+            for (let z = 0; z < 16; z++) {
+                chunk.setBlockId(7)
+                chunk.setBlockId(3)
+                chunk.setBlockId(3)
+                chunk.setBlockId(2)
+            }
+        }
+        chunk.recalculateHeightMap()
+        let levelDB = new LevelDB( __dirname + `/../worlds/world9/`)
+        levelDB.writeChunk(chunk)
+        // levelDB.readChunk(5, 5)
+        console.log(levelDB.readChunk(5, 5).then((chunk) => console.log(chunk)))
+
+        this.loadLevel('world') */
     }
 
     // TODO: it is now used just to test 

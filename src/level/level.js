@@ -3,6 +3,7 @@ const UUID = require('../utils/uuid')
 const Chunk = require('./chunk/chunk')
 const CoordinateUtils = require('../level/coordinate-utils')
 const Provider = require('./provider')
+const LevelDB = require('./leveldb/leveldb')
 
 'use strict'
 
@@ -59,7 +60,10 @@ class Level {
         }
 
         let chunk = null
-        chunk = this.#provider.readChunk(x, z)
+
+        if (this.#provider instanceof LevelDB) {
+            this.#provider.readChunk(x, z).then(levelChunk => chunk = levelChunk)
+        } else { chunk = this.#provider.readChunk(x, z) }
         // TODO: providers, this is just an experiment
         // generate is used if the chunk from the provider cannot
         // be loaded, so a flat chunk is generated (convention)
