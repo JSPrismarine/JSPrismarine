@@ -43,8 +43,8 @@ class Prismarine {
         Prismarine.instance = this
     }
 
-    listen(_port=19132) {
-        this.#raknet = (new Listener).listen('0.0.0.0', _port)
+    async listen(_port=19132) {
+        this.#raknet = await (new Listener).listen('0.0.0.0', _port)
 
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
