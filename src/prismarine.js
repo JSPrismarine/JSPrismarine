@@ -13,6 +13,7 @@ const Experimental = require('./level/experimental/experimental')
 const bufferToConsoleString = require("./utils/buffer-to-console-string")
 const Chunk = require('./level/chunk/chunk')
 const { level } = require('winston')
+const Identifiers = require('./network/identifiers')
 
 'use strict'
 
@@ -45,6 +46,9 @@ class Prismarine {
 
     async listen(_port=19132) {
         this.#raknet = await (new Listener).listen('0.0.0.0', _port)
+        this.#raknet.name.setOnlinePlayerCount(this.#players.entries.length)
+        this.#raknet.name.setVersion(Identifiers.Protocol)
+        this.#raknet.name.setProtocol(Identifiers.MinecraftVersion)
 
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
@@ -110,6 +114,11 @@ class Prismarine {
             }
             this.#logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`)
         })
+
+        // Update player count every 5 seconds
+        setInterval(() => this.#raknet.name.setOnlinePlayerCount(
+            this.#players.size
+        ), 1000 * 5)
 
         // Load default level (this is just a test)
         if (this.#defaultLevel === null) {
