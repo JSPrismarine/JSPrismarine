@@ -19,12 +19,20 @@ class Level {
     #entities = new Map()
     /** @type {Map<Number, Chunk>} */
     #chunks = new Map()
-    /** @type {Provider} */
-    #provider
+    /** @type {Provider|null} */
+    #provider = null
 
-    constructor(server, name, provider) {
+    constructor(server, name, provider = null) {
         this.#name = name
         this.#provider = provider
+    }
+
+    update(timestamp) {
+
+        // Tick players 
+        // for (let player of this.#players.values()) {
+        //    player.update(timestamp)
+        // }
     }
 
     /**
@@ -60,10 +68,11 @@ class Level {
         }
 
         let chunk = null
-
         if (this.#provider instanceof LevelDB) {
             this.#provider.readChunk(x, z).then(levelChunk => chunk = levelChunk)
-        } else { chunk = this.#provider.readChunk(x, z) }
+        } else if (this.#provider !== null) {
+            chunk = this.#provider.readChunk(x, z) 
+        }
         // TODO: providers, this is just an experiment
         // generate is used if the chunk from the provider cannot
         // be loaded, so a flat chunk is generated (convention)
@@ -79,6 +88,7 @@ class Level {
                     // TODO: block light
                 }
             }
+            chunk.recalculateHeightMap()
         }
 
         this.#chunks.set(index, chunk)
@@ -104,7 +114,7 @@ class Level {
      * @param {Entity} entity 
      */
     addEntity(entity) {
-        this.#entities[entity.runtimeId] = entity
+        this.#entities.set(entity.runtimeId, entity)
         this.getChunkAt(entity.x, entity.z, true).addEntity(entity)
     } 
     
@@ -112,7 +122,14 @@ class Level {
      * Adds a player into the level. 
      */
     addPlayer(player) {
-        this.#players[player.runtimeId] = player
+        this.#players.set(player.runtimeId, player)
+    }
+
+    /**
+     * Removes a player from the level.
+     */
+    removePlayer(player) {
+        this.#players.delete(player.runtimeId)
     }
 
     get provider() {

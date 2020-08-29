@@ -108,6 +108,7 @@ class Prismarine {
                 for (const [_, onlinePlayer] of this.#players) {
                     if (onlinePlayer === player) continue
                     player.sendDespawn(onlinePlayer)
+                    player.getLevel().removePlayer(player)
                 }
 
                 this.#players.delete(token)
@@ -125,28 +126,13 @@ class Prismarine {
             this.#defaultLevel = new Level(
                 this, 
                 "World",
-                /* new Experimental(__dirname + `/../worlds/world/`) */
-                new LevelDB( __dirname + `/../worlds/world9/`)
+                // new Experimental(__dirname + `/../worlds/world/`) 
+                // new LevelDB( __dirname + `/../worlds/world9/`)
             )
         }
 
-        /* 
-        let chunk = new Chunk(5, 5)
-        for (let x = 0; x < 16; x++) {
-            for (let z = 0; z < 16; z++) {
-                chunk.setBlockId(7)
-                chunk.setBlockId(3)
-                chunk.setBlockId(3)
-                chunk.setBlockId(2)
-            }
-        }
-        chunk.recalculateHeightMap()
-        let levelDB = new LevelDB( __dirname + `/../worlds/world9/`)
-        levelDB.writeChunk(chunk)
-        // levelDB.readChunk(5, 5)
-        console.log(levelDB.readChunk(5, 5).then((chunk) => console.log(chunk)))
-
-        this.loadLevel('world') */
+        // Tick level
+        setInterval(() => this.#defaultLevel.update(Date.now()), 1000 / 20)
     }
 
     // TODO: it is now used just to test 

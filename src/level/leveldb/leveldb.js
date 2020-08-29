@@ -47,7 +47,7 @@ class LevelDB extends Provider{
                             chunk.setBlockId(x, y++, z, 7)
                             chunk.setBlockId(x, y++, z, 3)
                             chunk.setBlockId(x, y++, z, 3)
-                            chunk.setBlockId(x, y, z, 2) 
+                            chunk.setBlockId(x, y, z, 7) 
                 
                             // TODO: block light
                         }
