@@ -7,6 +7,7 @@ const PlayStatus = require('../type/play-status')
 const Player = require('../../player')
 const Chunk = require('../../level/chunk/chunk')
 const SubChunk = require('../../level/chunk/sub-chunk')
+const CoordinateUtils = require('../../level/coordinate-utils')
 
 'use strict'
 
@@ -18,16 +19,9 @@ class RequestChunkRadiusHandler {
      * @param {Player} player 
      */
     static handle(packet, player) {
-        player.sendViewDistance(packet.radius)
+        player.setViewDistance(packet.radius)
 
-        // Show chunks to the player
-        // TODO: send JUST when new chunks are sent
-        let pk = new NetworkChunkPublisherUpdatePacket()
-        pk.x = player.x
-        pk.y = player.y
-        pk.z = player.z
-        pk.radius = player.viewDistance * 16 
-        player.sendDataPacket(pk)
+        setTimeout(() => player.sendNetworkChunkPublisher(), 250)
 
         let worker = new Worker(__dirname + '../../../level/flat-generator-test.js')
         worker.postMessage(player.viewDistance)
@@ -43,26 +37,17 @@ class RequestChunkRadiusHandler {
             )
         }) 
 
-        /* setImmediate(function() {
-            for (let chunkX = 0; chunkX < 41; chunkX++) {
-                for (let chunkZ = 0; chunkZ < 41; chunkZ++) {
-                    let chunk = player.getServer().defaultLevel.getChunk(chunkX, chunkZ)
-                    player.sendChunk(chunk)
-                }
-            }
-        }.bind(player)) */
-
         // TO FIX, BUT WORKED!! 
         // The first time worked, then i touched the code (don't touch it if it works!!!)
         // and now the terrain is loaded from files but is invisible!
         /* setImmediate(function() {
-            for (let chunkX = 0; chunkX < 16; chunkX++) {
-                for (let chunkZ = 0; chunkZ < 16; chunkZ++) {
+            for (let chunkX = -16; chunkX < 16; chunkX++) {
+                for (let chunkZ = -16; chunkZ < 16; chunkZ++) {
                     let chunk = player.getServer().defaultLevel.getChunk(chunkX, chunkZ)
                     player.sendChunk(chunk)
                 }
             }
-        }.bind(player)) */
+        }.bind(player)) */ 
 
         player.sendPlayStatus(PlayStatus.PlayerSpawn)
     }

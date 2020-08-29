@@ -1,4 +1,5 @@
 const winston = require('winston')
+const { Worker } = require('worker_threads')
 
 const Connection = require('jsraknet/connection')
 const Entity = require('./entity/entity')
@@ -26,6 +27,7 @@ const SetActorDataPacket = require('./network/packet/set-actor-data')
 const CoordinateUtils = require('./level/coordinate-utils')
 const AvailableCommandsPacket = require('./network/packet/available-commands')
 const SetGamemodePacket = require('./network/packet/set-gamemode')
+const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chunk-publisher-update')
 
 'use strict'
 
@@ -79,8 +81,15 @@ class Player extends Entity {
 
     cacheSupport
 
-    /** @type {number[]} */
-    chunks = []
+    /** @type {Set<Number>} */
+    loadedChunks = new Set()
+    /** @type {Set<Number>} */
+    loadingChunks = new Set()
+    /** @type {Set<Chunk>} */
+    chunkSendQueue = new Set()
+
+    // due to performance issues :/
+    cachedChunk = null
 
     constructor(connection, address, logger, server) {
         super(server.defaultLevel)
@@ -92,15 +101,127 @@ class Player extends Entity {
         server.defaultLevel.addPlayer(this)
     }
 
+    update(timestamp) {
+        if (this.chunkSendQueue.size > 0) {
+            this.chunkSendQueue.forEach(chunk => {
+                let hash = CoordinateUtils.chunkId(
+                    chunk.getChunkX(), chunk.getChunkZ()
+                )
+
+                if (!this.loadingChunks.has(hash)) {
+                    this.chunkSendQueue.delete(chunk)
+                }
+
+                // Send the chunk 
+                this.sendChunk(chunk)
+                this.chunkSendQueue.delete(chunk)
+            })
+        }
+
+        this.needNewChunks()
+    }
+
+    // TODO: fix performance problems
+    async needNewChunks(forceResend = false) {
+        let currentXChunk = CoordinateUtils.fromBlockToChunk(this.x)
+        let currentZChunk = CoordinateUtils.fromBlockToChunk(this.z)
+
+        let viewDistance = this.viewDistance
+        let chunksToSend = []
+
+        for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
+            for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
+                let distance = Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk)
+                let chunkDistance = Math.round(distance)
+
+                if (chunkDistance <= viewDistance) {
+                    let newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk]
+                    let hash = CoordinateUtils.chunkId(newChunk[0], newChunk[1])
+                    
+                    if (forceResend) {
+                        chunksToSend.push(newChunk)
+                    } else {
+                        if (!this.loadedChunks.has(hash) && !this.loadedChunks.has(hash)) {
+                            chunksToSend.push(newChunk)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Send closer chunks before 
+        chunksToSend.sort((c1, c2) => {
+            if ((c1[0] === c2[0]) &&
+                c1[1] === c2[2]) {
+                return 0
+            }
+
+            let distXFirst = Math.abs(c1[0] - currentXChunk)
+            let distXSecond = Math.abs(c2[0] - currentXChunk)
+
+            let distZFirst = Math.abs(c1[1] - currentZChunk)
+            let distZSecond = Math.abs(c2[1] - currentZChunk)
+
+            if (distXFirst + distZFirst > distXSecond + distZSecond) {
+                return 1
+            } else if (distXFirst + distZFirst < distXSecond + distZSecond) {
+                return -1
+            }
+
+            return 0
+        })
+
+        for (let chunk of chunksToSend) {
+            let hash = CoordinateUtils.chunkId(chunk[0], chunk[1])
+            if (forceResend) {
+                if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
+                    this.loadingChunks.add(hash)
+                    this.requestChunk(chunk[0], chunk[1])
+                } else {
+                    let loadedChunk = this.level.getChunk(chunk[0], chunk[1])
+                    this.sendChunk(loadedChunk)
+                }
+            } else {
+                this.loadingChunks.add(hash)
+                this.requestChunk(chunk[0], chunk[1])
+            }
+        }
+
+        if (this.loadedChunks.size > 0) {
+            this.sendNetworkChunkPublisher()
+        } 
+    }
+
+    async requestChunk(x, z) {
+        let chunk = new Chunk(x, z)
+        for (let x = 0; x < 16; x++) {
+            for (let z = 0; z < 16; z++) {
+                chunk.setBlockId(x, 0, z, 7)
+            }
+        }
+        chunk.recalculateHeightMap()
+            
+        // let loadedChunk = this.level.getChunk(x, z) <- invisible blocks :/
+        this.chunkSendQueue.add(chunk)
+    }
+
     setGamemode(mode) {
         let pk = new SetGamemodePacket() 
         pk.gamemode = mode
         this.sendDataPacket(pk)
     }
 
+    sendNetworkChunkPublisher() {
+        let pk = new NetworkChunkPublisherUpdatePacket()
+        pk.x = this.x
+        pk.y = this.y
+        pk.z = this.z
+        pk.radius = this.viewDistance * 16
+        this.sendDataPacket(pk)
+    }
+
     sendAvailableCommands() {
         let pk = new AvailableCommandsPacket()
-
         for (let command of this.#server.getCommandManager().commands) {
             pk.commandData.add({...command, execute: undefined})
         }
@@ -108,8 +229,8 @@ class Player extends Entity {
     }
 
     // Updates the player view distance
-    sendViewDistance(distance) {
-        this.viewDistance = distance
+    setViewDistance(distance) {
+        this.viewDistance = distance 
         let pk = new ChunkRadiusUpdatedPacket()
         pk.radius = distance
         this.sendDataPacket(pk)
@@ -150,9 +271,6 @@ class Player extends Entity {
         pk.subChunkCount = subCount
         pk.data = data
         this.sendDataPacket(pk)
-
-        let index = CoordinateUtils.chunkId(chunkX, chunkZ)
-        this.chunks.push(index)
     }
 
     /**
@@ -160,16 +278,17 @@ class Player extends Entity {
      */
     sendChunk(chunk) {
         let pk = new LevelChunkPacket()
-        pk.chunkX = chunk.getChunkX()
-        pk.chunkZ = chunk.getChunkZ()
-        pk.subChunkCount = chunk.getSubChunkSendCount()
+        pk.chunkX = chunk.getChunkX() 
+        pk.chunkZ = chunk.getChunkZ() 
+        pk.subChunkCount = chunk.getSubChunkSendCount() 
         pk.data = chunk.toBinary()
         this.sendDataPacket(pk)
 
-        let index = CoordinateUtils.chunkId(
+        let hash = CoordinateUtils.chunkId(
             chunk.getChunkX(), chunk.getChunkZ()
         )
-        this.chunks.push(index)
+        this.loadedChunks.add(hash)
+        this.loadingChunks.delete(hash)
     }
 
     // Broadcast the movement to a defined player
