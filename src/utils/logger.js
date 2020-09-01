@@ -1,4 +1,4 @@
-const { createLogger, format, transports } = require('winston');
+const { createLogger, format, transports } = require('winston')
 const { combine, timestamp, printf } = format
 
 'use strict'
@@ -13,7 +13,7 @@ let logger = createLogger({
                 format.colorize(),
                 format.simple(),
                 printf(({ level, message, timestamp }) => {
-                    return `[${timestamp}] ${level}: ${message}`;
+                    return `[${timestamp}] ${level}: ${message}`
                 })
             ),
         })

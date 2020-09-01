@@ -23,7 +23,7 @@ class RequestChunkRadiusHandler {
 
         setTimeout(() => player.sendNetworkChunkPublisher(), 250)
 
-        let worker = new Worker(__dirname + '../../../level/flat-generator-test.js')
+        /* let worker = new Worker(__dirname + '../../../level/flat-generator-test.js')
         worker.postMessage(player.viewDistance)
         
         worker.on('message', function(chunk) {
@@ -35,7 +35,7 @@ class RequestChunkRadiusHandler {
                 chunk.subCount,
                 chunk.data
             )
-        }) 
+        }) */
 
         // TO FIX, BUT WORKED!! 
         // The first time worked, then i touched the code (don't touch it if it works!!!)

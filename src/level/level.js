@@ -30,9 +30,9 @@ class Level {
     update(timestamp) {
 
         // Tick players 
-        // for (let player of this.#players.values()) {
-        //    player.update(timestamp)
-        // }
+        for (let player of this.#players.values()) {
+            player.update(timestamp)
+        }
     }
 
     /**
@@ -44,7 +44,7 @@ class Level {
      * @param {boolean} generate 
      */
     getChunk(x, z, generate = true) {
-        let index = CoordinateUtils.chunkId(x, z)
+        let index = CoordinateUtils.chunkHash(x, z)
         if (this.#chunks.has(index)) {
             return this.#chunks.get(index)
         } else if (this.loadChunk(x, z, generate)) {
@@ -62,7 +62,7 @@ class Level {
      * @param {boolean} generate
      */
     loadChunk(x, z, generate) {
-        let index = CoordinateUtils.chunkId(x, z)
+        let index = CoordinateUtils.chunkHash(x, z)
         if (this.#chunks.has(index)) {
             return true
         }
