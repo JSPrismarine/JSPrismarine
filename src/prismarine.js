@@ -1,5 +1,4 @@
 const winston = require('winston')
-const async = require('async')
 const path = require('path')
 
 const Listener = require('jsraknet')
@@ -9,10 +8,7 @@ const PacketRegistry = require('./network/packet-registry')
 const Level = require('./level/level')
 const LevelDB = require('./level/leveldb/leveldb')
 const CommandManager = require('./command/command-manager')
-const Experimental = require('./level/experimental/experimental')
 const bufferToConsoleString = require("./utils/buffer-to-console-string")
-const Chunk = require('./level/chunk/chunk')
-const { level } = require('winston')
 const Identifiers = require('./network/identifiers')
 
 'use strict'
@@ -64,38 +60,29 @@ class Prismarine {
             if (!this.#players.has(token)) return
             let player = this.#players.get(token)
 
-            async.waterfall([
-                function(callback) {
-                    // Read batch content and handle them
-                    let pk = new BatchPacket()
-                    pk.buffer = packet.buffer
-                    pk.decode()
-                    return callback(null, pk)
-                }, function(pk, callback) {
-                    // Read all packets inside batch and handle them
-                    for (let buf of pk.getPackets()) {
-                        if (this.#packetRegistry.packets.has(buf[0])) {
-                            // Get packet from registry
-                            let packet = new (this.#packetRegistry.packets.get(buf[0]))()  
-                            packet.buffer = buf
-                            packet.decode()
-                            return callback(null, packet)
-                        } else {
-                            // The new logger won't work
-                            // console.log('Unhandled packet', buf);
-                            this.#logger.debug("Unhandled packet: "+bufferToConsoleString(buf))
-                        }
+            // Read batch content and handle them
+            let pk = new BatchPacket()
+            pk.buffer = packet.buffer
+            pk.decode()
+            
+            // Read all packets inside batch and handle them
+            for (let buf of pk.getPackets()) {
+                if (this.#packetRegistry.packets.has(buf[0])) {
+                    let packet = new (this.#packetRegistry.packets.get(buf[0]))()  // Get packet from registry
+                    packet.buffer = buf
+                    packet.decode()
+
+                    // Check if the handler exists
+                    if (this.#packetRegistry.handlers.has(packet.id)) {
+                        let handler = this.#packetRegistry.handlers.get(packet.id)
+                        handler.handle(packet, player)
+                    } else {
+                        this.#logger.debug(`Unhandled packet: ${packet.id}`)
                     }
-                }.bind(this)
-            ], function(err, packet) {
-                if (err) this.#logger.console.error(err)
-                if (this.#packetRegistry.handlers.has(packet.id)) {
-                    let handler = this.#packetRegistry.handlers.get(packet.id)
-                    handler.handle(packet, player)
                 } else {
-                    this.#logger.debug(`Unhandled packet: ${packet.id}`)
+                    this.#logger.debug("Unhandled packet: " + bufferToConsoleString(buf))
                 }
-            }.bind(this))
+            }
         })
 
         this.#raknet.on('closeConnection', (inetAddr, reason) => {

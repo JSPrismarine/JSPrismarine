@@ -51,6 +51,25 @@ class Chunk {
         }
     }
 
+    static createEmpty(x, z) {
+        return new Promise((resolve, reject) => {
+            resolve(new Chunk(x, z))
+        })
+    }
+
+    static createFlatTest(x, z) {
+        return new Promise((resolve, reject) => {
+            let chunk = new Chunk(x, z)
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) {
+                    chunk.setBlockId(x, 0, z, 7)
+                }
+            }
+            chunk.recalculateHeightMap()
+            resolve(chunk)
+        })
+    }
+
     getChunkX() {
         return this.x
     }

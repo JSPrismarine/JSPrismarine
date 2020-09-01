@@ -28,6 +28,7 @@ const CoordinateUtils = require('./level/coordinate-utils')
 const AvailableCommandsPacket = require('./network/packet/available-commands')
 const SetGamemodePacket = require('./network/packet/set-gamemode')
 const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chunk-publisher-update')
+const Level = require('./level/level')
 
 'use strict'
 
@@ -88,8 +89,7 @@ class Player extends Entity {
     /** @type {Set<Chunk>} */
     chunkSendQueue = new Set()
 
-    // due to performance issues :/
-    cachedChunk = null
+    generator = new Worker(__dirname + '/level/flat-generator.js')
 
     constructor(connection, address, logger, server) {
         super(server.defaultLevel)
@@ -99,26 +99,32 @@ class Player extends Entity {
         this.#server = server
         
         server.defaultLevel.addPlayer(this)
+
+        this.generator.on('message', function(chunk) {
+            this.chunkSendQueue.add(chunk)
+        }.bind(this))
     }
 
     update(timestamp) {
         if (this.chunkSendQueue.size > 0) {
             this.chunkSendQueue.forEach(chunk => {
-                let hash = CoordinateUtils.chunkId(
-                    chunk.getChunkX(), chunk.getChunkZ()
-                )
-
-                if (!this.loadingChunks.has(hash)) {
+                if (!this.loadingChunks.has(chunk.hash)) {
                     this.chunkSendQueue.delete(chunk)
                 }
 
                 // Send the chunk 
-                this.sendChunk(chunk)
+                this.sendCustomChunk(
+                    chunk.chunkX,
+                    chunk.chunkZ,
+                    chunk.subCount,
+                    chunk.data,
+                    chunk.hash
+                )
                 this.chunkSendQueue.delete(chunk)
             })
         }
 
-        this.needNewChunks()
+        this.needNewChunks()  
     }
 
     // TODO: fix performance problems
@@ -136,12 +142,12 @@ class Player extends Entity {
 
                 if (chunkDistance <= viewDistance) {
                     let newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk]
-                    let hash = CoordinateUtils.chunkId(newChunk[0], newChunk[1])
-                    
+                    let hash = CoordinateUtils.chunkHash(newChunk[0], newChunk[1])
+
                     if (forceResend) {
                         chunksToSend.push(newChunk)
                     } else {
-                        if (!this.loadedChunks.has(hash) && !this.loadedChunks.has(hash)) {
+                        if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                             chunksToSend.push(newChunk)
                         }
                     }
@@ -172,7 +178,7 @@ class Player extends Entity {
         })
 
         for (let chunk of chunksToSend) {
-            let hash = CoordinateUtils.chunkId(chunk[0], chunk[1])
+            let hash = CoordinateUtils.chunkHash(chunk[0], chunk[1])
             if (forceResend) {
                 if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                     this.loadingChunks.add(hash)
@@ -187,22 +193,37 @@ class Player extends Entity {
             }
         }
 
-        if (this.loadedChunks.size > 0) {
+        let unloaded = false
+
+        for (let hash of this.loadedChunks) {
+            let x = hash >> 32
+            let z = hash + Number.MIN_VALUE
+
+            if (Math.abs(x - currentXChunk) > viewDistance ||
+                Math.abs(z - currentZChunk) > viewDistance) {
+                unloaded = true
+                this.loadedChunks.delete(hash)
+            }
+        }
+
+        for (let hash of this.loadingChunks) {
+            let x = hash >> 32
+            let z = hash + Number.MIN_VALUE
+
+            if (Math.abs(x - currentXChunk) > viewDistance ||
+                Math.abs(z - currentZChunk) > viewDistance) {
+                this.loadingChunks.delete(hash)
+            }
+        }
+
+        if (!unloaded || !(this.chunkSendQueue.size == 0)) {
             this.sendNetworkChunkPublisher()
-        } 
+        }
     }
 
     async requestChunk(x, z) {
-        let chunk = new Chunk(x, z)
-        for (let x = 0; x < 16; x++) {
-            for (let z = 0; z < 16; z++) {
-                chunk.setBlockId(x, 0, z, 7)
-            }
-        }
-        chunk.recalculateHeightMap()
-            
-        // let loadedChunk = this.level.getChunk(x, z) <- invisible blocks :/
-        this.chunkSendQueue.add(chunk)
+        this.generator.postMessage({chunkX: x, chunkZ: z})
+        // let loadedChunk = this.level.getChunk(x, z) <- invisible blocks :/ 
     }
 
     setGamemode(mode) {
@@ -213,10 +234,10 @@ class Player extends Entity {
 
     sendNetworkChunkPublisher() {
         let pk = new NetworkChunkPublisherUpdatePacket()
-        pk.x = this.x
-        pk.y = this.y
-        pk.z = this.z
-        pk.radius = this.viewDistance * 16
+        pk.x = Math.floor(this.x)
+        pk.y = Math.floor(this.y)
+        pk.z = Math.floor(this.z)
+        pk.radius = this.viewDistance << 4
         this.sendDataPacket(pk)
     }
 
@@ -264,13 +285,16 @@ class Player extends Entity {
         this.sendDataPacket(pk)
     }
 
-    sendCustomChunk(chunkX, chunkZ, subCount, data) {
+    sendCustomChunk(chunkX, chunkZ, subCount, data, hash) {
         let pk = new LevelChunkPacket()
         pk.chunkX = chunkX
         pk.chunkZ = chunkZ
         pk.subChunkCount = subCount
         pk.data = data
         this.sendDataPacket(pk)
+
+        this.loadedChunks.add(hash)
+        this.loadingChunks.delete(hash)
     }
 
     /**
@@ -284,7 +308,7 @@ class Player extends Entity {
         pk.data = chunk.toBinary()
         this.sendDataPacket(pk)
 
-        let hash = CoordinateUtils.chunkId(
+        let hash = CoordinateUtils.chunkHash(
             chunk.getChunkX(), chunk.getChunkZ()
         )
         this.loadedChunks.add(hash)

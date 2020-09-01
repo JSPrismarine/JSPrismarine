@@ -19,13 +19,12 @@ class PlayerActionHandler {
         let pk
         switch (packet.action) {
             case PlayerAction.StartBreak:
-                console.log(packet)
                 pk = new LevelEventPacket()
                 pk.eventId = LevelEventType.BlockStartBreak
                 pk.x = packet.x
                 pk.y = packet.y
                 pk.z = packet.z
-                pk.data = 65535 / (20 * 20)
+                pk.data = 65535 / (0.6 * 20)
                 for (const [_, onlinePlayer] of player.getServer().players) {
                     onlinePlayer.sendDataPacket(pk)
                 }
