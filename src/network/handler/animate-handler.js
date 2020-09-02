@@ -17,7 +17,7 @@ class AnimateHandler {
         EventManager.emit('player_animate', this)
 
         let pk = new AnimatePacket()
-        pk.runtimeEntityId = this.runtimeId
+        pk.runtimeEntityId = player.runtimeId
         pk.action = packet.action
         
         for (const [_, onlinePlayer] of player.getServer().players) {
