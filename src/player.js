@@ -28,7 +28,6 @@ const CoordinateUtils = require('./level/coordinate-utils')
 const AvailableCommandsPacket = require('./network/packet/available-commands')
 const SetGamemodePacket = require('./network/packet/set-gamemode')
 const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chunk-publisher-update')
-const Level = require('./level/level')
 
 'use strict'
 
@@ -106,6 +105,13 @@ class Player extends Entity {
     }
 
     update(timestamp) {
+        // Update movement for every player
+        for (const [_, player] of this.#server.players) {
+            if (player.runtimeId === this.runtimeId) continue
+            player.broadcastMove(this)
+            this.broadcastMove(player)
+        }
+
         if (this.chunkSendQueue.size > 0) {
             this.chunkSendQueue.forEach(chunk => {
                 if (!this.loadingChunks.has(chunk.hash)) {

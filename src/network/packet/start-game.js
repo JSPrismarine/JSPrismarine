@@ -11,12 +11,21 @@ class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket
 
     // Entity properties
+
+    /** @type {number} */
     entityId
+    /** @type {number} */
     runtimeEntityId
+    /** @type {number} */
     gamemode 
 
+    /** @type {string} */
     levelId
+    /** @type {string} */
     worldName
+
+    /** @type {Buffer|null} */
+    cachedItemPalette = null
 
     encodePayload() {
         this.writeVarLong(this.entityId)
@@ -75,7 +84,7 @@ class StartGamePacket extends DataPacket {
 
         this.writeVarInt(1) // player perms
 
-        this.writeLInt(4) // chunk tick range
+        this.writeInt(32) // chunk tick range
         this.writeByte(0) // locked behavior
         this.writeByte(0) // locked texture
         this.writeByte(0) // from locked template
@@ -83,14 +92,14 @@ class StartGamePacket extends DataPacket {
         this.writeByte(0) // from world template
         this.writeByte(0) // world template option locked
         this.writeByte(1) // only spawn v1 villagers
-        this.writeString('1.16.1') // vanilla version
+        this.writeString(Identifiers.MinecraftVersion) 
         this.writeLInt(0) // limited world height
         this.writeLInt(0) // limited world length
         this.writeBool(false) // has new nether
         this.writeBool(false) // experimental gameplay
 
-        this.writeString(this.levelId) // random level uuid
-        this.writeString(this.worldName) // world name
+        this.writeString(this.levelId) 
+        this.writeString(this.worldName) 
         this.writeString('') // template content identity
 
         this.writeByte(0) // is trial
@@ -100,22 +109,26 @@ class StartGamePacket extends DataPacket {
         this.writeVarInt(0) // enchantment seed
 
         // PMMP states
-        this.append(fs.readFileSync(__dirname + '/../../resources/states.nbt'))
+        this.append(fs.readFileSync(__dirname + '/../../resources/required_block_states.nbt'))
 
         this.append(this.serializeItemTable(ItemTable))
 
         this.writeString('')
-        this.writeBool(false) 
+        this.writeBool(true) 
     }
 
     serializeItemTable(table) {
-        let stream = new PacketBinaryStream()
-        stream.writeUnsignedVarInt(Object.entries(table).length)
-        for (const [name, legacyId] of Object.entries(table)) {
-            stream.writeString(name)
-            stream.writeLShort(legacyId)
+        if (this.cachedItemPalette == null) {
+            let stream = new PacketBinaryStream()
+            stream.writeUnsignedVarInt(Object.entries(table).length)
+            for (const [name, legacyId] of Object.entries(table)) {
+                stream.writeString(name)
+                stream.writeLShort(legacyId)
+            }
+            this.cachedItemPalette = stream.buffer 
         }
-        return stream.buffer
+
+        return this.cachedItemPalette
     }
 
 }
