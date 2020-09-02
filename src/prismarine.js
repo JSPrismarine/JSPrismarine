@@ -95,8 +95,8 @@ class Prismarine {
                 for (const [_, onlinePlayer] of this.#players) {
                     if (onlinePlayer === player) continue
                     player.sendDespawn(onlinePlayer)
-                    player.getLevel().removePlayer(player)
                 }
+                player.getLevel().removePlayer(player)
 
                 this.#players.delete(token)
             }

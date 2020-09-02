@@ -16,16 +16,6 @@ class SetLocalPlayerAsInitializedHandler {
         // TODO: event
         EventManager.emit('player_join', player)
 
-        // TODO: refactor these, maybe make a function on player called tick()
-        setInterval(function() {
-            // Broadcast movement to all online players
-            for (const [_, onlinePlayer] of player.getServer().players) {
-                if (onlinePlayer === player) continue
-                onlinePlayer.broadcastMove(player)
-                player.broadcastMove(onlinePlayer)
-            }
-        }.bind(this), 1000 / 20)
-
         for (const [_, onlinePlayer] of player.getServer().players) {
             if (onlinePlayer === player) continue
             onlinePlayer.sendSpawn(player)
