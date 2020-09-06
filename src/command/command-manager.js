@@ -5,6 +5,7 @@ const Player = require('../player')
 const ConsoleSender = require('./console-sender')
 const logger = require('../utils/logger')
 const GamemodeCommand = require('./vanilla/gamemode-command')
+const TellCommand = require('./vanilla/tell-command')
 
 'use strict'
 
@@ -16,6 +17,7 @@ class CommandManager {
     constructor() {
         // Register vanilla commands
         this.registerClassCommand(new GamemodeCommand())
+        this.registerClassCommand(new TellCommand());
     }
  
     /**
