@@ -2,7 +2,6 @@
 Made with love by itsDkiller
 GH:      https://github.com/itsDkiller
 Discord: itsDkiller#4689
-
 */
 
 const Command = require('../command')
@@ -38,7 +37,7 @@ class TellCommand extends Command {
             target = sender.getServer().getPlayerByName(args[0])
             message = args.slice(1).join(" ")
 
-            if (!target) return sender.sendMessage('§cCannot find player ' + args[0] + '.')
+            if (!target) return sender.sendMessage(`§cCannot find player ${args[0]}.`)
             if (target.name === sender.name) return sender.sendMessage('§cYou cannot send a message to yourself.')
 
             target.sendMessage(`§e[${sender.name} -> ${target.name}]§r ${message}`)
