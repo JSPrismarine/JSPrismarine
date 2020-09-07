@@ -2,12 +2,13 @@ const { MetadataManager, MetadataFlag, FlagType} = require('./metadata')
 const { AttributeManager } = require('./attribute')
 const Level = require('../level/level')
 const Position = require('../level/position')
+const AddActorPacket = require('../network/packet/add-actor')
 
 'use strict'
 
 // All entities will extend this base class
 class Entity extends Position {
-
+    static MOB_ID = -1
     static runtimeIdCount = 0
 
     /** @type {number} */
@@ -65,6 +66,20 @@ class Entity extends Position {
 
     setGenericFlag(flagId, value = true) {
         this.setDataFlag(flagId >= 64 ? 94 : MetadataFlag.Index, flagId % 64, value, FlagType.Long)
+    }
+
+    sendSpawn(player) {
+        let pk = new AddActorPacket()
+        pk.runtimeEntityId = Entity.runtimeIdCount += 1
+        pk.type = this.constructor.MOB_ID
+        pk.x = player.x
+        pk.y = player.y
+        pk.z = player.z
+        // TODO: motion
+        pk.motionX = 0 
+        pk.motionY = 0
+        pk.motionZ = 0
+        player.sendDataPacket(pk)
     }
 
 }
