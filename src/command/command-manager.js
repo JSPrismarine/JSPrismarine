@@ -6,6 +6,11 @@ const ConsoleSender = require('./console-sender')
 const logger = require('../utils/logger')
 const GamemodeCommand = require('./vanilla/gamemode-command')
 const TellCommand = require('./vanilla/tell-command')
+const TitleCommand = require('./vanilla/title-command')
+const CloseCommand = require('./vanilla/close-command')
+const SayCommand = require('./vanilla/say-command')
+const ChatCommand = require('./vanilla/chat-command')
+const MeCommand = require('./vanilla/me-command')
 
 'use strict'
 
@@ -17,7 +22,12 @@ class CommandManager {
     constructor() {
         // Register vanilla commands
         this.registerClassCommand(new GamemodeCommand())
-        this.registerClassCommand(new TellCommand());
+        this.registerClassCommand(new TellCommand())
+        this.registerClassCommand(new TitleCommand())
+        this.registerClassCommand(new CloseCommand())
+        this.registerClassCommand(new SayCommand())
+        this.registerClassCommand(new ChatCommand())
+        this.registerClassCommand(new MeCommand())
     }
  
     /**
@@ -25,7 +35,7 @@ class CommandManager {
      * 
      * @param {string} name 
      * @param {string} description 
-     * @param {Function} execute 
+     * @param {function(ConsoleSender|Player)} execute 
      */
     registerCommand(name = '', description = '', execute = function(sender) {}) {
         let command = new Command({name, description})
