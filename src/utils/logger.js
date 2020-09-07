@@ -1,5 +1,6 @@
 const { createLogger, format, transports } = require('winston')
 const { combine, timestamp, printf } = format
+const mcColors = require("mccolorstoconsole");
 
 'use strict'
 
@@ -13,7 +14,7 @@ let logger = createLogger({
                 format.colorize(),
                 format.simple(),
                 printf(({ level, message, timestamp }) => {
-                    return `[${timestamp}] ${level}: ${message}`
+                    return `[${timestamp}] ${level}: ${mcColors.minecraftToConsole(message)}`
                 })
             ),
         })

@@ -19,33 +19,19 @@ class SayCommand extends Command {
     }
 
     /**
-     * @param {ConsoleSender|Player} sender 
-     * @param {string} message 
-     */
-    _sendMessage(sender, message) {
-        if (sender instanceof Player) {
-            sender.sendMessage(`§c${message}`);
-        } else {
-            Logger.warn(message);
-        }
-    }
-
-    /**
      * @param {ConsoleSender|Player} sender
      * @param {Array} args
      */
     execute(sender, args) {
 
-        let senderName = (sender instanceof ConsoleSender ? "CONSOLE" : sender.name)
-
-        if (!args[0]) return this._sendMessage(sender, "Invalid message.")
+        if (!args[0]) return sender.sendMessage(`§cInvalid message.`)
 
         let message = args.join(" ")
 
-        let messageToSend = `[${senderName}] ${message}`
+        let messageToSend = `${sender instanceof ConsoleSender ? "§d" : ""}[${sender.name}] ${message}`
         Logger.silly(messageToSend)
         sender.getServer().players.forEach((player)=>{
-            player.sendMessage(senderName == "CONSOLE" ? `§d${messageToSend}` : messageToSend)
+            player.sendMessage(messageToSend)
         })
 
     }

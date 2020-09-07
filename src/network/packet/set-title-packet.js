@@ -7,7 +7,7 @@ class SetTitlePacket extends DataPacket {
     static NetID = Identifiers.SetTitlePacket
 
     type
-    text
+    text = ""
     fadeInTime = 500
     stayTime = 3000
     fadeOutTime = 1000

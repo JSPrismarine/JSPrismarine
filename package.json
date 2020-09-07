@@ -30,6 +30,7 @@
     "jsraknet": "^1.2.3",
     "jwt-decode": "^2.2.0",
     "level": "^6.0.1",
+    "mccolorstoconsole": "^1.0.1",
     "winston": "^3.3.3"
   }
 }

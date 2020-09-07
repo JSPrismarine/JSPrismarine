@@ -6,7 +6,6 @@ Made by Kıraç Armağan Önal
 const Command = require("../command")
 const Player  = require("../../player")
 const ConsoleSender = require("../console-sender")
-const Logger = require("../../utils/logger")
 const SetTitlePacket = require("../../network/packet/set-title-packet")
 const SetTitleType = require("../../network/type/set-title-type")
 
@@ -20,24 +19,20 @@ class TitleCommand extends Command {
         super({name: "title", description: "Controls screen titles."})
     }
 
-    // TODO: add clear and times
+    // TODO: clearTitle is not working look later
+    // TODO: add times
     titleTypes = {
         "title": SetTitleType.SetTitle,
         "subtitle": SetTitleType.SetSubtitle,
-        "actionbar": SetTitleType.SetActionBarMessage
+        "actionbar": SetTitleType.SetActionBarMessage,
+        "clear": SetTitleType.ClearTitle
     }
 
     /**
      * @param {ConsoleSender|Player} sender 
      * @param {string} message 
      */
-    _sendMessage(sender, message) {
-        if (sender instanceof Player) {
-            sender.sendMessage(`§c${message}`);
-        } else {
-            Logger.warn(message);
-        }
-    }
+
 
     /**
      * @param {ConsoleSender|Player} sender
@@ -45,31 +40,31 @@ class TitleCommand extends Command {
      */
     execute(sender, args) {
 
+        if (!args[0]) return sender.sendMessage("§cYou have te select a player or type @a.")
+
+        if (!Object.keys(this.titleTypes).includes(`${args[1]}`.toLowerCase())) return sender.sendMessage(`§cInvalid title type. Valid types: ${Object.keys(this.titleTypes).join(", ")}.`)
+
+        if (!args[2] && args[1] != "clear") return sender.sendMessage("§cInvalid message.")
+
         /** @type {Array<Player>} */
         let targets = [];
-
-        if (!args[0]) return this._sendMessage(sender, "You have te select a player or type @a.")
-
-        if (!Object.keys(this.titleTypes).includes(`${args[1]}`.toLowerCase())) return this._sendMessage(sender, `Invalid title type. Valid types: ${Object.keys(this.titleTypes).join(", ")}.`)
-
-        if (!args[2]) return this._sendMessage(sender, "Invalid message.")
 
         let message = args.slice(2).join(" ");
 
         if (args[0] == "@a") {
             let players = Array.from(sender.getServer().players.values());
-            if (players.length == 0) return this._sendMessage(sender, "There is no player to send title.")
+            if (players.length == 0) return sender.sendMessage("§cThere is no player to send title.")
             targets.push(...players)
         } else {
             let player = sender.getServer().getPlayerByName(args[0])
-            if (!player) return this._sendMessage(sender, `Can not find player ${args[0]}.`)
+            if (!player) return sender.sendMessage(`§cCan not find the player ${args[0]}.`)
             targets.push(player);
         }
 
         targets.forEach((player)=>{
             let pk = new SetTitlePacket()
             pk.type = this.titleTypes[args[1]]
-            pk.text = message;
+            if (args[1] != "clear") pk.text = message;
             player.sendDataPacket(pk)
         })
 

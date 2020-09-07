@@ -9,10 +9,11 @@ const ConsoleSender = require("../console-sender");
 
 "use strict";
 
-class TellCommand extends Command {
+class KickCommand extends Command {
 
     constructor() {
-        super({name: "tell", description: "Tell a message to a player."})
+        // TODO: Add permissions
+        super({name: "kick", description: "Kick a player from server."})
     }
 
     /**
@@ -23,19 +24,16 @@ class TellCommand extends Command {
 
         if (!args[0]) return sender.sendMessage("§cYou have te select a player.")
 
-        if (`${args[0]}`.toLowerCase() == sender.name.toLowerCase()) return sender.sendMessage("§cYou can't send message to yourself.")
-
-        if (!args[1]) return sender.sendMessage("§cInvalid message.")
+        if (!args[1]) return sender.sendMessage("§cInvalid reason.")
 
         let targetPlayer = sender.getServer().getPlayerByName(args[0])
 
         if (!targetPlayer) return sender.sendMessage(`§cCan not find the player ${args[0]}.`)
 
-        let message = args.splice(1).join(" ")
+        let reason = args.splice(1).join(" ")
 
-        sender.sendMessage(`§7§oMe -> ${targetPlayer.name}: ${message}`)
-        targetPlayer.sendMessage(`§7§o${sender.name} -> Me: ${message}`)
+        targetPlayer.kick(`You been kicked from server due to:\n\n${reason}`)
     }
 }
 
-module.exports = TellCommand
+module.exports = KickCommand
