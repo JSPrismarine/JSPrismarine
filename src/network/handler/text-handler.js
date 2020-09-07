@@ -32,4 +32,3 @@ class TextHandler {
     }
 }
 module.exports = TextHandler
-
