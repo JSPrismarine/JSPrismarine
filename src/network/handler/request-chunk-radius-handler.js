@@ -19,35 +19,11 @@ class RequestChunkRadiusHandler {
      * @param {Player} player 
      */
     static handle(packet, player) {
-        player.setViewDistance(packet.radius)
+        // For performance reasons and as it fixes a lot of problem we will
+        // use just 8 (for now)
+        player.setViewDistance(/* packet.radius */ 8)  
 
         setTimeout(() => player.sendNetworkChunkPublisher(), 250)
-
-        /* let worker = new Worker(__dirname + '../../../level/flat-generator-test.js')
-        worker.postMessage(player.viewDistance)
-        
-        worker.on('message', function(chunk) {
-            // We lose Chunk class while doing that
-            // A Object.assign won't work for some reasons
-            player.sendCustomChunk(
-                chunk.chunkX,
-                chunk.chunkZ,
-                chunk.subCount,
-                chunk.data
-            )
-        }) */
-
-        // TO FIX, BUT WORKED!! 
-        // The first time worked, then i touched the code (don't touch it if it works!!!)
-        // and now the terrain is loaded from files but is invisible!
-        /* setImmediate(function() {
-            for (let chunkX = -16; chunkX < 16; chunkX++) {
-                for (let chunkZ = -16; chunkZ < 16; chunkZ++) {
-                    let chunk = player.getServer().defaultLevel.getChunk(chunkX, chunkZ)
-                    player.sendChunk(chunk)
-                }
-            }
-        }.bind(player)) */ 
 
         player.sendPlayStatus(PlayStatus.PlayerSpawn)
     }

@@ -1,6 +1,7 @@
-'use strict'
+const Prismarine = require('../prismarine')
+const logger = require('../utils/logger')
 
-const Prismarine = require("../prismarine")
+'use strict'
 
 class ConsoleSender {
 
@@ -9,6 +10,10 @@ class ConsoleSender {
 
     constructor(server) {
         this.#server = server
+    }
+
+    sendMessage(text) {
+        logger.info(text)
     }
 
     getServer() {

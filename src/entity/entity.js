@@ -38,7 +38,7 @@ class Entity extends Position {
         this.setGenericFlag(MetadataFlag.AffectedByGravity, true)
         this.setGenericFlag(MetadataFlag.HasCollision, true)
 
-        level.addEntity(this)
+        // TODO: level.addEntity(this)
     }
 
     setNameTag(name) {

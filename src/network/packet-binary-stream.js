@@ -1,9 +1,13 @@
 const BinaryStream = require('jsbinaryutils')
+const NBT = require('jsnamedbinarytag')
 const UUID = require('../utils/uuid')
 const Skin = require('../utils/skin')
 const { FlagType } = require('../entity/metadata')
 const CommandOriginData = require('./type/command-origin-data')
 const CommandOrigin = require('./type/command-origin')
+const NetworkLittleEndianBinaryStream = require('jsnamedbinarytag/streams/network-le-binary-stream')
+const CompoundTag = require('jsnamedbinarytag/tags/compound-tag')
+const IntTag = require('jsnamedbinarytag/tags/int-tag')
 
 'use strict'
 
@@ -203,25 +207,51 @@ class PacketBinaryStream extends BinaryStream {
         } 
     }
 
-    readLegacySetItemSlot() {
-        let legacySetItemSlot = {containerId, slots: []}
-        legacySetItemSlot.containerId = this.readByte()
-        let length = this.readUnsignedVarInt()
-        for (let i = 0; i < length; i++) {
-            legacySetItemSlot.slots.push(this.readByte())
+    readItemStack() {
+        let id = this.readVarInt()
+        if (id == 0) {
+            // TODO: items
+            return {id: 0, data: 0, amount: 0}
         }
-        return legacySetItemSlot
-    }
 
-    // TODO: not implemented yet
-    readInventoryAction() {
-        let sourceType = this.readUnsignedVarInt()
+        let temp = this.readVarInt()
+        let amount = (temp & 0xff) 
+        let data = (temp >> 8)  
+
+        let extraLen = this.readLShort()
+        let nbt = null
+        if (extraLen == 0xffff) {
+            this.readByte()  // ? nbt version
+            // As i cannot pass offset by reference, i keep it using this binary stream directly
+            let stream = new NetworkLittleEndianBinaryStream(this.buffer, this.offset)
+            let decodedNBT = (new NBT()).readTag(stream, true, true)
+            if (!(decodedNBT instanceof CompoundTag)) {
+                throw new Error('Invalid NBT root tag for itemstack')
+            }
+            nbt = decodedNBT
+            this.offset = stream.offset
+        } else if (extraLen !== 0) {
+            throw new Error(`Invalid NBT itemstack length ${extraLen}`)
+        }
         
-        switch(sourceType) {
-            case 0:  //hardcoded source container
+        let countPlaceOn = this.readVarInt()
+        for (let i = 0; i < countPlaceOn; i++) {
+            this.readString()
         }
 
-        return 0
+        let countCanBreak = this.readVarInt()
+        for (let i = 0; i < countCanBreak; i++) {
+            this.readString()
+        }
+        
+        // TODO: check if has other tags
+        /* if (nbt !== null) {
+            if (nbt.hasTag('Damage', IntTag)) {
+
+            }
+        } */
+
+        return {id: id, data: data, count: amount, nbt: nbt}
     }
 
     readCommandOriginData() {
