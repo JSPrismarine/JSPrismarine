@@ -28,6 +28,7 @@ const CoordinateUtils = require('./level/coordinate-utils')
 const AvailableCommandsPacket = require('./network/packet/available-commands')
 const SetGamemodePacket = require('./network/packet/set-gamemode')
 const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chunk-publisher-update')
+const DisconnectPacket = require('./network/packet/disconnect-packet')
 
 'use strict'
 
@@ -148,7 +149,7 @@ class Player extends Entity {
 
                 if (chunkDistance <= viewDistance) {
                     let newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk]
-                    let hash = CoordinateUtils.chunkHash(newChunk[0], newChunk[1])
+                    let hash = CoordinateUtils.encodePos(newChunk[0], newChunk[1])
 
                     if (forceResend) {
                         chunksToSend.push(newChunk)
@@ -184,7 +185,7 @@ class Player extends Entity {
         })
 
         for (let chunk of chunksToSend) {
-            let hash = CoordinateUtils.chunkHash(chunk[0], chunk[1])
+            let hash = CoordinateUtils.encodePos(chunk[0], chunk[1])
             if (forceResend) {
                 if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                     this.loadingChunks.add(hash)
@@ -202,8 +203,7 @@ class Player extends Entity {
         let unloaded = false
 
         for (let hash of this.loadedChunks) {
-            let x = hash >> 32
-            let z = hash + Number.MIN_VALUE
+            let [x, z] = CoordinateUtils.decodePos(hash)
 
             if (Math.abs(x - currentXChunk) > viewDistance ||
                 Math.abs(z - currentZChunk) > viewDistance) {
@@ -213,8 +213,7 @@ class Player extends Entity {
         }
 
         for (let hash of this.loadingChunks) {
-            let x = hash >> 32
-            let z = hash + Number.MIN_VALUE
+            let [x, z] = CoordinateUtils.decodePos(hash)
 
             if (Math.abs(x - currentXChunk) > viewDistance ||
                 Math.abs(z - currentZChunk) > viewDistance) {
@@ -314,7 +313,7 @@ class Player extends Entity {
         pk.data = chunk.toBinary()
         this.sendDataPacket(pk)
 
-        let hash = CoordinateUtils.chunkHash(
+        let hash = CoordinateUtils.encodePos(
             chunk.getChunkX(), chunk.getChunkZ()
         )
         this.loadedChunks.add(hash)
@@ -434,6 +433,16 @@ class Player extends Entity {
     sendPlayStatus(status) {
         let pk = new PlayStatusPacket()
         pk.status = status
+        this.sendDataPacket(pk)
+    }
+
+    /**
+     * @param {string} reason 
+     */
+    kick(reason = 'unknown reason') {
+        let pk = new DisconnectPacket()
+        pk.hideDiscconnectionWindow = false
+        pk.message = reason
         this.sendDataPacket(pk)
     }
 

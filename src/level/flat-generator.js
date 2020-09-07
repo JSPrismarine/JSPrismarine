@@ -20,6 +20,6 @@ parentPort.on('message', function({chunkX, chunkZ}) {
         chunkZ: chunk.getChunkZ(),
         subCount: chunk.getSubChunkSendCount(),
         data: chunk.toBinary(),
-        hash: CoordinateUtils.chunkHash(chunkX, chunkZ)
+        hash: CoordinateUtils.encodePos(chunkX, chunkZ)
     })
 })

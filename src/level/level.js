@@ -44,7 +44,7 @@ class Level {
      * @param {boolean} generate 
      */
     getChunk(x, z, generate = true) {
-        let index = CoordinateUtils.chunkHash(x, z)
+        let index = CoordinateUtils.encodePos(x, z)
         if (this.#chunks.has(index)) {
             return this.#chunks.get(index)
         } else if (this.loadChunk(x, z, generate)) {
@@ -62,7 +62,7 @@ class Level {
      * @param {boolean} generate
      */
     loadChunk(x, z, generate) {
-        let index = CoordinateUtils.chunkHash(x, z)
+        let index = CoordinateUtils.encodePos(x, z)
         if (this.#chunks.has(index)) {
             return true
         }

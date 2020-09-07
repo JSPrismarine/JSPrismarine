@@ -26,6 +26,7 @@
     "async": "^3.2.0",
     "glob": "^7.1.6",
     "jsbinaryutils": "1.0.8",
+    "jsnamedbinarytag": "^1.0.0",
     "jsraknet": "^1.2.3",
     "jwt-decode": "^2.2.0",
     "level": "^6.0.1",
