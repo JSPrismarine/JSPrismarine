@@ -10,6 +10,7 @@ const LevelDB = require('./level/leveldb/leveldb')
 const CommandManager = require('./command/command-manager')
 const bufferToConsoleString = require("./utils/buffer-to-console-string")
 const Identifiers = require('./network/identifiers')
+const logger = require('./utils/logger')
 
 'use strict'
 
@@ -41,6 +42,7 @@ class Prismarine {
     }
 
     async listen(_port=19132) {
+
         this.#raknet = await (new Listener).listen('0.0.0.0', _port)
         this.#raknet.name.setOnlinePlayerCount(this.#players.entries.length)
         this.#raknet.name.setVersion(Identifiers.Protocol)

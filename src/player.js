@@ -89,6 +89,9 @@ class Player extends Entity {
     /** @type {Set<Chunk>} */
     chunkSendQueue = new Set()
 
+    // for saving data on player (i can reference it where i want)
+    otherData = {}
+
     generator = new Worker(__dirname + '/level/flat-generator.js')
 
     constructor(connection, address, logger, server) {

@@ -24,8 +24,9 @@ class Command extends CommandData {
      * 
      * @param {Player|ConsoleSender} sender
      * @param {Array} args
+     * @param {String} commandName
      */
-    execute(sender, args = []) {
+    execute(sender, args = [], commandName) {
 
     }
 
