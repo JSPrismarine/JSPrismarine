@@ -1,5 +1,4 @@
 /*
-Made by Kıraç Armağan Önal
 07/09/2020
 */
 
