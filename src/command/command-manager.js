@@ -11,7 +11,6 @@ const SayCommand = require('./vanilla/say-command')
 const ChatCommand = require('./vanilla/chat-command')
 const MeCommand = require('./vanilla/me-command')
 const StopCommand = require('./vanilla/stop-command')
-const HelpCommand = require('./vanilla/help-command')
 const KickCommand = require('./vanilla/kick-command')
 
 'use strict'
@@ -30,7 +29,6 @@ class CommandManager {
         this.registerClassCommand(new ChatCommand())
         this.registerClassCommand(new MeCommand())
         this.registerClassCommand(new StopCommand())
-        this.registerClassCommand(new HelpCommand())
         this.registerClassCommand(new KickCommand())
     }
  
