@@ -34,22 +34,14 @@ class GamemodeCommand extends Command {
                 mode = Gamemode.Creative
                 break
             default:
-                if (sender instanceof Player) {
-                    sender.sendMessage('§eGamemode not found!')
-                } else {
-                    logger.warn('Gamemode not found!')
-                }  
+                sender.sendMessage('§eGamemode not found!')
                 return 
         }
 
         let target = sender
         if (args.length > 1 && typeof args[1] === 'string') {
             if ((target = sender.getServer().getPlayerByName(args[1])) === null) {
-                if (sender instanceof Player) {
-                    sender.sendMessage('§eTarget player is not online!')
-                } else {
-                    logger.warn('Target player is not online!')
-                }
+                sender.sendMessage('§eTarget player is not online!')
                 return
             } 
             target.setGamemode(mode)

@@ -2,19 +2,18 @@
 07/09/2020
 */
 
-const Command = require("../command")
-const Player  = require("../../player")
-const ConsoleSender = require("../console-sender")
-const Logger = require("../../utils/logger")
+const Command = require('../command')
+const Player  = require('../../player')
+const ConsoleSender = require('../console-sender')
+const Logger = require('../../utils/logger')
 
-
-"use strict";
+'use strict'
 
 class SayCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({name: "say", description: "Say!"})
+        super({name: 'say', description: 'Say!'})
     }
 
     /**
@@ -22,17 +21,17 @@ class SayCommand extends Command {
      * @param {Array} args
      */
     execute(sender, args) {
+        if (!args[0]) {
+            return sender.sendMessage(`§cInvalid message.`)
+        }
 
-        if (!args[0]) return sender.sendMessage(`§cInvalid message.`)
+        let message = args.join(' ')
 
-        let message = args.join(" ")
-
-        let messageToSend = `${sender instanceof ConsoleSender ? "§d" : ""}[${sender.name}] ${message}`
+        let messageToSend = `${sender instanceof ConsoleSender ? '§d' : ''}[${sender.name}] ${message}`
         Logger.silly(messageToSend)
-        sender.getServer().players.forEach((player)=>{
+        for (let player of sender.getServer().players.values()) {
             player.sendMessage(messageToSend)
-        })
-
+        }
     }
 }
 
