@@ -42,7 +42,6 @@ class Prismarine {
     }
 
     async listen(_port=19132) {
-
         this.#raknet = await (new Listener).listen('0.0.0.0', _port)
         this.#raknet.name.setOnlinePlayerCount(this.#players.entries.length)
         this.#raknet.name.setVersion(Identifiers.Protocol)
@@ -207,19 +206,6 @@ class Prismarine {
     getCommandManager() {
         return this.#commandManager
     }
-
-    /**
-     * Dispatch a command as console sender.
-     * 
-     * @param {String} command 
-     */
-    dispatchCommand(command) {
-        if (!(command.startsWith('/'))) {
-            this.#logger.error(
-                'Command not found, try /help for a complete list of available commands.'
-            )
-        }
-    } 
 
     get defaultLevel() {
         return this.#defaultLevel

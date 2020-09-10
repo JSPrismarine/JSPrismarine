@@ -6,10 +6,15 @@ const Identifiers = require('../identifiers')
 class SetTitlePacket extends DataPacket {
     static NetID = Identifiers.SetTitlePacket
 
+    /** @type {number} */
     type
-    text = ""
+    /** @type {string} */
+    text = ''
+    /** @type {number} */
     fadeInTime = 500
+    /** @type {number} */
     stayTime = 3000
+    /** @type {number} */
     fadeOutTime = 1000
 
     decodePayload() {
