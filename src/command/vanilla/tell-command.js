@@ -1,7 +1,3 @@
-/*
-07/09/2020
-*/
-
 const Command = require('../command')
 const Player  = require('../../player')
 const ConsoleSender = require('../console-sender')
@@ -11,7 +7,7 @@ const ConsoleSender = require('../console-sender')
 class TellCommand extends Command {
 
     constructor() {
-        super({name: 'tell', description: 'Tell a message to a player.'})
+        super({name: 'tell', description: 'Sends a private message to a player.'})
     }
 
     /**
@@ -20,7 +16,7 @@ class TellCommand extends Command {
      */
     execute(sender, args) {
         if (!args[0]) {
-            return sender.sendMessage('§cYou have te select a player.')
+            return sender.sendMessage('§cYou have to select a player.')
         }
 
         if (`${args[0]}`.toLowerCase() == sender.name.toLowerCase()) {
@@ -28,17 +24,17 @@ class TellCommand extends Command {
         } 
 
         if (!args[1]) {
-            return sender.sendMessage('§cInvalid message.')
+            return sender.sendMessage('§cPlease specify a message.')
         } 
 
         let targetPlayer = sender.getServer().getPlayerByName(args[0])
         if (!targetPlayer) {
-            return sender.sendMessage(`§cCan not find the player ${args[0]}.`)
+            return sender.sendMessage(`§cCan't find the player ${args[0]}.`)
         }
 
         let message = args.splice(1).join(' ')
-        sender.sendMessage(`§7§oMe -> ${targetPlayer.name}: ${message}`)
-        targetPlayer.sendMessage(`§7§o${sender.name} -> Me: ${message}`)
+        sender.sendMessage(`§e[§f${sender.name} §e->§f ${targetPlayer.name}§e]§f ${message}`)
+        targetPlayer.sendMessage(`§e[§f${sender.name} §e->§f ${targetPlayer.name}§e]§f ${message}`)
     }
 }
 
