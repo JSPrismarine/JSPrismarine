@@ -1,7 +1,3 @@
-/*
-07/09/2020
-*/
-
 const Command = require('../command')
 const Player  = require('../../player')
 const ConsoleSender = require('../console-sender')
@@ -11,7 +7,7 @@ const ConsoleSender = require('../console-sender')
 class StopCommand extends Command {
 
     constructor() {
-        super({name: 'stop', description: 'Closes the server.'})
+        super({name: 'stop', description: 'Stops a server.'})
     }
 
     /**
@@ -20,12 +16,9 @@ class StopCommand extends Command {
      */
     execute(sender, args) {
         // TODO: implement operators and just check if player is operator
-        if (sender instanceof Player) {
-            return sender.sendMessage('§cThis command only executable by console.')
-        } 
         
         for (let player of sender.getServer().players.values()) {
-            player.kick('Server is closing...')
+            player.kick('Server closed.')
         }
 
         // TODO: promise.then(process.exit(1))
