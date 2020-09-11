@@ -27,7 +27,7 @@ class KickCommand extends Command {
             return sender.sendMessage(`§cCan't find the player ${args[0]}.`)
         }
 
-        targetPlayer.kick(`You been kicked from server due to:\n\n${args.splice(1).join(' ')}`)
+        targetPlayer.kick(`You been kicked from server due to:\n\n${reason}`)
     }
 }
 
