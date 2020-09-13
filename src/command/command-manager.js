@@ -12,6 +12,7 @@ const MeCommand = require('./vanilla/me-command')
 const StopCommand = require('./vanilla/stop-command')
 const KickCommand = require('./vanilla/kick-command')
 const ListCommand = require('./vanilla/list-command')
+const VersionCommand = require('./vanilla/version-command')
 
 'use strict'
 
