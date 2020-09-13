@@ -11,6 +11,7 @@ const SayCommand = require('./vanilla/say-command')
 const MeCommand = require('./vanilla/me-command')
 const StopCommand = require('./vanilla/stop-command')
 const KickCommand = require('./vanilla/kick-command')
+const ListCommand = require('./vanilla/list-command')
 
 'use strict'
 
