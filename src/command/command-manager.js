@@ -27,10 +27,11 @@ class CommandManager {
         this.registerClassCommand(new TellCommand())
         this.registerClassCommand(new TitleCommand())
         this.registerClassCommand(new SayCommand())
-        this.registerClassCommand(new ChatCommand())
         this.registerClassCommand(new MeCommand())
         this.registerClassCommand(new StopCommand())
         this.registerClassCommand(new KickCommand())
+        this.registerClassCommand(new ListCommand())
+        this.registerClassCommand(new VersionCommand())
     }
  
     /**
