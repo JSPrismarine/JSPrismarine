@@ -17,7 +17,7 @@ class KickCommand extends Command {
      */
     execute(sender, args) {
         if (args.length < 1) {
-            logger.warn('§cYou have to specify a player.')
+            sender.sendMessage('§cYou have to specify a player.')
         }
 
         let reason = args[1] ? args.slice(1).join(" ") : "No reason specified."
