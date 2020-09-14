@@ -17,7 +17,7 @@ class ListCommand extends Command {
         let playerArray  = Array.from(players)
         let maxPlayers   = sender.getServer().getRaknet().name.getMaxPlayerCount()
         let counter      = playerArray.length
-        let answer       = playerArray.map(player => player.name + ',').join(' ')
+        let answer       = playerArray.map(player => player.name).join(', ')
 
         sender.sendMessage(`There are ${counter}/${maxPlayers} players online:`)
         sender.sendMessage(answer)
