@@ -215,5 +215,9 @@ class Prismarine {
         return this.#players
     }
 
+    getRaknet() {
+        return this.#raknet
+    }
+
 }
 module.exports = Prismarine
