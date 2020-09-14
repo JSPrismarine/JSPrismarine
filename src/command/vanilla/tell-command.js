@@ -28,13 +28,16 @@ class TellCommand extends Command {
         } 
 
         let targetPlayer = sender.getServer().getPlayerByName(args[0])
+
         if (!targetPlayer) {
             return sender.sendMessage(`§cCan't find the player ${args[0]}.`)
         }
 
         let message = args.splice(1).join(' ')
-        sender.sendMessage(`§e[§f${sender.name} §e->§f ${targetPlayer.name}§e]§f ${message}`)
-        targetPlayer.sendMessage(`§e[§f${sender.name} §e->§f ${targetPlayer.name}§e]§f ${message}`)
+        let messageToSend = `§e[§f${sender.name} §e->§f ${targetPlayer.name}§e]§f ${message}`
+
+        sender.sendMessage(messageToSend)
+        targetPlayer.sendMessage(messageToSend)
     }
 }
 

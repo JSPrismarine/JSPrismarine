@@ -14,9 +14,9 @@ class ListCommand extends Command {
      */
     execute(sender, args) {
         let players      = sender.getServer().players.values()
-        let player_array = Array.from(players)
-        let counter      = player_array.length
-        let answer       = player_array.map(player => player.name + ',').join(' ')
+        let playerArray  = Array.from(players)
+        let counter      = playerArray.length
+        let answer       = playerArray.map(player => player.name + ',').join(' ')
 
         sender.sendMessage(`There are ${counter} players online:`) //TODO: Add max player amount ("There are 2/x players online")
         sender.sendMessage(answer)
