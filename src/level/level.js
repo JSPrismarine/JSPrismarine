@@ -43,56 +43,39 @@ class Level {
      * @param {number} z 
      * @param {boolean} generate 
      */
-    getChunk(x, z, generate = true) {
-        let index = CoordinateUtils.encodePos(x, z)
-        if (this.#chunks.has(index)) {
-            return this.#chunks.get(index)
-        } else if (this.loadChunk(x, z, generate)) {
-            return this.#chunks.get(index)
-        }
-        
-        return null
+    async getChunk(x, z, generate = true) {
+        return await this.loadChunk(x, z, generate)
     }
 
     /**
-     * Loads a chunk in a given x and z.
+     * Loads a chunk in a given x and z and returns its.
      * 
      * @param {number} x 
      * @param {number} z 
      * @param {boolean} generate
      */
-    loadChunk(x, z, generate) {
+    async loadChunk(x, z, generate) {
         let index = CoordinateUtils.encodePos(x, z)
-        if (this.#chunks.has(index)) {
-            return true
-        }
-
-        let chunk = null
-        if (this.#provider instanceof LevelDB) {
-            this.#provider.readChunk(x, z).then(levelChunk => chunk = levelChunk)
-        } else if (this.#provider !== null) {
-            chunk = this.#provider.readChunk(x, z) 
-        }
-        // TODO: providers, this is just an experiment
-        // generate is used if the chunk from the provider cannot
-        // be loaded, so a flat chunk is generated (convention)
-        if (chunk === null && generate) {
-            chunk = new Chunk(x, z)
-            for (let x = 0; x < 16; x++) {
-                for (let z = 0; z < 16; z++) {
-                    let y = 0
-                    chunk.setBlockId(x, y++, z, 7)
-                    chunk.setBlockId(x, y++, z, 3)
-                    chunk.setBlockId(x, y++, z, 3)
-                    chunk.setBlockId(x, y, z, 2)
-                    // TODO: block light
+        if (!this.#chunks.has(index)) {
+            await new Promise(resolve => {
+                // this.#provider.readChunk(x, z).then(chunk => resolve(chunk))
+                resolve(this.#provider.readChunk(x, z))
+                /* let tempChunk = new Chunk(x, z)
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++) {
+                        let y = 0
+                        tempChunk.setBlockId(x, y++, z, 7)
+                        tempChunk.setBlockId(x, y++, z, 3)
+                        tempChunk.setBlockId(x, y++, z, 3)
+                        tempChunk.setBlockId(x, y, z, 2)
+                        // TODO: block light
+                    }
                 }
-            }
-            chunk.recalculateHeightMap()
+                tempChunk.recalculateHeightMap()
+                resolve(tempChunk) */
+            }).then(chunk => this.#chunks.set(index, chunk))
         }
-
-        this.#chunks.set(index, chunk)
-        return true
+        return this.#chunks.get(index)
     }
 
     /**

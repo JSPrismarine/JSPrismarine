@@ -20,7 +20,7 @@ class Experimental extends Provider{
             fs.mkdirSync(filesPath)
         }
 
-        let filePath = path.join(filesPath, `${x}-${z}.bin`)
+        let filePath = path.join(filesPath, `${x}.${z}.bin`)
         if (!(fs.existsSync(filePath))) {
             // Flat world
             let chunk = new Chunk(x, z)

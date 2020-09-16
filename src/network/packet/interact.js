@@ -7,11 +7,16 @@ const InteractAction = require('../type/interact-action')
 class InteractPacket extends DataPacket {
     static NetID = Identifiers.InteractPacket
 
+    /** @type {number} */
     action
+    /** @type {number} */
     target
 
+    /** @type {number|null} */
     x = null
+    /** @type {number|null} */
     y = null
+    /** @type {number|null} */
     z = null
 
     decodePayload() {
