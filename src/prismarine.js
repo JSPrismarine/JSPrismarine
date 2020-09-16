@@ -11,6 +11,7 @@ const CommandManager = require('./command/command-manager')
 const bufferToConsoleString = require("./utils/buffer-to-console-string")
 const Identifiers = require('./network/identifiers')
 const logger = require('./utils/logger')
+const Experimental = require('./level/experimental/experimental')
 
 'use strict'
 
@@ -114,7 +115,7 @@ class Prismarine {
             this.#defaultLevel = new Level(
                 this, 
                 "World",
-                // new Experimental(__dirname + `/../worlds/world/`) 
+                new Experimental(__dirname + `/../worlds/world/`) 
                 // new LevelDB( __dirname + `/../worlds/world9/`)
             )
         }

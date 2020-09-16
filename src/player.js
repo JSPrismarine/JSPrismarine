@@ -92,8 +92,6 @@ class Player extends Entity {
     // for saving data on player (i can reference it where i want)
     otherData = {}
 
-    generator = new Worker(__dirname + '/level/flat-generator.js')
-
     constructor(connection, address, logger, server) {
         super(server.defaultLevel)
         this.#connection = connection
@@ -102,10 +100,6 @@ class Player extends Entity {
         this.#server = server
         
         server.defaultLevel.addPlayer(this)
-
-        this.generator.on('message', function(chunk) {
-            this.chunkSendQueue.add(chunk)
-        }.bind(this))
     }
 
     update(timestamp) {
@@ -118,18 +112,14 @@ class Player extends Entity {
 
         if (this.chunkSendQueue.size > 0) {
             this.chunkSendQueue.forEach(chunk => {
-                if (!this.loadingChunks.has(chunk.hash)) {
+                let encodedPos = CoordinateUtils.encodePos(
+                    chunk.getChunkX(), chunk.getChunkZ()
+                )
+                if (!this.loadingChunks.has(encodedPos)) {
                     this.chunkSendQueue.delete(chunk)
                 }
 
-                // Send the chunk 
-                this.sendCustomChunk(
-                    chunk.chunkX,
-                    chunk.chunkZ,
-                    chunk.subCount,
-                    chunk.data,
-                    chunk.hash
-                )
+                this.sendChunk(chunk)
                 this.chunkSendQueue.delete(chunk)
             })
         }
@@ -192,14 +182,14 @@ class Player extends Entity {
             if (forceResend) {
                 if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                     this.loadingChunks.add(hash)
-                    this.requestChunk(chunk[0], chunk[1])
+                    await this.requestChunk(chunk[0], chunk[1])
                 } else {
                     let loadedChunk = this.level.getChunk(chunk[0], chunk[1])
                     this.sendChunk(loadedChunk)
                 }
             } else {
                 this.loadingChunks.add(hash)
-                this.requestChunk(chunk[0], chunk[1])
+                await this.requestChunk(chunk[0], chunk[1])
             }
         }
 
@@ -230,8 +220,9 @@ class Player extends Entity {
     }
 
     async requestChunk(x, z) {
-        this.generator.postMessage({chunkX: x, chunkZ: z})
-        // let loadedChunk = this.level.getChunk(x, z) <- invisible blocks :/ 
+        await this.level.getChunk(x, z).then(
+            chunk => this.chunkSendQueue.add(chunk)
+        ) 
     }
 
     setGamemode(mode) {
