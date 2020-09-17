@@ -8,11 +8,7 @@ const SubChunk = require('../chunk/sub-chunk')
 
 'use strict'
 
-class Experimental extends Provider{
-
-    constructor(levelPath) {
-        super(levelPath)
-    }
+class Experimental extends Provider {
 
     readChunk(x, z) {
         let filesPath = path.join(this.path, 'chunks')

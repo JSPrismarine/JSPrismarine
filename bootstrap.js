@@ -1,5 +1,4 @@
 const glob = require('glob')
-const path = require('path')
 const fs = require('fs')
 const readline = require('readline')
 
@@ -20,6 +19,10 @@ if (!(fs.existsSync(__dirname + '/plugins'))) {
 if (!(fs.existsSync(__dirname + '/worlds'))) {
     fs.mkdirSync(__dirname + '/worlds')
 }
+
+// Load default level
+// TODO: get its name from a config
+server.getWorldManager().loadWorld('world')
 
 // Console command reader
 let rl = readline.createInterface({input: process.stdin})

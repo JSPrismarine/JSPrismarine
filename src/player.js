@@ -1,5 +1,4 @@
 const winston = require('winston')
-const { Worker } = require('worker_threads')
 
 const Connection = require('jsraknet/connection')
 const Entity = require('./entity/entity')
@@ -8,7 +7,7 @@ const InetAddress = require('jsraknet/utils/inet_address')
 const PlayStatusPacket= require('./network/packet/play-status')
 const BatchPacket = require("./network/packet/batch")
 const ChunkRadiusUpdatedPacket = require('./network/packet/chunk-radius-updated')
-const Chunk = require('./level/chunk/chunk')
+const Chunk = require('./world/chunk/chunk')
 const LevelChunkPacket = require("./network/packet/level-chunk")
 const Skin = require('./utils/skin')
 const UUID = require('./utils/uuid')
@@ -24,7 +23,7 @@ const TextType = require('./network/type/text-type')
 const RemoveActorPacket = require('./network/packet/remove-actor')
 const UpdateAttributesPacket = require('./network/packet/update-attributes')
 const SetActorDataPacket = require('./network/packet/set-actor-data')
-const CoordinateUtils = require('./level/coordinate-utils')
+const CoordinateUtils = require('./world/coordinate-utils')
 const AvailableCommandsPacket = require('./network/packet/available-commands')
 const SetGamemodePacket = require('./network/packet/set-gamemode')
 const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chunk-publisher-update')
@@ -92,14 +91,12 @@ class Player extends Entity {
     // for saving data on player (i can reference it where i want)
     otherData = {}
 
-    constructor(connection, address, logger, server) {
-        super(server.defaultLevel)
+    constructor(connection, address, logger, world, server) {
+        super(world)
         this.#connection = connection
         this.#address = address
         this.#logger = logger
         this.#server = server
-        
-        server.defaultLevel.addPlayer(this)
     }
 
     update(timestamp) {
@@ -220,7 +217,7 @@ class Player extends Entity {
     }
 
     async requestChunk(x, z) {
-        await this.level.getChunk(x, z).then(
+        await this.getWorld().getChunk(x, z).then(
             chunk => this.chunkSendQueue.add(chunk)
         ) 
     }
