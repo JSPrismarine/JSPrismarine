@@ -181,10 +181,6 @@ class Prismarine {
         return this.#commandManager
     }
 
-    getEventManager() {
-        return this.#
-    }
-
     getWorldManager() {
         return this.#worldManager
     }
