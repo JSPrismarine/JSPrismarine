@@ -18,7 +18,7 @@ class StopCommand extends Command {
      * @param {ConsoleSender|Player} sender
      * @param {Array} args
      */
-    execute(sender, args) {
+    async execute(sender, args) {
         // TODO: implement operators and just check if player is operator
         if (sender instanceof Player) {
             return sender.sendMessage('§cThis command only executable by console.')
@@ -28,7 +28,7 @@ class StopCommand extends Command {
             player.kick('Server is closing...')
         }
 
-        // TODO: promise.then(process.exit(1))
+        await process.exit(1)
     }
 }
 module.exports = StopCommand

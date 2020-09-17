@@ -9,6 +9,9 @@ const CommandManager = require('./command/command-manager')
 const bufferToConsoleString = require("./utils/buffer-to-console-string")
 const Identifiers = require('./network/identifiers')
 const WorldManager = require('./world/world-manager')
+const logger = require('./utils/logger')
+const PluginManager = require('./plugin/plugin-manager')
+
 
 'use strict'
 
@@ -22,8 +25,7 @@ class Prismarine {
     #players = new Map()
     /** @type {PacketRegistry} */
     #packetRegistry = new PacketRegistry()
-    /** @type {Map<String, Object>} */
-    #plugins = new Map()
+
     /** @type {CommandManager} */   
     #commandManager = new CommandManager()
     /** @type {WorldManager} */
@@ -32,9 +34,13 @@ class Prismarine {
     /** @type {null|Prismarine} */
     static instance = null
 
+    /** @type {PluginManager} */
+    #pluginManager
+
     constructor(logger) {
         // Pass default server logger
         this.#logger = logger
+        this.#pluginManager = new PluginManager(this)
         Prismarine.instance = this
     }
 
@@ -43,6 +49,10 @@ class Prismarine {
         this.#raknet.name.setOnlinePlayerCount(this.#players.entries.length)
         this.#raknet.name.setVersion(Identifiers.Protocol)
         this.#raknet.name.setProtocol(Identifiers.MinecraftVersion)
+
+        this.#raknet.on('listening',(address,port)=>{
+            this.#logger.info(`JSPrismarine is now listening §a${address}§7:§2${port}§r`)
+        })
 
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
@@ -122,31 +132,6 @@ class Prismarine {
     }
 
     /**
-     * TODO: make a plugin manager
-     * Loads a plugin form a given file even in runtime.
-     * 
-     * @param {string} file 
-     */
-    loadPlugin(file) {
-        let plugin = require(path.resolve(file))
-        let manifest = plugin.manifest
-        let name = file.replace('.js', '').replace('./plugins/', '')
-        // if manifest is not defined in the plugin
-        // just warn the user :), it's just unstable
-        if (typeof manifest === "undefined") {
-            this.#logger.warn(
-                `PLugin ${name} doesn't have a manifest so i can't check the target API version`
-            )
-        } else {
-            // TODO: all other manifest cheks
-            // if manifest has plugin name use them
-        } 
-        plugin.server = this 
-        this.#plugins.set(name, plugin)
-        this.#logger.info(`Plugin ${name} loaded!`)
-    }
-
-    /**
      * Returns an online player by its runtime ID,
      * if it is not found, null is returned.
      * 
@@ -196,8 +181,24 @@ class Prismarine {
         return this.#commandManager
     }
 
+    getEventManager() {
+        return this.#
+    }
+
     getWorldManager() {
         return this.#worldManager
+    }
+
+    getRaknet() {
+        return this.#raknet
+    }
+
+    getPluginManager() {
+        return this.#pluginManager
+    }
+
+    get logger() {
+        return this.#logger
     }
 
     get players() {
