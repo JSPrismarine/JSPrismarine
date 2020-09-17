@@ -1,6 +1,7 @@
 const glob = require('glob')
 const fs = require('fs')
 const readline = require('readline')
+const path = require("path");
 
 const Prismarine = require('./src/prismarine')
 const logger = require('./src/utils/logger')
@@ -40,10 +41,18 @@ rl.on('line', (input) => {
     )
 })
 
+if (!fs.existsSync("./plugins")) fs.mkdirSync("./plugins")
 // Load all plugins
-glob.sync('./plugins/*.js').map(
-    file => server.loadPlugin(file)
-)
+let pluginFolderNames = fs.readdirSync("./plugins")
+
+for (let i = 0; i < pluginFolderNames.length; i++) {
+    const folderName = pluginFolderNames[i];
+    try {
+        server.getPluginManager().loadPluginFolder(path.resolve("./plugins", folderName))
+    } catch (error) {
+        server.logger.warn(`§e${folderName}§r named plugin could not be loaded due to §c${error}§r.`);
+    }
+}
 
 server.listen()
 
