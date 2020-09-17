@@ -1,6 +1,7 @@
 'use strict'
 
 const Gamemode = {
+
     Survival: 0,
     Creative: 1,
     getGamemodeName: (mode) => {
@@ -13,5 +14,6 @@ const Gamemode = {
                 return 'Unknown'    
         }
     }
+    
 }
 module.exports = Gamemode

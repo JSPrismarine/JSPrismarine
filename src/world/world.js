@@ -1,13 +1,12 @@
 const Entity = require('../entity/entity')
 const UUID = require('../utils/uuid')
 const Chunk = require('./chunk/chunk')
-const CoordinateUtils = require('../level/coordinate-utils')
+const CoordinateUtils = require('../world/coordinate-utils')
 const Provider = require('./provider')
-const LevelDB = require('./leveldb/leveldb')
 
 'use strict'
 
-class Level {
+class World {
     
     /** @type {string} */
     #uniqueId = UUID.randomString()
@@ -22,7 +21,7 @@ class Level {
     /** @type {Provider|null} */
     #provider = null
 
-    constructor(server, name, provider = null) {
+    constructor(name, provider = null) {
         this.#name = name
         this.#provider = provider
     }
@@ -115,6 +114,10 @@ class Level {
         this.#players.delete(player.runtimeId)
     }
 
+    close() {
+        // TODO
+    }
+
     get provider() {
         return this.#provider
     }
@@ -127,5 +130,6 @@ class Level {
     get name() {
         return this.#name
     }
+
 }
-module.exports = Level
+module.exports = World

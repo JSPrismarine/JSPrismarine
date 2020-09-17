@@ -28,8 +28,9 @@ class ResourcePackResponseHandler {
             pk.runtimeEntityId = player.runtimeId
             pk.gamemode = player.gamemode
 
-            pk.levelId = player.getServer().defaultLevel.uniqueId
-            pk.worldName = player.getServer().defaultLevel.name
+            let world = player.getWorld()
+            pk.levelId = world.uniqueId
+            pk.worldName = world.name
             player.sendDataPacket(pk)
 
             player.sendDataPacket(new AvailableActorIdentifiersPacket())
@@ -37,7 +38,9 @@ class ResourcePackResponseHandler {
             
             player.sendAttributes(player.attributes.getDefaults())
 
-            logger.info(`${player.name} is attempting to join with id ${player.runtimeId} from ${player.getAddress().address}:${player.getAddress().port}`)
+            logger.info(
+                `${player.name} is attempting to join with id ${player.runtimeId} from ${player.getAddress().address}:${player.getAddress().port}`
+            )
 
             player.setNameTag(player.name)
             // TODO: always visible nametag
