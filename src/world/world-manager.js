@@ -19,7 +19,7 @@ class WorldManager {
      */
     loadWorld(folderName) {
         if (this.isWorldLoaded(folderName)) {
-            return logger.warn(`World ${folderName} has already been loaded!`)
+            return logger.warn(`World §e${folderName}§r has already been loaded!`)
         }
         let levelPath = __dirname + `/../../worlds/${folderName}/`
         // TODO: figure out provider by data
@@ -31,7 +31,7 @@ class WorldManager {
             this.#defaultWorld = this.#worlds.get(world.uniqueId)
         }
 
-        logger.debug(`Successfully loaded world ${folderName}`)
+        logger.debug(`Successfully loaded world §e${folderName}§r`)
     }
 
     /**
@@ -42,18 +42,18 @@ class WorldManager {
     unloadWorld(folderName) {
         if (!this.isWorldLoaded(folderName)) {
             return logger.error(
-                `Cannot unload a not loaded world with name ${folderName}`
+                `Cannot unload a not loaded world with name §e${folderName}§r`
             )
         }
 
         let world = this.getWorldByName(folderName)
         if (this.#defaultWorld == world) {
-            return logger.warn(`Cannot unload the default level!`)
+            return logger.warn(`Cannot unload the §edefault§r level!`)
         }
 
         world.close()
         this.#worlds.delete(world.uniqueId)
-        logger.debug(`Succsessfully unloaded world ${folderName}`)
+        logger.debug(`Successfully unloaded world §e${folderName}§r`)
     }  
 
     /**

@@ -3,8 +3,8 @@
 class BaseEvent {
     #cancelled
 
-    setCancelled(v = true) {
-        this.#cancelled = v 
+    setCancelled(cancelled = true) {
+        this.#cancelled = cancelled 
     }
 
     isCancelled() {
