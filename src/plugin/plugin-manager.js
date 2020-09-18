@@ -23,10 +23,7 @@ class PluginManager {
     }
 
     /**
-     * Loads a plugin by the given path.
-     * 
-     * @param {String} pluginFolder - path to plugin folder
-     * @returns {boolean}
+     * @param {String} pluginFolder 
      */
     loadPlugin(pluginFolder) {
         let manifestFilePath = path.join(pluginFolder, 'manifest.json')

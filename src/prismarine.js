@@ -180,6 +180,14 @@ class Prismarine {
         return this.#worldManager
     }
 
+    getLogger() {
+        return this.#logger
+    }
+
+    getPacketRegistry() {
+        return this.#packetRegistry
+    }
+
     getRaknet() {
         return this.#raknet
     }
@@ -190,6 +198,10 @@ class Prismarine {
 
     get logger() {
         return this.#logger
+    }
+
+    getPlayers() {
+        return this.#players
     }
 
     get players() {
