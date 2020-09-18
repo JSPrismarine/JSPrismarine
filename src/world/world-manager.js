@@ -29,9 +29,9 @@ class WorldManager {
         // First level to be loaded is also the default one
         if (!this.#defaultWorld) {
             this.#defaultWorld = this.#worlds.get(world.uniqueId)
+            logger.info(`Loaded §b${folderName}§r as default world!`)
         }
-
-        logger.debug(`Successfully loaded world §e${folderName}§r`)
+        logger.debug(`World §b${folderName}§r succesfully loaded!`)
     }
 
     /**
@@ -42,18 +42,18 @@ class WorldManager {
     unloadWorld(folderName) {
         if (!this.isWorldLoaded(folderName)) {
             return logger.error(
-                `Cannot unload a not loaded world with name §e${folderName}§r`
+                `Cannot unload a not loaded world with name §b${folderName}`
             )
         }
 
         let world = this.getWorldByName(folderName)
         if (this.#defaultWorld == world) {
-            return logger.warn(`Cannot unload the §edefault§r level!`)
+            return logger.warn(`Cannot unload the default level!`)
         }
 
         world.close()
         this.#worlds.delete(world.uniqueId)
-        logger.debug(`Successfully unloaded world §e${folderName}§r`)
+        logger.debug(`Successfully unloaded world §b${folderName}§f!`)
     }  
 
     /**
@@ -76,6 +76,7 @@ class WorldManager {
      * Returns a world by its folder name.
      * 
      * @param {string} folderName 
+     * @returns {World}
      */
     getWorldByName(folderName) {
         for (let world of this.#worlds.values()) {

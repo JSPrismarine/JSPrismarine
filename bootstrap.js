@@ -1,7 +1,7 @@
 const glob = require('glob')
 const fs = require('fs')
 const readline = require('readline')
-const path = require("path");
+const path = require('path')
 
 const Prismarine = require('./src/prismarine')
 const logger = require('./src/utils/logger')
@@ -25,6 +25,21 @@ if (!(fs.existsSync(__dirname + '/worlds'))) {
 // TODO: get its name from a config
 server.getWorldManager().loadWorld('world')
 
+// Load all plugins
+let pluginFolders = fs.readdirSync('./plugins')
+for (let i = 0; i < pluginFolders.length; i++) {
+    const folderName = pluginFolders[i]
+    try {
+        server.getPluginManager().loadPlugin(
+            path.resolve('./plugins', folderName)
+        )
+    } catch (error) {
+        logger.warn(
+            `Error while loading plugin §b${folderName}§r: §c${error}`
+        )
+    }
+}
+
 // Console command reader
 let rl = readline.createInterface({input: process.stdin})
 rl.on('line', (input) => {
@@ -41,20 +56,6 @@ rl.on('line', (input) => {
     )
 })
 
-if (!fs.existsSync("./plugins")) fs.mkdirSync("./plugins")
-// Load all plugins
-let pluginFolderNames = fs.readdirSync("./plugins")
-
-for (let i = 0; i < pluginFolderNames.length; i++) {
-    const folderName = pluginFolderNames[i];
-    try {
-        server.logger.info(`§8${folderName}§r named plugin is loading..`);
-        let plugin = server.getPluginManager().loadPluginFolder(path.resolve("./plugins", folderName))
-        server.logger.info(`§e${plugin.manifest.name}§r §8(${folderName})§r named plugin is loaded!`);
-    } catch (error) {
-        server.logger.warn(`§e${folderName}§r named plugin could not be loaded due to §c${error}§r.`);
-    }
-}
-
-server.listen()
-
+server.listen().catch(() => 
+    logger.error(`Cannot start the server, is it already running on the same port?`
+))

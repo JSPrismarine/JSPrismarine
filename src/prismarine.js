@@ -25,7 +25,8 @@ class Prismarine {
     #players = new Map()
     /** @type {PacketRegistry} */
     #packetRegistry = new PacketRegistry()
-
+    /** @type {PluginManager} */
+    #pluginManager = new PluginManager(this)
     /** @type {CommandManager} */   
     #commandManager = new CommandManager()
     /** @type {WorldManager} */
@@ -34,25 +35,19 @@ class Prismarine {
     /** @type {null|Prismarine} */
     static instance = null
 
-    /** @type {PluginManager} */
-    #pluginManager
-
     constructor(logger) {
         // Pass default server logger
         this.#logger = logger
-        this.#pluginManager = new PluginManager(this)
         Prismarine.instance = this
     }
 
-    async listen(_port=19132) {
-        this.#raknet = await (new Listener).listen('0.0.0.0', _port)
+    async listen(port = 19132) {
+        this.#raknet = await (new Listener).listen('0.0.0.0', port)
         this.#raknet.name.setOnlinePlayerCount(this.#players.entries.length)
         this.#raknet.name.setVersion(Identifiers.Protocol)
         this.#raknet.name.setProtocol(Identifiers.MinecraftVersion)
 
-        this.#raknet.on('listening',(address,port)=>{
-            this.#logger.info(`JSPrismarine is now listening §a${address}§7:§2${port}§r`)
-        })
+        this.#logger.info(`JSPrismarine is now listening port §b${port}`)
 
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {

@@ -1,117 +1,114 @@
-const Prismarine = require("../prismarine");
-const PluginType = require("./types/plugin-type");
-const fs = require("fs");
-const path = require("path");
-const PluginManifestType = require("./types/plugin-manifest-type");
+const Prismarine = require('../prismarine')
+const Plugin = require('./plugin')
+const fs = require('fs')
+const path = require('path')
+const PluginManifest = require('./plugin-manifest')
+const EventManager = require('../events/event-manager')
+const logger = require('../utils/logger')
 
+'use strict'
 
-//TODO: a better way to import events
+/**
+ * @author Armagan
+ */
 class PluginManager {
 
-    /**
-     * @type {Prismarine}
-     */
+    /** @type {Prismarine} */
     #server
-
-    /** @type {Map<String, PluginType>} */
+    /** @type {Map<String, Plugin>} */
     #plugins = new Map()
 
-    /**
-     * @param {Prismarine} server 
-     */
-    constructor (server) {
+    constructor(server) {
         this.#server = server
-    }
-
-    getServer() {
-        return this.#server
-    }
-
-    /**
-     * @param {PluginType} plugin 
-     */
-    loadPlugin(plugin) {
-
-        if (this.#plugins.has(plugin.manifest.name)) {
-
-            throw `${plugin.manifest.name} named plugin already loaded! (DUPLICATE)`
-        }
-
-        this.#plugins.set(plugin.manifest.name,plugin);
-
-        plugin.main(this.#server);
-
-        return plugin;
     }
 
     /**
      * @param {String} pluginFolder 
      */
-    loadPluginFolder(pluginFolder) {
-        let manifestFilePath = path.join(pluginFolder,"manifest.json")
-
+    loadPlugin(pluginFolder) {
+        let manifestFilePath = path.join(pluginFolder, 'manifest.json')
         if (!fs.existsSync(manifestFilePath)) {
-            throw "Plugin manifest file not found!"
+            throw `plugin manifest file not found!`
         }
 
-        /** @type {PluginManifestType} */
-        let pluginManifest = {}
-
+        // Try parsing the manifest
+        let pluginManifest = new PluginManifest()
         try {
-            pluginManifest = JSON.parse(fs.readFileSync(manifestFilePath,"utf8"))
-        } catch (err) {
-            throw "Invalid manifest.json file. (JSON Parse Error)"
+            pluginManifest = JSON.parse(fs.readFileSync(manifestFilePath, 'utf8'))
+        } catch {
+            throw 'invalid manifest.json file. (JSON Parse Error)'
         }
 
-        if (typeof pluginManifest.name != "string") {
-            throw "Invalid plugin name. Should be type string."
+        // Check manifest data
+        // TODO: server API, author(s)?
+        if (typeof pluginManifest.name !== 'string') {
+            throw 'invalid plugin name, string expected'
         }
 
-        if (typeof pluginManifest.indexFile != "string") {
-            throw "Invalid plugin indexFile. Should be type string."
+        if (typeof pluginManifest.indexFile !== 'string') {
+            throw 'invalid plugin index file, string expected'
         }
 
-        let pluginIndexFilePath = path.join(pluginFolder, pluginManifest.indexFile);
-
-        if (!fs.existsSync(pluginIndexFilePath)) {
-            throw `Index file not found. (${pluginManifest.indexFile})`
+        let indexFilePath = path.join(pluginFolder, pluginManifest.indexFile)
+        if (!fs.existsSync(indexFilePath)) {
+            throw `Index file not found: ${pluginManifest.indexFile}`
         }
 
-        let pluginMain = require(pluginIndexFilePath)
+        // Import main plugin class
+        let pluginMain = require(indexFilePath)
 
-        /** @type {PluginType} */
-        let plugin = {}
-
+        // Re-construct plugin
+        let plugin = new Plugin()
         plugin.main = pluginMain
         plugin.path = pluginFolder
         plugin.manifest = pluginManifest
 
-        return this.loadPlugin(plugin)
+        // Save the plugin into memory
+        if (this.#plugins.has(pluginManifest.name)) {
+            logger.info(`Duplicated plugin: ${pluginManifest.name}`)
+            return false
+        }
+
+        this.#plugins.set(pluginManifest.name, plugin)
+        plugin.main(this.#server, EventManager)
+        logger.info(`Plugin §b${plugin.manifest.name}§r loaded successfully!`)
+        return true
     }
 
     /**
-     * TODO: look later xd 
-     * 
-     * currently does nothing
+     * TODO: fully unload it, and test
      * 
      * @param {String} pluginName 
      */
     unloadPlugin(pluginName) {
-        
+        if (!(this.#plugins.has(pluginName))) {
+            return logger.error(
+                `Cannot unload plugin ${pluginName}, plugin not found!`
+            )
+        }
+        this.#plugins.delete(pluginName)
+        let name = require.resolve(`${pluginName}.js`)
+        delete require.cache[name]
     }
 
     /**
-     * CASE SENSITIVE
-     * @param {String} pluginName 
+     * Returns an instance of a loaded plugin.
      * 
+     * CASE SENSITIVE.
+     * 
+     * @param {String} pluginName 
      * @returns {null|PluginType}
      */
     getPlugin(pluginName) {
-        return this.#plugins.get(pluginName) || null;
+        return this.#plugins.get(pluginName) || null
     }
 
     getPlugins() {
         return this.#plugins.values()
+    }
+
+    getServer() {
+        return this.#server
     }
 
 }
