@@ -35,7 +35,7 @@ class PacketRegistry {
                 let packet = require(path.join(dir, files[i]))
                 this.registerPacket(packet)
             }
-            logger.debug(`Loaded ${this.packets.size} Minecraft packets!`)
+            logger.debug(`Loaded §b${this.packets.size}§r Minecraft packets!`)
         })
     }
 
@@ -47,7 +47,7 @@ class PacketRegistry {
                 let packet = require(path.join(dir, files[i]))
                 this.registerHandler(packet)
             }
-            logger.debug(`Loaded ${this.handlers.size} packet handlers!`)
+            logger.debug(`Loaded §b${this.handlers.size}§r packet handlers!`)
         })
     }
 

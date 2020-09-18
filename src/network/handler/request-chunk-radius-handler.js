@@ -17,7 +17,7 @@ class RequestChunkRadiusHandler {
         // use just 8 (for now)
         player.setViewDistance(/* packet.radius */ 8)  
 
-        setTimeout(() => player.sendNetworkChunkPublisher(), 250)
+        player.sendNetworkChunkPublisher()
 
         player.sendPlayStatus(PlayStatus.PlayerSpawn)
     }
