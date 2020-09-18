@@ -124,7 +124,6 @@ class Player extends Entity {
         this.needNewChunks()  
     }
 
-    // TODO: fix performance problems
     async needNewChunks(forceResend = false) {
         let currentXChunk = CoordinateUtils.fromBlockToChunk(this.x)
         let currentZChunk = CoordinateUtils.fromBlockToChunk(this.z)
