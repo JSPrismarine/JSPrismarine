@@ -34,18 +34,14 @@ class PluginManager {
 
         if (this.#plugins.has(plugin.manifest.name)) {
 
-            this.#server.logger.info(`Duplicate plugin: ${plugin.manifest.name}`);
-
-            return false;
+            throw `${plugin.manifest.name} named plugin already loaded! (DUPLICATE)`
         }
 
         this.#plugins.set(plugin.manifest.name,plugin);
 
         plugin.main(this.#server);
 
-        this.#server.logger.info(`Successfully loaded §e${plugin.manifest.name}§r named plugin.`);
-
-        return true;
+        return plugin;
     }
 
     /**
@@ -90,7 +86,7 @@ class PluginManager {
         plugin.path = pluginFolder
         plugin.manifest = pluginManifest
 
-        this.loadPlugin(plugin)
+        return this.loadPlugin(plugin)
     }
 
     /**
