@@ -1,4 +1,3 @@
-const glob = require('glob')
 const fs = require('fs')
 const readline = require('readline')
 const path = require("path");
@@ -22,8 +21,7 @@ if (!(fs.existsSync(__dirname + '/worlds'))) {
 }
 
 // Load default level
-// TODO: get its name from a config
-server.getWorldManager().loadWorld('world')
+server.getWorldManager().loadWorld(server.getConfig().get("worlds.normal.name","world"))
 
 // Console command reader
 let rl = readline.createInterface({input: process.stdin})
@@ -56,5 +54,5 @@ for (let i = 0; i < pluginFolderNames.length; i++) {
     }
 }
 
-server.listen()
+server.listen(server.getConfig().get("server.port",19132))
 

@@ -1,0 +1,6 @@
+worlds:
+  normal:
+    name: world
+
+server:
+  port: 19132

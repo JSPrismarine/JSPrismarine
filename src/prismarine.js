@@ -11,6 +11,7 @@ const Identifiers = require('./network/identifiers')
 const WorldManager = require('./world/world-manager')
 const logger = require('./utils/logger')
 const PluginManager = require('./plugin/plugin-manager')
+const ServerConfig = require("./utils/config/server-config")
 
 
 'use strict'
@@ -37,10 +38,14 @@ class Prismarine {
     /** @type {PluginManager} */
     #pluginManager
 
+    /** @type {ServerConfig} */
+    #config
+
     constructor(logger) {
         // Pass default server logger
         this.#logger = logger
         this.#pluginManager = new PluginManager(this)
+        this.#config = new ServerConfig()
         Prismarine.instance = this
     }
 
@@ -191,6 +196,10 @@ class Prismarine {
 
     getPacketRegistry() {
         return this.#packetRegistry
+    }
+
+    getConfig() {
+        return this.#config
     }
 
     getRaknet() {

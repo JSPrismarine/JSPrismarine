@@ -30,7 +30,9 @@
     "jsraknet": "^1.2.4",
     "jwt-decode": "^2.2.0",
     "level": "^6.0.1",
+    "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
-    "winston": "^3.3.3"
+    "winston": "^3.3.3",
+    "yaml": "^1.10.0"
   }
 }
