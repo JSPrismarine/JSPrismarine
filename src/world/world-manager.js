@@ -53,7 +53,7 @@ class WorldManager {
 
         world.close()
         this.#worlds.delete(world.uniqueId)
-        logger.debug(`Succsessfully unloaded world §b${folderName}§f!`)
+        logger.debug(`Successfully unloaded world §b${folderName}§f!`)
     }  
 
     /**
