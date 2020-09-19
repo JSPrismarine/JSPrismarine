@@ -28,7 +28,8 @@ class StopCommand extends Command {
             player.kick('Server is closing...')
         }
 
-        await process.exit(1)
+        sender.getServer().getLogger().warn("Server is closing..")
+        setTimeout(()=>{process.exit(1)},1000)
     }
 }
 module.exports = StopCommand

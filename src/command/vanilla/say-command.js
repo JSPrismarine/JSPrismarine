@@ -1,7 +1,3 @@
-/*
-07/09/2020
-*/
-
 const Command = require('../command')
 const Player  = require('../../player')
 const ConsoleSender = require('../console-sender')

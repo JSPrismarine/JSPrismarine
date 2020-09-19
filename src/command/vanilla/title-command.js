@@ -1,7 +1,3 @@
-/*
-07/09/2020
-*/
-
 const Command = require('../command')
 const Player  = require('../../player')
 const ConsoleSender = require('../console-sender')
@@ -55,12 +51,13 @@ class TitleCommand extends Command {
             targets.push(player)
         }
 
+        let text = args.slice(2).join(' ')
         for (let i = 0; i < targets.length; i++) {
             let player = targets[i]
             let pk = new SetTitlePacket()
             pk.type = TitleTypes[args[1]]
             if (args[1] != "clear") {
-                pk.text = args.slice(2).join(' ')
+                pk.text = text
             }
             player.sendDataPacket(pk)
         }
