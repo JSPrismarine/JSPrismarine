@@ -110,7 +110,7 @@ class Player extends Entity {
         if (this.chunkSendQueue.size > 0) {
             this.chunkSendQueue.forEach(chunk => {
                 let encodedPos = CoordinateUtils.encodePos(
-                    chunk.getChunkX(), chunk.getChunkZ()
+                    chunk.getX(), chunk.getZ()
                 )
                 if (!this.loadingChunks.has(encodedPos)) {
                     this.chunkSendQueue.delete(chunk)
@@ -280,31 +280,19 @@ class Player extends Entity {
         this.sendDataPacket(pk)
     }
 
-    sendCustomChunk(chunkX, chunkZ, subCount, data, hash) {
-        let pk = new LevelChunkPacket()
-        pk.chunkX = chunkX
-        pk.chunkZ = chunkZ
-        pk.subChunkCount = subCount
-        pk.data = data
-        this.sendDataPacket(pk)
-
-        this.loadedChunks.add(hash)
-        this.loadingChunks.delete(hash)
-    }
-
     /**
      * @param {Chunk} chunk 
      */
     sendChunk(chunk) {
         let pk = new LevelChunkPacket()
-        pk.chunkX = chunk.getChunkX() 
-        pk.chunkZ = chunk.getChunkZ() 
+        pk.chunkX = chunk.getX() 
+        pk.chunkZ = chunk.getZ() 
         pk.subChunkCount = chunk.getSubChunkSendCount() 
         pk.data = chunk.toBinary()
         this.sendDataPacket(pk)
 
         let hash = CoordinateUtils.encodePos(
-            chunk.getChunkX(), chunk.getChunkZ()
+            chunk.getX(), chunk.getZ()
         )
         this.loadedChunks.add(hash)
         this.loadingChunks.delete(hash)

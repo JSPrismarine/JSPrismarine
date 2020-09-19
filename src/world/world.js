@@ -1,8 +1,13 @@
+const perlinNoise3d = require('perlin-noise-3d')
+const perlin = require('perlin-noise')
+
 const Entity = require('../entity/entity')
 const UUID = require('../utils/uuid')
 const Chunk = require('./chunk/chunk')
 const CoordinateUtils = require('../world/coordinate-utils')
 const Provider = require('./provider')
+const WorldEventPacket = require('../network/packet/world-event')
+const Vector3 = require('../math/vector3')
 
 'use strict'
 
@@ -58,23 +63,40 @@ class World {
         if (!this.#chunks.has(index)) {
             await new Promise(resolve => {
                 // this.#provider.readChunk(x, z).then(chunk => resolve(chunk))
-                resolve(this.#provider.readChunk(x, z))
-                /* let tempChunk = new Chunk(x, z)
+                // resolve(this.#provider.readChunk(x, z))
+                let tempChunk = new Chunk(x, z)
                 for (let x = 0; x < 16; x++) {
                     for (let z = 0; z < 16; z++) {
-                        let y = 0
-                        tempChunk.setBlockId(x, y++, z, 7)
-                        tempChunk.setBlockId(x, y++, z, 3)
-                        tempChunk.setBlockId(x, y++, z, 3)
-                        tempChunk.setBlockId(x, y, z, 2)
-                        // TODO: block light
+                        for (let y = 0; y < 128; y++) { 
+                            // TODO
+                        }
                     }
                 }
                 tempChunk.recalculateHeightMap()
-                resolve(tempChunk) */
+                resolve(tempChunk) 
             }).then(chunk => this.#chunks.set(index, chunk))
         }
         return this.#chunks.get(index)
+    }
+
+
+    /**
+     * Sends a world event packet to all the viewers in the position chunk.
+     * 
+     * @param {Vector3|null} position - world positon
+     * @param {number} worldEvent - event identifier
+     * @param {number} data 
+     */
+    sendWorldEvent(position, worldEvent, data) {
+        let worldEventPacket = new WorldEventPacket()
+        worldEventPacket.eventId = worldEvent
+        worldEventPacket.data = data
+        if (position != null) {
+            // TODO: this.getChunkAt(position.getX(), position.getZ()).
+            // Save player into the chunk directly
+        } else {
+            // to all players
+        }
     }
 
     /**

@@ -31,6 +31,8 @@
     "jwt-decode": "^2.2.0",
     "level": "^6.0.1",
     "mccolorstoconsole": "^1.1.0",
+    "perlin-noise": "0.0.1",
+    "perlin-noise-3d": "^0.5.4",
     "winston": "^3.3.3"
   }
 }
