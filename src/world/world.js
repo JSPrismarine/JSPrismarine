@@ -62,9 +62,9 @@ class World {
         let index = CoordinateUtils.encodePos(x, z)
         if (!this.#chunks.has(index)) {
             await new Promise(resolve => {
-                // this.#provider.readChunk(x, z).then(chunk => resolve(chunk))
+                this.#provider.readChunk(x, z).then(chunk => resolve(chunk))
                 // resolve(this.#provider.readChunk(x, z))
-                let tempChunk = new Chunk(x, z)
+                /* let tempChunk = new Chunk(x, z)
                 for (let x = 0; x < 16; x++) {
                     for (let z = 0; z < 16; z++) {
                         for (let y = 0; y < 128; y++) { 
@@ -73,7 +73,7 @@ class World {
                     }
                 }
                 tempChunk.recalculateHeightMap()
-                resolve(tempChunk) 
+                resolve(tempChunk) */
             }).then(chunk => this.#chunks.set(index, chunk))
         }
         return this.#chunks.get(index)
