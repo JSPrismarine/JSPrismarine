@@ -62,8 +62,8 @@ class World {
         let index = CoordinateUtils.encodePos(x, z)
         if (!this.#chunks.has(index)) {
             await new Promise(resolve => {
-                this.#provider.readChunk(x, z).then(chunk => resolve(chunk))
-                // resolve(this.#provider.readChunk(x, z))
+                // this.#provider.readChunk(x, z).then(chunk => resolve(chunk))
+                resolve(this.#provider.readChunk(x, z))
                 /* let tempChunk = new Chunk(x, z)
                 for (let x = 0; x < 16; x++) {
                     for (let z = 0; z < 16; z++) {
