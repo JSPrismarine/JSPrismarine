@@ -5,11 +5,12 @@ const path = require('path')
 const PluginManifest = require('./plugin-manifest')
 const EventManager = require('../events/event-manager')
 const logger = require('../utils/logger')
+const PluginAPI = require('./plugin-api')
 
 'use strict'
 
 /**
- * @author Armagan
+ * @author Kıraç Armağan Önal
  */
 class PluginManager {
 
@@ -40,13 +41,17 @@ class PluginManager {
         }
 
         // Check manifest data
-        // TODO: server API, author(s)?
+        // TODO: server API, author(s)? // good idea
         if (typeof pluginManifest.name !== 'string') {
-            throw 'invalid plugin name, string expected'
+            throw `invalid plugin name, string expected, ${pluginManifest.name} found`
         }
 
         if (typeof pluginManifest.indexFile !== 'string') {
-            throw 'invalid plugin index file, string expected'
+            throw `invalid plugin index file, string expected, ${pluginManifest.indexFile} found`
+        }
+
+        if (typeof pluginManifest.version != "string" || !/^\d{1,2}.\d{1,2}.\d{1,3}$/.test(pluginManifest.version)) {
+            throw `invalid plugin version, /^\\d{1,2}.\\d{1,2}.\\d{1,3}$/ expected, ${pluginManifest.version} found`
         }
 
         let indexFilePath = path.join(pluginFolder, pluginManifest.indexFile)
@@ -70,7 +75,7 @@ class PluginManager {
         }
 
         this.#plugins.set(pluginManifest.name, plugin)
-        plugin.main(this.#server, EventManager)
+        plugin.main(new PluginAPI(this.#server, plugin)) // i did in better way the *Plugin API*
         logger.info(`Plugin §b${plugin.manifest.name}§r loaded successfully!`)
         return true
     }
@@ -81,7 +86,7 @@ class PluginManager {
      * @param {String} pluginName 
      */
     unloadPlugin(pluginName) {
-        if (!(this.#plugins.has(pluginName))) {
+        if (!this.#plugins.has(pluginName)) {
             return logger.error(
                 `Cannot unload plugin ${pluginName}, plugin not found!`
             )
@@ -104,7 +109,7 @@ class PluginManager {
     }
 
     getPlugins() {
-        return this.#plugins.values()
+        return Array.from(this.#plugins.values())
     }
 
     getServer() {
