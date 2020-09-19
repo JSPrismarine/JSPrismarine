@@ -8,10 +8,10 @@ const GamemodeCommand = require('./vanilla/gamemode-command')
 const TellCommand = require('./vanilla/tell-command')
 const TitleCommand = require('./vanilla/title-command')
 const SayCommand = require('./vanilla/say-command')
-const ChatCommand = require('./vanilla/chat-command')
 const MeCommand = require('./vanilla/me-command')
 const StopCommand = require('./vanilla/stop-command')
 const KickCommand = require('./vanilla/kick-command')
+const PluginsCommand = require('./vanilla/plugins-command')
 
 'use strict'
 
@@ -26,10 +26,10 @@ class CommandManager {
         this.registerClassCommand(new TellCommand())
         this.registerClassCommand(new TitleCommand())
         this.registerClassCommand(new SayCommand())
-        this.registerClassCommand(new ChatCommand())
         this.registerClassCommand(new MeCommand())
         this.registerClassCommand(new StopCommand())
         this.registerClassCommand(new KickCommand())
+        this.registerClassCommand(new PluginsCommand())
     }
  
     /**
@@ -85,7 +85,7 @@ class CommandManager {
 
         // Check for numbers and convert them
         for (let argument of commandParts) {
-            if (!isNaN(argument)) {
+            if (!isNaN(argument) && argument.trim().length != 0) { // command argument parsing fixed
                 let argumentIndex = commandParts.indexOf(argument)
                 commandParts[argumentIndex] = Number(argument)
             }

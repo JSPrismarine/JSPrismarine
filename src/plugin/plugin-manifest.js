@@ -8,14 +8,16 @@ class PluginManifest {
     /** @type {string} */
     indexFile
 
-    /** @type {string} */
+    /** @type {string?} */
     description
 
-    /** @type {string} */
+    /** @type {string?} */
     version
 
-    /** @type {string} */
+    /** @type {string?} */
     apiVersion
-    
+
+    /** @type {string?} */
+    author
 }
 module.exports = PluginManifest
