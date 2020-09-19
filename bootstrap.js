@@ -21,7 +21,9 @@ if (!(fs.existsSync(__dirname + '/worlds'))) {
 }
 
 // Load default level
-server.getWorldManager().loadWorld(server.getConfig().get("worlds.normal.name","world"))
+server.getWorldManager().loadWorld(
+    server.getConfig().get('worlds.normal.name', 'world')
+)
 
 // Console command reader
 let rl = readline.createInterface({input: process.stdin})
@@ -39,18 +41,22 @@ rl.on('line', (input) => {
     )
 })
 
-if (!fs.existsSync("./plugins")) fs.mkdirSync("./plugins")
 // Load all plugins
-let pluginFolderNames = fs.readdirSync("./plugins")
-
+let pluginFolderNames = fs.readdirSync('./plugins')
 for (let i = 0; i < pluginFolderNames.length; i++) {
     const folderName = pluginFolderNames[i];
     try {
-        server.logger.info(`§8${folderName}§r named plugin is loading..`);
-        let plugin = server.getPluginManager().loadPluginFolder(path.resolve("./plugins", folderName))
-        server.logger.info(`§e${plugin.manifest.name}§r §8(${folderName})§r named plugin is loaded!`);
+        server.logger.info(`§8${folderName}§r named plugin is loading..`)
+        let plugin = server.getPluginManager().loadPluginFolder(
+            path.resolve('./plugins', folderName)
+        )
+        server.logger.info(
+            `§e${plugin.manifest.name}§r §8(${folderName})§r named plugin is loaded!`
+        )
     } catch (error) {
-        server.logger.warn(`§e${folderName}§r named plugin could not be loaded due to §c${error}§r.`);
+        server.logger.warn(
+            `§e${folderName}§r named plugin could not be loaded due to §c${error}§r.`
+        )
     }
 }
 
