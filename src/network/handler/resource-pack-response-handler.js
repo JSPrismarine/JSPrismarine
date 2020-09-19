@@ -39,7 +39,7 @@ class ResourcePackResponseHandler {
             player.sendAttributes(player.attributes.getDefaults())
 
             logger.info(
-                `${player.name} is attempting to join with id ${player.runtimeId} from ${player.getAddress().address}:${player.getAddress().port}`
+                `§b${player.name}§f is attempting to join with id §b${player.runtimeId}§f from ${player.getAddress().address}:${player.getAddress().port}`
             )
 
             player.setNameTag(player.name)

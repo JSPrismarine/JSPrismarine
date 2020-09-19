@@ -87,7 +87,7 @@ class Prismarine {
                         let handler = this.#packetRegistry.handlers.get(packet.id)
                         handler.handle(packet, player)
                     } else {
-                        this.#logger.debug(`Unhandled packet: ${packet.id}`)
+                        this.#logger.debug(`Unhandled packet: §b${packet.constructor.name}`)
                     }
                 } else {
                     this.#logger.debug("Unhandled packet: " + bufferToConsoleString(buf))

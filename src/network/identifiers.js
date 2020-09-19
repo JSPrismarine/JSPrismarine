@@ -28,7 +28,7 @@ const Identifiers = {
     AddPaintingPacket: 0x16,
     TickSyncPacket: 0x17,
     LevelSoundEventPacketV1: 0x18,
-    LevelEventPacket: 0x19,
+    WorldEventPacket: 0x19,
     BlockEventPacket: 0x1a,
     ActorEventPacket: 0x1b,
     MobEffectPacket: 0x1c,

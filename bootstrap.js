@@ -1,4 +1,3 @@
-const glob = require('glob')
 const fs = require('fs')
 const readline = require('readline')
 const path = require('path')
@@ -6,6 +5,7 @@ const path = require('path')
 const Prismarine = require('./src/prismarine')
 const logger = require('./src/utils/logger')
 const ConsoleSender = require('./src/command/console-sender')
+const PaletteManager = require('./src/world/palette-manager')
 
 'use strict'
 
@@ -24,6 +24,9 @@ if (!(fs.existsSync(__dirname + '/worlds'))) {
 // Load default level
 // TODO: get its name from a config
 server.getWorldManager().loadWorld('world')
+
+// Init block states
+PaletteManager.init()
 
 // Load all plugins
 let pluginFolders = fs.readdirSync('./plugins')
@@ -57,5 +60,5 @@ rl.on('line', (input) => {
 })
 
 server.listen().catch(() => 
-    logger.error(`Cannot start the server, is it already running on the same port?`
-))
+    logger.error(`Cannot start the server, is it already running on the same port?`)
+)
