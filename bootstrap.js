@@ -60,5 +60,5 @@ for (let i = 0; i < pluginFolderNames.length; i++) {
     }
 }
 
-server.listen(server.getConfig().get("server.port",19132))
+server.listen(server.getConfig().get('server.port', 19132))
 
