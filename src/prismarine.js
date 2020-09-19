@@ -208,5 +208,9 @@ class Prismarine {
         return this.#players
     }
 
+    getServer() {
+        return this
+    }
+
 }
 module.exports = Prismarine
