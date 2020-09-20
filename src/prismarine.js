@@ -219,5 +219,9 @@ class Prismarine {
         return this.#raknet
     }
 
+    getServer() {
+        return this
+    }
+
 }
 module.exports = Prismarine
