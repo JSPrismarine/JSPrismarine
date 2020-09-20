@@ -1,13 +1,17 @@
+const perlinNoise3d = require('perlin-noise-3d')
+const perlin = require('perlin-noise')
+
 const Entity = require('../entity/entity')
 const UUID = require('../utils/uuid')
 const Chunk = require('./chunk/chunk')
-const CoordinateUtils = require('../level/coordinate-utils')
+const CoordinateUtils = require('../world/coordinate-utils')
 const Provider = require('./provider')
-const LevelDB = require('./leveldb/leveldb')
+const WorldEventPacket = require('../network/packet/world-event')
+const Vector3 = require('../math/vector3')
 
 'use strict'
 
-class Level {
+class World {
     
     /** @type {string} */
     #uniqueId = UUID.randomString()
@@ -22,7 +26,7 @@ class Level {
     /** @type {Provider|null} */
     #provider = null
 
-    constructor(server, name, provider = null) {
+    constructor(name, provider = null) {
         this.#name = name
         this.#provider = provider
     }
@@ -43,56 +47,56 @@ class Level {
      * @param {number} z 
      * @param {boolean} generate 
      */
-    getChunk(x, z, generate = true) {
-        let index = CoordinateUtils.encodePos(x, z)
-        if (this.#chunks.has(index)) {
-            return this.#chunks.get(index)
-        } else if (this.loadChunk(x, z, generate)) {
-            return this.#chunks.get(index)
-        }
-        
-        return null
+    async getChunk(x, z, generate = true) {
+        return await this.loadChunk(x, z, generate)
     }
 
     /**
-     * Loads a chunk in a given x and z.
+     * Loads a chunk in a given x and z and returns its.
      * 
      * @param {number} x 
      * @param {number} z 
      * @param {boolean} generate
      */
-    loadChunk(x, z, generate) {
+    async loadChunk(x, z, generate) {
         let index = CoordinateUtils.encodePos(x, z)
-        if (this.#chunks.has(index)) {
-            return true
-        }
-
-        let chunk = null
-        if (this.#provider instanceof LevelDB) {
-            this.#provider.readChunk(x, z).then(levelChunk => chunk = levelChunk)
-        } else if (this.#provider !== null) {
-            chunk = this.#provider.readChunk(x, z) 
-        }
-        // TODO: providers, this is just an experiment
-        // generate is used if the chunk from the provider cannot
-        // be loaded, so a flat chunk is generated (convention)
-        if (chunk === null && generate) {
-            chunk = new Chunk(x, z)
-            for (let x = 0; x < 16; x++) {
-                for (let z = 0; z < 16; z++) {
-                    let y = 0
-                    chunk.setBlockId(x, y++, z, 7)
-                    chunk.setBlockId(x, y++, z, 3)
-                    chunk.setBlockId(x, y++, z, 3)
-                    chunk.setBlockId(x, y, z, 2)
-                    // TODO: block light
+        if (!this.#chunks.has(index)) {
+            await new Promise(resolve => {
+                // this.#provider.readChunk(x, z).then(chunk => resolve(chunk))
+                resolve(this.#provider.readChunk(x, z))
+                /* let tempChunk = new Chunk(x, z)
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++) {
+                        for (let y = 0; y < 128; y++) { 
+                            // TODO
+                        }
+                    }
                 }
-            }
-            chunk.recalculateHeightMap()
+                tempChunk.recalculateHeightMap()
+                resolve(tempChunk) */
+            }).then(chunk => this.#chunks.set(index, chunk))
         }
+        return this.#chunks.get(index)
+    }
 
-        this.#chunks.set(index, chunk)
-        return true
+
+    /**
+     * Sends a world event packet to all the viewers in the position chunk.
+     * 
+     * @param {Vector3|null} position - world positon
+     * @param {number} worldEvent - event identifier
+     * @param {number} data 
+     */
+    sendWorldEvent(position, worldEvent, data) {
+        let worldEventPacket = new WorldEventPacket()
+        worldEventPacket.eventId = worldEvent
+        worldEventPacket.data = data
+        if (position != null) {
+            // TODO: this.getChunkAt(position.getX(), position.getZ()).
+            // Save player into the chunk directly
+        } else {
+            // to all players
+        }
     }
 
     /**
@@ -132,6 +136,10 @@ class Level {
         this.#players.delete(player.runtimeId)
     }
 
+    close() {
+        // TODO
+    }
+
     get provider() {
         return this.#provider
     }
@@ -144,5 +152,6 @@ class Level {
     get name() {
         return this.#name
     }
+
 }
-module.exports = Level
+module.exports = World

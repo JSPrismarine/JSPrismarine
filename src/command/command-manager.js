@@ -89,7 +89,7 @@ class CommandManager {
 
         // Check for numbers and convert them
         for (let argument of commandParts) {
-            if (!isNaN(argument)) {
+            if (!isNaN(argument) && argument.trim().length != 0) { // command argument parsing fixed
                 let argumentIndex = commandParts.indexOf(argument)
                 commandParts[argumentIndex] = Number(argument)
             }

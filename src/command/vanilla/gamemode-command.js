@@ -2,7 +2,7 @@ const Command = require('../command')
 const Player = require('../../player')
 const logger = require('../../utils/logger')
 const ConsoleSender = require('../console-sender')
-const Gamemode = require('../../level/gamemode')
+const Gamemode = require('../../world/gamemode')
 
 'use strict'
 

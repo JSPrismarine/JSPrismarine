@@ -14,14 +14,15 @@ class StopCommand extends Command {
      * @param {ConsoleSender|Player} sender
      * @param {Array} args
      */
-    execute(sender, args) {
+    async execute(sender, args) {
         // TODO: implement operators and just check if player is operator
         
         for (let player of sender.getServer().players.values()) {
             player.kick('Server closed.')
         }
 
-        // TODO: promise.then(process.exit(1))
+        sender.getServer().getLogger().warn("Server is closing..")
+        setTimeout(()=>{process.exit(1)},1000)
     }
 }
 module.exports = StopCommand

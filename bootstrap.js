@@ -1,11 +1,11 @@
-const glob = require('glob')
-const path = require('path')
 const fs = require('fs')
 const readline = require('readline')
+const path = require('path')
 
 const Prismarine = require('./src/prismarine')
 const logger = require('./src/utils/logger')
 const ConsoleSender = require('./src/command/console-sender')
+const PaletteManager = require('./src/world/palette-manager')
 
 'use strict'
 
@@ -19,6 +19,28 @@ if (!(fs.existsSync(__dirname + '/plugins'))) {
 }
 if (!(fs.existsSync(__dirname + '/worlds'))) {
     fs.mkdirSync(__dirname + '/worlds')
+}
+
+// Load default level
+// TODO: get its name from a config
+server.getWorldManager().loadWorld('world')
+
+// Init block states
+PaletteManager.init()
+
+// Load all plugins
+let pluginFolders = fs.readdirSync('./plugins')
+for (let i = 0; i < pluginFolders.length; i++) {
+    const folderName = pluginFolders[i]
+    try {
+        server.getPluginManager().loadPlugin(
+            path.resolve('./plugins', folderName)
+        )
+    } catch (error) {
+        logger.warn(
+            `Error while loading plugin §b${folderName}§r: §c${error}`
+        )
+    }
 }
 
 // Console command reader
@@ -37,10 +59,6 @@ rl.on('line', (input) => {
     )
 })
 
-// Load all plugins
-glob.sync('./plugins/*.js').map(
-    file => server.loadPlugin(file)
+server.listen().catch(() => 
+    logger.error(`Cannot start the server, is it already running on the same port?`)
 )
-
-server.listen()
-

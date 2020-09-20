@@ -22,7 +22,6 @@ class CoordinateUtils {
      */
     static encodePos(x, z) {
         return `${x}:${z}`
-        // return (x << 16) | z
     }
 
     /**
@@ -32,10 +31,6 @@ class CoordinateUtils {
      * @param {string} encodedPos 
      */
     static decodePos(encodedPos) {
-        /* return [
-            encodedPos >> 16,
-            encodedPos & 0x0000FFFF
-        ] */
         return encodedPos.split(':') 
     }
 }

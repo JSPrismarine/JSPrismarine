@@ -7,7 +7,6 @@ const CommandOriginData = require('./type/command-origin-data')
 const CommandOrigin = require('./type/command-origin')
 const NetworkLittleEndianBinaryStream = require('jsnamedbinarytag/streams/network-le-binary-stream')
 const CompoundTag = require('jsnamedbinarytag/tags/compound-tag')
-const IntTag = require('jsnamedbinarytag/tags/int-tag')
 
 'use strict'
 

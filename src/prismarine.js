@@ -5,12 +5,13 @@ const Listener = require('jsraknet')
 const Player = require('./player')
 const BatchPacket = require('./network/packet/batch')
 const PacketRegistry = require('./network/packet-registry')
-const Level = require('./level/level')
-const LevelDB = require('./level/leveldb/leveldb')
 const CommandManager = require('./command/command-manager')
 const bufferToConsoleString = require("./utils/buffer-to-console-string")
 const Identifiers = require('./network/identifiers')
+const WorldManager = require('./world/world-manager')
 const logger = require('./utils/logger')
+const PluginManager = require('./plugin/plugin-manager')
+
 
 'use strict'
 
@@ -24,14 +25,13 @@ class Prismarine {
     #players = new Map()
     /** @type {PacketRegistry} */
     #packetRegistry = new PacketRegistry()
-    /** @type {Level|null} */
-    #defaultLevel = null
-    /** @type {Map<String, Level>} */
-    #levels = new Map()
-    /** @type {Map<String, Object>} */
-    #plugins = new Map()
+    /** @type {PluginManager} */
+    #pluginManager = new PluginManager(this)
     /** @type {CommandManager} */   
     #commandManager = new CommandManager()
+    /** @type {WorldManager} */
+    #worldManager = new WorldManager()
+    
     /** @type {null|Prismarine} */
     static instance = null
 
@@ -41,18 +41,27 @@ class Prismarine {
         Prismarine.instance = this
     }
 
-    async listen(_port=19132) {
-        this.#raknet = await (new Listener).listen('0.0.0.0', _port)
+    async listen(port = 19132) {
+        this.#raknet = await (new Listener).listen('0.0.0.0', port)
         this.#raknet.name.setOnlinePlayerCount(this.#players.entries.length)
         this.#raknet.name.setVersion(Identifiers.Protocol)
         this.#raknet.name.setProtocol(Identifiers.MinecraftVersion)
 
+        this.#logger.info(`JSPrismarine is now listening port §b${port}`)
+
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
             let inetAddr = connection.address
-            this.#players.set(`${inetAddr.address}:${inetAddr.port}`, new Player(
-                connection, connection.address, this.#logger, this
-            ))
+            // TODO: Get last world by player data
+            // and if it doesn't exists, return the default one
+            let world = this.getWorldManager().getDefaultWorld()
+            let player = new Player(
+                connection, connection.address, this.#logger, world, this
+            )
+            this.#players.set(`${inetAddr.address}:${inetAddr.port}`, player)
+
+            // Add the player into the world
+            world.addPlayer(player)
         })
 
         // Get player from map by address, then handle packet
@@ -78,7 +87,7 @@ class Prismarine {
                         let handler = this.#packetRegistry.handlers.get(packet.id)
                         handler.handle(packet, player)
                     } else {
-                        this.#logger.debug(`Unhandled packet: ${packet.id}`)
+                        this.#logger.debug(`Unhandled packet: §b${packet.constructor.name}`)
                     }
                 } else {
                     this.#logger.debug("Unhandled packet: " + bufferToConsoleString(buf))
@@ -97,7 +106,7 @@ class Prismarine {
                     if (onlinePlayer === player) continue
                     player.sendDespawn(onlinePlayer)
                 }
-                player.getLevel().removePlayer(player)
+                player.getWorld().removePlayer(player)
 
                 this.#players.delete(token)
             }
@@ -109,52 +118,12 @@ class Prismarine {
             this.#players.size
         ), 1000 * 5)
 
-        // Load default level (this is just a test)
-        if (this.#defaultLevel === null) {
-            this.#defaultLevel = new Level(
-                this, 
-                "World",
-                // new Experimental(__dirname + `/../worlds/world/`) 
-                // new LevelDB( __dirname + `/../worlds/world9/`)
-            )
-        }
-
-        // Tick level
-        setInterval(() => this.#defaultLevel.update(Date.now()), 1000 / 20)
-    }
-
-    // TODO: it is now used just to test 
-    // a random default level
-    loadLevel(folderName) {
-        // TODO: check if it's already loaded
-        let levelPath = __dirname + `/../worlds/${folderName}/`
-        let provider = new LevelDB(levelPath)
-        let level = new Level(this, folderName, provider)
-        this.#levels.set(level.uniqueId, level)
-    } 
-
-    /**
-     * Loads a plugin form a given file even in runtime.
-     * 
-     * @param {string} file 
-     */
-    loadPlugin(file) {
-        let plugin = require(path.resolve(file))
-        let manifest = plugin.manifest
-        let name = file.replace('.js', '').replace('./plugins/', '')
-        // if manifest is not defined in the plugin
-        // just warn the user :), it's just unstable
-        if (typeof manifest === "undefined") {
-            this.#logger.warn(
-                `PLugin ${name} doesn't have a manifest so i can't check the target API version`
-            )
-        } else {
-            // TODO: all other manifest cheks
-            // if manifest has plugin name use them
-        } 
-        plugin.server = this 
-        this.#plugins.set(name, plugin)
-        this.#logger.info(`Plugin ${name} loaded!`)
+        // Tick worlds every 1/20 of a second (a minecraft tick)
+        setInterval(() => {
+            for (let world of this.getWorldManager().getWorlds()) {
+                world.update(Date.now())
+            }
+        }, 1000 / 20)
     }
 
     /**
@@ -207,8 +176,32 @@ class Prismarine {
         return this.#commandManager
     }
 
-    get defaultLevel() {
-        return this.#defaultLevel
+    getWorldManager() {
+        return this.#worldManager
+    }
+
+    getLogger() {
+        return this.#logger
+    }
+
+    getPacketRegistry() {
+        return this.#packetRegistry
+    }
+
+    getRaknet() {
+        return this.#raknet
+    }
+
+    getPluginManager() {
+        return this.#pluginManager
+    }
+
+    get logger() {
+        return this.#logger
+    }
+
+    getPlayers() {
+        return this.#players
     }
 
     get players() {
