@@ -16,18 +16,20 @@ class KickCommand extends Command {
      * @param {Array} args
      */
     execute(sender, args) {
-        if (args.length < 1) {
-            sender.sendMessage('§cYou have to specify a player.')
-        }
 
+        if (!args[0]) {
+            return sender.sendMessage("§cYou have to specify a player.")
+        }
+        
         let reason = args[1] ? args.slice(1).join(" ") : "No reason specified."
-        let targetPlayer = sender.getServer().getPlayerByName(args[0])
+        let target = sender.getServer().getPlayerByName(args[0])
 
-        if (!targetPlayer) {
-            return sender.sendMessage(`§cCan't find the player ${args[0]}.`)
+        if (!target) {
+            return sender.sendMessage("§cCan't find the selected player.")
         }
 
-        targetPlayer.kick(`You have been kicked from server due to:\n\n${reason}`)
+        target.kick("You have been kicked from the server due to: \n\n" + reason)
+
     }
 }
 
