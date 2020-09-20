@@ -9,7 +9,7 @@ class SayCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({name: 'say', description: 'Say!'})
+        super({name: 'say', description: 'Say something to all players.'})
     }
 
     /**
@@ -18,12 +18,12 @@ class SayCommand extends Command {
      */
     execute(sender, args) {
         if (!args[0]) {
-            return sender.sendMessage(`§cInvalid message.`)
+            return sender.sendMessage(`§cPlease specify a message.`)
         }
 
         let message = args.join(' ')
+        let messageToSend = `§5[${sender.name}] ${message}`
 
-        let messageToSend = `${sender instanceof ConsoleSender ? '§d' : ''}[${sender.name}] ${message}`
         Logger.silly(messageToSend)
         for (let player of sender.getServer().players.values()) {
             player.sendMessage(messageToSend)

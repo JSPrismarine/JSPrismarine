@@ -7,7 +7,7 @@ const ConsoleSender = require('../console-sender')
 class PluginsCommand extends Command {
 
     constructor() {
-        super({name: 'plugins', description: 'Plugin list', aliases:["pl"]})
+        super({name: 'plugins', description: 'Lists all plugins that run on the server.', aliases:["pl"]})
     }
 
     /**
@@ -19,7 +19,7 @@ class PluginsCommand extends Command {
         let plugins = sender.getServer().getPluginManager().getPlugins();
 
         if (plugins.length == 0) {
-            return sender.sendMessage("§cThere is no plugin loaded.")
+            return sender.sendMessage("§cCan't find any plugins.")
         }
        
         let message = `§7Plugins (${plugins.length}):§r ${plugins.map(p=>`${p.manifest.name} ${p.manifest.version}`).join(", ")}`

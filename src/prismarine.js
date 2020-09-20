@@ -208,6 +208,10 @@ class Prismarine {
         return this.#players
     }
 
+    getRaknet() {
+        return this.#raknet
+    }
+
     getServer() {
         return this
     }
