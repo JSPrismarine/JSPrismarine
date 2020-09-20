@@ -11,6 +11,8 @@ const SayCommand = require('./vanilla/say-command')
 const MeCommand = require('./vanilla/me-command')
 const StopCommand = require('./vanilla/stop-command')
 const KickCommand = require('./vanilla/kick-command')
+const ListCommand = require('./vanilla/list-command')
+const VersionCommand = require('./vanilla/version-command')
 const PluginsCommand = require('./vanilla/plugins-command')
 
 'use strict'
@@ -29,6 +31,8 @@ class CommandManager {
         this.registerClassCommand(new MeCommand())
         this.registerClassCommand(new StopCommand())
         this.registerClassCommand(new KickCommand())
+        this.registerClassCommand(new ListCommand())
+        this.registerClassCommand(new VersionCommand())
         this.registerClassCommand(new PluginsCommand())
     }
  

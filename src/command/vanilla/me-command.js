@@ -9,7 +9,7 @@ class MeCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({name: 'me', description: 'Me!'})
+        super({name: 'me', description: 'Displays custom message in chat.'})
     }
 
     /**
@@ -18,12 +18,12 @@ class MeCommand extends Command {
      */
     execute(sender, args) {
         if (!args[0]) {
-            return sender.sendMessage(`§cInvalid message.`)
+            return sender.sendMessage(`§cPlease specify a message.`)
         } 
 
         let message = args.join(' ')
+        let messageToSend = `*${sender.name}: ${message}`
 
-        let messageToSend = `§5*${sender.name}: ${message}`
         Logger.silly(messageToSend)
         for (let player of sender.getServer().players.values()) {
             player.sendMessage(messageToSend)

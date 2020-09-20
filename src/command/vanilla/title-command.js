@@ -16,7 +16,7 @@ class TitleCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({name: 'title', description: 'Controls screen titles.'})
+        super({name: 'title', description: 'Controls text displayed on the screen.'})
     }
 
     /**
@@ -25,15 +25,15 @@ class TitleCommand extends Command {
      */
     execute(sender, args) {
         if (!args[0]) {
-            return sender.sendMessage('§cYou have to select a player or type @a.')
+            return sender.sendMessage('§cYou have to select a player.')
         }
 
         if (!Object.keys(TitleTypes).includes(`${args[1]}`.toLowerCase())) {
-            return sender.sendMessage(`§cInvalid title type. Valid types: ${Object.keys(this.titleTypes).join(', ')}.`)
+            return sender.sendMessage(`§cInvalid title type.`)
         } 
 
         if (!args[2] && args[1] != 'clear') {
-            return sender.sendMessage('§cInvalid message.')
+            return sender.sendMessage('§cPlease specify a message.')
         } 
 
         /** @type {Array<Player>} */
@@ -42,12 +42,12 @@ class TitleCommand extends Command {
         if (args[0] == '@a') {
             let players = Array.from(sender.getServer().players.values())
             if (players.length == 0) {
-                return sender.sendMessage('§cThere is no player to send title.')
+                return sender.sendMessage('§cNo player specified.')
             } 
             targets.push(...players)
         } else {
             let player = sender.getServer().getPlayerByName(args[0])
-            if (!player) return sender.sendMessage(`§cCan not find the player ${args[0]}.`)
+            if (!player) return sender.sendMessage(`§cCan't find the player ${args[0]}.`)
             targets.push(player)
         }
 
