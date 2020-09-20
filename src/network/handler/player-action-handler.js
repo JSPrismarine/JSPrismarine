@@ -1,6 +1,6 @@
 const Player = require('../../player')
 const Identifiers = require('../identifiers')
-const LevelEventPacket = require('../packet/level-event')
+const WorldEventPacket = require('../packet/world-event')
 const PlayerActionPacket = require('../packet/player-action')
 const PlayerAction = require('../type/player-action')
 const LevelEventType = require('../type/level-event-type')
@@ -19,7 +19,7 @@ class PlayerActionHandler {
         let pk
         switch (packet.action) {
             case PlayerAction.StartBreak:
-                pk = new LevelEventPacket()
+                /* pk = new LevelEventPacket()
                 pk.eventId = LevelEventType.BlockStartBreak
                 pk.x = packet.x
                 pk.y = packet.y
@@ -27,11 +27,11 @@ class PlayerActionHandler {
                 pk.data = 65535 / (0.6 * 20)
                 for (const [_, onlinePlayer] of player.getServer().players) {
                     onlinePlayer.sendDataPacket(pk)
-                }
+                } */
                 break
             case PlayerAction.AbortBreak:
             case PlayerAction.StopBreak:
-                pk = new LevelEventPacket()
+                /* pk = new LevelEventPacket()
                 pk.eventId = LevelEventType.BlockStopBreak
                 pk.x = packet.x
                 pk.y = packet.y
@@ -39,12 +39,12 @@ class PlayerActionHandler {
                 pk.data = 0
                 for (const [_, onlinePlayer] of player.getServer().players) {
                     onlinePlayer.sendDataPacket(pk)
-                }
+                } */
                 // let chunk = player.getServer().defaultLevel.getChunkTest(packet.x >> 4, packet.z >> 4)
                 // player.getServer().defaultLevel.provider.
                 break
             case PlayerAction.ContinueBreak:
-                pk = new LevelEventPacket()
+                /* pk = new LevelEventPacket()
                 pk.eventId = LevelEventType.ParticlePunchBlock
                 pk.x = packet.x
                 pk.y = packet.y
@@ -52,7 +52,7 @@ class PlayerActionHandler {
                 pk.data = 7  // TODO: runtime ID
                 for (const [_, onlinePlayer] of player.getServer().players) {
                     onlinePlayer.sendDataPacket(pk)
-                }
+                } */
                 break 
             default:
                 // This will get triggered even if an action is simply not handled

@@ -3,13 +3,18 @@ const Identifiers = require('../identifiers')
 
 'use strict'
 
-class LevelEventPacket extends DataPacket {
+class WorldEventPacket extends DataPacket {
     static NetID = Identifiers.LevelEventPacket
 
+    /** @type {number} */
     eventId
+    /** @type {number} */
     x = 0.0
+    /** @type {number} */
     y = 0.0
+    /** @type {number} */
     z = 0.0
+    /** @type {number} */
     data
 
     encodePayload() {
@@ -22,4 +27,4 @@ class LevelEventPacket extends DataPacket {
         this.writeVarInt(this.data)
     } 
 }
-module.exports = LevelEventPacket
+module.exports = WorldEventPacket

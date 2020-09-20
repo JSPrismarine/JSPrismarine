@@ -1,7 +1,7 @@
 const { MetadataManager, MetadataFlag, FlagType} = require('./metadata')
 const { AttributeManager } = require('./attribute')
-const Level = require('../level/level')
-const Position = require('../level/position')
+const World = require('../world/world')
+const Position = require('../world/position')
 const AddActorPacket = require('../network/packet/add-actor')
 
 'use strict'
@@ -22,10 +22,10 @@ class Entity extends Position {
     /**
      * Entity constructor.
      * 
-     * @param {Level} level 
+     * @param {World} world 
      */
-    constructor(level) {
-        super(undefined, undefined, undefined, level)  // TODO
+    constructor(world) {
+        super(undefined, undefined, undefined, world)  // TODO
         this.runtimeId = Entity.runtimeIdCount += 1
 
         this.metadata.setLong(MetadataFlag.Index, 0)

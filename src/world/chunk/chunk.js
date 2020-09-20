@@ -8,8 +8,10 @@ const Entity = require('../../entity/entity')
 const MaxSubChunks = 16
 class Chunk {
 
-    x
-    z
+    /** @type {number} */
+    #x
+    /** @type {number} */
+    #z
 
     hasChanged = false
 
@@ -29,8 +31,8 @@ class Chunk {
     heightMap = []
 
     constructor(chunkX, chunkZ, subChunks = new Map(), entities = new Map(), tiles = new Map(), biomes = [], heightMap = []) {
-        this.x = chunkX
-        this.z = chunkZ
+        this.#x = chunkX
+        this.#z = chunkZ
 
         for (let y = 0; y < this.height; y++) {
             this.subChunks.set(y, subChunks.has(y) ? subChunks.get(y) : new EmptySubChunk())
@@ -70,12 +72,12 @@ class Chunk {
         })
     }
 
-    getChunkX() {
-        return this.x
+    getX() {
+        return this.#x
     }
 
-    getChunkZ() {
-        return this.z
+    getZ() {
+        return this.#z
     }
 
     static getIdIndex(x, y, z) {
