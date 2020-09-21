@@ -13,63 +13,58 @@ class Chunk {
     /** @type {number} */
     #z
 
-    hasChanged = false
+    /** @type {boolean} */
+    #hasChanged = false
 
-    height = MaxSubChunks
+    /** @type {number} */
+    #height = MaxSubChunks
 
     /**
      * @type {Map<number, SubChunk>}
      */
-    subChunks = new Map()
+    #subChunks = new Map()
 
-    biomes = []
+    /** @type {number[]} */
+    #biomes = []
 
-    tiles = []
-    /** @type {Entity[]} */
-    entities = []
+    // TODO: #tiles = []
+    /** @type {Set<Entity>} */
+    #entities = new Set()
 
-    heightMap = []
+    #heightMap = []
 
-    constructor(chunkX, chunkZ, subChunks = new Map(), entities = new Map(), tiles = new Map(), biomes = [], heightMap = []) {
+    /**
+     * Chunk constructor.
+     * 
+     * @param {number} chunkX 
+     * @param {number} chunkZ 
+     * @param {Map<Number, SubChunk>} subChunks 
+     * @param {Entity[]} entities 
+     * @param {undefined[]} tiles 
+     * @param {number[]} biomes 
+     * @param {number[]} heightMap 
+     */
+    constructor(chunkX, chunkZ, subChunks = new Map(), entities = [], tiles = [], biomes = [], heightMap = []) {
         this.#x = chunkX
         this.#z = chunkZ
 
-        for (let y = 0; y < this.height; y++) {
-            this.subChunks.set(y, subChunks.has(y) ? subChunks.get(y) : new EmptySubChunk())
+        for (let y = 0; y < this.#height; y++) {
+            this.#subChunks.set(y, subChunks.has(y) ? subChunks.get(y) : new EmptySubChunk())
         }
 
         if (heightMap.length === 256) {
-            this.height = heightMap
+            this.#height = heightMap
         } else {
             if (heightMap.length !== 0) throw new Error(`Wrong HrightMap value count, expected 256, got ${heightMap.length}`)
-            this.heightMap = new Array(256).fill(this.height * 16)
+            this.#heightMap = new Array(256).fill(this.height * 16)
         }
 
         if (biomes.length === 256) {
-            this.biomes = biomes
+            this.#biomes = biomes
         } else {
             if (biomes.length !== 0) throw new Error(`Wrong Biomes value count, expected 256, got ${biomes.length}`)
-            this.biomes = new Array(256).fill(0x00)
+            this.#biomes = new Array(256).fill(0x00)
         }
-    }
-
-    static createEmpty(x, z) {
-        return new Promise((resolve, reject) => {
-            resolve(new Chunk(x, z))
-        })
-    }
-
-    static createFlatTest(x, z) {
-        return new Promise((resolve, reject) => {
-            let chunk = new Chunk(x, z)
-            for (let x = 0; x < 16; x++) {
-                for (let z = 0; z < 16; z++) {
-                    chunk.setBlockId(x, 0, z, 7)
-                }
-            }
-            chunk.recalculateHeightMap()
-            resolve(chunk)
-        })
     }
 
     getX() {
@@ -93,37 +88,37 @@ class Chunk {
     }
 
     setBiomeId(x, z, biomeId) {
-        this.hasChanged = true
-        this.biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff
+        this.#hasChanged = true
+        this.#biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff
     }
 
     setBlockId(x, y, z, id) {
         if (this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id)) {
-            this.hasChanged = true
+            this.#hasChanged = true
         }
     }
 
     getSubChunk(y, generateNew = false) {
-        if (y < 0 || y >= this.height) {
+        if (y < 0 || y >= this.#height) {
             return new EmptySubChunk()
-        } else if (generateNew && this.subChunks.get(y) instanceof EmptySubChunk) {
-            this.subChunks.set(y, new SubChunk())
+        } else if (generateNew && this.#subChunks.get(y) instanceof EmptySubChunk) {
+            this.#subChunks.set(y, new SubChunk())
         }
 
-        return this.subChunks.get(y)
+        return this.#subChunks.get(y)
     }
 
     getSubChunks() {
-        return this.subChunks
+        return this.#subChunks
     }
 
     setHeightMap(x, z, value) {
-        this.heightMap[Chunk.getHeightMapIndex(x, z)] = value
+        this.#heightMap[Chunk.getHeightMapIndex(x, z)] = value
     }
 
     getHighestSubChunkIndex() {
-        for (let y = this.subChunks.size - 1; y >= 0; --y) {
-            if (this.subChunks.get(y) instanceof EmptySubChunk) {
+        for (let y = this.#subChunks.size - 1; y >= 0; --y) {
+            if (this.#subChunks.get(y) instanceof EmptySubChunk) {
                 continue
             }
             return y
@@ -166,16 +161,16 @@ class Chunk {
      * @param {Entity} entity 
      */
     addEntity(entity) {
-        this.entities.push(entity)
+        this.#entities.push(entity)
     }
 
     toBinary() {
         let stream = new BinaryStream()
         let subChunkCount = this.getSubChunkSendCount()
         for (let y = 0; y < subChunkCount; ++y) {
-            stream.append(this.subChunks.get(y).toBinary())
+            stream.append(this.#subChunks.get(y).toBinary())
         }
-        for (let biome of this.biomes) {
+        for (let biome of this.#biomes) {
             stream.writeByte(biome)
         }
         stream.writeByte(0)

@@ -1,30 +1,37 @@
 const jwt_decode = require('jwt-decode')
 
 const DataPacket = require('./packet')
-const BinaryStream = require('jsbinaryutils')
-const Skin = require('../../utils/skin')
 const Identifiers = require('../identifiers')
+const BinaryStream = require('jsbinaryutils')
+const Skin = require('../../utils/skin/skin')
+const Device = require('../../utils/device')
 
 'use strict'
 
 class LoginPacket extends DataPacket {
     static NetID = Identifiers.LoginPacket
 
+    /** @type {string} */
     XUID
+    /** @type {string} */
     identity
+    /** @type {string} */
     disaplayName
+    /** @type {number} */
     protocol
+    /** @type {string} */
     identityPublicKey
 
+    /** @type {number} */
     clientRandomId
+    /** @type {string} */
     serverAddress
+    /** @type {string} */
     languageCode
 
-    deviceOS
-    deviceId
-    deviceModel
-
-    // Computed
+    /** @type {Device} */
+    device
+    /** @type {Skin} */
     skin
 
     decodePayload() {
@@ -46,51 +53,14 @@ class LoginPacket extends DataPacket {
         }
 
         let decodedJWT = jwt_decode(stream.read(stream.readLInt()).toString())
-
-        // Skin data
-        let animations = []
-        for (let animation of decodedJWT.AnimatedImageData) {
-            animations.push(animation)
-        }
-
-        let personaPieces = []
-        for (let personaPiece of decodedJWT.PersonaPieces) {
-            personaPieces.push(personaPiece)
-        }
-
-        let pieceTintColors = []
-        for (let pieceTintColor of decodedJWT.PieceTintColors) {
-            pieceTintColors.push(pieceTintColor)
-        }
-        
-        // Sometimes using a constructor is a bad idea...
-        // will be splitted in smaller class soon
-        let skin = new Skin()
-        skin.skinId = decodedJWT.SkinId
-        skin.skinResourcePatch = Buffer.from(decodedJWT.SkinResourcePatch, 'base64')
-        skin.skinImageWidth = decodedJWT.SkinImageWidth
-        skin.skinImageHeight = decodedJWT.SkinImageHeight
-        skin.skinData = Buffer.from(decodedJWT.SkinData, 'base64')
-        skin.animations = animations
-        skin.capeImageWidth = decodedJWT.CapeImageWidth
-        skin.capeImageHeight = decodedJWT.CapeImageHeight
-        skin.capeData = Buffer.from(decodedJWT.CapeData, 'base64')
-        skin.skinGeometry = Buffer.from(decodedJWT.SkinGeometryData, 'base64')
-        skin.animationData = Buffer.from(decodedJWT.SkinAnimationData, 'base64')
-        skin.premium = decodedJWT.PremiumSkin
-        skin.persona = decodedJWT.PersonaSkin
-        skin.capeOnClassicSkin = decodedJWT.CapeOnClassicSkin
-        skin.capeId = decodedJWT.CapeId
-        skin.skinColor = decodedJWT.SkinColor
-        skin.armSize = decodedJWT.ArmSize
-        skin.personaPieces = personaPieces
-        skin.pieceTintColors = pieceTintColors
-        skin.fullId = skin.capeId + skin.skinId  // Computed
-        this.skin = skin
-
-        this.deviceId = decodedJWT.DeviceId
-        this.deviceOS = decodedJWT.DeviceOS
-        this.deviceModel = decodedJWT.DeviceModel
+        this.skin = Skin.fromJWT(decodedJWT)
+        this.device = new Device({
+            id: decodedJWT.DeviceId,
+            os: decodedJWT.DeviceOS,
+            model: decodedJWT.DeviceModel,
+            inputMode: decodedJWT.CurrentInputMode,
+            guiScale: decodedJWT.GuiScale
+        })
 
         this.clientRandomId = decodedJWT.ClientRandomId
         this.serverAddress = decodedJWT.ServerAddress

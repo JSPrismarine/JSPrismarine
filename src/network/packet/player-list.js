@@ -30,7 +30,7 @@ class PlayerListPacket extends DataPacket {
 
         if (this.type === PlayerListAction.Add) {
             for (let entry of this.entries) {
-                this.writeBool(entry.skin.trusted)
+                this.writeBool(entry.skin.isTrusted)
             }
         }
     }
