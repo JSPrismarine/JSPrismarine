@@ -1,12 +1,19 @@
 const BinaryStream = require('jsbinaryutils')
 const NBT = require('jsnamedbinarytag')
 const UUID = require('../utils/uuid')
-const Skin = require('../utils/skin')
+const Skin = require('../utils/skin/skin')
 const { FlagType } = require('../entity/metadata')
 const CommandOriginData = require('./type/command-origin-data')
 const CommandOrigin = require('./type/command-origin')
 const NetworkLittleEndianBinaryStream = require('jsnamedbinarytag/streams/network-le-binary-stream')
 const CompoundTag = require('jsnamedbinarytag/tags/compound-tag')
+const SkinImage = require('../utils/skin/skin-image')
+const PlayerListEntry = require('./type/player-list-entry')
+const SkinAnimation = require('../utils/skin/skin-animation')
+const SkinCape = require('../utils/skin/skin-cape')
+const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece')
+const SkinPersona = require('../utils/skin/skin-persona/persona')
+const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color')
 
 'use strict'
 
@@ -44,114 +51,150 @@ class PacketBinaryStream extends BinaryStream {
 
     readSkin() {
         let skin = new Skin()
-        skin.skinId = this.readString()
-        skin.skinResourcePatch = this.readString()
-        skin.skinImageWidth = this.readLInt()
-        skin.skinImageHeight = this.readLInt()
-        skin.skinData = this.readString()
+        skin.id = this.readString()
+        skin.resourcePatch = this.readString()
+        
+        // Read skin image
+        skin.image = new SkinImage({
+            width: this.readLInt(),
+            height: this.readLInt(),
+            data: this.readString()
+        })
+        
         
         // Read animations
         let animationCount = this.readLInt()
         for (let i = 0; i < animationCount; i++) {
-            // Names are from LoginPacket skin
-            skin.animations.push({
-                ImageWidth: this.readLInt(),
-                ImageHeight: this.readLInt(),
-                Image: this.readString(),
-                Type: this.readLInt(),
-                Frames: this.readLFloat()
-            })
+            skin.animations.add(new SkinAnimation({
+                image: new SkinImage({
+                    width: this.readLInt(),
+                    height: this.readLInt(),
+                    data: this.readString()
+                }),
+                frames: this.readLFloat(),
+                type: this.readLInt()
+            }))
         }
 
-        skin.capeImageWidth = this.readLInt()
-        skin.capeImageHeight = this.readLInt()
-        skin.capeData = this.readString()
-        skin.skinGeometry = this.readString()
+        // Read cape image 
+        skin.cape = new SkinCape()
+        skin.cape.image = new SkinImage({
+            width: this.readLInt(),
+            height: this.readLInt(),
+            data: this.readString()
+        })
+
+        // Miscellaneus
+        skin.geometry = this.readString()
         skin.animationData = this.readString()
-        skin.premium = this.readBool()
-        skin.persona = this.readBool()
-        skin.capeOnClassicSkin = this.readBool()
-        skin.capeId = this.readString()
+        skin.isPersona = this.readBool()
+        skin.isPersona = this.readBool()
+        skin.isCapeOnClassicSkin = this.readBool()
+        skin.cape.id = this.readString()
         skin.fullId = this.readString()
         skin.armSize = this.readString()
-        skin.skinColor = this.readString()
-        
-        // Read persona pieces
-        let personaPieceCount = this.readLInt()
-        for (let i = 0; i < personaPieceCount; i++) {
-            skin.personaPieces.push({
-                PieceID: this.readString(),
-                PieceType: this.readString(),
-                PackID: this.readString(),
-                IsDefault: this.readBool(),
-                ProductID: this.readString()
-            })
+        skin.color = this.readString()
+
+        // Avoid reading useless data
+        if (skin.isPersona) {
+            skin.persona = new SkinPersona()
+
+            // Read persona pieces
+            let personaPieceCount = this.readLInt()
+            for (let i = 0; i < personaPieceCount; i++) {
+                skin.persona.pieces.add(new SkinPersonaPiece({
+                    pieceId: this.readString(),
+                    pieceType: this.readString(),
+                    packId: this.readString(),
+                    isDefault: this.readBool(),
+                    productId: this.readString()
+                }))
+            }
+
+            // Read piece tint colors
+            let pieceTintColors = this.readLInt()
+            for (let i = 0; i < pieceTintColors; i++) {
+                let pieceTintColor = new SkinPersonaPieceTintColor()
+                pieceTintColor.pieceType = this.readString()
+                let colorsCount = this.readLInt()
+                for (let c = 0; c < colorsCount; c++) {
+                    pieceTintColor.colors.push(this.readString())
+                }
+                skin.persona.tintColors.add(pieceTintColor)
+            }
         }
 
-        // Read piece tint colors
-        let pieceTintColors = this.readLInt()
-        for (let i = 0; i < pieceTintColors; i++) {
-            let type = this.readString()
-            let colorsCount = this.readLInt()
-            let colors = []
-            for (let c = 0; c < colorsCount; c++) {
-                colors.push(this.readString())
-            }
-            skin.pieceTintColors.push({
-                PieceType: type,
-                Colors: colors
-            })
-        }
         return skin
     }
 
     /**
-     * @param {Skin} skin 
+     * @param {Skin} skin
      */
     writeSkin(skin) {
-        this.writeString(skin.skinId)
-        this.writeString(skin.skinResourcePatch)
-        this.writeLInt(skin.skinImageWidth)
-        this.writeLInt(skin.skinImageHeight)
-        this.writeString(skin.skinData)
-        this.writeLInt(skin.animations.length)
+        this.writeString(skin.id)
+        this.writeString(skin.resourcePatch)
+
+        // Skin image
+        this.writeSkinImage(skin.image)
+
+        // Animations
+        this.writeLInt(skin.animations.size)
         for (let animation of skin.animations) {
-            this.writeLInt(animation.ImageWidth)
-            this.writeLInt(animation.ImageHeight)
-            this.writeString(animation.Image)
-            this.writeLInt(animation.Type)
-            this.writeLFloat(animation.Frames)
+            this.writeSkinImage(animation.image)
+            this.writeLInt(animation.type)
+            this.writeLFloat(animation.frames)
         }
-        this.writeLInt(skin.capeImageWidth)
-        this.writeLInt(skin.capeImageHeight)
-        this.writeString(skin.capeData)
-        this.writeString(skin.skinGeometry)
+
+        // Cape image
+        this.writeSkinImage(skin.cape.image)
+
+        // Miscellaneus
+        this.writeString(skin.geometry)
         this.writeString(skin.animationData)
-        this.writeBool(skin.premium)
-        this.writeBool(skin.persona)
-        this.writeBool(skin.capeOnClassicSkin)
-        this.writeString(skin.capeId)
+        this.writeBool(skin.isPremium)
+        this.writeBool(skin.isPersona)
+        this.writeBool(skin.isCapeOnClassicSkin)
+        this.writeString(skin.cape.id)
         this.writeString(skin.fullId)
         this.writeString(skin.armSize)
-        this.writeString(skin.skinColor)
-        this.writeLInt(skin.personaPieces.length)
-        for (let personaPiece of skin.personaPieces) {
-            this.writeString(personaPiece.PieceId)
-            this.writeString(personaPiece.PieceType)
-            this.writeString(personaPiece.PackId)
-            this.writeBool(personaPiece.IsDefault)
-            this.writeString(personaPiece.ProductId)
-        }
-        this.writeLInt(skin.pieceTintColors.length)
-        for (let tint of skin.pieceTintColors) {
-            this.writeString(tint.PieceType)
-            this.writeLInt(tint.Colors.length) 
-            for (let color of tint.Colors) {
-                this.writeString(color)
+        this.writeString(skin.color)
+
+        // Hack to keep less useless data in software 
+        if (skin.isPersona) {
+            this.writeLInt(skin.persona.pieces.size)
+            for (let personaPiece of skin.persona.pieces) {
+                this.writeString(personaPiece.pieceId)
+                this.writeString(personaPiece.pieceType)
+                this.writeString(personaPiece.packId)
+                this.writeBool(personaPiece.isDefault)
+                this.writeString(personaPiece.productId)
             }
+            this.writeLInt(skin.persona.tintColors.size)
+            for (let tint of skin.persona.tintColors) {
+                this.writeString(tint.pieceType)
+                this.writeLInt(tint.colors.length) 
+                for (let color of tint.colors) {
+                    this.writeString(color)
+                }
+            }
+        } else {
+            this.writeLInt(0)  // Persona pieces
+            this.writeLInt(0)  // Tint colors
         }
     }
 
+    /**
+     * @param {SkinImage} image 
+     */
+    writeSkinImage(image) {
+        this.writeLInt(image.width)
+        this.writeLInt(image.height)
+        this.writeString(image.data)
+    }
+
+    /**
+     * @param {PlayerListEntry} entry 
+     */
     writePlayerAddEntry(entry) {
         this.writeUUID(entry.uuid) 
         this.writeVarLong(entry.uniqueEntityId)
@@ -160,8 +203,8 @@ class PacketBinaryStream extends BinaryStream {
         this.writeString(entry.platformChatId)
         this.writeLInt(entry.buildPlatform)
         this.writeSkin(entry.skin)
-        this.writeBool(entry.teacher)
-        this.writeBool(entry.host)
+        this.writeBool(entry.isTeacher)
+        this.writeBool(entry.isHost)
     }
 
     writePlayerRemoveEntry(entry) {

@@ -22,7 +22,7 @@ class World {
     /** @type {Map<Number, Entity>} */
     #entities = new Map()
     /** @type {Map<Number, Chunk>} */
-    #chunks = new Map()
+    #chunks = new Map()  
     /** @type {Provider|null} */
     #provider = null
 
@@ -78,7 +78,6 @@ class World {
         }
         return this.#chunks.get(index)
     }
-
 
     /**
      * Sends a world event packet to all the viewers in the position chunk.

@@ -20,11 +20,8 @@ class LoginHandler {
         player.uuid = packet.identity
         player.xuid = packet.XUID
 
-        player.deviceId = packet.deviceId
-        player.deviceOS = packet.deviceOS
-        player.deviceModel = packet.deviceModel
-        
         player.skin = packet.skin
+        player.device = packet.device
 
         player.sendPlayStatus(PlayStatus.LoginSuccess)
 

@@ -17,9 +17,9 @@ class PlayerListEntry {
     /** @type {Skin} */
     skin
     /** @type {boolean} */
-    teacher
+    isTeacher 
     /** @type {boolean} */ 
-    host
+    isHost 
 
 }
 module.exports = PlayerListEntry

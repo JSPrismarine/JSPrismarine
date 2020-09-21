@@ -9,7 +9,7 @@ const BatchPacket = require("./network/packet/batch")
 const ChunkRadiusUpdatedPacket = require('./network/packet/chunk-radius-updated')
 const Chunk = require('./world/chunk/chunk')
 const LevelChunkPacket = require("./network/packet/level-chunk")
-const Skin = require('./utils/skin')
+const Skin = require('./utils/skin/skin')
 const UUID = require('./utils/uuid')
 const Prismarine = require('./prismarine')
 const PlayerListPacket = require('./network/packet/player-list')
@@ -28,6 +28,7 @@ const AvailableCommandsPacket = require('./network/packet/available-commands')
 const SetGamemodePacket = require('./network/packet/set-gamemode')
 const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chunk-publisher-update')
 const DisconnectPacket = require('./network/packet/disconnect-packet')
+const Device = require('./utils/device')
 
 'use strict'
 
@@ -74,10 +75,8 @@ class Player extends Entity {
     /** @type {string} */
     platformChatId = ''
 
-    // Device
-    deviceOS
-    deviceModel
-    deviceId
+    /** @type {Device} */
+    device
 
     cacheSupport
 
@@ -87,9 +86,6 @@ class Player extends Entity {
     loadingChunks = new Set()
     /** @type {Set<Chunk>} */
     chunkSendQueue = new Set()
-
-    // for saving data on player (i can reference it where i want)
-    otherData = {}
 
     constructor(connection, address, logger, world, server) {
         super(world)
@@ -329,12 +325,12 @@ class Player extends Entity {
         entry.name = this.name
         entry.xuid = this.xuid
         entry.platformChatId = ''  // TODO: read this value from StartGamePacket
-        entry.buildPlatform = 0  // TODO: read also this
+        entry.buildPlatform = -1  // TODO: read also this
         entry.skin = this.skin
-        entry.teacher = false  // TODO: figure out where to read teacher and host
-        entry.host = false
+        entry.isTeacher = false  // TODO: figure out where to read teacher and host
+        entry.isHost = false
         pk.entries.push(entry)
-        for (const [_, player] of this.#server.players) {
+        for (let player of this.#server.players.values()) {
             player.sendDataPacket(pk)
         }
     }
@@ -346,7 +342,7 @@ class Player extends Entity {
         let entry = new PlayerListEntry()
         entry.uuid = UUID.fromString(this.uuid)
         pk.entries.push(entry)
-        for (const [_, player] of this.#server.players) {
+        for (let player of this.#server.players.values()) {
             player.sendDataPacket(pk)
         }
     }
@@ -366,8 +362,8 @@ class Player extends Entity {
             entry.platformChatId = ''  // TODO: read this value from StartGamePacket
             entry.buildPlatform = 0  // TODO: read also this
             entry.skin = player.skin
-            entry.teacher = false  // TODO: figure out where to read teacher and host
-            entry.host = false
+            entry.isTeacher = false  // TODO: figure out where to read teacher and host
+            entry.isHost = false
             pk.entries.push(entry)
         }
         this.sendDataPacket(pk)
