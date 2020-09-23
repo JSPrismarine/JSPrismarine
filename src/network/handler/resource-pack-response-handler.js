@@ -7,6 +7,7 @@ const ResourcePackStackPacket = require('../packet/resource-pack-stack')
 const StartGamePacket = require('../packet/start-game')
 const Player = require('../../player')
 const logger = require('../../utils/logger')
+const Prismarine = require('../../prismarine')
 
 'use strict'
 
@@ -15,9 +16,10 @@ class ResourcePackResponseHandler {
 
     /**
      * @param {ResourcePackResponsePacket} packet 
+     * @param {Prismarine} server
      * @param {Player} player 
      */
-    static handle(packet, player) {
+    static handle(packet, server, player) {
         let pk
         if (packet.status === ResourcePackStatus.HaveAllPacks) {
             pk = new ResourcePackStackPacket()
@@ -51,7 +53,7 @@ class ResourcePackResponseHandler {
             // First add
             player.addToPlayerList()
             // Then retrive other players
-            if (player.getServer().players.size > 1) {
+            if (server.getOnlinePlayers().length > 1) {
                 player.sendPlayerList() 
             }
         }

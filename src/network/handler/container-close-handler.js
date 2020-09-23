@@ -1,4 +1,5 @@
 const Player = require('../../player')
+const Prismarine = require('../../prismarine')
 const Identifiers = require('../identifiers')
 const ContainerClosePacket = require('../packet/container-close')
 
@@ -9,9 +10,10 @@ class ContainerCloseHandler {
 
     /**
      * @param {ContainerClosePacket} packet 
+     * @param {Prismarine} server
      * @param {Player} player 
      */
-    static handle(packet, player) {
+    static handle(packet, server, player) {
         let pk = new ContainerClosePacket()
         pk.windowId = packet.windowId
         player.sendDataPacket(pk)

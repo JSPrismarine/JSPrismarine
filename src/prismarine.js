@@ -1,5 +1,4 @@
 const winston = require('winston')
-const path = require('path')
 
 const Listener = require('jsraknet')
 const Player = require('./player')
@@ -9,9 +8,7 @@ const CommandManager = require('./command/command-manager')
 const bufferToConsoleString = require("./utils/buffer-to-console-string")
 const Identifiers = require('./network/identifiers')
 const WorldManager = require('./world/world-manager')
-const logger = require('./utils/logger')
 const PluginManager = require('./plugin/plugin-manager')
-
 
 'use strict'
 
@@ -30,7 +27,7 @@ class Prismarine {
     /** @type {CommandManager} */   
     #commandManager = new CommandManager()
     /** @type {WorldManager} */
-    #worldManager = new WorldManager()
+    #worldManager = new WorldManager(this)
     
     /** @type {null|Prismarine} */
     static instance = null
@@ -56,7 +53,7 @@ class Prismarine {
             // and if it doesn't exists, return the default one
             let world = this.getWorldManager().getDefaultWorld()
             let player = new Player(
-                connection, connection.address, this.#logger, world, this
+                connection, connection.address, world, this
             )
             this.#players.set(`${inetAddr.address}:${inetAddr.port}`, player)
 
@@ -85,7 +82,7 @@ class Prismarine {
                     // Check if the handler exists
                     if (this.#packetRegistry.handlers.has(packet.id)) {
                         let handler = this.#packetRegistry.handlers.get(packet.id)
-                        handler.handle(packet, player)
+                        handler.handle(packet, this, player)
                     } else {
                         this.#logger.debug(`Unhandled packet: §b${packet.constructor.name}`)
                     }
@@ -124,6 +121,21 @@ class Prismarine {
                 world.update(Date.now())
             }
         }, 1000 / 20)
+
+        setInterval(() => {
+            for (let world of this.getWorldManager().getWorlds()) {
+                world.save()
+            }
+        }, 1000 * 5)
+    }
+
+    /**
+     * Returns an array containing all online players.
+     * 
+     * @returns {Player[]}
+     */
+    getOnlinePlayers() {
+        return Array.from(this.#players.values())
     }
 
     /**
@@ -150,7 +162,8 @@ class Prismarine {
      */
     getPlayerByName(name) {
         for (let player of this.#players.values()) {
-            if (player.name.toLowerCase() === name.toLowerCase()) return player
+            if (player.name.toLowerCase().startsWith(name.toLowerCase()) || 
+                player.name.toLowerCase() === name.toLowerCase()) return player
         }
 
         return null
@@ -196,16 +209,8 @@ class Prismarine {
         return this.#pluginManager
     }
 
-    get logger() {
+    getLogger() {
         return this.#logger
-    }
-
-    getPlayers() {
-        return this.#players
-    }
-
-    get players() {
-        return this.#players
     }
 
     getRaknet() {

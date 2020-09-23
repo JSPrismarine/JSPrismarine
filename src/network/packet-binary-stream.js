@@ -17,19 +17,30 @@ const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint
 
 'use strict'
 
-// Class containing packet binary functions 
-// for example writeItem()
 class PacketBinaryStream extends BinaryStream {
 
+    /**
+     * Returns a string encoded into the buffer.
+     * 
+     * @returns {string}
+     */
     readString() {
         return this.read(this.readUnsignedVarInt()).toString()
     }
 
+    /**
+     * Encodes a string into the buffer.
+     * 
+     * @param {string} v 
+     */
     writeString(v) {
         this.writeUnsignedVarInt(Buffer.byteLength(v))
         this.append(Buffer.from(v, 'utf8'))
     }
 
+    /**
+     * @returns {UUID}
+     */
     readUUID() {
         let part1 = this.readLInt()
         let part0 = this.readLInt()
@@ -39,16 +50,23 @@ class PacketBinaryStream extends BinaryStream {
         return new UUID(part0, part1, part2, part3)
     }
 
+    /**
+     * Encodes an UUID into the buffer.
+     * 
+     * @param {UUID} uuid 
+     */
     writeUUID(uuid) {
-        if (typeof uuid === 'string') {
-            uuid = UUID.fromString(uuid)
-        }
         this.writeLInt(uuid.parts[1])
         this.writeLInt(uuid.parts[0])
         this.writeLInt(uuid.parts[3])
         this.writeLInt(uuid.parts[2])
     }
 
+    /**
+     * Retrurns a skin encoded into the buffer.
+     * 
+     * @returns {Skin}
+     */
     readSkin() {
         let skin = new Skin()
         skin.id = this.readString()
@@ -128,6 +146,8 @@ class PacketBinaryStream extends BinaryStream {
     }
 
     /**
+     * Encodes a skin into the buffer.
+     * 
      * @param {Skin} skin
      */
     writeSkin(skin) {
@@ -184,7 +204,10 @@ class PacketBinaryStream extends BinaryStream {
     }
 
     /**
+     * Encodes a skin image into the buffer.
+     * 
      * @param {SkinImage} image 
+     * @private
      */
     writeSkinImage(image) {
         this.writeLInt(image.width)
@@ -193,9 +216,11 @@ class PacketBinaryStream extends BinaryStream {
     }
 
     /**
+     * Encodes a player list entry into the buffer.
+     * 
      * @param {PlayerListEntry} entry 
      */
-    writePlayerAddEntry(entry) {
+    writePlayerListAddEntry(entry) {
         this.writeUUID(entry.uuid) 
         this.writeVarLong(entry.uniqueEntityId)
         this.writeString(entry.name) 
@@ -207,7 +232,12 @@ class PacketBinaryStream extends BinaryStream {
         this.writeBool(entry.isHost)
     }
 
-    writePlayerRemoveEntry(entry) {
+    /**
+     * Removes a player list entry by UUID.
+     * 
+     * @param {PlayerListEntry} entry 
+     */
+    writePlayerListRemoveEntry(entry) {
         this.writeUUID(entry.uuid)
     }
 

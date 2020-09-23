@@ -1,4 +1,5 @@
 const Player = require('../../player')
+const Prismarine = require('../../prismarine')
 const Identifiers = require('../identifiers')
 const ClientCacheStatusPacket = require('../packet/client-cache-status')
 
@@ -9,9 +10,10 @@ class ClientCacheStatusHandler {
 
     /**
      * @param {ClientCacheStatusPacket} packet 
+     * @param {Prismarine} server
      * @param {Player} player 
      */
-    static handle(packet, player) {
+    static handle(packet, server, player) {
         player.cacheSupport = packet.enabled
     }
 }

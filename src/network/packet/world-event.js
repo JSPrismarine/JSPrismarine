@@ -4,7 +4,7 @@ const Identifiers = require('../identifiers')
 'use strict'
 
 class WorldEventPacket extends DataPacket {
-    static NetID = Identifiers.LevelEventPacket
+    static NetID = Identifiers.WorldEventPacket
 
     /** @type {number} */
     eventId

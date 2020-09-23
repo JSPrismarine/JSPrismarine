@@ -8,6 +8,7 @@ const CoordinateUtils = require('../world/coordinate-utils')
 const Provider = require('./provider')
 const WorldEventPacket = require('../network/packet/world-event')
 const Vector3 = require('../math/vector3')
+const Prismarine = require('../prismarine')
 
 'use strict'
 
@@ -21,13 +22,16 @@ class World {
     #players = new Map()
     /** @type {Map<Number, Entity>} */
     #entities = new Map()
-    /** @type {Map<Number, Chunk>} */
+    /** @type {Map<String, Chunk>} */
     #chunks = new Map()  
     /** @type {Provider|null} */
     #provider = null
+    /** @type {Prismarine} */
+    #server
 
-    constructor(name, provider = null) {
+    constructor(name, server, provider = null) {
         this.#name = name
+        this.#server = server
         this.#provider = provider
     }
 
@@ -133,6 +137,25 @@ class World {
      */
     removePlayer(player) {
         this.#players.delete(player.runtimeId)
+    }
+
+    /**
+     * Saves chunks into disk.
+     * 
+     * @returns {void}
+     */
+    async saveChunks() {
+        let time = Date.now()
+        this.#server.getLogger().debug('[World save] saving chunks...')
+        for (let chunk of this.#chunks.values()) {
+            if (chunk.hasChanged()) this.#provider.writeChunk(chunk)
+        }
+        this.#server.getLogger().debug('[World save] took ' + (Date.now() - time) + 'ms')
+    }
+
+    async save() {
+        // Save chunks
+        await this.saveChunks()
     }
 
     close() {
