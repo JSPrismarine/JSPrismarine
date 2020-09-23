@@ -53,14 +53,20 @@ class Experimental extends Provider {
         }
     }
 
-    writeChunk(x, z, buffer) {
+    writeChunk(chunk) {
         let filesPath = path.join(this.path, 'chunks')
         if (!(fs.existsSync(filesPath))) {
             fs.mkdirSync(filesPath)
         }
 
-        let filePath = path.join(filesPath, `${x}-${z}.bin`)
-        return fs.writeFileSync(filePath, buffer)
+        let stream = new BinaryStream()
+        stream.writeByte(chunk.getSubChunkSendCount())
+        stream.append(chunk.toBinary())
+
+        let filePath = path.join(filesPath, `${chunk.getX()}-${chunk.getZ()}.bin`)
+        fs.writeFileSync(filePath, stream.buffer)
+
+        console.log('saved')
     }
 
 }

@@ -20,9 +20,9 @@ class PlayerListPacket extends DataPacket {
         this.writeUnsignedVarInt(this.entries.length)
         for (let entry of this.entries) {
             if (this.type === PlayerListAction.Add) {
-                this.writePlayerAddEntry(entry)
+                this.writePlayerListAddEntry(entry)
             } else if (this.type === PlayerListAction.Remove) {
-                this.writePlayerRemoveEntry(entry)
+                this.writePlayerListRemoveEntry(entry)
             } else {
                 logger.warn(`Invalid player list action type ${this.type}`)
             }
@@ -35,4 +35,4 @@ class PlayerListPacket extends DataPacket {
         }
     }
 }
-module.exports =  PlayerListPacket
+module.exports = PlayerListPacket

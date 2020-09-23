@@ -60,7 +60,7 @@ class BatchPacket extends DataPacket {
     getPackets() {
         let stream = new PacketBinaryStream()
         stream.buffer = this.payload
-        let packets = [], count = 0
+        let packets = []
         while (!stream.feof()) {
             packets.push(stream.read(stream.readUnsignedVarInt()))
         }

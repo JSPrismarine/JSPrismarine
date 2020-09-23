@@ -156,6 +156,15 @@ class Chunk {
     }
 
     /**
+     * Returns true if the chunk has been modified.
+     * 
+     * @returns {boolean}
+     */
+    hasChanged() {
+        return this.#hasChanged
+    }
+
+    /**
      * Adds an entity into the chunk
      * 
      * @param {Entity} entity 

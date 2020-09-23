@@ -1,5 +1,3 @@
-const winston = require('winston')
-
 const Connection = require('jsraknet/connection')
 const Entity = require('./entity/entity')
 const EncapsulatedPacket = require('jsraknet/protocol/encapsulated_packet')
@@ -29,6 +27,7 @@ const SetGamemodePacket = require('./network/packet/set-gamemode')
 const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chunk-publisher-update')
 const DisconnectPacket = require('./network/packet/disconnect-packet')
 const Device = require('./utils/device')
+const World = require('./world/world')
 
 'use strict'
 
@@ -38,8 +37,6 @@ class Player extends Entity {
     #connection
     /** @type {Prismarine} */
     #server
-    /** @type {winston.Logger} */
-    #logger
     /** @type {InetAddress} */
     #address
 
@@ -78,6 +75,7 @@ class Player extends Entity {
     /** @type {Device} */
     device
 
+    /** @type {boolean} */
     cacheSupport
 
     /** @type {Set<Number>} */
@@ -87,18 +85,25 @@ class Player extends Entity {
     /** @type {Set<Chunk>} */
     chunkSendQueue = new Set()
 
-    constructor(connection, address, logger, world, server) {
+    /**
+     * Player's constructor.
+     * 
+     * @param {Connection} connection - player's connection
+     * @param {InetAddress} address - player's InternetAddress address
+     * @param {World} world - a world to spawn the entity 
+     * @param {Prismarine} server - the server instance
+     */
+    constructor(connection, address, world, server) {
         super(world)
         this.#connection = connection
         this.#address = address
-        this.#logger = logger
         this.#server = server
     }
 
-    update(timestamp) {
+    update(_timestamp) {
         // Update movement for every player
-        for (const [_, player] of this.#server.players) {
-            if (player.runtimeId === this.runtimeId) continue
+        for (const player of this.getServer().getOnlinePlayers()) {
+            if (player === this) continue
             player.broadcastMove(this)
             this.broadcastMove(player)
         }
@@ -234,7 +239,7 @@ class Player extends Entity {
 
     sendAvailableCommands() {
         let pk = new AvailableCommandsPacket()
-        for (let command of this.#server.getCommandManager().commands) {
+        for (let command of this.getServer().getCommandManager().commands) {
             pk.commandData.add({...command, execute: undefined})
         }
         this.sendDataPacket(pk)
@@ -330,7 +335,7 @@ class Player extends Entity {
         entry.isTeacher = false  // TODO: figure out where to read teacher and host
         entry.isHost = false
         pk.entries.push(entry)
-        for (let player of this.#server.players.values()) {
+        for (let player of this.getServer().getOnlinePlayers()) {
             player.sendDataPacket(pk)
         }
     }
@@ -342,7 +347,7 @@ class Player extends Entity {
         let entry = new PlayerListEntry()
         entry.uuid = UUID.fromString(this.uuid)
         pk.entries.push(entry)
-        for (let player of this.#server.players.values()) {
+        for (let player of this.getServer().getOnlinePlayers()) {
             player.sendDataPacket(pk)
         }
     }
@@ -352,7 +357,7 @@ class Player extends Entity {
     sendPlayerList() {
         let pk = new PlayerListPacket()
         pk.type = PlayerListAction.Add
-        for (const [_, player] of this.#server.players) {
+        for (let player of this.getServer().getOnlinePlayers()) {
             if (player === this) continue
             let entry = new PlayerListEntry()
             entry.uuid = UUID.fromString(player.uuid)
@@ -389,7 +394,7 @@ class Player extends Entity {
         pk.yaw = this.yaw
         pk.headYaw = this.headYaw
 
-        pk.deviceId = this.deviceId
+        pk.deviceId = this.device.id
         pk.metadata = this.metadata.getMetadata()
         player.sendDataPacket(pk)
     }

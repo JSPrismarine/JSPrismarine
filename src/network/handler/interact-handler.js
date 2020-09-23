@@ -6,6 +6,7 @@ const InteractPacket = require('../packet/interact')
 const InteractAction = require('../type/interact-action')
 const ContainerOpenPacket = require('../packet/container-open')
 const logger = require('../../utils/logger')
+const Prismarine = require('../../prismarine')
 
 'use strict'
 
@@ -14,9 +15,10 @@ class InteractHandler {
 
     /**
      * @param {InteractPacket} packet 
+     * @param {Prismarine} server
      * @param {Player} player 
      */
-    static handle(packet, player) {
+    static handle(packet, server, player) {
         // TODO: event
         EventManager.emit(EventIdentifiers.PlayerInteractEvent, this)
 

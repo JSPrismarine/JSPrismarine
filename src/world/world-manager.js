@@ -1,3 +1,4 @@
+const Prismarine = require('../prismarine')
 const logger = require('../utils/logger')
 const Experimental = require('./experimental/experimental')
 const World = require('./world')
@@ -10,6 +11,12 @@ class WorldManager {
     #worlds = new Map()
     /** @type {World} */
     #defaultWorld = null
+    /** @type {Prismarine} */
+    #server 
+
+    constructor(server) {
+        this.#server = server
+    }
 
     /**
      * Loads a world by its folder name.
@@ -23,7 +30,7 @@ class WorldManager {
         }
         let levelPath = __dirname + `/../../worlds/${folderName}/`
         // TODO: figure out provider by data
-        let world = new World(folderName, new Experimental(levelPath))
+        let world = new World(folderName, this.#server, new Experimental(levelPath))
         this.#worlds.set(world.uniqueId, world)
 
         // First level to be loaded is also the default one

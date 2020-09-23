@@ -1,3 +1,6 @@
+const Skin = require('../../utils/skin/skin')
+const UUID = require('../../utils/uuid')
+
 'use strict'
 
 class PlayerListEntry {
