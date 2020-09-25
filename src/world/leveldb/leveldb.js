@@ -24,126 +24,106 @@ class LevelDB extends Provider{
     constructor(levelPath) {
         super(levelPath)
         this.db = new level(path.join(levelPath, 'db'))
-
-        // this.readChunk(0, 0)
-    }
-
-    async readChunk(chunkX, chunkZ) {
-        let index = LevelDB.chunkIndex(chunkX, chunkZ)
-
-        let stream = new BinaryStream()
-        let subChunks = new Map()
-        let heightMap = []
-        let biomes = []
-
-        let promise = new Promise((resolve, reject) => {
-            this.db.get(index + Tags.Version, function(error, result) {
-                if (error) {
-                    console.log('generating new')
-                    let chunk = new Chunk(chunkX, chunkZ)
-                    for (let x = 0; x < 16; x++) {
-                        for (let z = 0; z < 16; z++) {
-                            let y = 0
-                            chunk.setBlockId(x, y++, z, 7)
-                            chunk.setBlockId(x, y++, z, 3)
-                            chunk.setBlockId(x, y++, z, 3)
-                            chunk.setBlockId(x, y, z, 7) 
-                
-                            // TODO: block light
-                        }
-                    }
-                    chunk.recalculateHeightMap()
-                    this.writeChunk(chunk)
-                    return chunk
-                }
-                switch(Number(result)) {
-                    case 7:
-                    case 4:
-                    case 3:
-                        for (let y = 0; y < 16; y++) {
-                            this.db.get(index + Tags.SubChunkPrefix + y, function(_, result) {    
-                                // We don't care about errors 
-                                if (typeof result === 'undefined') return
-    
-                                stream.buffer = Buffer.from(result)
-                                let subChunkVersion = stream.readByte()
-                                switch(subChunkVersion) {
-                                    case 0:
-                                        let blocks = stream.read(4096)
-                                        let blockData = stream.read(2048)
-                                        if (result < 4) {
-                                            // Sky light
-                                        }
-    
-                                        let subChunk = new SubChunk()
-                                        subChunk.ids = blocks
-                                        subChunk.metadata = blockData
-    
-                                        subChunks.set(y, subChunk)
-                                        resolve(subChunks)  // Temporal solution
-                                        break
-                                    default:
-                                        logger.error('SubChunk version not supported yet!')
-                                }
-                            })
-                            this.db.get(index + '\x2d', function(error, result) {
-                                if (error) console.log(error)
-                                stream.buffer = result
-                                heightMap = [...stream.read(256)]
-                                biomes = [...stream.read(256)]
-                            })
-                        }
-                        break  
-                    default:
-                        logger.error('Chunk version not supported yet!')     
-                }
-            }.bind(this)) 
-        })
-
-        let chunk = new Chunk(
-            chunkX,
-            chunkZ,
-            await promise
-        )
-        chunk.recalculateHeightMap()
-
-        return chunk 
     }
 
     /**
-     * @param {Chunk} chunk 
+     * Decodes a serialized chunk from 
+     * the database asynchronously.
+     * 
+     * @param {number} x - chunk X 
+     * @param {number} z - chunk Z
      */
-    writeChunk(chunk) {
-        let index = LevelDB.chunkIndex(chunk.getChunkX(), chunk.getChunkZ())
+    async readChunk(x, z) {
+        let index = LevelDB.chunkIndex(x, z)
+        let subChunks = new Map()
 
-        this.db.put(index + Tags.Version, 7)  // current level chunk version
+        // Check if the chunks exists
+        try {
+            // Chunk exists
+            let version = await this.db.get(index + Tags.Version)
+            // Needed for future versions
+            if (Number(version) === 7) {
+                // Read all sub chunks
+                for (let y = 0; y < 16; y++) {
+                    try {
+                        let subChunkBuffer = await this.db.get(index + Tags.SubChunkPrefix + y)     
+                        let stream = new BinaryStream(Buffer.from(subChunkBuffer))
+                        let subChunkVersion = stream.readByte()
+                        if (subChunkVersion == 0) {
+                            let blocks = stream.read(4096)
+                            let blockData = stream.read(2048)
 
-        let subChunks = chunk.getSubChunks()
-        for (let [y, subChunk] of subChunks) {
-            let key = index + Tags.SubChunkPrefix + y
-            if (subChunk instanceof EmptySubChunk) {
-                this.db.del(key, function(err) {
-                    if (err) console.log(err)
-                })
-            } else {
-                this.db.put(key, Buffer.from([0, ...subChunk.ids, ...subChunk.metadata]), function(err) {
-                    if (err) console.log(err)
-                })
+                            let subChunk = new SubChunk()
+                            subChunk.ids = blocks
+                            subChunk.metadata = blockData
+
+                            subChunks.set(y, subChunk)
+                        } else {
+                            console.log('Unsupported sub chunk version')
+                        }
+                    } catch {
+                        // NO-OP
+                    }             
+                }
+                await this.db.get(index + '\x2d')
+                return new Chunk(x, z, subChunks)
             }
-
-            // tag data 2d
-            this.db.put(index + '\x2d', Buffer.from([...chunk.heightMap, chunk.biomes]), function(err) {
-                if (err) console.log(err)
-            })
-            // tag state finalisation
-            this.db.put(index + '6', Buffer.from([2]), function(err) {
-                if (err) console.log(err)
-            }) 
-
-            // TODO: entities and stuff
-        } 
+        } catch {
+            // Chunk doesn't exist
+            await this.db.put(index + Tags.Version, 7)
+            // TODO: this should use the generator logic
+            let chunk = new Chunk(x, z)
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) {
+                    let y = 0
+                    chunk.setBlockId(x, y++, z, 7)  
+                    chunk.setBlockId(x, y++, z, 3)
+                    chunk.setBlockId(x, y++, z, 3)
+                    chunk.setBlockId(x, y, z, 2) 
+                }
+            }
+            // Put all sub chunks
+            for (let [y, subChunk] of chunk.getSubChunks()) {
+                if (subChunk instanceof EmptySubChunk) continue
+                let key = index + Tags.SubChunkPrefix + y
+                let buffer = Buffer.from([0, ...subChunk.ids, ...subChunk.metadata])
+                await this.db.put(key, buffer)
+            }
+            // Put data 2D
+            let data = Buffer.from([...chunk.getHeightMap(), chunk.getBiomes()])
+            await this.db.put(index + '\x2d', data)
+            return chunk
+        }
     }
 
+    /**
+     * Serialize a chunk into the database asynchronously.
+     * 
+     * @param {Chunk} chunk 
+     */
+    async writeChunk(chunk) {
+        let index = LevelDB.chunkIndex(chunk.getX(), chunk.getZ())
+        await this.db.put(index + Tags.Version, 7)
+        // Put all sub chunks
+        for (let [y, subChunk] of chunk.getSubChunks()) {
+            if (subChunk instanceof EmptySubChunk) continue
+            let key = index + Tags.SubChunkPrefix + y
+            let buffer = Buffer.from([0, ...subChunk.ids, ...subChunk.metadata])
+            await this.db.put(key, buffer)
+        }
+        // Put data 2D
+        let data = Buffer.from([...chunk.getHeightMap(), chunk.getBiomes()])
+        await this.db.put(index + '\x2d', data)
+    }
+
+    /**
+     * Creates an string index from chunk 
+     * x and z, used to indentify chunks 
+     * in the db.
+     * 
+     * @param {number} chunkX 
+     * @param {number} chunkZ 
+     */
     static chunkIndex(chunkX, chunkZ) {
         let stream = new BinaryStream()
         stream.writeLInt(chunkX)
