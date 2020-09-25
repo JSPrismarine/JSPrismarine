@@ -164,6 +164,10 @@ class Chunk {
         return this.#hasChanged
     }
 
+    setChanged(bool = true) {
+        this.#hasChanged = bool
+    }
+
     /**
      * Adds an entity into the chunk
      * 

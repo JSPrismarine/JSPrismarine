@@ -10,15 +10,47 @@ const SubChunk = require('../chunk/sub-chunk')
 
 class Experimental extends Provider {
 
-    readChunk(x, z) {
-        let filesPath = path.join(this.path, 'chunks')
-        if (!(fs.existsSync(filesPath))) {
-            fs.mkdirSync(filesPath)
-        }
+    /**
+     * Experimental world saving:
+     * saves all chunks buffers into binary 
+     * files then when needed decodes them.
+     * 
+     * @param {number} x - chunk X 
+     * @param {number} z - chunk Z
+     */
+    async readChunk(x, z) {
+            // Check if chunks folder exists
+            let filesPath = path.join(this.path, 'chunks')
+            try {
+                await fs.promises.access(filesPath)
+                // Folder exists
+            } catch {
+                // Folder doesn't exists
+                await fs.promises.mkdir(filesPath)
+            }
 
-        let filePath = path.join(filesPath, `${x}.${z}.bin`)
-        if (!(fs.existsSync(filePath))) {
-            // Flat world
+        let chunkPath = path.join(filesPath, `${x}.${z}.bin`)
+        // Check if chunk file exists
+        try {
+            await fs.promises.access(chunkPath)
+            // Chunk file exists
+            let chunkBuffer = await fs.promises.readFile(chunkPath)
+            let stream = new BinaryStream(chunkBuffer)
+            let subChunks = new Map()
+            for (let i = 0; i < stream.readByte(); i++) {
+                // each sub chunk is 6145 bytes
+                let subChunk = new SubChunk()
+                stream.read(1)
+                subChunk.ids = stream.read(16 * 16 * 16)
+                subChunk.metadata = stream.read((16 * 16 * 16) / 2)
+                subChunks.set(i, subChunk)
+            }
+            let chunk = new Chunk(x, z, subChunks)
+            return chunk
+            // We don't care about biomes for now
+        } catch {
+            // Chunk file doesn't exists, create one and save
+            // To disk (TODO: this should use the generator logic)
             let chunk = new Chunk(x, z)
             for (let x = 0; x < 16; x++) {
                 for (let z = 0; z < 16; z++) {
@@ -34,39 +66,36 @@ class Experimental extends Provider {
             stream.writeByte(chunk.getSubChunkSendCount())
             stream.append(chunk.toBinary())
 
-            fs.writeFileSync(filePath, stream.buffer)
+            // Don't block function while writing, this will just
+            // delay the chunk to the client
+            fs.promises.writeFile(chunkPath, stream.buffer)
             return chunk
-        } else {
-            let stream = new BinaryStream(fs.readFileSync(filePath))
-            let subChunks = new Map()
-            for (let i = 0; i < stream.readByte(); i++) {
-                // each sub chunk is 6145 bytes
-                let subChunk = new SubChunk()
-                stream.read(1)
-                subChunk.ids = stream.read(16 * 16 * 16)
-                subChunk.metadata = stream.read((16 * 16 * 16) / 2)
-                subChunks.set(i, subChunk)
-            }
-            let chunk = new Chunk(x, z, subChunks)
-            return chunk
-            // We don't care about biomes for now
         }
     }
 
-    writeChunk(chunk) {
+    /**
+     * Experimental world saving:
+     * Writes a chunk into the disk asynchronously.
+     * 
+     * @param {Chunk} chunk 
+     */
+    async writeChunk(chunk) {
+        // Check if chunks folder exists
         let filesPath = path.join(this.path, 'chunks')
-        if (!(fs.existsSync(filesPath))) {
-            fs.mkdirSync(filesPath)
+        try {
+            await fs.promises.access(filesPath)
+            // Folder exists
+        } catch {
+            // Folder doesn't exists
+            await fs.promises.mkdir(filesPath)
         }
 
         let stream = new BinaryStream()
         stream.writeByte(chunk.getSubChunkSendCount())
         stream.append(chunk.toBinary())
 
-        let filePath = path.join(filesPath, `${chunk.getX()}-${chunk.getZ()}.bin`)
-        fs.writeFileSync(filePath, stream.buffer)
-
-        console.log('saved')
+        let filePath = path.join(filesPath, `${chunk.getX()}.${chunk.getZ()}.bin`)
+        await fs.promises.writeFile(filePath, stream.buffer)
     }
 
 }
