@@ -40,7 +40,7 @@ class Prismarine {
 
     async listen(port = 19132) {
         this.#raknet = await (new Listener).listen('0.0.0.0', port)
-        this.#raknet.name.setOnlinePlayerCount(this.#players.entries.length)
+        this.#raknet.name.setOnlinePlayerCount(this.#players.size)
         this.#raknet.name.setVersion(Identifiers.Protocol)
         this.#raknet.name.setProtocol(Identifiers.MinecraftVersion)
 
@@ -99,13 +99,12 @@ class Prismarine {
 
                 // Despawn the player to all online players
                 player.removeFromPlayerList()
-                for (const [_, onlinePlayer] of this.#players) {
-                    if (onlinePlayer === player) continue
+                this.#players.delete(token)
+                for (let onlinePlayer of this.#players.values()) {
                     player.sendDespawn(onlinePlayer)
                 }
                 player.getWorld().removePlayer(player)
 
-                this.#players.delete(token)
             }
             this.#logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`)
         })
@@ -122,11 +121,13 @@ class Prismarine {
             }
         }, 1000 / 20)
 
-        setInterval(() => {
+        // Auto save (default: 5 minutes seconds)
+        // TODO: level.ticks % 6000 == 0 and save
+        setInterval(async() => {
             for (let world of this.getWorldManager().getWorlds()) {
-                world.save()
+                await world.save()
             }
-        }, 1000 * 5)
+        }, 1000 * 60 * 5)
     }
 
     /**
@@ -183,6 +184,21 @@ class Prismarine {
         }
 
         return null
+    }
+
+    /**
+     * Kills the server async asynchronously.
+     */
+    async kill() {
+        // Kick all online players
+        for (let player of this.getOnlinePlayers()) {
+            player.kick('Server closed.')
+        }
+        
+        // Save all worlds
+        for (let world of this.getWorldManager().getWorlds()) {
+            await world.save()
+        }
     }
 
     getCommandManager() {

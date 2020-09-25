@@ -65,20 +65,8 @@ class World {
     async loadChunk(x, z, generate) {
         let index = CoordinateUtils.encodePos(x, z)
         if (!this.#chunks.has(index)) {
-            await new Promise(resolve => {
-                // this.#provider.readChunk(x, z).then(chunk => resolve(chunk))
-                resolve(this.#provider.readChunk(x, z))
-                /* let tempChunk = new Chunk(x, z)
-                for (let x = 0; x < 16; x++) {
-                    for (let z = 0; z < 16; z++) {
-                        for (let y = 0; y < 128; y++) { 
-                            // TODO
-                        }
-                    }
-                }
-                tempChunk.recalculateHeightMap()
-                resolve(tempChunk) */
-            }).then(chunk => this.#chunks.set(index, chunk))
+            let chunk = await this.#provider.readChunk(x, z)
+            this.#chunks.set(index, chunk)
         }
         return this.#chunks.get(index)
     }
@@ -140,7 +128,7 @@ class World {
     }
 
     /**
-     * Saves chunks into disk.
+     * Saves changed chunks into disk.
      * 
      * @returns {void}
      */
@@ -148,7 +136,10 @@ class World {
         let time = Date.now()
         this.#server.getLogger().debug('[World save] saving chunks...')
         for (let chunk of this.#chunks.values()) {
-            if (chunk.hasChanged()) this.#provider.writeChunk(chunk)
+            if (chunk.hasChanged()) {
+                await this.#provider.writeChunk(chunk)
+                chunk.setChanged(false)
+            }
         }
         this.#server.getLogger().debug('[World save] took ' + (Date.now() - time) + 'ms')
     }
