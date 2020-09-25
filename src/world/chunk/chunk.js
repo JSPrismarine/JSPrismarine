@@ -177,6 +177,14 @@ class Chunk {
         this.#entities.push(entity)
     }
 
+    getHeightMap() {
+        return this.#heightMap
+    }
+
+    getBiomes() {
+        return this.#biomes
+    }
+
     toBinary() {
         let stream = new BinaryStream()
         let subChunkCount = this.getSubChunkSendCount()

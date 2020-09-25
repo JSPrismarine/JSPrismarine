@@ -1,6 +1,7 @@
 const Prismarine = require('../prismarine')
 const logger = require('../utils/logger')
 const Experimental = require('./experimental/experimental')
+const LevelDB = require('./leveldb/leveldb')
 const World = require('./world')
 
 'use strict'
@@ -30,7 +31,8 @@ class WorldManager {
         }
         let levelPath = __dirname + `/../../worlds/${folderName}/`
         // TODO: figure out provider by data
-        let world = new World(folderName, this.#server, new Experimental(levelPath))
+        // let world = new World(folderName, this.#server, new Experimental(levelPath))
+        let world = new World(folderName, this.#server, new LevelDB(levelPath))
         this.#worlds.set(world.uniqueId, world)
 
         // First level to be loaded is also the default one
