@@ -9,6 +9,7 @@ const Provider = require('./provider')
 const WorldEventPacket = require('../network/packet/world-event')
 const Vector3 = require('../math/vector3')
 const Prismarine = require('../prismarine')
+const { GameruleManager, Rules } = require('../world/gamerule-manager')
 
 'use strict'
 
@@ -24,6 +25,8 @@ class World {
     #entities = new Map()
     /** @type {Map<String, Chunk>} */
     #chunks = new Map()  
+    /** @type {GameruleManager} */
+    #gameruleManager = new GameruleManager()
     /** @type {Provider|null} */
     #provider = null
     /** @type {Prismarine} */
@@ -33,6 +36,9 @@ class World {
         this.#name = name
         this.#server = server
         this.#provider = provider
+
+        // TODO: Load default gamrules
+        this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true)
     }
 
     update(timestamp) {
@@ -40,7 +46,10 @@ class World {
         // Tick players 
         for (let player of this.#players.values()) {
             player.update(timestamp)
+            // Maybe send time to players? 
+            // this.sendTime()
         }
+
     }
 
     /**
@@ -151,6 +160,10 @@ class World {
 
     close() {
         // TODO
+    }
+
+    getGameruleManager() {
+        return this.#gameruleManager
     }
 
     get provider() {

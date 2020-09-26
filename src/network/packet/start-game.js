@@ -24,6 +24,9 @@ class StartGamePacket extends DataPacket {
     /** @type {string} */
     worldName
 
+    /** @type {Map<String, any>} */
+    gamerules 
+
     /** @type {Buffer|null} */
     cachedItemPalette = null
 
@@ -76,8 +79,7 @@ class StartGamePacket extends DataPacket {
         this.writeByte(1) // commands enabled
         this.writeByte(0) // texture required
 
-        this.writeUnsignedVarInt(0) // game rules length
-        // this.writeGameRules(this.gameRules);
+        this.writeGamerules(this.gamerules)
 
         this.writeByte(0) // bonus chest
         this.writeByte(0) // start with chest
