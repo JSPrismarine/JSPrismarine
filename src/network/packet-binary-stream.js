@@ -14,6 +14,7 @@ const SkinCape = require('../utils/skin/skin-cape')
 const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece')
 const SkinPersona = require('../utils/skin/skin-persona/persona')
 const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color')
+const LOGGER = require('../utils/logger')
 
 'use strict'
 
@@ -250,6 +251,51 @@ class PacketBinaryStream extends BinaryStream {
             this.writeLFloat(attribute.default)
             this.writeString(attribute.name)
         }
+    }
+
+    /**
+     * Serializes gamerules into the buffer.
+     * 
+     * @param {Map<String, Boolean|Number>} rules 
+     */
+    writeGamerules(rules) {
+        this.writeUnsignedVarInt(rules.size)
+        for (let [name, value] of rules) {
+            this.writeString(name)
+            switch (typeof value) {
+                case 'boolean':
+                    this.writeByte(1)  // maybe value type ??     
+                    this.writeBool(value)
+                    break
+                case 'number':
+                    if (this.isInt(value)) {
+                        this.writeByte(2)  // maybe value type ??  
+                        this.writeUnsignedVarInt(value)
+                    } else if (this.isFloat(value)) {
+                        this.writeByte(3)  // maybe value type ??  
+                        this.writeLFloat(value)
+                    }   
+                    break 
+                default:
+                    LOGGER.error(`Unknown Gamerule type ${value}`)    
+            }
+        }
+    }
+    
+    /**
+     * @private
+     * @param {number} n
+     */
+    isInt(n){
+        return n % 1 === 0
+    }
+    
+    /**
+     * @private
+     * @param {number} n
+     */
+    isFloat(n){
+        return n % 1 !== 0
     }
 
     writeEntityMetadata(metadata) {

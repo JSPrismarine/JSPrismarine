@@ -6,7 +6,7 @@ const AvailableActorIdentifiersPacket = require('../packet/available-actor-ident
 const ResourcePackStackPacket = require('../packet/resource-pack-stack')
 const StartGamePacket = require('../packet/start-game')
 const Player = require('../../player')
-const logger = require('../../utils/logger')
+const LOGGER = require('../../utils/logger')
 const Prismarine = require('../../prismarine')
 
 'use strict'
@@ -33,6 +33,7 @@ class ResourcePackResponseHandler {
             let world = player.getWorld()
             pk.levelId = world.uniqueId
             pk.worldName = world.name
+            pk.gamerules = world.getGameruleManager().getGamerules()
             player.sendDataPacket(pk)
 
             player.sendDataPacket(new AvailableActorIdentifiersPacket())
@@ -40,7 +41,7 @@ class ResourcePackResponseHandler {
             
             player.sendAttributes(player.attributes.getDefaults())
 
-            logger.info(
+            LOGGER.info(
                 `§b${player.name}§f is attempting to join with id §b${player.runtimeId}§f from ${player.getAddress().address}:${player.getAddress().port}`
             )
 
