@@ -4,6 +4,8 @@
   "description": "Basic Minecraft Bedrock Edition software ",
   "main": "bootstrap.js",
   "scripts": {
+    "start": "node bootstrap.js",
+    "dev": "nodemon --watch src -e ts,js,json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -23,6 +25,12 @@
   },
   "homepage": "https://github.com/HerryYT/JSPrismarine#readme",
   "dependencies": {
+    "@babel/core": "^7.11.6",
+    "@babel/plugin-syntax-class-properties": "^7.10.4",
+    "@babel/preset-env": "^7.11.5",
+    "@babel/preset-typescript": "^7.10.4",
+    "@babel/register": "^7.11.5",
+    "@types/node": "^14.11.2",
     "async": "^3.2.0",
     "glob": "^7.1.6",
     "jsbinaryutils": "1.0.8",
@@ -31,8 +39,10 @@
     "jwt-decode": "^2.2.0",
     "level": "^6.0.1",
     "mccolorstoconsole": "^1.1.0",
+    "nodemon": "^2.0.4",
     "perlin-noise": "0.0.1",
     "perlin-noise-3d": "^0.5.4",
+    "typescript": "^4.0.3",
     "winston": "^3.3.3"
   }
 }
