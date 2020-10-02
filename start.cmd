@@ -17,6 +17,6 @@ echo You have to install Node.js
 exit
 
 :launch
-node bootstrap.js
+npm start
 timeout 5 > nul
 goto launch
