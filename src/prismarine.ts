@@ -10,10 +10,7 @@ import bufferToConsoleString from './utils/buffer-to-console-string'
 import WorldManager from './world/world-manager'
 import PluginManager from './plugin/plugin-manager'
 
-interface InetAddrModel {
-    address: string,
-    port: number
-};
+import { InetAddrModel } from './models/network'
 
 class Prismarine {
 
