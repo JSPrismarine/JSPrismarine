@@ -4,8 +4,9 @@
   "description": "Basic Minecraft Bedrock Edition software ",
   "main": "bootstrap.js",
   "scripts": {
-    "start": "node bootstrap.js",
-    "dev": "nodemon --watch src -e ts,js,json",
+    "start": "NODE_ENV=production node dist/src/server.js",
+    "dev": "nodemon --watch src -e ts,js,json --exec \"npm run build && NODE_ENV=development node dist/src/server.js\"",
+    "build": "tsc --extendedDiagnostics --incremental --project tsconfig.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

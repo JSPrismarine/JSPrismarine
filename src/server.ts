@@ -23,7 +23,7 @@ if (!(fs.existsSync(`${__dirname}/../worlds`))) {
 server.getWorldManager().loadWorld('world')
 
 // Load all plugins
-let pluginFolders = fs.readdirSync(`${__dirname}/../plugins`)
+let pluginFolders = fs.readdirSync(`${__dirname}/plugins`)
 pluginFolders.forEach((folderName) => {
     try {
         server.getPluginManager().loadPlugin(
@@ -48,7 +48,7 @@ rl.on('line', (input) => {
     }
 
     server.getCommandManager().dispatchCommand(
-        new ConsoleSender(server), input
+        new (ConsoleSender as any)(server), input
     )
 })
 
