@@ -6,8 +6,6 @@ import Prismarine from './prismarine'
 import logger from './utils/logger'
 import ConsoleSender from './command/console-sender'
 
-'use strict'
-
 // TODO: read config
 
 const server = new Prismarine(logger)
@@ -26,8 +24,7 @@ server.getWorldManager().loadWorld('world')
 
 // Load all plugins
 let pluginFolders = fs.readdirSync(`${__dirname}/../plugins`)
-for (let i = 0; i < pluginFolders.length; i++) {
-    const folderName = pluginFolders[i]
+pluginFolders.forEach((folderName) => {
     try {
         server.getPluginManager().loadPlugin(
             path.resolve('../plugins', folderName)
@@ -37,7 +34,7 @@ for (let i = 0; i < pluginFolders.length; i++) {
             `Error while loading plugin §b${folderName}§r: §c${error}`
         )
     }
-}
+})
 
 // Console command reader
 let rl = readline.createInterface({ input: process.stdin })
