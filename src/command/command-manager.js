@@ -62,6 +62,7 @@ class CommandManager {
         parameter.optional = true
         command.parameters.add(parameter)
         this.#commands.add(command)
+        logger.debug(`Command with id §b${command.name}§r registered`)
     }
     
     /**
