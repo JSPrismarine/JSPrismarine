@@ -3,7 +3,7 @@ const Identifiers = require('../identifiers')
 
 'use strict'
 
-class SetGamemodePacket extends DataPacket {
+class CreativeContentPacket extends DataPacket {
     static NetID = Identifiers.CreativeContentPacket
 
     /** @type {Array} */
@@ -21,4 +21,4 @@ class SetGamemodePacket extends DataPacket {
         // TODO
     }
 }
-module.exports = SetGamemodePacket
+module.exports = CreativeContentPacket
