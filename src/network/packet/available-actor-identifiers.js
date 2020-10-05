@@ -12,7 +12,7 @@ class AvailableActorIdentifiersPacket extends DataPacket {
 
     encodePayload() {
         this.append(this.#cachedNBT ||
-        (this.#cachedNBT = fs.readFileSync(__dirname + '/../../resources/entity_identifiers.nbt')))
+        (this.#cachedNBT = fs.readFileSync(__dirname + '/../../resources/vanilla/entity_identifiers.nbt')))
     }
 }
 module.exports = AvailableActorIdentifiersPacket

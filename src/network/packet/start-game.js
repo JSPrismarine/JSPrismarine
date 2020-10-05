@@ -1,7 +1,7 @@
 const fs = require('fs')
 
 const DataPacket = require('./packet')
-const ItemTable = require('../../resources/item_id_map.json')
+const ItemTable = require('../../resources/vanilla/item_id_map.json')
 const PacketBinaryStream = require('../packet-binary-stream')
 const Identifiers = require('../identifiers')
 
@@ -111,7 +111,7 @@ class StartGamePacket extends DataPacket {
         this.writeVarInt(0) // enchantment seed
 
         // PMMP states
-        this.append(fs.readFileSync(__dirname + '/../../resources/required_block_states.nbt'))
+        this.append(fs.readFileSync(__dirname + '/../../resources/vanilla/required_block_states.nbt'))
 
         this.append(this.serializeItemTable(ItemTable))
 
