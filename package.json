@@ -31,7 +31,7 @@
     "jsbinaryutils": "1.0.8",
     "jsnamedbinarytag": "^1.0.0",
     "jsraknet": "^1.2.7",
-    "jwt-decode": "^2.2.0",
+    "jwt-decode": "^3.0.0",
     "level": "^6.0.1",
     "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
