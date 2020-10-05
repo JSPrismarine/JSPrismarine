@@ -66,7 +66,7 @@ for (let event of exitEvents) {
     })
 }
 
-server.listen().catch(() => {
+server.listen(serverConfig.get('port', 19132)).catch(() => {
     logger.error(`Cannot start the server, is it already running on the same port?`)
     process.exit(1)
 })
