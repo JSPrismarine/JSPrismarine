@@ -20,7 +20,7 @@ class StopCommand extends Command {
         await sender.getServer().getServer().kill()
 
         sender.getServer().getLogger().warn('Server is closing...')
-        setTimeout(() => { process.exit(1) }, 1000)
+        setTimeout(() => { process.exit(0) }, 1000)
     }
 }
 module.exports = StopCommand
