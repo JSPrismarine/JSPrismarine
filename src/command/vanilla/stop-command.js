@@ -17,10 +17,8 @@ class StopCommand extends Command {
     async execute(sender, args) {
         // TODO: implement operators and just check if player is operator
         
-        await sender.getServer().getServer().kill()
-
         sender.getServer().getLogger().warn('Server is closing...')
-        setTimeout(() => { process.exit(0) }, 1000)
+        await sender.getServer().getServer().kill()
     }
 }
 module.exports = StopCommand
