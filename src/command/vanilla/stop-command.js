@@ -1,5 +1,5 @@
 const Command = require('../command')
-const Player  = require('../../player')
+const Player = require('../../player')
 const ConsoleSender = require('../console-sender')
 
 'use strict'
@@ -7,7 +7,7 @@ const ConsoleSender = require('../console-sender')
 class StopCommand extends Command {
 
     constructor() {
-        super({name: 'stop', description: 'Stops a server.'})
+        super({ namespace: 'minecraft', name: 'stop', description: 'Stops a server.' })
     }
 
     /**
@@ -16,7 +16,7 @@ class StopCommand extends Command {
      */
     async execute(sender, args) {
         // TODO: implement operators and just check if player is operator
-        
+
         sender.getServer().getLogger().warn('Server is closing...')
         await sender.getServer().getServer().kill()
     }

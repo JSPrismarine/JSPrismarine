@@ -62,7 +62,7 @@ class CommandManager {
         parameter.optional = true
         command.parameters.add(parameter)
         this.#commands.add(command)
-        logger.debug(`Command with id §b${command.name}§r registered`)
+        logger.debug(`Command with id §b${command.namespace}:${command.name}§r registered`)
     }
     
     /**
@@ -79,7 +79,8 @@ class CommandManager {
         logger.info(`§b${sender.name}§r issued server command: §b${commandInput}§r!`)
 
         let commandParts = commandInput.split(' ')  // Name + arguments array
-        let commandName = commandParts[0]
+        let commandNamespace = commandParts[0].includes(':') ? commandParts[0].split(':')[0] : ''
+        let commandName = commandParts[0].replace(`${commandNamespace}:`, '') //Ignore namespace for now
         let commandNameIndex = commandParts.indexOf(commandName)
         commandParts.splice(commandNameIndex, 1)
 

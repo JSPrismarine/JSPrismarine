@@ -7,10 +7,11 @@ class Command extends CommandData {
 
     /**
      * 
-     * @param {{name: string, description: string, flags: number, permission: 0, aliases: Array<string>, parameters: Set<string>}} param0 
+     * @param {{namespace: string, name: string, description: string, flags: number, permission: 0, aliases: Array<string>, parameters: Set<string>}} param0 
      */
-    constructor({name = '', description = '', flags = 0, permission = 0, aliases = [], parameters = new Set()}) {
+    constructor({ namespace = '', name = '', description = '', flags = 0, permission = 0, aliases = [], parameters = new Set() }) {
         super();
+        this.namespace = namespace
         this.name = name
         this.description = description
         this.flags = flags
