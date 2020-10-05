@@ -67,34 +67,52 @@ class Prismarine {
         })
 
         // Get player from map by address, then handle packet
-        this.#raknet.on('encapsulated', (packet, inetAddr) => {
+        this.#raknet.on('encapsulated', async (packet, inetAddr) => {
             let token = `${inetAddr.address}:${inetAddr.port}`
             if (!this.#players.has(token)) return
             let player = this.#players.get(token)
 
-            // Read batch content and handle them
-            let pk = new BatchPacket()
-            pk.buffer = packet.buffer
-            pk.decode()
-            
-            // Read all packets inside batch and handle them
-            for (let buf of pk.getPackets()) {
-                if (this.#packetRegistry.packets.has(buf[0])) {
-                    let packet = new (this.#packetRegistry.packets.get(buf[0]))()  // Get packet from registry
-                    packet.buffer = buf
-                    packet.decode()
+            // TODO: simplify promise code and add an option to 
+            // log incoming and outcoming buffers (maybe an option in config)
+            // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
+            await new Promise((resolve, reject) => {
+                // Read batch content and handle them
+                let pk = new BatchPacket()
+                pk.buffer = packet.buffer
 
-                    // Check if the handler exists
-                    if (this.#packetRegistry.handlers.has(packet.id)) {
-                        let handler = this.#packetRegistry.handlers.get(packet.id)
-                        handler.handle(packet, this, player)
-                    } else {
-                        this.#logger.debug(`Unhandled packet: §b${packet.constructor.name}`)
-                    }
-                } else {
-                    this.#logger.debug("Unhandled packet: " + bufferToConsoleString(buf))
+                try {
+                    pk.decode()
+                } catch {
+                    reject(`Error while decoding batch`)
                 }
-            }
+                
+                // Read all packets inside batch and handle them
+                for (let buf of pk.getPackets()) {
+                    if (this.#packetRegistry.packets.has(buf[0])) {
+                        let packet = new (this.#packetRegistry.packets.get(buf[0]))()  // Get packet from registry
+                        packet.buffer = buf
+                        
+                        try {
+                            packet.decode()
+
+                            // Check if the handler exists
+                            if (this.#packetRegistry.handlers.has(packet.id)) {
+                                let handler = this.#packetRegistry.handlers.get(packet.id)
+                                handler.handle(packet, this, player)
+                            } else {
+                                reject(`Packet ${packet.constructor.name} doesn't have a handler`)
+                            }
+                        } catch (err) {
+                            reject(`Error while decoding packet: ${packet.constructor.name}`)
+                        }
+
+                    } else {
+                        reject('Packet doesn\'t have a handler')
+                    }
+                }
+
+                resolve()
+            }).catch(err => this.#logger.error(err))
         })
 
         this.#raknet.on('closeConnection', (inetAddr, reason) => {
@@ -204,6 +222,8 @@ class Prismarine {
         for (let world of this.getWorldManager().getWorlds()) {
             await world.save()
         }
+
+        setTimeout(() => { process.exit(0) }, 1000)
     }
 
     getCommandManager() {
