@@ -76,6 +76,8 @@ class CommandManager {
             logger.warn('Received an invalid command!')
         }
 
+        logger.info(`§b${sender.name}§r issued server command: §b${commandInput}§r!`)
+
         let commandParts = commandInput.split(' ')  // Name + arguments array
         let commandName = commandParts[0]
         let commandNameIndex = commandParts.indexOf(commandName)
