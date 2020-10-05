@@ -1,19 +1,12 @@
+const path = require('path')
+const fs = require('fs')
+
 const Command = require('./command')
 const CommandData = require('../network/type/command-data')
 const CommandParameter = require('../network/type/command-parameter')
 const Player = require('../player')
 const ConsoleSender = require('./console-sender')
 const logger = require('../utils/logger')
-const GamemodeCommand = require('./vanilla/gamemode-command')
-const TellCommand = require('./vanilla/tell-command')
-const TitleCommand = require('./vanilla/title-command')
-const SayCommand = require('./vanilla/say-command')
-const MeCommand = require('./vanilla/me-command')
-const StopCommand = require('./vanilla/stop-command')
-const KickCommand = require('./vanilla/kick-command')
-const ListCommand = require('./vanilla/list-command')
-const VersionCommand = require('./vanilla/version-command')
-const PluginsCommand = require('./vanilla/plugins-command')
 
 'use strict'
 
@@ -24,16 +17,16 @@ class CommandManager {
 
     constructor() {
         // Register vanilla commands
-        this.registerClassCommand(new GamemodeCommand())
-        this.registerClassCommand(new TellCommand())
-        this.registerClassCommand(new TitleCommand())
-        this.registerClassCommand(new SayCommand())
-        this.registerClassCommand(new MeCommand())
-        this.registerClassCommand(new StopCommand())
-        this.registerClassCommand(new KickCommand())
-        this.registerClassCommand(new ListCommand())
-        this.registerClassCommand(new VersionCommand())
-        this.registerClassCommand(new PluginsCommand())
+        fs.readdirSync(path.join(__dirname, 'vanilla')).forEach((id) => {
+            const command = require(`./vanilla/${id}`)
+            this.registerClassCommand(new command())
+        })
+
+        // Register jsprismarine commands
+        fs.readdirSync(path.join(__dirname, 'jsprismarine')).forEach((id) => {
+            const command = require(`./jsprismarine/${id}`)
+            this.registerClassCommand(new command())
+        })
     }
  
     /**
