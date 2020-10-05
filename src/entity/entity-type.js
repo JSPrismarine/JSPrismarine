@@ -1,7 +1,4 @@
 'use strict'
+const EntityMap = require('../resources/vanilla/entity_id_map.json')
 
-// TODO: add all identifiers
-const EntityType = {
-    Sheep: 'minecraft:sheep'
-}
-module.exports = EntityType
+module.exports = EntityMap

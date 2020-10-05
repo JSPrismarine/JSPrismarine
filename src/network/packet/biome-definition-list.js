@@ -12,7 +12,7 @@ class BiomeDefinitionListPacket extends DataPacket {
 
     encodePayload() {
         this.append(this.#cachedNBT ||
-            (this.#cachedNBT = fs.readFileSync(__dirname + '/../../resources/biome_definitions.nbt')))
+            (this.#cachedNBT = fs.readFileSync(__dirname + '/../../resources/vanilla/biome_definitions.nbt')))
     }
 }
 module.exports = BiomeDefinitionListPacket
