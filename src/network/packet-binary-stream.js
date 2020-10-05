@@ -9,6 +9,7 @@ const NetworkLittleEndianBinaryStream = require('jsnamedbinarytag/streams/networ
 const CompoundTag = require('jsnamedbinarytag/tags/compound-tag')
 const SkinImage = require('../utils/skin/skin-image')
 const PlayerListEntry = require('./type/player-list-entry')
+const CreativeContentEntry = require('./type/creative-content-entry')
 const SkinAnimation = require('../utils/skin/skin-animation')
 const SkinCape = require('../utils/skin/skin-cape')
 const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece')
@@ -251,6 +252,15 @@ class PacketBinaryStream extends BinaryStream {
             this.writeLFloat(attribute.default)
             this.writeString(attribute.name)
         }
+    }
+
+    /**
+     * @param {CreativeContentEntry} entry 
+     */
+    writeCreativeContentEntry(entry) {
+        this.writeInt(entry.entryId) // writeGenericTypeNetworkId
+        this.writeVarInt(entry.item.id)
+        // TODO: CreativeContentEntry
     }
 
     /**

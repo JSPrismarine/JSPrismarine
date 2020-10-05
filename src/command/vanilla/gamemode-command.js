@@ -45,6 +45,7 @@ class GamemodeCommand extends Command {
                 return
             } 
             target.setGamemode(mode)
+            target.setCreativeContents()
             target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))
         } else if (args.length > 1 && typeof args[1] === 'number') {
             if (sender instanceof Player) {
@@ -58,6 +59,7 @@ class GamemodeCommand extends Command {
                 return logger.warn('§cYou have to run this command in-game!')
             } 
             target.setGamemode(mode)
+            target.setCreativeContents()
             target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))
         }
     }
