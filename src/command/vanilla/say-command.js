@@ -25,7 +25,7 @@ class SayCommand extends Command {
         let messageToSend = `§5[${sender.name}] ${message}`
 
         Logger.info(messageToSend)
-        for (let player of sender.getServer().players.values()) {
+        for (let player of sender.getServer().getOnlinePlayers()) {
             player.sendMessage(messageToSend)
         }
     }
