@@ -25,7 +25,7 @@ class MeCommand extends Command {
         let messageToSend = `*${sender.name}: ${message}`
 
         Logger.info(messageToSend)
-        for (let player of sender.getServer().players.values()) {
+        for (let player of sender.getServer().getOnlinePlayers()) {
             player.sendMessage(messageToSend)
         }
     }
