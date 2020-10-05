@@ -1,5 +1,5 @@
 const Command = require('../command')
-const Player  = require('../../player')
+const Player = require('../../player')
 const ConsoleSender = require('../console-sender')
 
 'use strict'
@@ -7,7 +7,7 @@ const ConsoleSender = require('../console-sender')
 class PluginsCommand extends Command {
 
     constructor() {
-        super({name: 'plugins', description: 'Lists all plugins that run on the server.', aliases:["pl"]})
+        super({ namespace: 'minecraft', name: 'plugins', description: 'Lists all plugins that run on the server.', aliases: ["pl"] })
     }
 
     /**
@@ -21,8 +21,8 @@ class PluginsCommand extends Command {
         if (plugins.length == 0) {
             return sender.sendMessage("§cCan't find any plugins.")
         }
-       
-        let message = `§7Plugins (${plugins.length}):§r ${plugins.map(p=>`${p.manifest.name} ${p.manifest.version}`).join(", ")}`
+
+        let message = `§7Plugins (${plugins.length}):§r ${plugins.map(p => `${p.manifest.name} ${p.manifest.version}`).join(", ")}`
 
         sender.sendMessage(message)
 

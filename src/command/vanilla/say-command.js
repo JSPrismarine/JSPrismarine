@@ -1,5 +1,5 @@
 const Command = require('../command')
-const Player  = require('../../player')
+const Player = require('../../player')
 const ConsoleSender = require('../console-sender')
 const Logger = require('../../utils/logger')
 
@@ -9,7 +9,7 @@ class SayCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({name: 'say', description: 'Say something to all players.'})
+        super({ namespace: 'minecraft', name: 'say', description: 'Say something to all players.' })
     }
 
     /**
