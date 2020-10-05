@@ -5,7 +5,7 @@ const ConsoleSender = require('../console-sender')
 class ListCommand extends Command {
 
     constructor() {
-        super({ name: 'list', description: 'Lists players on the server.' })
+        super({ namespace: 'minecraft', name: 'list', description: 'Lists players on the server.' })
     }
 
     /**

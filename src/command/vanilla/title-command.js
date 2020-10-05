@@ -1,5 +1,5 @@
 const Command = require('../command')
-const Player  = require('../../player')
+const Player = require('../../player')
 const ConsoleSender = require('../console-sender')
 const SetTitlePacket = require('../../network/packet/set-title-packet')
 const SetTitleType = require('../../network/type/set-title-type')
@@ -16,7 +16,7 @@ class TitleCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({name: 'title', description: 'Controls text displayed on the screen.'})
+        super({ namespace: 'minecraft', name: 'title', description: 'Controls text displayed on the screen.' })
     }
 
     /**
@@ -30,11 +30,11 @@ class TitleCommand extends Command {
 
         if (!Object.keys(TitleTypes).includes(`${args[1]}`.toLowerCase())) {
             return sender.sendMessage(`§cInvalid title type.`)
-        } 
+        }
 
         if (!args[2] && args[1] != 'clear') {
             return sender.sendMessage('§cPlease specify a message.')
-        } 
+        }
 
         /** @type {Array<Player>} */
         let targets = []
@@ -43,7 +43,7 @@ class TitleCommand extends Command {
             let players = Array.from(sender.getServer().players.values())
             if (players.length == 0) {
                 return sender.sendMessage('§cNo player specified.')
-            } 
+            }
             targets.push(...players)
         } else {
             let player = sender.getServer().getPlayerByName(args[0])
