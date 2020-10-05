@@ -231,12 +231,14 @@ class Player extends Entity {
     }
 
     setGamemode(mode) {
-        let gamemodePacket = new SetGamemodePacket() 
-        gamemodePacket.gamemode = mode
-        this.sendDataPacket(gamemodePacket)
+        let pk = new SetGamemodePacket() 
+        pk.gamemode = mode
+        this.sendDataPacket(pk)
+    }
 
-        let creativeContentPacket = new CreativeContentPacket()
-        this.sendDataPacket(creativeContentPacket)
+    setCreativeContents() {
+        let pk = new CreativeContentPacket()
+        this.sendDataPacket(pk)
     }
 
     sendNetworkChunkPublisher() {
