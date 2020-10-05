@@ -24,6 +24,7 @@ const SetActorDataPacket = require('./network/packet/set-actor-data')
 const CoordinateUtils = require('./world/coordinate-utils')
 const AvailableCommandsPacket = require('./network/packet/available-commands')
 const SetGamemodePacket = require('./network/packet/set-gamemode')
+const CreativeContentPacket = require('./network/packet/creative-content-packet')
 const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chunk-publisher-update')
 const DisconnectPacket = require('./network/packet/disconnect-packet')
 const Device = require('./utils/device')
@@ -232,6 +233,11 @@ class Player extends Entity {
     setGamemode(mode) {
         let pk = new SetGamemodePacket() 
         pk.gamemode = mode
+        this.sendDataPacket(pk)
+    }
+
+    setCreativeContents() {
+        let pk = new CreativeContentPacket()
         this.sendDataPacket(pk)
     }
 
