@@ -106,7 +106,7 @@ class StartGamePacket extends DataPacket {
 
         this.writeByte(0) // is trial
         this.writeByte(0) // server auth movement
-        this.writeLLong(BigInt(0)) // level time
+        this.writeLLong(BigInt(0)) // world time
 
         this.writeVarInt(0) // enchantment seed
 

@@ -36,6 +36,8 @@ class ResourcePackResponseHandler {
             pk.gamerules = world.getGameruleManager().getGamerules()
             player.sendDataPacket(pk)
 
+            player.sendTime(world.getTicks())
+
             player.sendDataPacket(new AvailableActorIdentifiersPacket())
             player.sendDataPacket(new BiomeDefinitionListPacket())
             

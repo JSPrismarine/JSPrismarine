@@ -1,22 +1,43 @@
-const Prismarine = require("../prismarine")
-const Plugin = require("./plugin")
-const EventManager = require("../events/event-manager")
+const path = require('path')
+
+const Prismarine = require('../prismarine')
+const PluginType = require('./plugin')
+const Config = require('../utils/config')
+const EventManager = require('../events/event-manager')
+
+'use strict'
 
 class PluginAPI {
 
     /** @type {Prismarine} */
     #server
-
-    /** @type {Plugin} */
+    /** @type {PluginType} */
     #plugin
+    /** @type {Map<String, Config>} */
+    #configs = new Map()
 
     /**
      * @param {Prismarine} server 
-     * @param {Plugin} plugin 
+     * @param {PluginType} plugin 
      */
     constructor(server, plugin) {
         this.#server = server
         this.#plugin = plugin
+    }
+
+    /**
+     * Returns a config instance, if doesn't exists it creates 
+     * a empty one and returns it.
+     * Supported file extensions are (json, yaml, toml).
+     * 
+     * @param {string} fileName - filename with extension
+     */
+    getConfig(fileName) {
+        if (!this.#configs.has(fileName)) {
+            this.#configs.set(fileName, new Config(path.join(plugin.path, fileName)))
+        }
+
+        return this.#configs.get(fileName)
     }
 
     getServer() {

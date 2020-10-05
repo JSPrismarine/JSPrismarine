@@ -50,7 +50,10 @@ class PluginManager {
             throw `invalid plugin index file, string expected, ${pluginManifest.indexFile} found`
         }
 
-        if (typeof pluginManifest.version != "string" || !/^\d{1,2}.\d{1,2}.\d{1,3}$/.test(pluginManifest.version)) {
+        if (
+            typeof pluginManifest.version != 'string' || 
+            !/^\d{1,2}.\d{1,2}.\d{1,3}$/.test(pluginManifest.version)
+        ) {
             throw `invalid plugin version, /^\\d{1,2}.\\d{1,2}.\\d{1,3}$/ expected, ${pluginManifest.version} found`
         }
 

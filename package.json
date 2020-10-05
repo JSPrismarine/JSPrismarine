@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/HerryYT/JSPrismarine#readme",
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "async": "^3.2.0",
     "glob": "^7.1.6",
     "jsbinaryutils": "1.0.8",
@@ -32,9 +33,11 @@
     "jsraknet": "^1.2.7",
     "jwt-decode": "^3.0.0",
     "level": "^6.0.1",
+    "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
     "perlin-noise": "0.0.1",
     "perlin-noise-3d": "^0.5.4",
-    "winston": "^3.3.3"
+    "winston": "^3.3.3",
+    "yaml": "^1.10.0"
   }
 }
