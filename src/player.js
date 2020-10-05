@@ -28,6 +28,7 @@ const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chun
 const DisconnectPacket = require('./network/packet/disconnect-packet')
 const Device = require('./utils/device')
 const World = require('./world/world')
+const SetTimePacket = require('./network/packet/set-time')
 
 'use strict'
 
@@ -220,6 +221,12 @@ class Player extends Entity {
         await this.getWorld().getChunk(x, z).then(
             chunk => this.chunkSendQueue.add(chunk)
         ) 
+    }
+
+    sendTime(time) {
+        let pk = new SetTimePacket()
+        pk.time = time
+        this.sendDataPacket(pk)
     }
 
     setGamemode(mode) {

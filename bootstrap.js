@@ -2,15 +2,17 @@ const fs = require('fs')
 const readline = require('readline')
 const path = require('path')
 
+const Config = require('./src/utils/config')
 const Prismarine = require('./src/prismarine')
 const logger = require('./src/utils/logger')
 const ConsoleSender = require('./src/command/console-sender')
 
 'use strict'
 
-// TODO: read config
-
-const server = new Prismarine(logger)
+const serverConfig = new Config(path.join('.', 'config.yaml'))
+const server = new Prismarine({
+    logger, config: serverConfig,
+})
 
 // Create folders
 if (!(fs.existsSync(__dirname + '/plugins'))) {
@@ -21,8 +23,9 @@ if (!(fs.existsSync(__dirname + '/worlds'))) {
 }
 
 // Load default level
-// TODO: get its name from a config
-server.getWorldManager().loadWorld('world')
+server.getWorldManager().loadWorld(
+    serverConfig.get('worlds.overworld.name', 'world')
+)
 
 // Load all plugins
 let pluginFolders = fs.readdirSync('./plugins')
@@ -47,13 +50,21 @@ rl.on('line', (input) => {
     }
 
     if (!(input.startsWith('/'))) {
-        input = `/${input}`
+        input = `/${input.toLowerCase()}`
     }
 
     server.getCommandManager().dispatchCommand(
         new ConsoleSender(server), input
     )
 })
+
+// Kills the server when exiting process
+let exitEvents = ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM']
+for (let event of exitEvents) {
+    process.on(event, () => {
+        server.kill()
+    })
+}
 
 server.listen().catch(() => {
     logger.error(`Cannot start the server, is it already running on the same port?`)
