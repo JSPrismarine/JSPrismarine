@@ -1,5 +1,5 @@
 const Command = require('../command')
-const Player  = require('../../player')
+const Player = require('../../player')
 const ConsoleSender = require('../console-sender')
 
 'use strict'
@@ -7,7 +7,7 @@ const ConsoleSender = require('../console-sender')
 class TellCommand extends Command {
 
     constructor() {
-        super({name: 'tell', description: 'Sends a private message to a player.'})
+        super({ namespace: 'minecraft', name: 'tell', description: 'Sends a private message to a player.' })
     }
 
     /**
@@ -21,11 +21,11 @@ class TellCommand extends Command {
 
         if (`${args[0]}`.toLowerCase() == sender.name.toLowerCase()) {
             return sender.sendMessage('§cYou can\'t send message to yourself.')
-        } 
+        }
 
         if (!args[1]) {
             return sender.sendMessage('§cPlease specify a message.')
-        } 
+        }
 
         let targetPlayer = sender.getServer().getPlayerByName(args[0])
 
