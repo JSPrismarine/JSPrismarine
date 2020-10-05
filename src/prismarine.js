@@ -9,6 +9,8 @@ const bufferToConsoleString = require("./utils/buffer-to-console-string")
 const Identifiers = require('./network/identifiers')
 const WorldManager = require('./world/world-manager')
 const PluginManager = require('./plugin/plugin-manager')
+const Config = require('./utils/config')
+const logger = require('./utils/logger')
 
 'use strict'
 
@@ -18,6 +20,8 @@ class Prismarine {
     #raknet
     /** @type {winston.Logger} */ 
     #logger
+    /** @type {Config} */
+    #config 
     /** @type {Map<string, Player>} */
     #players = new Map()
     /** @type {PacketRegistry} */
@@ -32,9 +36,10 @@ class Prismarine {
     /** @type {null|Prismarine} */
     static instance = null
 
-    constructor(logger) {
-        // Pass default server logger
+    constructor({logger, config}) {
+        // Pass default server logger and config
         this.#logger = logger
+        this.#config = config
         Prismarine.instance = this
     }
 

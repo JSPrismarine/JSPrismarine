@@ -27,6 +27,8 @@ class World {
     #chunks = new Map()  
     /** @type {GameruleManager} */
     #gameruleManager = new GameruleManager()
+    /** @type {number} */
+    #currentTick = 0
     /** @type {Provider|null} */
     #provider = null
     /** @type {Prismarine} */
@@ -38,10 +40,18 @@ class World {
         this.#provider = provider
 
         // TODO: Load default gamrules
+        this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true)
         this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true)
     }
 
+    /**
+     * Called every tick.
+     * 
+     * @param {number} timestamp 
+     */
     update(timestamp) {
+        // Continue world time ticks
+        this.#currentTick += 1
 
         // Tick players 
         for (let player of this.#players.values()) {
@@ -49,6 +59,8 @@ class World {
             // Maybe send time to players? 
             // this.sendTime()
         }
+
+        // TODO: tick chunks
 
     }
 
@@ -164,6 +176,10 @@ class World {
 
     getGameruleManager() {
         return this.#gameruleManager
+    }
+
+    getTicks() {
+        return this.#currentTick
     }
 
     get provider() {
