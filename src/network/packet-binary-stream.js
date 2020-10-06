@@ -16,6 +16,7 @@ const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece')
 const SkinPersona = require('../utils/skin/skin-persona/persona')
 const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color')
 const LOGGER = require('../utils/logger')
+const logger = require('../utils/logger')
 
 'use strict'
 
@@ -330,7 +331,7 @@ class PacketBinaryStream extends BinaryStream {
                     this.writeLShort(value[1])
                     break        
                 default:
-                    console.log(`Unknown meta type ${value}`)    
+                    logger.warn(`Unknown meta type ${value}`)
             } 
         } 
     }

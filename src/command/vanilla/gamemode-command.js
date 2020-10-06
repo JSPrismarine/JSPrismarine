@@ -34,8 +34,7 @@ class GamemodeCommand extends Command {
                 mode = Gamemode.Creative
                 break
             default:
-                sender.sendMessage('§cInvalid gamemode specified.')
-                return
+                return sender.sendMessage('§cInvalid gamemode specified.')
         }
 
         let target = sender
@@ -45,7 +44,7 @@ class GamemodeCommand extends Command {
 
             target.setGamemode(mode)
             target.setCreativeContents()
-            target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))
+            return target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))
         } else if (args.length > 1 && typeof args[1] === 'number') {
             return sender.sendMessage('§cTarget player is not online!')
         } else {
@@ -54,7 +53,7 @@ class GamemodeCommand extends Command {
             }
             target.setGamemode(mode)
             target.setCreativeContents()
-            target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))
+            return target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))
         }
     }
 }

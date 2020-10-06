@@ -24,8 +24,7 @@ class PluginsCommand extends Command {
 
         let message = `§7Plugins (${plugins.length}):§r ${plugins.map(p => `${p.manifest.name} ${p.manifest.version}`).join(", ")}`
 
-        sender.sendMessage(message)
-
+        return sender.sendMessage(message)
     }
 }
 

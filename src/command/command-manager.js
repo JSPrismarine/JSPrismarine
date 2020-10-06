@@ -105,9 +105,9 @@ class CommandManager {
         }
 
         if (sender instanceof Player) {
-            sender.sendMessage('§cCannot find the desired command!')
+            return sender.sendMessage('§cCannot find the desired command!')
         } else {
-            logger.warn('Cannot find the desired command!')
+            return logger.warn('Cannot find the desired command!')
         }
     }
 

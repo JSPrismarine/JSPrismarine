@@ -59,7 +59,7 @@ class LevelDB extends Provider{
 
                             subChunks.set(y, subChunk)
                         } else {
-                            console.log('Unsupported sub chunk version')
+                            logger.warn('Unsupported sub chunk version')
                         }
                     } catch {
                         // NO-OP
