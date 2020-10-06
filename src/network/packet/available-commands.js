@@ -38,7 +38,7 @@ class AvailableCommandsPacket extends DataPacket {
             this.writeUnsignedVarInt(enumIndex.enumValues.length)
             for (let enumValue of enumIndex.enumValues) {
                 // TODO: complete this WIP part
-                console.log(enumValue)
+                console.log(enumValue) // eslint-disable-line
             }
         }
 

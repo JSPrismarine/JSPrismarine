@@ -111,7 +111,7 @@ class Prismarine {
                     }
                 }
 
-                resolve()
+                return resolve()
             }).catch(err => this.#logger.error(err))
         })
 

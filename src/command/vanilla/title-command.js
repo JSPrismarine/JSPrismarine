@@ -61,6 +61,7 @@ class TitleCommand extends Command {
             }
             player.sendDataPacket(pk)
         }
+        return null
     }
 }
 
