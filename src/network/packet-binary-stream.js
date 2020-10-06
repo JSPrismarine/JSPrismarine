@@ -261,8 +261,7 @@ class PacketBinaryStream extends BinaryStream {
      */
     writeCreativeContentEntry(entry) {
         this.writeInt(entry.entryId) // writeGenericTypeNetworkId
-        this.writeVarInt(entry.item.id)
-        // TODO: CreativeContentEntry
+        this.writeItemStack(entry.item)
     }
 
     /**

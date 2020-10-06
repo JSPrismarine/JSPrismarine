@@ -8,6 +8,7 @@ const StartGamePacket = require('../packet/start-game')
 const Player = require('../../player')
 const LOGGER = require('../../utils/logger')
 const Prismarine = require('../../prismarine')
+const Item = require('../../inventory/item/item')
 
 'use strict'
 
@@ -52,6 +53,11 @@ class ResourcePackResponseHandler {
             player.sendMetadata()
 
             player.sendAvailableCommands()
+
+            // TODO: not working, debug needed
+            // player.sendInventory()
+            // player.sendHandItem(player.inventory.getItemInHand())
+            // player.sendCreativeInventory()
 
             // First add
             player.addToPlayerList()

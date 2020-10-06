@@ -6,7 +6,7 @@ const Item = require('./item/item')
 const PlayerInventorySlots = 36
 class PlayerInventory extends Inventory {
     /** @type {number} */
-    #handSlot
+    #handSlot = 0
 
     constructor() {
         super(PlayerInventorySlots)
