@@ -100,7 +100,7 @@ class Prismarine {
                                 let handler = this.#packetRegistry.handlers.get(packet.id)
                                 handler.handle(packet, this, player)
                             } else {
-                                reject(`Packet ${packet.constructor.name} doesn't have a handler`)
+                                return reject(`Packet ${packet.constructor.name} doesn't have a handler`)
                             }
                         } catch (err) {
                             return reject(`Error while decoding packet: ${packet.constructor.name}`)
