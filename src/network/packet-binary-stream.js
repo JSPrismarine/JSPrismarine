@@ -1,4 +1,4 @@
-const BinaryStream = require('jsbinaryutils')
+const BinaryStream = require('@jsprismarine/jsbinaryutils')
 const NBT = require('@jsprismarine/nbt')
 const UUID = require('../utils/uuid')
 const Skin = require('../utils/skin/skin')
