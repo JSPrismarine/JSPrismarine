@@ -10,3 +10,4 @@ config.yaml
 # Text editors/IDE things
 .idea
 .vscode
+.DS_Store
