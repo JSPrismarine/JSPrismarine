@@ -1,7 +1,7 @@
 const fs = require('fs')
 
 const DataPacket = require('./packet')
-const ItemTable = require('@filiphsandstrom/bedrock-data').item_id_map
+const ItemTable = require('@jsprismarine/bedrock-data').item_id_map
 const PacketBinaryStream = require('../packet-binary-stream')
 const Identifiers = require('../identifiers')
 
@@ -111,7 +111,7 @@ class StartGamePacket extends DataPacket {
         this.writeVarInt(0) // enchantment seed
 
         // PMMP states
-        this.append(fs.readFileSync(__dirname + '/../../../node_modules/@filiphsandstrom/bedrock-data/resources/required_block_states.nbt'))
+        this.append(fs.readFileSync(__dirname + '/../../../node_modules/@jsprismarine/bedrock-data/resources/required_block_states.nbt'))
 
         this.append(this.serializeItemTable(ItemTable))
 
