@@ -1,11 +1,8 @@
-const winston = require('winston')
-
 const Listener = require('jsraknet')
 const Player = require('./player')
 const BatchPacket = require('./network/packet/batch')
 const PacketRegistry = require('./network/packet-registry')
 const CommandManager = require('./command/command-manager')
-const bufferToConsoleString = require("./utils/buffer-to-console-string")
 const Identifiers = require('./network/identifiers')
 const WorldManager = require('./world/world-manager')
 const PluginManager = require('./plugin/plugin-manager')
@@ -19,7 +16,7 @@ class Prismarine {
 
     /** @type {Listener} */
     #raknet
-    /** @type {winston.Logger} */ 
+    /** @type {logger} */ 
     #logger
     /** @type {Config} */
     #config 
@@ -34,7 +31,7 @@ class Prismarine {
     /** @type {WorldManager} */
     #worldManager = new WorldManager(this)
     /** @type {ItemManager} */
-    #itemManager = new ItemManager()
+    #itemManager = new ItemManager()  // TODO
     
     /** @type {null|Prismarine} */
     static instance = null
@@ -251,6 +248,10 @@ class Prismarine {
 
     getPluginManager() {
         return this.#pluginManager
+    }
+
+    getConfig() {
+        return this.#config
     }
 
     getServer() {
