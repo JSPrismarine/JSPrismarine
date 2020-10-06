@@ -6,8 +6,8 @@ describe('command', () => {
             const command = new Command()
 
             it('name & namespace should be set correctly', () => {
-                expect(command.namespace === 'minecraft')
-                expect(command.name === 'list')
+                expect(command.namespace).toBe('minecraft')
+                expect(command.name).toBe('list')
             })
 
             it('list should be handled correctly with 0 players', (done) => {
@@ -21,7 +21,7 @@ describe('command', () => {
                         }),
                     }),
                     sendMessage: (message) => {
-                        expect(message === 'There are 0/25 players online:')
+                        expect(message).toBe('There are 0/25 players online:')
                         done()
                     }
                 }, null)
@@ -44,10 +44,10 @@ describe('command', () => {
                     sendMessage: (message) => {
                         switch (step) {
                             case 0:
-                                expect(message === 'There are 1/25 players online:')
+                                expect(message).toBe('There are 1/25 players online:')
                                 break
                             case 1:
-                                expect(message === 'test-user')
+                                expect(message).toBe('test-user')
                                 done()
                         }
                         step += 1

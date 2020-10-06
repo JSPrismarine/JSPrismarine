@@ -8,9 +8,9 @@ describe('command', () => {
         })
         
         it('name & namespace should be set correctly', () => {
-            expect(command.namespace === 'test')
-            expect(command.name === 'test-plugin')
-            expect(command.description === '')
+            expect(command.namespace).toBe('test')
+            expect(command.name).toBe('test-plugin')
+            expect(command.description).toBe('')
         })
     })
 })
