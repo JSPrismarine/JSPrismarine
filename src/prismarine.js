@@ -48,6 +48,8 @@ class Prismarine {
         this.#raknet.name.setOnlinePlayerCount(this.#players.size)
         this.#raknet.name.setVersion(Identifiers.Protocol)
         this.#raknet.name.setProtocol(Identifiers.MinecraftVersion)
+        this.#raknet.name.setMaxPlayerCount(this.#config.get('max-players', 20))
+        this.#raknet.name.setMotd(this.#config.get('motd', 'Another JSPrismarine server!'))
 
         this.#logger.info(`JSPrismarine is now listening port §b${port}`)
 

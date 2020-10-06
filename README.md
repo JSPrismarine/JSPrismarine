@@ -7,16 +7,16 @@
 
 <p align="center">
   <a href="https://github.com/HerryYT/JSPrismarine/blob/master/LICENSE">
-  	<img alt="License" src="https://img.shields.io/github/license/HerryYT/JSPrismarine?style=for-the-badge">
+  	<img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine?style=for-the-badge">
   </a>
   <a href="https://github.com/HerryYT/JSPrismarine/graphs/contributors">
-  	<img alt="Contributors" src="https://img.shields.io/github/contributors/HerryYT/JSPrismarine?color=%23E30B5D&style=for-the-badge">
+  	<img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D&style=for-the-badge">
   </a>
   <a href="https://github.com/HerryYT/JSPrismarine/commits/master">
-    <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/HerryYT/jsprismarine?color=%2387F4BC&style=for-the-badge">
+    <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC&style=for-the-badge">
   </a>
   <a href="https://github.com/HerryYT/JSPrismarine/commits/master">
-    <img alt="Build" src="https://img.shields.io/github/workflow/status/HerryYT/jsprismarine/Unit%20&%20Integration%20Testing?style=for-the-badge">
+    <img alt="Build" src="https://img.shields.io/github/workflow/status/JSPrismarine/JSPrismarine/Unit%20&%20Integration%20Testing?style=for-the-badge">
   </a>
   <a href="https://discord.gg/6w8JWhy">
     <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=for-the-badge">
