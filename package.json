@@ -25,11 +25,17 @@
   "bugs": {
     "url": "https://github.com/HerryYT/JSPrismarine/issues"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run eslint && npm run test"
+    }
+  },
   "homepage": "https://github.com/HerryYT/JSPrismarine#readme",
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "async": "^3.2.0",
     "glob": "^7.1.6",
+    "husky": "^4.3.0",
     "jest": "^26.5.0",
     "jsbinaryutils": "1.0.9",
     "jsnamedbinarytag": "^1.0.0",
