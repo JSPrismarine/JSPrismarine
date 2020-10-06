@@ -7,7 +7,7 @@ if exist "./node_modules/" (
     goto launch
 ) else (
     echo Installing dependencies...
-    call node .
+    call npm i
     cls
     goto launch
 )
@@ -17,6 +17,6 @@ echo You have to install Node.js
 exit
 
 :launch
-npm start
+node .
 timeout 5 > nul
 goto launch
