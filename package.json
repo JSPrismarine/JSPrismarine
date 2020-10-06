@@ -6,7 +6,7 @@
   "scripts": {
     "start": "NODE_ENV=production node bootstrap.js",
     "dev": "NODE_ENV=development node bootstrap.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --passWithNoTests"
   },
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
     "@iarna/toml": "^2.2.5",
     "async": "^3.2.0",
     "glob": "^7.1.6",
+    "jest": "^26.5.0",
     "jsbinaryutils": "1.0.9",
     "jsnamedbinarytag": "^1.0.0",
     "jsraknet": "^1.2.7",
