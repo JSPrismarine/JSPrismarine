@@ -5,9 +5,9 @@ describe('math', () => {
         const vector = new Vector3(1.5, 0, 2.75)
         
         it('should retrieve values correctly', () => {
-            expect(vector.getX() === 1.5)
-            expect(vector.getY() === 0)
-            expect(vector.getZ() === 2.75)
+            expect(vector.getX()).toBe(1.5)
+            expect(vector.getY()).toBe(0)
+            expect(vector.getZ()).toBe(2.75)
         })
     })
 })

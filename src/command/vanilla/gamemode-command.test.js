@@ -6,14 +6,14 @@ describe('command', () => {
             const command = new Command()
 
             it('name & namespace should be set correctly', () => {
-                expect(command.namespace === 'minecraft')
-                expect(command.name === 'gamemode')
+                expect(command.namespace).toBe('minecraft')
+                expect(command.name).toBe('gamemode')
             })
 
             it('gamemode command should fail without argument', (done) => {
                 command.execute({
                     sendMessage: (message) => {
-                        expect(message === 'You have to specify a gamemode.')
+                        expect(message).toBe('§cYou have to specify a gamemode.')
                         done()
                     }
                 }, [])
@@ -22,7 +22,7 @@ describe('command', () => {
             it('gamemode command should fail with invalid gamemode', (done) => {
                 command.execute({
                     sendMessage: (message) => {
-                        expect(message === 'Invalid gamemode specified.')
+                        expect(message).toBe('§cInvalid gamemode specified.')
                         done()
                     }
                 }, ['test'])
@@ -31,7 +31,7 @@ describe('command', () => {
             it('gamemode command should fail when using one argument from console', (done) => {
                 command.execute({
                     sendMessage: (message) => {
-                        expect(message === 'You have to run this command in-game!')
+                        expect(message).toBe('§cYou have to run this command in-game!')
                         done()
                     }
                 }, ['creative'])
@@ -43,25 +43,21 @@ describe('command', () => {
                         getPlayerByName: (name) => null,
                     }),
                     sendMessage: (message) => {
-                        expect(message === 'Target player is not online!')
+                        expect(message).toBe('§cTarget player is not online!')
                         done()
                     }
                 }, ['creative', 'test-user'])
             })
 
             it('gamemode command should work when running from console', (done) => {
-                let gm = null;
-
                 command.execute({
                     getServer: () => ({
                         getPlayerByName: (name) => ({
                             name: name,
-                            setGamemode: (gamemode) => {
-                                gm = gamemode
-                            },
+                            setGamemode: (gamemode) => expect(gamemode).toBe(1),
                             setCreativeContents: () => null,
                             sendMessage: (message) => {
-                                expect(message === 'Your game mode has been updated to Creative')
+                                expect(message).toBe('Your game mode has been updated to Creative')
                                 done()
                             }
                         }),
