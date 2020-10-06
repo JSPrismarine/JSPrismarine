@@ -7,7 +7,7 @@ const ConsoleSender = require('../console-sender')
 class PluginsCommand extends Command {
 
     constructor() {
-        super({ namespace: 'minecraft', name: 'plugins', description: 'Lists all plugins that run on the server.', aliases: ["pl"] })
+        super({ namespace: 'jsprismarine', name: 'plugins', description: 'Lists all plugins that run on the server.', aliases: ["pl"] })
     }
 
     /**
