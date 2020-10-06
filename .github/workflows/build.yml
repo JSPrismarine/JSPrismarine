@@ -1,0 +1,21 @@
+name: Build artifacts
+on:
+    push:
+        branches:
+            - master
+            - dev-pkg
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v1
+            - uses: actions/setup-node@v1
+              with:
+                  node-version: 14
+            - run: npm i
+            - run: npm run build
+            - uses: actions/upload-artifact@v2
+              with:
+                  name: jsprismarine
+                  path: dist/*
