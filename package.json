@@ -51,6 +51,6 @@
   "devDependencies": {
     "babel-eslint": "10.1.0",
     "eslint": "7.10.0",
-    "husky": "^4.3.0"
+    "husky": "4.3.0"
   }
 }
