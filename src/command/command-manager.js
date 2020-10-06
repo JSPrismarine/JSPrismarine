@@ -18,17 +18,23 @@ class CommandManager {
     constructor() {
         // Register vanilla commands
         fs.readdirSync(path.join(__dirname, 'vanilla')).forEach((id) => {
+            if (id.includes('.test.'))
+                return  // Exclude test files
+
             const command = require(`./vanilla/${id}`)
             this.registerClassCommand(new command())
         })
 
         // Register jsprismarine commands
         fs.readdirSync(path.join(__dirname, 'jsprismarine')).forEach((id) => {
+            if (id.includes('.test.'))
+                return  // Exclude test files
+
             const command = require(`./jsprismarine/${id}`)
             this.registerClassCommand(new command())
         })
     }
- 
+
     /**
      * Registers a command into the command manager.
      * 
@@ -36,19 +42,19 @@ class CommandManager {
      * @param {string} description 
      * @param {function(ConsoleSender|Player)} execute 
      */
-    registerCommand(name = '', description = '', execute = function(sender) {}) {
-        let command = new Command({name, description})
+    registerCommand(name = '', description = '', execute = function (sender) { }) {
+        let command = new Command({ name, description })
 
         let parameter = new CommandParameter()
         parameter.name = 'args'
         parameter.type = 0x100000 | 0x22  // TODO: hardcoded values
         parameter.optional = true
         command.parameters.add(parameter)
-        
+
         command.execute = execute
 
         this.#commands.add(command)
-    } 
+    }
 
     /**
      * Register a command into command manager by class.
@@ -62,9 +68,9 @@ class CommandManager {
         parameter.optional = true
         command.parameters.add(parameter)
         this.#commands.add(command)
-        logger.debug(`Command with id §b${command.name}§r registered`)
+        logger.debug(`Command with id §b${command.namespace}:${command.name}§r registered`)
     }
-    
+
     /**
      * Dispatches a command and executes them.
      * 
@@ -79,7 +85,8 @@ class CommandManager {
         logger.info(`§b${sender.name}§r issued server command: §b${commandInput}§r!`)
 
         let commandParts = commandInput.split(' ')  // Name + arguments array
-        let commandName = commandParts[0]
+        let commandNamespace = commandParts[0].includes(':') ? commandParts[0].split(':')[0] : ''
+        let commandName = commandParts[0].replace(`${commandNamespace}:`, '') //Ignore namespace for now
         let commandNameIndex = commandParts.indexOf(commandName)
         commandParts.splice(commandNameIndex, 1)
 
@@ -96,7 +103,7 @@ class CommandManager {
                 return command.execute(sender, commandParts, commandName)
             }
         }
-        
+
         if (sender instanceof Player) {
             sender.sendMessage('§cCannot find the desired command!')
         } else {

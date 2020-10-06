@@ -9,7 +9,7 @@ const Gamemode = require('../../world/gamemode')
 class GamemodeCommand extends Command {
 
     constructor() {
-        super({name: 'gamemode', description: 'Changes gamemode for a player.'})
+        super({ namespace: 'minecraft', name: 'gamemode', description: 'Changes gamemode for a player.' })
     }
 
     /**
@@ -18,10 +18,10 @@ class GamemodeCommand extends Command {
      */
     execute(sender, args) {
         if (args.length < 1 || args.length > 2) {
-            logger.warn('§cYou have to specify a gamemode.')
+            return sender.sendMessage('§cYou have to specify a gamemode.')
         }
 
-        let mode 
+        let mode
         switch (args[0]) {
             case 0:
             case 's':
@@ -35,29 +35,23 @@ class GamemodeCommand extends Command {
                 break
             default:
                 sender.sendMessage('§cInvalid gamemode specified.')
-                return 
+                return
         }
 
         let target = sender
         if (args.length > 1 && typeof args[1] === 'string') {
-            if ((target = sender.getServer().getPlayerByName(args[1])) === null) {
-                sender.sendMessage('§cTarget player is not online!')
-                return
-            } 
+            if ((target = sender.getServer().getPlayerByName(args[1])) === null)
+                return sender.sendMessage('§cTarget player is not online!')
+
             target.setGamemode(mode)
             target.setCreativeContents()
             target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))
         } else if (args.length > 1 && typeof args[1] === 'number') {
-            if (sender instanceof Player) {
-                sender.sendMessage('§cTarget player is not online!')
-            } else {
-                logger.warn('§cTarget player is not online!')
-            }
-            return
+            return sender.sendMessage('§cTarget player is not online!')
         } else {
             if (!(sender instanceof Player)) {
-                return logger.warn('§cYou have to run this command in-game!')
-            } 
+                return target.sendMessage('§cYou have to run this command in-game!')
+            }
             target.setGamemode(mode)
             target.setCreativeContents()
             target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))

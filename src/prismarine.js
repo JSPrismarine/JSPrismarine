@@ -86,7 +86,7 @@ class Prismarine {
                 try {
                     pk.decode()
                 } catch {
-                    reject(`Error while decoding batch`)
+                    return reject(`Error while decoding batch`)
                 }
                 
                 // Read all packets inside batch and handle them
@@ -103,14 +103,14 @@ class Prismarine {
                                 let handler = this.#packetRegistry.handlers.get(packet.id)
                                 handler.handle(packet, this, player)
                             } else {
-                                reject(`Packet ${packet.constructor.name} doesn't have a handler`)
+                                return reject(`Packet ${packet.constructor.name} doesn't have a handler`)
                             }
                         } catch (err) {
-                            reject(`Error while decoding packet: ${packet.constructor.name}`)
+                            return reject(`Error while decoding packet: ${packet.constructor.name}`)
                         }
 
                     } else {
-                        reject('Packet doesn\'t have a handler')
+                        return reject('Packet doesn\'t have a handler')
                     }
                 }
 
