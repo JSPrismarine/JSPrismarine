@@ -41,6 +41,7 @@ class WorldManager {
             logger.info(`Loaded §b${folderName}§r as default world!`)
         }
         logger.debug(`World §b${folderName}§r succesfully loaded!`)
+        return world
     }
 
     /**
@@ -63,6 +64,7 @@ class WorldManager {
         world.close()
         this.#worlds.delete(world.uniqueId)
         logger.debug(`Successfully unloaded world §b${folderName}§f!`)
+        return null
     }  
 
     /**
@@ -94,6 +96,7 @@ class WorldManager {
                 return world
             }
         }
+        return null
     } 
 
     /**

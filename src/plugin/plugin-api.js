@@ -34,7 +34,7 @@ class PluginAPI {
      */
     getConfig(fileName) {
         if (!this.#configs.has(fileName)) {
-            this.#configs.set(fileName, new Config(path.join(plugin.path, fileName)))
+            this.#configs.set(fileName, new Config(path.join(this.#plugin.path, fileName)))
         }
 
         return this.#configs.get(fileName)

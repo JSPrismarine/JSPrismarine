@@ -3,7 +3,7 @@ const fs = require('fs')
 'use strict'
 
 class Provider {
-    
+
     /** @type {string} */
     #path
 
@@ -11,7 +11,7 @@ class Provider {
         this.#path = path
         if (!(fs.existsSync(path))) {
             fs.mkdirSync(path)
-        } 
+        }
     }
 
     get path() {
