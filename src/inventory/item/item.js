@@ -16,7 +16,8 @@ class Item {
         this.id =  id
         this.meta = meta
         this.count = count
-        this.nbt = null
+        this.nbt = nbt
         this.name = name
     }
 }
+module.exports = Item
