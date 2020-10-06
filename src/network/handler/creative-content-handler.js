@@ -3,7 +3,7 @@ const Prismarine = require('../../prismarine')
 const Identifiers = require('../identifiers')
 const CreativeContentPacket = require('../packet/creative-content-packet')
 const CreativeContentEntry = require('../type/creative-content-entry')
-const CreativeItems = require('../../resources/vanilla/creativeitems.json')
+const CreativeItems = require('@filiphsandstrom/bedrock-data').creativeitems
 const logger = require('../../utils/logger')
 
 'use strict'
