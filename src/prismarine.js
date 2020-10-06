@@ -1,6 +1,6 @@
 const winston = require('winston')
 
-const Listener = require('jsraknet')
+const Listener = require('@jsprismarine/raknet')
 const Player = require('./player')
 const BatchPacket = require('./network/packet/batch')
 const PacketRegistry = require('./network/packet-registry')
