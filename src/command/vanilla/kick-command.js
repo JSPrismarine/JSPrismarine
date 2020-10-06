@@ -1,5 +1,5 @@
 const Command = require('../command')
-const Player  = require('../../player')
+const Player = require('../../player')
 const ConsoleSender = require('../console-sender')
 
 'use strict'
@@ -8,7 +8,7 @@ class KickCommand extends Command {
 
     constructor() {
         // TODO: Add permissions
-        super({name: 'kick', description: 'Kicks a player off the server.'})
+        super({ namespace: 'minecraft', name: 'kick', description: 'Kicks a player off the server.' })
     }
 
     /**
@@ -20,7 +20,7 @@ class KickCommand extends Command {
         if (!args[0]) {
             return sender.sendMessage("§cYou have to specify a player.")
         }
-        
+
         let reason = args[1] ? args.slice(1).join(" ") : "No reason specified."
         let target = sender.getServer().getPlayerByName(args[0])
 
