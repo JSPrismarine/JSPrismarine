@@ -250,14 +250,6 @@ class Prismarine {
         return this.#pluginManager
     }
 
-    getLogger() {
-        return this.#logger
-    }
-
-    getRaknet() {
-        return this.#raknet
-    }
-
     getServer() {
         return this
     }

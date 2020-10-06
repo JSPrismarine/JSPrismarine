@@ -94,6 +94,8 @@ class LevelDB extends Provider{
             await this.db.put(index + '\x2d', data)
             return chunk
         }
+
+        return null
     }
 
     /**
