@@ -11,7 +11,7 @@ class Inventory {
      * (Slot number - Item in the slot)
      * @type {Map<Number, Item>} 
      */
-    #content
+    #content = new Map()
 
     constructor(slots = 0, items = []) {
         this.#slots = slots
@@ -31,7 +31,7 @@ class Inventory {
         }
         
         for (let i = 0; i < this.getSlotCount(); i++) {
-            this.setItem(i, items[i])
+            this.setItem(i, items[i] || new ItemAir())
         }
     }
 
@@ -39,10 +39,11 @@ class Inventory {
      * Returns all the items inside the inventory.
      * 
      * @param {boolean} includeAir - includes air in the items
+     * @returns {Array<Item>}
      */
     getItems(includeAir = false) {
         if (includeAir) {
-            return this.#content.values()
+            return Array.from(this.#content.values())
         }
 
         return Array.from(this.#content.values())
