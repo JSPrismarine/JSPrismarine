@@ -28,6 +28,7 @@ class MeCommand extends Command {
         for (let player of sender.getServer().getOnlinePlayers()) {
             player.sendMessage(messageToSend)
         }
+        return null
     }
 }
 
