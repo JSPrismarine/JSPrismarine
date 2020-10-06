@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HerryYT/JSPrismarine.git"
+    "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
   },
   "keywords": [
     "nodejs",
@@ -23,16 +23,16 @@
   "author": "HerryYT",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/HerryYT/JSPrismarine/issues"
+    "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
   },
   "husky": {
     "hooks": {
       "pre-commit": "npm run eslint && npm run test"
     }
   },
-  "homepage": "https://github.com/HerryYT/JSPrismarine#readme",
+  "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
   "dependencies": {
-    "@filiphsandstrom/bedrock-data": "^1.16.20-b",
+    "@jsprismarine/bedrock-data": "1.16.20",
     "@iarna/toml": "^2.2.5",
     "async": "^3.2.0",
     "glob": "^7.1.6",
