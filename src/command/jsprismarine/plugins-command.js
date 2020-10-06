@@ -16,7 +16,7 @@ class PluginsCommand extends Command {
      */
     execute(sender, args) {
 
-        let plugins = sender.getServer().getPluginManager().getPlugins();
+        let plugins = sender.getServer().getPluginManager().getPlugins()
 
         if (plugins.length == 0) {
             return sender.sendMessage("§cCan't find any plugins.")

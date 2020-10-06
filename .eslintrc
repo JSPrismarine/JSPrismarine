@@ -1,0 +1,46 @@
+{
+    "parser": "babel-eslint",
+    "extends": [
+        "eslint:recommended"
+    ],
+    "env": {
+        "es6": true,
+        "node": true,
+        "jasmine": true
+    },
+    "globals": {
+        "BigInt": true
+    },
+    "rules": {
+        "consistent-return": 1,
+        "no-mixed-operators": 0,
+        "no-useless-constructor": 0,
+        "standard/computed-property-even-spacing": 0,
+        "import/first": 0,
+        "no-unused-vars": 0,
+        "no-console": 1,
+        "no-fallthrough": 0,
+        "no-case-declarations": 0,
+        "indent": [
+            "error",
+            4,
+            {
+                "SwitchCase": 1
+            }
+        ],
+        "semi": [
+            "error",
+            "never"
+        ],
+        "brace-style": [
+            "error",
+            "1tbs",
+            {
+                "allowSingleLine": true
+            }
+        ],
+        "radix": [
+            "off"
+        ]
+    }
+}

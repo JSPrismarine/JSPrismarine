@@ -1,6 +1,6 @@
 const { createLogger, format, transports } = require('winston')
 const { combine, timestamp, printf } = format
-const mcColors = require("mccolorstoconsole");
+const mcColors = require("mccolorstoconsole")
 
 'use strict'
 
