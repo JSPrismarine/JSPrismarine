@@ -347,6 +347,7 @@ class PacketBinaryStream extends BinaryStream {
             return {id: 0, data: 0, amount: 0}
         }
 
+        let name = null
         let temp = this.readVarInt()
         let amount = (temp & 0xff) 
         let meta = (temp >> 8)  
@@ -417,6 +418,7 @@ class PacketBinaryStream extends BinaryStream {
         this.writeVarInt(0)
 
         // TODO: check for additional data
+        return null
     }
 
     readCommandOriginData() {
