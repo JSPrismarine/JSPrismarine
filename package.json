@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Basic Minecraft Bedrock Edition software ",
   "main": "bootstrap.js",
+  "bin": "bootstrap.js",
   "scripts": {
     "start": "NODE_ENV=production node bootstrap.js",
     "dev": "NODE_ENV=development node bootstrap.js",
+    "build": "NODE_ENV=production pkg package.json --out-path ./dist/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
     "eslint": "eslint --fix ./src/"
@@ -30,6 +32,12 @@
       "pre-commit": "npm run eslint && npm run test"
     }
   },
+  "pkg": {
+    "scripts": [
+      "bootstrap.js",
+      "src/**/*.*"
+    ]
+  },
   "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
   "dependencies": {
     "@iarna/toml": "^2.2.5",
@@ -50,6 +58,7 @@
     "yaml": "^1.10.0"
   },
   "devDependencies": {
+    "pkg": "^4.4.9",
     "babel-eslint": "10.1.0",
     "eslint": "7.10.0",
     "husky": "4.3.0"
