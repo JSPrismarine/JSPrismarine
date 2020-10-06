@@ -11,6 +11,7 @@ const WorldManager = require('./world/world-manager')
 const PluginManager = require('./plugin/plugin-manager')
 const Config = require('./utils/config')
 const logger = require('./utils/logger')
+const ItemManager = require('./inventory/item/item-manager')
 
 'use strict'
 
@@ -32,6 +33,8 @@ class Prismarine {
     #commandManager = new CommandManager()
     /** @type {WorldManager} */
     #worldManager = new WorldManager(this)
+    /** @type {ItemManager} */
+    #itemManager = new ItemManager()
     
     /** @type {null|Prismarine} */
     static instance = null
