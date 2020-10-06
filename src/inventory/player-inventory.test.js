@@ -1,6 +1,6 @@
 const PlayerInventory = require('./player-inventory')
 
-describe('math', () => {
+describe('inventory', () => {
     describe('player-inventory', () => {
         const inventory = new PlayerInventory()
         
