@@ -2,7 +2,7 @@ const fs = require('fs')
 
 const DataPacket = require('./packet')
 const Identifiers = require('../identifiers')
-const EntityIdentifiers = require('@filiphsandstrom/bedrock-data').entity_identifiers;
+const EntityIdentifiers = require('@filiphsandstrom/bedrock-data').entity_identifiers
 
 'use strict'
 
