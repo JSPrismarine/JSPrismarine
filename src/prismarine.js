@@ -110,7 +110,7 @@ class Prismarine {
                         }
 
                     } else {
-                        return reject('Packet doesn\'t have a handler')
+                        return reject(`Packet ${packet.id} doesn\'t have a handler`)
                     }
                 }
 
