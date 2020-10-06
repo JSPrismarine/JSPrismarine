@@ -10,7 +10,7 @@ class Command extends CommandData {
      * @param {{namespace: string, name: string, description: string, flags: number, permission: 0, aliases: Array<string>, parameters: Set<string>}} param0 
      */
     constructor({ namespace = '', name = '', description = '', flags = 0, permission = 0, aliases = [], parameters = new Set() }) {
-        super();
+        super()
         this.namespace = namespace
         this.name = name
         this.description = description

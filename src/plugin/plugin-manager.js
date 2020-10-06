@@ -97,6 +97,7 @@ class PluginManager {
         this.#plugins.delete(pluginName)
         let name = require.resolve(`${pluginName}.js`)
         delete require.cache[name]
+        return null
     }
 
     /**

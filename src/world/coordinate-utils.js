@@ -31,7 +31,7 @@ class CoordinateUtils {
      * @param {string} encodedPos 
      */
     static decodePos(encodedPos) {
-        return encodedPos.split(':') 
+        return encodedPos.split(':')
     }
 }
 module.exports = CoordinateUtils

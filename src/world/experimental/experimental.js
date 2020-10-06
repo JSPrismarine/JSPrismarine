@@ -19,15 +19,15 @@ class Experimental extends Provider {
      * @param {number} z - chunk Z
      */
     async readChunk(x, z) {
-            // Check if chunks folder exists
-            let filesPath = path.join(this.path, 'chunks')
-            try {
-                await fs.promises.access(filesPath)
-                // Folder exists
-            } catch {
-                // Folder doesn't exists
-                await fs.promises.mkdir(filesPath)
-            }
+        // Check if chunks folder exists
+        let filesPath = path.join(this.path, 'chunks')
+        try {
+            await fs.promises.access(filesPath)
+            // Folder exists
+        } catch {
+            // Folder doesn't exists
+            await fs.promises.mkdir(filesPath)
+        }
 
         let chunkPath = path.join(filesPath, `${x}.${z}.bin`)
         // Check if chunk file exists
