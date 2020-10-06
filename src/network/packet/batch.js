@@ -1,7 +1,7 @@
 const Zlib = require('zlib')
 
 const DataPacket = require("./packet")
-const BinaryStream = require('jsbinaryutils')
+const BinaryStream = require('@jsprismarine/jsbinaryutils')
 const PacketBinaryStream = require('../packet-binary-stream')
 
 'use strict'

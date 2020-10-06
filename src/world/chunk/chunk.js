@@ -1,6 +1,6 @@
 const SubChunk = require('./sub-chunk')
 const EmptySubChunk = require('./empty-sub-chunk')
-const BinaryStream = require('jsbinaryutils')
+const BinaryStream = require('@jsprismarine/jsbinaryutils')
 const Entity = require('../../entity/entity')
 
 'use strict'
