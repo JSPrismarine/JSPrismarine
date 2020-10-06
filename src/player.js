@@ -35,6 +35,7 @@ const Inventory = require('./inventory/inventory')
 const InventoryContentPacket = require('./network/packet/inventory-content-packet')
 const MobEquipmentPacket = require('./network/packet/mob-equipment-packet')
 const Item = require('./inventory/item/item')
+const CreativeContentEntry = require('./network/type/creative-content-entry')
 
 'use strict'
 
