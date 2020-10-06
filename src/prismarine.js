@@ -114,7 +114,7 @@ class Prismarine {
                     }
                 }
 
-                resolve()
+                return resolve()
             }).catch(err => this.#logger.error(err))
         })
 
@@ -251,14 +251,6 @@ class Prismarine {
 
     getPluginManager() {
         return this.#pluginManager
-    }
-
-    getLogger() {
-        return this.#logger
-    }
-
-    getRaknet() {
-        return this.#raknet
     }
 
     getServer() {

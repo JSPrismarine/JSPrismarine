@@ -37,7 +37,7 @@ class TellCommand extends Command {
         let messageToSend = `§e[§f${sender.name} §e->§f ${targetPlayer.name}§e]§f ${message}`
 
         sender.sendMessage(messageToSend)
-        targetPlayer.sendMessage(messageToSend)
+        return targetPlayer.sendMessage(messageToSend)
     }
 }
 

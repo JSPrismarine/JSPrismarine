@@ -10,9 +10,9 @@ class SkinImage {
     data
 
     constructor({width, height, data}) {
-       this.width = width
-       this.height = height
-       this.data = data 
+        this.width = width
+        this.height = height
+        this.data = data 
     }
 
 }
