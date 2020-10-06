@@ -2,8 +2,9 @@
 node_modules
 
 # JSPRismarine things
-plugins
-worlds
+/plugins/
+/worlds/
+/src/resources/
 config.yaml
 
 # Text editors/IDE things
