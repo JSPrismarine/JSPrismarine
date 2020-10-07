@@ -15,11 +15,11 @@ const server = new Prismarine({
 })
 
 // Create folders
-if (!(fs.existsSync(__dirname + '/plugins'))) {
-    fs.mkdirSync(__dirname + '/plugins')
+if (!(fs.existsSync(process.cwd() + '/plugins'))) {
+    fs.mkdirSync(process.cwd() + '/plugins')
 }
-if (!(fs.existsSync(__dirname + '/worlds'))) {
-    fs.mkdirSync(__dirname + '/worlds')
+if (!(fs.existsSync(process.cwd() + '/worlds'))) {
+    fs.mkdirSync(process.cwd() + '/worlds')
 }
 
 // Load default level
@@ -28,7 +28,7 @@ server.getWorldManager().loadWorld(
 )
 
 // Load all plugins
-let pluginFolders = fs.readdirSync('./plugins')
+let pluginFolders = fs.readdirSync(process.cwd() + '/plugins')
 for (let i = 0; i < pluginFolders.length; i++) {
     const folderName = pluginFolders[i]
     try {

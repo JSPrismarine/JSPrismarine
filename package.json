@@ -35,7 +35,11 @@
   "pkg": {
     "scripts": [
       "bootstrap.js",
-      "src/**/*.*"
+      "src/**/*.*",
+      "node_modules/leveldown/**/*.js"
+    ],
+    "assets": [
+      "node_modules/leveldown/**/*"
     ]
   },
   "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
