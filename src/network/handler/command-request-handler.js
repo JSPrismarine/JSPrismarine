@@ -1,9 +1,9 @@
-const Player = require('../../player')
-const Prismarine = require('../../prismarine')
-const Identifiers = require('../identifiers')
-const CommandRequestPacket = require('../packet/command-request')
+const Player = require('../../player');
+const Prismarine = require('../../prismarine');
+const Identifiers = require('../identifiers');
+const CommandRequestPacket = require('../packet/command-request');
 
-'use strict'
+'use strict';
 
 class ClientCacheStatusHandler {
     static NetID = Identifiers.CommandRequestPacket
@@ -16,7 +16,7 @@ class ClientCacheStatusHandler {
     static handle(packet, server, player) {
         player.getServer().getCommandManager().dispatchCommand(
             player, packet.commandName
-        )
+        );
     }
 }
-module.exports = ClientCacheStatusHandler
+module.exports = ClientCacheStatusHandler;

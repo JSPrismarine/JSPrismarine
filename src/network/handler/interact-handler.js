@@ -1,14 +1,14 @@
-const Player = require('../../player')
-const Identifiers = require('../identifiers')
-const EventManager = require('../../events/event-manager')
-const EventIdentifiers = require('../../events/event-identifiers')
-const InteractPacket = require('../packet/interact')
-const InteractAction = require('../type/interact-action')
-const ContainerOpenPacket = require('../packet/container-open')
-const logger = require('../../utils/logger')
-const Prismarine = require('../../prismarine')
+const Player = require('../../player');
+const Identifiers = require('../identifiers');
+const EventManager = require('../../events/event-manager');
+const EventIdentifiers = require('../../events/event-identifiers');
+const InteractPacket = require('../packet/interact');
+const InteractAction = require('../type/interact-action');
+const ContainerOpenPacket = require('../packet/container-open');
+const logger = require('../../utils/logger');
+const Prismarine = require('../../prismarine');
 
-'use strict'
+'use strict';
 
 class InteractHandler {
     static NetID = Identifiers.InteractPacket
@@ -20,23 +20,23 @@ class InteractHandler {
      */
     static handle(packet, server, player) {
         // TODO: event
-        EventManager.emit(EventIdentifiers.PlayerInteractEvent, this)
+        EventManager.emit(EventIdentifiers.PlayerInteractEvent, this);
 
         switch (packet.action) {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:
-                break
+                break;
             case InteractAction.OpenInventory:
-                let pk = new ContainerOpenPacket()
-                pk.windowId = 0  // TODO
-                pk.containerType = -1 // -> inventory (TODO)
-                pk.containerX = pk.containerY = pk.containerZ = 0
-                pk.containerEntityId = player.runtimeId
-                player.sendDataPacket(pk)
-                break
+                let pk = new ContainerOpenPacket();
+                pk.windowId = 0;  // TODO
+                pk.containerType = -1; // -> inventory (TODO)
+                pk.containerX = pk.containerY = pk.containerZ = 0;
+                pk.containerEntityId = player.runtimeId;
+                player.sendDataPacket(pk);
+                break;
             default:
-                logger.debug('Unknown interact action id: ' + packet.action)    
+                logger.debug('Unknown interact action id: ' + packet.action);    
         }
     }
 }
-module.exports = InteractHandler
+module.exports = InteractHandler;

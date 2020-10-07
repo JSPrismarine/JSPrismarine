@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class TickSyncPacket extends DataPacket {
     static NetID = Identifiers.TickSyncPacket
@@ -10,8 +10,8 @@ class TickSyncPacket extends DataPacket {
     serverReceptionTimestamp
 
     decodePayload() {
-        this.clientRequestTimestamp = this.readLLong()
-        this.serverReceptionTimestamp = this.readLLong()
+        this.clientRequestTimestamp = this.readLLong();
+        this.serverReceptionTimestamp = this.readLLong();
     }
 }
-module.exports = TickSyncPacket
+module.exports = TickSyncPacket;

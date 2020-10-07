@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class SetActorDataPacket extends DataPacket {
     static NetID = Identifiers.SetActorDataPacket
@@ -10,8 +10,8 @@ class SetActorDataPacket extends DataPacket {
     metadata
 
     encodePayload() {
-        this.writeUnsignedVarLong(this.runtimeEntityId)
-        this.writeEntityMetadata(this.metadata)
+        this.writeUnsignedVarLong(this.runtimeEntityId);
+        this.writeEntityMetadata(this.metadata);
     }
 }
-module.exports = SetActorDataPacket
+module.exports = SetActorDataPacket;

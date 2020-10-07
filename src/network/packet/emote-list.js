@@ -1,8 +1,8 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
-const UUID = require('../../utils/uuid')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
+const UUID = require('../../utils/uuid');
 
-'use strict'
+'use strict';
 
 class EmoteListPacket extends DataPacket {
     static NetID = Identifiers.EmoteListPacket
@@ -13,11 +13,11 @@ class EmoteListPacket extends DataPacket {
     emoteIds = new Set()
 
     decodePayload() {
-        this.runtimeId = this.readUnsignedVarInt()
-        let emoteCount = this.readUnsignedVarInt()
+        this.runtimeId = this.readUnsignedVarInt();
+        let emoteCount = this.readUnsignedVarInt();
         for (let i = 0; i < emoteCount; i++) {
-            this.emoteIds.add(this.readUUID())
+            this.emoteIds.add(this.readUUID());
         }
     }
 }
-module.exports = EmoteListPacket
+module.exports = EmoteListPacket;

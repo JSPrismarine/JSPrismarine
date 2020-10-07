@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 class CommandEnum {
     
@@ -8,4 +8,4 @@ class CommandEnum {
     enumValues
 
 }
-module.exports = CommandEnum
+module.exports = CommandEnum;

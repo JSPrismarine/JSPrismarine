@@ -1,6 +1,6 @@
-const Item = require('../../inventory/item/item')
+const Item = require('../../inventory/item/item');
 
-'use strict'
+'use strict';
 
 class CreativeContentEntry {
 
@@ -10,10 +10,10 @@ class CreativeContentEntry {
     item
 
     constructor(entryId, item) {
-        this.entryId = entryId
-        this.item = item
+        this.entryId = entryId;
+        this.item = item;
     }
 
 }
 
-module.exports = CreativeContentEntry
+module.exports = CreativeContentEntry;

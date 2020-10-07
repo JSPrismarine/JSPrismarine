@@ -1,24 +1,24 @@
-const fs = require('fs')
-const path = require('path')
+const fs = require('fs');
+const path = require('path');
 
 // Require providers
-const YAML = require('yaml')
-const TOML = require('@iarna/toml')
+const YAML = require('yaml');
+const TOML = require('@iarna/toml');
 
 const _ = {
     get: require('lodash/get'),
     set: require('lodash/set'),
     has: require('lodash/has'),
     del: require('lodash/unset')
-}
+};
 
-'use strict'
+'use strict';
 
 const TypeDefaults = {
     'json': '{}',
     'yaml': ' ',
     'toml': ' '
-}
+};
 
 /**
  * @author <TheArmagan> kiracarmaganonal@gmail.com
@@ -38,60 +38,60 @@ class Config {
      * @param {String} filePath - full path to config file
      */
     constructor(filePath) {
-        let pathSplitted = path.parse(filePath)
+        let pathSplitted = path.parse(filePath);
 
-        this.#type = pathSplitted.ext.slice(1) 
+        this.#type = pathSplitted.ext.slice(1); 
 
         if (
             !Object.keys(TypeDefaults).some(
                 i => i.toLowerCase() === this.#type.toLowerCase()
             )
         ) {
-            throw `Unsupported config type. (Supported types: ${Object.keys(TypeDefaults).join(', ')})`            
+            throw `Unsupported config type. (Supported types: ${Object.keys(TypeDefaults).join(', ')})`;            
         }
 
         if (fs.existsSync(pathSplitted.dir)) {
-            fs.mkdirSync(pathSplitted.dir, { recursive: true })
+            fs.mkdirSync(pathSplitted.dir, { recursive: true });
         }
 
         if (!fs.existsSync(filePath)) {
             fs.writeFileSync(
                 filePath, TypeDefaults[this.#type], 'utf8'
-            )
+            );
         }
 
-        this.#path = filePath
+        this.#path = filePath;
     }
 
     /** @returns {string} */
     getPath() {
-        return this.#path
+        return this.#path;
     }
     
     /** @returns {string} */
     getType() {
-        return this.#type
+        return this.#type;
     }
 
     /**
      * @private
      */
     setFileData(data = {}) {
-        let fileData = ''
+        let fileData = '';
         switch (this.#type) {
             case 'json':
-                fileData = JSON.stringify(data, null, 2)
-                break
+                fileData = JSON.stringify(data, null, 2);
+                break;
             case 'yaml':
-                fileData = YAML.stringify(data, {indent: 2})
-                break
+                fileData = YAML.stringify(data, {indent: 2});
+                break;
             case 'toml':
-                fileData = TOML.stringify(data)    
-                break
+                fileData = TOML.stringify(data);    
+                break;
             default:
-                throw `Unknown config type ${this.#type}!`
+                throw `Unknown config type ${this.#type}!`;
         }
-        fs.writeFileSync(this.#path, fileData, 'utf8')
+        fs.writeFileSync(this.#path, fileData, 'utf8');
     }
 
     /**
@@ -100,23 +100,23 @@ class Config {
      * @returns {Object}
      */
     getFileData() {
-        let resultData = {}
-        let rawFileData = fs.readFileSync(this.#path, 'utf8') 
+        let resultData = {};
+        let rawFileData = fs.readFileSync(this.#path, 'utf8'); 
         switch (this.#type) {
             case 'json':
-                resultData = JSON.parse(rawFileData)
-                break
+                resultData = JSON.parse(rawFileData);
+                break;
             case 'yaml':
-                resultData = YAML.parse(rawFileData, {indent: 2})
-                break
+                resultData = YAML.parse(rawFileData, {indent: 2});
+                break;
             case 'toml':
-                resultData = TOML.parse(rawFileData)
-                break
+                resultData = TOML.parse(rawFileData);
+                break;
             default:
-                throw `Unknown config type: ${this.#type}!`
+                throw `Unknown config type: ${this.#type}!`;
         }
 
-        return (resultData || {})
+        return (resultData || {});
     }
 
     /**
@@ -128,14 +128,14 @@ class Config {
      * @returns {any}
      */
     get(key, defaults) {
-        let data = this.getFileData()
-        let result = _.get(data, key)
+        let data = this.getFileData();
+        let result = _.get(data, key);
         if (typeof result == 'undefined' && typeof defaults != 'undefined') {
-            let newData = _.set(data, key, defaults)
-            this.setFileData(newData)
-            result = defaults
+            let newData = _.set(data, key, defaults);
+            this.setFileData(newData);
+            result = defaults;
         }
-        return result
+        return result;
     }
 
     /**
@@ -145,9 +145,9 @@ class Config {
      * @param {any} value 
      */
     set(key, value) {
-        let data = this.getFileData()
-        let newData = _.set(data, key, value)
-        this.setFileData(newData)
+        let data = this.getFileData();
+        let newData = _.set(data, key, value);
+        this.setFileData(newData);
     }
     
     /**
@@ -159,9 +159,9 @@ class Config {
      * @returns {Boolean}
      */
     has(key) {
-        let data = this.getFileData()
-        let result = _.has(data, key)
-        return result
+        let data = this.getFileData();
+        let result = _.has(data, key);
+        return result;
     }
 
     /**
@@ -173,16 +173,16 @@ class Config {
      * @returns {Boolean}
      */
     del(key) {
-        let data = this.getFileData()
+        let data = this.getFileData();
         
         // it mutates the object, we 
         // don't need to define a new
         // variable.
-        let isSuccessful = _.del(data, key)
+        let isSuccessful = _.del(data, key);
 
-        this.setFileData(data)
-        return isSuccessful
+        this.setFileData(data);
+        return isSuccessful;
     }
 
 }
-module.exports = Config
+module.exports = Config;

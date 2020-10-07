@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const InventoryTransactionType = {
     Normal: 0,
@@ -6,5 +6,5 @@ const InventoryTransactionType = {
     UseItem: 2,
     UseItemOnEntity: 3,
     RelaseItem: 4
-}
-module.exports = InventoryTransactionType
+};
+module.exports = InventoryTransactionType;

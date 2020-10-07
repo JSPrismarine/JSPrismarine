@@ -4,5 +4,5 @@ const EventIdentifiers = {
     PlayerChatEvent: 'player_chat',
     PlayerInteractEvent: 'player_interact',
     AnyEvent: "*"
-}
-module.exports = EventIdentifiers
+};
+module.exports = EventIdentifiers;

@@ -1,9 +1,9 @@
-const fs = require('fs')
+const fs = require('fs');
 
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class BiomeDefinitionListPacket extends DataPacket {
     static NetID = Identifiers.BiomeDefinitionListPacket
@@ -12,7 +12,7 @@ class BiomeDefinitionListPacket extends DataPacket {
 
     encodePayload() {
         this.append(this.#cachedNBT ||
-            (this.#cachedNBT = fs.readFileSync(__dirname + '/../../../node_modules/@jsprismarine/bedrock-data/resources/biome_definitions.nbt')))
+            (this.#cachedNBT = fs.readFileSync(__dirname + '/../../../node_modules/@jsprismarine/bedrock-data/resources/biome_definitions.nbt')));
     }
 }
-module.exports = BiomeDefinitionListPacket
+module.exports = BiomeDefinitionListPacket;

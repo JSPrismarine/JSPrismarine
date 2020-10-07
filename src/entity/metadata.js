@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 // TODO: Still missing flags
 const MetadataFlag = {
@@ -25,7 +25,7 @@ const MetadataFlag = {
     AffectedByGravity: 48,
     BoundingBoxWidth: 53,
     BoundingBoxHeight: 54
-}
+};
 const FlagType = {
     Byte: 0,
     Short: 1,
@@ -36,7 +36,7 @@ const FlagType = {
     Position: 6,
     Long: 7,
     Vector: 8
-}
+};
 /* 
 For future enchancement
 class Metadata {
@@ -56,32 +56,32 @@ class MetadataManager {
     #metadata = new Map()
 
     getPropertyValue(key) {
-        return this.#metadata.has(key) ? this.#metadata.get(key)[1] : null
+        return this.#metadata.has(key) ? this.#metadata.get(key)[1] : null;
     }
 
     setPropertyValue(key, type, value) {
-        this.#metadata.set(key, [type, value])
+        this.#metadata.set(key, [type, value]);
     }
 
     setLong(key, value) {
-        this.setPropertyValue(key, FlagType.Long, value)
+        this.setPropertyValue(key, FlagType.Long, value);
     }
 
     setShort(key, value) {
-        this.setPropertyValue(key, FlagType.Short, value)
+        this.setPropertyValue(key, FlagType.Short, value);
     }
 
     setString(key, value) {
-        this.setPropertyValue(key, FlagType.String, value)
+        this.setPropertyValue(key, FlagType.String, value);
     }
 
     setFloat(key, value) {
-        this.setPropertyValue(key, FlagType.Float, value)
+        this.setPropertyValue(key, FlagType.Float, value);
     }
 
     getMetadata() {
-        return this.#metadata
+        return this.#metadata;
     }
     
 }
-module.exports = { MetadataFlag, FlagType, MetadataManager }
+module.exports = { MetadataFlag, FlagType, MetadataManager };

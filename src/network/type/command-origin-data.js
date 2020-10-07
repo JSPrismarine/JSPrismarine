@@ -1,6 +1,6 @@
-const UUID = require('../../utils/uuid')
+const UUID = require('../../utils/uuid');
 
-'use strict'
+'use strict';
 
 class CommandOriginData {
 
@@ -16,4 +16,4 @@ class CommandOriginData {
     uniqueEntityId = null
     
 }
-module.exports = CommandOriginData
+module.exports = CommandOriginData;

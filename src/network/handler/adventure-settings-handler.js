@@ -1,9 +1,9 @@
-const Player = require('../../player')
-const Prismarine = require('../../prismarine')
-const Identifiers = require('../identifiers')
-const AdventureSettingsPacket = require('../packet/adventure-settings-packet')
+const Player = require('../../player');
+const Prismarine = require('../../prismarine');
+const Identifiers = require('../identifiers');
+const AdventureSettingsPacket = require('../packet/adventure-settings-packet');
 
-'use strict'
+'use strict';
 
 class AdventureSettingsHandler {
     static NetID = Identifiers.AdventureSettingsPacket
@@ -15,4 +15,4 @@ class AdventureSettingsHandler {
      */
     static handle(_packet, _server, _player) {}
 }
-module.exports = AdventureSettingsHandler
+module.exports = AdventureSettingsHandler;

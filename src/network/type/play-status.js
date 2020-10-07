@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const PlayStatus = {
     LoginSuccess: 0,
@@ -8,5 +8,5 @@ const PlayStatus = {
     LoginFailedInvalidTenant: 4,
     LoginFailedVanillaEdu: 5,
     LoginFailedEduVanilla: 6
-}
-module.exports = PlayStatus
+};
+module.exports = PlayStatus;

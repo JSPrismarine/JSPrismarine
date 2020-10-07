@@ -1,10 +1,10 @@
-const Identifiers = require('../identifiers')
-const RequestChunkRadiusPacket = require('../packet/request-chunk-radius')
-const PlayStatus = require('../type/play-status')
-const Player = require('../../player')
-const Prismarine = require('../../prismarine')
+const Identifiers = require('../identifiers');
+const RequestChunkRadiusPacket = require('../packet/request-chunk-radius');
+const PlayStatus = require('../type/play-status');
+const Player = require('../../player');
+const Prismarine = require('../../prismarine');
 
-'use strict'
+'use strict';
 
 class RequestChunkRadiusHandler {
     static NetID = Identifiers.RequestChunkRadiusPacket
@@ -15,13 +15,13 @@ class RequestChunkRadiusHandler {
      * @param {Player} player 
      */
     static handle(_packet, _server, player) {
-        const maxViewDistance = _server.getConfig().get('view-distance', 10)
-        const viewDistance = (_packet.radius >= maxViewDistance) ? maxViewDistance : _packet.radius
-        player.setViewDistance(viewDistance)
+        const maxViewDistance = _server.getConfig().get('view-distance', 10);
+        const viewDistance = (_packet.radius >= maxViewDistance) ? maxViewDistance : _packet.radius;
+        player.setViewDistance(viewDistance);
 
-        player.sendNetworkChunkPublisher()
+        player.sendNetworkChunkPublisher();
 
-        player.sendPlayStatus(PlayStatus.PlayerSpawn)
+        player.sendPlayStatus(PlayStatus.PlayerSpawn);
     }
 }
-module.exports = RequestChunkRadiusHandler
+module.exports = RequestChunkRadiusHandler;

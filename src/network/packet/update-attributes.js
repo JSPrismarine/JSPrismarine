@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class UpdateAttributesPacket extends DataPacket {
     static NetID = Identifiers.UpdateAttributesPacket
@@ -11,8 +11,8 @@ class UpdateAttributesPacket extends DataPacket {
     attributes = []
 
     encodePayload() {
-        this.writeUnsignedVarLong(this.runtimeEntityId)
-        this.writeAttributes(this.attributes)
+        this.writeUnsignedVarLong(this.runtimeEntityId);
+        this.writeAttributes(this.attributes);
     }
 }
-module.exports = UpdateAttributesPacket
+module.exports = UpdateAttributesPacket;

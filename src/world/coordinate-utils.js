@@ -1,17 +1,17 @@
-'use strict'
+'use strict';
 
 class CoordinateUtils {
 
     static fromBlockToChunk(v) {
-        return v >> 4
+        return v >> 4;
     }
 
     static getChunkMin(v) {
-        return v << 4
+        return v << 4;
     }
 
     static getChunkMax(v) {
-        return ((v + 1) << 4) - 1
+        return ((v + 1) << 4) - 1;
     }
 
     /**
@@ -21,7 +21,7 @@ class CoordinateUtils {
      * @param {number} z 
      */
     static encodePos(x, z) {
-        return `${x}:${z}`
+        return `${x}:${z}`;
     }
 
     /**
@@ -31,7 +31,7 @@ class CoordinateUtils {
      * @param {string} encodedPos 
      */
     static decodePos(encodedPos) {
-        return encodedPos.split(':')
+        return encodedPos.split(':');
     }
 }
-module.exports = CoordinateUtils
+module.exports = CoordinateUtils;

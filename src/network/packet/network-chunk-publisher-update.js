@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class NetworkChunkPublisherUpdatePacket extends DataPacket {
     static NetID = Identifiers.NetworkChunkPublisherUpdatePacket
@@ -12,10 +12,10 @@ class NetworkChunkPublisherUpdatePacket extends DataPacket {
     radius
 
     encodePayload() {
-        this.writeVarInt(this.x)
-        this.writeVarInt(this.y)
-        this.writeVarInt(this.z)
-        this.writeUnsignedVarInt(this.radius)
+        this.writeVarInt(this.x);
+        this.writeVarInt(this.y);
+        this.writeVarInt(this.z);
+        this.writeUnsignedVarInt(this.radius);
     }
 }
-module.exports = NetworkChunkPublisherUpdatePacket
+module.exports = NetworkChunkPublisherUpdatePacket;

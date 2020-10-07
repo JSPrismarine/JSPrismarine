@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const NetworkTransactionSource = {
     Container: 0,
@@ -6,5 +6,5 @@ const NetworkTransactionSource = {
     Creative: 3,
     CraftingGrid: 100,
     Unknown: 99999
-}
-module.exports = NetworkTransactionSource
+};
+module.exports = NetworkTransactionSource;

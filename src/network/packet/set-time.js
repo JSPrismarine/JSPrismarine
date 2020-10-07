@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class SetTimePacket extends DataPacket {
     static NetID = Identifiers.SetTimePacket
@@ -10,11 +10,11 @@ class SetTimePacket extends DataPacket {
     time
 
     decodePayload() {
-        this.type = this.readVarInt()
+        this.type = this.readVarInt();
     }
 
     encodePayload() {
-        this.writeVarInt(this.time)
+        this.writeVarInt(this.time);
     }
 }
-module.exports = SetTimePacket
+module.exports = SetTimePacket;

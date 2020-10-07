@@ -1,7 +1,7 @@
-const SkinPersonaPiece = require('./persona-piece')
-const PieceTintColor = require('./piece-tint-color')
+const SkinPersonaPiece = require('./persona-piece');
+const PieceTintColor = require('./piece-tint-color');
 
-'use strict'
+'use strict';
 
 class SkinPersona {
 
@@ -12,4 +12,4 @@ class SkinPersona {
     tintColors = new Set()
 
 }
-module.exports = SkinPersona      
+module.exports = SkinPersona;      

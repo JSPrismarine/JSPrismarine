@@ -1,9 +1,9 @@
-const Player = require('../../player')
-const Prismarine = require('../../prismarine')
-const Identifiers = require('../identifiers')
-const ContainerClosePacket = require('../packet/container-close')
+const Player = require('../../player');
+const Prismarine = require('../../prismarine');
+const Identifiers = require('../identifiers');
+const ContainerClosePacket = require('../packet/container-close');
 
-'use strict'
+'use strict';
 
 class ContainerCloseHandler {
     static NetID = Identifiers.ContainerClosePacket
@@ -14,11 +14,11 @@ class ContainerCloseHandler {
      * @param {Player} player 
      */
     static handle(packet, server, player) {
-        let pk = new ContainerClosePacket()
-        pk.windowId = packet.windowId
-        player.sendDataPacket(pk)
+        let pk = new ContainerClosePacket();
+        pk.windowId = packet.windowId;
+        player.sendDataPacket(pk);
 
         // TODO: event
     }
 }
-module.exports = ContainerCloseHandler
+module.exports = ContainerCloseHandler;

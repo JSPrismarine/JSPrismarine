@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class AnimatePacket extends DataPacket {
     static NetID = Identifiers.AnimatePacket
@@ -11,19 +11,19 @@ class AnimatePacket extends DataPacket {
     boatRowingTime = null
 
     encodePayload() {
-        this.writeVarInt(this.action)
-        this.writeUnsignedVarLong(this.runtimeEntityId)
+        this.writeVarInt(this.action);
+        this.writeUnsignedVarLong(this.runtimeEntityId);
         if ((this.action & 0x80) !== 0) {
-            this.writeLFloat(this.boatRowingTime)
+            this.writeLFloat(this.boatRowingTime);
         }
     }
 
     decodePayload() {
-        this.action = this.readVarInt()
-        this.runtimeEntityId = this.readUnsignedVarLong()
+        this.action = this.readVarInt();
+        this.runtimeEntityId = this.readUnsignedVarLong();
         if ((this.action & 0x80) !== 0) {
-            this.boatRowingTime = this.readLFloat()
+            this.boatRowingTime = this.readLFloat();
         }
     }
 }
-module.exports = AnimatePacket
+module.exports = AnimatePacket;

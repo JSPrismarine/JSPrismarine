@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const TransactionType = {
     Normal: 0,
@@ -6,5 +6,5 @@ const TransactionType = {
     UseItem: 2,
     UseItemOnEntity: 3,
     RelaseItem: 4
-}
-module.exports = TransactionType
+};
+module.exports = TransactionType;

@@ -1,4 +1,4 @@
-const Item = require('../item')
+const Item = require('../item');
 
 class Dirt extends Item {
     constructor() {
@@ -8,8 +8,8 @@ class Dirt extends Item {
             meta: 0,
             nbt: null,
             count: 1
-        })
+        });
     }
 
 }
-module.exports = Dirt
+module.exports = Dirt;

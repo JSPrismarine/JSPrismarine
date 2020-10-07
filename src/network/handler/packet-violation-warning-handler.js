@@ -1,5 +1,5 @@
-const Identifiers = require('../identifiers')
-const PacketViolationWarningPacket = require('../packet/packet-violation-warning')
+const Identifiers = require('../identifiers');
+const PacketViolationWarningPacket = require('../packet/packet-violation-warning');
 
 class PacketViolationWarningHandler {
     static NetID = Identifiers.PacketViolationWarningPacket
@@ -10,7 +10,7 @@ class PacketViolationWarningHandler {
      * @param {Player} player 
      */
     static handle(packet, server, player) {
-        server.getLogger().error(`Packet violation: ${JSON.stringify(packet)}`)
+        server.getLogger().error(`Packet violation: ${JSON.stringify(packet)}`);
     }
 }
-module.exports = PacketViolationWarningHandler
+module.exports = PacketViolationWarningHandler;

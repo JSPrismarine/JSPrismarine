@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const Identifiers = {
     Protocol: 408,
@@ -158,5 +158,5 @@ const Identifiers = {
     PositionTrackingDBClientRequestPacket: 0x9a,
     DebugInfoPacket: 0x9b,
     PacketViolationWarningPacket: 0x9c
-}
-module.exports = Identifiers
+};
+module.exports = Identifiers;

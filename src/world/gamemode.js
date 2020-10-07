@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const Gamemode = {
 
@@ -7,13 +7,13 @@ const Gamemode = {
     getGamemodeName: (mode) => {
         switch (mode) {
             case Gamemode.Survival:
-                return 'Survival'
+                return 'Survival';
             case Gamemode.Creative:
-                return 'Creative'
+                return 'Creative';
             default:
-                return 'Unknown'    
+                return 'Unknown';    
         }
     }
     
-}
-module.exports = Gamemode
+};
+module.exports = Gamemode;

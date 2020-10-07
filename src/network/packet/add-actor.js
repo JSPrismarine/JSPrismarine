@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class AddActorPacket extends DataPacket {
     static NetID = Identifiers.AddActorPacket
@@ -36,31 +36,31 @@ class AddActorPacket extends DataPacket {
     links = []
 
     encodePayload() {
-        this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId)
-        this.writeUnsignedVarLong(this.runtimeEntityId)
+        this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
+        this.writeUnsignedVarLong(this.runtimeEntityId);
 
-        this.writeString(this.type)
+        this.writeString(this.type);
 
-        this.writeLFloat(this.x)
-        this.writeLFloat(this.y)
-        this.writeLFloat(this.z)
+        this.writeLFloat(this.x);
+        this.writeLFloat(this.y);
+        this.writeLFloat(this.z);
 
-        this.writeLFloat(this.motionX)
-        this.writeLFloat(this.motionY)
-        this.writeLFloat(this.motionZ)
+        this.writeLFloat(this.motionX);
+        this.writeLFloat(this.motionY);
+        this.writeLFloat(this.motionZ);
 
-        this.writeLFloat(this.pitch)
-        this.writeLFloat(this.yaw)
-        this.writeLFloat(this.headYaw)
+        this.writeLFloat(this.pitch);
+        this.writeLFloat(this.yaw);
+        this.writeLFloat(this.headYaw);
 
         // TODO: attributes
-        this.writeUnsignedVarInt(0)
+        this.writeUnsignedVarInt(0);
 
         // TODO: metadata
-        this.writeUnsignedVarInt(0)
+        this.writeUnsignedVarInt(0);
 
         // TODO: links
-        this.writeUnsignedVarInt(0)
+        this.writeUnsignedVarInt(0);
     }
 }
-module.exports = AddActorPacket
+module.exports = AddActorPacket;
