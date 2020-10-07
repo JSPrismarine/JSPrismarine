@@ -76,8 +76,8 @@ class PluginAPI {
         return this.#server.getPacketRegistry()
     }
 
-    getPlayers() {
-        return Array.from(this.#server.getPlayers().values())
+    getOnlinePlayers() {
+        return Array.from(this.#server.getOnlinePlayers().values())
     }
 
     getPlayerByName(name) {
