@@ -6,7 +6,7 @@
   "bin": "bootstrap.js",
   "scripts": {
     "start": "node bootstrap.js",
-    "dev": "NODE_ENV=development node bootstrap.js",
+    "dev": "NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
     "build": "pkg package.json --out-path ./dist/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
@@ -64,6 +64,7 @@
     "yaml": "^1.10.0"
   },
   "devDependencies": {
+    "nodemon": "^2.0.4",
     "babel-eslint": "10.1.0",
     "eslint": "7.10.0",
     "husky": "4.3.0",
