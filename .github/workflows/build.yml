@@ -6,41 +6,23 @@ on:
             - dev-pkg
 
 jobs:
-    linux:
+    build:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v1
             - uses: actions/setup-node@v1
               with:
                   node-version: 14
-            - run: npm i
+            - run: npm install
             - run: npm run build
             - uses: actions/upload-artifact@v2
               with:
                   name: jsprismarine-x64-linux
                   path: dist/jsprismarine-linux
-    macos:
-        runs-on: macos-latest
-        steps:
-            - uses: actions/checkout@v1
-            - uses: actions/setup-node@v1
-              with:
-                  node-version: 14
-            - run: npm i
-            - run: npm run build
             - uses: actions/upload-artifact@v2
               with:
                   name: jsprismarine-x64-macos
                   path: dist/jsprismarine-macos
-    win:
-        runs-on: windows-latest
-        steps:
-            - uses: actions/checkout@v1
-            - uses: actions/setup-node@v1
-              with:
-                  node-version: 14
-            - run: npm i
-            - run: npm run build
             - uses: actions/upload-artifact@v2
               with:
                   name: jsprismarine-x64-win.exe
