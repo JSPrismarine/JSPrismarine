@@ -244,6 +244,10 @@ class Prismarine {
         return this.#worldManager
     }
 
+    getItemManager() {
+        return this.#itemManager
+    }
+
     getLogger() {
         return this.#logger
     }
