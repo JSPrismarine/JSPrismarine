@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const TextType = {
     Raw: 0,
@@ -12,5 +12,5 @@ const TextType = {
     Announcement: 8,
     JsonWhisper: 9,
     Json: 10
-}
-module.exports = TextType
+};
+module.exports = TextType;

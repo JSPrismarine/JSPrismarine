@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class ResourcePackResponsePacket extends DataPacket {
     static NetID = Identifiers.ResourcePackResponsePacket
@@ -10,11 +10,11 @@ class ResourcePackResponsePacket extends DataPacket {
     packIds = []
 
     decodePayload() {
-        this.status = this.readByte()
-        let entryCount = this.readLShort()
+        this.status = this.readByte();
+        let entryCount = this.readLShort();
         while (entryCount-- > 0) {
-            this.packIds.push(this.readString())
+            this.packIds.push(this.readString());
         }
     }
 }
-module.exports = ResourcePackResponsePacket
+module.exports = ResourcePackResponsePacket;

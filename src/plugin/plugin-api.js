@@ -1,11 +1,11 @@
-const path = require('path')
+const path = require('path');
 
-const Prismarine = require('../prismarine')
-const PluginType = require('./plugin')
-const Config = require('../utils/config')
-const EventManager = require('../events/event-manager')
+const Prismarine = require('../prismarine');
+const PluginType = require('./plugin');
+const Config = require('../utils/config');
+const EventManager = require('../events/event-manager');
 
-'use strict'
+'use strict';
 
 class PluginAPI {
 
@@ -21,8 +21,8 @@ class PluginAPI {
      * @param {PluginType} plugin 
      */
     constructor(server, plugin) {
-        this.#server = server
-        this.#plugin = plugin
+        this.#server = server;
+        this.#plugin = plugin;
     }
 
     /**
@@ -34,63 +34,63 @@ class PluginAPI {
      */
     getConfig(fileName) {
         if (!this.#configs.has(fileName)) {
-            this.#configs.set(fileName, new Config(path.join(this.#plugin.path, fileName)))
+            this.#configs.set(fileName, new Config(path.join(this.#plugin.path, fileName)));
         }
 
-        return this.#configs.get(fileName)
+        return this.#configs.get(fileName);
     }
 
     getServer() {
-        return this.#server
+        return this.#server;
     }
 
     getPlugin() {
-        return this.#plugin
+        return this.#plugin;
     }
 
     getCommandManager() {
-        return this.#server.getCommandManager()
+        return this.#server.getCommandManager();
     }
 
     getEventManager() {
-        return EventManager
+        return EventManager;
     }
 
     getPluginManager() {
-        return this.#server.getPluginManager()
+        return this.#server.getPluginManager();
     }
 
     getLogger() {
-        return this.#server.getLogger()
+        return this.#server.getLogger();
     }
 
     getWorldManager() {
-        return this.#server.getWorldManager()
+        return this.#server.getWorldManager();
     }
 
     getRaknet() {
-        return this.#server.getRaknet()
+        return this.#server.getRaknet();
     }
 
     getPacketRegistry() {
-        return this.#server.getPacketRegistry()
+        return this.#server.getPacketRegistry();
     }
 
     getOnlinePlayers() {
-        return Array.from(this.#server.getOnlinePlayers().values())
+        return Array.from(this.#server.getOnlinePlayers().values());
     }
 
     getPlayerByName(name) {
-        return this.#server.getPlayerByName(name)
+        return this.#server.getPlayerByName(name);
     }
 
     getPlayerByExactName(name) {
-        return this.#server.getPlayerByExactName(name)
+        return this.#server.getPlayerByExactName(name);
     }
 
     getPlayerById(id) {
-        return this.#server.getPlayerById(id)
+        return this.#server.getPlayerById(id);
     }
 }
 
-module.exports = PluginAPI
+module.exports = PluginAPI;

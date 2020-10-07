@@ -1,7 +1,7 @@
-const ItemAir = require('./item/blocks/air')
-const Item = require('./item/item')
+const ItemAir = require('./item/blocks/air');
+const Item = require('./item/item');
 
-'use strict'
+'use strict';
 
 // TODO: viewer logic
 class Inventory {
@@ -14,8 +14,8 @@ class Inventory {
     #content = new Map()
 
     constructor(slots = 0, items = []) {
-        this.#slots = slots
-        this.setItems(items)
+        this.#slots = slots;
+        this.setItems(items);
     } 
 
     /**
@@ -27,11 +27,11 @@ class Inventory {
         if (items.length > this.#slots) {
             // If the invenotry slots are less 
             // than items cut the items array
-            items = items.slice(0, this.#slots)
+            items = items.slice(0, this.#slots);
         }
         
         for (let i = 0; i < this.getSlotCount(); i++) {
-            this.setItem(i, items[i] || new ItemAir())
+            this.setItem(i, items[i] || new ItemAir());
         }
     }
 
@@ -43,11 +43,11 @@ class Inventory {
      */
     getItems(includeAir = false) {
         if (includeAir) {
-            return Array.from(this.#content.values())
+            return Array.from(this.#content.values());
         }
 
         return Array.from(this.#content.values())
-            .filter(item => !(item instanceof ItemAir))
+            .filter(item => !(item instanceof ItemAir));
     }
 
     /**
@@ -59,11 +59,11 @@ class Inventory {
      */
     setItem(slot, item) {
         if (slot > this.#slots) {
-            return false
+            return false;
         }
 
-        this.#content.set(slot, item)
-        return true
+        this.#content.set(slot, item);
+        return true;
     }
 
     /**
@@ -73,9 +73,9 @@ class Inventory {
      */
     getItem(slot) {
         if (this.#content.has(slot)) {
-            return this.#content.get(slot)
+            return this.#content.get(slot);
         } else {
-            return new ItemAir()
+            return new ItemAir();
         }
     }
 
@@ -86,12 +86,12 @@ class Inventory {
      */
     removeItem(slot) {
         if (!this.#content.has(slot)) {
-            return new ItemAir()  
+            return new ItemAir();  
         }
 
-        let item = this.#content.get(slot)
-        this.#content.delete(slot)
-        return item
+        let item = this.#content.get(slot);
+        this.#content.delete(slot);
+        return item;
     }
 
     /**
@@ -100,7 +100,7 @@ class Inventory {
      * @returns {number}
      */
     getSlotCount() {
-        return this.#slots
+        return this.#slots;
     }
 }
-module.exports = Inventory
+module.exports = Inventory;

@@ -1,12 +1,12 @@
-const fs = require('fs')
-const path = require('path')
+const fs = require('fs');
+const path = require('path');
 
-const Provider = require('../provider')
-const Chunk = require('../chunk/chunk')
-const BinaryStream = require('@jsprismarine/jsbinaryutils')
-const SubChunk = require('../chunk/sub-chunk')
+const Provider = require('../provider');
+const Chunk = require('../chunk/chunk');
+const BinaryStream = require('@jsprismarine/jsbinaryutils');
+const SubChunk = require('../chunk/sub-chunk');
 
-'use strict'
+'use strict';
 
 class Experimental extends Provider {
 
@@ -20,56 +20,56 @@ class Experimental extends Provider {
      */
     async readChunk(x, z) {
         // Check if chunks folder exists
-        let filesPath = path.join(this.path, 'chunks')
+        let filesPath = path.join(this.path, 'chunks');
         try {
-            await fs.promises.access(filesPath)
+            await fs.promises.access(filesPath);
             // Folder exists
         } catch {
             // Folder doesn't exists
-            await fs.promises.mkdir(filesPath)
+            await fs.promises.mkdir(filesPath);
         }
 
-        let chunkPath = path.join(filesPath, `${x}.${z}.bin`)
+        let chunkPath = path.join(filesPath, `${x}.${z}.bin`);
         // Check if chunk file exists
         try {
-            await fs.promises.access(chunkPath)
+            await fs.promises.access(chunkPath);
             // Chunk file exists
-            let chunkBuffer = await fs.promises.readFile(chunkPath)
-            let stream = new BinaryStream(chunkBuffer)
-            let subChunks = new Map()
+            let chunkBuffer = await fs.promises.readFile(chunkPath);
+            let stream = new BinaryStream(chunkBuffer);
+            let subChunks = new Map();
             for (let i = 0; i < stream.readByte(); i++) {
                 // each sub chunk is 6145 bytes
-                let subChunk = new SubChunk()
-                stream.read(1)
-                subChunk.ids = stream.read(16 * 16 * 16)
-                subChunk.metadata = stream.read((16 * 16 * 16) / 2)
-                subChunks.set(i, subChunk)
+                let subChunk = new SubChunk();
+                stream.read(1);
+                subChunk.ids = stream.read(16 * 16 * 16);
+                subChunk.metadata = stream.read((16 * 16 * 16) / 2);
+                subChunks.set(i, subChunk);
             }
-            let chunk = new Chunk(x, z, subChunks)
-            return chunk
+            let chunk = new Chunk(x, z, subChunks);
+            return chunk;
             // We don't care about biomes for now
         } catch {
             // Chunk file doesn't exists, create one and save
             // To disk (TODO: this should use the generator logic)
-            let chunk = new Chunk(x, z)
+            let chunk = new Chunk(x, z);
             for (let x = 0; x < 16; x++) {
                 for (let z = 0; z < 16; z++) {
-                    let y = 0
-                    chunk.setBlockId(x, y++, z, 7)  
-                    chunk.setBlockId(x, y++, z, 3)
-                    chunk.setBlockId(x, y++, z, 3)
-                    chunk.setBlockId(x, y, z, 2) 
+                    let y = 0;
+                    chunk.setBlockId(x, y++, z, 7);  
+                    chunk.setBlockId(x, y++, z, 3);
+                    chunk.setBlockId(x, y++, z, 3);
+                    chunk.setBlockId(x, y, z, 2); 
                 }
             }
 
-            let stream = new BinaryStream()
-            stream.writeByte(chunk.getSubChunkSendCount())
-            stream.append(chunk.toBinary())
+            let stream = new BinaryStream();
+            stream.writeByte(chunk.getSubChunkSendCount());
+            stream.append(chunk.toBinary());
 
             // Don't block function while writing, this will just
             // delay the chunk to the client
-            fs.promises.writeFile(chunkPath, stream.buffer)
-            return chunk
+            fs.promises.writeFile(chunkPath, stream.buffer);
+            return chunk;
         }
     }
 
@@ -81,22 +81,22 @@ class Experimental extends Provider {
      */
     async writeChunk(chunk) {
         // Check if chunks folder exists
-        let filesPath = path.join(this.path, 'chunks')
+        let filesPath = path.join(this.path, 'chunks');
         try {
-            await fs.promises.access(filesPath)
+            await fs.promises.access(filesPath);
             // Folder exists
         } catch {
             // Folder doesn't exists
-            await fs.promises.mkdir(filesPath)
+            await fs.promises.mkdir(filesPath);
         }
 
-        let stream = new BinaryStream()
-        stream.writeByte(chunk.getSubChunkSendCount())
-        stream.append(chunk.toBinary())
+        let stream = new BinaryStream();
+        stream.writeByte(chunk.getSubChunkSendCount());
+        stream.append(chunk.toBinary());
 
-        let filePath = path.join(filesPath, `${chunk.getX()}.${chunk.getZ()}.bin`)
-        await fs.promises.writeFile(filePath, stream.buffer)
+        let filePath = path.join(filesPath, `${chunk.getX()}.${chunk.getZ()}.bin`);
+        await fs.promises.writeFile(filePath, stream.buffer);
     }
 
 }
-module.exports = Experimental
+module.exports = Experimental;

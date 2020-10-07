@@ -1,11 +1,11 @@
-const PacketBinaryStream = require('../packet-binary-stream')
+const PacketBinaryStream = require('../packet-binary-stream');
 
-'use strict'
+'use strict';
 
-const PID_MASK = 0x3ff
-const SENDER_SHIFT = 10
-const RECEIVER_SHIFT = 12
-const SUBCLIENT_MASK = 0x03
+const PID_MASK = 0x3ff;
+const SENDER_SHIFT = 10;
+const RECEIVER_SHIFT = 12;
+const SUBCLIENT_MASK = 0x03;
 class DataPacket extends PacketBinaryStream {
 
     static NetID 
@@ -17,27 +17,27 @@ class DataPacket extends PacketBinaryStream {
     #receiverSubId = 0
 
     get id() {
-        return this.constructor.NetID
+        return this.constructor.NetID;
     }
 
     getName() {
-        return this.constructor.name
+        return this.constructor.name;
     }
 
     decode() {
-        this.offset = 0
-        this.decodeHeader()
-        this.decodePayload()
+        this.offset = 0;
+        this.decodeHeader();
+        this.decodePayload();
     }
 
     decodeHeader() {
-        let header = this.readUnsignedVarInt()
-        let pid = header & PID_MASK
+        let header = this.readUnsignedVarInt();
+        let pid = header & PID_MASK;
         if (pid !== this.id) {
-            throw new Error(`Packet ID must be ${this.id}, got ${pid}`)
+            throw new Error(`Packet ID must be ${this.id}, got ${pid}`);
         }
-        this.#senderSubId = (header >> SENDER_SHIFT) & SUBCLIENT_MASK
-        this.#receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK
+        this.#senderSubId = (header >> SENDER_SHIFT) & SUBCLIENT_MASK;
+        this.#receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK;
     }
 
     decodePayload() {
@@ -45,10 +45,10 @@ class DataPacket extends PacketBinaryStream {
     }
 
     encode() {
-        this.reset()
-        this.encodeHeader()
-        this.encodePayload()
-        this.#encoded = true
+        this.reset();
+        this.encodeHeader();
+        this.encodePayload();
+        this.#encoded = true;
     }
 
     encodeHeader() {
@@ -56,7 +56,7 @@ class DataPacket extends PacketBinaryStream {
             this.id |
             (this.#senderSubId << SENDER_SHIFT) |
             (this.#receiverSubId << RECEIVER_SHIFT)
-        )
+        );
     }
 
     encodePayload() {
@@ -64,11 +64,11 @@ class DataPacket extends PacketBinaryStream {
     }
 
     get encoded() {
-        return this.#encoded
+        return this.#encoded;
     }
 
     get allowBatching() {
-        return this._allowBatching
+        return this._allowBatching;
     }
 }
-module.exports = DataPacket
+module.exports = DataPacket;

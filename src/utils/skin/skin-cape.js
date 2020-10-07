@@ -1,6 +1,6 @@
-const SkinImage = require('./skin-image')
+const SkinImage = require('./skin-image');
 
-'use strict'
+'use strict';
 
 class SkinCape {
 
@@ -11,10 +11,10 @@ class SkinCape {
     image
 
     constructor({id, image}) {
-        this.id = id
-        this.image = image
+        this.id = id;
+        this.image = image;
     }
 
 }
 
-module.exports = SkinCape
+module.exports = SkinCape;

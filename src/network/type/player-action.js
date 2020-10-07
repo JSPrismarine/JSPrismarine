@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const PlayerAction = {
     StartBreak: 0,
@@ -27,5 +27,5 @@ const PlayerAction = {
     StartSpinAttack: 23,
     StopSpinAttack: 24,
     InteractBlock: 25
-}
-module.exports = PlayerAction
+};
+module.exports = PlayerAction;

@@ -1,11 +1,11 @@
-const SkinImage = require('../skin/skin-image')
-const SkinAnimation = require('./skin-animation')
-const SkinPersona = require('../../utils/skin/skin-persona/persona')
-const SkinPersonaPiece = require('./skin-persona/persona-piece')
-const SkinPersonaPieceTintColor = require('./skin-persona/piece-tint-color')
-const SkinCape = require('../skin/skin-cape')
+const SkinImage = require('../skin/skin-image');
+const SkinAnimation = require('./skin-animation');
+const SkinPersona = require('../../utils/skin/skin-persona/persona');
+const SkinPersonaPiece = require('./skin-persona/persona-piece');
+const SkinPersonaPieceTintColor = require('./skin-persona/piece-tint-color');
+const SkinCape = require('../skin/skin-cape');
 
-'use strict'
+'use strict';
 
 class Skin {
 
@@ -53,20 +53,20 @@ class Skin {
      * @param {object} jwt 
      */
     static fromJWT(jwt) {  
-        let skin = new Skin()
+        let skin = new Skin();
 
         // Read skin 
-        skin.id = jwt.SkinId
+        skin.id = jwt.SkinId;
         skin.resourcePatch = Buffer.from(
             jwt.SkinResourcePatch, 'base64'
-        ).toString()
+        ).toString();
         skin.image = new SkinImage({
             width: jwt.SkinImageWidth,
             height: jwt.SkinImageHeight,
             data: Buffer.from(jwt.SkinData, 'base64')
-        })
-        skin.color = jwt.SkinColor
-        skin.armSize = jwt.ArmSize
+        });
+        skin.color = jwt.SkinColor;
+        skin.armSize = jwt.ArmSize;
 
         // Read animations
         for (let animation of jwt.AnimatedImageData) {
@@ -78,7 +78,7 @@ class Skin {
                 }),
                 frames: animation.Frames,
                 type: animation.Type
-            }))
+            }));
         }
 
         // Read cape 
@@ -89,24 +89,24 @@ class Skin {
                 height: jwt.CapeImageHeight,
                 data: Buffer.from(jwt.CapeData, 'base64')
             })
-        })
+        });
 
         // TODO: make a class to manage geometry
         skin.geometry = Buffer.from(
             jwt.SkinGeometryData, 'base64'
-        ).toString()
+        ).toString();
 
         // TODO: Most of the times is empty, figure out what is it 
-        skin.animationData = Buffer.from(jwt.SkinAnimationData, 'base64')
+        skin.animationData = Buffer.from(jwt.SkinAnimationData, 'base64');
 
         // Read skin boolean properties
-        skin.isPremium = jwt.PremiumSkin
-        skin.isPersona = jwt.PersonaSkin
-        skin.isCapeOnClassicSkin = jwt.CapeOnClassicSkin
+        skin.isPremium = jwt.PremiumSkin;
+        skin.isPersona = jwt.PersonaSkin;
+        skin.isCapeOnClassicSkin = jwt.CapeOnClassicSkin;
 
         // Avoid reading when skin is not persona type
         if (skin.isPersona) { 
-            skin.persona = new SkinPersona()
+            skin.persona = new SkinPersona();
 
             // Read persona pieces
             for (let personaPiece of jwt.PersonaPieces) {
@@ -116,22 +116,22 @@ class Skin {
                     pieceId: personaPiece.PieceId,
                     pieceType: personaPiece.PieceType, 
                     productId: personaPiece.ProductId
-                }))  
+                }));  
             }
             
             // Read piece tint colors
             for (let pieceTintColor of jwt.PieceTintColors) {
-                let tintColor = new SkinPersonaPieceTintColor()
-                tintColor.colors.push(...pieceTintColor.Colors) 
-                tintColor.pieceType = pieceTintColor.PieceType
-                skin.persona.tintColors.add(tintColor)
+                let tintColor = new SkinPersonaPieceTintColor();
+                tintColor.colors.push(...pieceTintColor.Colors); 
+                tintColor.pieceType = pieceTintColor.PieceType;
+                skin.persona.tintColors.add(tintColor);
             }
         }
 
         // Compute a full id
-        skin.fullId = skin.cape.id + skin.id
-        return skin
+        skin.fullId = skin.cape.id + skin.id;
+        return skin;
     }
 
 }
-module.exports = Skin
+module.exports = Skin;

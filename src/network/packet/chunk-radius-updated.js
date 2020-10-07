@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class ChunkRadiusUpdatedPacket extends DataPacket {
     static NetID = Identifiers.ChunkRadiusUpdatedPacket
@@ -9,7 +9,7 @@ class ChunkRadiusUpdatedPacket extends DataPacket {
     radius
 
     encodePayload() {
-        this.writeVarInt(this.radius)
+        this.writeVarInt(this.radius);
     }
 }
-module.exports = ChunkRadiusUpdatedPacket
+module.exports = ChunkRadiusUpdatedPacket;

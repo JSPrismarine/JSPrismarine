@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class PlayStatusPacket extends DataPacket {
     static NetID = Identifiers.PlayStatusPacket
@@ -9,7 +9,7 @@ class PlayStatusPacket extends DataPacket {
     status
 
     encodePayload() {
-        this.writeInt(this.status)
+        this.writeInt(this.status);
     }
 }
-module.exports = PlayStatusPacket
+module.exports = PlayStatusPacket;

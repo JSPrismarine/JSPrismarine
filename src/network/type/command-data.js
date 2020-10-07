@@ -1,6 +1,6 @@
-const CommandParameter = require('./command-parameter')
+const CommandParameter = require('./command-parameter');
 
-'use strict'
+'use strict';
 
 class CommandData {
 
@@ -18,4 +18,4 @@ class CommandData {
     parameters = new Set()
 
 }
-module.exports = CommandData
+module.exports = CommandData;

@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class WorldEventPacket extends DataPacket {
     static NetID = Identifiers.WorldEventPacket
@@ -18,13 +18,13 @@ class WorldEventPacket extends DataPacket {
     data
 
     encodePayload() {
-        this.writeVarInt(this.eventId)
+        this.writeVarInt(this.eventId);
 
-        this.writeLFloat(this.x)
-        this.writeLFloat(this.y)
-        this.writeLFloat(this.z)
+        this.writeLFloat(this.x);
+        this.writeLFloat(this.y);
+        this.writeLFloat(this.z);
 
-        this.writeVarInt(this.data)
+        this.writeVarInt(this.data);
     } 
 }
-module.exports = WorldEventPacket
+module.exports = WorldEventPacket;

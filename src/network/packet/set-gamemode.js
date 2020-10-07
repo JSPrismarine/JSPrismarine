@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class SetGamemodePacket extends DataPacket {
     static NetID = Identifiers.SetPlayerGameTypePacket
@@ -10,7 +10,7 @@ class SetGamemodePacket extends DataPacket {
     gamemode
 
     encodePayload() {
-        this.writeVarInt(this.gamemode)
+        this.writeVarInt(this.gamemode);
     }
 }
-module.exports = SetGamemodePacket
+module.exports = SetGamemodePacket;

@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class SetLocalPlayerAsInitializedPacket extends DataPacket {
     static NetID = Identifiers.SetLocalPlayerAsInitializedPacket
@@ -9,7 +9,7 @@ class SetLocalPlayerAsInitializedPacket extends DataPacket {
     runtimeEntityId
 
     decodePayload() {
-        this.runtimeEntityId = this.readUnsignedVarLong()
+        this.runtimeEntityId = this.readUnsignedVarLong();
     }
 }
-module.exports = SetLocalPlayerAsInitializedPacket
+module.exports = SetLocalPlayerAsInitializedPacket;

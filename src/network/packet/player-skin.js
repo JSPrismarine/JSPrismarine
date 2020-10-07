@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class PlayerSkinPacket extends DataPacket {
     static NetID = Identifiers.PlayerSkinPacket
@@ -13,11 +13,11 @@ class PlayerSkinPacket extends DataPacket {
     trusted
 
     decodePayload() {
-        this.uuid = this.readUUID()
-        this.skin = this.readSkin()
-        this.newSkinName = this.readString()
-        this.oldSkinName = this.readString()
-        this.trusted = this.readBool()
+        this.uuid = this.readUUID();
+        this.skin = this.readSkin();
+        this.newSkinName = this.readString();
+        this.oldSkinName = this.readString();
+        this.trusted = this.readBool();
     }
 }
-module.exports = PlayerSkinPacket
+module.exports = PlayerSkinPacket;

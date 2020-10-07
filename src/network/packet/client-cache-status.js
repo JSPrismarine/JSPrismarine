@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class ClientCacheStatusPacket extends DataPacket {
     static NetID = Identifiers.ClientCacheStatusPacket
@@ -9,7 +9,7 @@ class ClientCacheStatusPacket extends DataPacket {
     enabled
 
     decodePayload() {
-        this.enabled = this.readBool()
+        this.enabled = this.readBool();
     }
 }
-module.exports = ClientCacheStatusPacket
+module.exports = ClientCacheStatusPacket;

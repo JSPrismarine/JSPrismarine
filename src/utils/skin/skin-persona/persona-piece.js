@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 class SkinPersonaPiece {
 
@@ -14,12 +14,12 @@ class SkinPersonaPiece {
     productId
 
     constructor({isDefault, packId, pieceId, pieceType, productId}) {
-        this.isDefault = isDefault
-        this.packId = packId
-        this.pieceId = pieceId
-        this.pieceType = pieceType
-        this.productId = productId
+        this.isDefault = isDefault;
+        this.packId = packId;
+        this.pieceId = pieceId;
+        this.pieceType = pieceType;
+        this.productId = productId;
     }
     
 }
-module.exports = SkinPersonaPiece
+module.exports = SkinPersonaPiece;

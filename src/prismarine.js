@@ -1,18 +1,18 @@
-const winston = require('winston')
+const winston = require('winston');
 
-const Listener = require('@jsprismarine/raknet')
-const Player = require('./player')
-const BatchPacket = require('./network/packet/batch')
-const PacketRegistry = require('./network/packet-registry')
-const CommandManager = require('./command/command-manager')
-const Identifiers = require('./network/identifiers')
-const WorldManager = require('./world/world-manager')
-const PluginManager = require('./plugin/plugin-manager')
-const Config = require('./utils/config')
-const logger = require('./utils/logger')
-const ItemManager = require('./inventory/item/item-manager')
+const Listener = require('@jsprismarine/raknet');
+const Player = require('./player');
+const BatchPacket = require('./network/packet/batch');
+const PacketRegistry = require('./network/packet-registry');
+const CommandManager = require('./command/command-manager');
+const Identifiers = require('./network/identifiers');
+const WorldManager = require('./world/world-manager');
+const PluginManager = require('./plugin/plugin-manager');
+const Config = require('./utils/config');
+const logger = require('./utils/logger');
+const ItemManager = require('./inventory/item/item-manager');
 
-'use strict'
+'use strict';
 
 class Prismarine {
 
@@ -40,127 +40,127 @@ class Prismarine {
 
     constructor({logger, config}) {
         // Pass default server logger and config
-        this.#logger = logger
-        this.#config = config
-        Prismarine.instance = this
+        this.#logger = logger;
+        this.#config = config;
+        Prismarine.instance = this;
     }
 
     async listen(port = 19132) {
-        this.#raknet = await (new Listener).listen('0.0.0.0', port)
-        this.#raknet.name.setOnlinePlayerCount(this.#players.size)
-        this.#raknet.name.setVersion(Identifiers.Protocol)
-        this.#raknet.name.setProtocol(Identifiers.MinecraftVersion)
-        this.#raknet.name.setMaxPlayerCount(this.#config.get('max-players', 20))
-        this.#raknet.name.setMotd(this.#config.get('motd', 'Another JSPrismarine server!'))
+        this.#raknet = await (new Listener).listen('0.0.0.0', port);
+        this.#raknet.name.setOnlinePlayerCount(this.#players.size);
+        this.#raknet.name.setVersion(Identifiers.Protocol);
+        this.#raknet.name.setProtocol(Identifiers.MinecraftVersion);
+        this.#raknet.name.setMaxPlayerCount(this.#config.get('max-players', 20));
+        this.#raknet.name.setMotd(this.#config.get('motd', 'Another JSPrismarine server!'));
 
-        this.#logger.info(`JSPrismarine is now listening port §b${port}`)
+        this.#logger.info(`JSPrismarine is now listening port §b${port}`);
 
         // Client connected, instantiate player
         this.#raknet.on('openConnection', (connection) => {
-            let inetAddr = connection.address
+            let inetAddr = connection.address;
             // TODO: Get last world by player data
             // and if it doesn't exists, return the default one
-            let world = this.getWorldManager().getDefaultWorld()
+            let world = this.getWorldManager().getDefaultWorld();
             let player = new Player(
                 connection, connection.address, world, this
-            )
-            this.#players.set(`${inetAddr.address}:${inetAddr.port}`, player)
+            );
+            this.#players.set(`${inetAddr.address}:${inetAddr.port}`, player);
 
             // Add the player into the world
-            world.addPlayer(player)
-        })
+            world.addPlayer(player);
+        });
 
         // Get player from map by address, then handle packet
         this.#raknet.on('encapsulated', async (packet, inetAddr) => {
-            let token = `${inetAddr.address}:${inetAddr.port}`
-            if (!this.#players.has(token)) return
-            let player = this.#players.get(token)
+            let token = `${inetAddr.address}:${inetAddr.port}`;
+            if (!this.#players.has(token)) return;
+            let player = this.#players.get(token);
 
             // TODO: simplify promise code and add an option to 
             // log incoming and outcoming buffers (maybe an option in config)
             // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
             await new Promise((resolve, reject) => {
                 // Read batch content and handle them
-                let pk = new BatchPacket()
-                pk.buffer = packet.buffer
+                let pk = new BatchPacket();
+                pk.buffer = packet.buffer;
 
                 try {
-                    pk.decode()
+                    pk.decode();
                 } catch {
-                    return reject(`Error while decoding batch`)
+                    return reject(`Error while decoding batch`);
                 }
                 
                 // Read all packets inside batch and handle them
                 for (let buf of pk.getPackets()) {
                     if (this.#packetRegistry.packets.has(buf[0])) {
-                        let packet = new (this.#packetRegistry.packets.get(buf[0]))()  // Get packet from registry
-                        packet.buffer = buf
+                        let packet = new (this.#packetRegistry.packets.get(buf[0]))();  // Get packet from registry
+                        packet.buffer = buf;
                         
                         try {
-                            packet.decode()
+                            packet.decode();
 
                             // Check if the handler exists
                             if (this.#packetRegistry.handlers.has(packet.id)) {
-                                let handler = this.#packetRegistry.handlers.get(packet.id)
+                                let handler = this.#packetRegistry.handlers.get(packet.id);
 
                                 try {
-                                    handler.handle(packet, this, player)
+                                    handler.handle(packet, this, player);
                                 } catch (err) {
-                                    return reject(`Handler error ${packet.constructor.name}-handler: (${err})`)
+                                    return reject(`Handler error ${packet.constructor.name}-handler: (${err})`);
                                 }
                                 
                             } else {
-                                return reject(`Packet ${packet.constructor.name} doesn't have a handler`)
+                                return reject(`Packet ${packet.constructor.name} doesn't have a handler`);
                             }
                         } catch (err) {
-                            return reject(`Error while decoding packet: ${packet.constructor.name}`)
+                            return reject(`Error while decoding packet: ${packet.constructor.name}`);
                         }
 
                     } else {
-                        return reject(`Packet ${packet.id} doesn't have a handler`)
+                        return reject(`Packet ${packet.id} doesn't have a handler`);
                     }
                 }
 
-                return resolve()
-            }).catch(err => this.#logger.error(err))
-        })
+                return resolve();
+            }).catch(err => this.#logger.error(err));
+        });
 
         this.#raknet.on('closeConnection', (inetAddr, reason) => {
-            let token = `${inetAddr.address}:${inetAddr.port}`
+            let token = `${inetAddr.address}:${inetAddr.port}`;
             if (this.#players.has(token)) {
-                let player = this.#players.get(token)
+                let player = this.#players.get(token);
 
                 // Despawn the player to all online players
-                player.removeFromPlayerList()
-                this.#players.delete(token)
+                player.removeFromPlayerList();
+                this.#players.delete(token);
                 for (let onlinePlayer of this.#players.values()) {
-                    player.sendDespawn(onlinePlayer)
+                    player.sendDespawn(onlinePlayer);
                 }
-                player.getWorld().removePlayer(player)
+                player.getWorld().removePlayer(player);
 
             }
-            this.#logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`)
-        })
+            this.#logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
+        });
 
         // Update player count every 5 seconds
         setInterval(() => this.#raknet.name.setOnlinePlayerCount(
             this.#players.size
-        ), 1000 * 5)
+        ), 1000 * 5);
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
         setInterval(() => {
             for (let world of this.getWorldManager().getWorlds()) {
-                world.update(Date.now())
+                world.update(Date.now());
             }
-        }, 1000 / 20)
+        }, 1000 / 20);
 
         // Auto save (default: 5 minutes seconds)
         // TODO: level.ticks % 6000 == 0 and save
         setInterval(async() => {
             for (let world of this.getWorldManager().getWorlds()) {
-                await world.save()
+                await world.save();
             }
-        }, 1000 * 60 * 5)
+        }, 1000 * 60 * 5);
     }
 
     /**
@@ -169,7 +169,7 @@ class Prismarine {
      * @returns {Player[]}
      */
     getOnlinePlayers() {
-        return Array.from(this.#players.values())
+        return Array.from(this.#players.values());
     }
 
     /**
@@ -180,10 +180,10 @@ class Prismarine {
      */
     getPlayerById(id) {
         for (let player of this.#players.values()) {
-            if (player.runtimeId === id) return player
+            if (player.runtimeId === id) return player;
         }
 
-        return null
+        return null;
     }
 
     /**
@@ -197,10 +197,10 @@ class Prismarine {
     getPlayerByName(name) {
         for (let player of this.#players.values()) {
             if (player.name.toLowerCase().startsWith(name.toLowerCase()) || 
-                player.name.toLowerCase() === name.toLowerCase()) return player
+                player.name.toLowerCase() === name.toLowerCase()) return player;
         }
 
-        return null
+        return null;
     }
 
     /**
@@ -213,10 +213,10 @@ class Prismarine {
      */
     getPlayerByExactName(name) {
         for (let player of this.#players.values()) {
-            if (player.name === name) return player
+            if (player.name === name) return player;
         }
 
-        return null
+        return null;
     }
 
     /**
@@ -225,52 +225,52 @@ class Prismarine {
     async kill() {
         // Kick all online players
         for (let player of this.getOnlinePlayers()) {
-            player.kick('Server closed.')
+            player.kick('Server closed.');
         }
         
         // Save all worlds
         for (let world of this.getWorldManager().getWorlds()) {
-            await world.save()
+            await world.save();
         }
 
-        setTimeout(() => { process.exit(0) }, 1000)
+        setTimeout(() => { process.exit(0); }, 1000);
     }
 
     getCommandManager() {
-        return this.#commandManager
+        return this.#commandManager;
     }
 
     getWorldManager() {
-        return this.#worldManager
+        return this.#worldManager;
     }
 
     getItemManager() {
-        return this.#itemManager
+        return this.#itemManager;
     }
 
     getLogger() {
-        return this.#logger
+        return this.#logger;
     }
 
     getPacketRegistry() {
-        return this.#packetRegistry
+        return this.#packetRegistry;
     }
 
     getRaknet() {
-        return this.#raknet
+        return this.#raknet;
     }
 
     getPluginManager() {
-        return this.#pluginManager
+        return this.#pluginManager;
     }
 
     getConfig() {
-        return this.#config
+        return this.#config;
     }
 
     getServer() {
-        return this
+        return this;
     }
 
 }
-module.exports = Prismarine
+module.exports = Prismarine;

@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 class PluginManifest {
 
@@ -20,4 +20,4 @@ class PluginManifest {
     /** @type {string?} */
     author
 }
-module.exports = PluginManifest
+module.exports = PluginManifest;

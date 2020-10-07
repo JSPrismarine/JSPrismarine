@@ -1,8 +1,8 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
-const CreativeContentEntry = require('../type/creative-content-entry')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
+const CreativeContentEntry = require('../type/creative-content-entry');
 
-'use strict'
+'use strict';
 
 class CreativeContentPacket extends DataPacket {
     static NetID = Identifiers.CreativeContentPacket
@@ -11,10 +11,10 @@ class CreativeContentPacket extends DataPacket {
     entries = []
 
     encodePayload() {
-        this.writeUnsignedVarInt(this.entries.length)
+        this.writeUnsignedVarInt(this.entries.length);
 
         for (let i = 0; i < this.entries.length; i++) {
-            this.writeCreativeContentEntry(this.entries[i])
+            this.writeCreativeContentEntry(this.entries[i]);
         }
     }
 
@@ -22,4 +22,4 @@ class CreativeContentPacket extends DataPacket {
         // TODO
     }
 }
-module.exports = CreativeContentPacket
+module.exports = CreativeContentPacket;

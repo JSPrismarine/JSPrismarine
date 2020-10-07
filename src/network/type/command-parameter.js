@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 class CommandParameter {
 
@@ -10,4 +10,4 @@ class CommandParameter {
     optional
 
 }
-module.exports = CommandParameter
+module.exports = CommandParameter;

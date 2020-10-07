@@ -30,7 +30,7 @@
         ],
         "semi": [
             "error",
-            "never"
+            "always"
         ],
         "brace-style": [
             "error",
