@@ -2,10 +2,10 @@
 node_modules
 
 # JSPRismarine things
-plugins
-worlds
-config.yaml
 /dist/
+/plugins/
+/worlds/
+config.yaml
 
 # Text editors/IDE things
 .idea

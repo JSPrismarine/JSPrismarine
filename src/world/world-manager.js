@@ -29,7 +29,7 @@ class WorldManager {
         if (this.isWorldLoaded(folderName)) {
             return logger.warn(`World §e${folderName}§r has already been loaded!`)
         }
-        let levelPath = __dirname + `/../../worlds/${folderName}/`
+        let levelPath = process.cwd() + `/worlds/${folderName}/`
         // TODO: figure out provider by data
         // let world = new World(folderName, this.#server, new Experimental(levelPath))
         let world = new World(folderName, this.#server, new LevelDB(levelPath))
