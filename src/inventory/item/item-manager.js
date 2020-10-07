@@ -50,7 +50,7 @@ class ItemManager {
                     logger.error(`${id} failed to register!`)
                 }
             })
-            logger.debug(`Registered ${items.length} item(s)!`)
+            logger.debug(`Registered §b${items.length}§r item(s)!`)
         } catch (err) {
             logger.error(`Failed to register items: ${err}`)
         }
@@ -69,7 +69,7 @@ class ItemManager {
                     logger.error(`${id} failed to register!`)
                 }
             })
-            logger.debug(`Registered ${blocks.length} block(s)!`)
+            logger.debug(`Registered §b${blocks.length}§r block(s)!`)
         } catch (err) {
             logger.error(`Failed to register blocks: ${err}`)
         }
