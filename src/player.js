@@ -112,8 +112,8 @@ class Player extends Entity {
         this.#address = address
         this.#server = server
 
-        // Inventory window
-        // this.windows.set(0, this.inventory)
+        // TODO: only set to default gamemode if there doesn't exist any save data for the user
+        this.gamemode = server.getConfig().get(`gamemode`, 0)
     }
 
     update(_timestamp) {
