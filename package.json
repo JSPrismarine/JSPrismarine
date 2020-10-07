@@ -7,7 +7,7 @@
   "scripts": {
     "start": "NODE_ENV=production node bootstrap.js",
     "dev": "NODE_ENV=development node bootstrap.js",
-    "build": "NODE_ENV=production pkg package.json --out-path ./dist/",
+    "build": "pkg package.json --out-path ./dist/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
     "eslint": "eslint --fix ./src/"
@@ -39,7 +39,9 @@
       "node_modules/leveldown/**/*.js"
     ],
     "assets": [
-      "node_modules/leveldown/prebuilds/**-x64/*.node"
+      "./node_modules/leveldown/prebuilds/linux-x64/node.napi.glibc.node",
+      "./node_modules/leveldown/prebuilds/darwin-x64/node.napi.node",
+      "./node_modules/leveldown/prebuilds/win32-x64/node.napi.node"
     ]
   },
   "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
@@ -62,9 +64,9 @@
     "yaml": "^1.10.0"
   },
   "devDependencies": {
-    "pkg": "^4.4.9",
     "babel-eslint": "10.1.0",
     "eslint": "7.10.0",
-    "husky": "4.3.0"
+    "husky": "4.3.0",
+    "pkg": "git+https://github.com/geekuillaume/pkg.git"
   }
 }

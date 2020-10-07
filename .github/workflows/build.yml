@@ -25,5 +25,5 @@ jobs:
                   path: dist/jsprismarine-macos
             - uses: actions/upload-artifact@v2
               with:
-                  name: jsprismarine-x64-win.exe
+                  name: jsprismarine-x64-win32.exe
                   path: dist/jsprismarine-win.exe

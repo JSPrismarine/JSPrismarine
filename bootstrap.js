@@ -43,7 +43,7 @@ for (let i = 0; i < pluginFolders.length; i++) {
 }
 
 // Console command reader
-let rl = readline.createInterface({input: process.stdin})
+let rl = readline.createInterface({ input: process.stdin })
 rl.on('line', (input) => {
     if (typeof input !== 'string') {
         return logger.warn('Got an invalid command!')
