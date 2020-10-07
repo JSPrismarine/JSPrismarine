@@ -13,11 +13,11 @@ class WorldManager {
     /** @type {Prismarine} */
     #server 
     /** @type {GeneratorManager} */
-    #generators
+    #generator
 
     constructor(server) {
         this.#server = server
-        this.#generators = new GeneratorManager()
+        this.#generator = new GeneratorManager()
     }
 
     /**
@@ -122,6 +122,10 @@ class WorldManager {
      */
     getWorlds() {
         return this.#worlds.values() 
+    }
+
+    getGeneratorManager() {
+        return this.#generator
     }
 
 }

@@ -89,7 +89,7 @@ class World {
     async loadChunk(x, z, generate) {
         let index = CoordinateUtils.encodePos(x, z)
         if (!this.#chunks.has(index)) {
-            let chunk = await this.#provider.readChunk(x, z)
+            let chunk = await this.#provider.readChunk(x, z, this.#server.getWorldManager().getGeneratorManager().getGenerator(this.#generator))
             this.#chunks.set(index, chunk)
         }
         return this.#chunks.get(index)
