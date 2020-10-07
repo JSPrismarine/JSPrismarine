@@ -5,12 +5,12 @@ const Player = require('./player')
 const BatchPacket = require('./network/packet/batch')
 const PacketRegistry = require('./network/packet-registry')
 const CommandManager = require('./command/command-manager')
-const bufferToConsoleString = require("./utils/buffer-to-console-string")
 const Identifiers = require('./network/identifiers')
 const WorldManager = require('./world/world-manager')
 const PluginManager = require('./plugin/plugin-manager')
 const Config = require('./utils/config')
 const logger = require('./utils/logger')
+const ItemManager = require('./inventory/item/item-manager')
 
 'use strict'
 
@@ -18,7 +18,7 @@ class Prismarine {
 
     /** @type {Listener} */
     #raknet
-    /** @type {winston.Logger} */ 
+    /** @type {logger} */ 
     #logger
     /** @type {Config} */
     #config 
@@ -32,6 +32,8 @@ class Prismarine {
     #commandManager = new CommandManager()
     /** @type {WorldManager} */
     #worldManager = new WorldManager(this)
+    /** @type {ItemManager} */
+    #itemManager = new ItemManager()  // TODO
     
     /** @type {null|Prismarine} */
     static instance = null
@@ -100,7 +102,13 @@ class Prismarine {
                             // Check if the handler exists
                             if (this.#packetRegistry.handlers.has(packet.id)) {
                                 let handler = this.#packetRegistry.handlers.get(packet.id)
-                                handler.handle(packet, this, player)
+
+                                try {
+                                    handler.handle(packet, this, player)
+                                } catch (err) {
+                                    return reject(`Handler error ${packet.constructor.name}-handler: (${err})`)
+                                }
+                                
                             } else {
                                 return reject(`Packet ${packet.constructor.name} doesn't have a handler`)
                             }
@@ -109,7 +117,7 @@ class Prismarine {
                         }
 
                     } else {
-                        return reject('Packet doesn\'t have a handler')
+                        return reject(`Packet ${packet.id} doesn't have a handler`)
                     }
                 }
 

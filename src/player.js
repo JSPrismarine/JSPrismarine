@@ -30,6 +30,12 @@ const DisconnectPacket = require('./network/packet/disconnect-packet')
 const Device = require('./utils/device')
 const World = require('./world/world')
 const SetTimePacket = require('./network/packet/set-time')
+const PlayerInventory = require('./inventory/player-inventory')
+const Inventory = require('./inventory/inventory')
+const InventoryContentPacket = require('./network/packet/inventory-content-packet')
+const MobEquipmentPacket = require('./network/packet/mob-equipment-packet')
+const Item = require('./inventory/item/item')
+const CreativeContentEntry = require('./network/type/creative-content-entry')
 
 'use strict'
 
@@ -41,6 +47,11 @@ class Player extends Entity {
     #server
     /** @type {InetAddress} */
     #address
+
+    /** @type {PlayerInventory} */
+    inventory = new PlayerInventory()
+    /** @type {Map<Number, Inventory>} */
+    windows = new Map()
 
     /** @type {string} */
     name
@@ -121,7 +132,7 @@ class Player extends Entity {
                 if (!this.loadingChunks.has(encodedPos)) {
                     this.chunkSendQueue.delete(chunk)
                 }
-
+    
                 this.sendChunk(chunk)
                 this.chunkSendQueue.delete(chunk)
             })
@@ -227,6 +238,37 @@ class Player extends Entity {
         ) 
     }
 
+    sendInventory() {
+        let pk = new InventoryContentPacket()
+        pk.items = this.inventory.getItems(true)
+        pk.windowId = 0  // Inventory window
+        this.sendDataPacket(pk)
+    }
+
+    sendCreativeContents() {
+        let pk = new CreativeContentPacket() 
+        // TODO: implement full block list
+        pk.entries = [
+            new CreativeContentEntry(1, new Item(5, 0, 1, null, 'Test'))
+        ]
+        this.sendDataPacket(pk)
+    }
+
+    /**
+     * Sets the item in the player hand.
+     * 
+     * @param {Item} item 
+     */
+    sendHandItem(item) {
+        let pk = new MobEquipmentPacket()
+        pk.runtimeEntityId = this.runtimeId
+        pk.item = item
+        pk.inventorySlot = this.inventory.getHandSlotIndex()
+        pk.hotbarSlot = this.inventory.getHandSlotIndex()
+        pk.windowId = 0  // inventory ID
+        this.sendDataPacket(pk)
+    }
+
     sendTime(time) {
         let pk = new SetTimePacket()
         pk.time = time
@@ -236,11 +278,6 @@ class Player extends Entity {
     setGamemode(mode) {
         let pk = new SetGamemodePacket() 
         pk.gamemode = mode
-        this.sendDataPacket(pk)
-    }
-
-    setCreativeContents() {
-        let pk = new CreativeContentPacket()
         this.sendDataPacket(pk)
     }
 

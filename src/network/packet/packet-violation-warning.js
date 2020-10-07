@@ -9,13 +9,13 @@ class PacketViolationWarningPacket extends DataPacket {
     type
     severity
     packetId
-    violationContext
+    message
 
     decodePayload() {
         this.type = this.readVarInt()
         this.severity = this.readVarInt()
         this.packetId = this.readVarInt()
-        this.violationContext = this.readRemaining()
+        this.message = this.readString()
     }
 }
 module.exports = PacketViolationWarningPacket

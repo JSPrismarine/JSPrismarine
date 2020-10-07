@@ -13,8 +13,9 @@ class CreativeContentPacket extends DataPacket {
     encodePayload() {
         this.writeUnsignedVarInt(this.entries.length)
 
-        for (let i = 0; i < this.entries.length; i++)
-            this.writeCreativeContentEntry(this.entries[0])
+        for (let i = 0; i < this.entries.length; i++) {
+            this.writeCreativeContentEntry(this.entries[i])
+        }
     }
 
     decodePayload() {
