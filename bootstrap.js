@@ -9,7 +9,7 @@ const ConsoleSender = require('./src/command/console-sender')
 
 'use strict'
 
-const serverConfig = new Config(path.join('.', 'config.yaml'))
+const serverConfig = new Config(path.join(process.cwd(), 'config.yaml'))
 const server = new Prismarine({
     logger, config: serverConfig,
 })
