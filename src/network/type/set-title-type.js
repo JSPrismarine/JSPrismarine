@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const TitleType = {
     ClearTitle: 0,
@@ -7,6 +7,6 @@ const TitleType = {
     SetSubtitle: 3,
     SetActionBarMessage: 4,
     SetAnimationTimes: 5
-}
+};
 
-module.exports = TitleType
+module.exports = TitleType;

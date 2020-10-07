@@ -1,15 +1,15 @@
-const Inventory = require('./inventory')
-const Item = require('./item/item')
+const Inventory = require('./inventory');
+const Item = require('./item/item');
 
-'use strict'
+'use strict';
 
-const PlayerInventorySlots = 36
+const PlayerInventorySlots = 36;
 class PlayerInventory extends Inventory {
     /** @type {number} */
     #handSlot = 0
 
     constructor() {
-        super(PlayerInventorySlots)
+        super(PlayerInventorySlots);
     }
 
     /**
@@ -18,7 +18,7 @@ class PlayerInventory extends Inventory {
      * @param {Item} item 
      */
     setItemInHand(item) {
-        this.setItem(this.#handSlot, item)
+        this.setItem(this.#handSlot, item);
     }
 
     /**
@@ -27,7 +27,7 @@ class PlayerInventory extends Inventory {
      * @returns {Item}
      */
     getItemInHand() {
-        return this.getItem(this.#handSlot)
+        return this.getItem(this.#handSlot);
     }
 
     /**
@@ -36,7 +36,7 @@ class PlayerInventory extends Inventory {
      * @returns {number}
      */
     getHandSlotIndex() {
-        return this.#handSlot
+        return this.#handSlot;
     }
 }
-module.exports = PlayerInventory
+module.exports = PlayerInventory;

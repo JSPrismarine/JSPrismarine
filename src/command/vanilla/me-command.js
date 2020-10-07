@@ -1,15 +1,15 @@
-const Command = require('../command')
-const Player = require('../../player')
-const ConsoleSender = require('../console-sender')
-const Logger = require('../../utils/logger')
+const Command = require('../command');
+const Player = require('../../player');
+const ConsoleSender = require('../console-sender');
+const Logger = require('../../utils/logger');
 
-'use strict'
+'use strict';
 
 class MeCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({ namespace: 'minecraft', name: 'me', description: 'Displays custom message in chat.' })
+        super({ namespace: 'minecraft', name: 'me', description: 'Displays custom message in chat.' });
     }
 
     /**
@@ -18,18 +18,18 @@ class MeCommand extends Command {
      */
     execute(sender, args) {
         if (!args[0]) {
-            return sender.sendMessage(`§cPlease specify a message.`)
+            return sender.sendMessage(`§cPlease specify a message.`);
         }
 
-        let message = args.join(' ')
-        let messageToSend = `*${sender.name}: ${message}`
+        let message = args.join(' ');
+        let messageToSend = `*${sender.name}: ${message}`;
 
-        Logger.info(messageToSend)
+        Logger.info(messageToSend);
         for (let player of sender.getServer().getOnlinePlayers()) {
-            player.sendMessage(messageToSend)
+            player.sendMessage(messageToSend);
         }
-        return null
+        return null;
     }
 }
 
-module.exports = MeCommand
+module.exports = MeCommand;

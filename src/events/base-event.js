@@ -1,14 +1,14 @@
-'use strict'
+'use strict';
 
 class BaseEvent {
     #cancelled
 
     setCancelled(cancelled = true) {
-        this.#cancelled = cancelled 
+        this.#cancelled = cancelled; 
     }
 
     isCancelled() {
-        return this.#cancelled
+        return this.#cancelled;
     }
 }
-module.exports = BaseEvent
+module.exports = BaseEvent;

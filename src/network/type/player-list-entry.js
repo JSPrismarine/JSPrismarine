@@ -1,7 +1,7 @@
-const Skin = require('../../utils/skin/skin')
-const UUID = require('../../utils/uuid')
+const Skin = require('../../utils/skin/skin');
+const UUID = require('../../utils/uuid');
 
-'use strict'
+'use strict';
 
 class PlayerListEntry {
 
@@ -25,4 +25,4 @@ class PlayerListEntry {
     isHost 
 
 }
-module.exports = PlayerListEntry
+module.exports = PlayerListEntry;

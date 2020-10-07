@@ -1,11 +1,11 @@
-const Identifiers = require('../identifiers')
-const ResourcePacksInfoPacket = require('../packet/resource-packs-info')
-const PlayStatus = require('../type/play-status')
-const LoginPacket = require('../packet/login')
-const Player = require('../../player')
-const Prismarine = require('../../prismarine')
+const Identifiers = require('../identifiers');
+const ResourcePacksInfoPacket = require('../packet/resource-packs-info');
+const PlayStatus = require('../type/play-status');
+const LoginPacket = require('../packet/login');
+const Player = require('../../player');
+const Prismarine = require('../../prismarine');
 
-'use strict'
+'use strict';
 
 class LoginHandler {
     static NetID = Identifiers.LoginPacket
@@ -16,19 +16,19 @@ class LoginHandler {
      * @param {Player} player 
      */
     static handle(packet, _server, player) {
-        player.name = packet.displayName
-        player.locale = packet.languageCode
-        player.randomId = packet.clientRandomId
-        player.uuid = packet.identity
-        player.xuid = packet.XUID
+        player.name = packet.displayName;
+        player.locale = packet.languageCode;
+        player.randomId = packet.clientRandomId;
+        player.uuid = packet.identity;
+        player.xuid = packet.XUID;
 
-        player.skin = packet.skin
-        player.device = packet.device
+        player.skin = packet.skin;
+        player.device = packet.device;
 
-        player.sendPlayStatus(PlayStatus.LoginSuccess)
+        player.sendPlayStatus(PlayStatus.LoginSuccess);
 
-        let pk = new ResourcePacksInfoPacket()
-        player.sendDataPacket(pk)
+        let pk = new ResourcePacksInfoPacket();
+        player.sendDataPacket(pk);
     }
 }
-module.exports = LoginHandler
+module.exports = LoginHandler;

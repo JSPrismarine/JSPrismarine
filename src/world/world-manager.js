@@ -1,10 +1,8 @@
-const Prismarine = require('../prismarine')
-const logger = require('../utils/logger')
-const Experimental = require('./experimental/experimental')
-const LevelDB = require('./leveldb/leveldb')
-const World = require('./world')
-
-'use strict'
+const Prismarine = require('../prismarine');
+const logger = require('../utils/logger');
+const LevelDB = require('./leveldb/leveldb');
+const World = require('./world');
+const GeneratorManager = require('./generator-manager');
 
 class WorldManager {
 
@@ -14,9 +12,12 @@ class WorldManager {
     #defaultWorld = null
     /** @type {Prismarine} */
     #server 
+    /** @type {GeneratorManager} */
+    #generator
 
     constructor(server) {
-        this.#server = server
+        this.#server = server;
+        this.#generator = new GeneratorManager();
     }
 
     /**
@@ -25,23 +26,29 @@ class WorldManager {
      * @param {string} folderName - folder name of the world
      * @param {boolean} def - is default level
      */
-    loadWorld(folderName) {
+    loadWorld(worldData, folderName) {
         if (this.isWorldLoaded(folderName)) {
-            return logger.warn(`World §e${folderName}§r has already been loaded!`)
+            return logger.warn(`World §e${folderName}§r has already been loaded!`);
         }
-        let levelPath = process.cwd() + `/worlds/${folderName}/`
+        let levelPath = process.cwd() + `/worlds/${folderName}/`;
         // TODO: figure out provider by data
-        // let world = new World(folderName, this.#server, new Experimental(levelPath))
-        let world = new World(folderName, this.#server, new LevelDB(levelPath))
-        this.#worlds.set(world.uniqueId, world)
+        let world = new World({
+            name: folderName,
+            server: this.#server,
+            provider: new LevelDB(levelPath),
+
+            seed: worldData.seed,
+            generator: worldData.generator
+        });
+        this.#worlds.set(world.uniqueId, world);
 
         // First level to be loaded is also the default one
         if (!this.#defaultWorld) {
-            this.#defaultWorld = this.#worlds.get(world.uniqueId)
-            logger.info(`Loaded §b${folderName}§r as default world!`)
+            this.#defaultWorld = this.#worlds.get(world.uniqueId);
+            logger.info(`Loaded §b${folderName}§r as default world!`);
         }
-        logger.debug(`World §b${folderName}§r succesfully loaded!`)
-        return world
+        logger.debug(`World §b${folderName}§r succesfully loaded!`);
+        return world;
     }
 
     /**
@@ -53,18 +60,18 @@ class WorldManager {
         if (!this.isWorldLoaded(folderName)) {
             return logger.error(
                 `Cannot unload a not loaded world with name §b${folderName}`
-            )
+            );
         }
 
-        let world = this.getWorldByName(folderName)
+        let world = this.getWorldByName(folderName);
         if (this.#defaultWorld == world) {
-            return logger.warn(`Cannot unload the default level!`)
+            return logger.warn(`Cannot unload the default level!`);
         }
 
-        world.close()
-        this.#worlds.delete(world.uniqueId)
-        logger.debug(`Successfully unloaded world §b${folderName}§f!`)
-        return null
+        world.close();
+        this.#worlds.delete(world.uniqueId);
+        logger.debug(`Successfully unloaded world §b${folderName}§f!`);
+        return null;
     }  
 
     /**
@@ -77,10 +84,10 @@ class WorldManager {
         for (let world of this.#worlds.values()) {
             if (world.name.toLowerCase() == 
                 folderName.toLowerCase()) {
-                return true
+                return true;
             }
         }
-        return false
+        return false;
     }
 
     /**
@@ -93,10 +100,10 @@ class WorldManager {
         for (let world of this.#worlds.values()) {
             if (world.name.toLowerCase() == 
                 folderName.toLowerCase()) {
-                return world
+                return world;
             }
         }
-        return null
+        return null;
     } 
 
     /**
@@ -105,7 +112,7 @@ class WorldManager {
      * @returns {World}
      */
     getDefaultWorld() {
-        return this.#defaultWorld
+        return this.#defaultWorld;
     }
 
     /**
@@ -114,8 +121,12 @@ class WorldManager {
      * @returns {IterableIterator<World>}
      */
     getWorlds() {
-        return this.#worlds.values() 
+        return this.#worlds.values(); 
+    }
+
+    getGeneratorManager() {
+        return this.#generator;
     }
 
 }
-module.exports = WorldManager
+module.exports = WorldManager;

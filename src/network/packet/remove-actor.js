@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class RemoveActorPacket extends DataPacket {
     static NetID = Identifiers.RemoveActorPacket
@@ -9,7 +9,7 @@ class RemoveActorPacket extends DataPacket {
     uniqueEntityId
 
     encodePayload() {
-        this.writeVarLong(this.uniqueEntityId)
+        this.writeVarLong(this.uniqueEntityId);
     }
 }
-module.exports = RemoveActorPacket
+module.exports = RemoveActorPacket;

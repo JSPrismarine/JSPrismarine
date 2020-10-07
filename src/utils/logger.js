@@ -1,20 +1,18 @@
-const { createLogger, format, transports } = require('winston')
-const { combine, timestamp, printf } = format
-const mcColors = require("mccolorstoconsole")
-
-'use strict'
+const { createLogger, format, transports } = require('winston');
+const { combine, timestamp, printf } = format;
+const mcColors = require("mccolorstoconsole");
 
 // Construct a new logger instance
 let logger = createLogger({
     transports: [
         new transports.Console({
-            level: process.env.NODE_ENV !== 'development' && 'info' || 'silly',
+            level: process.env.NODE_ENV !== 'development' && (global.log_level || 'info') || 'silly',
             format: combine(
                 timestamp({ format: 'HH:mm:ss' }),
                 format.colorize(),
                 format.simple(),
                 printf(({ level, message, timestamp }) => {
-                    return `[${timestamp}] ${level}: ${mcColors.minecraftToConsole(message)}`
+                    return `[${timestamp}] ${level}: ${mcColors.minecraftToConsole(message)}`;
                 })
             ),
         }),
@@ -31,7 +29,7 @@ let logger = createLogger({
             )
         })
     ]
-})
+});
 
 module.exports = {
     /**
@@ -39,34 +37,34 @@ module.exports = {
      * @param {string} message 
      */
     debug: function (message) {
-        logger.log('debug', message)
+        logger.log('debug', message);
     },
     /**
      * Log information messages
      * @param {string} message 
      */
     info: function (message) {
-        logger.log('info', message)
+        logger.log('info', message);
     },
     /**
      * Log warning messages
      * @param {string} message 
      */
     warn: function (message) {
-        logger.log('warn', message)
+        logger.log('warn', message);
     },
     /**
      * Log error messages
      * @param {string} message 
      */
     error: function (message) {
-        logger.log('error', message)
+        logger.log('error', message);
     },
     /**
      * Log silly messages
      * @param {string} message 
      */
     silly: function (message) {
-        logger.log('silly', message)
+        logger.log('silly', message);
     }
-}
+};

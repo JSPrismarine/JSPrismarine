@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class LevelSoundEventPacket extends DataPacket {
     static NetID = Identifiers.LevelSoundEventPacket
@@ -18,16 +18,16 @@ class LevelSoundEventPacket extends DataPacket {
     disableRelativeVolume
 
     decodePayload() {
-        this.sound = this.readUnsignedVarInt()
+        this.sound = this.readUnsignedVarInt();
 
-        this.positionX = this.readLFloat()
-        this.positionY = this.readLFloat()
-        this.positionZ = this.readLFloat()
+        this.positionX = this.readLFloat();
+        this.positionY = this.readLFloat();
+        this.positionZ = this.readLFloat();
 
-        this.extraData = this.readVarInt()
-        this.entityType = this.readString()
-        this.isBabyMob = this.readBool()
-        this.disableRelativeVolume = this.readBool()
+        this.extraData = this.readVarInt();
+        this.entityType = this.readString();
+        this.isBabyMob = this.readBool();
+        this.disableRelativeVolume = this.readBool();
     }
 }
-module.exports = LevelSoundEventPacket
+module.exports = LevelSoundEventPacket;

@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const AttributeIds = {
     Absorption: 'minecraft:absorption',
@@ -18,7 +18,7 @@ const AttributeIds = {
     HorseJumpStrength: 'minecraft:horse.jump_strength',
     ZombieSpawnReinforcements: 'minecraft:zombie.spawn_reinforcements',
     LavaMovement: 'minecraft:lava_movement'
-}
+};
 class Attribute {
     /** @type {string} */
     name
@@ -41,14 +41,14 @@ class Attribute {
      * @param {number} value - Attribute current value
      */
     constructor(name, min, max, def, value) {
-        this.name = name
-        this.min = min
-        this.max = max
-        this.default = def
-        this.value = value
+        this.name = name;
+        this.min = min;
+        this.max = max;
+        this.default = def;
+        this.value = value;
     }
 }
-const MAX_FLOAT32 = 3.4028234663852886e+38
+const MAX_FLOAT32 = 3.4028234663852886e+38;
 class AttributeManager {
     /** @type {Attribute[]} */
     #attributes = []
@@ -75,15 +75,15 @@ class AttributeManager {
             new Attribute(AttributeIds.HorseJumpStrength, 0.0, 2.0, 0.7, 0.7),
             new Attribute(AttributeIds.ZombieSpawnReinforcements, 0.0, 1.0, 0.0, 0.0),
             new Attribute(AttributeIds.LavaMovement, 0.0, MAX_FLOAT32, 0.02, 0.02)
-        ]
+        ];
     }
 
     getAttributes() {
-        return this.#attributes
+        return this.#attributes;
     }
 
     /* setAttribute(id, ) {
 
     } */
 }
-module.exports = { AttributeIds, Attribute, AttributeManager }
+module.exports = { AttributeIds, Attribute, AttributeManager };

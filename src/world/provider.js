@@ -1,6 +1,6 @@
-const fs = require('fs')
+const fs = require('fs');
 
-'use strict'
+'use strict';
 
 class Provider {
 
@@ -8,15 +8,15 @@ class Provider {
     #path
 
     constructor(path) {
-        this.#path = path
+        this.#path = path;
         if (!(fs.existsSync(path))) {
-            fs.mkdirSync(path)
+            fs.mkdirSync(path);
         }
     }
 
     get path() {
-        return this.#path
+        return this.#path;
     }
 
 }
-module.exports = Provider
+module.exports = Provider;

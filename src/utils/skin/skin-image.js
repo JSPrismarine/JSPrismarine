@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 class SkinImage {
 
@@ -10,10 +10,10 @@ class SkinImage {
     data
 
     constructor({width, height, data}) {
-        this.width = width
-        this.height = height
-        this.data = data 
+        this.width = width;
+        this.height = height;
+        this.data = data; 
     }
 
 }
-module.exports = SkinImage
+module.exports = SkinImage;

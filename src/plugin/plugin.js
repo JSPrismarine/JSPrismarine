@@ -1,7 +1,7 @@
-const Prismarine = require('../prismarine')
-const PluginManifest = require('./plugin-manifest')
+const Prismarine = require('../prismarine');
+const PluginManifest = require('./plugin-manifest');
 
-'use strict'
+'use strict';
 
 class Plugin {
 
@@ -15,4 +15,4 @@ class Plugin {
     path
     
 }
-module.exports = Plugin
+module.exports = Plugin;

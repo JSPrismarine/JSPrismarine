@@ -1,7 +1,7 @@
-const Vector3 = require('../math/vector3')
-const World = require('./world')
+const Vector3 = require('../math/vector3');
+const World = require('./world');
 
-'use strict'
+'use strict';
 
 class Position extends Vector3 {
 
@@ -9,13 +9,13 @@ class Position extends Vector3 {
     world
 
     constructor(x, y, z, world) {
-        super(x, y, z)
-        this.world = world
+        super(x, y, z);
+        this.world = world;
     }
 
     getWorld() {
-        return this.world
+        return this.world;
     }
     
 }
-module.exports = Position
+module.exports = Position;

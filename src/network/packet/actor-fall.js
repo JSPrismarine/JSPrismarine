@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class ActorFallPacket extends DataPacket {
     static NetID = Identifiers.ActorFallPacket
@@ -14,15 +14,15 @@ class ActorFallPacket extends DataPacket {
     inVoid
 
     decodePayload() {
-        this.runtimeEntityId = this.readUnsignedVarLong()
-        this.fallDistance = this.readLFloat()
-        this.inVoid = this.readBool()
+        this.runtimeEntityId = this.readUnsignedVarLong();
+        this.fallDistance = this.readLFloat();
+        this.inVoid = this.readBool();
     }
 
     encodePayload() {
-        this.writeUnsignedVarLong(this.runtimeEntityId)
-        this.writeLFloat(this.fallDistance)
-        this.writeBool(this.inVoid)
+        this.writeUnsignedVarLong(this.runtimeEntityId);
+        this.writeLFloat(this.fallDistance);
+        this.writeBool(this.inVoid);
     }
 }
-module.exports = ActorFallPacket
+module.exports = ActorFallPacket;

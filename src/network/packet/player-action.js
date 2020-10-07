@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class PlayerActionPacket extends DataPacket {
     static NetID = Identifiers.PlayerActionPacket
@@ -16,14 +16,14 @@ class PlayerActionPacket extends DataPacket {
     face
 
     decodePayload() {
-        this.runtimeEntityId = this.readUnsignedVarLong()
-        this.action = this.readVarInt()
+        this.runtimeEntityId = this.readUnsignedVarLong();
+        this.action = this.readVarInt();
         
-        this.x = this.readVarInt()
-        this.y = this.readUnsignedVarInt()
-        this.z = this.readVarInt()
+        this.x = this.readVarInt();
+        this.y = this.readUnsignedVarInt();
+        this.z = this.readVarInt();
 
-        this.face = this.readVarInt()
+        this.face = this.readVarInt();
     }
 }
-module.exports = PlayerActionPacket
+module.exports = PlayerActionPacket;

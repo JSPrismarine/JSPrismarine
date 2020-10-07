@@ -11,5 +11,5 @@ const CommandOrigin = {
     Virtual: 9,
     GameArgument: 10,
     EntityServer: 11
-}
-module.exports = CommandOrigin
+};
+module.exports = CommandOrigin;

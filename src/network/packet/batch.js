@@ -1,10 +1,10 @@
-const Zlib = require('zlib')
+const Zlib = require('zlib');
 
-const DataPacket = require("./packet")
-const BinaryStream = require('@jsprismarine/jsbinaryutils')
-const PacketBinaryStream = require('../packet-binary-stream')
+const DataPacket = require("./packet");
+const BinaryStream = require('@jsprismarine/jsbinaryutils');
+const PacketBinaryStream = require('../packet-binary-stream');
 
-'use strict'
+'use strict';
 
 class BatchPacket extends DataPacket {
     static NetID = 0xfe
@@ -16,27 +16,27 @@ class BatchPacket extends DataPacket {
     _allowBeforeLogin = true
 
     decodeHeader() {
-        let pid = this.readByte()
+        let pid = this.readByte();
         if (!pid === this.id) {
-            throw new Error(`Batch ID mismatch: is ${this.id}, got ${pid}`)
+            throw new Error(`Batch ID mismatch: is ${this.id}, got ${pid}`);
         }
     }
 
     decodePayload() {
-        let data = this.readRemaining()
+        let data = this.readRemaining();
         try {
-            this.payload = Zlib.inflateRawSync(data, {chunkSize: 1024 * 1024 * 2})
+            this.payload = Zlib.inflateRawSync(data, {chunkSize: 1024 * 1024 * 2});
         } catch (e) {
-            this.payload = Buffer.alloc(0)
+            this.payload = Buffer.alloc(0);
         }
     }
 
     encodeHeader() {
-        this.writeByte(this.id)
+        this.writeByte(this.id);
     }
 
     encodePayload() {
-        this.append(Zlib.deflateRawSync(this.payload, {level: this._compressionLevel}))
+        this.append(Zlib.deflateRawSync(this.payload, {level: this._compressionLevel}));
     }
 
     /**
@@ -48,23 +48,23 @@ class BatchPacket extends DataPacket {
         // }
 
         if (!packet.encoded) {
-            packet.encode()
+            packet.encode();
         }
 
-        let stream = new BinaryStream()
-        stream.writeUnsignedVarInt(packet.buffer.length)
-        stream.append(packet.buffer)
-        this.payload = Buffer.concat([this.payload, stream.buffer])
+        let stream = new BinaryStream();
+        stream.writeUnsignedVarInt(packet.buffer.length);
+        stream.append(packet.buffer);
+        this.payload = Buffer.concat([this.payload, stream.buffer]);
     }
 
     getPackets() {
-        let stream = new PacketBinaryStream()
-        stream.buffer = this.payload
-        let packets = []
+        let stream = new PacketBinaryStream();
+        stream.buffer = this.payload;
+        let packets = [];
         while (!stream.feof()) {
-            packets.push(stream.read(stream.readUnsignedVarInt()))
+            packets.push(stream.read(stream.readUnsignedVarInt()));
         }
-        return packets
+        return packets;
     }
 }
-module.exports = BatchPacket
+module.exports = BatchPacket;

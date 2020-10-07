@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class DisconnectPacket extends DataPacket {
     static NetID = Identifiers.DisconnectPacket
@@ -12,10 +12,10 @@ class DisconnectPacket extends DataPacket {
     message
 
     encodePayload() {
-        this.writeBool(this.hideDiscconnectionWindow)
+        this.writeBool(this.hideDiscconnectionWindow);
         if (!this.hideDiscconnectionWindow) {
-            this.writeString(this.message)
+            this.writeString(this.message);
         }
     }
 }
-module.exports = DisconnectPacket
+module.exports = DisconnectPacket;

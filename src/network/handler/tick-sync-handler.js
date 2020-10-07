@@ -1,9 +1,9 @@
-const Identifiers = require('../identifiers')
-const TickSyncPacket = require('../packet/tick-sync')
-const Player = require('../../player')
-const Prismarine = require('../../prismarine')
+const Identifiers = require('../identifiers');
+const TickSyncPacket = require('../packet/tick-sync');
+const Player = require('../../player');
+const Prismarine = require('../../prismarine');
 
-'use strict'
+'use strict';
 
 class TickSyncHandler {
     static NetID = Identifiers.TickSyncPacket
@@ -15,4 +15,4 @@ class TickSyncHandler {
      */
     static handle(_packet, _server, _player) {}
 }
-module.exports = TickSyncHandler
+module.exports = TickSyncHandler;

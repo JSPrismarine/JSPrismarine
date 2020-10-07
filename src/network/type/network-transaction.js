@@ -1,8 +1,8 @@
-const NetworkTransactionSource = require('../type/network-transaction-source')
-const logger = require('../../utils/logger')
-const PacketBinaryStream = require('../packet-binary-stream')
+const NetworkTransactionSource = require('../type/network-transaction-source');
+const logger = require('../../utils/logger');
+const PacketBinaryStream = require('../packet-binary-stream');
 
-'use strict'
+'use strict';
 
 class NetworkTransaction {
 
@@ -23,30 +23,30 @@ class NetworkTransaction {
 
     /** @param {PacketBinaryStream} buffer */
     decode(buffer, hasItemStack = false) {
-        this.sourceType = buffer.readUnsignedVarInt()
+        this.sourceType = buffer.readUnsignedVarInt();
 
         switch(this.sourceType) {
             case NetworkTransactionSource.Container:
             case NetworkTransactionSource.Unknown:
             case NetworkTransactionSource.CraftingGrid:
-                this.windowId = buffer.readVarInt()
-                break
+                this.windowId = buffer.readVarInt();
+                break;
             case NetworkTransactionSource.World:
-                this.sourceFlags = buffer.readUnsignedVarInt() 
-                break
+                this.sourceFlags = buffer.readUnsignedVarInt(); 
+                break;
             case NetworkTransactionSource.Creative:
-                break
+                break;
             default:
-                logger.warn(`Unknown source type ${this.sourceType}`)
+                logger.warn(`Unknown source type ${this.sourceType}`);
         }
 
-        this.slot = buffer.readUnsignedVarInt()
-        this.oldItem = buffer.readItemStack()
-        this.newItem = buffer.readItemStack()
+        this.slot = buffer.readUnsignedVarInt();
+        this.oldItem = buffer.readItemStack();
+        this.newItem = buffer.readItemStack();
 
         if (hasItemStack) {
-            this.newItemStackId = buffer.readVarInt()
+            this.newItemStackId = buffer.readVarInt();
         }
     }
 }
-module.exports = NetworkTransaction
+module.exports = NetworkTransaction;

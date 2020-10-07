@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 class Item {
     /** @type {number} */
@@ -13,11 +13,11 @@ class Item {
     name
 
     constructor({ id, name, meta, count, nbt }) {
-        this.id = id
-        this.meta = meta
-        this.count = count
-        this.nbt = nbt
-        this.name = name
+        this.id = id;
+        this.meta = meta;
+        this.count = count;
+        this.nbt = nbt;
+        this.name = name;
     }
 }
-module.exports = Item
+module.exports = Item;
