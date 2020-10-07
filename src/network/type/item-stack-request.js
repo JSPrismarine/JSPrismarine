@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 class ItemStackRequest {
 
@@ -7,4 +7,4 @@ class ItemStackRequest {
     actions = []
     
 }
-module.exports = ItemStackRequest
+module.exports = ItemStackRequest;
