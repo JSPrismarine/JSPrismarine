@@ -26,7 +26,7 @@ let logger = createLogger({
                 format.simple(),
                 printf(({ level, message, timestamp }) => {
                     return `[${timestamp}] ${level}: ${mcColors.minecraftToConsole(message).replace(
-                        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')}`
+                        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')}` // eslint-disable-line
                 })
             )
         })
