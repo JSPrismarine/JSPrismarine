@@ -35,16 +35,16 @@
 
 > ### How to use?
   - Linux/MacOS/Unix based OS
-    - You need [Node.js](https://nodejs.org) 12.x and [NPM](https://www.npmjs.com/) (NPM is included with Node.js).
+    - You need [Node.js](https://nodejs.org) 14.x and [NPM](https://www.npmjs.com/) (NPM is included with Node.js).
     - Clone the repository `git clone --recurse-submodules https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/HerryYT/JSPrismarine/archive/master.zip)).
     - Go in the cloned repository `cd JSPrismarine`
-    - You're done, you can run it using `./start.sh` (or `npm run dev` for development)
+    - You're done, you can run it using `npm start` (or `npm run dev` for development)
     
-  - Windows
+  - Windows (requires WSL)
     - You need [Node.js](https://nodejs.org) v12.x or later, and [NPM](https://www.npmjs.com/) (NPM is included with Node.js).
     - Clone the repository `git clone --recurse-submodules https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/HerryYT/JSPrismarine/archive/master.zip)).
     - Go in the cloned repository using `cd JSPrismarine`
-    - You're done, you can now run it using `call start.cmd` (or `npm run dev` for development)
+    - You're done, you can now run it using `npm start` (or `npm run dev` for development)
 
 ---
   
