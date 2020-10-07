@@ -1,15 +1,17 @@
+'use strict'
 const fs = require('fs')
 const readline = require('readline')
 const path = require('path')
 
 const Config = require('./src/utils/config')
-const Prismarine = require('./src/prismarine')
-const logger = require('./src/utils/logger')
-const ConsoleSender = require('./src/command/console-sender')
-
-'use strict'
 
 const serverConfig = new Config(path.join(process.cwd(), 'config.yaml'))
+global.log_level = serverConfig.get('log-level', 'info')
+
+const Prismarine = require('./src/prismarine')
+const ConsoleSender = require('./src/command/console-sender')
+const logger = require('./src/utils/logger')
+
 const server = new Prismarine({
     logger, config: serverConfig,
 })
@@ -23,8 +25,15 @@ if (!(fs.existsSync(process.cwd() + '/worlds'))) {
 }
 
 // Load default level
+const defaultWorld = serverConfig.get('level-name', 'world')
 server.getWorldManager().loadWorld(
-    serverConfig.get('worlds.overworld.name', 'world')
+    serverConfig.get('worlds', {
+        world: {
+            generator: 'flat',
+            seed: 1234 // TODO: generate random seed
+        }
+    })[defaultWorld],
+    defaultWorld
 )
 
 // Load all plugins

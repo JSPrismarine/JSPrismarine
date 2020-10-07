@@ -11,7 +11,7 @@ const { GameruleManager, Rules } = require('../world/gamerule-manager')
 'use strict'
 
 class World {
-    
+
     /** @type {string} */
     #uniqueId = UUID.randomString()
     /** @type {string} */
@@ -21,7 +21,7 @@ class World {
     /** @type {Map<Number, Entity>} */
     #entities = new Map()
     /** @type {Map<String, Chunk>} */
-    #chunks = new Map()  
+    #chunks = new Map()
     /** @type {GameruleManager} */
     #gameruleManager = new GameruleManager()
     /** @type {number} */
@@ -30,11 +30,17 @@ class World {
     #provider = null
     /** @type {Prismarine} */
     #server
+    /** @type {number} */
+    #seed
+    /** @type {string} */
+    #generator
 
-    constructor(name, server, provider = null) {
+    constructor({ name, server, provider = null, seed, generator = 'overworld' }) {
         this.#name = name
         this.#server = server
         this.#provider = provider
+        this.#seed = seed
+        this.#generator = generator
 
         // TODO: Load default gamrules
         this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true)
@@ -83,7 +89,13 @@ class World {
     async loadChunk(x, z, generate) {
         let index = CoordinateUtils.encodePos(x, z)
         if (!this.#chunks.has(index)) {
-            let chunk = await this.#provider.readChunk(x, z)
+            const generator = this.#server.getWorldManager().getGeneratorManager().getGenerator(this.#generator)
+            if (!generator) {
+                this.#server.getLogger().error(`Invalid generator §b${this.#generator}§r!`)
+                throw new Error('invalid generator')
+            }
+
+            let chunk = await this.#provider.readChunk(x, z, generator)
             this.#chunks.set(index, chunk)
         }
         return this.#chunks.get(index)
@@ -129,8 +141,8 @@ class World {
     addEntity(entity) {
         this.#entities.set(entity.runtimeId, entity)
         this.getChunkAt(entity.x, entity.z, true).addEntity(entity)
-    } 
-    
+    }
+
     /**
      * Adds a player into the level. 
      */

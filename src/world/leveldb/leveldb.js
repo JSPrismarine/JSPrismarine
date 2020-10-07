@@ -10,6 +10,8 @@ const SubChunk = require('../chunk/sub-chunk')
 const logger = require('../../utils/logger')
 const { type } = require('os')
 
+const Overworld = require('../generators/overworld')
+
 'use strict'
 
 const Tags = {
@@ -33,7 +35,7 @@ class LevelDB extends Provider {
      * @param {number} x - chunk X 
      * @param {number} z - chunk Z
      */
-    async readChunk(x, z) {
+    async readChunk(x, z, generator) {
         let index = LevelDB.chunkIndex(x, z)
         let subChunks = new Map()
 
@@ -71,17 +73,12 @@ class LevelDB extends Provider {
         } catch {
             // Chunk doesn't exist
             await this.db.put(index + Tags.Version, 7)
-            // TODO: this should use the generator logic
-            let chunk = new Chunk(x, z)
-            for (let x = 0; x < 16; x++) {
-                for (let z = 0; z < 16; z++) {
-                    let y = 0
-                    chunk.setBlockId(x, y++, z, 7)
-                    chunk.setBlockId(x, y++, z, 3)
-                    chunk.setBlockId(x, y++, z, 3)
-                    chunk.setBlockId(x, y, z, 2)
-                }
-            }
+
+            const chunk = await generator.getChunk({
+                chunkX: x,
+                chunkZ: z
+            })
+
             // Put all sub chunks
             for (let [y, subChunk] of chunk.getSubChunks()) {
                 if (subChunk instanceof EmptySubChunk) continue
