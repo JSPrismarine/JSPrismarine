@@ -1,15 +1,17 @@
+'use strict'
 const fs = require('fs')
 const readline = require('readline')
 const path = require('path')
 
 const Config = require('./src/utils/config')
-const Prismarine = require('./src/prismarine')
-const logger = require('./src/utils/logger')
-const ConsoleSender = require('./src/command/console-sender')
-
-'use strict'
 
 const serverConfig = new Config(path.join(process.cwd(), 'config.yaml'))
+global.log_level = serverConfig.get('log-level', 'info')
+
+const Prismarine = require('./src/prismarine')
+const ConsoleSender = require('./src/command/console-sender')
+const logger = require('./src/utils/logger')
+
 const server = new Prismarine({
     logger, config: serverConfig,
 })
