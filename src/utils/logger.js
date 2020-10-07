@@ -8,7 +8,7 @@ const mcColors = require("mccolorstoconsole")
 let logger = createLogger({
     transports: [
         new transports.Console({
-            level: process.env.NODE_ENV !== 'production' && 'silly' || 'info',
+            level: process.env.NODE_ENV !== 'development' && 'info' || 'silly',
             format: combine(
                 timestamp({format: 'HH:mm:ss'}),
                 format.colorize(),
