@@ -2,13 +2,11 @@ const { createLogger, format, transports } = require('winston')
 const { combine, timestamp, printf } = format
 const mcColors = require("mccolorstoconsole")
 
-'use strict'
-
 // Construct a new logger instance
 let logger = createLogger({
     transports: [
         new transports.Console({
-            level: process.env.NODE_ENV !== 'development' && 'info' || 'silly',
+            level: process.env.NODE_ENV !== 'development' && (global.log_level || 'info') || 'silly',
             format: combine(
                 timestamp({ format: 'HH:mm:ss' }),
                 format.colorize(),
