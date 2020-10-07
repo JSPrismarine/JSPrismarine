@@ -8,7 +8,7 @@ class ItemManager {
     #blocks = []
 
     constructor() {
-        // this.importItems()
+        this.importItems()
         this.importBlocks()
     }
 
@@ -37,34 +37,42 @@ class ItemManager {
     }
 
     importItems = () => {
-        const items = fs.readdirSync(path.join(__dirname, 'items'))
-        items.forEach((id) => {
-            if (id.includes('.test.'))
-                return  // Exclude test files
+        try {
+            const items = fs.readdirSync(path.join(__dirname, 'items'))
+            items.forEach((id) => {
+                if (id.includes('.test.'))
+                    return  // Exclude test files
 
-            const item = require(`./items/${id}`)
-            try {
-                this.registerClassItem(new item())
-            } catch (err) {
-                logger.error(`${id} failed to register!`)
-            }
-        })
-        logger.debug(`Registered ${items.length} item(s)!`)
+                const item = require(`./items/${id}`)
+                try {
+                    this.registerClassItem(new item())
+                } catch (err) {
+                    logger.error(`${id} failed to register!`)
+                }
+            })
+            logger.debug(`Registered ${items.length} item(s)!`)
+        } catch (err) {
+            logger.error(`Failed to register items: ${err}`)
+        }
     }
     importBlocks = () => {
-        const blocks = fs.readdirSync(path.join(__dirname, 'blocks'))
-        blocks.forEach((id) => {
-            if (id.includes('.test.'))
-                return  // Exclude test files
+        try {
+            const blocks = fs.readdirSync(path.join(__dirname, 'blocks'))
+            blocks.forEach((id) => {
+                if (id.includes('.test.'))
+                    return  // Exclude test files
 
-            const block = require(`./blocks/${id}`)
-            try {
-                this.registerClassBlock(new block())
-            } catch (err) {
-                logger.error(`${id} failed to register!`)
-            }
-        })
-        logger.debug(`Registered ${blocks.length} block(s)!`)
+                const block = require(`./blocks/${id}`)
+                try {
+                    this.registerClassBlock(new block())
+                } catch (err) {
+                    logger.error(`${id} failed to register!`)
+                }
+            })
+            logger.debug(`Registered ${blocks.length} block(s)!`)
+        } catch (err) {
+            logger.error(`Failed to register blocks: ${err}`)
+        }
     }
 }
 module.exports = ItemManager
