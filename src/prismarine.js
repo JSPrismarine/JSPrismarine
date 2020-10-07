@@ -1,4 +1,6 @@
-const Listener = require('jsraknet')
+const winston = require('winston')
+
+const Listener = require('@jsprismarine/raknet')
 const Player = require('./player')
 const BatchPacket = require('./network/packet/batch')
 const PacketRegistry = require('./network/packet-registry')
@@ -48,6 +50,8 @@ class Prismarine {
         this.#raknet.name.setOnlinePlayerCount(this.#players.size)
         this.#raknet.name.setVersion(Identifiers.Protocol)
         this.#raknet.name.setProtocol(Identifiers.MinecraftVersion)
+        this.#raknet.name.setMaxPlayerCount(this.#config.get('max-players', 20))
+        this.#raknet.name.setMotd(this.#config.get('motd', 'Another JSPrismarine server!'))
 
         this.#logger.info(`JSPrismarine is now listening port §b${port}`)
 

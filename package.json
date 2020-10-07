@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Basic Minecraft Bedrock Edition software ",
   "main": "bootstrap.js",
+  "bin": "bootstrap.js",
   "scripts": {
-    "start": "NODE_ENV=production node bootstrap.js",
+    "start": "node bootstrap.js",
     "dev": "NODE_ENV=development node bootstrap.js",
+    "build": "pkg package.json --out-path ./dist/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
     "eslint": "eslint --fix ./src/"
@@ -30,16 +32,28 @@
       "pre-commit": "npm run eslint && npm run test"
     }
   },
+  "pkg": {
+    "scripts": [
+      "bootstrap.js",
+      "src/**/*.*",
+      "node_modules/leveldown/**/*.js"
+    ],
+    "assets": [
+      "./node_modules/leveldown/prebuilds/linux-x64/node.napi.glibc.node",
+      "./node_modules/leveldown/prebuilds/darwin-x64/node.napi.node",
+      "./node_modules/leveldown/prebuilds/win32-x64/node.napi.node"
+    ]
+  },
   "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
   "dependencies": {
-    "@jsprismarine/bedrock-data": "1.16.20",
     "@iarna/toml": "^2.2.5",
+    "@jsprismarine/bedrock-data": "1.16.20",
+    "@jsprismarine/jsbinaryutils": "1.0.9",
+    "@jsprismarine/nbt": "1.0.0",
+    "@jsprismarine/raknet": "1.2.7",
     "async": "^3.2.0",
     "glob": "^7.1.6",
     "jest": "^26.5.0",
-    "jsbinaryutils": "1.0.9",
-    "jsnamedbinarytag": "^1.0.0",
-    "jsraknet": "^1.2.7",
     "jwt-decode": "^3.0.0",
     "level": "^6.0.1",
     "lodash": "^4.17.20",
@@ -52,6 +66,7 @@
   "devDependencies": {
     "babel-eslint": "10.1.0",
     "eslint": "7.10.0",
-    "husky": "4.3.0"
+    "husky": "4.3.0",
+    "pkg": "git+https://github.com/geekuillaume/pkg.git"
   }
 }
