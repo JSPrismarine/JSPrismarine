@@ -39,7 +39,7 @@
       "node_modules/leveldown/**/*.js"
     ],
     "assets": [
-      "node_modules/leveldown/**/*"
+      "node_modules/leveldown/prebuilds/**-x64/*.node"
     ]
   },
   "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
