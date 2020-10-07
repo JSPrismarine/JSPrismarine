@@ -5,7 +5,7 @@
   "main": "bootstrap.js",
   "bin": "bootstrap.js",
   "scripts": {
-    "start": "NODE_ENV=production node bootstrap.js",
+    "start": "node bootstrap.js",
     "dev": "NODE_ENV=development node bootstrap.js",
     "build": "pkg package.json --out-path ./dist/",
     "test": "jest --passWithNoTests",
