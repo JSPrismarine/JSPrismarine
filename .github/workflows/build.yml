@@ -17,5 +17,13 @@ jobs:
             - run: npm run build
             - uses: actions/upload-artifact@v2
               with:
-                  name: jsprismarine
-                  path: dist/*
+                  name: jsprismarine-x64-linux
+                  path: dist/jsprismarine-linux
+            - uses: actions/upload-artifact@v2
+              with:
+                  name: jsprismarine-x64-macos
+                  path: dist/jsprismarine-macos
+            - uses: actions/upload-artifact@v2
+              with:
+                  name: jsprismarine-x64-win.exe
+                  path: dist/jsprismarine-win.exe
