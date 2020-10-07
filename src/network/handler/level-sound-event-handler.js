@@ -1,9 +1,9 @@
-const Identifiers = require('../identifiers')
-const Player = require('../../player')
-const LevelSoundEventPacket = require('../packet/level-sound-event')
-const Prismarine = require('../../prismarine')
+const Identifiers = require('../identifiers');
+const Player = require('../../player');
+const LevelSoundEventPacket = require('../packet/level-sound-event');
+const Prismarine = require('../../prismarine');
 
-'use strict'
+'use strict';
 
 class LevelSoundEventHandler {
     static NetID = Identifiers.LevelSoundEventPacket
@@ -17,4 +17,4 @@ class LevelSoundEventHandler {
         // TODO: broadcast to viewers
     }
 }
-module.exports = LevelSoundEventHandler
+module.exports = LevelSoundEventHandler;

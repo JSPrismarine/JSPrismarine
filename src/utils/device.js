@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 class Device {
 
@@ -24,12 +24,12 @@ class Device {
      * @param {number} params.guiScale - gui scale 
      */
     constructor({id, model, os, inputMode, guiScale}) {
-        this.id = id
-        this.model = model
-        this.os = os
-        this.inputMode = inputMode
-        this.guiScale = guiScale
+        this.id = id;
+        this.model = model;
+        this.os = os;
+        this.inputMode = inputMode;
+        this.guiScale = guiScale;
     }
 
 }
-module.exports = Device
+module.exports = Device;

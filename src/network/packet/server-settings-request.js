@@ -1,9 +1,9 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class ServerSettingsRequestPacket extends DataPacket {
     static NetID = Identifiers.ServerSettingsRequestPacket
 }
-module.exports = ServerSettingsRequestPacket
+module.exports = ServerSettingsRequestPacket;

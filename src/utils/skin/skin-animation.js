@@ -1,6 +1,6 @@
-const SkinImage = require('./skin-image')
+const SkinImage = require('./skin-image');
 
-'use strict'
+'use strict';
 
 class SkinAnimation {
 
@@ -12,10 +12,10 @@ class SkinAnimation {
     type 
 
     constructor({image, frames, type}) {
-        this.image = image
-        this.frames = frames
-        this.type = type
+        this.image = image;
+        this.frames = frames;
+        this.type = type;
     }
 
 }
-module.exports = SkinAnimation
+module.exports = SkinAnimation;

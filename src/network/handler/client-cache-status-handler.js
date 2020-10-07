@@ -1,9 +1,9 @@
-const Player = require('../../player')
-const Prismarine = require('../../prismarine')
-const Identifiers = require('../identifiers')
-const ClientCacheStatusPacket = require('../packet/client-cache-status')
+const Player = require('../../player');
+const Prismarine = require('../../prismarine');
+const Identifiers = require('../identifiers');
+const ClientCacheStatusPacket = require('../packet/client-cache-status');
 
-'use strict'
+'use strict';
 
 class ClientCacheStatusHandler {
     static NetID = Identifiers.ClientCacheStatusPacket
@@ -14,7 +14,7 @@ class ClientCacheStatusHandler {
      * @param {Player} player 
      */
     static handle(packet, server, player) {
-        player.cacheSupport = packet.enabled
+        player.cacheSupport = packet.enabled;
     }
 }
-module.exports = ClientCacheStatusHandler
+module.exports = ClientCacheStatusHandler;

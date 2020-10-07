@@ -1,6 +1,6 @@
-const LOGGER = require('../utils/logger')
+const LOGGER = require('../utils/logger');
 
-'use strict'
+'use strict';
 
 const Rules =  {
     CommandBlockOutput: 'commandblockoutput',  
@@ -22,7 +22,7 @@ const Rules =  {
     ShowCoordinates: 'showcoordinates',  // bool
     RandomTickSpeed: 'randomtickspeed',
     TNTExplodes: 'tntexplodes'
-}
+};
 
 class GameruleManager {
 
@@ -36,7 +36,7 @@ class GameruleManager {
      * @param {boolean|number} value 
      */
     setGamerule(name, value) {
-        this.#rules.set(name, value)
+        this.#rules.set(name, value);
     }
 
     /**
@@ -46,14 +46,14 @@ class GameruleManager {
      */
     getGamerule(name) {
         if (!Object.values(Rules).includes(name)) {
-            LOGGER.error(`Unknown Gamerule with name ${name}`)
+            LOGGER.error(`Unknown Gamerule with name ${name}`);
         }
-        this.#rules.get(name)
+        this.#rules.get(name);
     }
 
     getGamerules() {
-        return this.#rules
+        return this.#rules;
     }
 
 }
-module.exports = { GameruleManager, Rules }
+module.exports = { GameruleManager, Rules };

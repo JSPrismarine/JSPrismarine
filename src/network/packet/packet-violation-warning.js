@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class PacketViolationWarningPacket extends DataPacket {
     static NetID = Identifiers.PacketViolationWarningPacket
@@ -12,10 +12,10 @@ class PacketViolationWarningPacket extends DataPacket {
     message
 
     decodePayload() {
-        this.type = this.readVarInt()
-        this.severity = this.readVarInt()
-        this.packetId = this.readVarInt()
-        this.message = this.readString()
+        this.type = this.readVarInt();
+        this.severity = this.readVarInt();
+        this.packetId = this.readVarInt();
+        this.message = this.readString();
     }
 }
-module.exports = PacketViolationWarningPacket
+module.exports = PacketViolationWarningPacket;

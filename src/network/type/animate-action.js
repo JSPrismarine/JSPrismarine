@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const AnimateAction = {
     SwingArm: 1,
@@ -7,5 +7,5 @@ const AnimateAction = {
     MagicalCriticalHit: 5,
     RowRight: 128,
     RowLeft: 129
-}
-module.exports = AnimateAction
+};
+module.exports = AnimateAction;

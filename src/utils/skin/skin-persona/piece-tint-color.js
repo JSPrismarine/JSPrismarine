@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 class SkinPersonaPieceTintColor {
 
@@ -9,4 +9,4 @@ class SkinPersonaPieceTintColor {
     pieceType
     
 }
-module.exports = SkinPersonaPieceTintColor
+module.exports = SkinPersonaPieceTintColor;

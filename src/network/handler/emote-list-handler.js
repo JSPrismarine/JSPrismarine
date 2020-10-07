@@ -1,9 +1,9 @@
-const Player = require('../../player')
-const Prismarine = require('../../prismarine')
-const Identifiers = require('../identifiers')
-const EmoteListPacket = require('../packet/emote-list')
+const Player = require('../../player');
+const Prismarine = require('../../prismarine');
+const Identifiers = require('../identifiers');
+const EmoteListPacket = require('../packet/emote-list');
 
-'use strict'
+'use strict';
 
 class EmoteListHandler {
     static NetID = Identifiers.EmoteListPacket
@@ -15,4 +15,4 @@ class EmoteListHandler {
      */
     static handle(_packet, _server, _player) {}
 }
-module.exports = EmoteListHandler
+module.exports = EmoteListHandler;

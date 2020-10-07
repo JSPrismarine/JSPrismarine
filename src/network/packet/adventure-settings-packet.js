@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class AdventureSettingsPacket extends DataPacket {
     static NetID = Identifiers.AdventureSettingsPacket
@@ -10,4 +10,4 @@ class AdventureSettingsPacket extends DataPacket {
         // TODO
     }
 }
-module.exports = AdventureSettingsPacket
+module.exports = AdventureSettingsPacket;

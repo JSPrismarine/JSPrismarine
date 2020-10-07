@@ -1,8 +1,8 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
-const Item = require('../../inventory/item/item')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
+const Item = require('../../inventory/item/item');
 
-'use strict'
+'use strict';
 
 class InventoryContentPacket extends DataPacket {
     static NetID = Identifiers.InventoryContentPacket
@@ -13,13 +13,13 @@ class InventoryContentPacket extends DataPacket {
     items
 
     encodePayload() {
-        this.writeUnsignedVarInt(this.windowId)
+        this.writeUnsignedVarInt(this.windowId);
 
         // Write item stacks
-        this.writeUnsignedVarInt(this.items.length)
+        this.writeUnsignedVarInt(this.items.length);
         for (let i = 0; i < this.items.length; i++) {
-            this.writeItemStack(this.items[i])
+            this.writeItemStack(this.items[i]);
         }
     }
 }
-module.exports = InventoryContentPacket
+module.exports = InventoryContentPacket;

@@ -1,6 +1,6 @@
-const Item = require('../item')
+const Item = require('../item');
 
-'use strict'
+'use strict';
 
 class Air extends Item {
     constructor() {
@@ -10,8 +10,8 @@ class Air extends Item {
             meta: 0,
             nbt: null,
             count: 0
-        })
+        });
     }
 
 }
-module.exports = Air
+module.exports = Air;

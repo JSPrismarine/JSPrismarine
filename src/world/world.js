@@ -1,17 +1,17 @@
-const Entity = require('../entity/entity')
-const UUID = require('../utils/uuid')
-const Chunk = require('./chunk/chunk')
-const CoordinateUtils = require('../world/coordinate-utils')
-const Provider = require('./provider')
-const WorldEventPacket = require('../network/packet/world-event')
-const Vector3 = require('../math/vector3')
-const Prismarine = require('../prismarine')
-const { GameruleManager, Rules } = require('../world/gamerule-manager')
+const Entity = require('../entity/entity');
+const UUID = require('../utils/uuid');
+const Chunk = require('./chunk/chunk');
+const CoordinateUtils = require('../world/coordinate-utils');
+const Provider = require('./provider');
+const WorldEventPacket = require('../network/packet/world-event');
+const Vector3 = require('../math/vector3');
+const Prismarine = require('../prismarine');
+const { GameruleManager, Rules } = require('../world/gamerule-manager');
 
-'use strict'
+'use strict';
 
 class World {
-    
+
     /** @type {string} */
     #uniqueId = UUID.randomString()
     /** @type {string} */
@@ -21,7 +21,7 @@ class World {
     /** @type {Map<Number, Entity>} */
     #entities = new Map()
     /** @type {Map<String, Chunk>} */
-    #chunks = new Map()  
+    #chunks = new Map()
     /** @type {GameruleManager} */
     #gameruleManager = new GameruleManager()
     /** @type {number} */
@@ -30,15 +30,21 @@ class World {
     #provider = null
     /** @type {Prismarine} */
     #server
+    /** @type {number} */
+    #seed
+    /** @type {string} */
+    #generator
 
-    constructor(name, server, provider = null) {
-        this.#name = name
-        this.#server = server
-        this.#provider = provider
+    constructor({ name, server, provider = null, seed, generator = 'overworld' }) {
+        this.#name = name;
+        this.#server = server;
+        this.#provider = provider;
+        this.#seed = seed;
+        this.#generator = generator;
 
         // TODO: Load default gamrules
-        this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true)
-        this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true)
+        this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true);
+        this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true);
     }
 
     /**
@@ -48,11 +54,11 @@ class World {
      */
     update(timestamp) {
         // Continue world time ticks
-        this.#currentTick += 1
+        this.#currentTick += 1;
 
         // Tick players 
         for (let player of this.#players.values()) {
-            player.update(timestamp)
+            player.update(timestamp);
             // Maybe send time to players? 
             // this.sendTime()
         }
@@ -70,7 +76,7 @@ class World {
      * @param {boolean} generate 
      */
     async getChunk(x, z, generate = true) {
-        return await this.loadChunk(x, z, generate)
+        return await this.loadChunk(x, z, generate);
     }
 
     /**
@@ -81,12 +87,18 @@ class World {
      * @param {boolean} generate
      */
     async loadChunk(x, z, generate) {
-        let index = CoordinateUtils.encodePos(x, z)
+        let index = CoordinateUtils.encodePos(x, z);
         if (!this.#chunks.has(index)) {
-            let chunk = await this.#provider.readChunk(x, z)
-            this.#chunks.set(index, chunk)
+            const generator = this.#server.getWorldManager().getGeneratorManager().getGenerator(this.#generator);
+            if (!generator) {
+                this.#server.getLogger().error(`Invalid generator §b${this.#generator}§r!`);
+                throw new Error('invalid generator');
+            }
+
+            let chunk = await this.#provider.readChunk(x, z, generator);
+            this.#chunks.set(index, chunk);
         }
-        return this.#chunks.get(index)
+        return this.#chunks.get(index);
     }
 
     /**
@@ -97,9 +109,9 @@ class World {
      * @param {number} data 
      */
     sendWorldEvent(position, worldEvent, data) {
-        let worldEventPacket = new WorldEventPacket()
-        worldEventPacket.eventId = worldEvent
-        worldEventPacket.data = data
+        let worldEventPacket = new WorldEventPacket();
+        worldEventPacket.eventId = worldEvent;
+        worldEventPacket.data = data;
         if (position != null) {
             // TODO: this.getChunkAt(position.getX(), position.getZ()).
             // Save player into the chunk directly
@@ -117,7 +129,7 @@ class World {
      * @returns {Chunk}
      */
     getChunkAt(x, z, generate = false) {
-        return this.getChunk(x >> 4, z >> 4, generate)
+        return this.getChunk(x >> 4, z >> 4, generate);
     }
 
     /**
@@ -127,22 +139,22 @@ class World {
      * @param {Entity} entity 
      */
     addEntity(entity) {
-        this.#entities.set(entity.runtimeId, entity)
-        this.getChunkAt(entity.x, entity.z, true).addEntity(entity)
-    } 
-    
+        this.#entities.set(entity.runtimeId, entity);
+        this.getChunkAt(entity.x, entity.z, true).addEntity(entity);
+    }
+
     /**
      * Adds a player into the level. 
      */
     addPlayer(player) {
-        this.#players.set(player.runtimeId, player)
+        this.#players.set(player.runtimeId, player);
     }
 
     /**
      * Removes a player from the level.
      */
     removePlayer(player) {
-        this.#players.delete(player.runtimeId)
+        this.#players.delete(player.runtimeId);
     }
 
     /**
@@ -151,20 +163,20 @@ class World {
      * @returns {void}
      */
     async saveChunks() {
-        let time = Date.now()
-        this.#server.getLogger().debug('[World save] saving chunks...')
+        let time = Date.now();
+        this.#server.getLogger().debug('[World save] saving chunks...');
         for (let chunk of this.#chunks.values()) {
             if (chunk.hasChanged()) {
-                await this.#provider.writeChunk(chunk)
-                chunk.setChanged(false)
+                await this.#provider.writeChunk(chunk);
+                chunk.setChanged(false);
             }
         }
-        this.#server.getLogger().debug('[World save] took ' + (Date.now() - time) + 'ms')
+        this.#server.getLogger().debug('[World save] took ' + (Date.now() - time) + 'ms');
     }
 
     async save() {
         // Save chunks
-        await this.saveChunks()
+        await this.saveChunks();
     }
 
     close() {
@@ -172,25 +184,25 @@ class World {
     }
 
     getGameruleManager() {
-        return this.#gameruleManager
+        return this.#gameruleManager;
     }
 
     getTicks() {
-        return this.#currentTick
+        return this.#currentTick;
     }
 
     get provider() {
-        return this.#provider
+        return this.#provider;
     }
 
     // this is used for example in start game packet
     get uniqueId() {
-        return this.#uniqueId
+        return this.#uniqueId;
     }
 
     get name() {
-        return this.#name
+        return this.#name;
     }
 
 }
-module.exports = World
+module.exports = World;
