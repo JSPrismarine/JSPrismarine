@@ -2,7 +2,13 @@ const Item = require('../item')
 
 class Dirt extends Item {
     constructor() {
-        super(3, 0, 1, null, 'minecraft:dirt')
+        super({
+            name: 'minecraft:dirt',
+            id: 3,
+            meta: 0,
+            nbt: null,
+            count: 1
+        })
     }
 
 }

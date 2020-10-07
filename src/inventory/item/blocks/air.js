@@ -4,7 +4,13 @@ const Item = require('../item')
 
 class Air extends Item {
     constructor() {
-        super(0, 0, 0, null, 'minecraft:air')
+        super({
+            name: 'minecraft:air',
+            id: 0,
+            meta: 0,
+            nbt: null,
+            count: 0
+        })
     }
 
 }
