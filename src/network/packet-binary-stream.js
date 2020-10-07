@@ -420,6 +420,10 @@ class PacketBinaryStream extends BinaryStream {
         return null
     }
 
+    readItemStackRequest() {
+        // TODO
+    }
+
     readCommandOriginData() {
         let data = new CommandOriginData()
         data.type = this.readUnsignedVarInt()
