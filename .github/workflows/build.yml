@@ -7,14 +7,13 @@ on:
 
 jobs:
     build:
-        runs-on: ubuntu-latest
+        runs-on: macos-latest
         steps:
             - uses: actions/checkout@v1
             - uses: actions/setup-node@v1
               with:
                   node-version: 14
             - run: npm install
-            - run: ls node_modules/leveldown/prebuilds/darwin-x64
             - run: npm run build
             - uses: actions/upload-artifact@v2
               with:
