@@ -1,17 +1,23 @@
 const fs = require('fs')
 const path = require('path')
+const logger = require('../utils/logger')
 
 class GeneratorManager {
     #generators = new Map()
 
     constructor() {
         const generators = fs.readdirSync(__dirname + '/generators')
-        generators.forEach((generator) => this.registerClassGenerator(generator))
+        generators.forEach((generator) => this.registerClassGenerator(generator?.replace('.js', '')))
     }
 
     registerClassGenerator(id) {
-        const generator = null
-        this.#generators.set(id, generator)
+        const generator = require(path.resolve(__dirname + '/generators', id))
+        this.#generators.set(id, new generator())
+        logger.silly(`Generator with id §b${id}§r registered`)
+    }
+
+    getGenerator(id) {
+        return this.#generators.get(id)
     }
 }
 module.exports = GeneratorManager

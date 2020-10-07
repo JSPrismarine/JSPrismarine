@@ -35,7 +35,7 @@ class LevelDB extends Provider {
      * @param {number} x - chunk X 
      * @param {number} z - chunk Z
      */
-    async readChunk(x, z) {
+    async readChunk(x, z, generator) {
         let index = LevelDB.chunkIndex(x, z)
         let subChunks = new Map()
 
@@ -73,9 +73,6 @@ class LevelDB extends Provider {
         } catch {
             // Chunk doesn't exist
             await this.db.put(index + Tags.Version, 7)
-
-            // TODO: get generator from GeneratorManager
-            const generator = new Overworld()
 
             const chunk = await generator.getChunk({
                 chunkX: x,
