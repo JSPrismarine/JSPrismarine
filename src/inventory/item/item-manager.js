@@ -8,7 +8,7 @@ class ItemManager {
     #blocks = []
 
     constructor() {
-        this.importItems()
+        // this.importItems()
         this.importBlocks()
     }
 
