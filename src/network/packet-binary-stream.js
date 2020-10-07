@@ -15,6 +15,7 @@ const SkinCape = require('../utils/skin/skin-cape')
 const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece')
 const SkinPersona = require('../utils/skin/skin-persona/persona')
 const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color')
+const Item = require('../inventory/item/item')
 const LOGGER = require('../utils/logger')
 const logger = require('../utils/logger')
 
@@ -259,9 +260,8 @@ class PacketBinaryStream extends BinaryStream {
      * @param {CreativeContentEntry} entry 
      */
     writeCreativeContentEntry(entry) {
-        this.writeInt(entry.entryId) // writeGenericTypeNetworkId
-        this.writeVarInt(entry.item.id)
-        // TODO: CreativeContentEntry
+        this.writeVarInt(entry.entryId) // writeGenericTypeNetworkId
+        this.writeItemStack(entry.item)
     }
 
     /**
@@ -336,6 +336,9 @@ class PacketBinaryStream extends BinaryStream {
         } 
     }
 
+    /**
+     * @returns {Item}
+     */
     readItemStack() {
         let id = this.readVarInt()
         if (id == 0) {
@@ -343,9 +346,10 @@ class PacketBinaryStream extends BinaryStream {
             return {id: 0, data: 0, amount: 0}
         }
 
+        let name = null
         let temp = this.readVarInt()
         let amount = (temp & 0xff) 
-        let data = (temp >> 8)  
+        let meta = (temp >> 8)  
 
         let extraLen = this.readLShort()
         let nbt = null
@@ -380,7 +384,40 @@ class PacketBinaryStream extends BinaryStream {
             }
         } */
 
-        return {id: id, data: data, count: amount, nbt: nbt}
+        return new Item(id, meta, amount, nbt, name)
+    }
+
+    /**
+     * Serializes an item into the buffer.
+     * 
+     * @param {Item} itemstack 
+     */
+    writeItemStack(itemstack) {
+        if (itemstack.id == 0) {
+            return this.writeVarInt(0)
+        }
+
+        this.writeVarInt(itemstack.id)
+        this.writeVarInt((itemstack.meta & 0x7fff) | itemstack.count)
+        
+        if (itemstack.nbt !== null) {
+            // write the amount of tags to write
+            // (1) according to vanilla
+            this.writeLShort(0xffff)
+            this.writeByte(1)
+
+            // write hardcoded NBT tag
+            // TODO: unimplemented NBT.write(nbt, true, true)
+        } else {
+            this.writeLShort(0)
+        }
+
+        // canPlace and canBreak
+        this.writeVarInt(0)
+        this.writeVarInt(0)
+
+        // TODO: check for additional data
+        return null
     }
 
     readCommandOriginData() {

@@ -5,6 +5,7 @@ node_modules
 /dist/
 /plugins/
 /worlds/
+/src/resources/
 config.yaml
 
 # Text editors/IDE things
