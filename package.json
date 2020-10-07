@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Basic Minecraft Bedrock Edition software ",
   "main": "bootstrap.js",
+  "bin": "bootstrap.js",
   "scripts": {
-    "start": "NODE_ENV=production node bootstrap.js",
+    "start": "node bootstrap.js",
     "dev": "NODE_ENV=development node bootstrap.js",
+    "build": "pkg package.json --out-path ./dist/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
     "eslint": "eslint --fix ./src/"
@@ -30,6 +32,18 @@
       "pre-commit": "npm run eslint && npm run test"
     }
   },
+  "pkg": {
+    "scripts": [
+      "bootstrap.js",
+      "src/**/*.*",
+      "node_modules/leveldown/**/*.js"
+    ],
+    "assets": [
+      "./node_modules/leveldown/prebuilds/linux-x64/node.napi.glibc.node",
+      "./node_modules/leveldown/prebuilds/darwin-x64/node.napi.node",
+      "./node_modules/leveldown/prebuilds/win32-x64/node.napi.node"
+    ]
+  },
   "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
   "dependencies": {
     "@iarna/toml": "^2.2.5",
@@ -52,6 +66,7 @@
   "devDependencies": {
     "babel-eslint": "10.1.0",
     "eslint": "7.10.0",
-    "husky": "4.3.0"
+    "husky": "4.3.0",
+    "pkg": "git+https://github.com/geekuillaume/pkg.git"
   }
 }
