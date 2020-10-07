@@ -62,7 +62,7 @@ class ResourcePackResponseHandler {
             // player.sendHandItem(player.inventory.getItemInHand())
 
             if (player.gamemode === Gamemode.Creative) {
-                player.sendCreativeInventory()
+                player.sendCreativeContents()
             }
             
             // First add
