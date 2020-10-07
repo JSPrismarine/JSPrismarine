@@ -2,6 +2,7 @@
 node_modules
 
 # JSPRismarine things
+/dist/
 /plugins/
 /worlds/
 /src/resources/
@@ -10,3 +11,4 @@ config.yaml
 # Text editors/IDE things
 .idea
 .vscode
+.DS_Store

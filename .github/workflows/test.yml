@@ -3,12 +3,12 @@ on: [push, pull_request]
 
 jobs:
     test:
-        runs-on: ubuntu-latest
+        runs-on: macos-latest
         steps:
             - uses: actions/checkout@v1
             - uses: actions/setup-node@v1
               with:
                   node-version: 14
-            - run: npm i
+            - run: npm install
             - run: npm run test
             - run: npm run eslint

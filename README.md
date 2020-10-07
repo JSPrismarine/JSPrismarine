@@ -7,16 +7,16 @@
 
 <p align="center">
   <a href="https://github.com/HerryYT/JSPrismarine/blob/master/LICENSE">
-  	<img alt="License" src="https://img.shields.io/github/license/HerryYT/JSPrismarine?style=for-the-badge">
+  	<img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine?style=for-the-badge">
   </a>
   <a href="https://github.com/HerryYT/JSPrismarine/graphs/contributors">
-  	<img alt="Contributors" src="https://img.shields.io/github/contributors/HerryYT/JSPrismarine?color=%23E30B5D&style=for-the-badge">
+  	<img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D&style=for-the-badge">
   </a>
   <a href="https://github.com/HerryYT/JSPrismarine/commits/master">
-    <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/HerryYT/jsprismarine?color=%2387F4BC&style=for-the-badge">
+    <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC&style=for-the-badge">
   </a>
   <a href="https://github.com/HerryYT/JSPrismarine/commits/master">
-    <img alt="Build" src="https://img.shields.io/github/workflow/status/HerryYT/jsprismarine/Unit%20&%20Integration%20Testing?style=for-the-badge">
+    <img alt="Build" src="https://img.shields.io/github/workflow/status/JSPrismarine/JSPrismarine/Unit%20&%20Integration%20Testing?style=for-the-badge">
   </a>
   <a href="https://discord.gg/6w8JWhy">
     <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=for-the-badge">
@@ -34,17 +34,18 @@
 
 
 > ### How to use?
+  Prebuilt binaries will be provided once a stable release is out, for now you can either follow the steps bellow or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22).
   - Linux/MacOS/Unix based OS
-    - You need [Node.js](https://nodejs.org) 12.x and [NPM](https://www.npmjs.com/) (NPM is included with Node.js).
-    - Clone the repository `git clone --recurse-submodules https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/HerryYT/JSPrismarine/archive/master.zip)).
+    - You need [Node.js](https://nodejs.org) 14.x and [NPM](https://www.npmjs.com/) (NPM is included with Node.js).
+    - Clone the repository `git clone https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/HerryYT/JSPrismarine/archive/master.zip)).
     - Go in the cloned repository `cd JSPrismarine`
-    - You're done, you can run it using `./start.sh` (or `npm run dev` for development)
+    - You're done, you can run it using `npm start` (or `npm run dev` for development)
     
-  - Windows
+  - Windows (requires WSL)
     - You need [Node.js](https://nodejs.org) v12.x or later, and [NPM](https://www.npmjs.com/) (NPM is included with Node.js).
-    - Clone the repository `git clone --recurse-submodules https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/HerryYT/JSPrismarine/archive/master.zip)).
+    - Clone the repository `git clone https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/HerryYT/JSPrismarine/archive/master.zip)).
     - Go in the cloned repository using `cd JSPrismarine`
-    - You're done, you can now run it using `call start.cmd` (or `npm run dev` for development)
+    - You're done, you can now run it using `npm start` (or `npm run dev` for development)
 
 ---
   

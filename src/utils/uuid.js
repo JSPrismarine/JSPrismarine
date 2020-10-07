@@ -1,4 +1,4 @@
-const BinaryStream = require("jsbinaryutils")
+const BinaryStream = require("@jsprismarine/jsbinaryutils")
 
 'use strict'
 

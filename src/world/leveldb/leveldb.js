@@ -2,7 +2,7 @@ const path = require('path')
 const level = require('level')
 
 const Provider = require('../provider')
-const BinaryStream = require('jsbinaryutils')
+const BinaryStream = require('@jsprismarine/jsbinaryutils')
 const Chunk = require('../chunk/chunk')
 const Experimental = require('../experimental/experimental')
 const EmptySubChunk = require('../chunk/empty-sub-chunk')
@@ -16,7 +16,7 @@ const Tags = {
     Version: 'v',
     SubChunkPrefix: '\x2f'
 }
-class LevelDB extends Provider{
+class LevelDB extends Provider {
 
     /** @type {level} */
     db
@@ -46,7 +46,7 @@ class LevelDB extends Provider{
                 // Read all sub chunks
                 for (let y = 0; y < 16; y++) {
                     try {
-                        let subChunkBuffer = await this.db.get(index + Tags.SubChunkPrefix + y)     
+                        let subChunkBuffer = await this.db.get(index + Tags.SubChunkPrefix + y)
                         let stream = new BinaryStream(Buffer.from(subChunkBuffer))
                         let subChunkVersion = stream.readByte()
                         if (subChunkVersion == 0) {
@@ -63,7 +63,7 @@ class LevelDB extends Provider{
                         }
                     } catch {
                         // NO-OP
-                    }             
+                    }
                 }
                 await this.db.get(index + '\x2d')
                 return new Chunk(x, z, subChunks)
@@ -76,10 +76,10 @@ class LevelDB extends Provider{
             for (let x = 0; x < 16; x++) {
                 for (let z = 0; z < 16; z++) {
                     let y = 0
-                    chunk.setBlockId(x, y++, z, 7)  
+                    chunk.setBlockId(x, y++, z, 7)
                     chunk.setBlockId(x, y++, z, 3)
                     chunk.setBlockId(x, y++, z, 3)
-                    chunk.setBlockId(x, y, z, 2) 
+                    chunk.setBlockId(x, y, z, 2)
                 }
             }
             // Put all sub chunks
