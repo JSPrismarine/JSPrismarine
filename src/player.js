@@ -2,7 +2,7 @@ const Connection = require('@jsprismarine/raknet/connection')
 const Entity = require('./entity/entity')
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet')
 const InetAddress = require('@jsprismarine/raknet/utils/inet_address')
-const PlayStatusPacket= require('./network/packet/play-status')
+const PlayStatusPacket = require('./network/packet/play-status')
 const BatchPacket = require("./network/packet/batch")
 const ChunkRadiusUpdatedPacket = require('./network/packet/chunk-radius-updated')
 const Chunk = require('./world/chunk/chunk')
@@ -12,7 +12,7 @@ const UUID = require('./utils/uuid')
 const Prismarine = require('./prismarine')
 const PlayerListPacket = require('./network/packet/player-list')
 const PlayerListAction = require('./network/type/player-list-action')
-const PlayerListEntry = require('./network/type/player-list-entry') 
+const PlayerListEntry = require('./network/type/player-list-entry')
 const AddPlayerPacket = require('./network/packet/add-player')
 const MovePlayerPacket = require('./network/packet/move-player')
 const MovementType = require('./network/type/movement-type')
@@ -56,7 +56,7 @@ class Player extends Entity {
     /** @type {string} */
     name
     /** @type {string} */
-    locale 
+    locale
     /** @type {number} */
     randomId
 
@@ -70,7 +70,7 @@ class Player extends Entity {
     /** @type {number} */
     viewDistance
     /** @type {number} */
-    gamemode = 0 
+    gamemode = 0
 
     /** @type {number} */
     pitch = 0
@@ -132,13 +132,13 @@ class Player extends Entity {
                 if (!this.loadingChunks.has(encodedPos)) {
                     this.chunkSendQueue.delete(chunk)
                 }
-    
+
                 this.sendChunk(chunk)
                 this.chunkSendQueue.delete(chunk)
             })
         }
 
-        this.needNewChunks()  
+        this.needNewChunks()
     }
 
     async needNewChunks(forceResend = false) {
@@ -190,7 +190,7 @@ class Player extends Entity {
             return 0
         })
 
-        for (let chunk of chunksToSend) {
+        await Promise.all(chunksToSend.map(async chunk => {
             let hash = CoordinateUtils.encodePos(chunk[0], chunk[1])
             if (forceResend) {
                 if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
@@ -204,7 +204,7 @@ class Player extends Entity {
                 this.loadingChunks.add(hash)
                 await this.requestChunk(chunk[0], chunk[1])
             }
-        }
+        }))
 
         let unloaded = false
 
@@ -235,7 +235,7 @@ class Player extends Entity {
     async requestChunk(x, z) {
         await this.getWorld().getChunk(x, z).then(
             chunk => this.chunkSendQueue.add(chunk)
-        ) 
+        )
     }
 
     sendInventory() {
@@ -246,7 +246,7 @@ class Player extends Entity {
     }
 
     sendCreativeContents() {
-        let pk = new CreativeContentPacket() 
+        let pk = new CreativeContentPacket()
         // TODO: implement full block list
         pk.entries = [
             new CreativeContentEntry(1, new Item(5, 0, 1, null, 'Test'))
@@ -276,7 +276,7 @@ class Player extends Entity {
     }
 
     setGamemode(mode) {
-        let pk = new SetGamemodePacket() 
+        let pk = new SetGamemodePacket()
         pk.gamemode = mode
         this.sendDataPacket(pk)
     }
@@ -293,14 +293,14 @@ class Player extends Entity {
     sendAvailableCommands() {
         let pk = new AvailableCommandsPacket()
         for (let command of this.getServer().getCommandManager().commands) {
-            pk.commandData.add({...command, execute: undefined})
+            pk.commandData.add({ ...command, execute: undefined })
         }
         this.sendDataPacket(pk)
     }
 
     // Updates the player view distance
     setViewDistance(distance) {
-        this.viewDistance = distance 
+        this.viewDistance = distance
         let pk = new ChunkRadiusUpdatedPacket()
         pk.radius = distance
         this.sendDataPacket(pk)
@@ -311,7 +311,7 @@ class Player extends Entity {
         pk.runtimeEntityId = this.runtimeId
         pk.attributes = attributes || this.attributes.getAttributes()
         this.sendDataPacket(pk)
-    } 
+    }
 
     sendMetadata() {
         let pk = new SetActorDataPacket()
@@ -329,7 +329,7 @@ class Player extends Entity {
         pk.type = TextType.Raw
         pk.message = message
         pk.needsTranslation = needsTranslation
-        pk.xuid = xuid 
+        pk.xuid = xuid
         pk.platformChatId = ''  // TODO
         this.sendDataPacket(pk)
     }
@@ -339,9 +339,9 @@ class Player extends Entity {
      */
     sendChunk(chunk) {
         let pk = new LevelChunkPacket()
-        pk.chunkX = chunk.getX() 
-        pk.chunkZ = chunk.getZ() 
-        pk.subChunkCount = chunk.getSubChunkSendCount() 
+        pk.chunkX = chunk.getX()
+        pk.chunkZ = chunk.getZ()
+        pk.subChunkCount = chunk.getSubChunkSendCount()
         pk.data = chunk.toBinary()
         this.sendDataPacket(pk)
 
