@@ -89,7 +89,13 @@ class World {
     async loadChunk(x, z, generate) {
         let index = CoordinateUtils.encodePos(x, z)
         if (!this.#chunks.has(index)) {
-            let chunk = await this.#provider.readChunk(x, z, this.#server.getWorldManager().getGeneratorManager().getGenerator(this.#generator))
+            const generator = this.#server.getWorldManager().getGeneratorManager().getGenerator(this.#generator)
+            if (!generator) {
+                this.#server.getLogger().error(`Invalid generator §b${this.#generator}§r!`)
+                throw new Error('invalid generator')
+            }
+
+            let chunk = await this.#provider.readChunk(x, z, generator)
             this.#chunks.set(index, chunk)
         }
         return this.#chunks.get(index)

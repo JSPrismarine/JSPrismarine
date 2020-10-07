@@ -36,7 +36,7 @@ class CommandManager {
             this.registerClassCommand(new command())
         })
 
-        logger.debug(`Registered ${vanilla.length + jsprismarine.length} commands(s)!`)
+        logger.debug(`Registered §b${vanilla.length + jsprismarine.length}§r commands(s)!`)
     }
 
     /**
