@@ -1,7 +1,7 @@
-const DataPacket = require('./packet')
-const Identifiers = require('../identifiers')
+const DataPacket = require('./packet');
+const Identifiers = require('../identifiers');
 
-'use strict'
+'use strict';
 
 class ItemStackRequestPacket extends DataPacket {
     static NetID = Identifiers.ItemStackRequestPacket
@@ -10,8 +10,8 @@ class ItemStackRequestPacket extends DataPacket {
 
     decodePayload() {
         for (let i = 0; i < this.readUnsignedVarInt(); i++) {
-            this.requests.push(this.readItemStackRequest())
+            this.requests.push(this.readItemStackRequest());
         }
     }
 }
-module.exports = ItemStackRequestPacket
+module.exports = ItemStackRequestPacket;
