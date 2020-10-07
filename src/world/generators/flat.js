@@ -1,7 +1,7 @@
 'use strict'
 const Chunk = require('../chunk/chunk')
 
-class Overworld {
+class Flat {
     getChunk({ chunkX, chunkY, chunkZ, seed }) {
         const chunk = new Chunk(chunkX, chunkZ)
 
@@ -18,4 +18,4 @@ class Overworld {
         return chunk
     }
 }
-module.exports = Overworld
+module.exports = Flat
