@@ -245,7 +245,7 @@ class Player extends Entity {
         this.sendDataPacket(pk)
     }
 
-    sendCreativeInventory() {
+    sendCreativeContents() {
         let pk = new CreativeContentPacket() 
         // TODO: implement full block list
         pk.entries = [
