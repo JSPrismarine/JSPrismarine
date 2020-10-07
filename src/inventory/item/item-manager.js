@@ -41,7 +41,11 @@ class ItemManager {
                 return  // Exclude test files
 
             const item = require(`./items/${id}`)
-            this.registerClassItem(new item())
+            try {
+                this.registerClassItem(new item())
+            } catch (err) {
+                logger.error(`${id} failed to register!`)
+            }
         })
         logger.debug(`Registered ${items.length} item(s)!`)
     }
@@ -51,8 +55,12 @@ class ItemManager {
             if (id.includes('.test.'))
                 return  // Exclude test files
 
-            const item = require(`./blocks/${id}`)
-            this.registerClassBlock(new item())
+            const block = require(`./blocks/${id}`)
+            try {
+                this.registerClassBlock(new block())
+            } catch (err) {
+                logger.error(`${id} failed to register!`)
+            }
         })
         logger.debug(`Registered ${blocks.length} block(s)!`)
     }

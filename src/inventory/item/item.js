@@ -12,8 +12,8 @@ class Item {
     /** @type {string} */
     name
 
-    constructor(id = 0, meta = 0, count = 0, nbt = null, name = '') {
-        this.id =  id
+    constructor({ id, name, meta, count, nbt }) {
+        this.id = id
         this.meta = meta
         this.count = count
         this.nbt = nbt
