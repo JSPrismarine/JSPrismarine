@@ -55,7 +55,7 @@ describe('command', () => {
                         getPlayerByName: (name) => ({
                             name: name,
                             setGamemode: (gamemode) => expect(gamemode).toBe(1),
-                            setCreativeContents: () => null,
+                            sendCreativeContents: () => null,
                             sendMessage: (message) => {
                                 expect(message).toBe('Your game mode has been updated to Creative')
                                 done()

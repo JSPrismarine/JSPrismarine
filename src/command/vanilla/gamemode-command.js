@@ -43,7 +43,7 @@ class GamemodeCommand extends Command {
                 return sender.sendMessage('§cTarget player is not online!')
 
             target.setGamemode(mode)
-            target.sendCreativeInventory()
+            mode === Gamemode.Creative && target.sendCreativeContents()
             return target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))
         } else if (args.length > 1 && typeof args[1] === 'number') {
             return sender.sendMessage('§cTarget player is not online!')
@@ -52,7 +52,7 @@ class GamemodeCommand extends Command {
                 return target.sendMessage('§cYou have to run this command in-game!')
             }
             target.setGamemode(mode)
-            target.sendCreativeInventory()
+            mode === Gamemode.Creative && target.sendCreativeContents()
             return target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode))
         }
     }
