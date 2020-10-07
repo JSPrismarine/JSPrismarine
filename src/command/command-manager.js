@@ -17,7 +17,8 @@ class CommandManager {
 
     constructor() {
         // Register vanilla commands
-        fs.readdirSync(path.join(__dirname, 'vanilla')).forEach((id) => {
+        const vanilla = fs.readdirSync(path.join(__dirname, 'vanilla'))
+        vanilla.forEach((id) => {
             if (id.includes('.test.'))
                 return  // Exclude test files
 
@@ -26,13 +27,16 @@ class CommandManager {
         })
 
         // Register jsprismarine commands
-        fs.readdirSync(path.join(__dirname, 'jsprismarine')).forEach((id) => {
+        const jsprismarine = fs.readdirSync(path.join(__dirname, 'jsprismarine'))
+        jsprismarine.forEach((id) => {
             if (id.includes('.test.'))
                 return  // Exclude test files
 
             const command = require(`./jsprismarine/${id}`)
             this.registerClassCommand(new command())
         })
+
+        logger.debug(`Registered ${vanilla.length + jsprismarine.length} commands(s)!`)
     }
 
     /**
@@ -68,7 +72,7 @@ class CommandManager {
         parameter.optional = true
         command.parameters.add(parameter)
         this.#commands.add(command)
-        logger.debug(`Command with id §b${command.namespace}:${command.name}§r registered`)
+        logger.silly(`Command with id §b${command.namespace}:${command.name}§r registered`)
     }
 
     /**

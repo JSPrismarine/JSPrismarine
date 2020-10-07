@@ -27,10 +27,12 @@ class ItemManager {
 
     registerClassItem = (item) => {
         // TODO: check for duplicates
+        logger.silly(`Item with id §b${item.name}§r registered`)
         this.#blocks.push(item)
     }
     registerClassBlock = (block) => {
         // TODO: check for duplicates
+        logger.silly(`Block with id §b${block.name}§r registered`)
         this.#blocks.push(block)
     }
 
