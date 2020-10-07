@@ -1,6 +1,3 @@
-const perlinNoise3d = require('perlin-noise-3d')
-const perlin = require('perlin-noise')
-
 const Entity = require('../entity/entity')
 const UUID = require('../utils/uuid')
 const Chunk = require('./chunk/chunk')

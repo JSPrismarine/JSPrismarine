@@ -252,6 +252,10 @@ class Prismarine {
         return this.#pluginManager
     }
 
+    getConfig() {
+        return this.#config
+    }
+
     getServer() {
         return this
     }
