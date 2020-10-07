@@ -1,4 +1,4 @@
-const ItemAir = require('./item/air')
+const ItemAir = require('./item/blocks/air')
 const Item = require('./item/item')
 
 'use strict'

@@ -31,7 +31,7 @@ class GamemodeCommand extends Command {
         target.y = args[2]
         target.z = args[3]
         target.broadcastMove(target)
-        sender.sendMessage(`Teleported ${args[0]} to ${target.x} ${target.y} ${target.z}`)
+        return sender.sendMessage(`Teleported ${args[0]} to ${target.x} ${target.y} ${target.z}`)
     }
 }
 module.exports = GamemodeCommand
