@@ -32,7 +32,7 @@ class ResourcePackResponseHandler {
             pk.runtimeEntityId = player.runtimeId
             pk.gamemode = player.gamemode
 
-            let world = player.getWorld()
+            const world = player.getWorld()
             pk.levelId = world.uniqueId
             pk.worldName = world.name
             pk.gamerules = world.getGameruleManager().getGamerules()

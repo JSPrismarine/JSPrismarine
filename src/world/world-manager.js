@@ -1,10 +1,8 @@
 const Prismarine = require('../prismarine')
 const logger = require('../utils/logger')
-const Experimental = require('./experimental/experimental')
 const LevelDB = require('./leveldb/leveldb')
 const World = require('./world')
-
-'use strict'
+const GeneratorManager = require('./generator-manager')
 
 class WorldManager {
 
@@ -14,9 +12,12 @@ class WorldManager {
     #defaultWorld = null
     /** @type {Prismarine} */
     #server 
+    /** @type {GeneratorManager} */
+    #generators
 
     constructor(server) {
         this.#server = server
+        this.#generators = new GeneratorManager()
     }
 
     /**
@@ -25,14 +26,20 @@ class WorldManager {
      * @param {string} folderName - folder name of the world
      * @param {boolean} def - is default level
      */
-    loadWorld(folderName) {
+    loadWorld(worldData, folderName) {
         if (this.isWorldLoaded(folderName)) {
             return logger.warn(`World §e${folderName}§r has already been loaded!`)
         }
         let levelPath = process.cwd() + `/worlds/${folderName}/`
         // TODO: figure out provider by data
-        // let world = new World(folderName, this.#server, new Experimental(levelPath))
-        let world = new World(folderName, this.#server, new LevelDB(levelPath))
+        let world = new World({
+            name: folderName,
+            server: this.#server,
+            provider: new LevelDB(levelPath),
+
+            seed: worldData.seed,
+            generator: worldData.generator
+        })
         this.#worlds.set(world.uniqueId, world)
 
         // First level to be loaded is also the default one
