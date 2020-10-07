@@ -14,6 +14,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install
+            - run: ls node_modules/leveldown/prebuilds
             - run: npm run build
             - uses: actions/upload-artifact@v2
               with:
