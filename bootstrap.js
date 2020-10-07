@@ -23,8 +23,15 @@ if (!(fs.existsSync(process.cwd() + '/worlds'))) {
 }
 
 // Load default level
+const defaultWorld = serverConfig.get('level-name', 'world')
 server.getWorldManager().loadWorld(
-    serverConfig.get('worlds.overworld.name', 'world')
+    serverConfig.get('worlds', {
+        world: {
+            generator: 'flat',
+            seed: 1234 // TODO: generate random seed
+        }
+    })[defaultWorld],
+    defaultWorld
 )
 
 // Load all plugins
