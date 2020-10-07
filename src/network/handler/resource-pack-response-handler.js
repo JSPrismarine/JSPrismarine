@@ -8,7 +8,8 @@ const StartGamePacket = require('../packet/start-game')
 const Player = require('../../player')
 const LOGGER = require('../../utils/logger')
 const Prismarine = require('../../prismarine')
-const Item = require('../../inventory/item/item')
+const Gamemode = require('../../world/gamemode')
+// const Item = require('../../inventory/item/item')
 
 'use strict'
 
@@ -55,10 +56,15 @@ class ResourcePackResponseHandler {
             player.sendAvailableCommands()
 
             // TODO: not working, debug needed
+            // player.inventory.setItemInHand(new Item(267, 0, 1, null, ''))
+            // player.inventory.setItem(1, new Item(267, 0, 1, null, ''))
             // player.sendInventory()
             // player.sendHandItem(player.inventory.getItemInHand())
-            // player.sendCreativeInventory()
 
+            if (player.gamemode === Gamemode.Creative) {
+                player.sendCreativeInventory()
+            }
+            
             // First add
             player.addToPlayerList()
             // Then retrive other players
