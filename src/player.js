@@ -247,7 +247,10 @@ class Player extends Entity {
 
     sendCreativeInventory() {
         let pk = new CreativeContentPacket() 
-        pk.entries = [new Item(7, 0, 1, null, 'Test')].map(item => new CreativeContentEntry(1, item))
+        // TODO: implement full block list
+        pk.entries = [
+            new CreativeContentEntry(1, new Item(5, 0, 1, null, 'Test'))
+        ]
         this.sendDataPacket(pk)
     }
 
@@ -275,11 +278,6 @@ class Player extends Entity {
     setGamemode(mode) {
         let pk = new SetGamemodePacket() 
         pk.gamemode = mode
-        this.sendDataPacket(pk)
-    }
-
-    setCreativeContents() {
-        let pk = new CreativeContentPacket()
         this.sendDataPacket(pk)
     }
 

@@ -102,7 +102,13 @@ class Prismarine {
                             // Check if the handler exists
                             if (this.#packetRegistry.handlers.has(packet.id)) {
                                 let handler = this.#packetRegistry.handlers.get(packet.id)
-                                handler.handle(packet, this, player)
+
+                                try {
+                                    handler.handle(packet, this, player)
+                                } catch (err) {
+                                    return reject(`Handler error ${packet.constructor.name}-handler: (${err})`)
+                                }
+                                
                             } else {
                                 return reject(`Packet ${packet.constructor.name} doesn't have a handler`)
                             }
