@@ -95,7 +95,12 @@ class World {
                 throw new Error('invalid generator');
             }
 
-            let chunk = await this.#provider.readChunk(x, z, generator);
+            let chunk = await this.#provider.readChunk({
+                x,
+                z,
+                generator,
+                seed: this.#seed
+            });
             this.#chunks.set(index, chunk);
         }
         return this.#chunks.get(index);
