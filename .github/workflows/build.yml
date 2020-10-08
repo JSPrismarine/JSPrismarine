@@ -15,6 +15,7 @@ jobs:
                   node-version: 14
             - run: npm install
             - run: npm run build
+            - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
                   name: jsprismarine-x64-linux
