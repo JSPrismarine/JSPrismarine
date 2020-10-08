@@ -178,9 +178,9 @@ module.exports = class Noise {
         return lerp(
             lerp(n00, n10, u),
             lerp(n01, n11, u),
-        fade(y));
+            fade(y));
     }
-}
+};
 
 function fade(t) {
     return t * t * t * (t * (t * 6 - 15) + 10);
