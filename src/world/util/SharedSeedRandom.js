@@ -101,4 +101,4 @@ module.exports = class SharedSeedRandom extends Random {
     seedSlimeChunk(x, z, baseSeed, modifier) {
         return new Random(baseSeed + BigInt(x * x * 4987142) + BigInt(x * 5947611) + BigInt(z * z) * 4392871n + BigInt(z * 389711) ^ modifier);
     }
-}
+};

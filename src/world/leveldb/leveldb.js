@@ -33,7 +33,7 @@ class LevelDB extends Provider {
      * @param {number} x - chunk X 
      * @param {number} z - chunk Z
      */
-    async readChunk({ x, z, generator, seed }) {
+    readChunk({ x, z, generator, seed }) {
         return new Promise(async (resolve) => {
             let index = LevelDB.chunkIndex(x, z);
             let subChunks = new Map();
@@ -67,7 +67,7 @@ class LevelDB extends Provider {
                         }
                     }
                     await this.db.get(index + '\x2d');
-                    resolve(new Chunk(x, z, subChunks));
+                    return resolve(new Chunk(x, z, subChunks));
                 }
             } catch {
                 // Chunk doesn't exist
@@ -90,11 +90,11 @@ class LevelDB extends Provider {
                     // Put data 2D
                     let data = Buffer.from([...chunk.getHeightMap(), chunk.getBiomes()]);
                     await this.db.put(index + '\x2d', data);
-                    resolve(chunk);
+                    return resolve(chunk);
                 })();
             }
 
-            resolve(null);
+            return null;
         });
     }
 

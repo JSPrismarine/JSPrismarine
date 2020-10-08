@@ -44,4 +44,4 @@ module.exports = class Overworld {
 
         return chunk;
     }
-}
+};

@@ -103,7 +103,7 @@ module.exports = class Random {
     nextBytes(bytes) {
         for (let i = 0, len = bytes.length; i < len;) {
             for (let rnd = this.nextInt(),
-                    n = Math.min(len - i, INTEGER_SIZE / BYTE_SIZE);
+                n = Math.min(len - i, INTEGER_SIZE / BYTE_SIZE);
                 n-- > 0; rnd >>= BYTE_SIZE)
                 bytes[i++] = rnd;
         }
@@ -165,6 +165,8 @@ module.exports = class Random {
                 return r;
             }
         }
+
+        return origin;
     }
 
     /**
@@ -282,7 +284,7 @@ module.exports = class Random {
             return v1 * multiplier;
         }
     }
-}
+};
 
 function compareAndSet(oldVal, currentVal, newVal) {
     if (oldVal == currentVal) {
