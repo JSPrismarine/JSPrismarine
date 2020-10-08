@@ -12,8 +12,6 @@ const Config = require('./utils/config');
 const logger = require('./utils/logger');
 const ItemManager = require('./inventory/item/item-manager');
 
-'use strict';
-
 class Prismarine {
 
     /** @type {Listener} */

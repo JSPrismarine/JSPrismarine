@@ -11,7 +11,6 @@ const Prismarine = require('../../prismarine');
 const Gamemode = require('../../world/gamemode');
 // const Item = require('../../inventory/item/item')
 
-'use strict';
 
 class ResourcePackResponseHandler {
     static NetID = Identifiers.ResourcePackResponsePacket

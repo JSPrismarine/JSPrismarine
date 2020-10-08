@@ -1,6 +1,5 @@
 const BinaryStream = require("@jsprismarine/jsbinaryutils");
 
-'use strict';
 
 class UUID {
 

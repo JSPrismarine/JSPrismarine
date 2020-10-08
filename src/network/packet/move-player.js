@@ -2,7 +2,6 @@ const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 const MovementType = require('../type/movement-type');
 
-'use strict';
 
 class MovePlayerPacket extends DataPacket {
     static NetID = Identifiers.MovePlayerPacket

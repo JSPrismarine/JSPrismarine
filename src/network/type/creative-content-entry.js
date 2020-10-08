@@ -1,6 +1,5 @@
 const Item = require('../../inventory/item/item');
 
-'use strict';
 
 class CreativeContentEntry {
 

@@ -2,7 +2,6 @@ const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 const UUID = require('../../utils/uuid');
 
-'use strict';
 
 class EmoteListPacket extends DataPacket {
     static NetID = Identifiers.EmoteListPacket

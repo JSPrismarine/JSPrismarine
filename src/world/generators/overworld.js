@@ -1,4 +1,3 @@
-'use strict';
 const Noise = require('simplex-noise');
 const Chunk = require('../chunk/chunk');
 

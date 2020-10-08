@@ -1,4 +1,3 @@
-'use strict';
 
 const InteractAction = {
     LeaveVehicle: 3,

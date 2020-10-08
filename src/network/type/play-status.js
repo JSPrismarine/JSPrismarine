@@ -1,4 +1,3 @@
-'use strict';
 
 const PlayStatus = {
     LoginSuccess: 0,

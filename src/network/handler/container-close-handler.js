@@ -3,7 +3,6 @@ const Prismarine = require('../../prismarine');
 const Identifiers = require('../identifiers');
 const ContainerClosePacket = require('../packet/container-close');
 
-'use strict';
 
 class ContainerCloseHandler {
     static NetID = Identifiers.ContainerClosePacket

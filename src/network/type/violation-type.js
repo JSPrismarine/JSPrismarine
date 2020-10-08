@@ -1,4 +1,3 @@
-'use strict';
 
 const ViolationType = {
     SeverityWarning: 0,

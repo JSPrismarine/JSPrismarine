@@ -1,6 +1,5 @@
 const UUID = require('../../utils/uuid');
 
-'use strict';
 
 class CommandOriginData {
 

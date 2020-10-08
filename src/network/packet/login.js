@@ -6,7 +6,6 @@ const BinaryStream = require('@jsprismarine/jsbinaryutils');
 const Skin = require('../../utils/skin/skin');
 const Device = require('../../utils/device');
 
-'use strict';
 
 class LoginPacket extends DataPacket {
     static NetID = Identifiers.LoginPacket
