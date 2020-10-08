@@ -72,4 +72,4 @@ server.listen(serverConfig.get('port', 19132)).catch(() => {
     process.exit(1);
 });
 
-module.exports = server
+module.exports = server;

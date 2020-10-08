@@ -4,7 +4,7 @@ class Stone extends Item {
     constructor() {
         super({
             name: 'minecraft:stone',
-            id: 2,
+            id: 1,
             meta: 0,
             nbt: null,
             count: 1
