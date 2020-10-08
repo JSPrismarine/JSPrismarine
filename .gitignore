@@ -1,5 +1,7 @@
 # Node.js things
 node_modules
+package-lock.json
+yarn.lock
 
 # JSPRismarine things
 /dist/
