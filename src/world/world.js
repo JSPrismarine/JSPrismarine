@@ -7,7 +7,7 @@ const WorldEventPacket = require('../network/packet/world-event');
 const Vector3 = require('../math/vector3');
 const Prismarine = require('../prismarine');
 const { GameruleManager, Rules } = require('../world/gamerule-manager');
-const SharedSeedRandom = require('./util/SharedSeedRandom');
+const SharedSeedRandom = require('./util/shared-seed-random');
 
 class World {
 
