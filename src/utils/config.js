@@ -12,7 +12,6 @@ const _ = {
     del: require('lodash/unset')
 };
 
-'use strict';
 
 const TypeDefaults = {
     'json': '{}',

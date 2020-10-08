@@ -1,4 +1,3 @@
-'use strict';
 
 const AnimateAction = {
     SwingArm: 1,

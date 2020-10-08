@@ -6,7 +6,6 @@ const Prismarine = require('../../prismarine');
 const WorldEventPacket = require('../packet/world-event');
 const LevelEventType = require('../type/level-event-type');
 
-'use strict';
 
 class PlayerActionHandler {
     static NetID = Identifiers.PlayerActionPacket

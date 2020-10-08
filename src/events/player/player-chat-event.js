@@ -1,7 +1,5 @@
 const PlayerEvent = require('./player-event');
 
-'use strict';
-
 class PlayerChatEvent extends PlayerEvent {
     #message
 

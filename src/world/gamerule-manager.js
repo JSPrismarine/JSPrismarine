@@ -1,6 +1,5 @@
 const LOGGER = require('../utils/logger');
 
-'use strict';
 
 const Rules =  {
     CommandBlockOutput: 'commandblockoutput',  

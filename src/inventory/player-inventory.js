@@ -1,7 +1,6 @@
 const Inventory = require('./inventory');
 const Item = require('./item/item');
 
-'use strict';
 
 const PlayerInventorySlots = 36;
 class PlayerInventory extends Inventory {

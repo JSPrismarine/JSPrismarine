@@ -1,6 +1,5 @@
 const PacketBinaryStream = require('../packet-binary-stream');
 
-'use strict';
 
 const PID_MASK = 0x3ff;
 const SENDER_SHIFT = 10;

@@ -4,7 +4,6 @@ const SetLocalPlayerAsInitializedPacket = require('../packet/set-local-player-as
 const EventManager = require('../../events/event-manager');
 const Prismarine = require('../../prismarine');
 
-'use strict';
 
 class SetLocalPlayerAsInitializedHandler {
     static NetID = Identifiers.SetLocalPlayerAsInitializedPacket

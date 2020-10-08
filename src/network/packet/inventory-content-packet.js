@@ -2,7 +2,6 @@ const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 const Item = require('../../inventory/item/item');
 
-'use strict';
 
 class InventoryContentPacket extends DataPacket {
     static NetID = Identifiers.InventoryContentPacket

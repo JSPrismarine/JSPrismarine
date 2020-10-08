@@ -2,7 +2,6 @@ const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 const TextType = require('../type/text-type');
 
-'use strict';
 
 class TextPacket extends DataPacket {
     static NetID = Identifiers.TextPacket

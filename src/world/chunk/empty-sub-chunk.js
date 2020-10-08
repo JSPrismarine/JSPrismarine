@@ -1,6 +1,5 @@
 const SubChunk = require('./sub-chunk');
 
-'use strict';
 
 class EmptySubChunk extends SubChunk {
 

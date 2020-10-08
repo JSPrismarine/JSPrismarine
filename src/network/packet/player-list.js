@@ -5,7 +5,6 @@ const Identifiers = require('../identifiers');
 const PlayerListEntry = require('../type/player-list-entry');
 const PlayerListAction = require('../type/player-list-action');
 
-'use strict';
 
 class PlayerListPacket extends DataPacket {
     static NetID = Identifiers.PlayerListPacket

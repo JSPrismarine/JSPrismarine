@@ -37,8 +37,6 @@ const MobEquipmentPacket = require('./network/packet/mob-equipment-packet');
 const Item = require('./inventory/item/item');
 const CreativeContentEntry = require('./network/type/creative-content-entry');
 
-'use strict';
-
 class Player extends Entity {
 
     /** @type {Connection} */

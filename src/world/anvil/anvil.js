@@ -1,7 +1,6 @@
 const { MOB_ID } = require('../../entity/entity');
 const Provider = require('../provider');
 
-'use strict';
 
 class Anvil extends Provider {
 
