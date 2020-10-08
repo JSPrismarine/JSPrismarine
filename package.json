@@ -23,7 +23,7 @@
     "be"
   ],
   "author": "HerryYT",
-  "license": "MPL2",
+  "license": "MPL-2.0",
   "bugs": {
     "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
   },
@@ -58,14 +58,14 @@
     "level": "^6.0.1",
     "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
-    "simplex-noise": "^2.4.0",
+    "typescript": "^4.0.3",
     "winston": "^3.3.3",
     "yaml": "^1.10.0"
   },
   "devDependencies": {
     "nodemon": "2.0.4",
-    "babel-eslint": "10.1.0",
     "eslint": "7.10.0",
+    "babel-eslint": "10.1.0",
     "husky": "4.3.0",
     "pkg": "git+https://github.com/geekuillaume/pkg.git"
   }

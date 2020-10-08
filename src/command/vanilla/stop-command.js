@@ -16,6 +16,9 @@ class StopCommand extends Command {
         // TODO: implement operators and just check if player is operator
 
         sender.getServer().getLogger().warn('Server is closing...');
+        if (args[0] && args[0].toLowerCase() == 'f')
+            process.exit();
+
         await sender.getServer().getServer().kill();
     }
 }
