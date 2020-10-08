@@ -3,7 +3,6 @@ const Prismarine = require('../../prismarine');
 const Identifiers = require('../identifiers');
 const AdventureSettingsPacket = require('../packet/adventure-settings-packet');
 
-'use strict';
 
 class AdventureSettingsHandler {
     static NetID = Identifiers.AdventureSettingsPacket

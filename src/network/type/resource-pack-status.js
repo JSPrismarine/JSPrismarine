@@ -1,4 +1,3 @@
-'use strict';
 
 const ResourcePackStatus = {
     Refused: 1,

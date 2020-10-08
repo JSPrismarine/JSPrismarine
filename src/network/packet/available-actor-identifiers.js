@@ -4,7 +4,6 @@ const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 const EntityIdentifiers = require('@jsprismarine/bedrock-data').entity_identifiers;
 
-'use strict';
 
 class AvailableActorIdentifiersPacket extends DataPacket {
     static NetID = Identifiers.AvailableActorIdentifiersPacket

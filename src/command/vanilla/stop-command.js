@@ -2,8 +2,6 @@ const Command = require('../command');
 const Player = require('../../player');
 const ConsoleSender = require('../console-sender');
 
-'use strict';
-
 class StopCommand extends Command {
 
     constructor() {

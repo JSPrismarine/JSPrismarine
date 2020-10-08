@@ -1,4 +1,3 @@
-'use strict';
 const Chunk = require('../chunk/chunk');
 
 class Debug {

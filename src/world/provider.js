@@ -1,6 +1,5 @@
 const fs = require('fs');
 
-'use strict';
 
 class Provider {
 

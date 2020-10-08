@@ -3,7 +3,6 @@ const Prismarine = require('../../prismarine');
 const Identifiers = require('../identifiers');
 const CommandRequestPacket = require('../packet/command-request');
 
-'use strict';
 
 class ClientCacheStatusHandler {
     static NetID = Identifiers.CommandRequestPacket

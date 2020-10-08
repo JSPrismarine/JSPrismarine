@@ -4,7 +4,6 @@ const Player = require('../../player');
 const EventManager = require('../../events/event-manager');
 const Prismarine = require('../../prismarine');
 
-'use strict';
 
 class MovePlayerHandler {
     static NetID = Identifiers.MovePlayerPacket

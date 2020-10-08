@@ -3,7 +3,6 @@ const TickSyncPacket = require('../packet/tick-sync');
 const Player = require('../../player');
 const Prismarine = require('../../prismarine');
 
-'use strict';
 
 class TickSyncHandler {
     static NetID = Identifiers.TickSyncPacket

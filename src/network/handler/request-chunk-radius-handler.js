@@ -4,7 +4,6 @@ const PlayStatus = require('../type/play-status');
 const Player = require('../../player');
 const Prismarine = require('../../prismarine');
 
-'use strict';
 
 class RequestChunkRadiusHandler {
     static NetID = Identifiers.RequestChunkRadiusPacket

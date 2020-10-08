@@ -8,8 +8,6 @@ const Player = require('../player');
 const ConsoleSender = require('./console-sender');
 const logger = require('../utils/logger');
 
-'use strict';
-
 class CommandManager {
 
     /** @type {Set<Command>} */

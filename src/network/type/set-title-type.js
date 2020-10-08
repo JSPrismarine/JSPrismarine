@@ -1,4 +1,3 @@
-'use strict';
 
 const TitleType = {
     ClearTitle: 0,
