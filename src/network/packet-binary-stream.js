@@ -461,7 +461,7 @@ class PacketBinaryStream extends BinaryStream {
             case 12: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
                 Logger.silly('Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)');
             case 13: // CRAFTING_RESULTS_DEPRECATED, Deprecated so we'll just ignore it
-                Logger.silly('Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)')
+                Logger.silly('Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)');
             default:
                 return new ItemStackRequestAction(-1);
         }
