@@ -1,4 +1,4 @@
-const Noise = require('../synth/Noise');
+const Noise = require('../synth/noise');
 const Chunk = require('../chunk/chunk');
 
 const CHUNK_WIDTH = 16;

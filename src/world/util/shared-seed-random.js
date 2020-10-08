@@ -1,4 +1,4 @@
-const Random = require('./Random');
+const Random = require('./random');
 
 module.exports = class SharedSeedRandom extends Random {
     /** @type {number} */

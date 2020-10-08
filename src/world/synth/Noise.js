@@ -1,6 +1,6 @@
 
 
-const Random = require('../util/Random');
+const Random = require('../util/random');
 
 class Grad {
     x;
