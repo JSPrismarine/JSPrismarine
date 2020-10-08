@@ -16,6 +16,7 @@
         "no-mixed-operators": 0,
         "no-useless-constructor": 0,
         "standard/computed-property-even-spacing": 0,
+        "no-async-promise-executor": 0,
         "import/first": 0,
         "no-unused-vars": 0,
         "no-console": 1,
