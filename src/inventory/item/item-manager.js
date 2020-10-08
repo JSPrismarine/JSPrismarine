@@ -3,8 +3,8 @@ const path = require('path');
 const logger = require('../../utils/logger');
 
 class ItemManager {
-    #items = []
-    #blocks = []
+    #items = new Map()
+    #blocks = new Map()
 
     constructor() {
         this.importItems();
@@ -12,27 +12,27 @@ class ItemManager {
     }
 
     getItem(name) {
-        return this.#items.filter(a => a.name === name);
+        return this.#items.get(name); 
     }
     getItems() {
-        return this.#items;
+        return Array.from(this.#items.values());
     }
     getBlock(name) {
-        return this.#blocks.filter(a => a.name === name);
+        return this.#blocks.get(name);
     }
     getBlocks() {
-        return this.#blocks;
+        return Array.from(this.#blocks.values());
     }
 
     registerClassItem = (item) => {
         // TODO: check for duplicates
         logger.silly(`Item with id §b${item.name}§r registered`);
-        this.#blocks.push(item);
+        this.#items.set(item.name, item);
     }
     registerClassBlock = (block) => {
         // TODO: check for duplicates
         logger.silly(`Block with id §b${block.name}§r registered`);
-        this.#blocks.push(block);
+        this.#blocks.set(block.name, block);
     }
 
     importItems = () => {
