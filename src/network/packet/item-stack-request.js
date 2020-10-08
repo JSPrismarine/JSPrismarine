@@ -12,6 +12,8 @@ class ItemStackRequestPacket extends DataPacket {
         for (let i = 0; i < this.readUnsignedVarInt(); i++) {
             this.requests.push(this.readItemStackRequest());
         }
+
+        this.requests = this.requests.filter(a => a.actions.length)
     }
 }
 module.exports = ItemStackRequestPacket;

@@ -16,27 +16,27 @@ class Prismarine {
 
     /** @type {Listener} */
     #raknet
-    /** @type {logger} */ 
+    /** @type {logger} */
     #logger
     /** @type {Config} */
-    #config 
+    #config
     /** @type {Map<string, Player>} */
     #players = new Map()
     /** @type {PacketRegistry} */
     #packetRegistry = new PacketRegistry()
     /** @type {PluginManager} */
     #pluginManager = new PluginManager(this)
-    /** @type {CommandManager} */   
+    /** @type {CommandManager} */
     #commandManager = new CommandManager()
     /** @type {WorldManager} */
     #worldManager = new WorldManager(this)
     /** @type {ItemManager} */
     #itemManager = new ItemManager()  // TODO
-    
+
     /** @type {null|Prismarine} */
     static instance = null
 
-    constructor({logger, config}) {
+    constructor({ logger, config }) {
         // Pass default server logger and config
         this.#logger = logger;
         this.#config = config;
@@ -87,13 +87,13 @@ class Prismarine {
                 } catch {
                     return reject(`Error while decoding batch`);
                 }
-                
+
                 // Read all packets inside batch and handle them
                 for (let buf of pk.getPackets()) {
                     if (this.#packetRegistry.packets.has(buf[0])) {
                         let packet = new (this.#packetRegistry.packets.get(buf[0]))();  // Get packet from registry
                         packet.buffer = buf;
-                        
+
                         try {
                             packet.decode();
 
@@ -106,12 +106,13 @@ class Prismarine {
                                 } catch (err) {
                                     return reject(`Handler error ${packet.constructor.name}-handler: (${err})`);
                                 }
-                                
+
                             } else {
                                 return reject(`Packet ${packet.constructor.name} doesn't have a handler`);
                             }
                         } catch (err) {
-                            return reject(`Error while decoding packet: ${packet.constructor.name}`);
+                            console.error(err);
+                            return reject(`Error while decoding packet: ${packet.constructor.name}: ${err}`);
                         }
 
                     } else {
@@ -154,7 +155,7 @@ class Prismarine {
 
         // Auto save (default: 5 minutes seconds)
         // TODO: level.ticks % 6000 == 0 and save
-        setInterval(async() => {
+        setInterval(async () => {
             for (let world of this.getWorldManager().getWorlds()) {
                 await world.save();
             }
@@ -194,7 +195,7 @@ class Prismarine {
      */
     getPlayerByName(name) {
         for (let player of this.#players.values()) {
-            if (player.name.toLowerCase().startsWith(name.toLowerCase()) || 
+            if (player.name.toLowerCase().startsWith(name.toLowerCase()) ||
                 player.name.toLowerCase() === name.toLowerCase()) return player;
         }
 
@@ -225,7 +226,7 @@ class Prismarine {
         for (let player of this.getOnlinePlayers()) {
             player.kick('Server closed.');
         }
-        
+
         // Save all worlds
         for (let world of this.getWorldManager().getWorlds()) {
             await world.save();
