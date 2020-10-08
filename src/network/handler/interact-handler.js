@@ -8,7 +8,6 @@ const ContainerOpenPacket = require('../packet/container-open');
 const logger = require('../../utils/logger');
 const Prismarine = require('../../prismarine');
 
-'use strict';
 
 class InteractHandler {
     static NetID = Identifiers.InteractPacket

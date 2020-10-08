@@ -4,8 +4,6 @@ const World = require('../world/world');
 const Position = require('../world/position');
 const AddActorPacket = require('../network/packet/add-actor');
 
-'use strict';
-
 // All entities will extend this base class
 class Entity extends Position {
     static MOB_ID = -1

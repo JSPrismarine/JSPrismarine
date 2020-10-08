@@ -3,7 +3,6 @@ const EmptySubChunk = require('./empty-sub-chunk');
 const BinaryStream = require('@jsprismarine/jsbinaryutils');
 const Entity = require('../../entity/entity');
 
-'use strict';
 
 const MaxSubChunks = 16;
 class Chunk {

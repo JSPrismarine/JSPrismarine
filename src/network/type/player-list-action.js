@@ -1,4 +1,3 @@
-'use strict';
 
 const PlayerListAction = {
     Add: 0,

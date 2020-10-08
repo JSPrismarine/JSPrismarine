@@ -7,7 +7,6 @@ const EventManager = require('../events/event-manager');
 const logger = require('../utils/logger');
 const PluginAPI = require('./plugin-api');
 
-'use strict';
 
 /**
  * @author Kıraç Armağan Önal

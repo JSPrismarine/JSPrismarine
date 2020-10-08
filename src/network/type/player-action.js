@@ -1,4 +1,3 @@
-'use strict';
 
 const PlayerAction = {
     StartBreak: 0,

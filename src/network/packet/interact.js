@@ -2,7 +2,6 @@ const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 const InteractAction = require('../type/interact-action');
 
-'use strict';
 
 class InteractPacket extends DataPacket {
     static NetID = Identifiers.InteractPacket

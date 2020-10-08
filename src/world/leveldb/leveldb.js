@@ -12,8 +12,6 @@ const { type } = require('os');
 
 const Overworld = require('../generators/overworld');
 
-'use strict';
-
 const Tags = {
     Version: 'v',
     SubChunkPrefix: '\x2f'

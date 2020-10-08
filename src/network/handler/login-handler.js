@@ -5,7 +5,6 @@ const LoginPacket = require('../packet/login');
 const Player = require('../../player');
 const Prismarine = require('../../prismarine');
 
-'use strict';
 
 class LoginHandler {
     static NetID = Identifiers.LoginPacket

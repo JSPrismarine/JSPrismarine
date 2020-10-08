@@ -3,7 +3,6 @@ const Player = require('../../player');
 const InventoryTransactionPacket = require('../packet/inventory-transaction');
 const Prismarine = require('../../prismarine');
 
-'use strict';
 
 class InventoryTransactionHandler {
     static NetID = Identifiers.InventoryTransactionPacket

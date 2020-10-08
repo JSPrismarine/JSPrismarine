@@ -5,7 +5,6 @@ const PluginType = require('./plugin');
 const Config = require('../utils/config');
 const EventManager = require('../events/event-manager');
 
-'use strict';
 
 class PluginAPI {
 

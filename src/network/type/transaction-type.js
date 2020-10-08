@@ -1,4 +1,3 @@
-'use strict';
 
 const TransactionType = {
     Normal: 0,

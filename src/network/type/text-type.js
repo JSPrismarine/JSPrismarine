@@ -1,4 +1,3 @@
-'use strict';
 
 const TextType = {
     Raw: 0,

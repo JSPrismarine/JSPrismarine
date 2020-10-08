@@ -3,7 +3,6 @@ const Identifiers = require('../identifiers');
 const CommandEnum = require('../type/command-enum');
 const CommandData = require('../type/command-data');
 
-'use strict';
 
 class AvailableCommandsPacket extends DataPacket {
     static NetID = Identifiers.AvailableCommandsPacket
