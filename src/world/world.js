@@ -45,6 +45,17 @@ class World {
         // TODO: Load default gamrules
         this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true);
         this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true);
+
+        const time = Date.now();
+        server.getLogger().info(`Preparing start region for dimension §b'${name}'/${generator}§r`);
+        server.getLogger().info('Preparing spawn area: 0%');
+        for (let x = 0; x < 32; x++) {
+            for (let z = 0; z < 32; z++) {
+                this.loadChunk(x, z);
+            }
+        }
+        server.getLogger().info('Preparing spawn area: 100%');
+        server.getLogger().debug(`Time elapsed: ${(Date.now() - time)} ms`);
     }
 
     /**

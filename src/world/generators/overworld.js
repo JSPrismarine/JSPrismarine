@@ -13,8 +13,8 @@ class Overworld {
 
         for (let x = 0; x < CHUNK_WIDTH; x++) {
             for (let z = 0; z < CHUNK_LENGTH; z++) {
-                const noise_height = noise.noise2D((chunkX * CHUNK_WIDTH + x) * 0.005, (chunkZ * CHUNK_WIDTH + z) * 0.005)
-                const height = 50 + (20 * noise_height)
+                const noise_height = noise.noise2D((chunkX * CHUNK_WIDTH + x) * 0.005, (chunkZ * CHUNK_WIDTH + z) * 0.005);
+                const height = 50 + (20 * noise_height);
 
                 for (let y = 0; y < height; y++) {
                     if (y >= (height - 4))
