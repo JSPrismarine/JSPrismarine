@@ -1,6 +1,5 @@
 const CommandParameter = require('./command-parameter');
 
-'use strict';
 
 class CommandData {
 

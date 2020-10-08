@@ -2,7 +2,6 @@ const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 const CreativeContentEntry = require('../type/creative-content-entry');
 
-'use strict';
 
 class CreativeContentPacket extends DataPacket {
     static NetID = Identifiers.CreativeContentPacket

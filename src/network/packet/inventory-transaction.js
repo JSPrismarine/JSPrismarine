@@ -6,7 +6,6 @@ const NetworkTransaction = require('../type/network-transaction');
 const InventoryTransactionType = require('../type/inventory-transaction-type');
 const Vector3 = require('../../math/vector3');
 
-'use strict';
 
 class InventoryTransactionPacket extends DataPacket {
     static NetID = Identifiers.InventoryTransactionPacket

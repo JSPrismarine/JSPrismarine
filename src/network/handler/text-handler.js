@@ -7,7 +7,6 @@ const PlayerChatEvent = require('../../events/player/player-chat-event');
 const TextType = require('../type/text-type');
 const Prismarine = require('../../prismarine');
 
-'use strict';
 
 class TextHandler {
     static NetID = Identifiers.TextPacket

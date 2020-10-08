@@ -1,7 +1,6 @@
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 
-'use strict';
 
 class UpdateAttributesPacket extends DataPacket {
     static NetID = Identifiers.UpdateAttributesPacket

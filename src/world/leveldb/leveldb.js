@@ -12,8 +12,6 @@ const { type } = require('os');
 
 const Overworld = require('../generators/overworld');
 
-'use strict';
-
 const Tags = {
     Version: 'v',
     SubChunkPrefix: '\x2f'
@@ -35,7 +33,7 @@ class LevelDB extends Provider {
      * @param {number} x - chunk X 
      * @param {number} z - chunk Z
      */
-    async readChunk(x, z, generator) {
+    async readChunk({ x, z, generator, seed }) {
         let index = LevelDB.chunkIndex(x, z);
         let subChunks = new Map();
 
@@ -76,7 +74,8 @@ class LevelDB extends Provider {
 
             const chunk = await generator.getChunk({
                 chunkX: x,
-                chunkZ: z
+                chunkZ: z,
+                seed
             });
 
             // Put all sub chunks

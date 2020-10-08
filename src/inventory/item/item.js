@@ -1,4 +1,3 @@
-'use strict';
 
 class Item {
     /** @type {number} */

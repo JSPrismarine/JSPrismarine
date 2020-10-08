@@ -1,7 +1,6 @@
 const Prismarine = require('../prismarine');
 const PluginManifest = require('./plugin-manifest');
 
-'use strict';
 
 class Plugin {
 

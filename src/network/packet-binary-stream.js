@@ -19,7 +19,6 @@ const Item = require('../inventory/item/item');
 const LOGGER = require('../utils/logger');
 const logger = require('../utils/logger');
 
-'use strict';
 
 class PacketBinaryStream extends BinaryStream {
 

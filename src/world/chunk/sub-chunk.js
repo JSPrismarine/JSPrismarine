@@ -1,4 +1,3 @@
-'use strict';
 
 const Sizes = {
     BlockSize: 16 * 16 * 16,

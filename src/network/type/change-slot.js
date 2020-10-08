@@ -1,6 +1,5 @@
 const PacketBinaryStream = require('../packet-binary-stream');
 
-'use strict';
 
 class ChangeSlot {
 

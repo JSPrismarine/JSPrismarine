@@ -1,6 +1,5 @@
 const Item = require('../item');
 
-'use strict';
 
 class Air extends Item {
     constructor() {

@@ -2,7 +2,6 @@ const NetworkTransactionSource = require('../type/network-transaction-source');
 const logger = require('../../utils/logger');
 const PacketBinaryStream = require('../packet-binary-stream');
 
-'use strict';
 
 class NetworkTransaction {
 

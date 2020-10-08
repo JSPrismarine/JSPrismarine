@@ -1,7 +1,6 @@
 const Vector3 = require('../math/vector3');
 const World = require('./world');
 
-'use strict';
 
 class Position extends Vector3 {
 

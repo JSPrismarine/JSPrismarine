@@ -1,7 +1,5 @@
 const BaseEvent = require('../base-event');
 
-'use strict';
-
 class PlayerEvent extends BaseEvent {
     #player
 

@@ -5,7 +5,6 @@ const logger = require('../utils/logger');
 
 const DataPacket = require('./packet/packet');
 
-'use strict';
 
 class PacketRegistry {
     #packets = new Map()
