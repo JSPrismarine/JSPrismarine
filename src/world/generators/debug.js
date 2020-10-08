@@ -1,20 +1,17 @@
 const Chunk = require('../chunk/chunk');
 
-class Flat {
+class Debug {
     getChunk({ chunkX, chunkY, chunkZ, seed }) {
         const chunk = new Chunk(chunkX, chunkZ);
 
         for (let x = 0; x < 16; x++) {
             for (let z = 0; z < 16; z++) {
-                let y = 0;
-                chunk.setBlockId(x, y++, z, 7);
-                chunk.setBlockId(x, y++, z, 3);
-                chunk.setBlockId(x, y++, z, 3);
-                chunk.setBlockId(x, y, z, 2);
+                chunk.setBlockId(x, 1, z, chunkX * 16 + x);
+                chunk.setBlockId(x, 0, z, 7);
             }
         }
 
         return chunk;
     }
 }
-module.exports = Flat;
+module.exports = Debug;

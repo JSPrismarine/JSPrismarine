@@ -1,7 +1,6 @@
 const ItemAir = require('./item/blocks/air');
 const Item = require('./item/item');
 
-'use strict';
 
 // TODO: viewer logic
 class Inventory {

@@ -2,7 +2,6 @@ const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 const CommandOriginData = require('../type/command-origin-data');
 
-'use strict';
 
 class CommandRequestPacket extends DataPacket {
     static NetID = Identifiers.CommandRequestPacket

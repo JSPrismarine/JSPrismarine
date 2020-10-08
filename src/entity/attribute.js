@@ -1,5 +1,3 @@
-'use strict';
-
 const AttributeIds = {
     Absorption: 'minecraft:absorption',
     PlayerSaturation: 'minecraft:player.saturation',

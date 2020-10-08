@@ -1,4 +1,3 @@
-'use strict';
 const fs = require('fs');
 const path = require('path');
 const logger = require('../../utils/logger');

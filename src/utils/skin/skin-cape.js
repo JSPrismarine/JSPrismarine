@@ -1,6 +1,5 @@
 const SkinImage = require('./skin-image');
 
-'use strict';
 
 class SkinCape {
 

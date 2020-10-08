@@ -1,5 +1,3 @@
-'use strict';
-
 // TODO: Still missing flags
 const MetadataFlag = {
     Index: 0,

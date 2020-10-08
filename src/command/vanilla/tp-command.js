@@ -4,8 +4,6 @@ const logger = require('../../utils/logger');
 const ConsoleSender = require('../console-sender');
 const Gamemode = require('../../world/gamemode');
 
-'use strict';
-
 class GamemodeCommand extends Command {
 
     constructor() {

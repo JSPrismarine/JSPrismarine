@@ -1,4 +1,3 @@
-'use strict';
 
 const NetworkTransactionSource = {
     Container: 0,

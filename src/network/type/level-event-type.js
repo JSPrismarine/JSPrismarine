@@ -1,4 +1,3 @@
-'use strict';
 
 const LevelEventType = {
     BlockStartBreak: 3600,

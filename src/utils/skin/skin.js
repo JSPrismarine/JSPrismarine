@@ -5,7 +5,6 @@ const SkinPersonaPiece = require('./skin-persona/persona-piece');
 const SkinPersonaPieceTintColor = require('./skin-persona/piece-tint-color');
 const SkinCape = require('../skin/skin-cape');
 
-'use strict';
 
 class Skin {
 

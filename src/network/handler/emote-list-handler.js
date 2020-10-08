@@ -3,7 +3,6 @@ const Prismarine = require('../../prismarine');
 const Identifiers = require('../identifiers');
 const EmoteListPacket = require('../packet/emote-list');
 
-'use strict';
 
 class EmoteListHandler {
     static NetID = Identifiers.EmoteListPacket

@@ -3,7 +3,6 @@ const Player = require('../../player');
 const LevelSoundEventPacket = require('../packet/level-sound-event');
 const Prismarine = require('../../prismarine');
 
-'use strict';
 
 class LevelSoundEventHandler {
     static NetID = Identifiers.LevelSoundEventPacket

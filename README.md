@@ -27,7 +27,7 @@
 
 > ### Why JSPrismarine?
   - Written in JavaScript, that means it's easy to use and create plugins for, you can also make plugins in other languages that transpile into JavaScript (such as TypeScript, Kotlin, CoffeeScript, asm.js and more).
-  - Open source with the permissive [GPLv3](https://github.com/HerryYT/JSPrismarine/blob/master/LICENSE) license.
+  - Open source with the permissive [MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) license.
   - Active development.
 
 ---
