@@ -5,6 +5,7 @@ class CreativeCreate extends ItemStackRequestAction {
 
     constructor({ itemId }) {
         super(11);
+        console.log(itemId);
         this.itemId = itemId;
     }
 }

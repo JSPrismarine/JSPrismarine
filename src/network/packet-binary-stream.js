@@ -262,11 +262,18 @@ class PacketBinaryStream extends BinaryStream {
         }
     }
 
+    writeGenericTypeNetworkId(id) {
+        this.writeUnsignedVarInt(id);
+    }
+    readGenericTypeNetworkId() {
+        return this.readUnsignedVarInt();
+    }
+
     /**
      * @param {CreativeContentEntry} entry 
      */
     writeCreativeContentEntry(entry) {
-        this.writeVarInt(entry.entryId); // writeGenericTypeNetworkId
+        this.writeGenericTypeNetworkId(entry.entryId);
         this.writeItemStack(entry.item);
     }
 
@@ -402,7 +409,7 @@ class PacketBinaryStream extends BinaryStream {
         if (itemstack.id == 0) {
             return this.writeVarInt(0);
         }
-
+        
         this.writeVarInt(itemstack.id);
         this.writeVarInt((itemstack.meta & 0x7fff) | itemstack.count);
 
@@ -439,6 +446,12 @@ class PacketBinaryStream extends BinaryStream {
             actions: actions.filter(a => a)
         });
     }
+    writeItemStackRequest() {
+        // TODO
+        this.writeBool(true);
+        this.writeVarInt(0);
+        this.writeVarInt(0);
+    }
     readItemStackRequestAction() {
         const id = this.readByte();
 
@@ -456,7 +469,7 @@ class PacketBinaryStream extends BinaryStream {
                 return new ItemStackRequestDestroy();
             case 11:
                 return new ItemStackRequestCreativeCreate({
-                    itemId: this.readVarInt()
+                    itemId: this.readGenericTypeNetworkId()
                 });
             case 12: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
                 Logger.silly('Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)');
