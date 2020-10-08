@@ -13,7 +13,7 @@ class ItemStackRequestPacket extends DataPacket {
             this.requests.push(this.readItemStackRequest());
         }
 
-        this.requests = this.requests.filter(a => a.actions.length)
+        this.requests = this.requests.filter(a => a.actions.length);
     }
 }
 module.exports = ItemStackRequestPacket;
