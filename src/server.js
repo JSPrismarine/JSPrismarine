@@ -1,15 +1,15 @@
-import fs from 'fs';
-import readline from 'readline';
-import path from 'path';
+const fs = require('fs');
+const readline = require('readline');
+const path = require('path');
 
-import Config from './utils/config';
+const Config = require('./utils/config');
 
 const serverConfig = new Config(path.join(process.cwd(), 'config.yaml'));
-(global as any).log_level = serverConfig.get('log-level', 'info');
+global.log_level = serverConfig.get('log-level', 'info');
 
-const Prismarine = require('./Prismarine');
-import ConsoleSender from './command/console-sender';
-import logger from './utils/logger';
+const Prismarine = require('./prismarine');
+const ConsoleSender = require('./command/console-sender');
+const logger = require('./utils/logger');
 
 const server = new Prismarine({
     logger, config: serverConfig,
@@ -71,13 +71,5 @@ server.listen(serverConfig.get('port', 19132)).catch(() => {
     logger.error(`Cannot start the server, is it already running on the same port?`);
     process.exit(1);
 });
-
-// Kills the server when exiting process
-let exitEvents = ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM'];
-for (let event of exitEvents) {
-    process.on(event, () => {
-        server.kill();
-    });
-}
 
 module.exports = server;

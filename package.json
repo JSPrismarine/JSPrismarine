@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node bootstrap.js",
     "dev": "NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
-    "package": "pkg package.json --out-path ./dist/",
+    "build": "pkg package.json --out-path ./dist/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
     "eslint": "eslint --fix ./src/"
@@ -46,11 +46,6 @@
   },
   "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
   "dependencies": {
-    "@babel/core": "^7.11.6",
-    "@babel/plugin-syntax-class-properties": "^7.10.4",
-    "@babel/preset-env": "^7.11.5",
-    "@babel/preset-typescript": "^7.10.4",
-    "@babel/register": "^7.11.5",
     "@iarna/toml": "^2.2.5",
     "@jsprismarine/bedrock-data": "1.16.20",
     "@jsprismarine/jsbinaryutils": "1.0.9",
@@ -63,16 +58,14 @@
     "level": "^6.0.1",
     "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
-    "simplex-noise": "^2.4.0",
     "typescript": "^4.0.3",
     "winston": "^3.3.3",
     "yaml": "^1.10.0"
   },
   "devDependencies": {
-    "@types/node": "^14.11.2",
     "nodemon": "2.0.4",
-    "babel-eslint": "10.1.0",
     "eslint": "7.10.0",
+    "babel-eslint": "10.1.0",
     "husky": "4.3.0",
     "pkg": "git+https://github.com/geekuillaume/pkg.git"
   }
