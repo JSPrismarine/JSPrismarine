@@ -188,7 +188,7 @@ class Chunk {
         let stream = new BinaryStream();
         let subChunkCount = this.getSubChunkSendCount();
         for (let y = 0; y < subChunkCount; ++y) {
-            stream.append(this.#subChunks.get(y).toBinary());
+            stream.write(this.#subChunks.get(y).toBinary());
         }
         for (let biome of this.#biomes) {
             stream.writeByte(biome);

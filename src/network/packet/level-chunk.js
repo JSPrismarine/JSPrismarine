@@ -16,7 +16,7 @@ class LevelChunkPacket extends DataPacket {
         this.writeUnsignedVarInt(this.subChunkCount);
         this.writeBool(false);  // Cached
         this.writeUnsignedVarInt(Buffer.byteLength(this.data));
-        this.append(this.data);
+        this.write(this.data);
     }
 }
 module.exports = LevelChunkPacket;

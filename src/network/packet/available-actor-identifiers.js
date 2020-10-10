@@ -11,7 +11,7 @@ class AvailableActorIdentifiersPacket extends DataPacket {
     #cachedNBT
 
     async encodePayload() {
-        this.append(this.#cachedNBT || (this.#cachedNBT = fs.readFileSync(__dirname + '/../../../node_modules/@jsprismarine/bedrock-data/resources/entity_identifiers.nbt')));
+        this.write(this.#cachedNBT || (this.#cachedNBT = fs.readFileSync(__dirname + '/../../../node_modules/@jsprismarine/bedrock-data/resources/entity_identifiers.nbt')));
     }
 }
 module.exports = AvailableActorIdentifiersPacket;
