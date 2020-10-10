@@ -1,7 +1,7 @@
 const Zlib = require('zlib');
 
 const DataPacket = require("./packet");
-const BinaryStream = require('@jsprismarine/jsbinaryutils');
+const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const PacketBinaryStream = require('../packet-binary-stream');
 
 
@@ -24,7 +24,7 @@ class BatchPacket extends DataPacket {
     decodePayload() {
         let data = this.readRemaining();
         try {
-            this.payload = Zlib.inflateRawSync(data, {chunkSize: 1024 * 1024 * 2});
+            this.payload = Zlib.inflateRawSync(data, { chunkSize: 1024 * 1024 * 2 });
         } catch (e) {
             this.payload = Buffer.alloc(0);
         }
@@ -35,7 +35,7 @@ class BatchPacket extends DataPacket {
     }
 
     encodePayload() {
-        this.append(Zlib.deflateRawSync(this.payload, {level: this._compressionLevel}));
+        this.write(Zlib.deflateRawSync(this.payload, { level: this._compressionLevel }));
     }
 
     /**
@@ -52,16 +52,20 @@ class BatchPacket extends DataPacket {
 
         let stream = new BinaryStream();
         stream.writeUnsignedVarInt(packet.buffer.length);
-        stream.append(packet.buffer);
+        stream.write(packet.buffer);
         this.payload = Buffer.concat([this.payload, stream.buffer]);
     }
 
     getPackets() {
         let stream = new PacketBinaryStream();
         stream.buffer = this.payload;
+        console.log(this.payload.length)
         let packets = [];
         while (!stream.feof()) {
-            packets.push(stream.read(stream.readUnsignedVarInt()));
+            const length = stream.readUnsignedVarInt();
+            const buffer = stream.read(length);
+            console.log(length, buffer)
+            packets.push(buffer);
         }
         return packets;
     }

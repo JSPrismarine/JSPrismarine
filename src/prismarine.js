@@ -89,9 +89,11 @@ class Prismarine {
                 }
                 
                 // Read all packets inside batch and handle them
+                console.log(pk.getPackets())
                 for (let buf of pk.getPackets()) {
                     if (this.#packetRegistry.packets.has(buf[0])) {
                         let packet = new (this.#packetRegistry.packets.get(buf[0]))();  // Get packet from registry
+                        console.log(buf)
                         packet.buffer = buf;
                         
                         try {
@@ -111,6 +113,7 @@ class Prismarine {
                                 return reject(`Packet ${packet.constructor.name} doesn't have a handler`);
                             }
                         } catch (err) {
+                            console.error(err)
                             return reject(`Error while decoding packet: ${packet.constructor.name}`);
                         }
 
