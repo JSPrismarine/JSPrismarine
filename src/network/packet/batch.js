@@ -59,12 +59,12 @@ class BatchPacket extends DataPacket {
     getPackets() {
         let stream = new PacketBinaryStream();
         stream.buffer = this.payload;
-        console.log(this.payload.length)
+        console.log(this.payload.length);
         let packets = [];
         while (!stream.feof()) {
             const length = stream.readUnsignedVarInt();
             const buffer = stream.read(length);
-            console.log(length, buffer)
+            console.log(length, buffer);
             packets.push(buffer);
         }
         return packets;
