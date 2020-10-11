@@ -1,4 +1,4 @@
-const Vector3 = require('../math/vector3');
+const Vector3 = require('../math/vector3').default;
 const World = require('./world');
 
 

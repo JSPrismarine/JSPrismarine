@@ -4,7 +4,6 @@ const level = require('level');
 const Provider = require('../provider');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Chunk = require('../chunk/chunk');
-const Experimental = require('../experimental/experimental');
 const EmptySubChunk = require('../chunk/empty-sub-chunk');
 const SubChunk = require('../chunk/sub-chunk');
 const logger = require('../../utils/logger');

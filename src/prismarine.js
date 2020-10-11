@@ -4,17 +4,17 @@ const BatchPacket = require('./network/packet/batch');
 const PacketRegistry = require('./network/packet-registry');
 const CommandManager = require('./command/command-manager');
 const Identifiers = require('./network/identifiers');
-const WorldManager = require('./world/world-manager');
+const WorldManager = require('./world/world-manager').default;
 const PluginManager = require('./plugin/plugin-manager');
 const Config = require('./utils/config');
-const logger = require('./utils/logger');
+const Logger = require('./utils/logger');
 const ItemManager = require('./inventory/item/item-manager').default;
 
 class Prismarine {
 
     /** @type {Listener} */
     #raknet
-    /** @type {logger} */
+    /** @type {Logger} */
     #logger
     /** @type {Config} */
     #config
@@ -35,7 +35,7 @@ class Prismarine {
     static instance = null
 
     constructor({ logger, config }) {
-        // Pass default server logger and config
+        // Pass default server Logger and config
         this.#logger = logger;
         this.#config = config;
         Prismarine.instance = this;

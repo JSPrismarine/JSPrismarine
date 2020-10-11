@@ -1,21 +1,22 @@
-const Prismarine = require('../prismarine');
+import Prismarine from "../prismarine";
+import GeneratorManager from "./generator-manager";
+import World from "./world";
+
 const logger = require('../utils/logger');
 const LevelDB = require('./leveldb/leveldb');
-const World = require('./world');
-const GeneratorManager = require('./generator-manager');
 
-class WorldManager {
+export default class WorldManager {
 
     /** @type {Map<String, World>} */
     #worlds = new Map()
     /** @type {World} */
-    #defaultWorld = null
+    #defaultWorld: World | null  = null
     /** @type {Prismarine} */
-    #server 
+    #server: Prismarine
     /** @type {GeneratorManager} */
-    #generator
+    #generator: GeneratorManager
 
-    constructor(server) {
+    constructor(server: Prismarine) {
         this.#server = server;
         this.#generator = new GeneratorManager();
     }
@@ -23,10 +24,10 @@ class WorldManager {
     /**
      * Loads a world by its folder name.
      * 
+     * @param {object} worldData - world data
      * @param {string} folderName - folder name of the world
-     * @param {boolean} def - is default level
      */
-    loadWorld(worldData, folderName) {
+    loadWorld(worldData: any, folderName: string) {
         if (this.isWorldLoaded(folderName)) {
             return logger.warn(`World §e${folderName}§r has already been loaded!`);
         }
@@ -56,7 +57,7 @@ class WorldManager {
      * 
      * @param {string} folderName - folder name of the world
      */
-    unloadWorld(folderName) {
+    unloadWorld(folderName: string) {
         if (!this.isWorldLoaded(folderName)) {
             return logger.error(
                 `Cannot unload a not loaded world with name §b${folderName}`
@@ -80,7 +81,7 @@ class WorldManager {
      * @param {string} folderName 
      * @returns {boolean} 
      */
-    isWorldLoaded(folderName) {
+    isWorldLoaded(folderName: string) {
         for (let world of this.#worlds.values()) {
             if (world.name.toLowerCase() == 
                 folderName.toLowerCase()) {
@@ -96,7 +97,7 @@ class WorldManager {
      * @param {string} folderName 
      * @returns {World}
      */
-    getWorldByName(folderName) {
+    getWorldByName(folderName: string) {
         for (let world of this.#worlds.values()) {
             if (world.name.toLowerCase() == 
                 folderName.toLowerCase()) {
@@ -129,4 +130,3 @@ class WorldManager {
     }
 
 }
-module.exports = WorldManager;
