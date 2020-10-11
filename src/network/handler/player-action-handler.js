@@ -5,6 +5,7 @@ const PlayerAction = require('../type/player-action');
 const Prismarine = require('../../prismarine');
 const WorldEventPacket = require('../packet/world-event');
 const LevelEventType = require('../type/level-event-type');
+const Vector3 = require('../../math/vector3');
 
 
 class PlayerActionHandler {
@@ -19,18 +20,25 @@ class PlayerActionHandler {
         let pk;
         switch (packet.action) {
             case PlayerAction.StartBreak:
+                // TODO: world.sendEvent(type, psoition(Vector3), data) (?)
                 pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.BlockStartBreak;
                 pk.x = packet.x;
                 pk.y = packet.y;
                 pk.z = packet.z;
-                pk.data = 65535 / (0.6 * 20);
+                pk.data = 65535 / (0.6 * 20);  
+                // TODO: all break times or 
+                // my hack will not work properly
+                // (0.6 is dirt break time)
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
                 } 
+
+                player.breakingBlockPos = new Vector3(packet.x, packet.y, packet.z);
                 break;
             case PlayerAction.AbortBreak:
-            case PlayerAction.StopBreak:
+                // Gets called when player didn't finished 
+                // to break the block
                 pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.BlockStopBreak;
                 pk.x = packet.x;
@@ -40,10 +48,21 @@ class PlayerActionHandler {
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
                 } 
-                let chunk = await player.getWorld().getChunkAt(packet.x, packet.z);
-                chunk.setBlockId(packet.x, packet.y, packet.z, 0); 
 
-                // console.log(player.x >> 4, player.z >> 4, chunk.getX(), chunk.getZ())
+                player.breakingBlockPos = null;
+                break;
+            case PlayerAction.StopBreak:
+                // Doesn't send block position, so we 
+                // save it on the player (best temp solution)
+                if (player.breakingBlockPos !== null) {
+                    let blockVector3 = player.breakingBlockPos;
+                    let chunk = await player.getWorld().getChunkAt(
+                        blockVector3.getX(), blockVector3.getZ()
+                    );
+                    chunk.setBlockId(
+                        blockVector3.getX(), blockVector3.getY(), blockVector3.getZ(), 0
+                    ); 
+                }
                 break;
             case PlayerAction.ContinueBreak:
                 pk = new WorldEventPacket();
