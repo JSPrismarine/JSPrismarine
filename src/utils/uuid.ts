@@ -1,6 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
-
 class UUID {
 
     /** @type {any} */
