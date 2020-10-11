@@ -1,14 +1,14 @@
-const BinaryStream = require("@jsprismarine/jsbinaryutils").default;
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 
 class UUID {
 
+    /** @type {any} */
+    #parts: any
     /** @type {number} */
-    #parts
-    /** @type {number} */
-    #version
+    #version: number
 
-    constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version = null) {
+    constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version: number) {
         this.#parts = [part1, part2, part3, part4];
         this.#version = version || (this.#parts[1] & 0xf000) >> 12;
     }
@@ -24,7 +24,7 @@ class UUID {
     /**
      * @param {UUID} uuid 
      */
-    equals(uuid) {
+    equals(uuid: UUID) {
         return this.#parts === uuid.parts;
     }
 
@@ -33,7 +33,7 @@ class UUID {
      * @param {string} uuid 
      * @param {number} version 
      */
-    static fromString(uuid, version = null) {
+    static fromString(uuid: string, version: number) {
         if (!uuid)
             throw new Error('uuid is null or undefined');
 
@@ -45,13 +45,13 @@ class UUID {
      * @param {Buffer} uuid 
      * @param {number} version 
      */
-    static fromBinary(uuid, version = null) {
+    static fromBinary(uuid: Buffer, version: number) {
         if (Buffer.byteLength(uuid) !== 16) {
             throw new Error('UUID must have 16 bytes');
         }
 
         let stream = new BinaryStream();
-        stream.buffer = uuid;
+        (stream as any).buffer = uuid;
         return new UUID(stream.readInt(), stream.readInt(), stream.readInt(), stream.readInt(), version);
     }
 
@@ -71,7 +71,7 @@ class UUID {
      * Generates a random UUIDv4
      */
     static fromRandom() {
-        let strUUID = this.stringFromRandom();
+        let strUUID = (this as any).stringFromRandom();
         return UUID.fromString(strUUID, 3);
     }
 
@@ -81,7 +81,7 @@ class UUID {
         stream.writeInt(this.parts[1]);
         stream.writeInt(this.parts[2]);
         stream.writeInt(this.parts[3]);
-        return stream.buffer;
+        return (stream as any).buffer;
     }
 
     toString() {
@@ -96,6 +96,5 @@ class UUID {
         parts.push(hex.slice(20, 20 + 12));
         return parts.join('-');
     }
-
 }
 module.exports = UUID;
