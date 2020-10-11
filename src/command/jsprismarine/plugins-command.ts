@@ -1,18 +1,18 @@
-const Command = require('../command');
-const Player = require('../../player');
-const ConsoleSender = require('../console-sender');
+import Player from "../../player";
 
-class PluginsCommand extends Command {
+const Command = require('../command');
+
+export default class PluginsCommand extends Command {
 
     constructor() {
         super({ namespace: 'jsprismarine', name: 'plugins', description: 'Lists all plugins that run on the server.', aliases: ["pl"] });
     }
 
     /**
-     * @param {ConsoleSender|Player} sender
+     * @param {Player} sender
      * @param {Array} args
      */
-    execute(sender, args) {
+    execute(sender: Player, args: Array<any>) {
 
         let plugins = sender.getServer().getPluginManager().getPlugins();
 
@@ -25,5 +25,3 @@ class PluginsCommand extends Command {
         return sender.sendMessage(message);
     }
 }
-
-module.exports = PluginsCommand;
