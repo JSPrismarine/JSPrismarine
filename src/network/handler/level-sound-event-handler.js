@@ -8,12 +8,15 @@ class LevelSoundEventHandler {
     static NetID = Identifiers.LevelSoundEventPacket
 
     /**
-     * @param {LevelSoundEventPacket} _packet
+     * @param {LevelSoundEventPacket} packet
      * @param {Prismarine} _server 
-     * @param {Player} _player 
+     * @param {Player} player 
      */
-    static handle(_packet, _server, _player) {
+    static handle(packet, _server, player) {
         // TODO: broadcast to viewers
+        for (let chunkPlayer of player.getPlayersInChunk()) {
+            chunkPlayer.sendDataPacket(packet);
+        }
     }
 }
 module.exports = LevelSoundEventHandler;

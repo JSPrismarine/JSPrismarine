@@ -35,7 +35,7 @@ class PacketRegistry {
 
             for (let i = 0; i < files.length; i++) {
                 let packet = require(path.join(dir, files[i]));
-                this.registerPacket(packet);
+                this.registerPacket(packet.default || packet);
             }
             logger.debug(`Loaded §b${this.packets.size}§r Minecraft packets!`);
         });
@@ -49,8 +49,8 @@ class PacketRegistry {
             files = files.filter(a => !a.includes('.test.') && a.includes('.js')); // Exclude test files
 
             for (let i = 0; i < files.length; i++) {
-                let packet = require(path.join(dir, files[i]));
-                this.registerHandler(packet);
+                let handler = require(path.join(dir, files[i]));
+                this.registerHandler(handler.default || handler);
             }
             logger.debug(`Loaded §b${this.handlers.size}§r packet handlers!`);
         });
