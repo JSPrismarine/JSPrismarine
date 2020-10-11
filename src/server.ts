@@ -62,7 +62,7 @@ rl.on('line', (input: string) => {
         input = `/${input.toLowerCase()}`;
     }
 
-    return server.getCommandManager().dispatchCommand(
+    return (server.getCommandManager() as any).dispatchCommand(
         new ConsoleSender(server), input
     );
 });

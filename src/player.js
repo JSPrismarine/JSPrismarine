@@ -296,7 +296,7 @@ class Player extends Entity {
 
     sendAvailableCommands() {
         let pk = new AvailableCommandsPacket();
-        for (let command of this.getServer().getCommandManager().commands) {
+        for (let command of this.getServer().getCommandManager().getCommands()) {
             pk.commandData.add({ ...command, execute: undefined });
         }
         this.sendDataPacket(pk);
