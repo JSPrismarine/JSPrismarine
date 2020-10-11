@@ -43,6 +43,13 @@ class Prismarine {
         Prismarine.instance = this;
     }
 
+    async reload() {
+        this.#packetRegistry = new PacketRegistry();
+        this.#commandManager = new CommandManager();
+        this.#itemManager = new ItemManager();
+        this.#pluginManager = new PluginManager();
+    }
+
     async listen(port = 19132) {
         this.#raknet = await (new Listener).listen('0.0.0.0', port);
         this.#raknet.name.setOnlinePlayerCount(this.#players.size);
