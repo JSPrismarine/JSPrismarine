@@ -8,7 +8,7 @@ const SEA_LEVEL = 63;
 
 module.exports = class Overworld {
     noise;
-    
+
     async getChunk({ chunkX, chunkY = 0, chunkZ, seed }) {
         if (!this.noise) this.noise = new Noise(seed);
 
@@ -20,7 +20,7 @@ module.exports = class Overworld {
                 //const noise_height = noise.noise2D((chunkX * CHUNK_WIDTH + x) * 0.005, (chunkZ * CHUNK_WIDTH + z) * 0.005);
                 const noise_height = noise.perlin2((chunkX * CHUNK_WIDTH + x) * 0.04, (chunkZ * CHUNK_WIDTH + z) * 0.04);
                 const height = Math.floor(60 + (20 * noise_height));
-                
+
                 for (let y = 0; y < height; y++) {
                     if (y >= (height - 4))
                         chunk.setBlockId(x, y, z, 3); // Dirt
@@ -35,7 +35,10 @@ module.exports = class Overworld {
                     }
                 }
 
-                chunk.setBlockId(x, height, z, 2); // Grass
+                if (height < (SEA_LEVEL - 1))
+                    chunk.setBlockId(x, height, z, 3); // Dirt
+                else
+                    chunk.setBlockId(x, height, z, 2); // Grass
                 chunk.setBlockId(x, 0, z, 7); // Bedrock
             }
         }
