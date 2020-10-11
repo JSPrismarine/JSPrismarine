@@ -72,4 +72,12 @@ server.listen(serverConfig.get('port', 19132)).catch(() => {
     process.exit(1);
 });
 
+// Kills the server when exiting process
+let exitEvents = ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM'];
+for (let event of exitEvents) {
+    process.on(event, () => {
+        server.kill();
+    });
+}
+
 module.exports = server;
