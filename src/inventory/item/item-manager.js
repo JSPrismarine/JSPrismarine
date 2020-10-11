@@ -39,7 +39,7 @@ class ItemManager {
         try {
             const items = fs.readdirSync(path.join(__dirname, 'items'));
             items.forEach((id) => {
-                if (id.includes('.test.'))
+                if (id.includes('.test.') || !id.includes('.js'))
                     return;  // Exclude test files
 
                 const item = require(`./items/${id}`);
@@ -58,7 +58,7 @@ class ItemManager {
         try {
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             blocks.forEach((id) => {
-                if (id.includes('.test.'))
+                if (id.includes('.test.') || !id.includes('.js'))
                     return;  // Exclude test files
 
                 const block = require(`./blocks/${id}`);
