@@ -31,6 +31,9 @@
   },
   "husky": {
     "hooks": {
+      "post-checkout": "yarnhook",
+      "post-merge": "yarnhook",
+      "post-rewrite": "yarnhook",
       "pre-commit": "npm run eslint && git add . && npm run test"
     }
   },
@@ -76,6 +79,7 @@
     "husky": "4.3.0",
     "nodemon": "2.0.4",
     "pkg": "git+https://github.com/geekuillaume/pkg.git",
-    "typescript": "^4.0.3"
+    "typescript": "^4.0.3",
+    "yarnhook": "^0.4.4"
   }
 }
