@@ -2,12 +2,14 @@
   "name": "jsprismarine",
   "version": "1.0.0",
   "description": "Basic Minecraft Bedrock Edition software ",
-  "main": "bootstrap.js",
-  "bin": "bootstrap.js",
+  "main": "./dist/src/server.js",
+  "types": "./dist/src/server.d.ts",
+  "bin": "./dist/src/server.js",
   "scripts": {
-    "start": "node bootstrap.js",
+    "start": "node ./dist/src/server.js",
     "dev": "NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
-    "build": "pkg package.json --out-path ./dist/",
+    "build": "tsc --incremental --extendedDiagnostics",
+    "package": "pkg package.json --out-path ./packages/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
     "eslint": "eslint --fix ./src/"
@@ -22,23 +24,23 @@
     "minecraft",
     "be"
   ],
-  "author": "HerryYT",
-  "license": "MPL-2.0",
+  "author": "@JSPrismarine",
+  "license": "MPL-2",
   "bugs": {
     "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run eslint && npm run test"
+      "pre-commit": "npm run eslint && git add . && npm run test"
     }
   },
   "pkg": {
     "scripts": [
-      "bootstrap.js",
-      "src/**/*.*",
+      "dist/**/*.js",
       "node_modules/leveldown/**/*.js"
     ],
     "assets": [
+      "./node_modules/@jsprismarine/**/*",
       "./node_modules/leveldown/prebuilds/linux-x64/node.napi.glibc.node",
       "./node_modules/leveldown/prebuilds/darwin-x64/node.napi.node",
       "./node_modules/leveldown/prebuilds/win32-x64/node.napi.node"
@@ -58,15 +60,22 @@
     "level": "^6.0.1",
     "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
-    "typescript": "^4.0.3",
     "winston": "^3.3.3",
+    "@babel/core": "^7.11.6",
+    "@babel/preset-env": "^7.11.5",
+    "@babel/preset-typescript": "^7.10.4",
+    "@babel/plugin-proposal-class-properties": "^7.10.4",
+    "@babel/register": "^7.11.5",
     "yaml": "^1.10.0"
   },
   "devDependencies": {
+    "@types/jest": "^26.0.14",
+    "@types/node": "^14.11.8",
     "babel-eslint": "10.1.0",
     "eslint": "7.11.0",
     "husky": "4.3.0",
     "nodemon": "2.0.4",
-    "pkg": "git+https://github.com/geekuillaume/pkg.git"
+    "pkg": "git+https://github.com/geekuillaume/pkg.git",
+    "typescript": "^4.0.3"
   }
 }

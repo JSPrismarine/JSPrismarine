@@ -1,4 +1,4 @@
-const AttributeIds = {
+export const AttributeIds = {
     Absorption: 'minecraft:absorption',
     PlayerSaturation: 'minecraft:player.saturation',
     PlayerExhaustion: 'minecraft:player.exhaustion',
@@ -17,7 +17,8 @@ const AttributeIds = {
     ZombieSpawnReinforcements: 'minecraft:zombie.spawn_reinforcements',
     LavaMovement: 'minecraft:lava_movement'
 };
-class Attribute {
+
+export class Attribute {
     /** @type {string} */
     name
     /** @type {number} */
@@ -38,7 +39,7 @@ class Attribute {
      * @param {number} def - Attribute default value
      * @param {number} value - Attribute current value
      */
-    constructor(name, min, max, def, value) {
+    constructor(name: string, min: number, max: number, def: number, value: number) {
         this.name = name;
         this.min = min;
         this.max = max;
@@ -47,7 +48,7 @@ class Attribute {
     }
 }
 const MAX_FLOAT32 = 3.4028234663852886e+38;
-class AttributeManager {
+export class AttributeManager {
     /** @type {Attribute[]} */
     #attributes = []
 
@@ -79,9 +80,4 @@ class AttributeManager {
     getAttributes() {
         return this.#attributes;
     }
-
-    /* setAttribute(id, ) {
-
-    } */
 }
-module.exports = { AttributeIds, Attribute, AttributeManager };
