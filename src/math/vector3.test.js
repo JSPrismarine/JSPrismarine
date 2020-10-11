@@ -1,4 +1,4 @@
-const Vector3 = require('./vector3');
+const Vector3 = require('./vector3').default;
 
 describe('math', () => {
     describe('vector3', () => {
