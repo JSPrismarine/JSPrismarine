@@ -100,6 +100,9 @@ class Player extends Entity {
     /** @type {null|Vector3} */
     breakingBlockPos = null  // temphack
 
+    /** @type {null|Chunk} */
+    currentChunk = null;
+
     /**
      * Player's constructor.
      * 
@@ -491,6 +494,12 @@ class Player extends Entity {
         sendPacket.buffer = batch.buffer;
 
         this.#connection.addEncapsulatedToQueue(sendPacket);
+    }
+
+    // Return all the players in the same chunk
+    getPlayersInChunk() {
+        return this.#server.getOnlinePlayers()
+            .filter(player => player.currentChunk === this.currentChunk);
     }
 
     getServer() {

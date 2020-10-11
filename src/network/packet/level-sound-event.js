@@ -28,5 +28,18 @@ class LevelSoundEventPacket extends DataPacket {
         this.isBabyMob = this.readBool();
         this.disableRelativeVolume = this.readBool();
     }
+
+    encodePayload() {
+        this.writeUnsignedVarInt(this.sound);
+
+        this.writeLFloat(this.positionX);
+        this.writeLFloat(this.positionY);
+        this.writeLFloat(this.positionZ);
+
+        this.writeVarInt(this.extraData);
+        this.writeString(this.entityType);
+        this.writeBool(this.isBabyMob);
+        this.writeBool(this.disableRelativeVolume);
+    }
 }
 module.exports = LevelSoundEventPacket;
