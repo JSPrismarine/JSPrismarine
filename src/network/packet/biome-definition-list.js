@@ -10,7 +10,7 @@ class BiomeDefinitionListPacket extends DataPacket {
     #cachedNBT
 
     encodePayload() {
-        this.write(this.#cachedNBT ||
+        this.append(this.#cachedNBT ||
             (this.#cachedNBT = fs.readFileSync(__dirname + '/../../../node_modules/@jsprismarine/bedrock-data/resources/biome_definitions.nbt')));
     }
 }

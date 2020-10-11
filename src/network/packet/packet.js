@@ -30,7 +30,6 @@ class DataPacket extends PacketBinaryStream {
     }
 
     decodeHeader() {
-        console.log(this.buffer);
         let header = this.readUnsignedVarInt();
         let pid = header & PID_MASK;
         if (pid !== this.id) {

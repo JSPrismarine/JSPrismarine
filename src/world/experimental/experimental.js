@@ -63,7 +63,7 @@ class Experimental extends Provider {
 
             let stream = new BinaryStream();
             stream.writeByte(chunk.getSubChunkSendCount());
-            stream.write(chunk.toBinary());
+            stream.append(chunk.toBinary());
 
             // Don't block function while writing, this will just
             // delay the chunk to the client
@@ -91,7 +91,7 @@ class Experimental extends Provider {
 
         let stream = new BinaryStream();
         stream.writeByte(chunk.getSubChunkSendCount());
-        stream.write(chunk.toBinary());
+        stream.append(chunk.toBinary());
 
         let filePath = path.join(filesPath, `${chunk.getX()}.${chunk.getZ()}.bin`);
         await fs.promises.writeFile(filePath, stream.buffer);

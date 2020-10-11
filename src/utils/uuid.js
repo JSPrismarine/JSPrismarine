@@ -1,4 +1,4 @@
-const BinaryStream = require("@jsprismarine/jsbinaryutils");
+const BinaryStream = require("@jsprismarine/jsbinaryutils").default;
 
 
 class UUID {
