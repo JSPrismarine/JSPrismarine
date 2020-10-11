@@ -31,7 +31,7 @@ class PacketRegistry {
         fs.readdir(dir, (err, files) => {
             if (err) logger.error(`Cannot load packets: ${err}`);
 
-            files = files.filter(a => !a.includes('.test.')); // Exclude test files
+            files = files.filter(a => !a.includes('.test.') && a.includes('.js')); // Exclude test files
 
             for (let i = 0; i < files.length; i++) {
                 let packet = require(path.join(dir, files[i]));
@@ -46,7 +46,7 @@ class PacketRegistry {
         fs.readdir(dir, (err, files) => {
             if (err) logger.error(`Cannot load packets: ${err}`);
 
-            files = files.filter(a => !a.includes('.test.')); // Exclude test files
+            files = files.filter(a => !a.includes('.test.') && a.includes('.js')); // Exclude test files
 
             for (let i = 0; i < files.length; i++) {
                 let packet = require(path.join(dir, files[i]));
