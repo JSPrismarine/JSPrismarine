@@ -4,6 +4,7 @@ yarn.lock
 
 # JSPRismarine things
 /dist/
+/packages/
 /plugins/
 /worlds/
 /src/resources/

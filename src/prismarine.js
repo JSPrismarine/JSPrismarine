@@ -1,5 +1,3 @@
-const winston = require('winston');
-
 const Listener = require('@jsprismarine/raknet');
 const Player = require('./player');
 const BatchPacket = require('./network/packet/batch');

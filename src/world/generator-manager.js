@@ -7,7 +7,11 @@ class GeneratorManager {
 
     constructor() {
         const generators = fs.readdirSync(__dirname + '/generators');
-        generators.forEach((generator) => this.registerClassGenerator(generator?.replace('.js', '')));
+        generators.forEach((generator) => {
+            if (!generator.includes('.js'))
+                return;
+            this.registerClassGenerator(generator?.replace('.js', ''));
+        });
         logger.debug(`Registered §b${generators.length}§r generator(s)!`);
     }
 
