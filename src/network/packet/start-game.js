@@ -110,7 +110,7 @@ class StartGamePacket extends DataPacket {
         this.writeVarInt(0); // enchantment seed
 
         // PMMP states
-        this.append(fs.readFileSync(__dirname + '/../../../node_modules/@jsprismarine/bedrock-data/resources/required_block_states.nbt'));
+        this.append(fs.readFileSync(process.cwd() + '/node_modules/@jsprismarine/bedrock-data/resources/required_block_states.nbt'));
 
         this.append(this.serializeItemTable(ItemTable));
 
