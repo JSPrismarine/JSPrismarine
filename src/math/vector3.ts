@@ -1,16 +1,13 @@
-'use strict'; 
-
-class Vector3 {
-
+export default class Vector3 {
     /** @type {number} */
-    #x 
+    #x: number
     /** @type {number} */
-    #y 
+    #y: number
     /** @type {number} */
-    #z
+    #z: number
 
     constructor(x = 0, y = 0, z = 0) {
-        this.#x = x; 
+        this.#x = x;
         this.#y = y;
         this.#z = z;
     }
@@ -28,4 +25,3 @@ class Vector3 {
     }
 
 }
-module.exports = Vector3;

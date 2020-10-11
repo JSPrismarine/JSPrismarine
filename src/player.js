@@ -36,7 +36,7 @@ const InventoryContentPacket = require('./network/packet/inventory-content-packe
 const MobEquipmentPacket = require('./network/packet/mob-equipment-packet');
 const Item = require('./inventory/item/item');
 const CreativeContentEntry = require('./network/type/creative-content-entry');
-const Vector3 = require('./math/vector3');
+const Vector3 = require('./math/vector3').default;
 
 class Player extends Entity {
 

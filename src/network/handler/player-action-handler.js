@@ -5,7 +5,7 @@ const PlayerAction = require('../type/player-action');
 const Prismarine = require('../../prismarine');
 const WorldEventPacket = require('../packet/world-event');
 const LevelEventType = require('../type/level-event-type');
-const Vector3 = require('../../math/vector3');
+const Vector3 = require('../../math/vector3').default;
 
 
 class PlayerActionHandler {
