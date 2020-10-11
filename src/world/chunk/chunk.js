@@ -2,35 +2,36 @@ const SubChunk = require('./sub-chunk');
 const EmptySubChunk = require('./empty-sub-chunk');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Entity = require('../../entity/entity');
+const Player = require('../../player');
 
 
 const MaxSubChunks = 16;
 class Chunk {
 
     /** @type {number} */
-    #x
+    #x;
     /** @type {number} */
-    #z
+    #z;
 
     /** @type {boolean} */
-    #hasChanged = false
+    #hasChanged = false;
 
     /** @type {number} */
-    #height = MaxSubChunks
+    #height = MaxSubChunks;
 
     /**
      * @type {Map<number, SubChunk>}
      */
-    #subChunks = new Map()
+    #subChunks = new Map();
 
     /** @type {number[]} */
-    #biomes = []
+    #biomes = [];
 
     // TODO: #tiles = []
     /** @type {Set<Entity>} */
-    #entities = new Set()
+    #entities = new Set();
 
-    #heightMap = []
+    #heightMap = [];
 
     /**
      * Chunk constructor.

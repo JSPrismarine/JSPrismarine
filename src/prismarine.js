@@ -8,7 +8,7 @@ const WorldManager = require('./world/world-manager');
 const PluginManager = require('./plugin/plugin-manager');
 const Config = require('./utils/config');
 const logger = require('./utils/logger');
-const ItemManager = require('./inventory/item/item-manager');
+const ItemManager = require('./inventory/item/item-manager').default;
 
 class Prismarine {
 
