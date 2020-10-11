@@ -7,7 +7,7 @@ const WorldEventPacket = require('../network/packet/world-event');
 const Vector3 = require('../math/vector3');
 const Prismarine = require('../prismarine');
 const { GameruleManager, Rules } = require('../world/gamerule-manager');
-
+const SharedSeedRandom = require('./util/shared-seed-random');
 
 class World {
 
@@ -29,7 +29,7 @@ class World {
     #provider = null
     /** @type {Prismarine} */
     #server
-    /** @type {number} */
+    /** @type {number | bigint} */
     #seed
     /** @type {string} */
     #generator
@@ -38,23 +38,36 @@ class World {
         this.#name = name;
         this.#server = server;
         this.#provider = provider;
-        this.#seed = seed;
+        this.#seed = new SharedSeedRandom(seed);
         this.#generator = generator;
 
         // TODO: Load default gamrules
         this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true);
         this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true);
 
-        const time = Date.now();
-        server.getLogger().info(`Preparing start region for dimension §b'${name}'/${generator}§r`);
-        server.getLogger().info('Preparing spawn area: 0%');
-        for (let x = 0; x < 32; x++) {
-            for (let z = 0; z < 32; z++) {
-                this.loadChunk(x, z);
+        (async () => {
+            const time = Date.now();
+            server.getLogger().info(`Preparing start region for dimension §b'${name}'/${generator}§r`);
+            server.getLogger().info('Preparing spawn area: 0%');
+
+            let loaded = 0;
+            for (let x = 0; x < 32; x++) {
+                for (let z = 0; z < 32; z++) {
+                    await this.loadChunk(x, z);
+
+                    loaded++;
+
+                    if (loaded % 10 == 0) {
+                        server.getLogger().info(`Preparing spawn area: ${Math.floor((loaded / 1024) * 100)}%`);
+                    }
+
+                    if (loaded == 1024) {
+                        server.getLogger().info(`Preparing spawn area: 100%`);
+                        server.getLogger().info(`Time elapsed: ${(Date.now() - time)} ms`);
+                    }
+                }
             }
-        }
-        server.getLogger().info('Preparing spawn area: 100%');
-        server.getLogger().debug(`Time elapsed: ${(Date.now() - time)} ms`);
+        })();
     }
 
     /**

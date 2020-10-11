@@ -43,6 +43,13 @@ class Prismarine {
         Prismarine.instance = this;
     }
 
+    async reload() {
+        this.#packetRegistry = new PacketRegistry();
+        this.#commandManager = new CommandManager();
+        this.#itemManager = new ItemManager();
+        this.#pluginManager = new PluginManager();
+    }
+
     async listen(port = 19132) {
         this.#raknet = await (new Listener).listen('0.0.0.0', port);
         this.#raknet.name.setOnlinePlayerCount(this.#players.size);
@@ -111,7 +118,6 @@ class Prismarine {
                                 return reject(`Packet ${packet.constructor.name} doesn't have a handler`);
                             }
                         } catch (err) {
-                            console.error(err);
                             return reject(`Error while decoding packet: ${packet.constructor.name}: ${err}`);
                         }
 
