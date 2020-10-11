@@ -64,7 +64,7 @@
   },
   "devDependencies": {
     "babel-eslint": "10.1.0",
-    "eslint": "^7.11.0",
+    "eslint": "7.11.0",
     "husky": "4.3.0",
     "nodemon": "2.0.4",
     "pkg": "git+https://github.com/geekuillaume/pkg.git"
