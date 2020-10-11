@@ -3,7 +3,7 @@ const path = require('path');
 
 const Provider = require('../provider');
 const Chunk = require('../chunk/chunk');
-const BinaryStream = require('@jsprismarine/jsbinaryutils');
+const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const SubChunk = require('../chunk/sub-chunk');
 
 

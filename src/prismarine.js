@@ -118,7 +118,7 @@ class Prismarine {
                                 return reject(`Packet ${packet.constructor.name} doesn't have a handler`);
                             }
                         } catch (err) {
-                            return reject(`Error while decoding packet: ${packet.constructor.name}`);
+                            return reject(`Error while decoding packet: ${packet.constructor.name}, (${err})`);
                         }
 
                     } else {
