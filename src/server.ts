@@ -12,7 +12,8 @@ import ConsoleSender from './command/console-sender';
 import Logger from './utils/logger';
 
 const server = new Prismarine({
-    logger: Logger, config: serverConfig,
+    logger: Logger,
+    config: serverConfig,
 });
 
 // Create folders

@@ -17,7 +17,7 @@ class CommandManager {
         // Register vanilla commands
         const vanilla = fs.readdirSync(path.join(__dirname, 'vanilla'));
         vanilla.forEach((id) => {
-            if (id.includes('.test.') || !id.includes('.js'))
+            if (id.includes('.test.') || id.includes('.d.ts'))
                 return;  // Exclude test files
 
             const command = require(`./vanilla/${id}`);
@@ -27,7 +27,7 @@ class CommandManager {
         // Register jsprismarine commands
         const jsprismarine = fs.readdirSync(path.join(__dirname, 'jsprismarine'));
         jsprismarine.forEach((id) => {
-            if (id.includes('.test.') || !id.includes('.js'))
+            if (id.includes('.test.') || id.includes('.d.ts'))
                 return;  // Exclude test files
 
             const command = require(`./jsprismarine/${id}`);

@@ -4,7 +4,7 @@ const logger = require('../../utils/logger');
 const ChangeSlot = require('../type/change-slot');
 const NetworkTransaction = require('../type/network-transaction');
 const InventoryTransactionType = require('../type/inventory-transaction-type');
-const Vector3 = require('../../math/vector3');
+const Vector3 = require('../../math/vector3').default;
 
 
 class InventoryTransactionPacket extends DataPacket {

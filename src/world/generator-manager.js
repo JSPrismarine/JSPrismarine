@@ -8,9 +8,9 @@ class GeneratorManager {
     constructor() {
         const generators = fs.readdirSync(__dirname + '/generators');
         generators.forEach((generator) => {
-            if (!generator.includes('.js'))
+            if (generator.includes('.test.') || generator.includes('.d.ts'))
                 return;
-            this.registerClassGenerator(generator?.replace('.js', ''));
+            this.registerClassGenerator(generator.split('.')[0]);
         });
         logger.debug(`Registered §b${generators.length}§r generator(s)!`);
     }
