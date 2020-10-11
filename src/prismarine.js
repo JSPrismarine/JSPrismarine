@@ -49,7 +49,7 @@ class Prismarine {
     }
 
     async listen(port = 19132) {
-        this.#raknet = await (new Listener).listen('0.0.0.0', port);
+        this.#raknet = await (new Listener).listen(this.#config.get('server-ip', '0.0.0.0'), port);
         this.#raknet.name.setOnlinePlayerCount(this.#players.size);
         this.#raknet.name.setVersion(Identifiers.Protocol);
         this.#raknet.name.setProtocol(Identifiers.MinecraftVersion);
@@ -71,6 +71,7 @@ class Prismarine {
 
             // Add the player into the world
             world.addPlayer(player);
+            this.#raknet.name.setOnlinePlayerCount(this.#players.size);
         });
 
         // Get player from map by address, then handle packet
@@ -143,12 +144,8 @@ class Prismarine {
 
             }
             this.#logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
+            this.#raknet.name.setOnlinePlayerCount(this.#players.size);
         });
-
-        // Update player count every 5 seconds
-        setInterval(() => this.#raknet.name.setOnlinePlayerCount(
-            this.#players.size
-        ), 1000 * 5);
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
         setInterval(() => {
@@ -157,7 +154,7 @@ class Prismarine {
             }
         }, 1000 / 20);
 
-        // Auto save (default: 5 minutes seconds)
+        // Auto save (default: 5 minutes)
         // TODO: level.ticks % 6000 == 0 and save
         setInterval(async () => {
             for (let world of this.getWorldManager().getWorlds()) {

@@ -3,7 +3,6 @@ const Prismarine = require('../../prismarine');
 const Identifiers = require('../identifiers');
 const AdventureSettingsPacket = require('../packet/adventure-settings-packet');
 
-
 class AdventureSettingsHandler {
     static NetID = Identifiers.AdventureSettingsPacket
 
@@ -14,4 +13,5 @@ class AdventureSettingsHandler {
      */
     static handle(_packet, _server, _player) {}
 }
+
 module.exports = AdventureSettingsHandler;

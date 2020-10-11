@@ -1,5 +1,5 @@
 // TODO: Still missing flags
-const MetadataFlag = {
+export const MetadataFlag = {
     Index: 0,
     Health: 1,
     Variant: 2,
@@ -24,7 +24,8 @@ const MetadataFlag = {
     BoundingBoxWidth: 53,
     BoundingBoxHeight: 54
 };
-const FlagType = {
+
+export const FlagType = {
     Byte: 0,
     Short: 1,
     Int: 2,
@@ -35,51 +36,37 @@ const FlagType = {
     Long: 7,
     Vector: 8
 };
-/* 
-For future enchancement
-class Metadata {
-    key
-    type
-    value
 
-    constructor(key, type, value) {
-        this.key = key
-        this.type = type
-        this.value = value
-    }
-} 
-*/
-class MetadataManager {
+export class MetadataManager {
     /** @type {Map<number, []>} */
     #metadata = new Map()
 
-    getPropertyValue(key) {
+    getPropertyValue(key: string) {
         return this.#metadata.has(key) ? this.#metadata.get(key)[1] : null;
     }
 
-    setPropertyValue(key, type, value) {
+    setPropertyValue(key: string, type: any, value: any) {
         this.#metadata.set(key, [type, value]);
     }
 
-    setLong(key, value) {
+    setLong(key: string, value: any) {
         this.setPropertyValue(key, FlagType.Long, value);
     }
 
-    setShort(key, value) {
+    setShort(key: string, value: any) {
         this.setPropertyValue(key, FlagType.Short, value);
     }
 
-    setString(key, value) {
+    setString(key: string, value: any) {
         this.setPropertyValue(key, FlagType.String, value);
     }
 
-    setFloat(key, value) {
+    setFloat(key: string, value: any) {
         this.setPropertyValue(key, FlagType.Float, value);
     }
 
     getMetadata() {
         return this.#metadata;
     }
-    
+
 }
-module.exports = { MetadataFlag, FlagType, MetadataManager };

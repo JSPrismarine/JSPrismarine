@@ -15,15 +15,16 @@ jobs:
                   node-version: 14
             - run: npm install
             - run: npm run build
+            - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
                   name: jsprismarine-x64-linux
-                  path: dist/jsprismarine-linux
+                  path: packages/jsprismarine-linux
             - uses: actions/upload-artifact@v2
               with:
                   name: jsprismarine-x64-macos
-                  path: dist/jsprismarine-macos
+                  path: packages/jsprismarine-macos
             - uses: actions/upload-artifact@v2
               with:
                   name: jsprismarine-x64-win32.exe
-                  path: dist/jsprismarine-win.exe
+                  path: packages/jsprismarine-win.exe

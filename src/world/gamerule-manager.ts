@@ -1,29 +1,28 @@
 const LOGGER = require('../utils/logger');
 
-
-const Rules =  {
-    CommandBlockOutput: 'commandblockoutput',  
-    DoDayLightCycle: 'dodaylightcycle',  
-    DoEntityDrops: 'doentitydrops',  
-    DoFireTick: 'dofiretick',  
-    DoMobLoot: 'domobloot',  
-    DoMobSpawning: 'domobspawning', 
-    DoTileDrops: 'dotiledrops',  
-    DoWeatherCycle: 'doweathercycle',  
-    DrowingDamage: 'drowningdamage', 
+export const Rules = {
+    CommandBlockOutput: 'commandblockoutput',
+    DoDayLightCycle: 'dodaylightcycle',
+    DoEntityDrops: 'doentitydrops',
+    DoFireTick: 'dofiretick',
+    DoMobLoot: 'domobloot',
+    DoMobSpawning: 'domobspawning',
+    DoTileDrops: 'dotiledrops',
+    DoWeatherCycle: 'doweathercycle',
+    DrowingDamage: 'drowningdamage',
     FallDamage: 'falldamage',
-    FireDamage: 'firedamage', 
-    KeepInventory: 'keepinventory',  
-    MobGriefing: 'mobgriefing',  
-    NaturalRegeneration: 'naturalregeneration',  
-    PVP: 'pvp',  
+    FireDamage: 'firedamage',
+    KeepInventory: 'keepinventory',
+    MobGriefing: 'mobgriefing',
+    NaturalRegeneration: 'naturalregeneration',
+    PVP: 'pvp',
     SendCommandFeedback: 'sendcommandfeedback',
     ShowCoordinates: 'showcoordinates',  // bool
     RandomTickSpeed: 'randomtickspeed',
     TNTExplodes: 'tntexplodes'
 };
 
-class GameruleManager {
+export class GameruleManager {
 
     /** @type {Map<String, any>} */
     #rules = new Map()
@@ -34,7 +33,7 @@ class GameruleManager {
      * @param {string} name 
      * @param {boolean|number} value 
      */
-    setGamerule(name, value) {
+    setGamerule(name: string, value: boolean | number) {
         this.#rules.set(name, value);
     }
 
@@ -43,7 +42,7 @@ class GameruleManager {
      * 
      * @param {string} name 
      */
-    getGamerule(name) {
+    getGamerule(name: string) {
         if (!Object.values(Rules).includes(name)) {
             LOGGER.error(`Unknown Gamerule with name ${name}`);
         }
@@ -55,4 +54,3 @@ class GameruleManager {
     }
 
 }
-module.exports = { GameruleManager, Rules };

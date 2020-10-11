@@ -17,7 +17,7 @@ describe('command', () => {
                             getPlugins: () => []
                         })
                     }),
-                    sendMessage: (message) => {
+                    sendMessage: (message: string) => {
                         expect(message).toBe(`§cCan't find any plugins.`);
                         done();
                     }
@@ -36,7 +36,7 @@ describe('command', () => {
                             }]
                         })
                     }),
-                    sendMessage: (message) => {
+                    sendMessage: (message: string) => {
                         expect(message).toBe(`§7Plugins (1):§r test1 1.0.0`);
                         done();
                     }
@@ -60,7 +60,7 @@ describe('command', () => {
                             }]
                         })
                     }),
-                    sendMessage: (message) => {
+                    sendMessage: (message: string) => {
                         expect(message).toBe(`§7Plugins (2):§r test1 1.0.0, test2 1.0.0`);
                         done();
                     }
