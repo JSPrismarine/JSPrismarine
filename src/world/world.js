@@ -156,8 +156,8 @@ class World {
      * @param {boolean} generate
      * @returns {Chunk}
      */
-    getChunkAt(x, z, generate = false) {
-        return this.getChunk(x >> 4, z >> 4, generate);
+    async getChunkAt(x, z, generate = false) {
+        return await this.getChunk(x >> 4, z >> 4, generate);
     }
 
     /**
