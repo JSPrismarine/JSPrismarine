@@ -35,7 +35,7 @@ class BatchPacket extends DataPacket {
     }
 
     encodePayload() {
-        this.write(Zlib.deflateRawSync(this.payload, { level: this._compressionLevel }));
+        this.append(Zlib.deflateRawSync(this.payload, { level: this._compressionLevel }));
     }
 
     /**
@@ -52,19 +52,17 @@ class BatchPacket extends DataPacket {
 
         let stream = new BinaryStream();
         stream.writeUnsignedVarInt(packet.buffer.length);
-        stream.write(packet.buffer);
+        stream.append(packet.buffer);
         this.payload = Buffer.concat([this.payload, stream.buffer]);
     }
 
     getPackets() {
         let stream = new PacketBinaryStream();
         stream.buffer = this.payload;
-        console.log(this.payload.length);
         let packets = [];
         while (!stream.feof()) {
             const length = stream.readUnsignedVarInt();
             const buffer = stream.read(length);
-            console.log(length, buffer);
             packets.push(buffer);
         }
         return packets;
