@@ -1,20 +1,34 @@
-const Command = require('../command');
-const Player = require('../../player');
-const logger = require('../../utils/logger');
-const ConsoleSender = require('../console-sender');
+import Player from "../../player";
+import Command from "../command";
+
 const Gamemode = require('../../world/gamemode');
+const CommandParameter = require('../../network/type/command-parameter');
 
 class GamemodeCommand extends Command {
-
     constructor() {
-        super({ namespace: 'minecraft', name: 'gamemode', description: 'Changes gamemode for a player.' });
+        super({
+            namespace: 'minecraft',
+            name: 'gamemode',
+            description: 'Changes gamemode for a player.'
+        } as any);
+
+        this.parameters.add(new CommandParameter({
+            name: 'gamemode',
+            type: 0x100000 | 0x1d,
+            optional: false
+        }));
+        this.parameters.add(new CommandParameter({
+            name: 'target',
+            type: 0x100000 | 0x06,
+            optional: false
+        }));
     }
 
     /**
-     * @param {ConsoleSender|Player} sender 
+     * @param {Player} sender 
      * @param {Array} args
      */
-    execute(sender, args) {
+    execute(sender: Player, args: Array<any>) {
         if (args.length < 1 || args.length > 2) {
             return sender.sendMessage('§cYou have to specify a gamemode.');
         }
@@ -35,7 +49,7 @@ class GamemodeCommand extends Command {
                 return sender.sendMessage('§cInvalid gamemode specified.');
         }
 
-        let target = sender;
+        let target: Player | null = sender;
         if (args.length > 1 && typeof args[1] === 'string') {
             if ((target = sender.getServer().getPlayerByName(args[1])) === null)
                 return sender.sendMessage('§cTarget player is not online!');

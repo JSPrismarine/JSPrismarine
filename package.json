@@ -1,5 +1,5 @@
 {
-  "name": "jsprismarine",
+  "name": "@jsprismarine/jsprismarine",
   "version": "1.0.0",
   "description": "Basic Minecraft Bedrock Edition software ",
   "main": "./dist/src/server.js",
