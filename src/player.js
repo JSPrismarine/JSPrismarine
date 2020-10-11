@@ -253,8 +253,7 @@ class Player extends Entity {
     sendCreativeContents() {
         let pk = new CreativeContentPacket();
 
-        // TODO: implement full block list
-        pk.entries = this.getServer().getItemManager().getBlocks().map((block, index) => new CreativeContentEntry(index, block));
+        pk.entries = this.getServer().getBlockManager().getBlocks().map((block, index) => new CreativeContentEntry(index, block));
         this.sendDataPacket(pk);
     }
 
