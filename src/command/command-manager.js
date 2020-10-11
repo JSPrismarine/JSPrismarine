@@ -21,7 +21,7 @@ class CommandManager {
                 return;  // Exclude test files
 
             const command = require(`./vanilla/${id}`);
-            this.registerClassCommand(new command());
+            this.registerClassCommand(new (command.default || command)());
         });
 
         // Register jsprismarine commands
@@ -31,7 +31,7 @@ class CommandManager {
                 return;  // Exclude test files
 
             const command = require(`./jsprismarine/${id}`);
-            this.registerClassCommand(new command());
+            this.registerClassCommand(new (command.default || command)());
         });
 
         logger.debug(`Registered §b${vanilla.length + jsprismarine.length}§r commands(s)!`);

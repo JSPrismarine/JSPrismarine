@@ -44,7 +44,7 @@ class ItemManager {
 
                 const item = require(`./items/${id}`);
                 try {
-                    this.registerClassItem(new item());
+                    this.registerClassItem(new (item.default || item)());
                 } catch (err) {
                     logger.error(`${id} failed to register!`);
                 }
@@ -63,7 +63,7 @@ class ItemManager {
 
                 const block = require(`./blocks/${id}`);
                 try {
-                    this.registerClassBlock(new block());
+                    this.registerClassBlock(new (block.default || block)());
                 } catch (err) {
                     logger.error(`${id} failed to register!`);
                 }
