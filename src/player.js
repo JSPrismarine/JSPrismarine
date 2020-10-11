@@ -36,6 +36,7 @@ const InventoryContentPacket = require('./network/packet/inventory-content-packe
 const MobEquipmentPacket = require('./network/packet/mob-equipment-packet');
 const Item = require('./inventory/item/item');
 const CreativeContentEntry = require('./network/type/creative-content-entry');
+const Vector3 = require('./math/vector3');
 
 class Player extends Entity {
 
@@ -95,6 +96,9 @@ class Player extends Entity {
     loadingChunks = new Set()
     /** @type {Set<Chunk>} */
     chunkSendQueue = new Set()
+
+    /** @type {null|Vector3} */
+    breakingBlockPos = null  // temphack
 
     /**
      * Player's constructor.
