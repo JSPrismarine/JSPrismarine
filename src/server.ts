@@ -1,18 +1,18 @@
-const fs = require('fs');
-const readline = require('readline');
-const path = require('path');
+import fs from 'fs';
+import readline from 'readline';
+import path from 'path';
 
-const Config = require('./utils/config');
+import Config from './utils/config';
 
 const serverConfig = new Config(path.join(process.cwd(), 'config.yaml'));
-global.log_level = serverConfig.get('log-level', 'info');
+(global as any).log_level = serverConfig.get('log-level', 'info');
 
-const Prismarine = require('./prismarine');
-const ConsoleSender = require('./command/console-sender');
-const logger = require('./utils/logger');
+import Prismarine from './prismarine';
+import ConsoleSender from './command/console-sender';
+import Logger from './utils/logger';
 
 const server = new Prismarine({
-    logger, config: serverConfig,
+    logger: Logger, config: serverConfig,
 });
 
 // Create folders
@@ -44,7 +44,7 @@ for (let i = 0; i < pluginFolders.length; i++) {
             path.resolve('./plugins', folderName)
         );
     } catch (error) {
-        logger.warn(
+        Logger.warn(
             `Error while loading plugin §b${folderName}§r: §c${error}`
         );
     }
@@ -52,9 +52,9 @@ for (let i = 0; i < pluginFolders.length; i++) {
 
 // Console command reader
 let rl = readline.createInterface({ input: process.stdin });
-rl.on('line', (input) => {
+rl.on('line', (input: string) => {
     if (typeof input !== 'string') {
-        return logger.warn('Got an invalid command!');
+        return Logger.warn('Got an invalid command!');
     }
 
     if (!(input.startsWith('/'))) {
@@ -68,7 +68,7 @@ rl.on('line', (input) => {
 
 
 server.listen(serverConfig.get('port', 19132)).catch(() => {
-    logger.error(`Cannot start the server, is it already running on the same port?`);
+    Logger.error(`Cannot start the server, is it already running on the same port?`);
     process.exit(1);
 });
 
