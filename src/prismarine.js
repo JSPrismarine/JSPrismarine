@@ -8,6 +8,7 @@ const WorldManager = require('./world/world-manager').default;
 const PluginManager = require('./plugin/plugin-manager');
 const Config = require('./utils/config');
 const Logger = require('./utils/logger');
+const BlockManager = require('./block/block-manager').default;
 const ItemManager = require('./inventory/item/item-manager').default;
 
 class Prismarine {
@@ -30,6 +31,8 @@ class Prismarine {
     #worldManager = new WorldManager(this)
     /** @type {ItemManager} */
     #itemManager = new ItemManager()  // TODO
+    /** @type {BlockManager} */
+    #blockManager = new BlockManager()  // TODO
 
     /** @type {null|Prismarine} */
     static instance = null
@@ -45,6 +48,7 @@ class Prismarine {
         this.#packetRegistry = new PacketRegistry();
         this.#commandManager = new CommandManager();
         this.#itemManager = new ItemManager();
+        this.#blockManager = new BlockManager();
         this.#pluginManager = new PluginManager();
     }
 
@@ -246,6 +250,9 @@ class Prismarine {
 
     getItemManager() {
         return this.#itemManager;
+    }
+    getBlockManager() {
+        return this.#blockManager;
     }
 
     getLogger() {
