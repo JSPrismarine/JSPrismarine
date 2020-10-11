@@ -22,7 +22,7 @@ try {
 } catch (err) { }
 
 blocks.forEach((block) => {
-    fs.writeFileSync(`./src/block/blocks/${block.name}.tsx`, `import Block from '../block'
+    fs.writeFileSync(`./src/block/blocks/${block.name}.ts`, `import Block from '../block'
 
 export default class ${block.properName} extends Block {
     constructor() {
