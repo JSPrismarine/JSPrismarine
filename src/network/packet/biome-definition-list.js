@@ -1,8 +1,6 @@
-const fs = require('fs');
-
+const BiomeDefinitions = require('@jsprismarine/bedrock-data').biome_definitions;
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
-
 
 class BiomeDefinitionListPacket extends DataPacket {
     static NetID = Identifiers.BiomeDefinitionListPacket
@@ -11,7 +9,7 @@ class BiomeDefinitionListPacket extends DataPacket {
 
     encodePayload() {
         this.append(this.#cachedNBT ||
-            (this.#cachedNBT = fs.readFileSync(__dirname + '/../../../node_modules/@jsprismarine/bedrock-data/resources/biome_definitions.nbt')));
+            (this.#cachedNBT = BiomeDefinitions));
     }
 }
 module.exports = BiomeDefinitionListPacket;
