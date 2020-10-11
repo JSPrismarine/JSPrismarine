@@ -11,7 +11,7 @@
         "allowJs": true,
         "strict": true,
         "forceConsistentCasingInFileNames": true,
-        "isolatedModules": false,
+        "isolatedModules": true,
         "esModuleInterop": true,
         "declaration": true,
         "allowSyntheticDefaultImports": true,
@@ -19,6 +19,9 @@
     },
     "include": [
         "./src/**/*"
+    ],
+    "exclude": [
+        "./**/*.test.*"
     ],
     "typeRoots": [
         "node_modules/@types",
