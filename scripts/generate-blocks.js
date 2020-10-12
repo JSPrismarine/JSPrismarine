@@ -1,6 +1,8 @@
 const fs = require('fs');
 const fetch = require('node-fetch');
 
+return console.log('TODO!');
+
 try {
     fs.mkdirSync('./src/block/blocks');
 } catch (err) { }
