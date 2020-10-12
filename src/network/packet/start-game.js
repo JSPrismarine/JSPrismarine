@@ -18,10 +18,24 @@ class StartGamePacket extends DataPacket {
     /** @type {number} */
     gamemode 
 
+    /** @type {number} */
+    playerX
+    /** @type {number} */
+    playerY
+    /** @type {number} */
+    playerZ
+
     /** @type {string} */
     levelId
     /** @type {string} */
     worldName
+
+    /** @type {number} */
+    worldSpawnX 
+    /** @type {number} */
+    worldSpawnY
+    /** @type {number} */
+    worldSpawnZ
 
     /** @type {Map<String, any>} */
     gamerules 
@@ -36,9 +50,9 @@ class StartGamePacket extends DataPacket {
         this.writeVarInt(this.gamemode); 
 
         // vector 3
-        this.writeLFloat(5);
-        this.writeLFloat(5.50);
-        this.writeLFloat(5);
+        this.writeLFloat(this.playerX);
+        this.writeLFloat(this.playerY);
+        this.writeLFloat(this.playerZ);
 
         this.writeLFloat(0); // pitch
         this.writeLFloat(0); // yaw
@@ -54,9 +68,9 @@ class StartGamePacket extends DataPacket {
         this.writeVarInt(0); // difficulty
 
         // world spawn vector 3
-        this.writeVarInt(5);
-        this.writeUnsignedVarInt(5);
-        this.writeVarInt(5);
+        this.writeVarInt(this.worldSpawnX);
+        this.writeUnsignedVarInt(this.worldSpawnY);
+        this.writeVarInt(this.worldSpawnZ);
 
         this.writeByte(1); // achievement disabled
 
