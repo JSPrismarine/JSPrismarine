@@ -26,8 +26,5 @@ export default class Command extends CommandData {
     /**
      * Called when the command is executed.
      */
-    execute(sender: Player, args: Array<string> = [], commandName: string) {
-
-    }
-
+    public execute(sender: Player, args: Array<string> = []): void { }
 }
