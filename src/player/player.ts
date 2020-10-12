@@ -67,7 +67,7 @@ export default class Player extends Entity {
     skin: any
 
     /** @type {number} */
-    viewDistance: number | undefined
+    viewDistance: any
     /** @type {number} */
     gamemode = 0
 
@@ -255,7 +255,7 @@ export default class Player extends Entity {
     sendCreativeContents() {
         let pk = new CreativeContentPacket();
 
-        pk.entries = this.getServer().getBlockManager().getBlocks().map((block, index) => new CreativeContentEntry(index, block));
+        pk.entries = this.getServer().getBlockManager().getBlocks().map((block: any, index: number) => new CreativeContentEntry(index, block));
         this.sendDataPacket(pk);
     }
 
