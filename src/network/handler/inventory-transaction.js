@@ -12,6 +12,6 @@ class InventoryTransactionHandler {
      * @param {Prismarine} _server
      * @param {InventoryTransactionPacket} _packet 
      */
-    static handle(_packet, _server, _player) { console.log(_packet); }
+    static handle(_packet, _server, _player) {}
 }
 module.exports = InventoryTransactionHandler;
