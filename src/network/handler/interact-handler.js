@@ -27,7 +27,7 @@ class InteractHandler {
                 break;
             case InteractAction.OpenInventory:
                 let pk = new ContainerOpenPacket();
-                pk.windowId = 0;  // TODO
+                pk.windowId = 92;  // TODO
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerX = pk.containerY = pk.containerZ = 0;
                 pk.containerEntityId = player.runtimeId;
