@@ -2,7 +2,7 @@ import Prismarine from "../prismarine";
 import GeneratorManager from "./generator-manager";
 import World from "./world";
 
-const logger = require('../utils/logger');
+const logger = require('../utils/Logger');
 const LevelDB = require('./leveldb/leveldb');
 
 export default class WorldManager {

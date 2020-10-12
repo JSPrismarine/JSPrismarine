@@ -1,4 +1,4 @@
-const LOGGER = require('../utils/logger');
+const LOGGER = require('../utils/Logger');
 
 export const Rules = {
     CommandBlockOutput: 'commandblockoutput',

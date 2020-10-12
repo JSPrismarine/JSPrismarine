@@ -8,8 +8,8 @@ const serverConfig = new Config(path.join(process.cwd(), 'config.yaml'));
 (global as any).log_level = serverConfig.get('log-level', 'info');
 
 import Prismarine from './prismarine';
-import ConsoleSender from './command/console-sender';
-import Logger from './utils/logger';
+import ConsoleSender from './utils/ConsoleSender';
+import * as Logger from './utils/Logger';
 
 const server = new Prismarine({
     logger: Logger,

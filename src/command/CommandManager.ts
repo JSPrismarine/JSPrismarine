@@ -6,7 +6,7 @@ const fs = require('fs');
 
 const CommandData = require('../network/type/command-data');
 const CommandParameter = require('../network/type/command-parameter');
-const logger = require('../utils/logger');
+const logger = require('../utils/Logger');
 
 export default class CommandManager {
 

@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import Block from "./Block";
-import Logger from "../utils/logger";
+import * as Logger from "../utils/Logger";
 
 export default class BlockManager {
     private blocks = new Map()

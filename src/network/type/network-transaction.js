@@ -1,5 +1,5 @@
 const NetworkTransactionSource = require('../type/network-transaction-source');
-const logger = require('../../utils/logger');
+const logger = require('../../utils/Logger');
 const PacketBinaryStream = require('../packet-binary-stream');
 
 

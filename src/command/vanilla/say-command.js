@@ -1,6 +1,6 @@
 const Command = require('../Command').default;
 const Player = require('../../player/player').default;
-const Logger = require('../../utils/logger');
+const Logger = require('../../utils/Logger');
 
 class SayCommand extends Command {
 
