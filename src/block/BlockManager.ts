@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import Block from "./block";
+import Block from "./Block";
 import Logger from "../utils/logger";
 
 export default class BlockManager {
