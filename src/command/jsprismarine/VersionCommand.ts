@@ -9,7 +9,6 @@ const packageFile = require('../../../package.json');
 const identifiers = require('../../network/identifiers');
 
 export default class VersionCommand extends Command {
-
     constructor() {
         super({ namespace: 'jsprismarine', name: 'version', description: 'Displays general server informations.', aliases: ['about'] });
     }
@@ -18,8 +17,8 @@ export default class VersionCommand extends Command {
      * @param {ConsoleSender|Player} sender 
      * @param {Array} args 
      */
-    execute(sender: Player, args: Array<any>) {
-        let serverVersion = packageFile.version;               //The only version reference I found, please contribute if there is a "better" one
+    public execute(sender: Player, args: Array<any>): void {
+        let serverVersion = packageFile.version;
         let protocolVersion = identifiers.Protocol;
         let minecraftVersion = identifiers.MinecraftVersion;
 
