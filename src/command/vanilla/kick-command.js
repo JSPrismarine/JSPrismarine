@@ -1,9 +1,8 @@
 const Command = require('../Command').default;
 const Player = require('../../player/player').default;
-const CommandParameter = require('../../network/type/command-parameter');
+const CommandParameter = require('../../network/type/CommandParameter').default;
 
 class KickCommand extends Command {
-
     constructor() {
         // TODO: Add permissions
         super({ namespace: 'minecraft', name: 'kick', description: 'Kicks a player off the server.' });

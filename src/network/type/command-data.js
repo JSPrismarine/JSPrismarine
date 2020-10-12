@@ -1,4 +1,4 @@
-const CommandParameter = require('./command-parameter');
+const CommandParameter = require('./CommandParameter').default;
 
 
 class CommandData {
