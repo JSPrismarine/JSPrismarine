@@ -6,7 +6,7 @@ class ItemStackResponsePacket extends DataPacket {
 
     responses = []
 
-    encode() {
+    encodePayload() {
         this.writeVarInt(this.responses.length);
         this.responses.forEach(response => {
             this.writeItemStackResponse(response);
