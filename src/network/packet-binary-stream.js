@@ -16,7 +16,7 @@ const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece');
 const SkinPersona = require('../utils/skin/skin-persona/persona');
 const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color');
 const Item = require('../inventory/item/item');
-const Logger = require('../utils/logger');
+const Logger = require('../utils/Logger');
 
 const ItemStackRequest = require('./type/item-stack-requests/item-stack-request');
 const ItemStackRequestAction = require('./type/item-stack-requests/item-stack-request-action');

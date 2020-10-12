@@ -1,6 +1,6 @@
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
-const logger = require('../../utils/logger');
+const logger = require('../../utils/Logger');
 const ChangeSlot = require('../type/change-slot');
 const NetworkTransaction = require('../type/network-transaction');
 const InventoryTransactionType = require('../type/inventory-transaction-type');

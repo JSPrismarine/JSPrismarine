@@ -7,7 +7,7 @@ const Identifiers = require('./network/identifiers');
 const WorldManager = require('./world/world-manager').default;
 const PluginManager = require('./plugin/plugin-manager');
 const Config = require('./utils/config');
-const Logger = require('./utils/logger');
+const Logger = require('./utils/Logger');
 const BlockManager = require('./block/BlockManager').default;
 const ItemManager = require('./inventory/item/item-manager').default;
 

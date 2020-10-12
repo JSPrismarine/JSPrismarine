@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const PluginManifest = require('./plugin-manifest');
 const EventManager = require('../events/event-manager');
-const logger = require('../utils/logger');
+const logger = require('../utils/Logger');
 const PluginAPI = require('./plugin-api');
 
 

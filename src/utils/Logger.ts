@@ -6,12 +6,12 @@ const mcColors = require("mccolorstoconsole");
 let logger = createLogger({
     transports: [
         new transports.Console({
-            level: process.env.NODE_ENV !== 'development' && (global.log_level || 'info') || 'silly',
+            level: process.env.NODE_ENV !== 'development' && ((global as any).log_level || 'info') || 'silly',
             format: combine(
                 timestamp({ format: 'HH:mm:ss' }),
                 format.colorize(),
                 format.simple(),
-                printf(({ level, message, timestamp }) => {
+                printf(({ level, message, timestamp }: any) => {
                     return `[${timestamp}] ${level}: ${mcColors.minecraftToConsole(message)}`;
                 })
             ),
@@ -22,7 +22,7 @@ let logger = createLogger({
             format: combine(
                 timestamp({ format: 'HH:mm:ss' }),
                 format.simple(),
-                printf(({ level, message, timestamp }) => {
+                printf(({ level, message, timestamp }: any) => {
                     return `[${timestamp}] ${level}: ${mcColors.minecraftToConsole(message).replace(
                         /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')}` // eslint-disable-line
                 })
@@ -31,40 +31,50 @@ let logger = createLogger({
     ]
 });
 
-module.exports = {
-    /**
-     * Log debugging messages
-     * @param {string} message 
-     */
-    debug: function (message) {
-        logger.log('debug', message);
-    },
-    /**
-     * Log information messages
-     * @param {string} message 
-     */
-    info: function (message) {
-        logger.log('info', message);
-    },
-    /**
-     * Log warning messages
-     * @param {string} message 
-     */
-    warn: function (message) {
-        logger.log('warn', message);
-    },
-    /**
-     * Log error messages
-     * @param {string} message 
-     */
-    error: function (message) {
-        logger.log('error', message);
-    },
-    /**
-     * Log silly messages
-     * @param {string} message 
-     */
-    silly: function (message) {
-        logger.log('silly', message);
-    }
-};
+/**
+ * Log debugging messages
+ * @param {string} message 
+ */
+const debug = (message: string) => {
+    logger.log('debug', message);
+}
+
+/**
+ * Log information messages
+ * @param {string} message 
+ */
+const info = (message: string) => {
+    logger.log('info', message);
+}
+
+/**
+ * Log warning messages
+ * @param {string} message 
+ */
+const warn = (message: string) => {
+    logger.log('warn', message);
+}
+
+/**
+ * Log error messages
+ * @param {string} message 
+ */
+const error = (message: string) => {
+    logger.log('error', message);
+}
+
+/**
+ * Log silly messages
+ * @param {string} message 
+ */
+const silly = (message: string) => {
+    logger.log('silly', message);
+}
+
+export {
+    debug,
+    info,
+    warn,
+    error,
+    silly
+}
