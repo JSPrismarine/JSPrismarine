@@ -1,6 +1,5 @@
-const Command = require('../command');
+const Command = require('../Command').default;
 const Player = require('../../player/player').default;
-const ConsoleSender = require('../console-sender');
 const Logger = require('../../utils/logger');
 
 class SayCommand extends Command {
@@ -11,7 +10,7 @@ class SayCommand extends Command {
     }
 
     /**
-     * @param {ConsoleSender|Player} sender
+     * @param {Player} sender
      * @param {Array} args
      */
     execute(sender, args) {

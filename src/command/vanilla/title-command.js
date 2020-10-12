@@ -1,6 +1,5 @@
-const Command = require('../command');
+const Command = require('../Command').default;
 const Player = require('../../player/player').default;
-const ConsoleSender = require('../console-sender');
 const SetTitlePacket = require('../../network/packet/set-title-packet');
 const SetTitleType = require('../../network/type/set-title-type');
 
@@ -18,7 +17,7 @@ class TitleCommand extends Command {
     }
 
     /**
-     * @param {ConsoleSender|Player} sender
+     * @param {Player} sender
      * @param {Array} args
      */
     execute(sender, args) {

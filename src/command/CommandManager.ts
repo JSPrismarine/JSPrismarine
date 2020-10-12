@@ -1,12 +1,11 @@
 import Player from "../player/player";
-import Command from "./command";
+import Command from "./Command";
 
 const path = require('path');
 const fs = require('fs');
 
 const CommandData = require('../network/type/command-data');
 const CommandParameter = require('../network/type/command-parameter');
-const ConsoleSender = require('./console-sender');
 const logger = require('../utils/logger');
 
 export default class CommandManager {
