@@ -4,7 +4,7 @@ const identifiers = require('../../network/identifiers');
 
 describe('command', () => {
     describe('jsprismarine', () => {
-        describe('version-command', () => {
+        describe('VersionCommand', () => {
             const command = new Command();
 
             it('name & namespace should be set correctly', () => {

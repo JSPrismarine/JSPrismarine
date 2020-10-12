@@ -1,8 +1,8 @@
 import Player from "../../player/player";
 import Command from "../Command";
+import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
 
 const Gamemode = require('../../world/gamemode');
-const CommandParameter = require('../../network/type/command-parameter');
 
 export default class GamemodeCommand extends Command {
     constructor() {
@@ -14,12 +14,12 @@ export default class GamemodeCommand extends Command {
 
         this.parameters.add(new CommandParameter({
             name: 'gamemode',
-            type: 0x100000 | 0x1d,
+            type: CommandParameterType.String,
             optional: false
         }));
         this.parameters.add(new CommandParameter({
             name: 'target',
-            type: 0x100000 | 0x06,
+            type: CommandParameterType.Target,
             optional: false
         }));
     }

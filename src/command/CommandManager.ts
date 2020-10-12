@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 
 const CommandData = require('../network/type/command-data');
-const CommandParameter = require('../network/type/command-parameter');
+const CommandParameter = require('../network/type/CommandParameter').default;
 const logger = require('../utils/Logger');
 
 export default class CommandManager {
@@ -85,7 +85,7 @@ export default class CommandManager {
 
         for (let command of this.commands) {
             if (command.name === commandName.substr(1)) {
-                return command.execute(sender, commandParts, commandName);
+                return command.execute(sender, commandParts);
             }
         }
 

@@ -1,8 +1,8 @@
-const Command = require('./gamemode-command').default;
+const Command = require('./GamemodeCommand').default;
 
 describe('command', () => {
     describe('vanilla', () => {
-        describe('gamemode-command', () => {
+        describe('GamemodeCommand', () => {
             const command = new Command();
 
             it('name & namespace should be set correctly', () => {

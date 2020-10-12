@@ -2,7 +2,7 @@ const Command = require('./PluginsCommand').default;
 
 describe('command', () => {
     describe('jsprismarine', () => {
-        describe('plugins-command', () => {
+        describe('PluginsCommand', () => {
             const command = new Command();
 
             it('name & namespace should be set correctly', () => {

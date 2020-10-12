@@ -1,10 +1,21 @@
+import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
 import Player from "../../player/player";
 import Command from "../Command";
 
 export default class TpCommand extends Command {
-
     constructor() {
         super({ namespace: 'minecraft', name: 'tp', description: 'Teleports a player to a specified location' });
+
+        this.parameters.add(new CommandParameter({
+            name: 'target',
+            type: CommandParameterType.Target,
+            optional: false
+        }));
+        this.parameters.add(new CommandParameter({
+            name: 'message',
+            type: CommandParameterType.String,
+            optional: true
+        }));
     }
 
     public execute(sender: Player, args: Array<string>): void {
