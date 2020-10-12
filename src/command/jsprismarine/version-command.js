@@ -3,7 +3,7 @@ This command is non-vanilla, but exists in PMMP, Altay, MiNET, Nukkit a.s.o.
 */
 
 const Command = require('../command');
-const Player = require('../../player');
+const Player = require('../../player/player').default;
 const ConsoleSender = require('../console-sender');
 const packageFile = require('../../../package.json');
 const identifiers = require('../../network/identifiers');

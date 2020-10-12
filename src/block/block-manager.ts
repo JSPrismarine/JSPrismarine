@@ -19,12 +19,12 @@ export default class BlockManager {
     }
 
 
-    registerClassBlock = (block: Block) => {
+    registerClassBlock(block: Block) {
         Logger.silly(`Block with id §b${block.name}§r registered`);
         this.blocks.set(block.name, block)
     }
 
-    importBlocks = () => {
+    importBlocks() {
         try {
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             blocks.forEach((id: string) => {
