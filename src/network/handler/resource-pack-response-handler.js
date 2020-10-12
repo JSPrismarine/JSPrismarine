@@ -20,7 +20,7 @@ class ResourcePackResponseHandler {
      * @param {Prismarine} server
      * @param {Player} player 
      */
-    static handle(packet, server, player) {
+    static async handle(packet, server, player) {
         let pk;
         if (packet.status === ResourcePackStatus.HaveAllPacks) {
             pk = new ResourcePackStackPacket();
@@ -32,6 +32,16 @@ class ResourcePackResponseHandler {
             pk.gamemode = player.gamemode;
 
             const world = player.getWorld();
+            const worldSpawnPos = await world.getSpawnPosition();
+            pk.worldSpawnX = worldSpawnPos.getX();
+            pk.worldSpawnY = worldSpawnPos.getY();
+            pk.worldSpawnZ = worldSpawnPos.getZ();
+
+            // TODO: replace with actual data soon
+            pk.playerX = worldSpawnPos.getX();
+            pk.playerY = worldSpawnPos.getY();
+            pk.playerZ = worldSpawnPos.getZ();
+
             pk.levelId = world.uniqueId;
             pk.worldName = world.name;
             pk.gamerules = world.getGameruleManager().getGamerules();

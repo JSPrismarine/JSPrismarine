@@ -160,6 +160,18 @@ class World {
     }
 
     /**
+     * Returns the world default spawn position.
+     * 
+     * @returns {Vector3}
+     */
+    async getSpawnPosition() {
+        let x = 0, z = 0;  // TODO: replace with actual data
+        let chunk = await this.getChunkAt(z, z);
+        let y = chunk.getHighestBlock(x, z) + 1;
+        return new Vector3(z, y, z); 
+    }
+
+    /**
      * Adds an entity into the level and in the chunk
      * found from the entity position.
      * 

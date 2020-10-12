@@ -29,7 +29,7 @@ const defaultWorld = serverConfig.get('level-name', 'world');
 server.getWorldManager().loadWorld(
     serverConfig.get('worlds', {
         world: {
-            generator: 'flat',
+            generator: 'overworld',
             seed: 1234 // TODO: generate random seed
         }
     })[defaultWorld],
