@@ -1,5 +1,5 @@
 const Command = require('../command');
-const Player = require('../../player');
+const Player = require('../../player/player').default;
 const ConsoleSender = require('../console-sender');
 const SetTitlePacket = require('../../network/packet/set-title-packet');
 const SetTitleType = require('../../network/type/set-title-type');

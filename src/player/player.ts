@@ -1,51 +1,51 @@
-const Connection = require('@jsprismarine/raknet/connection');
-const Entity = require('./entity/entity');
+import Prismarine from "../prismarine";
+import Item from "../inventory/item/item";
+import Chunk from "../world/chunk/chunk";
+
+const Entity = require('../entity/entity');
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
-const InetAddress = require('@jsprismarine/raknet/utils/inet_address');
-const PlayStatusPacket = require('./network/packet/play-status');
-const BatchPacket = require("./network/packet/batch");
-const ChunkRadiusUpdatedPacket = require('./network/packet/chunk-radius-updated');
-const Chunk = require('./world/chunk/chunk');
-const LevelChunkPacket = require("./network/packet/level-chunk");
-const Skin = require('./utils/skin/skin');
-const UUID = require('./utils/uuid');
-const Prismarine = require('./prismarine');
-const PlayerListPacket = require('./network/packet/player-list');
-const PlayerListAction = require('./network/type/player-list-action');
-const PlayerListEntry = require('./network/type/player-list-entry');
-const AddPlayerPacket = require('./network/packet/add-player');
-const MovePlayerPacket = require('./network/packet/move-player');
-const MovementType = require('./network/type/movement-type');
-const TextPacket = require('./network/packet/text');
-const TextType = require('./network/type/text-type');
-const RemoveActorPacket = require('./network/packet/remove-actor');
-const UpdateAttributesPacket = require('./network/packet/update-attributes');
-const SetActorDataPacket = require('./network/packet/set-actor-data');
-const CoordinateUtils = require('./world/coordinate-utils');
-const AvailableCommandsPacket = require('./network/packet/available-commands');
-const SetGamemodePacket = require('./network/packet/set-gamemode');
-const CreativeContentPacket = require('./network/packet/creative-content-packet');
-const NetworkChunkPublisherUpdatePacket = require('./network/packet/network-chunk-publisher-update');
-const DisconnectPacket = require('./network/packet/disconnect-packet');
-const Device = require('./utils/device');
-const World = require('./world/world');
-const SetTimePacket = require('./network/packet/set-time');
-const PlayerInventory = require('./inventory/player-inventory');
-const Inventory = require('./inventory/inventory');
-const InventoryContentPacket = require('./network/packet/inventory-content-packet');
-const MobEquipmentPacket = require('./network/packet/mob-equipment-packet');
-const Item = require('./inventory/item/item');
-const CreativeContentEntry = require('./network/type/creative-content-entry');
-const Vector3 = require('./math/vector3').default;
+const PlayStatusPacket = require('../network/packet/play-status');
+const BatchPacket = require("../network/packet/batch");
+const ChunkRadiusUpdatedPacket = require('../network/packet/chunk-radius-updated');
+const LevelChunkPacket = require("../network/packet/level-chunk");
+const UUID = require('../utils/uuid');
+const PlayerListPacket = require('../network/packet/player-list');
+const PlayerListAction = require('../network/type/player-list-action');
+const PlayerListEntry = require('../network/type/player-list-entry');
+const AddPlayerPacket = require('../network/packet/add-player');
+const MovePlayerPacket = require('../network/packet/move-player');
+const MovementType = require('../network/type/movement-type');
+const TextPacket = require('../network/packet/text');
+const TextType = require('../network/type/text-type');
+const RemoveActorPacket = require('../network/packet/remove-actor');
+const UpdateAttributesPacket = require('../network/packet/update-attributes');
+const SetActorDataPacket = require('../network/packet/set-actor-data');
+const CoordinateUtils = require('../world/coordinate-utils');
+const AvailableCommandsPacket = require('../network/packet/available-commands');
+const SetGamemodePacket = require('../network/packet/set-gamemode');
+const CreativeContentPacket = require('../network/packet/creative-content-packet');
+const NetworkChunkPublisherUpdatePacket = require('../network/packet/network-chunk-publisher-update');
+const DisconnectPacket = require('../network/packet/disconnect-packet');
+const SetTimePacket = require('../network/packet/set-time');
+const PlayerInventory = require('../inventory/player-inventory');
+const InventoryContentPacket = require('../network/packet/inventory-content-packet');
+const MobEquipmentPacket = require('../network/packet/mob-equipment-packet');
+const CreativeContentEntry = require('../network/type/creative-content-entry');
 
-class Player extends Entity {
+export enum PlayerPermission {
+    Visitor,
+    Member,
+    Operator,
+    Custom
+};
 
+export default class Player extends Entity {
     /** @type {Connection} */
-    #connection
+    #connection: any
     /** @type {Prismarine} */
-    #server
+    #server: Prismarine
     /** @type {InetAddress} */
-    #address
+    #address: any
 
     /** @type {PlayerInventory} */
     inventory = new PlayerInventory()
@@ -53,21 +53,21 @@ class Player extends Entity {
     windows = new Map()
 
     /** @type {string} */
-    name
+    name: string = ''
     /** @type {string} */
-    locale
+    locale: string = ''
     /** @type {number} */
-    randomId
+    randomId: number = 0
 
     /** @type {string} */
-    uuid
+    uuid: string | null = null
     /** @type {string} */
-    xuid
+    xuid: string | null = null
     /** @type {Skin} */
-    skin
+    skin: any
 
     /** @type {number} */
-    viewDistance
+    viewDistance: number | undefined
     /** @type {number} */
     gamemode = 0
 
@@ -85,10 +85,10 @@ class Player extends Entity {
     platformChatId = ''
 
     /** @type {Device} */
-    device
+    device: any
 
     /** @type {boolean} */
-    cacheSupport
+    cacheSupport: boolean | null = null
 
     /** @type {Set<Number>} */
     loadedChunks = new Set()
@@ -111,7 +111,7 @@ class Player extends Entity {
      * @param {World} world - a world to spawn the entity 
      * @param {Prismarine} server - the server instance
      */
-    constructor(connection, address, world, server) {
+    constructor(connection: any, address: any, world: any, server: Prismarine) {
         super(world);
         this.#connection = connection;
         this.#address = address;
@@ -121,7 +121,7 @@ class Player extends Entity {
         this.gamemode = server.getConfig().get(`gamemode`, 0);
     }
 
-    update(_timestamp) {
+    update(_timestamp: string) {
         // Update movement for every player
         for (const player of this.getServer().getOnlinePlayers()) {
             if (player === this) continue;
@@ -130,7 +130,7 @@ class Player extends Entity {
         }
 
         if (this.chunkSendQueue.size > 0) {
-            this.chunkSendQueue.forEach(chunk => {
+            this.chunkSendQueue.forEach((chunk: any) => {
                 let encodedPos = CoordinateUtils.encodePos(
                     chunk.getX(), chunk.getZ()
                 );
@@ -237,9 +237,11 @@ class Player extends Entity {
         }
     }
 
-    async requestChunk(x, z) {
+    async requestChunk(x: number, z: number) {
         await this.getWorld().getChunk(x, z).then(
-            chunk => this.chunkSendQueue.add(chunk)
+            (chunk: any) => {
+                this.chunkSendQueue.add(chunk)
+            }
         );
     }
 
@@ -262,7 +264,7 @@ class Player extends Entity {
      * 
      * @param {Item} item 
      */
-    sendHandItem(item) {
+    sendHandItem(item: Item) {
         let pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.runtimeId;
         pk.item = item;
@@ -272,13 +274,13 @@ class Player extends Entity {
         this.sendDataPacket(pk);
     }
 
-    sendTime(time) {
+    sendTime(time: number) {
         let pk = new SetTimePacket();
         pk.time = time;
         this.sendDataPacket(pk);
     }
 
-    setGamemode(mode) {
+    setGamemode(mode: number) {
         let pk = new SetGamemodePacket();
         pk.gamemode = mode;
         this.sendDataPacket(pk);
@@ -302,14 +304,14 @@ class Player extends Entity {
     }
 
     // Updates the player view distance
-    setViewDistance(distance) {
+    setViewDistance(distance: number) {
         this.viewDistance = distance;
         let pk = new ChunkRadiusUpdatedPacket();
         pk.radius = distance;
         this.sendDataPacket(pk);
     }
 
-    sendAttributes(attributes) {
+    sendAttributes(attributes: any) {
         let pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.runtimeId;
         pk.attributes = attributes || this.attributes.getAttributes();
@@ -327,7 +329,7 @@ class Player extends Entity {
      * @param {string} message 
      * @param {boolean} needsTranslation
      */
-    sendMessage(message, xuid = '', needsTranslation = false) {
+    sendMessage(message: string, xuid = '', needsTranslation = false) {
         let pk = new TextPacket();
         pk.type = TextType.Raw;
         pk.message = message;
@@ -340,7 +342,7 @@ class Player extends Entity {
     /**
      * @param {Chunk} chunk 
      */
-    sendChunk(chunk) {
+    sendChunk(chunk: Chunk) {
         let pk = new LevelChunkPacket();
         pk.chunkX = chunk.getX();
         pk.chunkZ = chunk.getZ();
@@ -355,8 +357,11 @@ class Player extends Entity {
         this.loadingChunks.delete(hash);
     }
 
-    // Broadcast the movement to a defined player
-    broadcastMove(player) {
+    /**
+     * Broadcast the movement to a defined player
+     * @param {Player} player 
+     */
+    broadcastMove(player: Player) {
         let pk = new MovePlayerPacket();
         pk.runtimeEntityId = this.runtimeId;
 
@@ -376,7 +381,9 @@ class Player extends Entity {
         player.sendDataPacket(pk);
     }
 
-    // Add the player to the client player list
+    /**
+     * Add the player to the client player list
+     */
     addToPlayerList() {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Add;
@@ -396,7 +403,9 @@ class Player extends Entity {
         }
     }
 
-    // Removes a player from other players list
+    /**
+     * Removes a player from other players list
+     */
     removeFromPlayerList() {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Remove;
@@ -408,8 +417,10 @@ class Player extends Entity {
         }
     }
 
-    // Retrive all other player in server
-    // And add them in the player list
+    /**
+     * Retrieve all other player in server
+     * and add them to the player's player list
+     */
     sendPlayerList() {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Add;
@@ -430,8 +441,11 @@ class Player extends Entity {
         this.sendDataPacket(pk);
     }
 
-    // Spawn the player to another player
-    sendSpawn(player) {
+    /**
+     * Spawn the player to another player
+     * @param {Player} player 
+     */
+    sendSpawn(player: Player) {
         let pk = new AddPlayerPacket();
         pk.uuid = UUID.fromString(this.uuid);
         pk.runtimeEntityId = this.runtimeId;
@@ -455,8 +469,11 @@ class Player extends Entity {
         player.sendDataPacket(pk);
     }
 
-    // Despawn the player entity from another player
-    sendDespawn(player) {
+    /**
+     * Despawn the player entity from another player
+     * @param {Player} player 
+     */
+    sendDespawn(player: Player) {
         let pk = new RemoveActorPacket();
         pk.uniqueEntityId = this.runtimeId;  // We use runtime as unique
         player.sendDataPacket(pk);
@@ -465,7 +482,7 @@ class Player extends Entity {
     /**
      * @param {number} status 
      */
-    sendPlayStatus(status) {
+    sendPlayStatus(status: number) {
         let pk = new PlayStatusPacket();
         pk.status = status;
         this.sendDataPacket(pk);
@@ -482,7 +499,7 @@ class Player extends Entity {
     }
 
     // To refactor
-    sendDataPacket(packet, _needACK = false, _immediate = false) {
+    sendDataPacket(packet: any, _needACK = false, _immediate = false) {
         let batch = new BatchPacket();
         batch.addPacket(packet);
         batch.encode();
@@ -508,6 +525,4 @@ class Player extends Entity {
     getAddress() {
         return this.#address;
     }
-
 }
-module.exports = Player;
