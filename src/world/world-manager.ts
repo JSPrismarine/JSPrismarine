@@ -6,28 +6,22 @@ const logger = require('../utils/logger');
 const LevelDB = require('./leveldb/leveldb');
 
 export default class WorldManager {
-
-    /** @type {Map<String, World>} */
-    #worlds = new Map()
-    /** @type {World} */
-    #defaultWorld: World | null  = null
-    /** @type {Prismarine} */
-    #server: Prismarine
-    /** @type {GeneratorManager} */
-    #generator: GeneratorManager
+    private worlds: Map<string, World> = new Map();
+    private defaultWorld: World | null = null;
+    private genManager: GeneratorManager = new GeneratorManager();
+    private server: Prismarine;
 
     constructor(server: Prismarine) {
-        this.#server = server;
-        this.#generator = new GeneratorManager();
+        this.server = server;
     }
 
     /**
      * Loads a world by its folder name.
      * 
-     * @param {object} worldData - world data
-     * @param {string} folderName - folder name of the world
+     * @param worldData - World properties data
+     * @param folderName - World folder name
      */
-    loadWorld(worldData: any, folderName: string) {
+    public loadWorld(worldData: any, folderName: string): World {
         if (this.isWorldLoaded(folderName)) {
             return logger.warn(`World §e${folderName}§r has already been loaded!`);
         }
@@ -35,17 +29,17 @@ export default class WorldManager {
         // TODO: figure out provider by data
         let world = new World({
             name: folderName,
-            server: this.#server,
+            server: this.server,
             provider: new LevelDB(levelPath),
 
             seed: worldData.seed,
             generator: worldData.generator
         });
-        this.#worlds.set(world.uniqueId, world);
+        this.worlds.set(world.uniqueId, world);
 
         // First level to be loaded is also the default one
-        if (!this.#defaultWorld) {
-            this.#defaultWorld = this.#worlds.get(world.uniqueId);
+        if (!this.defaultWorld) {
+            this.defaultWorld = this.worlds.get(world.uniqueId) || null;
             logger.info(`Loaded §b${folderName}§r as default world!`);
         }
         logger.debug(`World §b${folderName}§r succesfully loaded!`);
@@ -55,9 +49,9 @@ export default class WorldManager {
     /**
      * Unloads a level by its folder name.
      * 
-     * @param {string} folderName - folder name of the world
+     * @param folderName - World folder name
      */
-    unloadWorld(folderName: string) {
+    public unloadWorld(folderName: string): void {
         if (!this.isWorldLoaded(folderName)) {
             return logger.error(
                 `Cannot unload a not loaded world with name §b${folderName}`
@@ -65,14 +59,14 @@ export default class WorldManager {
         }
 
         let world = this.getWorldByName(folderName);
-        if (this.#defaultWorld == world) {
+        if (!world) return logger.error(`Cannot load world ${folderName}`);
+        if (this.defaultWorld == world) {
             return logger.warn(`Cannot unload the default level!`);
         }
 
         world.close();
-        this.#worlds.delete(world.uniqueId);
+        this.worlds.delete(world.uniqueId);
         logger.debug(`Successfully unloaded world §b${folderName}§f!`);
-        return null;
     }  
 
     /**
@@ -81,8 +75,8 @@ export default class WorldManager {
      * @param {string} folderName 
      * @returns {boolean} 
      */
-    isWorldLoaded(folderName: string) {
-        for (let world of this.#worlds.values()) {
+    public isWorldLoaded(folderName: string): boolean {
+        for (let world of this.worlds.values()) {
             if (world.name.toLowerCase() == 
                 folderName.toLowerCase()) {
                 return true;
@@ -97,8 +91,8 @@ export default class WorldManager {
      * @param {string} folderName 
      * @returns {World}
      */
-    getWorldByName(folderName: string) {
-        for (let world of this.#worlds.values()) {
+    public getWorldByName(folderName: string): World | null {
+        for (let world of this.worlds.values()) {
             if (world.name.toLowerCase() == 
                 folderName.toLowerCase()) {
                 return world;
@@ -108,25 +102,18 @@ export default class WorldManager {
     } 
 
     /**
-     * Returns the server default world.
-     * 
-     * @returns {World}
+     * Returns an array with all worlds.
      */
-    getDefaultWorld() {
-        return this.#defaultWorld;
+    public getWorlds(): World[] {
+        return Array.from(this.worlds.values()); 
     }
 
-    /**
-     * Returns an iterator for all worlds.
-     * 
-     * @returns {IterableIterator<World>}
-     */
-    getWorlds() {
-        return this.#worlds.values(); 
-    }
+    public getDefaultWorld(): World | null {
+        return this.defaultWorld;
+    } 
 
-    getGeneratorManager() {
-        return this.#generator;
+    public getGeneratorManager(): GeneratorManager {
+        return this.genManager;
     }
 
 }
