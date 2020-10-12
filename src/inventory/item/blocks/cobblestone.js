@@ -3,8 +3,8 @@ const Item = require('../item');
 class Stone extends Item {
     constructor() {
         super({
-            name: 'minecraft:stone',
-            id: 1,
+            name: 'minecraft:cobblestone',
+            id: 4,
             meta: 0,
             nbt: null,
             count: 1
