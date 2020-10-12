@@ -1,4 +1,4 @@
-const Player = require('../../player');
+const Player = require('../../player/player').default;
 const Identifiers = require('../identifiers');
 const SetLocalPlayerAsInitializedPacket = require('../packet/set-local-player-as-initialized');
 const EventManager = require('../../events/event-manager');

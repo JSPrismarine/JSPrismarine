@@ -1,4 +1,4 @@
-import Player from "../../player";
+import Player from "../../player/player";
 
 const Command = require('../command');
 
