@@ -1,5 +1,5 @@
 import Player from "../../player/player";
-import Command from "../command";
+import Command from "../Command";
 
 const Gamemode = require('../../world/gamemode');
 const CommandParameter = require('../../network/type/command-parameter');

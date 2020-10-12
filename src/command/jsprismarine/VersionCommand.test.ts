@@ -1,4 +1,4 @@
-const Command = require('./version-command');
+const Command = require('./VersionCommand').default;
 const packageFile = require('../../../package.json');
 const identifiers = require('../../network/identifiers');
 

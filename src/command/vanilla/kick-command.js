@@ -1,6 +1,5 @@
-const Command = require('../command');
+const Command = require('../Command').default;
 const Player = require('../../player/player').default;
-const ConsoleSender = require('../console-sender');
 const CommandParameter = require('../../network/type/command-parameter');
 
 class KickCommand extends Command {
@@ -22,7 +21,7 @@ class KickCommand extends Command {
     }
 
     /**
-     * @param {ConsoleSender|Player} sender
+     * @param {CPlayer} sender
      * @param {Array} args
      */
     execute(sender, args) {

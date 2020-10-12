@@ -1,4 +1,4 @@
-const Command = require('./plugins-command').default;
+const Command = require('./PluginsCommand').default;
 
 describe('command', () => {
     describe('jsprismarine', () => {
