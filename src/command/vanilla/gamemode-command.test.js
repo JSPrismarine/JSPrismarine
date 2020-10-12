@@ -1,4 +1,4 @@
-const Command = require('./gamemode-command');
+const Command = require('./gamemode-command').default;
 
 describe('command', () => {
     describe('vanilla', () => {
