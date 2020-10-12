@@ -1,4 +1,4 @@
-const ItemAir = require('./item/blocks/air');
+const ItemAir = require('../block/blocks/Air').default;
 const Item = require('./item/item');
 
 

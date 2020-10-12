@@ -1,4 +1,4 @@
-import Player from "../player";
+import Player from "../player/player";
 import Command from "./command";
 
 const path = require('path');
@@ -9,7 +9,7 @@ const CommandParameter = require('../network/type/command-parameter');
 const ConsoleSender = require('./console-sender');
 const logger = require('../utils/logger');
 
-class CommandManager {
+export default class CommandManager {
 
     /** @type {Set<Command>} */
     private commands: Set<Command> = new Set()
@@ -101,4 +101,3 @@ class CommandManager {
         return this.commands;
     }
 }
-module.exports = CommandManager;

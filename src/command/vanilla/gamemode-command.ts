@@ -1,10 +1,10 @@
-import Player from "../../player";
+import Player from "../../player/player";
 import Command from "../command";
 
 const Gamemode = require('../../world/gamemode');
 const CommandParameter = require('../../network/type/command-parameter');
 
-class GamemodeCommand extends Command {
+export default class GamemodeCommand extends Command {
     constructor() {
         super({
             namespace: 'minecraft',
@@ -69,4 +69,3 @@ class GamemodeCommand extends Command {
         }
     }
 }
-module.exports = GamemodeCommand;

@@ -1,5 +1,5 @@
 const Command = require('../command');
-const Player = require('../../player');
+const Player = require('../../player/player').default;
 const ConsoleSender = require('../console-sender');
 const CommandParameter = require('../../network/type/command-parameter');
 

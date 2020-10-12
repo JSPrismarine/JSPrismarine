@@ -1,7 +1,7 @@
 const Identifiers = require('../identifiers');
 const RequestChunkRadiusPacket = require('../packet/request-chunk-radius');
 const PlayStatus = require('../type/play-status');
-const Player = require('../../player');
+const Player = require('../../player/player').default;
 const Prismarine = require('../../prismarine');
 
 

@@ -1,4 +1,4 @@
-import Player from "../../player";
+import Player from "../../player/player";
 import Prismarine from "../../prismarine";
 import Identifiers from "../identifiers";
 import ActorFallPacket from "../packet/actor-fall";
