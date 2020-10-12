@@ -107,9 +107,8 @@ class World {
      * 
      * @param {number} x 
      * @param {number} z 
-     * @param {boolean} generate
      */
-    async loadChunk(x, z, generate) {
+    async loadChunk(x, z) {
         let index = CoordinateUtils.encodePos(x, z);
         if (!this.#chunks.has(index)) {
             const generator = this.#server.getWorldManager().getGeneratorManager().getGenerator(this.#generator);
