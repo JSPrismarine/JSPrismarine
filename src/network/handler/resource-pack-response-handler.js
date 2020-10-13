@@ -5,11 +5,11 @@ const BiomeDefinitionListPacket = require('../packet/biome-definition-list');
 const AvailableActorIdentifiersPacket = require('../packet/available-actor-identifiers');
 const ResourcePackStackPacket = require('../packet/resource-pack-stack');
 const StartGamePacket = require('../packet/start-game');
-const Player = require('../../player/player').default;
+const Player = require('../../player/Player').default;
 const LOGGER = require('../../utils/Logger');
 const Prismarine = require('../../prismarine');
 const Gamemode = require('../../world/gamemode');
-// const Item = require('../../inventory/item/item')
+// const Item = require('../../item/Item')
 
 
 class ResourcePackResponseHandler {
