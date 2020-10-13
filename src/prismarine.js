@@ -1,5 +1,5 @@
 const Listener = require('@jsprismarine/raknet');
-const Player = require('./player/player').default;
+const Player = require('./player/Player').default;
 const BatchPacket = require('./network/packet/batch');
 const PacketRegistry = require('./network/packet-registry');
 const CommandManager = require('./command/CommandManager').default;
@@ -9,7 +9,7 @@ const PluginManager = require('./plugin/plugin-manager');
 const Config = require('./utils/config');
 const Logger = require('./utils/Logger');
 const BlockManager = require('./block/BlockManager').default;
-const ItemManager = require('./inventory/item/item-manager').default;
+const ItemManager = require('./item/ItemManager').default;
 
 class Prismarine {
 

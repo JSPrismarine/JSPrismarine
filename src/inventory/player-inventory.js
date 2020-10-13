@@ -1,5 +1,5 @@
 const Inventory = require('./inventory');
-const Item = require('./item/item');
+const Item = require('../item/Item').default;
 
 
 const PlayerInventorySlots = 36;

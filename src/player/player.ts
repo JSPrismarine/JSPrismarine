@@ -1,5 +1,5 @@
 import Prismarine from "../prismarine";
-import Item from "../inventory/item/item";
+import Item from "../item/Item";
 import Chunk from "../world/chunk/chunk";
 
 const Entity = require('../entity/entity');
