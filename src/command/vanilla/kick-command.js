@@ -1,5 +1,5 @@
 const Command = require('../Command').default;
-const Player = require('../../player/player').default;
+const Player = require('../../player/Player').default;
 const CommandParameter = require('../../network/type/CommandParameter').default;
 
 class KickCommand extends Command {

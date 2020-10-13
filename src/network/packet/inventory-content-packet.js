@@ -1,6 +1,6 @@
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
-const Item = require('../../inventory/item/item');
+const Item = require('../../item/Item').default;
 
 
 class InventoryContentPacket extends DataPacket {

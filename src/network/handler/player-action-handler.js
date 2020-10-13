@@ -1,4 +1,4 @@
-const Player = require('../../player/player').default;
+const Player = require('../../player/Player').default;
 const Identifiers = require('../identifiers');
 const PlayerActionPacket = require('../packet/player-action');
 const PlayerAction = require('../type/player-action');

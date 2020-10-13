@@ -1,4 +1,4 @@
-import Player from "../player/player";
+import Player from "../player/Player";
 const CommandData = require('../network/type/command-data');
 
 interface CommandData {
