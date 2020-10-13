@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 
-import Item from "./item";
-import * as Logger from "../../utils/Logger";
+import Item from "./Item";
+import * as Logger from "../utils/Logger";
 
 export default class ItemManager {
     #items = new Map()
