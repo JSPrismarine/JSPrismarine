@@ -1,8 +1,8 @@
 import Prismarine from "../prismarine";
 import Item from "../item/";
 import Chunk from "../world/chunk/chunk";
+import Entity from "../entity/entity";
 
-const Entity = require('../entity/entity');
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
 const BatchPacket = require("../network/packet/batch");
@@ -146,7 +146,7 @@ export default class Player extends Entity {
         await this.needNewChunks();
     }
 
-    async needNewChunks(forceResend = false) {
+    public async needNewChunks(forceResend = false) {
         let currentXChunk = CoordinateUtils.fromBlockToChunk(this.x);
         let currentZChunk = CoordinateUtils.fromBlockToChunk(this.z);
 
@@ -237,7 +237,7 @@ export default class Player extends Entity {
         }
     }
 
-    async requestChunk(x: number, z: number) {
+    public async requestChunk(x: number, z: number) {
         await this.getWorld().getChunk(x, z).then(
             (chunk: any) => {
                 this.chunkSendQueue.add(chunk)
@@ -245,14 +245,27 @@ export default class Player extends Entity {
         );
     }
 
-    sendInventory() {
-        let pk = new InventoryContentPacket();
+    public sendInventory() {
+        let pk;
+        pk = new InventoryContentPacket();
         pk.items = this.inventory.getItems(true);
         pk.windowId = 0;  // Inventory window
         this.sendDataPacket(pk);
+
+        pk = new InventoryContentPacket();
+        pk.items = [];  // TODO
+        pk.windowId = 78;  // ArmorInventory window
+        this.sendDataPacket(pk);
+
+        // https://github.com/NiclasOlofsson/MiNET/blob/master/src/MiNET/MiNET/Player.cs#L1736
+        // TODO: documentate about
+        // 0x7c (ui content)
+        // 0x77 (off hand)
+
+        this.sendHandItem(this.inventory.getItemInHand());  // TODO: not working
     }
 
-    sendCreativeContents() {
+    public sendCreativeContents() {
         let pk = new CreativeContentPacket();
 
         // Sort based on numeric block ids and name
@@ -267,7 +280,7 @@ export default class Player extends Entity {
      * 
      * @param {Item} item 
      */
-    sendHandItem(item: Item) {
+    public sendHandItem(item: Item) {
         let pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.runtimeId;
         pk.item = item;
@@ -277,19 +290,19 @@ export default class Player extends Entity {
         this.sendDataPacket(pk);
     }
 
-    sendTime(time: number) {
+    public sendTime(time: number) {
         let pk = new SetTimePacket();
         pk.time = time;
         this.sendDataPacket(pk);
     }
 
-    setGamemode(mode: number) {
+    public setGamemode(mode: number) {
         let pk = new SetGamemodePacket();
         pk.gamemode = mode;
         this.sendDataPacket(pk);
     }
 
-    sendNetworkChunkPublisher() {
+    public sendNetworkChunkPublisher() {
         let pk = new NetworkChunkPublisherUpdatePacket();
         pk.x = Math.floor(this.x);
         pk.y = Math.floor(this.y);
@@ -298,7 +311,7 @@ export default class Player extends Entity {
         this.sendDataPacket(pk);
     }
 
-    sendAvailableCommands() {
+    public sendAvailableCommands() {
         let pk = new AvailableCommandsPacket();
         for (let command of this.getServer().getCommandManager().getCommands()) {
             if (!Array.isArray(command.parameters))
@@ -315,21 +328,21 @@ export default class Player extends Entity {
     }
 
     // Updates the player view distance
-    setViewDistance(distance: number) {
+    public setViewDistance(distance: number) {
         this.viewDistance = distance;
         let pk = new ChunkRadiusUpdatedPacket();
         pk.radius = distance;
         this.sendDataPacket(pk);
     }
 
-    sendAttributes(attributes: any) {
+    public sendAttributes(attributes: any) {
         let pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.runtimeId;
         pk.attributes = attributes || this.attributes.getAttributes();
         this.sendDataPacket(pk);
     }
 
-    sendMetadata() {
+    public sendMetadata() {
         let pk = new SetActorDataPacket();
         pk.runtimeEntityId = this.runtimeId;
         pk.metadata = this.metadata.getMetadata();
@@ -340,7 +353,7 @@ export default class Player extends Entity {
      * @param {string} message 
      * @param {boolean} needsTranslation
      */
-    sendMessage(message: string, xuid = '', needsTranslation = false) {
+    public sendMessage(message: string, xuid = '', needsTranslation = false) {
         let pk = new TextPacket();
         pk.type = TextType.Raw;
         pk.message = message;
@@ -353,7 +366,7 @@ export default class Player extends Entity {
     /**
      * @param {Chunk} chunk 
      */
-    sendChunk(chunk: Chunk) {
+    public sendChunk(chunk: Chunk) {
         let pk = new LevelChunkPacket();
         pk.chunkX = chunk.getX();
         pk.chunkZ = chunk.getZ();
@@ -372,7 +385,7 @@ export default class Player extends Entity {
      * Broadcast the movement to a defined player
      * @param {Player} player 
      */
-    broadcastMove(player: Player) {
+    public broadcastMove(player: Player) {
         let pk = new MovePlayerPacket();
         pk.runtimeEntityId = this.runtimeId;
 
@@ -395,7 +408,7 @@ export default class Player extends Entity {
     /**
      * Add the player to the client player list
      */
-    addToPlayerList() {
+    public addToPlayerList() {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Add;
         let entry = new PlayerListEntry();
@@ -417,7 +430,7 @@ export default class Player extends Entity {
     /**
      * Removes a player from other players list
      */
-    removeFromPlayerList() {
+    public removeFromPlayerList() {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Remove;
         let entry = new PlayerListEntry();
@@ -432,7 +445,7 @@ export default class Player extends Entity {
      * Retrieve all other player in server
      * and add them to the player's player list
      */
-    sendPlayerList() {
+    public sendPlayerList() {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Add;
         for (let player of this.getServer().getOnlinePlayers()) {
@@ -456,7 +469,7 @@ export default class Player extends Entity {
      * Spawn the player to another player
      * @param {Player} player 
      */
-    sendSpawn(player: Player) {
+    public sendSpawn(player: Player) {
         let pk = new AddPlayerPacket();
         pk.uuid = UUID.fromString(this.uuid);
         pk.runtimeEntityId = this.runtimeId;
@@ -484,7 +497,7 @@ export default class Player extends Entity {
      * Despawn the player entity from another player
      * @param {Player} player 
      */
-    sendDespawn(player: Player) {
+    public sendDespawn(player: Player) {
         let pk = new RemoveActorPacket();
         pk.uniqueEntityId = this.runtimeId;  // We use runtime as unique
         player.sendDataPacket(pk);
@@ -493,7 +506,7 @@ export default class Player extends Entity {
     /**
      * @param {number} status 
      */
-    sendPlayStatus(status: number) {
+    public sendPlayStatus(status: number) {
         let pk = new PlayStatusPacket();
         pk.status = status;
         this.sendDataPacket(pk);
@@ -502,7 +515,7 @@ export default class Player extends Entity {
     /**
      * @param {string} reason 
      */
-    kick(reason = 'unknown reason') {
+    public kick(reason = 'unknown reason') {
         let pk = new DisconnectPacket();
         pk.hideDiscconnectionWindow = false;
         pk.message = reason;
@@ -510,7 +523,7 @@ export default class Player extends Entity {
     }
 
     // To refactor
-    sendDataPacket(packet: any, _needACK = false, _immediate = false) {
+    public sendDataPacket(packet: any, _needACK = false, _immediate = false) {
         let batch = new BatchPacket();
         batch.addPacket(packet);
         batch.encode();
@@ -524,16 +537,16 @@ export default class Player extends Entity {
     }
 
     // Return all the players in the same chunk
-    getPlayersInChunk() {
+    public getPlayersInChunk() {
         return this.#server.getOnlinePlayers()
             .filter(player => player.currentChunk === this.currentChunk);
     }
 
-    getServer() {
+    public getServer() {
         return this.#server;
     }
 
-    getAddress() {
+    public getAddress() {
         return this.#address;
     }
 }

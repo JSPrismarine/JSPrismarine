@@ -82,4 +82,3 @@ export default class Entity extends Position {
     }
 
 }
-module.exports = Entity;

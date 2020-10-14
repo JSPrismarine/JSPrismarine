@@ -1,10 +1,7 @@
-const ItemStackRequestAction = require('./item-stack-request-action');
-
-class CreativeCreate extends ItemStackRequestAction {
+class CreativeCreate {
     itemId
 
     constructor({ itemId }) {
-        super(11);
         this.itemId = itemId;
     }
 }

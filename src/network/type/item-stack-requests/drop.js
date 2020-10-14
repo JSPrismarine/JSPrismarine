@@ -1,16 +1,15 @@
-class Place {
+class Drop {
     /** @type {number} */
     count;
     /** @type {number} */
     from;
     /** @type {number} */
-    to;
+    randomly;
 
-    constructor({count, from, to}) {
+    constructor({count, from, randomly}) {
         this.count = count;
         this.from = from;
-        this.to = to;
+        this.randomly = randomly;
     }
 }
-
-module.exports = Place;
+module.exports = Drop;
