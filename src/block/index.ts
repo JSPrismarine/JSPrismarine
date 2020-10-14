@@ -5,14 +5,14 @@ import { BlockToolType } from "./BlockToolType"
 import { ItemEnchantmentType } from "../item/ItemEnchantmentType"
 
 export default class Block {
-    id: number
-    name: string
-    hardness: number
-    meta = 0
+    id: number;
+    runtimeId?: number;
+    name: string;
+    hardness: number;
+    meta = 0;
 
     // TODO
     nbt = null
-    count = 1
 
     constructor({ id, name, hardness }: {
         id: number,
@@ -34,6 +34,9 @@ export default class Block {
 
     getRuntimeId() {
         return this.id;
+    }
+    setRuntimeId(id: number) {
+        this.runtimeId = id;
     }
 
     getHardness() {
