@@ -1,4 +1,4 @@
-const Item = require('../../item/Item').default;
+const Item = require('../../item').default;
 
 class CreativeContentEntry {
 

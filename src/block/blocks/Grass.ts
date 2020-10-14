@@ -1,4 +1,4 @@
-import Block from '../Block'
+import Block from '../'
 
 export default class Grass extends Block {
     constructor() {

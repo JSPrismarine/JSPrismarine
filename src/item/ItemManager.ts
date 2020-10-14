@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import Item from "./Item";
+import Item from "./";
 import * as Logger from "../utils/Logger";
 
 export default class ItemManager {

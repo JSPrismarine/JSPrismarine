@@ -12,7 +12,7 @@ fetch('https://raw.githubusercontent.com/PrismarineJS/minecraft-data/master/data
         blocks.forEach((block) => {
             block.namespace = 'minecraft';
             
-            fs.writeFileSync(`./src/block/blocks/${block.name}.ts`, `import Block, { BlockToolType, BlockToolHarvestLevel } from '../Block'
+            fs.writeFileSync(`./src/block/blocks/${block.name}.ts`, `import Block, { BlockToolType, BlockToolHarvestLevel } from '../
 
 export default class ${block.name} extends Block {
     constructor() {
