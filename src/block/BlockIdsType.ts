@@ -8,7 +8,11 @@ export enum BlockIdsType {
     Sapling = 6,
     Bedrock = 7,
 
+    Sand = 12,
+
     GoldOre = 14,
     IronOre = 15,
     CoalOre = 16,
+
+    DiamondOre = 56,
 };
