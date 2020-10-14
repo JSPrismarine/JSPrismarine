@@ -3,6 +3,7 @@ import path from "path";
 
 import Block from "./";
 import * as Logger from "../utils/Logger";
+import { BlockToolType } from "./BlockToolType";
 
 export default class BlockManager {
     private blocks = new Map()
@@ -11,10 +12,13 @@ export default class BlockManager {
         this.importBlocks();
     }
 
-    getBlock(name: string): Block {
-        return this.blocks.get(name);
+    getBlock(name: string): Block | null {
+        return this.blocks.get(name) || null;
     }
-    getBlockById(id: number): Block {
+    getBlockById(id: number): Block | null {
+        if (!BlockToolType[id])
+            return null;
+
         return this.getBlocks().filter(a => a.id === id)[0] || null;
     }
     getBlocks(): Array<Block> {
