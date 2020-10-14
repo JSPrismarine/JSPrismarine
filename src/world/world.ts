@@ -1,6 +1,6 @@
 import Entity from "../entity/entity";
 import Vector3 from "../math/vector3";
-import Player from "../player/player";
+import Player from "../player/Player";
 import Prismarine from "../prismarine";
 
 const UUID = require('../utils/uuid');
