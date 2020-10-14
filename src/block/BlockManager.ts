@@ -36,6 +36,7 @@ export default class BlockManager {
 
 
     registerClassBlock(block: Block) {
+        block.setRuntimeId(this.getRuntimeBlockMapper().toRuntimeId(block.id)); // Hacky solution?
         Logger.silly(`Block with id §b${block.name}§r registered`);
         this.blocks.set(block.name, block)
     }
