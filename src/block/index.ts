@@ -53,18 +53,18 @@ export default class Block {
     }
 
     canPassThrough() {
-		return false;
+        return false;
     }
 
     canBePlaced() {
-		return true;
+        return true;
     }
-    
+
     isBreakable() {
-		return true;
+        return true;
     }
-    
+
     isSolid() {
-		return true;
-	}
+        return true;
+    }
 }
