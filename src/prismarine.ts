@@ -28,7 +28,7 @@ export default class Prismarine {
     private itemManager = new ItemManager();
     private blockManager = new BlockManager();  // TODO
 
-    static instance: null|Prismarine = null;
+    static instance: null | Prismarine = null;
 
     constructor({ logger, config }: PrismarineData) {
         this.logger = logger;

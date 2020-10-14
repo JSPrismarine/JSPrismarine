@@ -48,13 +48,13 @@ export default class Block {
         return ItemTieredToolType.None;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Prismarine): Array<Block> {
+    getDropsForCompatibleTool(item: Item, server: Prismarine): Array<Block | null> {
         return [
             this
         ];
     }
 
-    getDrops(item: Item, server: Prismarine): Array<Block> {
+    getDrops(item: Item, server: Prismarine): Array<Block | null> {
         if (this.isCompatibleWithTool(item)) {
             if (this.isAffectedBySilkTouch() && item.hasEnchantment(ItemEnchantmentType.SilkTouch))
                 return this.getSilkTouchDrops(item, server);
