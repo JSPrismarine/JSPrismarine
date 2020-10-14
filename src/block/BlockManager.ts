@@ -12,7 +12,10 @@ export default class BlockManager {
     }
 
     getBlock(name: string): Block {
-        return this.blocks.get(name)
+        return this.blocks.get(name);
+    }
+    getBlockById(id: number): Block {
+        return this.getBlocks().filter(a => a.id === id)[0] || null;
     }
     getBlocks(): Array<Block> {
         return Array.from(this.blocks.values());
