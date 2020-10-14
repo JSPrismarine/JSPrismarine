@@ -16,6 +16,7 @@ const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece');
 const SkinPersona = require('../utils/skin/skin-persona/persona');
 const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color');
 const Item = require('../item').default;
+const Block = require('../block').default;
 const Logger = require('../utils/Logger');
 
 const ItemStackRequest = require('./type/item-stack-requests/item-stack-request');
@@ -403,15 +404,15 @@ class PacketBinaryStream extends BinaryStream {
     /**
      * Serializes an item into the buffer.
      * 
-     * @param {Item} itemstack 
+     * @param {Item | Block} itemstack 
      */
     writeItemStack(itemstack) {
         if (itemstack.id == 0) {
             return this.writeVarInt(0);
         }
         
-        this.writeVarInt(itemstack.id);
-        this.writeVarInt((itemstack.meta & 0x7fff) | itemstack.count);
+        this.writeVarInt(itemstack.getRuntimeId());
+        this.writeVarInt(((itemstack.meta & 0x7fff) << 8) | itemstack.count);
 
         if (itemstack.nbt !== null) {
             // write the amount of tags to write
