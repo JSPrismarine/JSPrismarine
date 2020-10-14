@@ -1,121 +1,115 @@
-import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
-import Player from "../../player";
-import Command from "../";
+import CommandParameter, { CommandParameterType } from '../../network/type/CommandParameter';
+import Player from '../../player';
+import Command from '../';
+import MovementType from '../../network/type/MovementType';
 
 export default class TpCommand extends Command {
     constructor() {
         super({ namespace: 'minecraft', name: 'tp', description: 'Teleports a player to a specified location' });
 
-        this.parameters = [
-            new Set(),
-            new Set(),
-            new Set(),
-            new Set()
-        ];
+        // /tp <x> <y> <z>
+        // /tp <player> <x> <y> <z>
+        // /tp <player> <player>
+        // /tp <player>
 
-        this.parameters[0].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: false
-        }));
-        this.parameters[0].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: true
-        }));
+        //TODO: Add parameters
 
-        this.parameters[1].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: true
-        }));
-        this.parameters[1].add(new CommandParameter({
-            name: 'x',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
-        this.parameters[1].add(new CommandParameter({
-            name: 'y',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
-        this.parameters[1].add(new CommandParameter({
-            name: 'z',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
+        //this.parameters = [];
 
-        this.parameters[2].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: true
-        }));
-        this.parameters[2].add(new CommandParameter({
-            name: 'x',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
-        this.parameters[2].add(new CommandParameter({
-            name: 'z',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
-
-        this.parameters[3].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: true
-        }));
-        this.parameters[3].add(new CommandParameter({
-            name: 'y',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
+        
     }
 
+
+    // /tp -> <x> <y> <z>
+    // /tp <player> -> <x> <y> <z>
+    // /tp <player> -> <player>
+    // /tp -> <player>
+    
     public execute(sender: Player, args: Array<string>): void {
-        // TODO: handle relative cords
-        if (args.length <= 1) {
-            return sender.sendMessage('§cYou have to specify <player> x y z.');
-        }
 
-        // TODO: handle only supplying x y, and relative teleport
-        const player = sender.getServer().getPlayerByName(args[0]);
-        if (!player) {
-            sender.sendMessage(`§c${args[0]} is not online!`);
-            return;
-        }
+        if (typeof args[0] == 'number') {
+            // /tp -> <x> <y> <z>
+            if (typeof args[1] == 'number' && typeof args[2] == 'number') {
 
-        switch (args.length) {
-            case 2:
-                if (typeof args[1] === 'string') {
-                    const target = sender.getServer().getPlayerByName(args[1]);
-                    if (!target) {
-                        sender.sendMessage(`§c${args[0]} is not online!`);
-                        return;
+                sender.x = args[0];
+                sender.y = args[1];
+                sender.z = args[2];
+                sender.broadcastMove(sender, MovementType.Teleport);
+
+                sender.sendMessage(`You have been teleported to ${args[0]}, ${args[1]}, ${args[2]}`);
+                sender.sendMessage(`Teleported ${sender.name} to ${args[0]}, ${args[1]}, ${args[2]}`);
+
+            } else {
+                sender.sendMessage('§cSyntax error: Invalid position!');
+            }
+        } else if (typeof args[0] == 'string') {
+            // /tp <player> -> <x> <y> <z>
+
+            if (typeof args[1] == 'number') {
+
+                if (typeof args[2] == 'number' && typeof args[3] == 'number') {
+                    let target = sender.getServer().getPlayerByName(args[0]);
+    
+                    if (target) {
+    
+                        target.x = args[1];
+                        target.y = args[2];
+                        target.z = args[3];
+    
+                        target.broadcastMove(target, MovementType.Teleport);
+    
+                        target.sendMessage(`You have been teleported to ${args[1]}, ${args[2]}, ${args[3]}`);
+                        sender.sendMessage(`Teleported ${target.name} to ${args[1]}, ${args[2]}, ${args[3]}`);
+    
+                    } else {
+                        sender.sendMessage('§cNo targets matched selector!');
                     }
-
-                    player.x = target.x;
-                    player.y = target.y;
-                    player.z = target.z;
                 } else {
-                    player.y = args[1];
+                    sender.sendMessage('§cSyntax error: Invalid position!');
                 }
-                break;
-            case 3:
 
-                player.x = args[1];
-                player.z = args[2];
-                break;
-            case 4:
-                player.x = args[1];
-                player.y = args[2];
-                player.z = args[3];
-                break;
+            } else if (typeof args[1] == 'string') {
+                // /tp <player> -> <player>
+
+                let targetFrom = sender.getServer().getPlayerByName(args[0]);
+                let targetTo = sender.getServer().getPlayerByName(args[0]);
+
+                if (targetFrom && targetTo) {
+
+                    targetFrom.x = targetTo.x;
+                    targetFrom.y = targetTo.y;
+                    targetFrom.z = targetTo.z;
+
+                    targetFrom.broadcastMove(targetFrom, MovementType.Teleport);
+
+                    targetFrom.sendMessage(`You have been teleported to ${targetTo.name}`);
+                    sender.sendMessage(`Teleported ${targetFrom.name} to ${targetTo.name}`);
+
+                } else {
+                    sender.sendMessage('§cNo targets matched selector!');
+                }
+
+            } else {
+                // /tp -> <player>
+
+                let target = sender.getServer().getPlayerByName(args[0]);
+
+                if (target) {
+
+                    sender.x = target.x;
+                    sender.y = target.y;
+                    sender.z = target.z;
+                    sender.broadcastMove(sender, MovementType.Teleport);
+
+                    sender.sendMessage(`You have been teleported to ${target.name}`);
+                    sender.sendMessage(`Teleported ${sender.name} to ${target.name}`);
+
+                } else {
+                    sender.sendMessage('Player not found!');
+                }
+            }
+
         }
-
-        player.broadcastMove(player);
-        sender.sendMessage(`Teleported ${args[0]} to ${args.slice(1).join(' ')}`);
         return;
     }
 }

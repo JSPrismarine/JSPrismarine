@@ -1,6 +1,6 @@
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
-const MovementType = require('../type/movement-type');
+const MovementType = require('../type/MovementType').default;
 
 
 class MovePlayerPacket extends DataPacket {

@@ -1,6 +1,7 @@
 import Prismarine from "../prismarine";
 import Item from "../item/";
 import Chunk from "../world/chunk/chunk";
+import MovementType from "../network/type/MovementType"
 
 const Entity = require('../entity/entity');
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
@@ -14,7 +15,6 @@ const PlayerListAction = require('../network/type/player-list-action');
 const PlayerListEntry = require('../network/type/player-list-entry');
 const AddPlayerPacket = require('../network/packet/add-player');
 const MovePlayerPacket = require('../network/packet/move-player');
-const MovementType = require('../network/type/movement-type');
 const TextPacket = require('../network/packet/text');
 const TextType = require('../network/type/text-type');
 const RemoveActorPacket = require('../network/packet/remove-actor');
@@ -369,7 +369,7 @@ export default class Player extends Entity {
      * Broadcast the movement to a defined player
      * @param {Player} player 
      */
-    broadcastMove(player: Player) {
+    broadcastMove(player: Player, type: MovementType = MovementType.Normal) {
         let pk = new MovePlayerPacket();
         pk.runtimeEntityId = this.runtimeId;
 
@@ -381,7 +381,7 @@ export default class Player extends Entity {
         pk.yaw = this.yaw;
         pk.headYaw = this.headYaw;
 
-        pk.mode = MovementType.Normal;
+        pk.mode = type;
 
         pk.onGround = this.onGround;
 
