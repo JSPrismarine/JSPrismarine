@@ -52,6 +52,10 @@ export default class Block {
         return 0;
     }
 
+    getFlammability() {
+        return 0;
+    }
+
     getToolType(): BlockToolType {
         return BlockToolType.None;
     }
@@ -60,13 +64,13 @@ export default class Block {
         return ItemTieredToolType.None;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Prismarine): Array<Block | null> {
+    getDropsForCompatibleTool(item: Item, server: Prismarine): Array<Block | Item | null> {
         return [
             this
         ];
     }
 
-    getDrops(item: Item, server: Prismarine): Array<Block | null> {
+    getDrops(item: Item, server: Prismarine): Array<Block | Item | null> {
         if (this.isCompatibleWithTool(item)) {
             if (this.isAffectedBySilkTouch() && item.hasEnchantment(ItemEnchantmentType.SilkTouch))
                 return this.getSilkTouchDrops(item, server);
@@ -93,6 +97,10 @@ export default class Block {
 
     canBePlaced() {
         return true;
+    }
+
+    canBeFlowedInto() {
+        return false;
     }
 
     isTransparent() {

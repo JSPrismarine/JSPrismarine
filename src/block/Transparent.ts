@@ -1,4 +1,4 @@
-import Block from "./"
+import Block from "./";
 
 export default class Transparent extends Block {
     isTransparent() {

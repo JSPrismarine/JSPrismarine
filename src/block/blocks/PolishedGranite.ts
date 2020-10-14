@@ -3,7 +3,7 @@ import Item from '../../item';
 import Prismarine from '../../prismarine';
 
 export default class Granite extends Stone {
-    constructor(name: string) {
+    constructor() {
         super('minecraft:polished_granite', StoneType.PolishedGranite);
     }
 

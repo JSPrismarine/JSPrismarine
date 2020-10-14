@@ -1,4 +1,4 @@
-import Block from "./"
+import Block from "./";
 
 export default class Solid extends Block {
     isSolid() {
