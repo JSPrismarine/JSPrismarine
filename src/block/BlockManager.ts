@@ -2,13 +2,11 @@ import fs from "fs";
 import path from "path";
 
 import Block from "./";
-import RuntimeBlockMapping from "./RuntimeBlockMapping";
 import * as Logger from "../utils/Logger";
 import { BlockToolType } from "./BlockToolType";
 
 export default class BlockManager {
     private blocks = new Map()
-    private runtimeMapper = new RuntimeBlockMapping();
 
     constructor() {
         this.importBlocks();
@@ -24,21 +22,20 @@ export default class BlockManager {
         return this.getBlocks().filter(a => a.id === id)[0] || null;
     }
     getBlockByRuntimeId(id: number): Block | null {
-        return this.getBlockById(this.runtimeMapper.toId(id))
+        return this.getBlocks()[id] || null;
     }
     getBlocks(): Array<Block> {
         return Array.from(this.blocks.values());
     }
 
-    getRuntimeBlockMapper() {
-        return this.runtimeMapper;
-    }
-
 
     registerClassBlock(block: Block) {
-        block.setRuntimeId(this.getRuntimeBlockMapper().toRuntimeId(block.id)); // Hacky solution?
+        // The runtime ID is a unique ID sent with the start-game packet
+        // ours is always based on the block's index in the this.blocks map
+        // starting from 0.
+        block.setRuntimeId(this.blocks.size);
         Logger.silly(`Block with id §b${block.name}§r registered`);
-        this.blocks.set(block.name, block)
+        this.blocks.set(block.name, block);
     }
 
     importBlocks() {
