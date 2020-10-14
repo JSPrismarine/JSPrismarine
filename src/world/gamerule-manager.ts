@@ -23,34 +23,32 @@ export const Rules = {
 };
 
 export class GameruleManager {
-
-    /** @type {Map<String, any>} */
-    #rules = new Map()
+    private rules: Map<string, any> = new Map();
 
     /**
      * Sets a game rule.
      * 
-     * @param {string} name 
-     * @param {boolean|number} value 
+     * @param name 
+     * @param value 
      */
-    setGamerule(name: string, value: boolean | number) {
-        this.#rules.set(name, value);
+    public setGamerule(name: string, value: boolean | number): void {
+        this.rules.set(name, value);
     }
 
     /**
      * Returns the game rule value by its name.
      * 
-     * @param {string} name 
+     * @param name 
      */
-    getGamerule(name: string) {
+    public getGamerule(name: string): any {
         if (!Object.values(Rules).includes(name)) {
             LOGGER.error(`Unknown Gamerule with name ${name}`);
         }
-        this.#rules.get(name);
+        this.rules.get(name);
     }
 
-    getGamerules() {
-        return this.#rules;
+    public getGamerules(): Map<string, any> {
+        return this.rules;
     }
 
 }

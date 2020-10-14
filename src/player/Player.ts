@@ -121,7 +121,7 @@ export default class Player extends Entity {
         this.gamemode = server.getConfig().get(`gamemode`, 0);
     }
 
-    update(_timestamp: string) {
+    public async update(_timestamp: number) {
         // Update movement for every player
         for (const player of this.getServer().getOnlinePlayers()) {
             if (player === this) continue;
@@ -143,7 +143,7 @@ export default class Player extends Entity {
             });
         }
 
-        this.needNewChunks();
+        await this.needNewChunks();
     }
 
     async needNewChunks(forceResend = false) {

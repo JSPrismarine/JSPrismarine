@@ -35,11 +35,11 @@ export default class WorldManager {
             seed: worldData.seed,
             generator: worldData.generator
         });
-        this.worlds.set(world.uniqueId, world);
+        this.worlds.set(world.getUniqueId(), world);
 
         // First level to be loaded is also the default one
         if (!this.defaultWorld) {
-            this.defaultWorld = this.worlds.get(world.uniqueId) || null;
+            this.defaultWorld = this.worlds.get(world.getUniqueId()) || null;
             logger.info(`Loaded §b${folderName}§r as default world!`);
         }
         logger.debug(`World §b${folderName}§r succesfully loaded!`);
@@ -65,7 +65,7 @@ export default class WorldManager {
         }
 
         world.close();
-        this.worlds.delete(world.uniqueId);
+        this.worlds.delete(world.getUniqueId());
         logger.debug(`Successfully unloaded world §b${folderName}§f!`);
     }  
 
@@ -77,7 +77,7 @@ export default class WorldManager {
      */
     public isWorldLoaded(folderName: string): boolean {
         for (let world of this.worlds.values()) {
-            if (world.name.toLowerCase() == 
+            if (world.getName().toLowerCase() == 
                 folderName.toLowerCase()) {
                 return true;
             }
@@ -93,7 +93,7 @@ export default class WorldManager {
      */
     public getWorldByName(folderName: string): World | null {
         for (let world of this.worlds.values()) {
-            if (world.name.toLowerCase() == 
+            if (world.getName().toLowerCase() == 
                 folderName.toLowerCase()) {
                 return world;
             }

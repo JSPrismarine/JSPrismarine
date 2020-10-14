@@ -1,45 +1,41 @@
-const Entity = require('../entity/entity');
+import Entity from "../entity/entity";
+import Vector3 from "../math/vector3";
+import Player from "../player/player";
+import Prismarine from "../prismarine";
+
 const UUID = require('../utils/uuid');
-const Chunk = require('./chunk/chunk');
 const CoordinateUtils = require('../world/coordinate-utils');
-const Provider = require('./provider');
 const WorldEventPacket = require('../network/packet/world-event');
-const Vector3 = require('../math/vector3').default;
-const Prismarine = require('../prismarine');
 const { GameruleManager, Rules } = require('../world/gamerule-manager');
 const SharedSeedRandom = require('./util/shared-seed-random');
 
-class World {
+interface WorldData {
+    name: string,
+    server: Prismarine,
+    provider: any,
+    seed: number,
+    generator?: string
+}
 
-    /** @type {string} */
-    #uniqueId = UUID.randomString()
-    /** @type {string} */
-    #name = "Unknown"
-    /** @type {Map<Number, Player>} */
-    #players = new Map()
-    /** @type {Map<Number, Entity>} */
-    #entities = new Map()
-    /** @type {Map<String, Chunk>} */
-    #chunks = new Map()
-    /** @type {GameruleManager} */
-    #gameruleManager = new GameruleManager()
-    /** @type {number} */
-    #currentTick = 0
-    /** @type {Provider|null} */
-    #provider = null
-    /** @type {Prismarine} */
-    #server
-    /** @type {number | bigint} */
-    #seed
-    /** @type {string} */
-    #generator
+export default class World {
+    private uniqueId: string = UUID.randomString();
+    private name: string = "Unknown";
+    private players: Map<number, Player> = new Map();
+    private entities: Map<number, Entity> = new Map();
+    private chunks: Map<string, any> = new Map();
+    private gameruleManager: any = new GameruleManager();
+    private currentTick: number = 0;
+    private provider: any;   // TODO: interface
+    private server: Prismarine
+    private seed: number | bigint;
+    private generator: any;  // TODO: interface
 
-    constructor({ name, server, provider = null, seed, generator = 'overworld' }) {
-        this.#name = name;
-        this.#server = server;
-        this.#provider = provider;
-        this.#seed = new SharedSeedRandom(seed);
-        this.#generator = generator;
+    constructor({ name, server, provider, seed, generator = 'overworld' }: WorldData) {
+        this.name = name;
+        this.server = server;
+        this.provider = provider;
+        this.seed = new SharedSeedRandom(seed);
+        this.generator = generator;
 
         // TODO: Load default gamrules
         this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true);
@@ -53,7 +49,7 @@ class World {
             let loaded = 0;
             for (let x = 0; x < 32; x++) {
                 for (let z = 0; z < 32; z++) {
-                    await this.loadChunk(x, z);
+                    await this.loadChunk(x, z, true);
 
                     loaded++;
 
@@ -73,69 +69,69 @@ class World {
     /**
      * Called every tick.
      * 
-     * @param {number} timestamp 
+     * @param timestamp 
      */
-    update(timestamp) {
+    public async update(timestamp: number): Promise<void> {
         // Continue world time ticks
-        this.#currentTick += 1;
+        this.currentTick += 1;
 
         // Tick players 
-        for (let player of this.#players.values()) {
+        for (let player of this.players.values()) {
             player.update(timestamp);
             // Maybe send time to players? 
             // this.sendTime()
         }
 
         // TODO: tick chunks
-
     }
 
     /**
      * Returns the chunk in the specifies x and z, if the chunk doesn't exists
      * it is generated.
      * 
-     * @param {number} x 
-     * @param {number} z 
-     * @param {boolean} generate 
+     * @param x 
+     * @param z 
+     * @param generate 
      */
-    async getChunk(x, z, generate = true) {
+    public async getChunk(x: number, z: number, generate = true): Promise<any> {
         return await this.loadChunk(x, z, generate);
     }
 
     /**
      * Loads a chunk in a given x and z and returns its.
      * 
-     * @param {number} x 
-     * @param {number} z 
+     * @param x 
+     * @param z 
      */
-    async loadChunk(x, z) {
+    public async loadChunk(x: number, z: number, _generate: boolean): Promise<any> {
         let index = CoordinateUtils.encodePos(x, z);
-        if (!this.#chunks.has(index)) {
-            const generator = this.#server.getWorldManager().getGeneratorManager().getGenerator(this.#generator);
+        if (!this.chunks.has(index)) {
+            const generator = this.server.getWorldManager().getGeneratorManager().getGenerator(this.generator);
             if (!generator) {
-                this.#server.getLogger().error(`Invalid generator §b${this.#generator}§r!`);
+                this.server.getLogger().error(`Invalid generator §b${this.generator}§r!`);
                 throw new Error('invalid generator');
             }
 
-            let chunk = await this.#provider.readChunk({
+            // try - catch for provider errors
+            let chunk = await this.provider.readChunk({
                 x,
                 z,
                 generator,
-                seed: this.#seed
+                seed: this.seed
             });
-            this.#chunks.set(index, chunk);
+            this.chunks.set(index, chunk);
         }
-        return this.#chunks.get(index);
+        return this.chunks.get(index);
     }
 
     /**
      * Sends a world event packet to all the viewers in the position chunk.
      * 
-     * @param {Vector3|null} position - world positon
-     * @param {number} worldEvent - event identifier
-     * @param {number} data 
+     * @param position - world positon
+     * @param worldEvent - event identifier
+     * @param data 
      */
-    sendWorldEvent(position, worldEvent, data) {
+    public sendWorldEvent(position: Vector3|null, worldEvent: number, data: number): void {
         let worldEventPacket = new WorldEventPacket();
         worldEventPacket.eventId = worldEvent;
         worldEventPacket.data = data;
@@ -150,21 +146,18 @@ class World {
     /**
      * Returns a chunk from minecraft block positions x and z.
      * 
-     * @param {number} x 
-     * @param {number} z 
-     * @param {boolean} generate
-     * @returns {Chunk}
+     * @param x 
+     * @param z 
+     * @param generate
      */
-    async getChunkAt(x, z, generate = false) {
+    public async getChunkAt(x: number, z: number, generate = false): Promise<any> {
         return await this.getChunk(x >> 4, z >> 4, generate);
     }
 
     /**
      * Returns the world default spawn position.
-     * 
-     * @returns {Vector3}
      */
-    async getSpawnPosition() {
+    public async getSpawnPosition(): Promise<Vector3> {
         let x = 0, z = 0;  // TODO: replace with actual data
         let chunk = await this.getChunkAt(z, z);
         let y = chunk.getHighestBlock(x, z) + 1;
@@ -175,73 +168,71 @@ class World {
      * Adds an entity into the level and in the chunk
      * found from the entity position.
      * 
-     * @param {Entity} entity 
+     * @param entity 
      */
-    addEntity(entity) {
-        this.#entities.set(entity.runtimeId, entity);
-        this.getChunkAt(entity.x, entity.z, true).addEntity(entity);
+    public async addEntity(entity: Entity): Promise<void> {
+        this.entities.set(entity.runtimeId, entity);
+        let chunk = await this.getChunkAt(entity.x, entity.z, true);
+        chunk.addEntity(entity);
     }
 
     /**
      * Adds a player into the level. 
      */
-    addPlayer(player) {
-        this.#players.set(player.runtimeId, player);
+    public addPlayer(player: Player): void {
+        this.players.set(player.runtimeId, player);
     }
 
     /**
      * Removes a player from the level.
      */
-    removePlayer(player) {
-        this.#players.delete(player.runtimeId);
+    public removePlayer(player: Player): void {
+        this.players.delete(player.runtimeId);
     }
 
     /**
      * Saves changed chunks into disk.
-     * 
-     * @returns {void}
      */
-    async saveChunks() {
+    public async saveChunks(): Promise<void> {
         let time = Date.now();
-        this.#server.getLogger().debug('[World save] saving chunks...');
-        for (let chunk of this.#chunks.values()) {
+        this.server.getLogger().debug('[World save] saving chunks...');
+        for (let chunk of this.chunks.values()) {
             if (chunk.hasChanged()) {
-                await this.#provider.writeChunk(chunk);
+                await this.provider.writeChunk(chunk);
                 chunk.setChanged(false);
             }
         }
-        this.#server.getLogger().debug('[World save] took ' + (Date.now() - time) + 'ms');
+        this.server.getLogger().debug('[World save] took ' + (Date.now() - time) + 'ms');
     }
 
-    async save() {
+    public async save(): Promise<void> {
         // Save chunks
         await this.saveChunks();
     }
 
-    close() {
+    public close(): void {
         // TODO
     }
 
-    getGameruleManager() {
-        return this.#gameruleManager;
+    public getGameruleManager(): any {
+        return this.gameruleManager;
     }
 
-    getTicks() {
-        return this.#currentTick;
+    public getTicks(): number {
+        return this.currentTick;
     }
 
-    get provider() {
-        return this.#provider;
+    public getProvider(): any {
+        return this.provider;
     }
 
     // this is used for example in start game packet
-    get uniqueId() {
-        return this.#uniqueId;
+    public getUniqueId(): string {
+        return this.uniqueId;
     }
 
-    get name() {
-        return this.#name;
+    public getName(): string {
+        return this.name;
     }
 
 }
-module.exports = World;
