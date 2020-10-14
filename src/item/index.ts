@@ -1,3 +1,7 @@
+import { BlockToolType } from "../block/BlockToolType"
+import { ItemEnchantmentType } from "./ItemEnchantmentType"
+import { ItemTieredToolType } from "./ItemTieredToolType"
+
 interface ItemProps {
     id: number,
     name: string,
@@ -24,5 +28,13 @@ export default class Item {
         this.count = count;
         this.nbt = nbt || null;
         this.name = name;
+    }
+
+    hasEnchantment(enchantment: ItemEnchantmentType) {
+        return false;
+    }
+
+    getToolType() {
+        return BlockToolType.None;
     }
 }

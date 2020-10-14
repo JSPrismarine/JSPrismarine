@@ -1,12 +1,13 @@
 import Block from '../'
-import { ItemTieredTool } from '../../item/ItemTieredTool';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
 export default class Stone extends Block {
     constructor() {
         super({
             name: 'minecraft:stone',
-            id: 1,
+            id: BlockIdsType.Stone,
             hardness: 1.5
         });
     }
@@ -16,6 +17,6 @@ export default class Stone extends Block {
     }
 
     getToolHarvestLevel() {
-        return ItemTieredTool.Wooden;
+        return ItemTieredToolType.Wooden;
     }
 };

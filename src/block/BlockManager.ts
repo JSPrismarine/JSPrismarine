@@ -11,10 +11,10 @@ export default class BlockManager {
         this.importBlocks();
     }
 
-    getBlock(name: string) {
+    getBlock(name: string): Block {
         return this.blocks.get(name)
     }
-    getBlocks() {
+    getBlocks(): Array<Block> {
         return Array.from(this.blocks.values());
     }
 

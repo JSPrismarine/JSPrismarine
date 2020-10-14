@@ -1,5 +1,8 @@
-import { ItemTieredTool } from "../item/ItemTieredTool"
+import Item from "../item"
+import Prismarine from "../prismarine"
+import { ItemTieredToolType } from "../item/ItemTieredToolType"
 import { BlockToolType } from "./BlockToolType"
+import { ItemEnchantmentType } from "../item/ItemEnchantmentType"
 
 export default class Block {
     /** @type {number} */
@@ -40,16 +43,35 @@ export default class Block {
         return 0;
     }
 
-    getToolType() {
+    getToolType(): BlockToolType {
         return BlockToolType.None;
     }
 
     getToolHarvestLevel() {
-        return ItemTieredTool.None;
+        return ItemTieredToolType.None;
     }
 
-    getDropsForCompatibleTool() {
-        return this;
+    getDropsForCompatibleTool(item: Item, server: Prismarine): Array<Block> {
+        return [
+            this
+        ];
+    }
+
+    getDrops(item: Item, server: Prismarine): Array<Block> {
+        if (this.isCompatibleWithTool(item)) {
+            if (this.isAffectedBySilkTouch() && item.hasEnchantment(ItemEnchantmentType.SilkTouch))
+                return this.getSilkTouchDrops(item, server);
+
+            return this.getDropsForCompatibleTool(item, server)
+        }
+
+        return [];
+    }
+
+    getSilkTouchDrops(item: Item, server: Prismarine) {
+        return [
+            this
+        ];
     }
 
     canPassThrough() {
@@ -65,6 +87,25 @@ export default class Block {
     }
 
     isSolid() {
+        return true;
+    }
+
+    isCompatibleWithTool(item: Item) {
+        if (this.getHardness() < 0)
+            return false;
+
+        const toolType = item.getToolType();
+        const harvestLevel = 0; //item.getToolHarvestLevel();
+
+        if (toolType === this.getToolType())
+            return true;
+        else if (harvestLevel === 0)
+            return true;
+            
+        return false;
+    }
+
+    isAffectedBySilkTouch() {
         return true;
     }
 }

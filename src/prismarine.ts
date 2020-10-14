@@ -1,5 +1,7 @@
 import PacketRegistry from "./network/packet-registry";
 import Player from "./player";
+import BlockManager from "./block/BlockManager";
+import ItemManager from "./item/ItemManager";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -7,8 +9,6 @@ const CommandManager = require('./command/CommandManager').default;
 const Identifiers = require('./network/identifiers');
 const WorldManager = require('./world/world-manager').default;
 const PluginManager = require('./plugin/plugin-manager');
-const BlockManager = require('./block/BlockManager').default;
-const ItemManager = require('./item/ItemManager').default;
 
 interface PrismarineData {
     logger: any,
@@ -241,10 +241,10 @@ export default class Prismarine {
         return this.worldManager;
     }
 
-    getItemManager() {
+    getItemManager(): ItemManager {
         return this.itemManager;
     }
-    getBlockManager() {
+    getBlockManager(): BlockManager {
         return this.blockManager;
     }
 
