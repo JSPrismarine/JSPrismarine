@@ -1,10 +1,11 @@
 import Block from '../'
+import { BlockIdsType } from '../BlockIdsType';
 
 export default class Air extends Block {
     constructor() {
         super({
             name: 'minecraft:air',
-            id: 0,
+            id: BlockIdsType.Air,
             hardness: -1
         });
     }

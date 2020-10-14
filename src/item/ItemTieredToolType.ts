@@ -1,4 +1,4 @@
-export enum ItemTieredTool {
+export enum ItemTieredToolType {
     None,
     Wooden = 1,
     Gold = 2,

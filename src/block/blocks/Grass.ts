@@ -1,11 +1,14 @@
 import Block from '../'
+import Item from '../../item';
+import Prismarine from '../../prismarine';
+import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
 export default class Grass extends Block {
     constructor() {
         super({
             name: 'minecraft:grass',
-            id: 2,
+            id: BlockIdsType.Grass,
             hardness: 0.6
         });
     }
@@ -14,7 +17,9 @@ export default class Grass extends Block {
         return BlockToolType.Shovel;
     }
 
-    getDropsForCompatibleTool() {
-        return this; // TODO: dirt
+    getDropsForCompatibleTool(item: Item, server: Prismarine) {
+        return [
+            server.getBlockManager().getBlock('minecraft:dirt')
+        ];
     }
 };

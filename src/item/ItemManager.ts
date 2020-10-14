@@ -11,10 +11,10 @@ export default class ItemManager {
         this.importItems();
     }
 
-    getItem(name: string) {
+    getItem(name: string): Item {
         return this.#items.get(name)
     }
-    getItems() {
+    getItems(): Array<Item> {
         return Array.from(this.#items.values());
     }
 
