@@ -298,7 +298,15 @@ export default class Player extends Entity {
     sendAvailableCommands() {
         let pk = new AvailableCommandsPacket();
         for (let command of this.getServer().getCommandManager().getCommands()) {
-            pk.commandData.add({ ...command, execute: undefined });
+            if (!Array.isArray(command.parameters))
+                pk.commandData.add({ ...command, execute: undefined });
+            else 
+                for(let i = 0; i < command.parameters.length; i++)
+                    pk.commandData.add({
+                        ...command,
+                        parameters: command.parameters[i],
+                        execute: undefined
+                    });
         }
         this.sendDataPacket(pk);
     }

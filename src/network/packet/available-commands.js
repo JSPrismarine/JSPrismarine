@@ -57,13 +57,14 @@ class AvailableCommandsPacket extends DataPacket {
 
             // Parameters and overloads
             this.writeUnsignedVarInt(1);  // i don't get it, why ??
-            this.writeUnsignedVarInt(data.parameters.size);  
-            for (let parameter of data.parameters) {
-                this.writeString(parameter.name);
-                this.writeLInt(parameter.type);
-                this.writeBool(parameter.optional);
-                this.writeByte(0);  // No idea
-            }
+            this.writeUnsignedVarInt(data?.parameters?.size || 0); 
+            if(data?.parameters) 
+                for (let parameter of data.parameters) {
+                    this.writeString(parameter.name);
+                    this.writeLInt(parameter.type);
+                    this.writeBool(parameter.optional);
+                    this.writeByte(0);  // No idea
+                }
         }
 
         this.writeUnsignedVarInt(0);
