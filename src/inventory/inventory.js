@@ -1,5 +1,5 @@
 const ItemAir = require('../block/blocks/Air').default;
-const Item = require('../item/Item').default;
+const Item = require('../item').default;
 
 
 // TODO: viewer logic

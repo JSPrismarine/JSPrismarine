@@ -1,4 +1,4 @@
-import Item from '../Item'
+import Item from '../'
 
 export default class Air extends Item {
     constructor() {

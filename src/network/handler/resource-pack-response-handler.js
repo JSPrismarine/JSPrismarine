@@ -9,7 +9,7 @@ const Player = require('../../player').default;
 const LOGGER = require('../../utils/Logger');
 const Prismarine = require('../../prismarine');
 const Gamemode = require('../../world/gamemode');
-// const Item = require('../../item/Item')
+// const Item = require('../../item')
 
 
 class ResourcePackResponseHandler {

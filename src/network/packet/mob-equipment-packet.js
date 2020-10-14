@@ -1,6 +1,6 @@
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
-const Item = require('../../item/Item').default;
+const Item = require('../../item').default;
 
 
 class MobEquipmentPacket extends DataPacket {

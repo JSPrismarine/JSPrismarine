@@ -1,4 +1,4 @@
-import Block from '../Block'
+import Block from '../'
 
 export default class Stone extends Block {
     constructor() {
