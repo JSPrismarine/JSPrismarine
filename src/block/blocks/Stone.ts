@@ -5,13 +5,24 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
+export enum StoneType {
+    Stone = 0,
+    Granite = 1,
+    PolishedGranite = 2,
+    Diorite = 3,
+    PolishedDiorite = 4,
+    Andesite = 5,
+    PolishedAndesite = 6
+};
+
 export default class Stone extends Solid {
-    constructor() {
+    constructor(name: string = 'minecraft:stone', type: StoneType = StoneType.Stone) {
         super({
-            name: 'minecraft:stone',
+            name: name,
             id: BlockIdsType.Stone,
-            hardness: 1.5
+            hardness: 1.5,
         });
+        this.meta = type;
     }
 
     getToolType() {

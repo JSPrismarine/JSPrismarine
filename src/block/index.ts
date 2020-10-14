@@ -8,10 +8,10 @@ export default class Block {
     id: number
     name: string
     hardness: number
+    meta = 0
 
     // TODO
     nbt = null
-    meta = 0
     count = 1
 
     constructor({ id, name, hardness }: {
@@ -26,6 +26,14 @@ export default class Block {
 
     getName() {
         return this.name;
+    }
+
+    getId() {
+        return this.id;
+    }
+
+    getRuntimeId() {
+        return this.id;
     }
 
     getHardness() {
