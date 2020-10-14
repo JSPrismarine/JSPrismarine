@@ -2,7 +2,7 @@ import { BlockToolType } from "../block/BlockToolType"
 import { ItemEnchantmentType } from "./ItemEnchantmentType"
 import { ItemTieredToolType } from "./ItemTieredToolType"
 
-interface ItemProps {
+export interface ItemProps {
     id: number,
     name: string,
     meta?: number,
@@ -11,15 +11,11 @@ interface ItemProps {
 };
 
 export default class Item {
-    /** @type {number} */
     id: number
-    /** @type {number} */
-    meta?: number
-    /** @type {string} */
     name: string
-    /** @type {any} */
+
+    meta?: number
     nbt?: any
-    /** @type {number} */
     count?: number
 
     constructor({ id, name, meta, count, nbt }: ItemProps) {
@@ -30,15 +26,15 @@ export default class Item {
         this.name = name;
     }
 
-    hasEnchantment(enchantment: ItemEnchantmentType) {
-        return false;
-    }
-
     getToolType() {
         return BlockToolType.None;
     }
 
     getToolHarvestLevel() {
         return 0;
+    }
+
+    hasEnchantment(enchantment: ItemEnchantmentType) {
+        return false;
     }
 }

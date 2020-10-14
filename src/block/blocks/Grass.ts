@@ -1,10 +1,10 @@
-import Block from '../'
+import Solid from '../Solid';
 import Item from '../../item';
 import Prismarine from '../../prismarine';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
-export default class Grass extends Block {
+export default class Grass extends Solid {
     constructor() {
         super({
             name: 'minecraft:grass',

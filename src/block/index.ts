@@ -5,11 +5,8 @@ import { BlockToolType } from "./BlockToolType"
 import { ItemEnchantmentType } from "../item/ItemEnchantmentType"
 
 export default class Block {
-    /** @type {number} */
     id: number
-    /** @type {string} */
     name: string
-    /** @type {number} */
     hardness: number
 
     // TODO
@@ -74,6 +71,10 @@ export default class Block {
         ];
     }
 
+    getLightFilter() {
+        return 15;
+    }
+
     canPassThrough() {
         return false;
     }
@@ -82,26 +83,30 @@ export default class Block {
         return true;
     }
 
+    isTransparent() {
+        return false;
+    }
+
     isBreakable() {
         return true;
     }
 
     isSolid() {
-        return true;
+        return false;
     }
 
     isCompatibleWithTool(item: Item) {
         if (this.getHardness() < 0)
             return false;
 
-        const toolType = item.getToolType();
-        const harvestLevel = item.getToolHarvestLevel();
+        const toolType = this.getToolType();
+        const harvestLevel = this.getToolHarvestLevel();
 
-        if (toolType === this.getToolType())
+        if (toolType  === BlockToolType.None || harvestLevel === 0)
             return true;
-        else if (harvestLevel === 0)
+        else if (toolType & item.getToolType() && (item.getToolHarvestLevel() >= harvestLevel))
             return true;
-            
+
         return false;
     }
 

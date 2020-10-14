@@ -1,7 +1,7 @@
-import Block from '../'
+import Transparent from '../Transparent';
 import { BlockIdsType } from '../BlockIdsType';
 
-export default class Air extends Block {
+export default class Air extends Transparent {
     constructor() {
         super({
             name: 'minecraft:air',
@@ -10,19 +10,23 @@ export default class Air extends Block {
         });
     }
 
-    canPassThrough() {
-		return true;
+    getBlastResistance() {
+        return 0
     }
-    
-    isBreakable() {
-		return false;
+
+    canPassThrough() {
+        return true;
     }
     
     canBePlaced() {
-		return false;
+        return false;
     }
-    
+
+    isBreakable() {
+        return false;
+    }
+
     isSolid() {
-		return false;
-	}
+        return false;
+    }
 };

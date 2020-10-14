@@ -1,8 +1,8 @@
-import Block from '../'
+import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
-export default class Grass extends Block {
+export default class Grass extends Solid {
     constructor() {
         super({
             name: 'minecraft:dirt',

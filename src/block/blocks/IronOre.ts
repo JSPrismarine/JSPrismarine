@@ -1,14 +1,16 @@
 import Solid from '../Solid';
+import Item from '../../item';
+import Prismarine from '../../prismarine';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
-export default class Cobblestone extends Solid {
+export default class IronOre extends Solid {
     constructor() {
         super({
-            name: 'minecraft:cobblestone',
-            id: BlockIdsType.Cobblestone,
-            hardness: 1.5
+            name: 'minecraft:iron_ore',
+            id: BlockIdsType.IronOre,
+            hardness: 3
         });
     }
 
@@ -17,6 +19,6 @@ export default class Cobblestone extends Solid {
     }
 
     getToolHarvestLevel() {
-        return ItemTieredToolType.Wooden;
+        return ItemTieredToolType.Stone;
     }
 };
