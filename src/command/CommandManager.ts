@@ -41,15 +41,6 @@ export default class CommandManager {
      * @param {Command} command 
      */
     public registerClassCommand(command: Command) {
-        // TODO: remove this
-        if (!command.parameters.size) {
-            let parameter = new CommandParameter();
-            parameter.name = 'args';
-            parameter.type = 0x100000 | 0x22;  // TODO: hardcoded values
-            parameter.optional = true;
-            command.parameters.add(parameter);
-        }
-
         this.commands.add(command);
         logger.silly(`Command with id §b${command.namespace}:${command.name}§r registered`);
     }
@@ -94,7 +85,7 @@ export default class CommandManager {
         }
     }
 
-    public getCommands() {
+    public getCommands(): Set<Command> {
         return this.commands;
     }
 }

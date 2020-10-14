@@ -2,10 +2,10 @@ import PacketRegistry from "./network/packet-registry";
 import Player from "./player";
 import BlockManager from "./block/BlockManager";
 import ItemManager from "./item/ItemManager";
+import CommandManager from "./command/CommandManager";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
-const CommandManager = require('./command/CommandManager').default;
 const Identifiers = require('./network/identifiers');
 const WorldManager = require('./world/world-manager').default;
 const PluginManager = require('./plugin/plugin-manager');
@@ -233,7 +233,7 @@ export default class Prismarine {
         setTimeout(() => { process.exit(0); }, 1000);
     }
 
-    getCommandManager() {
+    getCommandManager(): CommandManager {
         return this.commandManager;
     }
 

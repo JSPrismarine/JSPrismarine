@@ -12,12 +12,16 @@ export default class GamemodeCommand extends Command {
             description: 'Changes gamemode for a player.'
         } as any);
 
-        this.parameters.add(new CommandParameter({
+        this.parameters = [
+            new Set()
+        ];
+
+        this.parameters[0].add(new CommandParameter({
             name: 'gamemode',
             type: CommandParameterType.String,
             optional: false
         }));
-        this.parameters.add(new CommandParameter({
+        this.parameters[0].add(new CommandParameter({
             name: 'target',
             type: CommandParameterType.Target,
             optional: false
