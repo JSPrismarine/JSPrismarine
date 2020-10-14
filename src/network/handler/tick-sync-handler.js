@@ -1,6 +1,6 @@
 const Identifiers = require('../identifiers');
 const TickSyncPacket = require('../packet/tick-sync');
-const Player = require('../../player/Player').default;
+const Player = require('../../player').default;
 const Prismarine = require('../../prismarine');
 
 

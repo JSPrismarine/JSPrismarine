@@ -1,5 +1,5 @@
 import PacketRegistry from "./network/packet-registry";
-import Player from "./player/Player";
+import Player from "./player";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');

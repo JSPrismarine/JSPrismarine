@@ -1,4 +1,4 @@
-import Player from "../../player/Player";
+import Player from "../../player";
 
 const Command = require('../Command').default;
 const Plugin = require('../../plugin/plugin');  // TODO: to interface

@@ -2,7 +2,7 @@
 This command is non-vanilla, but exists in PMMP, Altay, MiNET, Nukkit a.s.o.
 */
 
-import Player from "../../player/Player";
+import Player from "../../player";
 import Command from "../Command";
 
 const packageFile = require('../../../package.json');
