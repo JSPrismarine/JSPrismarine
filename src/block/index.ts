@@ -9,7 +9,7 @@ export default class Block {
     runtimeId?: number;
     name: string;
     hardness: number;
-    meta = 0;
+    meta: number = 0;
 
     // TODO
     nbt = null;
