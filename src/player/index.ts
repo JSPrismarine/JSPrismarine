@@ -255,7 +255,10 @@ export default class Player extends Entity {
     sendCreativeContents() {
         let pk = new CreativeContentPacket();
 
-        pk.entries = this.getServer().getBlockManager().getBlocks().map((block: any, index: number) => new CreativeContentEntry(index, block));
+        // Sort based on numeric block ids and name
+        pk.entries = this.getServer().getBlockManager()
+            .getBlocks().sort((a, b) => a.id - b.id || a.name.localeCompare(b.name))
+            .map((block: any, index: number) => new CreativeContentEntry(index, block));
         this.sendDataPacket(pk);
     }
 
@@ -300,8 +303,8 @@ export default class Player extends Entity {
         for (let command of this.getServer().getCommandManager().getCommands()) {
             if (!Array.isArray(command.parameters))
                 pk.commandData.add({ ...command, execute: undefined });
-            else 
-                for(let i = 0; i < command.parameters.length; i++)
+            else
+                for (let i = 0; i < command.parameters.length; i++)
                     pk.commandData.add({
                         ...command,
                         parameters: command.parameters[i],
