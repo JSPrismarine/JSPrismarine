@@ -159,9 +159,9 @@ export default class World {
      */
     public async getSpawnPosition(): Promise<Vector3> {
         let x = 0, z = 0;  // TODO: replace with actual data
-        let chunk = await this.getChunkAt(z, z);
+        let chunk = await this.getChunkAt(x, z);
         let y = chunk.getHighestBlock(x, z) + 1;
-        return new Vector3(z, y, z); 
+        return new Vector3(z, y + 2, z); 
     }
 
     /**

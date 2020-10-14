@@ -37,4 +37,8 @@ export default class Item {
     getToolType() {
         return BlockToolType.None;
     }
+
+    getToolHarvestLevel() {
+        return 0;
+    }
 }
