@@ -1,67 +1,61 @@
 const fs = require('fs');
 const path = require('path');
-const util = require('util');
 const logger = require('../utils/Logger');
 
-const DataPacket = require('./packet/packet');
 
-
-class PacketRegistry {
-    #packets = new Map()
-    #handlers = new Map()
+export default class PacketRegistry {
+    private packets: Map<Number, any> = new Map();
+    private handlers: Map<number, any> = new Map()
 
     constructor() {
         this.loadPackets();
         this.loadHandlers();
     }
 
-    /**
-     * @param {DataPacket} packet 
-     */
-    registerPacket(packet) {
-        this.#packets.set(packet.NetID, packet);
+    private registerPacket(packet: any): void {
+        this.packets.set(packet.NetID, packet);
     }
 
-    registerHandler(handler) {
-        this.#handlers.set(handler.NetID, handler);
+    private registerHandler(handler: any): void {
+        this.handlers.set(handler.NetID, handler);
     }
 
-    loadPackets() {
+    private loadPackets(): void {
         let dir = path.join(__dirname + '/packet');
-        fs.readdir(dir, (err, files) => {
+        fs.readdir(dir, (err: Error, files: string[]) => {
             if (err) logger.error(`Cannot load packets: ${err}`);
 
             files = files.filter(a => !a.includes('.test.') && !a.includes('.d.ts')); // Exclude test files
 
             for (let i = 0; i < files.length; i++) {
-                let packet = require(path.join(dir, files[i]));
+                let packet = require(path.join(dir, files[i]));  // TODO: import when convert to TS
                 this.registerPacket(packet.default || packet);
             }
             logger.debug(`Loaded §b${this.packets.size}§r Minecraft packets!`);
         });
     }
 
-    loadHandlers() {
+    private loadHandlers(): void {
         let dir = path.join(__dirname + '/handler');
-        fs.readdir(dir, (err, files) => {
+        fs.readdir(dir, (err: Error, files: string[]) => {
             if (err) logger.error(`Cannot load packets: ${err}`);
 
             files = files.filter(a => !a.includes('.test.') && !a.includes('.d.ts')); // Exclude test files
 
             for (let i = 0; i < files.length; i++) {
-                let handler = require(path.join(dir, files[i]));
+                let handler = require(path.join(dir, files[i]));  // TODO: import when convert to TS
                 this.registerHandler(handler.default || handler);
             }
             logger.debug(`Loaded §b${this.handlers.size}§r packet handlers!`);
         });
     }
 
-    get packets() {
-        return this.#packets;
+    public getPackets() {
+        return this.packets;
     }
 
-    get handlers() {
-        return this.#handlers;
+    public getHandlers() {
+        return this.handlers;
     }
  
 }

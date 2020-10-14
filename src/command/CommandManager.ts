@@ -9,9 +9,7 @@ const CommandParameter = require('../network/type/CommandParameter').default;
 const logger = require('../utils/Logger');
 
 export default class CommandManager {
-
-    /** @type {Set<Command>} */
-    private commands: Set<Command> = new Set()
+    private commands: Set<Command> = new Set();
 
     constructor() {
         // Register vanilla commands
@@ -42,7 +40,7 @@ export default class CommandManager {
      * 
      * @param {Command} command 
      */
-    registerClassCommand(command: Command) {
+    public registerClassCommand(command: Command) {
         // TODO: remove this
         if (!command.parameters.size) {
             let parameter = new CommandParameter();
@@ -59,10 +57,10 @@ export default class CommandManager {
     /**
      * Dispatches a command and executes them.
      * 
-     * @param {Player} sender 
-     * @param {string} commandInput 
+     * @param sender 
+     * @param commandInput 
      */
-    dispatchCommand(sender: Player, commandInput = '') {
+    public dispatchCommand(sender: Player, commandInput = '') {
         if (!(commandInput.startsWith('/'))) {
             logger.warn('Received an invalid command!');
         }
@@ -96,7 +94,7 @@ export default class CommandManager {
         }
     }
 
-    getCommands() {
+    public getCommands() {
         return this.commands;
     }
 }
