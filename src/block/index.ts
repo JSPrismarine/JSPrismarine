@@ -95,7 +95,7 @@ export default class Block {
             return false;
 
         const toolType = item.getToolType();
-        const harvestLevel = 0; //item.getToolHarvestLevel();
+        const harvestLevel = item.getToolHarvestLevel();
 
         if (toolType === this.getToolType())
             return true;

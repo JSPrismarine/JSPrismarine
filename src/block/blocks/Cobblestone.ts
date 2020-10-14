@@ -1,15 +1,13 @@
 import Block from '../'
-import Item from '../../item';
-import Prismarine from '../../prismarine';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
-export default class Stone extends Block {
+export default class Cobblestone extends Block {
     constructor() {
         super({
-            name: 'minecraft:stone',
-            id: BlockIdsType.Stone,
+            name: 'minecraft:cobblestone',
+            id: BlockIdsType.Cobblestone,
             hardness: 1.5
         });
     }
@@ -20,11 +18,5 @@ export default class Stone extends Block {
 
     getToolHarvestLevel() {
         return ItemTieredToolType.Wooden;
-    }
-
-    getDropsForCompatibleTool(item: Item, server: Prismarine) {
-        return [
-            server.getBlockManager().getBlock('minecraft:cobblestone')
-        ];
     }
 };
