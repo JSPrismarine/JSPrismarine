@@ -3,5 +3,7 @@ export enum BlockIdsType {
     Stone = 1,
     Grass = 2,
     Dirt = 3,
-    Cobblestone = 4
+    Cobblestone = 4,
+
+    IronOre = 15
 };
