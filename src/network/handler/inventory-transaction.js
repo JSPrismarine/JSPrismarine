@@ -1,5 +1,5 @@
 const Identifiers = require('../identifiers');
-const Player = require('../../player/Player').default;
+const Player = require('../../player').default;
 const InventoryTransactionPacket = require('../packet/inventory-transaction');
 const Prismarine = require('../../prismarine');
 

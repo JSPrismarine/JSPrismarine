@@ -1,4 +1,4 @@
-const Player = require('../../player/Player').default;
+const Player = require('../../player').default;
 const Identifiers = require('../identifiers');
 const EventManager = require('../../events/event-manager');
 const EventIdentifiers = require('../../events/event-identifiers');

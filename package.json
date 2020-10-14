@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node ./dist/server.js",
     "dev": "NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
-    "build": "tsc --incremental --extendedDiagnostics",
+    "build": "tsc --extendedDiagnostics",
     "package": "pkg package.json --out-path ./packages/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
