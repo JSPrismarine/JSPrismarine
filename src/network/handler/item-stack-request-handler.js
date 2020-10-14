@@ -2,7 +2,7 @@ const Identifiers = require('../identifiers');
 const ItemStackRequestPacket = require('../packet/item-stack-request');
 
 
-class InteractHandler {
+class ItemStackRequestHandler {
     static NetID = Identifiers.ItemStackRequestPacket
 
     /**
@@ -11,7 +11,7 @@ class InteractHandler {
      * @param {Player} player 
      */
     static handle(packet, server, player) {
-        // TODO handle request
+        console.log(packet);
     }
 }
-module.exports = InteractHandler;
+module.exports = ItemStackRequestHandler;

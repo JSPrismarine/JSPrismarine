@@ -1,8 +1,15 @@
-const ItemStackRequestAction = require('./item-stack-request-action');
+class Take {
+    /** @type {number} */
+    count;
+    /** @type {number} */
+    from;
+    /** @type {number} */
+    to;
 
-class Take extends ItemStackRequestAction {
-    constructor() {
-        super(0);
+    constructor({count, from, to}) {
+        this.count = count;
+        this.from = from;
+        this.to = to;
     }
 }
 
