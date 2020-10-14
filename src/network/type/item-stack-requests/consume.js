@@ -1,7 +1,6 @@
-class Destroy {
+class ConsumeStack {
     /** @type {number} */
     count;
-    /** @type {number} */
     from;
 
     constructor({count, from}) {
@@ -9,5 +8,4 @@ class Destroy {
         this.from = from;
     }
 }
-
-module.exports = Destroy;
+module.exports = ConsumeStack;
