@@ -1,4 +1,4 @@
-const Command = require('./command').default;
+const Command = require('./').default;
 
 describe('command', () => {
     describe('command', () => {

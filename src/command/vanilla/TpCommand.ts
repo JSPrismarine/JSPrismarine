@@ -1,6 +1,6 @@
 import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
 import Player from "../../player";
-import Command from "../Command";
+import Command from "../";
 
 export default class TpCommand extends Command {
     constructor() {

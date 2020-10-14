@@ -3,7 +3,7 @@ This command is non-vanilla, but exists in PMMP, Altay, MiNET, Nukkit a.s.o.
 */
 
 import Player from "../../player";
-import Command from "../Command";
+import Command from "../";
 
 const packageFile = require('../../../package.json');
 const identifiers = require('../../network/identifiers');
