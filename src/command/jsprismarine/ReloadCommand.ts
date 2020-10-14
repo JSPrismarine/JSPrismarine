@@ -1,5 +1,5 @@
 import Player from "../../player";
-import Command from "../Command";
+import Command from "../";
 
 export default class ReloadCommand extends Command {
     constructor() {

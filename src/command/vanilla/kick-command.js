@@ -1,4 +1,4 @@
-const Command = require('../Command').default;
+const Command = require('../').default;
 const Player = require('../../player').default;
 const CommandParameter = require('../../network/type/CommandParameter').default;
 

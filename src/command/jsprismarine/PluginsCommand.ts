@@ -1,6 +1,6 @@
 import Player from "../../player";
 
-const Command = require('../Command').default;
+const Command = require('../').default;
 const Plugin = require('../../plugin/plugin');  // TODO: to interface
 
 export default class PluginsCommand extends Command {

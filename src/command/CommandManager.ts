@@ -1,5 +1,5 @@
 import Player from "../player";
-import Command from "./Command";
+import Command from "./";
 
 const path = require('path');
 const fs = require('fs');
