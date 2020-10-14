@@ -12,7 +12,8 @@ export default class Block {
     meta = 0;
 
     // TODO
-    nbt = null
+    nbt = null;
+    count = 1;
 
     constructor({ id, name, hardness }: {
         id: number,
