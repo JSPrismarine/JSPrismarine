@@ -14,6 +14,8 @@ class ChangeSlot {
 
         let count = buffer.readUnsignedVarInt();
         this.changedSlots = buffer.read(count);
+        // TODO: move to packet binary stream
+        return this;
     }
 
     getContainerId() {
