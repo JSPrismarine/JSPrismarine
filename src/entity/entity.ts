@@ -20,7 +20,6 @@ export default class Entity extends Position {
     /**
      * Entity constructor.
      * 
-     * @param world 
      */
     constructor(world: World) {
         super({ world: world });  // TODO
