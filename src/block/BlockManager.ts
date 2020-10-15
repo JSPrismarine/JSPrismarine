@@ -21,6 +21,12 @@ export default class BlockManager {
 
         return this.getBlocks().filter(a => a.id === id)[0] || null;
     }
+    getBlockByIdAndMeta(id: number, meta: number): Block | null {
+        if (!BlockToolType[id])
+            return null;
+
+        return this.getBlocks().filter(a => a.id === id && a.meta == meta)[0] || null;
+    }
     getBlockByRuntimeId(id: number): Block | null {
         return this.getBlocks()[id] || null;
     }

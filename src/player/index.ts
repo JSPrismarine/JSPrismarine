@@ -270,7 +270,7 @@ export default class Player extends Entity {
 
         // Sort based on numeric block ids and name
         pk.entries = this.getServer().getBlockManager()
-            .getBlocks().sort((a, b) => a.id - b.id || a.name.localeCompare(b.name))
+            .getBlocks().sort((a, b) => a.id - b.id || a.meta - b.meta)
             .map((block: any, index: number) => new CreativeContentEntry(index, block));
         this.sendDataPacket(pk);
     }
