@@ -7,7 +7,7 @@ export default class QueryManager {
     constructor(server?: Prismarine) {
         if (!server)
             return;
-        if (!server.getConfig().get('enable-query', true))
+        if (!server.getConfig().get('enable-query', false))
             return;
 
         // TODO: setup query
