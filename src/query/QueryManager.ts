@@ -7,7 +7,7 @@ export default class QueryManager {
     constructor(server?: Prismarine) {
         if (!server)
             return;
-        if (!server.getConfig().get('enable-query', false))
+        if (!server.getConfig().get('enable-query', true))
             return;
 
         // TODO: setup query
@@ -49,7 +49,7 @@ export default class QueryManager {
         });
 
         try {
-            this.server.bind(port);
+            this.server.bind(port, server.getConfig().get('server-ip', '0.0.0.0'));
             server.getLogger().info(`JSPrismarine query is now listening port §b${port}`);
         } catch (err) {
             server.getLogger().warn(`Failed to bind port ${port} for query: ${err}`);
