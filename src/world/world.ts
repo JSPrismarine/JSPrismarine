@@ -56,7 +56,7 @@ export default class World {
 
             await Promise.all(chunksToLoad);
             server.getLogger().info(`Time elapsed: ${(Date.now() - time)} ms`);
-        })()
+        })();
     }
 
     /**
