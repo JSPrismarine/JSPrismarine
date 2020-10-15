@@ -6,7 +6,7 @@ class MeCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({ namespace: 'minecraft', name: 'me', description: 'Displays custom message in chat.' });
+        super({ id: 'minecraft:me', description: 'Displays custom message in chat.' });
     }
 
     /**

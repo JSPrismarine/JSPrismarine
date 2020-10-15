@@ -3,14 +3,11 @@ const Command = require('./').default;
 describe('command', () => {
     describe('command', () => {
         const command = new Command({
-            namespace: 'test',
-            name: 'test-plugin'
+            id: 'test:test-plugin',
         });
         
         it('name & namespace should be set correctly', () => {
-            expect(command.namespace).toBe('test');
-            expect(command.name).toBe('test-plugin');
-            expect(command.description).toBe('');
+            expect(command.id).toBe('test:test-plugin');
         });
     });
 });

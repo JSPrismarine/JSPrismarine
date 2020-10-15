@@ -6,8 +6,7 @@ describe('command', () => {
             const command = new Command();
 
             it('name & namespace should be set correctly', () => {
-                expect(command.namespace).toBe('jsprismarine');
-                expect(command.name).toBe('plugins');
+                expect(command.id).toBe('jsprismarine:plugins');
             });
 
             it('plugins command should fail with no plugins', (done) => {

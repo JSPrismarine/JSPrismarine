@@ -4,7 +4,7 @@ const Player = require('../../player').default;
 class ListCommand extends Command {
 
     constructor() {
-        super({ namespace: 'minecraft', name: 'list', description: 'Lists players on the server.' });
+        super({ id: 'minecraft:list', description: 'Lists players on the server.' });
     }
 
     /**

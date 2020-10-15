@@ -6,8 +6,7 @@ describe('command', () => {
             const command = new Command();
 
             it('name & namespace should be set correctly', () => {
-                expect(command.namespace).toBe('minecraft');
-                expect(command.name).toBe('gamemode');
+                expect(command.id).toBe('minecraft:gamemode');
             });
 
             it('gamemode command should fail without argument', (done) => {
