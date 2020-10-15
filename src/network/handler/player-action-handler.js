@@ -55,13 +55,14 @@ class PlayerActionHandler {
                 // Doesn't send block position, so we 
                 // save it on the player (best temp solution)
                 if (player.breakingBlockPos !== null) {
+                    // TODO: player.breakBlock
                     let blockVector3 = player.breakingBlockPos;
                     let chunk = await player.getWorld().getChunkAt(
                         blockVector3.getX(), blockVector3.getZ()
                     );
-                    chunk.setBlockId(
-                        blockVector3.getX(), blockVector3.getY(), blockVector3.getZ(), 0
-                    ); 
+                    chunk.setBlock(
+                        blockVector3.getX() % 16, blockVector3.getY(), blockVector3.getZ() % 16, server.getBlockManager().getBlock('minecraft:air')
+                    );
                 }
                 break;
             case PlayerAction.ContinueBreak:

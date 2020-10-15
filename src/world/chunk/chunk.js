@@ -98,6 +98,12 @@ class Chunk {
         }
     }
 
+    setBlock(x, y, z, block) {
+        if (this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, block.id)) {
+            this.#hasChanged = true;
+        }
+    }
+
     getSubChunk(y, generateNew = false) {
         if (y < 0 || y >= this.#height) {
             return new EmptySubChunk();

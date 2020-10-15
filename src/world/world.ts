@@ -81,10 +81,6 @@ export default class World {
     /**
      * Returns the chunk in the specifies x and z, if the chunk doesn't exists
      * it is generated.
-     * 
-     * @param x 
-     * @param z 
-     * @param generate 
      */
     public async getChunk(x: number, z: number, generate = true): Promise<any> {
         return await this.loadChunk(x, z, generate);
