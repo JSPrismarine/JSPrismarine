@@ -407,7 +407,7 @@ class PacketBinaryStream extends BinaryStream {
      * @param {Item | Block} itemstack 
      */
     writeItemStack(itemstack) {
-        if (itemstack.id == 0) {
+        if (itemstack.name === 'minecraft:air') {
             return this.writeVarInt(0);
         }
         
