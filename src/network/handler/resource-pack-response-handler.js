@@ -64,11 +64,7 @@ class ResourcePackResponseHandler {
 
             player.sendAvailableCommands();
 
-            // TODO: not working, debug needed
-            // player.inventory.setItemInHand(new Item(267, 0, 1, null, ''))
-            // player.inventory.setItem(1, new Item(267, 0, 1, null, ''))
-            // player.sendInventory()
-            // player.sendHandItem(player.inventory.getItemInHand())
+            player.sendInventory();
 
             if (player.gamemode === Gamemode.Creative) {
                 player.sendCreativeContents();

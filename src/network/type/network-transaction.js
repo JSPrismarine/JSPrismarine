@@ -46,6 +46,9 @@ class NetworkTransaction {
         if (hasItemStack) {
             this.newItemStackId = buffer.readVarInt();
         }
+
+        // TODO: move to packet binary stream
+        return this;
     }
 }
 module.exports = NetworkTransaction;

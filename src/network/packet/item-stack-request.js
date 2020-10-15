@@ -1,5 +1,6 @@
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
+const Logger = require('../../utils/Logger');
 
 class ItemStackRequestPacket extends DataPacket {
     static NetID = Identifiers.ItemStackRequestPacket
@@ -7,11 +8,11 @@ class ItemStackRequestPacket extends DataPacket {
     requests = []
 
     decodePayload() {
-        for (let i = 0; i < this.readUnsignedVarInt(); i++) {
+        let count = this.readUnsignedVarInt();
+        Logger.debug(`Requests count: ${count}`);
+        for (let i = 0; i < count; i++) {
             this.requests.push(this.readItemStackRequest());
         }
-
-        this.requests = this.requests.filter(a => a.actions.length);
     }
 }
 module.exports = ItemStackRequestPacket;

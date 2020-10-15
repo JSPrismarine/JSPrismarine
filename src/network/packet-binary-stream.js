@@ -20,13 +20,14 @@ const Block = require('../block').default;
 const Logger = require('../utils/Logger');
 
 const ItemStackRequest = require('./type/item-stack-requests/item-stack-request');
-const ItemStackRequestAction = require('./type/item-stack-requests/item-stack-request-action');
 const ItemStackRequestTake = require('./type/item-stack-requests/take');
 const ItemStackRequestPlace = require('./type/item-stack-requests/place');
+const ItemStackRequestDrop = require('./type/item-stack-requests/drop');
 const ItemStackRequestSwap = require('./type/item-stack-requests/swap');
 const ItemStackRequestDestroy = require('./type/item-stack-requests/destroy');
 const ItemStackRequestCreativeCreate = require('./type/item-stack-requests/creative-create');
-
+const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
+const { triggerAsyncId } = require('async_hooks');
 
 class PacketBinaryStream extends BinaryStream {
 
@@ -263,18 +264,11 @@ class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    writeGenericTypeNetworkId(id) {
-        this.writeUnsignedVarInt(id);
-    }
-    readGenericTypeNetworkId() {
-        return this.readUnsignedVarInt();
-    }
-
     /**
      * @param {CreativeContentEntry} entry 
      */
     writeCreativeContentEntry(entry) {
-        this.writeGenericTypeNetworkId(entry.entryId);
+        this.writeVarInt(entry.entryId);
         this.writeItemStack(entry.item);
     }
 
@@ -436,6 +430,7 @@ class PacketBinaryStream extends BinaryStream {
 
     readItemStackRequest() {
         const id = this.readVarInt();
+        Logger.debug(`Request ID: ${id}`);
 
         const actions = [];
         for (let i = 0; i < this.readUnsignedVarInt(); i++) {
@@ -447,44 +442,98 @@ class PacketBinaryStream extends BinaryStream {
             actions: actions.filter(a => a)
         });
     }
+
     writeItemStackRequest() {
         // TODO
         this.writeBool(true);
         this.writeVarInt(0);
         this.writeVarInt(0);
     }
+
     readItemStackRequestAction() {
         const id = this.readByte();
 
+        Logger.debug(`Action ${id}`);
         switch (id) {
-            case 0:
-                return new ItemStackRequestTake();
+            case 0:  // TODO: enum
+                return new ItemStackRequestTake({
+                    count: this.readByte(),
+                    from: this.readItemStackRequestSlotInfo(),
+                    to: this.readItemStackRequestSlotInfo()
+                });
             case 1:
-                return new ItemStackRequestPlace();
+                return new ItemStackRequestPlace({
+                    count: this.readByte(),
+                    from: this.readItemStackRequestSlotInfo(),
+                    to: this.readItemStackRequestSlotInfo()
+                });
             case 2:
                 return new ItemStackRequestSwap({
                     from: this.readItemStackRequestSlotInfo(),
                     to: this.readItemStackRequestSlotInfo()
                 });
+            case 3: 
+                return new ItemStackRequestDrop({
+                    count: this.readByte(),
+                    from: this.readItemStackRequestSlotInfo(),
+                    randomly: this.readBool()
+                }); 
             case 4:
-                return new ItemStackRequestDestroy();
+                return new ItemStackRequestDestroy({
+                    count: this.readByte(),
+                    from: this.readItemStackRequestSlotInfo()
+                });
+            case 5:
+                return new ItemStackRequestConsume({
+                    count: this.readByte(),
+                    from: this.readItemStackRequestSlotInfo()
+                });
+            case 6:
+                return {
+                    slot: this.readByte()
+                };
+            case 7: 
+                return {};
+            case 8:
+                return {
+                    primaryEffect: this.readVarInt(),
+                    secondaryEffect: this.readVarInt()
+                };
+            case 9: 
+                return {
+                    recipeNetworkId: this.readUnsignedVarInt()
+                };
+            case 10:
+                return {
+                    recipeNetworkId: this.readUnsignedVarInt()
+                };
             case 11:
                 return new ItemStackRequestCreativeCreate({
-                    itemId: this.readGenericTypeNetworkId()
+                    itemId: this.readUnsignedVarInt()  
                 });
             case 12: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
                 Logger.silly('Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)');
+                return {};
             case 13: // CRAFTING_RESULTS_DEPRECATED, Deprecated so we'll just ignore it
                 Logger.silly('Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)');
+                // We still need to read it...
+                let items = [];
+                for (let i = 0; i < this.readUnsignedVarInt(); i++) {
+                    items.push(this.readItemStack());
+                }
+                this.readByte();  // times crafted
+                return {};
             default:
-                return new ItemStackRequestAction(-1);
+                Logger.debug(`Unknown item stack request id: ${id}`);
+                return {};
         }
     }
+
     readItemStackRequestSlotInfo() {
         return {
             containerId: this.readByte(),
-            slotId: this.readByte(),
-            stackId: this.readVarInt()
+            slot: this.readByte(),
+            stackNetworkId: this.readVarInt()
         }; // TODO: class
     }
 
