@@ -6,7 +6,6 @@ import CommandManager from "./command/CommandManager";
 import QueryManager from "./query/QueryManager";
 import Config from "./utils/config";
 import WorldManager from "./world/world-manager";
-import { rejects } from "assert";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -30,13 +29,14 @@ export default class Prismarine {
     private worldManager = new WorldManager(this);
     private itemManager = new ItemManager();
     private blockManager = new BlockManager();
-    private queryManager?: QueryManager;
+    private queryManager: QueryManager | null = null;
 
     static instance: null | Prismarine = null;
 
     constructor({ logger, config }: PrismarineData) {
         this.logger = logger;
         this.config = config;
+        this.queryManager = new QueryManager(this);
         Prismarine.instance = this;
     }
 
@@ -252,6 +252,10 @@ export default class Prismarine {
 
         setTimeout(() => { process.exit(0); }, 1000);
     }
+
+    getQueryManager(): QueryManager | null {
+        return this.queryManager;
+    };
 
     getCommandManager(): CommandManager {
         return this.commandManager;
