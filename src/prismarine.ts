@@ -3,9 +3,9 @@ import Player from "./player";
 import BlockManager from "./block/BlockManager";
 import ItemManager from "./item/ItemManager";
 import CommandManager from "./command/CommandManager";
-import QueryManager from "./query/QueryManager";
 import Config from "./utils/config";
 import WorldManager from "./world/world-manager";
+import QueryManager from "./query/QueryManager";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -29,7 +29,7 @@ export default class Prismarine {
     private worldManager = new WorldManager(this);
     private itemManager = new ItemManager();
     private blockManager = new BlockManager();
-    private queryManager: QueryManager | null = null;
+    private queryManager: QueryManager;
 
     static instance: null | Prismarine = null;
 
@@ -57,7 +57,6 @@ export default class Prismarine {
         this.raknet.name.setMotd(this.config.get('motd', 'Another JSPrismarine server!'));
 
         this.logger.info(`JSPrismarine is now listening port §b${port}`);
-        this.queryManager = new QueryManager(this);
 
         // Client connected, instantiate player
         this.raknet.on('openConnection', async (connection: any) => {

@@ -44,28 +44,19 @@ export default class World {
         this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true);
 
         (async () => {
-            const time = Date.now();
             server.getLogger().info(`Preparing start region for dimension §b'${name}'/${generator}§r`);
-            server.getLogger().info('Preparing spawn area: 0%');
+            const chunksToLoad: Array<Promise<void>> = [];
+            const time = Date.now();
 
-            let loaded = 0;
             for (let x = 0; x < 32; x++) {
                 for (let z = 0; z < 32; z++) {
-                    await this.loadChunk(x, z, true);
-
-                    loaded++;
-
-                    if (loaded % 10 == 0) {
-                        // server.getLogger().info(`Preparing spawn area: ${Math.floor((loaded / 1024) * 100)}%`);
-                    }
-
-                    if (loaded == 1024) {
-                        server.getLogger().info(`Preparing spawn area: 100%`);
-                        server.getLogger().info(`Time elapsed: ${(Date.now() - time)} ms`);
-                    }
+                    chunksToLoad.push(this.loadChunk(x, z, true));
                 }
             }
-        })();
+
+            await Promise.all(chunksToLoad);
+            server.getLogger().info(`Time elapsed: ${(Date.now() - time)} ms`);
+        })()
     }
 
     /**
@@ -133,7 +124,7 @@ export default class World {
      * @param worldEvent - event identifier
      * @param data 
      */
-    public sendWorldEvent(position: Vector3|null, worldEvent: number, data: number): void {
+    public sendWorldEvent(position: Vector3 | null, worldEvent: number, data: number): void {
         let worldEventPacket = new WorldEventPacket();
         worldEventPacket.eventId = worldEvent;
         worldEventPacket.data = data;
@@ -163,14 +154,14 @@ export default class World {
         let x = 0, z = 0;  // TODO: replace with actual data
         let chunk = await this.getChunkAt(x, z);
         let y = chunk.getHighestBlock(x, z) + 1;
-        return new Vector3(z, y + 2, z); 
+        return new Vector3(z, y + 2, z);
     }
 
     public async useItemOn(itemInHand: Item, blockPosition: Vector3, face: number, clickPosition: Vector3, player: Player): Promise<void> {
         //TODO: checks
 
         // TODO: set block on the desired face
-        
+
         // maybe let place = new Promise ( do all placing stuff )
         // then if place is true, play sound
 
@@ -180,7 +171,7 @@ export default class World {
 
         let pk = new LevelSoundEventPacket();
         pk.sound = 6;  // TODO: enum
-        
+
         pk.positionX = player.getX();
         pk.positionY = player.getY();
         pk.positionZ = player.getZ();
@@ -189,7 +180,7 @@ export default class World {
         pk.entityType = ':';
         pk.isBabyMob = false;
         pk.disableRelativeVolume = false;
-        
+
         for (let p of player.getPlayersInChunk()) {
             p.sendDataPacket(pk);
         }
