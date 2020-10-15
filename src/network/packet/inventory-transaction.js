@@ -12,14 +12,13 @@ class InventoryTransactionPacket extends DataPacket {
 
     /** @type {number} */
     type
-    /** @type {Set<NetworkTransaction>} */
-    actions = new Set()
+    actions = new Map()
 
     /** @type {number} */
-    actionType
+    actionType = null
     /** @type {number} */
-    hotbarSlot
-    itemInHand
+    hotbarSlot = null
+    itemInHand = null
 
     /** @type {number|null} */
     blockX = null
@@ -30,9 +29,9 @@ class InventoryTransactionPacket extends DataPacket {
     /** @type {number} */
     face = null
     /** @type {Vector3} */
-    playerPosition
+    playerPosition = null
     /** @type {Vector3} */
-    clickPosition
+    clickPosition = null
     /** @type {number|null} */
     blockRuntimeId = null
 
@@ -43,8 +42,7 @@ class InventoryTransactionPacket extends DataPacket {
 
     /** @type {number} */
     requestId
-    /** @type {Set<ChangeSlot>} */
-    changeSlot = new Set()
+    changeSlot = new Map()
     /** @type {boolean} */
     hasItemtackIds
 
@@ -53,8 +51,7 @@ class InventoryTransactionPacket extends DataPacket {
         if (this.requestId != 0) {
             let length = this.readUnsignedVarInt();
             for (let i = 0; i < length; i++) {
-                let changeSlot = new ChangeSlot().decode(this);
-                this.changeSlot.add(changeSlot);
+                this.changeSlot.set(i, new ChangeSlot().decode(this));
             }
         }
 
@@ -64,7 +61,7 @@ class InventoryTransactionPacket extends DataPacket {
         let actionsCount = this.readUnsignedVarInt();
         for (let i = 0; i < actionsCount; i++) {
             let networkTransaction = new NetworkTransaction().decode(this, this.hasItemtackIds);
-            this.actions.add(networkTransaction);
+            this.actions.set(i, networkTransaction);
         }
 
         switch(this.type) {
