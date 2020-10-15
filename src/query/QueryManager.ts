@@ -48,7 +48,11 @@ export default class QueryManager {
             };
         });
 
-        this.server.bind(port);
-        server.getLogger().info(`JSPrismarine query is now listening port §b${port}`);
+        try {
+            this.server.bind(port);
+            server.getLogger().info(`JSPrismarine query is now listening port §b${port}`);
+        } catch (err) {
+            server.getLogger().warn(`Failed to bind port ${port} for query: ${err}`);
+        }
     }
 };
