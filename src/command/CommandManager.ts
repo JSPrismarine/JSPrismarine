@@ -58,7 +58,7 @@ export default class CommandManager {
         const commandParts: Array<any> = commandInput.substr(1).split(' ');  // Name + arguments array
         const namespace: string = commandParts[0].split(':').length === 2 ? commandParts[0].split(':')[0] : null;
         const commandName: string = commandParts[0].replace(`${namespace}:`, '');
-        commandParts.splice(1);
+        commandParts.shift();
 
         // Check for numbers and convert them
         for (let argument of commandParts) {

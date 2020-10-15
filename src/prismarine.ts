@@ -3,6 +3,8 @@ import Player from "./player";
 import BlockManager from "./block/BlockManager";
 import ItemManager from "./item/ItemManager";
 import CommandManager from "./command/CommandManager";
+import QueryManager from "./query/QueryManager";
+import Config from "./utils/config";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -26,13 +28,15 @@ export default class Prismarine {
     private commandManager: any = new CommandManager();
     private worldManager = new WorldManager(this);
     private itemManager = new ItemManager();
-    private blockManager = new BlockManager();  // TODO
+    private blockManager = new BlockManager();
+    private queryManager: QueryManager;
 
     static instance: null | Prismarine = null;
 
     constructor({ logger, config }: PrismarineData) {
         this.logger = logger;
         this.config = config;
+        this.queryManager = new QueryManager(this);
         Prismarine.instance = this;
     }
 
@@ -245,6 +249,10 @@ export default class Prismarine {
         setTimeout(() => { process.exit(0); }, 1000);
     }
 
+    getQueryManager(): QueryManager {
+        return this.queryManager;
+    };
+
     getCommandManager(): CommandManager {
         return this.commandManager;
     }
@@ -276,7 +284,7 @@ export default class Prismarine {
         return this.pluginManager;
     }
 
-    getConfig() {
+    getConfig(): Config {
         return this.config;
     }
 
