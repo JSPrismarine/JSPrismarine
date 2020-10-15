@@ -5,11 +5,11 @@ import ItemManager from "./item/ItemManager";
 import CommandManager from "./command/CommandManager";
 import QueryManager from "./query/QueryManager";
 import Config from "./utils/config";
+import WorldManager from "./world/world-manager";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
 const Identifiers = require('./network/identifiers');
-const WorldManager = require('./world/world-manager').default;
 const PluginManager = require('./plugin/plugin-manager');
 
 interface PrismarineData {
@@ -29,7 +29,7 @@ export default class Prismarine {
     private worldManager = new WorldManager(this);
     private itemManager = new ItemManager();
     private blockManager = new BlockManager();
-    private queryManager: QueryManager;
+    private queryManager: QueryManager | null = null;
 
     static instance: null | Prismarine = null;
 
@@ -57,22 +57,26 @@ export default class Prismarine {
         this.raknet.name.setMotd(this.config.get('motd', 'Another JSPrismarine server!'));
 
         this.logger.info(`JSPrismarine is now listening port §b${port}`);
+        this.queryManager = new QueryManager(this);
 
         // Client connected, instantiate player
         this.raknet.on('openConnection', async (connection: any) => {
             let inetAddr = connection.address;
             // TODO: Get last world by player data
             // and if it doesn't exists, return the default one
-            let timing = await new Promise(resolve => {
+            let timing = await new Promise((resolve, reject) => {
                 let time = Date.now();
                 let world = this.getWorldManager().getDefaultWorld();
                 let player = new Player(
                     connection, connection.address, world, this
                 );
                 this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
-    
+
+                if (!world)
+                    reject();
+
                 // Add the player into the world
-                world.addPlayer(player);
+                world?.addPlayer(player);
                 this.raknet.name.setOnlinePlayerCount(this.players.size);
                 resolve(Date.now() - time);
             });
@@ -142,7 +146,7 @@ export default class Prismarine {
                 if (this.players.has(token)) {
                     let player = this.players.get(token);
                     if (!player) return reject(this.logger.error(`Could not find player: ${token}`));
-    
+
                     // Despawn the player to all online players
                     player.removeFromPlayerList();
                     this.players.delete(token);
@@ -150,7 +154,7 @@ export default class Prismarine {
                         player.sendDespawn(onlinePlayer);
                     }
                     player.getWorld().removePlayer(player);
-    
+
                 }
                 this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
                 this.raknet.name.setOnlinePlayerCount(this.players.size);
@@ -249,7 +253,7 @@ export default class Prismarine {
         setTimeout(() => { process.exit(0); }, 1000);
     }
 
-    getQueryManager(): QueryManager {
+    getQueryManager(): QueryManager | null {
         return this.queryManager;
     };
 
@@ -257,7 +261,7 @@ export default class Prismarine {
         return this.commandManager;
     }
 
-    getWorldManager() {
+    getWorldManager(): WorldManager {
         return this.worldManager;
     }
 
