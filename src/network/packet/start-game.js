@@ -129,7 +129,7 @@ class StartGamePacket extends DataPacket {
         this.append(this.serializeItemTable(ItemTable));
 
         this.writeString('');
-        this.writeBool(true); 
+        this.writeBool(false); 
     }
 
     serializeItemTable(table) {
