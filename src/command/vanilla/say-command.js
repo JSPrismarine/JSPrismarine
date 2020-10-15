@@ -6,7 +6,7 @@ class SayCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({ namespace: 'minecraft', name: 'say', description: 'Say something to all players.' });
+        super({ id: 'minecraft:say', description: 'Say something to all players.' });
     }
 
     /**

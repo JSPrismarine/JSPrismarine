@@ -3,7 +3,7 @@ import Command from "../";
 
 export default class ReloadCommand extends Command {
     constructor() {
-        super({ namespace: 'jsprismarine', name: 'reload', description: 'Reloads the server' });
+        super({ id: 'jsprismarine:reload', description: 'Reloads the server' });
     }
 
     public execute(sender: Player, args: Array<string>): void {

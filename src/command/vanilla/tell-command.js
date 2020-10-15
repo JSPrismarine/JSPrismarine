@@ -4,7 +4,7 @@ const Player = require('../../player').default;
 class TellCommand extends Command {
 
     constructor() {
-        super({ namespace: 'minecraft', name: 'tell', description: 'Sends a private message to a player.' });
+        super({ id: 'minecraft:tell', description: 'Sends a private message to a player.' });
     }
 
     /**

@@ -272,7 +272,7 @@ export default class Player extends Entity {
             ...this.getServer().getBlockManager().getBlocks(),
             ...this.getServer().getItemManager().getItems()
         ];
-        
+
         // Sort based on numeric block ids and name
         pk.entries = entries.sort((a, b) => a.id - b.id || a.meta - b.meta)
             .filter(a => a.isPartOfCreativeInventory())
@@ -319,15 +319,24 @@ export default class Player extends Entity {
     public sendAvailableCommands() {
         let pk = new AvailableCommandsPacket();
         for (let command of this.getServer().getCommandManager().getCommands()) {
-            if (!Array.isArray(command.parameters))
-                pk.commandData.add({ ...command, execute: undefined });
-            else
-                for (let i = 0; i < command.parameters.length; i++)
+            if (!Array.isArray(command.parameters)) {
+                pk.commandData.add({
+                    ...command,
+                    name: command.id.split(':')[1],
+                    execute: undefined,
+                    id: undefined
+                });
+            } else {
+                for (let i = 0; i < command.parameters.length; i++) {
                     pk.commandData.add({
                         ...command,
+                        name: command.id.split(':')[1],
                         parameters: command.parameters[i],
-                        execute: undefined
+                        execute: undefined,
+                        id: undefined
                     });
+                }
+            }
         }
         this.sendDataPacket(pk);
     }

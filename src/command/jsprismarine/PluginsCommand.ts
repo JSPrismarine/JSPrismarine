@@ -5,7 +5,7 @@ const Plugin = require('../../plugin/plugin');  // TODO: to interface
 
 export default class PluginsCommand extends Command {
     constructor() {
-        super({ namespace: 'jsprismarine', name: 'plugins', description: 'Lists all plugins that run on the server.', aliases: ["pl"] });
+        super({ id: 'jsprismarine:plugins', description: 'Lists all plugins that run on the server.', aliases: ["pl"] });
     }
 
     /**

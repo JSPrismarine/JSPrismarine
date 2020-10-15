@@ -4,7 +4,7 @@ const Player = require('../../player').default;
 class StopCommand extends Command {
 
     constructor() {
-        super({ namespace: 'minecraft', name: 'stop', description: 'Stops a server.' });
+        super({ id: 'minecraft:stop', description: 'Stops a server.' });
     }
 
     /**

@@ -7,8 +7,7 @@ const Gamemode = require('../../world/gamemode');
 export default class GamemodeCommand extends Command {
     constructor() {
         super({
-            namespace: 'minecraft',
-            name: 'gamemode',
+            id: 'minecraft:gamemode',
             description: 'Changes gamemode for a player.'
         } as any);
 

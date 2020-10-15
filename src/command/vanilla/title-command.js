@@ -13,7 +13,7 @@ class TitleCommand extends Command {
 
     constructor() {
         // TODO: add permissions to command
-        super({ namespace: 'minecraft', name: 'title', description: 'Controls text displayed on the screen.' });
+        super({ id: 'minecraft:title', description: 'Controls text displayed on the screen.' });
     }
 
     /**

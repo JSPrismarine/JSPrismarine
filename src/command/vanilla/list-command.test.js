@@ -6,8 +6,7 @@ describe('command', () => {
             const command = new Command();
 
             it('name & namespace should be set correctly', () => {
-                expect(command.namespace).toBe('minecraft');
-                expect(command.name).toBe('list');
+                expect(command.id).toBe('minecraft:list');
             });
 
             it('list should be handled correctly with 0 players', (done) => {
