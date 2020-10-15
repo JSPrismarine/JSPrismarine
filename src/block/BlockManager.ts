@@ -12,30 +12,30 @@ export default class BlockManager {
         this.importBlocks();
     }
 
-    getBlock(name: string): Block | null {
+    public getBlock(name: string): Block | null {
         return this.blocks.get(name) || null;
     }
-    getBlockById(id: number): Block | null {
+    public getBlockById(id: number): Block | null {
         if (!BlockToolType[id])
             return null;
 
         return this.getBlocks().filter(a => a.id === id)[0] || null;
     }
-    getBlockByIdAndMeta(id: number, meta: number): Block | null {
+    public getBlockByIdAndMeta(id: number, meta: number): Block | null {
         if (!BlockToolType[id])
             return null;
 
         return this.getBlocks().filter(a => a.id === id && a.meta == meta)[0] || null;
     }
-    getBlockByRuntimeId(id: number): Block | null {
+    public getBlockByRuntimeId(id: number): Block | null {
         return this.getBlocks()[id] || null;
     }
-    getBlocks(): Array<Block> {
+    public getBlocks(): Array<Block> {
         return Array.from(this.blocks.values());
     }
 
 
-    registerClassBlock(block: Block) {
+    public registerClassBlock(block: Block) {
         // The runtime ID is a unique ID sent with the start-game packet
         // ours is always based on the block's index in the this.blocks map
         // starting from 0.

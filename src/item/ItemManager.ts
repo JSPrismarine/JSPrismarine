@@ -5,35 +5,35 @@ import Item from "./";
 import * as Logger from "../utils/Logger";
 
 export default class ItemManager {
-    #items = new Map()
+    private items = new Map()
 
     constructor() {
         this.importItems();
     }
 
-    getItem(name: string): Item {
-        return this.#items.get(name)
+    public getItem(name: string): Item {
+        return this.items.get(name)
     }
-    getItems(): Array<Item> {
-        return Array.from(this.#items.values());
+    public getItems(): Array<Item> {
+        return Array.from(this.items.values());
     }
 
-    registerClassItem = (item: Item) => {
+    public registerClassItem = (item: Item) => {
         Logger.silly(`Item with id §b${item.name}§r registered`);
-        item.setRuntimeId(this.#items.size);
-        this.#items.set(item.name, item);
+        item.setRuntimeId(this.items.size);
+        this.items.set(item.name, item);
     }
 
-    importItems = () => {
+    importItems() {
         try {
             const items = fs.readdirSync(path.join(__dirname, 'items'));
             items.forEach((id: string) => {
-                if (id.includes('.test.') || id.includes('.ds.ts'))
+                if (id.includes('.test.') || id.includes('.d.ts'))
                     return;  // Exclude test files
 
-                const item = require(`./items/${id}`);
+                const item = require(`./items/${id}`).default;
                 try {
-                    this.registerClassItem(new (item.default || item)());
+                    this.registerClassItem(new item());
                 } catch (err) {
                     Logger.error(`${id} failed to register!`);
                 }
