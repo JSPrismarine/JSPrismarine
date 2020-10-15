@@ -4,7 +4,7 @@ import Command from "../";
 
 export default class TpCommand extends Command {
     constructor() {
-        super({ namespace: 'minecraft', name: 'tp', description: 'Teleports a player to a specified location' });
+        super({ id: 'minecraft:tp', description: 'Teleports a player to a specified location' });
 
         this.parameters = [
             new Set(),

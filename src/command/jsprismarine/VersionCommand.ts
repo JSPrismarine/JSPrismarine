@@ -10,7 +10,7 @@ const identifiers = require('../../network/identifiers');
 
 export default class VersionCommand extends Command {
     constructor() {
-        super({ namespace: 'jsprismarine', name: 'version', description: 'Displays general server informations.', aliases: ['about'] });
+        super({ id: 'jsprismarine:version', description: 'Displays general server informations.', aliases: ['about'] });
     }
 
     /**

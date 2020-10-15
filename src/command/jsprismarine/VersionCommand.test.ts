@@ -8,8 +8,7 @@ describe('command', () => {
             const command = new Command();
 
             it('name & namespace should be set correctly', () => {
-                expect(command.namespace).toBe('jsprismarine');
-                expect(command.name).toBe('version');
+                expect(command.id).toBe('jsprismarine:version');
             });
 
             it('version command should return correct version', (done) => {

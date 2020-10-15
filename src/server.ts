@@ -52,6 +52,7 @@ for (let i = 0; i < pluginFolders.length; i++) {
 }
 
 // Console command reader
+process.stdin.setEncoding('utf8');
 let rl = readline.createInterface({ input: process.stdin });
 rl.on('line', (input: string) => {
     if (typeof input !== 'string') {

@@ -54,7 +54,7 @@ export default class World {
                     loaded++;
 
                     if (loaded % 10 == 0) {
-                        server.getLogger().info(`Preparing spawn area: ${Math.floor((loaded / 1024) * 100)}%`);
+                        // server.getLogger().info(`Preparing spawn area: ${Math.floor((loaded / 1024) * 100)}%`);
                     }
 
                     if (loaded == 1024) {
