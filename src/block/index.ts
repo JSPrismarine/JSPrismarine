@@ -133,4 +133,8 @@ export default class Block {
     isAffectedBySilkTouch() {
         return true;
     }
+
+    isPartOfCreativeInventory() {
+        return true;
+    }
 }

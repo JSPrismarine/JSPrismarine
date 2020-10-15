@@ -29,4 +29,8 @@ export default class Air extends Transparent {
     isSolid() {
         return false;
     }
+
+    isPartOfCreativeInventory() {
+        return false;
+    }
 };

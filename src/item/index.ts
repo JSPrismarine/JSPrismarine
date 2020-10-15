@@ -11,19 +11,27 @@ export interface ItemProps {
 };
 
 export default class Item {
-    id: number
-    name: string
+    id: number;
+    runtimeId: number;
+    name: string;
+    meta: number = 0;
 
-    meta?: number
-    nbt?: any
-    count?: number
+    // TODO
+    nbt = null;
+    count = 1;
 
-    constructor({ id, name, meta, count, nbt }: ItemProps) {
+    constructor({ id, name }: ItemProps) {
         this.id = id;
-        this.meta = meta;
-        this.count = count;
-        this.nbt = nbt || null;
+        this.runtimeId = id;
         this.name = name;
+    }
+
+    getRuntimeId() {
+        // TODO: runtimeId
+        return this.id;
+    }
+    setRuntimeId(id: number) {
+        this.runtimeId = id;
     }
 
     getToolType() {
@@ -36,5 +44,9 @@ export default class Item {
 
     hasEnchantment(enchantment: ItemEnchantmentType) {
         return false;
+    }
+
+    isPartOfCreativeInventory() {
+        return true;
     }
 }

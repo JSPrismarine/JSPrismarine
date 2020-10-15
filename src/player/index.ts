@@ -268,9 +268,14 @@ export default class Player extends Entity {
     public sendCreativeContents() {
         let pk = new CreativeContentPacket();
 
+        const entries = [
+            ...this.getServer().getBlockManager().getBlocks(),
+            ...this.getServer().getItemManager().getItems()
+        ];
+        
         // Sort based on numeric block ids and name
-        pk.entries = this.getServer().getBlockManager()
-            .getBlocks().sort((a, b) => a.id - b.id || a.meta - b.meta)
+        pk.entries = entries.sort((a, b) => a.id - b.id || a.meta - b.meta)
+            .filter(a => a.isPartOfCreativeInventory())
             .map((block: any, index: number) => new CreativeContentEntry(index, block));
         this.sendDataPacket(pk);
     }

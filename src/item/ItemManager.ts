@@ -20,6 +20,7 @@ export default class ItemManager {
 
     registerClassItem = (item: Item) => {
         Logger.silly(`Item with id §b${item.name}§r registered`);
+        item.setRuntimeId(this.#items.size);
         this.#items.set(item.name, item);
     }
 
