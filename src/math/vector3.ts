@@ -1,10 +1,7 @@
 export default class Vector3 {
-    /** @type {number} */
-    private x: number
-    /** @type {number} */
-    private y: number
-    /** @type {number} */
-    private z: number
+    private x: number;
+    private y: number;
+    private z: number;
 
     constructor(x = 0, y = 0, z = 0) {
         this.x = x;
@@ -12,15 +9,27 @@ export default class Vector3 {
         this.z = z;
     }
 
-    getX() {
+    public setX(x: number) {
+        this.x = x;
+    }
+
+    public setY(y: number) {
+        this.y = y;
+    }
+
+    public setZ(z: number) {
+        this.z = z;
+    }
+
+    public getX() {
         return this.x;
     }
 
-    getY() {
+    public getY() {
         return this.y;
     }
 
-    getZ() {
+    public getZ() {
         return this.z;
     }
 
