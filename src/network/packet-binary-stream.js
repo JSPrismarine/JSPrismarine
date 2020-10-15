@@ -525,6 +525,7 @@ class PacketBinaryStream extends BinaryStream {
                 return {};
             default:
                 Logger.debug(`Unknown item stack request id: ${id}`);
+                return {};
         }
     }
 
