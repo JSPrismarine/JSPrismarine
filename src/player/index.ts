@@ -302,6 +302,8 @@ export default class Player extends Entity {
     }
 
     public setGamemode(mode: number) {
+        this.gamemode = mode;
+        
         let pk = new SetGamemodePacket();
         pk.gamemode = mode;
         this.sendDataPacket(pk);
