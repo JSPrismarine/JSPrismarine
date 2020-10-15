@@ -95,22 +95,26 @@ export default class TpCommand extends Command {
                         return;
                     }
 
-                    player.x = target.x;
-                    player.y = target.y;
-                    player.z = target.z;
+                    player.setX(target.getX());
+                    player.setY(target.getY());
+                    player.setZ(target.getZ());
                 } else {
-                    player.y = args[1];
+                    player.setY(args[1]);
                 }
                 break;
             case 3:
-
-                player.x = args[1];
-                player.z = args[2];
+                if (typeof args[1] === "string" || 
+                    typeof args[2] === "string") return
+                player.setX(args[1]);
+                player.setZ(args[2]);
                 break;
             case 4:
-                player.x = args[1];
-                player.y = args[2];
-                player.z = args[3];
+                if (typeof args[1] === "string" || 
+                    typeof args[2] === "string" ||
+                    typeof args[3] === "string") return
+                player.setX(args[1]);
+                player.setY(args[2]);
+                player.setZ(args[3]);
                 break;
         }
 

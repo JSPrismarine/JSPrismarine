@@ -147,8 +147,8 @@ export default class Player extends Entity {
     }
 
     public async needNewChunks(forceResend = false) {
-        let currentXChunk = CoordinateUtils.fromBlockToChunk(this.x);
-        let currentZChunk = CoordinateUtils.fromBlockToChunk(this.z);
+        let currentXChunk = CoordinateUtils.fromBlockToChunk(this.getX());
+        let currentZChunk = CoordinateUtils.fromBlockToChunk(this.getZ());
 
         let viewDistance = this.viewDistance;
         let chunksToSend = [];
@@ -202,7 +202,7 @@ export default class Player extends Entity {
                     this.loadingChunks.add(hash);
                     await this.requestChunk(chunk[0], chunk[1]);
                 } else {
-                    let loadedChunk = this.level.getChunk(chunk[0], chunk[1]);
+                    let loadedChunk = await this.getWorld().getChunk(chunk[0], chunk[1]);
                     this.sendChunk(loadedChunk);
                 }
             } else {
@@ -309,9 +309,9 @@ export default class Player extends Entity {
 
     public sendNetworkChunkPublisher() {
         let pk = new NetworkChunkPublisherUpdatePacket();
-        pk.x = Math.floor(this.x);
-        pk.y = Math.floor(this.y);
-        pk.z = Math.floor(this.z);
+        pk.x = Math.floor(this.getX());
+        pk.y = Math.floor(this.getY());
+        pk.z = Math.floor(this.getZ());
         pk.radius = this.viewDistance << 4;
         this.sendDataPacket(pk);
     }
@@ -403,10 +403,10 @@ export default class Player extends Entity {
         let pk = new MovePlayerPacket();
         pk.runtimeEntityId = this.runtimeId;
 
-        pk.positionX = this.x;
-        pk.positionY = this.y;
-        pk.positionZ = this.z;
-
+        pk.positionX = this.getX();
+        pk.positionY = this.getY();
+        pk.positionZ = this.getZ();
+        
         pk.pitch = this.pitch;
         pk.yaw = this.yaw;
         pk.headYaw = this.headYaw;
@@ -489,9 +489,9 @@ export default class Player extends Entity {
         pk.runtimeEntityId = this.runtimeId;
         pk.name = this.name;
 
-        pk.positionX = this.x;
-        pk.positionY = this.y;
-        pk.positionZ = this.z;
+        pk.positionX = this.getX();
+        pk.positionY = this.getY();
+        pk.positionZ = this.getZ();
 
         // TODO: motion
         pk.motionX = 0;

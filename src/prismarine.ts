@@ -55,19 +55,25 @@ export default class Prismarine {
         this.logger.info(`JSPrismarine is now listening port §b${port}`);
 
         // Client connected, instantiate player
-        this.raknet.on('openConnection', (connection: any) => {
+        this.raknet.on('openConnection', async (connection: any) => {
             let inetAddr = connection.address;
             // TODO: Get last world by player data
             // and if it doesn't exists, return the default one
-            let world = this.getWorldManager().getDefaultWorld();
-            let player = new Player(
-                connection, connection.address, world, this
-            );
-            this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
+            let timing = await new Promise(resolve => {
+                let time = Date.now();
+                let world = this.getWorldManager().getDefaultWorld();
+                let player = new Player(
+                    connection, connection.address, world, this
+                );
+                this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
+    
+                // Add the player into the world
+                world.addPlayer(player);
+                this.raknet.name.setOnlinePlayerCount(this.players.size);
+                resolve(Date.now() - time);
+            });
 
-            // Add the player into the world
-            world.addPlayer(player);
-            this.raknet.name.setOnlinePlayerCount(this.players.size);
+            this.logger.debug(`Player creation took about ${timing} ms`);
         });
 
         // Get player from map by address, then handle packet
@@ -125,23 +131,29 @@ export default class Prismarine {
             }).catch(err => this.logger.error(err));
         });
 
-        this.raknet.on('closeConnection', (inetAddr: any, reason: string) => {
-            let token = `${inetAddr.address}:${inetAddr.port}`;
-            if (this.players.has(token)) {
-                let player = this.players.get(token);
-                if (!player) return this.logger.error(`Could not find player: ${token}`);
-
-                // Despawn the player to all online players
-                player.removeFromPlayerList();
-                this.players.delete(token);
-                for (let onlinePlayer of this.players.values()) {
-                    player.sendDespawn(onlinePlayer);
+        this.raknet.on('closeConnection', async (inetAddr: any, reason: string) => {
+            let timing = await new Promise((resolve, reject) => {
+                let time = Date.now();
+                let token = `${inetAddr.address}:${inetAddr.port}`;
+                if (this.players.has(token)) {
+                    let player = this.players.get(token);
+                    if (!player) return reject(this.logger.error(`Could not find player: ${token}`));
+    
+                    // Despawn the player to all online players
+                    player.removeFromPlayerList();
+                    this.players.delete(token);
+                    for (let onlinePlayer of this.players.values()) {
+                        player.sendDespawn(onlinePlayer);
+                    }
+                    player.getWorld().removePlayer(player);
+    
                 }
-                player.getWorld().removePlayer(player);
+                this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
+                this.raknet.name.setOnlinePlayerCount(this.players.size);
+                resolve(Date.now() - time);
+            });
 
-            }
-            this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
-            this.raknet.name.setOnlinePlayerCount(this.players.size);
+            this.logger.debug(`Player destruction took about ${timing} ms`);
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)

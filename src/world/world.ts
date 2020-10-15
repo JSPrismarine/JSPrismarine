@@ -1,8 +1,10 @@
 import Entity from "../entity/entity";
+import Item from "../item";
 import Vector3 from "../math/vector3";
 import Player from "../player";
 import Prismarine from "../prismarine";
 
+const LevelSoundEventPacket = require('../network/packet/level-sound-event');
 const UUID = require('../utils/uuid');
 const CoordinateUtils = require('../world/coordinate-utils');
 const WorldEventPacket = require('../network/packet/world-event');
@@ -164,6 +166,35 @@ export default class World {
         return new Vector3(z, y + 2, z); 
     }
 
+    public async useItemOn(itemInHand: Item, blockPosition: Vector3, face: number, clickPosition: Vector3, player: Player): Promise<void> {
+        //TODO: checks
+
+        // TODO: set block on the desired face
+        
+        // maybe let place = new Promise ( do all placing stuff )
+        // then if place is true, play sound
+
+        let chunk = await this.getChunkAt(blockPosition.getX(), blockPosition.getZ());
+        // TODO: block.place() ?
+        chunk.setBlockId(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ(), 7 /* get block runtime id from item */);
+
+        let pk = new LevelSoundEventPacket();
+        pk.sound = 6;  // TODO: enum
+        
+        pk.positionX = player.getX();
+        pk.positionY = player.getY();
+        pk.positionZ = player.getZ();
+
+        pk.extraData = -1;
+        pk.entityType = ':';
+        pk.isBabyMob = false;
+        pk.disableRelativeVolume = false;
+        
+        for (let p of player.getPlayersInChunk()) {
+            p.sendDataPacket(pk);
+        }
+    }
+
     /**
      * Adds an entity into the level and in the chunk
      * found from the entity position.
@@ -172,7 +203,7 @@ export default class World {
      */
     public async addEntity(entity: Entity): Promise<void> {
         this.entities.set(entity.runtimeId, entity);
-        let chunk = await this.getChunkAt(entity.x, entity.z, true);
+        let chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
         chunk.addEntity(entity);
     }
 
