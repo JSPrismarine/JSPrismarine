@@ -7,6 +7,8 @@ export enum BlockIdsType {
     Planks = 5,
     Sapling = 6,
     Bedrock = 7,
+    FlowingWater = 8,
+    Water = 9,
 
     Sand = 12,
 
