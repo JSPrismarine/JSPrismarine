@@ -11,7 +11,7 @@ class ItemStackRequestHandler {
      * @param {Player} player 
      */
     static handle(packet, server, player) {
-        console.log(packet);
+        // console.log(packet);
     }
 }
 module.exports = ItemStackRequestHandler;
