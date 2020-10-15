@@ -2,6 +2,7 @@ import Prismarine from "../prismarine";
 import Item from "../item/";
 import Chunk from "../world/chunk/chunk";
 import Entity from "../entity/entity";
+import World from "../world/world";
 
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
@@ -111,7 +112,7 @@ export default class Player extends Entity {
      * @param {World} world - a world to spawn the entity 
      * @param {Prismarine} server - the server instance
      */
-    constructor(connection: any, address: any, world: any, server: Prismarine) {
+    constructor(connection: any, address: any, world: World, server: Prismarine) {
         super(world);
         this.#connection = connection;
         this.#address = address;
