@@ -1,14 +1,14 @@
 import Player from "../player";
+import Prismarine from "../prismarine";
 import Command from "./";
 
 const path = require('path');
 const fs = require('fs');
-const logger = require('../utils/Logger');
 
 export default class CommandManager {
     private commands: Set<Command> = new Set();
 
-    constructor() {
+    constructor(server: Prismarine) {
         // Register vanilla commands
         const vanilla = fs.readdirSync(path.join(__dirname, 'vanilla'));
         vanilla.forEach((id: string) => {
@@ -16,7 +16,7 @@ export default class CommandManager {
                 return;  // Exclude test files
 
             const command = require(`./vanilla/${id}`);
-            this.registerClassCommand(new (command.default || command)());
+            this.registerClassCommand(new (command.default || command)(), server);
         });
 
         // Register jsprismarine commands
@@ -26,10 +26,10 @@ export default class CommandManager {
                 return;  // Exclude test files
 
             const command = require(`./jsprismarine/${id}`);
-            this.registerClassCommand(new (command.default || command)());
+            this.registerClassCommand(new (command.default || command)(), server);
         });
 
-        logger.debug(`Registered §b${vanilla.length + jsprismarine.length}§r commands(s)!`);
+        server.getLogger().debug(`Registered §b${vanilla.length + jsprismarine.length}§r commands(s)!`);
     }
 
     /**
@@ -37,9 +37,9 @@ export default class CommandManager {
      * 
      * @param {Command} command 
      */
-    public registerClassCommand(command: Command) {
+    public registerClassCommand(command: Command, server: Prismarine) {
         this.commands.add(command);
-        logger.silly(`Command with id §b${command.id}§r registered`);
+        server.getLogger().silly(`Command with id §b${command.id}§r registered`);
     }
 
     /**
@@ -50,10 +50,10 @@ export default class CommandManager {
      */
     public dispatchCommand(sender: Player, commandInput = '') {
         if (!(commandInput.startsWith('/'))) {
-            logger.warn('Received an invalid command!');
+            sender.sendMessage('Received an invalid command!');
         }
 
-        logger.info(`§b${sender.name}§r issued server command: §b${commandInput}§r!`);
+        sender.getServer().getLogger().info(`§b${sender.name}§r issued server command: §b${commandInput}§r!`);
 
         const commandParts: Array<any> = commandInput.substr(1).split(' ');  // Name + arguments array
         const namespace: string = commandParts[0].split(':').length === 2 ? commandParts[0].split(':')[0] : null;
@@ -84,11 +84,7 @@ export default class CommandManager {
             }
         }
 
-        if (sender instanceof Player) {
-            return sender.sendMessage('§cCannot find the desired command!');
-        } else {
-            return logger.warn('Cannot find the desired command!');
-        }
+        return sender.sendMessage('§cCannot find the desired command!');
     }
 
     public getCommands(): Set<Command> {

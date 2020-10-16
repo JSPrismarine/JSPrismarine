@@ -54,7 +54,7 @@ class ResourcePackResponseHandler {
             
             player.sendAttributes(player.attributes.getDefaults());
 
-            LOGGER.info(
+            server.getLogger().info(
                 `§b${player.name}§f is attempting to join with id §b${player.runtimeId}§f from ${player.getAddress().address}:${player.getAddress().port}`
             );
 

@@ -3,12 +3,13 @@ import path from "path";
 
 import Item from "./";
 import * as Logger from "../utils/Logger";
+import Prismarine from "../prismarine";
 
 export default class ItemManager {
     private items = new Map()
 
-    constructor() {
-        this.importItems();
+    constructor(server: Prismarine) {
+        this.importItems(server);
     }
 
     public getItem(name: string): Item {
@@ -18,13 +19,13 @@ export default class ItemManager {
         return Array.from(this.items.values());
     }
 
-    public registerClassItem = (item: Item) => {
-        Logger.silly(`Item with id §b${item.name}§r registered`);
+    public registerClassItem = (item: Item, server: Prismarine) => {
+        server.getLogger().silly(`Item with id §b${item.name}§r registered`);
         item.setRuntimeId(this.items.size);
         this.items.set(item.name, item);
     }
 
-    importItems() {
+    importItems(server: Prismarine) {
         try {
             const items = fs.readdirSync(path.join(__dirname, 'items'));
             items.forEach((id: string) => {
@@ -33,14 +34,14 @@ export default class ItemManager {
 
                 const item = require(`./items/${id}`).default;
                 try {
-                    this.registerClassItem(new item());
+                    this.registerClassItem(new item(), server);
                 } catch (err) {
-                    Logger.error(`${id} failed to register!`);
+                    server.getLogger().error(`${id} failed to register!`);
                 }
             });
-            Logger.debug(`Registered §b${items.length}§r item(s)!`);
+            server.getLogger().debug(`Registered §b${items.length}§r item(s)!`);
         } catch (err) {
-            Logger.error(`Failed to register items: ${err}`);
+            server.getLogger().error(`Failed to register items: ${err}`);
         }
     }
 }

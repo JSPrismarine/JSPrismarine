@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const PluginManifest = require('./plugin-manifest');
 const EventManager = require('../events/event-manager');
-const logger = require('../utils/Logger');
 const PluginAPI = require('./plugin-api');
 
 
@@ -72,13 +71,13 @@ class PluginManager {
 
         // Save the plugin into memory
         if (this.#plugins.has(pluginManifest.name)) {
-            logger.info(`Duplicated plugin: ${pluginManifest.name}`);
+            this.#server.getLogger().info(`Duplicated plugin: ${pluginManifest.name}`);
             return false;
         }
 
         this.#plugins.set(pluginManifest.name, plugin);
         plugin.main(new PluginAPI(this.#server, plugin)); // i did in better way the *Plugin API*
-        logger.info(`Plugin §b${plugin.manifest.name}§r loaded successfully!`);
+        this.#server.getLogger().info(`Plugin §b${plugin.manifest.name}§r loaded successfully!`);
         return true;
     }
 
@@ -89,7 +88,7 @@ class PluginManager {
      */
     unloadPlugin(pluginName) {
         if (!this.#plugins.has(pluginName)) {
-            return logger.error(
+            return this.#server.getLogger().error(
                 `Cannot unload plugin ${pluginName}, plugin not found!`
             );
         }

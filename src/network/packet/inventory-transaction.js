@@ -46,7 +46,7 @@ class InventoryTransactionPacket extends DataPacket {
     /** @type {boolean} */
     hasItemtackIds
 
-    decodePayload() {
+    decodePayload(server) {
         this.requestId = this.readVarInt();
         if (this.requestId != 0) {
             let length = this.readUnsignedVarInt();
@@ -60,7 +60,7 @@ class InventoryTransactionPacket extends DataPacket {
 
         let actionsCount = this.readUnsignedVarInt();
         for (let i = 0; i < actionsCount; i++) {
-            let networkTransaction = new NetworkTransaction().decode(this, this.hasItemtackIds);
+            let networkTransaction = new NetworkTransaction(server).decode(this, this.hasItemtackIds);
             this.actions.set(i, networkTransaction);
         }
 
@@ -95,7 +95,7 @@ class InventoryTransactionPacket extends DataPacket {
                 this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());   
                 break;
             default:
-                logger.warn(`Unknown transaction type ${this.type}`);
+                server.getLogger().warn(`Unknown transaction type ${this.type}`);
         }
     }
 }

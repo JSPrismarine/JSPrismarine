@@ -1,6 +1,5 @@
 const Command = require('../').default;
 const Player = require('../../player').default;
-const Logger = require('../../utils/Logger');
 
 class SayCommand extends Command {
 
@@ -21,7 +20,7 @@ class SayCommand extends Command {
         let message = args.join(' ');
         let messageToSend = `§5[${sender.name}] ${message}`;
 
-        Logger.info(messageToSend);
+        sender.getServer().getLogger().info(messageToSend);
         for (let player of sender.getServer().getOnlinePlayers()) {
             player.sendMessage(messageToSend);
         }

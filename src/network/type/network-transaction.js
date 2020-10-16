@@ -1,10 +1,9 @@
 const NetworkTransactionSource = require('../type/network-transaction-source');
-const logger = require('../../utils/Logger');
 const PacketBinaryStream = require('../packet-binary-stream');
 
 
 class NetworkTransaction {
-
+    #server;
     /** @type {number} */
     sourceType
     /** @type {number} */
@@ -19,6 +18,10 @@ class NetworkTransaction {
 
     // 1.16
     newItemStackId
+
+    constructor(server) {
+        this.#server = server;
+    }
 
     /** @param {PacketBinaryStream} buffer */
     decode(buffer, hasItemStack = false) {
@@ -36,7 +39,7 @@ class NetworkTransaction {
             case NetworkTransactionSource.Creative:
                 break;
             default:
-                logger.warn(`Unknown source type ${this.sourceType}`);
+                this.#server.getLogger().warn(`Unknown source type ${this.sourceType}`);
         }
 
         this.slot = buffer.readUnsignedVarInt();

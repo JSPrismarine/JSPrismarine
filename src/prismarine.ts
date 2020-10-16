@@ -3,14 +3,14 @@ import Player from "./player";
 import BlockManager from "./block/BlockManager";
 import ItemManager from "./item/ItemManager";
 import CommandManager from "./command/CommandManager";
-import Config from "./utils/config";
+import Config from "./config";
 import WorldManager from "./world/world-manager";
 import QueryManager from "./query/QueryManager";
+import PluginManager from "./plugin/plugin-manager";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
 const Identifiers = require('./network/identifiers');
-const PluginManager = require('./plugin/plugin-manager');
 
 interface PrismarineData {
     logger: any,
@@ -20,15 +20,15 @@ interface PrismarineData {
 export default class Prismarine {
     private raknet: any;
     private logger: any;
-    private config: any;
+    private config: Config;
 
     private players: Map<string, Player> = new Map();
-    private packetRegistry: PacketRegistry = new PacketRegistry();
-    private pluginManager: any = new PluginManager(this);
-    private commandManager: any = new CommandManager();
-    private worldManager = new WorldManager(this);
-    private itemManager = new ItemManager();
-    private blockManager = new BlockManager();
+    private packetRegistry: PacketRegistry;
+    private pluginManager: PluginManager;
+    private commandManager: CommandManager;
+    private worldManager: WorldManager;
+    private itemManager: ItemManager;
+    private blockManager: BlockManager;
     private queryManager: QueryManager;
 
     static instance: null | Prismarine = null;
@@ -36,25 +36,31 @@ export default class Prismarine {
     constructor({ logger, config }: PrismarineData) {
         this.logger = logger;
         this.config = config;
+        this.packetRegistry = new PacketRegistry(this);
+        this.itemManager =  new ItemManager(this);
+        this.blockManager =  new BlockManager(this);
+        this.worldManager =  new WorldManager(this);
+        this.commandManager = new CommandManager(this);
+        this.pluginManager = new PluginManager(this);
         this.queryManager = new QueryManager(this);
         Prismarine.instance = this;
     }
 
     public async reload() {
-        this.packetRegistry = new PacketRegistry();
-        this.commandManager = new CommandManager();
-        this.itemManager = new ItemManager();
-        this.blockManager = new BlockManager();
-        this.pluginManager = new PluginManager();
+        this.packetRegistry = new PacketRegistry(this);
+        this.itemManager = new ItemManager(this);
+        this.blockManager = new BlockManager(this);
+        this.commandManager = new CommandManager(this);
+        this.pluginManager = new PluginManager(this);
     }
 
-    public async listen(port = 19132) {
-        this.raknet = await (new Listener).listen(this.config.get('server-ip', '0.0.0.0'), port);
+    public async listen(serverIp = '0.0.0.0',port = 19132) {
+        this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
         this.raknet.name.setVersion(Identifiers.Protocol);
         this.raknet.name.setProtocol(Identifiers.MinecraftVersion);
-        this.raknet.name.setMaxPlayerCount(this.config.get('max-players', 20));
-        this.raknet.name.setMotd(this.config.get('motd', 'Another JSPrismarine server!'));
+        this.raknet.name.setMaxPlayerCount(this.config.getMaxPlayers());
+        this.raknet.name.setMotd(this.config.getMotd());
 
         this.logger.info(`JSPrismarine is now listening port §b${port}`);
 

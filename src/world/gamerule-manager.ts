@@ -1,4 +1,4 @@
-const LOGGER = require('../utils/Logger');
+import Prismarine from "../prismarine";
 
 export const Rules = {
     CommandBlockOutput: 'commandblockoutput',
@@ -23,7 +23,12 @@ export const Rules = {
 };
 
 export class GameruleManager {
+    private server: Prismarine;
     private rules: Map<string, any> = new Map();
+
+    constructor(server: Prismarine) {
+        this.server = server;
+    }
 
     /**
      * Sets a game rule.
@@ -42,7 +47,7 @@ export class GameruleManager {
      */
     public getGamerule(name: string): any {
         if (!Object.values(Rules).includes(name)) {
-            LOGGER.error(`Unknown Gamerule with name ${name}`);
+            this.server.getLogger().error(`Unknown Gamerule with name ${name}`);
         }
         this.rules.get(name);
     }

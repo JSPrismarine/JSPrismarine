@@ -25,8 +25,8 @@ class DataPacket extends PacketBinaryStream {
 
     decode() {
         this.offset = 0;
-        this.decodeHeader();
-        this.decodePayload();
+        this.decodeHeader(this.getServer());
+        this.decodePayload(this.getServer());
         // Mark all the packets sent by the client
         // as encoded, because they have all the properties
         // and a buffer (like a manually encoded packet). 

@@ -22,7 +22,7 @@ class TextHandler {
         if (event.isCancelled()) return;
 
         let vanillaFormat = `<${packet.sourceName}> ${event.getMessage()}`;
-        logger.info(vanillaFormat);
+        server.getLogger().info(vanillaFormat);
 
         // Broadcast chat message to every player
         if (packet.type == TextType.Chat) {
