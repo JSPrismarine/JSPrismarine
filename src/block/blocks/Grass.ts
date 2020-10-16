@@ -1,6 +1,6 @@
 import Solid from '../Solid';
 import Item from '../../item';
-import Prismarine from '../../prismarine';
+import Prismarine from '../../Prismarine';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 

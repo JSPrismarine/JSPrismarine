@@ -1,4 +1,4 @@
-const PacketBinaryStream = require('../packet-binary-stream');
+const PacketBinaryStream = require('../PacketBinaryStream');
 
 
 class ChangeSlot {

@@ -1,13 +1,12 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 class UUID {
-
     /** @type {any} */
     #parts: any
     /** @type {number} */
     #version: number
 
-    constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version: number) {
+    constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version?: number) {
         this.#parts = [part1, part2, part3, part4];
         this.#version = version || (this.#parts[1] & 0xf000) >> 12;
     }
@@ -96,4 +95,4 @@ class UUID {
         return parts.join('-');
     }
 }
-module.exports = UUID;
+export default UUID;

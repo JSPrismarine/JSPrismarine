@@ -1,5 +1,5 @@
 import Position from "../world/Position";
-import World from "../world/world";
+import World from "../world/World";
 
 const { MetadataManager, MetadataFlag, FlagType} = require('./metadata');
 const { AttributeManager } = require('./attribute');

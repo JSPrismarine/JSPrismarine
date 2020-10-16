@@ -2,8 +2,8 @@ const Identifiers = require('../identifiers');
 const ResourcePacksInfoPacket = require('../packet/resource-packs-info');
 const PlayStatus = require('../type/play-status');
 const LoginPacket = require('../packet/login');
-const Player = require('../../player').default;
-const Prismarine = require('../../prismarine');
+const Player = require('../../player/Player').default;
+const Prismarine = require('../../Prismarine');
 
 
 class LoginHandler {

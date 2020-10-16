@@ -1,8 +1,8 @@
-import Prismarine from "../prismarine";
-import Item from "../item/";
+import Prismarine from "../Prismarine";
+import Item from "../item";
 import Chunk from "../world/chunk/chunk";
 import Entity from "../entity/entity";
-import World from "../world/world";
+import World from "../world/World";
 import Gamemode from "../world/gamemode";
 
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');

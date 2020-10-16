@@ -1,4 +1,4 @@
-import Player from "../../player";
+import Player from "../../player/Player";
 import Command from "../";
 import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
 

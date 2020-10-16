@@ -1,5 +1,5 @@
 import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
-import Player from "../../player";
+import Player from "../../player/Player";
 import Command from "../";
 
 export default class TpCommand extends Command {

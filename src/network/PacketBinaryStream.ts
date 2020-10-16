@@ -1,69 +1,78 @@
-const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-const NBT = require('@jsprismarine/nbt');
-const UUID = require('../utils/uuid');
-const Skin = require('../utils/skin/skin');
-const { FlagType } = require('../entity/metadata');
-const CommandOriginData = require('./type/command-origin-data');
-const CommandOrigin = require('./type/command-origin');
-const NetworkLittleEndianBinaryStream = require('@jsprismarine/nbt/streams/network-le-binary-stream');
-const CompoundTag = require('@jsprismarine/nbt/tags/compound-tag');
-const SkinImage = require('../utils/skin/skin-image');
-const PlayerListEntry = require('./type/player-list-entry');
-const CreativeContentEntry = require('./type/creative-content-entry');
-const SkinAnimation = require('../utils/skin/skin-animation');
-const SkinCape = require('../utils/skin/skin-cape');
-const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece');
-const SkinPersona = require('../utils/skin/skin-persona/persona');
-const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color');
+import Prismarine from "../Prismarine";
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import NBT from '@jsprismarine/nbt';
+import UUID from '../utils/uuid';
+import Skin from '../utils/skin/skin';
+import { FlagType } from '../entity/metadata';
+import CommandOriginData from './type/command-origin-data';
+import CommandOrigin from './type/command-origin';
+import NetworkLittleEndianBinaryStream from '@jsprismarine/nbt/streams/network-le-binary-stream';
+import CompoundTag from '@jsprismarine/nbt/tags/compound-tag';
+import SkinImage from '../utils/skin/skin-image';
+import PlayerListEntry from './type/player-list-entry';
+import CreativeContentEntry from './type/creative-content-entry';
+import SkinAnimation from '../utils/skin/skin-animation';
+import SkinCape from '../utils/skin/skin-cape';
+import SkinPersonaPiece from '../utils/skin/skin-persona/persona-piece';
+import SkinPersona from '../utils/skin/skin-persona/persona';
+import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/piece-tint-color';
 const Item = require('../item').default;
 const Block = require('../block').default;
-const Logger = require('../utils/Logger');
+import Logger from '../utils/Logger';
 
-const ItemStackRequest = require('./type/item-stack-requests/item-stack-request');
-const ItemStackRequestTake = require('./type/item-stack-requests/take');
-const ItemStackRequestPlace = require('./type/item-stack-requests/place');
-const ItemStackRequestDrop = require('./type/item-stack-requests/drop');
-const ItemStackRequestSwap = require('./type/item-stack-requests/swap');
-const ItemStackRequestDestroy = require('./type/item-stack-requests/destroy');
-const ItemStackRequestCreativeCreate = require('./type/item-stack-requests/creative-create');
-const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
-const { triggerAsyncId } = require('async_hooks');
+import ItemStackRequest from './type/item-stack-requests/item-stack-request';
+import ItemStackRequestTake from './type/item-stack-requests/take';
+import ItemStackRequestPlace from './type/item-stack-requests/place';
+import ItemStackRequestDrop from './type/item-stack-requests/drop';
+import ItemStackRequestSwap from './type/item-stack-requests/swap';
+import ItemStackRequestDestroy from './type/item-stack-requests/destroy';
+import ItemStackRequestCreativeCreate from './type/item-stack-requests/creative-create';
+import ItemStackRequestConsume from './type/item-stack-requests/consume';
+import { triggerAsyncId } from 'async_hooks';
 
 class PacketBinaryStream extends BinaryStream {
-    #server = null;
+    #server: Prismarine;
 
-    constructor(server) {
+    public constructor(server: Prismarine) {
         super();
         this.#server = server;
     }
 
-    getServer() {
+    public getServer(): Prismarine {
         return this.#server;
     }
 
     /**
      * Returns a string encoded into the buffer.
-     * 
-     * @returns {string}
      */
-    readString() {
+    public readString(): string {
         return this.read(this.readUnsignedVarInt()).toString();
     }
 
     /**
      * Encodes a string into the buffer.
-     * 
-     * @param {string} v 
      */
-    writeString(v) {
+    public writeString(v: string): void {
         this.writeUnsignedVarInt(Buffer.byteLength(v));
         this.append(Buffer.from(v, 'utf8'));
     }
 
     /**
-     * @returns {UUID}
+     * Returns a buffer.
      */
-    readUUID() {
+    public readBuffer(): Buffer {
+     return this.read(this.readUnsignedVarInt());
+    }
+
+    /**
+    * Encodes a string into the buffer.
+    */
+    public writeBuffer(v: Buffer): void {
+        this.writeUnsignedVarInt(Buffer.byteLength(v));
+        this.append(v);
+    }
+
+    public readUUID(): UUID {
         let part1 = this.readLInt();
         let part0 = this.readLInt();
         let part3 = this.readLInt();
@@ -74,10 +83,8 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Encodes an UUID into the buffer.
-     * 
-     * @param {UUID} uuid 
      */
-    writeUUID(uuid) {
+    public writeUUID(uuid: UUID): void {
         this.writeLInt(uuid.parts[1]);
         this.writeLInt(uuid.parts[0]);
         this.writeLInt(uuid.parts[3]);
@@ -86,10 +93,8 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Retrurns a skin encoded into the buffer.
-     * 
-     * @returns {Skin}
      */
-    readSkin() {
+    public readSkin(): Skin {
         let skin = new Skin();
         skin.id = this.readString();
         skin.resourcePatch = this.readString();
@@ -121,7 +126,7 @@ class PacketBinaryStream extends BinaryStream {
         skin.cape.image = new SkinImage({
             width: this.readLInt(),
             height: this.readLInt(),
-            data: this.readString()
+            data: this.readBuffer()
         });
 
         // Miscellaneus
@@ -169,10 +174,8 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Encodes a skin into the buffer.
-     * 
-     * @param {Skin} skin
      */
-    writeSkin(skin) {
+    public writeSkin(skin: Skin): void {
         this.writeString(skin.id);
         this.writeString(skin.resourcePatch);
 
@@ -227,14 +230,11 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Encodes a skin image into the buffer.
-     * 
-     * @param {SkinImage} image 
-     * @private
      */
-    writeSkinImage(image) {
+    public writeSkinImage(image: SkinImage) {
         this.writeLInt(image.width);
         this.writeLInt(image.height);
-        this.writeString(image.data);
+        this.writeBuffer(image.data);
     }
 
     /**
@@ -242,7 +242,7 @@ class PacketBinaryStream extends BinaryStream {
      * 
      * @param {PlayerListEntry} entry 
      */
-    writePlayerListAddEntry(entry) {
+    public writePlayerListAddEntry(entry: PlayerListEntry) {
         this.writeUUID(entry.uuid);
         this.writeVarLong(entry.uniqueEntityId);
         this.writeString(entry.name);
@@ -259,11 +259,11 @@ class PacketBinaryStream extends BinaryStream {
      * 
      * @param {PlayerListEntry} entry 
      */
-    writePlayerListRemoveEntry(entry) {
+    public writePlayerListRemoveEntry(entry) {
         this.writeUUID(entry.uuid);
     }
 
-    writeAttributes(attributes) {
+    public writeAttributes(attributes) {
         this.writeUnsignedVarInt(attributes.length);
         for (let attribute of attributes) {
             this.writeLFloat(attribute.min);
@@ -277,7 +277,7 @@ class PacketBinaryStream extends BinaryStream {
     /**
      * @param {CreativeContentEntry} entry 
      */
-    writeCreativeContentEntry(entry) {
+    public writeCreativeContentEntry(entry) {
         this.writeVarInt(entry.entryId);
         this.writeItemStack(entry.item);
     }
@@ -287,7 +287,7 @@ class PacketBinaryStream extends BinaryStream {
      * 
      * @param {Map<String, Boolean|Number>} rules 
      */
-    writeGamerules(rules) {
+    public writeGamerules(rules) {
         this.writeUnsignedVarInt(rules.size);
         for (let [name, value] of rules) {
             this.writeString(name);
@@ -315,7 +315,7 @@ class PacketBinaryStream extends BinaryStream {
      * @private
      * @param {number} n
      */
-    isInt(n) {
+    public isInt(n) {
         return n % 1 === 0;
     }
 
@@ -323,11 +323,11 @@ class PacketBinaryStream extends BinaryStream {
      * @private
      * @param {number} n
      */
-    isFloat(n) {
+    public isFloat(n) {
         return n % 1 !== 0;
     }
 
-    writeEntityMetadata(metadata) {
+    public writeEntityMetadata(metadata) {
         this.writeUnsignedVarInt(metadata.size);
         for (const [index, value] of metadata) {
             this.writeUnsignedVarInt(index);
@@ -357,7 +357,7 @@ class PacketBinaryStream extends BinaryStream {
     /**
      * @returns {Item}
      */
-    readItemStack() {
+    public readItemStack() {
         let id = this.readVarInt();
         if (id == 0) {
             // TODO: items
@@ -410,7 +410,7 @@ class PacketBinaryStream extends BinaryStream {
      * 
      * @param {Item | Block} itemstack 
      */
-    writeItemStack(itemstack) {
+    public writeItemStack(itemstack) {
         if (itemstack.name === 'minecraft:air') {
             return this.writeVarInt(0);
         }
@@ -438,7 +438,7 @@ class PacketBinaryStream extends BinaryStream {
         return null;
     }
 
-    readItemStackRequest() {
+    public readItemStackRequest() {
         const id = this.readVarInt();
         this.#server.getLogger().debug(`Request ID: ${id}`);
 
@@ -453,14 +453,14 @@ class PacketBinaryStream extends BinaryStream {
         });
     }
 
-    writeItemStackRequest() {
+    public writeItemStackRequest() {
         // TODO
         this.writeBool(true);
         this.writeVarInt(0);
         this.writeVarInt(0);
     }
 
-    readItemStackRequestAction() {
+    public readItemStackRequestAction() {
         const id = this.readByte();
 
         this.#server.getLogger().debug(`Action ${id}`);
@@ -539,7 +539,7 @@ class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    readItemStackRequestSlotInfo() {
+    public readItemStackRequestSlotInfo() {
         return {
             containerId: this.readByte(),
             slot: this.readByte(),
@@ -547,7 +547,7 @@ class PacketBinaryStream extends BinaryStream {
         }; // TODO: class
     }
 
-    readCommandOriginData() {
+    public readCommandOriginData() {
         let data = new CommandOriginData();
         data.type = this.readUnsignedVarInt();
         data.uuid = this.readUUID();

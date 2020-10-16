@@ -1,10 +1,10 @@
-import PacketRegistry from "./network/packet-registry";
-import Player from "./player";
+import PacketRegistry from "./network/PacketRegistry";
+import Player from "./player/Player";
 import BlockManager from "./block/BlockManager";
 import ItemManager from "./item/ItemManager";
 import CommandManager from "./command/CommandManager";
 import Config from "./config";
-import WorldManager from "./world/world-manager";
+import WorldManager from "./world/WorldManager";
 import QueryManager from "./query/QueryManager";
 import PluginManager from "./plugin/plugin-manager";
 

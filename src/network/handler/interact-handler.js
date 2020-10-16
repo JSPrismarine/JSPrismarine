@@ -1,4 +1,4 @@
-const Player = require('../../player').default;
+const Player = require('../../player/Player').default;
 const Identifiers = require('../identifiers');
 const EventManager = require('../../events/event-manager');
 const EventIdentifiers = require('../../events/event-identifiers');
@@ -6,7 +6,7 @@ const InteractPacket = require('../packet/interact');
 const InteractAction = require('../type/interact-action');
 const ContainerOpenPacket = require('../packet/container-open');
 const logger = require('../../utils/Logger');
-const Prismarine = require('../../prismarine');
+const Prismarine = require('../../Prismarine');
 
 
 class InteractHandler {

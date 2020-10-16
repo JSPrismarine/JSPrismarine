@@ -1,4 +1,4 @@
-import Prismarine from "../prismarine";
+import Prismarine from "../Prismarine";
 
 const fs = require('fs');
 const path = require('path');

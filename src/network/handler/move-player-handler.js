@@ -1,8 +1,8 @@
 const Identifiers = require('../identifiers');
 const MovePlayerPacket = require('../packet/move-player').default;
-const Player = require('../../player').default;
+const Player = require('../../player/Player').default;
 const EventManager = require('../../events/event-manager');
-const Prismarine = require('../../prismarine');
+const Prismarine = require('../../Prismarine');
 const CoordinateUtils = require('../../world/coordinate-utils');
 
 

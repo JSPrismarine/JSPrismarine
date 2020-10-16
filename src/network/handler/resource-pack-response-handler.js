@@ -5,8 +5,8 @@ const BiomeDefinitionListPacket = require('../packet/biome-definition-list');
 const AvailableActorIdentifiersPacket = require('../packet/available-actor-identifiers');
 const ResourcePackStackPacket = require('../packet/resource-pack-stack');
 const StartGamePacket = require('../packet/start-game');
-const Player = require('../../player').default;
-const Prismarine = require('../../prismarine');
+const Player = require('../../player/Player').default;
+const Prismarine = require('../../Prismarine');
 const Gamemode = require('../../world/gamemode');
 // const Item = require('../../item')
 

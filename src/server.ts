@@ -2,14 +2,14 @@ import fs from 'fs';
 import readline from 'readline';
 import path from 'path';
 
-import Prismarine from './prismarine';
+import Prismarine from './Prismarine';
 import ConsoleSender from './utils/ConsoleSender';
 import ConfigBuilder from './config';
 import LoggerBuilder from './utils/Logger';
 
-const Config = new ConfigBuilder();
-const Logger = new LoggerBuilder();
-const Server = new Prismarine({
+const Config: ConfigBuilder = new ConfigBuilder();
+const Logger: LoggerBuilder = new LoggerBuilder();
+const Server: Prismarine = new Prismarine({
     config: Config,
     logger: Logger,
 });

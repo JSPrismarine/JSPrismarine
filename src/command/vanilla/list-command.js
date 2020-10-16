@@ -1,5 +1,5 @@
 const Command = require('../').default;
-const Player = require('../../player').default;
+const Player = require('../../player/Player').default;
 
 class ListCommand extends Command {
 

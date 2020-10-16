@@ -1,4 +1,4 @@
-import Prismarine from "../prismarine";
+import Prismarine from "../Prismarine";
 import BinaryStream from "@jsprismarine/jsbinaryutils";
 import udp from 'dgram';
 

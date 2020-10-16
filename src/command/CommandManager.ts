@@ -1,5 +1,5 @@
-import Player from "../player";
-import Prismarine from "../prismarine";
+import Player from "../player/Player";
+import Prismarine from "../Prismarine";
 import Command from "./";
 
 const path = require('path');

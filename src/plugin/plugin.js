@@ -1,4 +1,4 @@
-const Prismarine = require('../prismarine');
+const Prismarine = require('../Prismarine');
 const PluginManifest = require('./plugin-manifest');
 
 

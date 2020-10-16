@@ -1,6 +1,6 @@
-import Prismarine from "../prismarine";
+import Prismarine from "../Prismarine";
 import GeneratorManager from "./generator-manager";
-import World from "./world";
+import World from "./World";
 
 const logger = require('../utils/Logger');
 const LevelDB = require('./leveldb/leveldb');

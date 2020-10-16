@@ -1,6 +1,6 @@
 const path = require('path');
 
-const Prismarine = require('../prismarine');
+const Prismarine = require('../Prismarine');
 const PluginType = require('./plugin');
 const Config = require('../config/ConfigBuilder').default;
 const EventManager = require('../events/event-manager');

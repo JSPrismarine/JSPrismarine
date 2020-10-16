@@ -1,15 +1,15 @@
 import Entity from "../entity/entity";
 import Item from "../item";
 import Vector3 from "../math/vector3";
-import Player from "../player";
-import Prismarine from "../prismarine";
+import Player from "../player/Player";
+import Prismarine from "../Prismarine";
 
-const LevelSoundEventPacket = require('../network/packet/level-sound-event');
-const UUID = require('../utils/uuid');
-const CoordinateUtils = require('../world/coordinate-utils');
-const WorldEventPacket = require('../network/packet/world-event');
-const { GameruleManager, Rules } = require('../world/gamerule-manager');
-const SharedSeedRandom = require('./util/shared-seed-random');
+import LevelSoundEventPacket from '../network/packet/level-sound-event';
+import UUID from '../utils/UUID';
+import CoordinateUtils from '../world/coordinate-utils';
+import WorldEventPacket from '../network/packet/world-event';
+import { GameruleManager, Rules } from '../world/gamerule-manager';
+import SharedSeedRandom from './util/shared-seed-random';
 
 interface WorldData {
     name: string,

@@ -1,5 +1,5 @@
 const NetworkTransactionSource = require('../type/network-transaction-source');
-const PacketBinaryStream = require('../packet-binary-stream');
+const PacketBinaryStream = require('../PacketBinaryStream');
 
 
 class NetworkTransaction {

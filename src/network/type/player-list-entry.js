@@ -1,5 +1,5 @@
 const Skin = require('../../utils/skin/skin');
-const UUID = require('../../utils/uuid');
+const UUID = require('../../utils/UUID');
 
 
 class PlayerListEntry {
@@ -22,6 +22,5 @@ class PlayerListEntry {
     isTeacher 
     /** @type {boolean} */ 
     isHost 
-
 }
 module.exports = PlayerListEntry;

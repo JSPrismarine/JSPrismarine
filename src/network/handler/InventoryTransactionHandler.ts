@@ -1,6 +1,6 @@
 import Vector3 from "../../math/vector3";
-import Player from "../../player";
-import Prismarine from "../../prismarine";
+import Player from "../../player/Player";
+import Prismarine from "../../Prismarine";
 import Identifiers from "../identifiers";
 const Logger = require('../../utils/Logger');
 

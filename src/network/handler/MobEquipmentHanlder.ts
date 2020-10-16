@@ -1,5 +1,5 @@
-import Player from "../../player";
-import Prismarine from "../../prismarine";
+import Player from "../../player/Player";
+import Prismarine from "../../Prismarine";
 import Identifiers from "../identifiers";
 
 export default class MobEquipmentHandler {

@@ -1,4 +1,4 @@
-const Prismarine = require('../prismarine');
+const Prismarine = require('../Prismarine');
 const Plugin = require('./plugin');
 const fs = require('fs');
 const path = require('path');

@@ -1,5 +1,5 @@
-const Player = require('../../player').default;
-const Prismarine = require('../../prismarine');
+const Player = require('../../player/Player').default;
+const Prismarine = require('../../Prismarine');
 const Identifiers = require('../identifiers');
 const CommandRequestPacket = require('../packet/command-request');
 

@@ -1,5 +1,5 @@
 import Item from "../item";
-import Prismarine from "../prismarine";
+import Prismarine from "../Prismarine";
 import Block from "./";
 
 export default class Liquid extends Block {
