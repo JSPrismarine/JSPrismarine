@@ -15,4 +15,4 @@ class SkinCape {
     }
 }
 
-module.exports = SkinCape;
+export default SkinCape;

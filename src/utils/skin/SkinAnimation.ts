@@ -17,4 +17,4 @@ class SkinAnimation {
     }
 
 }
-module.exports = SkinAnimation;
+export default SkinAnimation;
