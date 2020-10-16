@@ -1,7 +1,7 @@
 import Prismarine from "../Prismarine";
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import NBT from '@jsprismarine/nbt';
-import UUID from '../utils/uuid';
+import UUID from '../utils/UUID';
 import Skin from '../utils/skin/skin';
 import { FlagType } from '../entity/metadata';
 import CommandOriginData from './type/command-origin-data';
