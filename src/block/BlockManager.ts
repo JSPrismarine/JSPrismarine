@@ -2,15 +2,16 @@ import fs from "fs";
 import path from "path";
 
 import Block from "./";
-import * as Logger from "../utils/Logger";
 import { BlockToolType } from "./BlockToolType";
 import Prismarine from "../prismarine";
 
 export default class BlockManager {
+    private server: Prismarine;
     private blocks = new Map()
 
     constructor(server: Prismarine) {
-        this.importBlocks(server);
+        this.server = server;
+        this.importBlocks();
     }
 
     public getBlock(name: string): Block | null {
@@ -36,16 +37,16 @@ export default class BlockManager {
     }
 
 
-    public registerClassBlock(block: Block, server: Prismarine) {
+    public registerClassBlock(block: Block) {
         // The runtime ID is a unique ID sent with the start-game packet
         // ours is always based on the block's index in the this.blocks map
         // starting from 0.
         block.setRuntimeId(this.blocks.size);
-        server.getLogger().silly(`Block with id §b${block.name}§r registered`);
+        this.server.getLogger().silly(`Block with id §b${block.name}§r registered`);
         this.blocks.set(block.name, block);
     }
 
-    importBlocks(server: Prismarine) {
+    importBlocks() {
         try {
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             blocks.forEach((id: string) => {
@@ -54,14 +55,14 @@ export default class BlockManager {
 
                 const block = require(`./blocks/${id}`).default;
                 try {
-                    this.registerClassBlock(new block(), server);
+                    this.registerClassBlock(new block());
                 } catch (err) {
-                    server.getLogger().error(`${id} failed to register!`);
+                    this.server.getLogger().error(`${id} failed to register!`);
                 }
             });
-            server.getLogger().debug(`Registered §b${blocks.length}§r block(s)!`);
+            this.server.getLogger().debug(`Registered §b${blocks.length}§r block(s)!`);
         } catch (err) {
-            server.getLogger().error(`Failed to register blocks: ${err}`);
+            this.server.getLogger().error(`Failed to register blocks: ${err}`);
         }
     }
 }
