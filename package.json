@@ -52,7 +52,7 @@
     "@jsprismarine/bedrock-data": "1.16.20e",
     "@jsprismarine/jsbinaryutils": "2.1.4",
     "@jsprismarine/nbt": "1.0.0",
-    "@jsprismarine/raknet": "1.4.5",
+    "@jsprismarine/raknet": "1.4.6",
     "async": "^3.2.0",
     "glob": "^7.1.6",
     "jest": "^26.5.2",
