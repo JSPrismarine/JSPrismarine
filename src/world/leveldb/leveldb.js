@@ -6,8 +6,6 @@ const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Chunk = require('../chunk/chunk');
 const EmptySubChunk = require('../chunk/empty-sub-chunk');
 const SubChunk = require('../chunk/sub-chunk');
-const logger = require('../../utils/Logger');
-const { type } = require('os');
 
 const Overworld = require('../generators/overworld');
 
