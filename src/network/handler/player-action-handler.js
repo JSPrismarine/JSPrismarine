@@ -78,7 +78,7 @@ class PlayerActionHandler {
                 break; 
             default:
                 // This will get triggered even if an action is simply not handled
-                // logger.debug(`Unknown PlayerAction: ${packet.action}`)
+                // server.getLogger().debug(`Unknown PlayerAction: ${packet.action}`)
         }
     }
 }

@@ -14,7 +14,7 @@ class PlayerListPacket extends DataPacket {
     /** @type {number} */
     type
 
-    encodePayload() {
+    encodePayload(server) {
         this.writeByte(this.type);
         this.writeUnsignedVarInt(this.entries.length);
         for (let entry of this.entries) {
@@ -23,7 +23,7 @@ class PlayerListPacket extends DataPacket {
             } else if (this.type === PlayerListAction.Remove) {
                 this.writePlayerListRemoveEntry(entry);
             } else {
-                logger.warn(`Invalid player list action type ${this.type}`);
+                server.getLogger().warn(`Invalid player list action type ${this.type}`);
             }
         }
 

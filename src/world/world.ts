@@ -25,7 +25,7 @@ export default class World {
     private players: Map<number, Player> = new Map();
     private entities: Map<number, Entity> = new Map();
     private chunks: Map<string, any> = new Map();
-    private gameruleManager: any = new GameruleManager();
+    private gameruleManager: any;
     private currentTick: number = 0;
     private provider: any;   // TODO: interface
     private server: Prismarine
@@ -36,6 +36,7 @@ export default class World {
         this.name = name;
         this.server = server;
         this.provider = provider;
+        this.gameruleManager = new GameruleManager(server);
         this.seed = new SharedSeedRandom(seed);
         this.generator = generator;
 

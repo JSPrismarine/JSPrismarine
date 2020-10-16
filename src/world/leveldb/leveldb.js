@@ -16,13 +16,14 @@ const Tags = {
     SubChunkPrefix: '\x2f'
 };
 class LevelDB extends Provider {
-
+    #server;
     /** @type {level} */
-    db
+    db;
 
-    constructor(levelPath) {
+    constructor(levelPath, server) {
         super(levelPath);
         this.db = new level(path.join(levelPath, 'db'));
+        this.#server = server;
     }
 
     /**
@@ -59,7 +60,7 @@ class LevelDB extends Provider {
 
                                 subChunks.set(y, subChunk);
                             } else {
-                                logger.warn('Unsupported sub chunk version');
+                                this.#server.getLogger().warn('Unsupported sub chunk version');
                             }
                         } catch {
                             // NO-OP

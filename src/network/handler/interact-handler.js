@@ -34,7 +34,7 @@ class InteractHandler {
                 player.sendDataPacket(pk);
                 break;
             default:
-                logger.debug('Unknown interact action id: ' + packet.action);    
+                server.getLogger().debug('Unknown interact action id: ' + packet.action);    
         }
     }
 }
