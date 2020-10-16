@@ -37,9 +37,9 @@ export default class Prismarine {
         this.logger = logger;
         this.config = config;
         this.packetRegistry = new PacketRegistry(this);
-        this.itemManager =  new ItemManager(this);
-        this.blockManager =  new BlockManager(this);
-        this.worldManager =  new WorldManager(this);
+        this.itemManager = new ItemManager(this);
+        this.blockManager = new BlockManager(this);
+        this.worldManager = new WorldManager(this);
         this.commandManager = new CommandManager(this);
         this.pluginManager = new PluginManager(this);
         this.queryManager = new QueryManager(this);
@@ -54,7 +54,7 @@ export default class Prismarine {
         this.pluginManager = new PluginManager(this);
     }
 
-    public async listen(serverIp = '0.0.0.0',port = 19132) {
+    public async listen(serverIp = '0.0.0.0', port = 19132) {
         this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
         this.raknet.name.setVersion(Identifiers.Protocol);
@@ -65,41 +65,46 @@ export default class Prismarine {
         this.logger.info(`JSPrismarine is now listening port §b${port}`);
 
         // Client connected, instantiate player
-        this.raknet.on('openConnection', async (connection: any) => {
-            let inetAddr = connection.address;
-            // TODO: Get last world by player data
-            // and if it doesn't exists, return the default one
-            let timing = await new Promise((resolve, reject) => {
-                let time = Date.now();
-                let world = this.getWorldManager().getDefaultWorld();
-                if (!world) return reject();  // Temp solution
-                let player = new Player(
-                    connection, connection.address, world, this
-                );
-                this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
+        this.raknet.on('openConnection', (connection: any) => {
+            return new Promise(async (resolve, reject) => {
+                let inetAddr = connection.address;
 
-                if (!world)
-                    reject();
+                // TODO: Get last world by player data
+                // and if it doesn't exists, return the default one
+                let timing = await new Promise((resolve, reject) => {
+                    let time = Date.now();
+                    let world = this.getWorldManager().getDefaultWorld();
+                    if (!world) return reject();  // Temp solution
+                    let player = new Player(
+                        connection, connection.address, world, this
+                    );
+                    this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
 
-                // Add the player into the world
-                world?.addPlayer(player);
-                this.raknet.name.setOnlinePlayerCount(this.players.size);
-                resolve(Date.now() - time);
-            });
+                    if (!world)
+                        reject();
 
-            this.logger.debug(`Player creation took about ${timing} ms`);
+                    // Add the player into the world
+                    world?.addPlayer(player);
+                    this.raknet.name.setOnlinePlayerCount(this.players.size);
+                    resolve(Date.now() - time);
+                });
+
+                this.logger.debug(`Player creation took about ${timing} ms`);
+                resolve();
+            })
         });
 
         // Get player from map by address, then handle packet
-        this.raknet.on('encapsulated', async (packet: any, inetAddr: any) => {
+        this.raknet.on('encapsulated', (packet: any, inetAddr: any) => {
             let token = `${inetAddr.address}:${inetAddr.port}`;
-            if (!this.players.has(token)) return;
+            if (!this.players.has(token))
+                return;
             let player = this.players.get(token);
 
             // TODO: simplify promise code and add an option to 
             // log incoming and outcoming buffers (maybe an option in config)
             // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
-            await new Promise(async (resolve, reject) => {
+            return new Promise(async (resolve, reject) => {
                 // Read batch content and handle them
                 let pk = new BatchPacket();
                 pk.buffer = packet.buffer;
