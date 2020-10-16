@@ -1,5 +1,5 @@
-const SkinPersonaPiece = require('./persona-piece');
-const PieceTintColor = require('./piece-tint-color');
+const SkinPersonaPiece = require('./PersonaPiece');
+const PieceTintColor = require('./PieceTintColor');
 
 
 class SkinPersona {

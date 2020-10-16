@@ -1,10 +1,9 @@
-const SkinImage = require('../skin/skin-image');
-const SkinAnimation = require('./skin-animation');
-const SkinPersona = require('../../utils/skin/skin-persona/persona');
-const SkinPersonaPiece = require('./skin-persona/persona-piece');
-const SkinPersonaPieceTintColor = require('./skin-persona/piece-tint-color');
-const SkinCape = require('../skin/skin-cape');
-
+import SkinImage from './SkinImage';
+import SkinAnimation from './SkinAnimation';
+import SkinPersona from './skin-persona/Persona';
+import SkinPersonaPiece from './skin-persona/PersonaPiece';
+import SkinPersonaPieceTintColor from './skin-persona/PieceTintColor';
+import SkinCape from './SkinCape';
 
 class Skin {
 
@@ -133,4 +132,4 @@ class Skin {
     }
 
 }
-module.exports = Skin;
+export default Skin;

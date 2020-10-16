@@ -15,7 +15,8 @@
         "esModuleInterop": true,
         "declaration": true,
         "allowSyntheticDefaultImports": true,
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "importsNotUsedAsValues": "error"
     },
     "include": [
         "./src/**/*"

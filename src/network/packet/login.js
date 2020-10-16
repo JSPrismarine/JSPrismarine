@@ -3,8 +3,8 @@ const jwt_decode = require('jwt-decode');
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-const Skin = require('../../utils/skin/skin');
-const Device = require('../../utils/device');
+const Skin = require('../../utils/skin/Skin').default;
+const Device = require('../../utils/Device').default;
 
 
 class LoginPacket extends DataPacket {
