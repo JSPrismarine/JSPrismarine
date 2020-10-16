@@ -7,9 +7,9 @@ class ItemStackRequestPacket extends DataPacket {
 
     requests = []
 
-    decodePayload() {
+    decodePayload(server) {
         let count = this.readUnsignedVarInt();
-        Logger.debug(`Requests count: ${count}`);
+        server.getLogger().getLogger().debug(`Requests count: ${count}`);
         for (let i = 0; i < count; i++) {
             this.requests.push(this.readItemStackRequest());
         }

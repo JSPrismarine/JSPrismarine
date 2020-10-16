@@ -2,18 +2,16 @@ import fs from 'fs';
 import readline from 'readline';
 import path from 'path';
 
-import Config from './utils/config';
-
-const serverConfig = new Config(path.join(process.cwd(), 'config.yaml'));
-(global as any).log_level = serverConfig.get('log-level', 'info');
-
 import Prismarine from './prismarine';
 import ConsoleSender from './utils/ConsoleSender';
-import * as Logger from './utils/Logger';
+import ConfigBuilder from './config';
+import LoggerBuilder from './utils/Logger';
 
-const server = new Prismarine({
+const Config = new ConfigBuilder();
+const Logger = new LoggerBuilder();
+const Server = new Prismarine({
+    config: Config,
     logger: Logger,
-    config: serverConfig,
 });
 
 // Create folders
@@ -25,14 +23,9 @@ if (!(fs.existsSync(process.cwd() + '/worlds'))) {
 }
 
 // Load default level
-const defaultWorld = serverConfig.get('level-name', 'world');
-server.getWorldManager().loadWorld(
-    serverConfig.get('worlds', {
-        world: {
-            generator: 'overworld',
-            seed: 1234 // TODO: generate random seed
-        }
-    })[defaultWorld],
+const defaultWorld = Server.getConfig().getLevelName();
+Server.getWorldManager().loadWorld(
+    Server.getConfig().getWorlds()[defaultWorld],
     defaultWorld
 );
 
@@ -41,11 +34,11 @@ let pluginFolders = fs.readdirSync(process.cwd() + '/plugins');
 for (let i = 0; i < pluginFolders.length; i++) {
     const folderName = pluginFolders[i];
     try {
-        server.getPluginManager().loadPlugin(
+        Server.getPluginManager().loadPlugin(
             path.resolve('./plugins', folderName)
         );
     } catch (error) {
-        Logger.warn(
+        Server.getLogger().warn(
             `Error while loading plugin §b${folderName}§r: §c${error}`
         );
     }
@@ -56,21 +49,22 @@ process.stdin.setEncoding('utf8');
 let rl = readline.createInterface({ input: process.stdin });
 rl.on('line', (input: string) => {
     if (typeof input !== 'string') {
-        return Logger.warn('Got an invalid command!');
+        return Server.getLogger().warn('Got an invalid command!');
     }
 
     if (!(input.startsWith('/'))) {
         input = `/${input.toLowerCase()}`;
     }
 
-    return (server.getCommandManager() as any).dispatchCommand(
-        new ConsoleSender(server), input
+    return (Server.getCommandManager() as any).dispatchCommand(
+        new ConsoleSender(Server), input
     );
 });
 
 
-server.listen(serverConfig.get('port', 19132)).catch(() => {
-    Logger.error(`Cannot start the server, is it already running on the same port?`);
+Server.listen(Server.getConfig().getServerIp(),Server.getConfig().getPort()).catch(() => {
+    Server.getLogger().error(`Cannot start the server, is it already running on the same port?`);
+    Server.kill();
     process.exit(1);
 });
 
@@ -78,8 +72,8 @@ server.listen(serverConfig.get('port', 19132)).catch(() => {
 let exitEvents = ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM'];
 for (let event of exitEvents) {
     process.on(event, () => {
-        server.kill();
+        Server.kill();
     });
 }
 
-module.exports = server;
+module.exports = Server;

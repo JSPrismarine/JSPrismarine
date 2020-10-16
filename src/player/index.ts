@@ -3,6 +3,7 @@ import Item from "../item/";
 import Chunk from "../world/chunk/chunk";
 import Entity from "../entity/entity";
 import World from "../world/world";
+import Gamemode from "../world/gamemode";
 
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
@@ -119,7 +120,7 @@ export default class Player extends Entity {
         this.#server = server;
 
         // TODO: only set to default gamemode if there doesn't exist any save data for the user
-        this.gamemode = server.getConfig().get(`gamemode`, 0);
+        this.gamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
     }
 
     public async update(_timestamp: number) {

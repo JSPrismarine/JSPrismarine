@@ -4,12 +4,13 @@ import path from "path";
 import Block from "./";
 import * as Logger from "../utils/Logger";
 import { BlockToolType } from "./BlockToolType";
+import Prismarine from "../prismarine";
 
 export default class BlockManager {
     private blocks = new Map()
 
-    constructor() {
-        this.importBlocks();
+    constructor(server: Prismarine) {
+        this.importBlocks(server);
     }
 
     public getBlock(name: string): Block | null {
@@ -35,16 +36,16 @@ export default class BlockManager {
     }
 
 
-    public registerClassBlock(block: Block) {
+    public registerClassBlock(block: Block, server: Prismarine) {
         // The runtime ID is a unique ID sent with the start-game packet
         // ours is always based on the block's index in the this.blocks map
         // starting from 0.
         block.setRuntimeId(this.blocks.size);
-        Logger.silly(`Block with id §b${block.name}§r registered`);
+        server.getLogger().silly(`Block with id §b${block.name}§r registered`);
         this.blocks.set(block.name, block);
     }
 
-    importBlocks() {
+    importBlocks(server: Prismarine) {
         try {
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             blocks.forEach((id: string) => {
@@ -53,14 +54,14 @@ export default class BlockManager {
 
                 const block = require(`./blocks/${id}`).default;
                 try {
-                    this.registerClassBlock(new block());
+                    this.registerClassBlock(new block(), server);
                 } catch (err) {
-                    Logger.error(`${id} failed to register!`);
+                    server.getLogger().error(`${id} failed to register!`);
                 }
             });
-            Logger.debug(`Registered §b${blocks.length}§r block(s)!`);
+            server.getLogger().debug(`Registered §b${blocks.length}§r block(s)!`);
         } catch (err) {
-            Logger.error(`Failed to register blocks: ${err}`);
+            server.getLogger().error(`Failed to register blocks: ${err}`);
         }
     }
 }

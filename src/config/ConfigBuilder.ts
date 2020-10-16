@@ -23,20 +23,14 @@ const TypeDefaults = {
  * @author <TheArmagan> kiracarmaganonal@gmail.com
  * @author <HerryYT> enricoangelon.ea@gmail.com
  */
-class Config {
-
-    /** @type {string} */
-    #type
-
-    /** @type {string} */
-    #path
+export default class ConfigBuilder {
+    #type:string
+    #path: string
 
     /**
      * Config constructor.
-     * 
-     * @param {String} filePath - full path to config file
      */
-    constructor(filePath) {
+    constructor(filePath: string) {
         let pathSplitted = path.parse(filePath);
 
         this.#type = pathSplitted.ext.slice(1); 
@@ -55,7 +49,7 @@ class Config {
 
         if (!fs.existsSync(filePath)) {
             fs.writeFileSync(
-                filePath, TypeDefaults[this.#type], 'utf8'
+                filePath, (TypeDefaults as any)[this.#type], 'utf8'
             );
         }
 
@@ -120,13 +114,8 @@ class Config {
 
     /**
      * Returns the value of the key.
-     * 
-     * @param {string} key
-     * @param {*?} defaults - if key is not defined in file it sets to this value and returns it
-     * 
-     * @returns {any}
      */
-    get(key, defaults) {
+    get(key: string, defaults: any) {
         let data = this.getFileData();
         let result = _.get(data, key);
         if (typeof result == 'undefined' && typeof defaults != 'undefined') {
@@ -139,11 +128,8 @@ class Config {
 
     /**
      * Sets a key - value pair in config.
-     * 
-     * @param {string} key 
-     * @param {any} value 
      */
-    set(key, value) {
+    set(key: string, value: any) {
         let data = this.getFileData();
         let newData = _.set(data, key, value);
         this.setFileData(newData);
@@ -152,12 +138,8 @@ class Config {
     /**
      * Returns true if the config
      * contains that key.
-     * 
-     * @param {string} key 
-     * 
-     * @returns {Boolean}
      */
-    has(key) {
+    has(key: string) {
         let data = this.getFileData();
         let result = _.has(data, key);
         return result;
@@ -166,12 +148,8 @@ class Config {
     /**
      * Returns true if the
      * deletion was successful.
-     * 
-     * @param {string} key
-     * 
-     * @returns {Boolean}
      */
-    del(key) {
+    del(key: string) {
         let data = this.getFileData();
         
         // it mutates the object, we 
@@ -184,4 +162,3 @@ class Config {
     }
 
 }
-module.exports = Config;

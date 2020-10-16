@@ -30,6 +30,16 @@ const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
 const { triggerAsyncId } = require('async_hooks');
 
 class PacketBinaryStream extends BinaryStream {
+    #server = null;
+
+    constructor(server) {
+        super();
+        this.#server = server;
+    }
+
+    getServer() {
+        return this.#server;
+    }
 
     /**
      * Returns a string encoded into the buffer.
@@ -296,7 +306,7 @@ class PacketBinaryStream extends BinaryStream {
                     }
                     break;
                 default:
-                    Logger.error(`Unknown Gamerule type ${value}`);
+                    this.#server.getLogger().error(`Unknown Gamerule type ${value}`);
             }
         }
     }
@@ -339,7 +349,7 @@ class PacketBinaryStream extends BinaryStream {
                     this.writeLShort(value[1]);
                     break;
                 default:
-                    Logger.warn(`Unknown meta type ${value}`);
+                    this.#server.getLogger().warn(`Unknown meta type ${value}`);
             }
         }
     }
@@ -430,7 +440,7 @@ class PacketBinaryStream extends BinaryStream {
 
     readItemStackRequest() {
         const id = this.readVarInt();
-        Logger.debug(`Request ID: ${id}`);
+        this.#server.getLogger().debug(`Request ID: ${id}`);
 
         const actions = [];
         for (let i = 0; i < this.readUnsignedVarInt(); i++) {
@@ -453,7 +463,7 @@ class PacketBinaryStream extends BinaryStream {
     readItemStackRequestAction() {
         const id = this.readByte();
 
-        Logger.debug(`Action ${id}`);
+        this.#server.getLogger().debug(`Action ${id}`);
         switch (id) {
             case 0:  // TODO: enum
                 return new ItemStackRequestTake({
@@ -512,10 +522,10 @@ class PacketBinaryStream extends BinaryStream {
                     itemId: this.readUnsignedVarInt()  
                 });
             case 12: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
-                Logger.silly('Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)');
+                this.#server.getLogger().silly('Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)');
                 return {};
             case 13: // CRAFTING_RESULTS_DEPRECATED, Deprecated so we'll just ignore it
-                Logger.silly('Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)');
+                this.#server.getLogger().silly('Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)');
                 // We still need to read it...
                 let items = [];
                 for (let i = 0; i < this.readUnsignedVarInt(); i++) {
@@ -524,7 +534,7 @@ class PacketBinaryStream extends BinaryStream {
                 this.readByte();  // times crafted
                 return {};
             default:
-                Logger.debug(`Unknown item stack request id: ${id}`);
+                this.#server.getLogger().debug(`Unknown item stack request id: ${id}`);
                 return {};
         }
     }

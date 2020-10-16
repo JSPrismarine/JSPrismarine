@@ -14,7 +14,7 @@ class RequestChunkRadiusHandler {
      * @param {Player} player 
      */
     static handle(_packet, _server, player) {
-        const maxViewDistance = _server.getConfig().get('view-distance', 10);
+        const maxViewDistance = _server.getConfig().getViewDistance();
         const viewDistance = (_packet.radius >= maxViewDistance) ? maxViewDistance : _packet.radius;
         player.setViewDistance(viewDistance);
 

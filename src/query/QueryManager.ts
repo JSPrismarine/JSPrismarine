@@ -5,16 +5,15 @@ import udp from 'dgram';
 export default class QueryManager {
     private server?: udp.Socket;
 
-    constructor(server?: Prismarine) {
-        if (!server)
-            return;
-        if (!server.getConfig().get('enable-query', true))
+    constructor(server: Prismarine) {
+        if (!server.getConfig().getEnableQuery())
             return;
 
         // TODO: setup query
-        const port = server.getConfig().get('query-port', 25565)
+        const port = server.getConfig().getQueryPort()
         this.server = udp.createSocket('udp4');
 
+        // TODO: https://wiki.vg/Server_List_Ping
         this.server?.on('message', (data, info) => {
             const buffer = new BinaryStream(Buffer.from(data.buffer))
             const magic = buffer.readShort();
@@ -75,9 +74,9 @@ export default class QueryManager {
                             'maxplayers',
                             server.getRaknet().name.getMaxPlayerCount(),
                             'hostport',
-                            server.getConfig().get('port', 25565),
+                            server.getConfig().getQueryPort(),
                             'hostip',
-                            server.getConfig().get('server-ip', '0.0.0.0')
+                            server.getConfig().getServerIp()
                         ].join('\0')}\0\0`, 'binary'));
 
                         // padding
@@ -110,7 +109,7 @@ export default class QueryManager {
         });
 
         try {
-            this.server.bind(port, server.getConfig().get('server-ip', '0.0.0.0'));
+            this.server.bind(port, server.getConfig().getServerIp());
             server.getLogger().info(`JSPrismarine query is now listening port §b${port}`);
         } catch (err) {
             server.getLogger().warn(`Failed to bind port ${port} for query: ${err}`);

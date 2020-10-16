@@ -8,11 +8,12 @@ const LevelDB = require('./leveldb/leveldb');
 export default class WorldManager {
     private worlds: Map<string, World> = new Map();
     private defaultWorld: World | null = null;
-    private genManager: GeneratorManager = new GeneratorManager();
+    private genManager: GeneratorManager;
     private server: Prismarine;
 
     constructor(server: Prismarine) {
         this.server = server;
+        this.genManager = new GeneratorManager(server);
     }
 
     /**
@@ -23,14 +24,14 @@ export default class WorldManager {
      */
     public loadWorld(worldData: any, folderName: string): World {
         if (this.isWorldLoaded(folderName)) {
-            return logger.warn(`World §e${folderName}§r has already been loaded!`);
+            return this.server.getLogger().warn(`World §e${folderName}§r has already been loaded!`);
         }
         let levelPath = process.cwd() + `/worlds/${folderName}/`;
         // TODO: figure out provider by data
         let world = new World({
             name: folderName,
             server: this.server,
-            provider: new LevelDB(levelPath),
+            provider: new LevelDB(levelPath, this.server),
 
             seed: worldData.seed,
             generator: worldData.generator
@@ -40,9 +41,9 @@ export default class WorldManager {
         // First level to be loaded is also the default one
         if (!this.defaultWorld) {
             this.defaultWorld = this.worlds.get(world.getUniqueId()) || null;
-            logger.info(`Loaded §b${folderName}§r as default world!`);
+            this.server.getLogger().info(`Loaded §b${folderName}§r as default world!`);
         }
-        logger.debug(`World §b${folderName}§r succesfully loaded!`);
+        this.server.getLogger().debug(`World §b${folderName}§r succesfully loaded!`);
         return world;
     }
 
@@ -53,20 +54,20 @@ export default class WorldManager {
      */
     public unloadWorld(folderName: string): void {
         if (!this.isWorldLoaded(folderName)) {
-            return logger.error(
+            return this.server.getLogger().error(
                 `Cannot unload a not loaded world with name §b${folderName}`
             );
         }
 
         let world = this.getWorldByName(folderName);
-        if (!world) return logger.error(`Cannot load world ${folderName}`);
+        if (!world) return this.server.getLogger().error(`Cannot load world ${folderName}`);
         if (this.defaultWorld == world) {
-            return logger.warn(`Cannot unload the default level!`);
+            return this.server.getLogger().warn(`Cannot unload the default level!`);
         }
 
         world.close();
         this.worlds.delete(world.getUniqueId());
-        logger.debug(`Successfully unloaded world §b${folderName}§f!`);
+        this.server.getLogger().debug(`Successfully unloaded world §b${folderName}§f!`);
     }  
 
     /**
