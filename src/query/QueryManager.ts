@@ -1,4 +1,4 @@
-import Prismarine from "../Prismarine";
+import type Prismarine from "../Prismarine";
 import BinaryStream from "@jsprismarine/jsbinaryutils";
 import udp from 'dgram';
 
@@ -97,7 +97,7 @@ export default class QueryManager {
                     }
                     break;
                 } case 9: { // Handshake
-                    // TODO: use bonary stream
+                    // TODO: use binary stream
                     const buffer = Buffer.alloc(7);
                     buffer.writeUInt8(9);
                     buffer.writeInt32BE(sessionId);

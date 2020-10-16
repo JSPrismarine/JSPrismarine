@@ -1,5 +1,5 @@
-import UUID from "../../utils/UUID";
-import Skin from '../../utils/skin/Skin';
+import type UUID from "../../utils/UUID";
+import type Skin from '../../utils/skin/Skin';
 
 
 class PlayerListEntry {

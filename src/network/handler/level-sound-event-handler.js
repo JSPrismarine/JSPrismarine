@@ -1,4 +1,4 @@
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const Player = require('../../player/Player').default;
 const LevelSoundEventPacket = require('../packet/level-sound-event');
 const Prismarine = require('../../Prismarine');

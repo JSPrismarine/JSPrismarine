@@ -1,5 +1,5 @@
 const Player = require('../../player/Player').default;
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const PlayerActionPacket = require('../packet/player-action');
 const PlayerAction = require('../type/player-action');
 const Prismarine = require('../../Prismarine');

@@ -1,6 +1,6 @@
 import Player from "../../player/Player";
 import Prismarine from "../../Prismarine";
-import Identifiers from "../identifiers";
+import Identifiers from "../Identifiers";
 import ActorFallPacket from "../packet/actor-fall";
 
 export default class ActorFallHandler {

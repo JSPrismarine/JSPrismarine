@@ -1,8 +1,8 @@
-import Prismarine from "../Prismarine";
-import Item from "../item";
-import Chunk from "../world/chunk/chunk";
+import type Prismarine from "../Prismarine";
+import type Item from "../item";
+import type Chunk from "../world/chunk/chunk";
+import type World from "../world/World";
 import Entity from "../entity/entity";
-import World from "../world/World";
 import Gamemode from "../world/gamemode";
 
 import EncapsulatedPacket from '@jsprismarine/raknet/protocol/encapsulated_packet';
@@ -216,7 +216,10 @@ export default class Player extends Entity {
         let unloaded = false;
 
         for (let hash of this.loadedChunks) {
-            let [x, z] = CoordinateUtils.decodePos(hash);
+            let [xx, zz] = CoordinateUtils.decodePos(hash as string);
+            let x: number, z: number;
+            x = parseFloat(xx);
+            z = parseFloat(zz);
 
             if (Math.abs(x - currentXChunk) > viewDistance ||
                 Math.abs(z - currentZChunk) > viewDistance) {
@@ -226,8 +229,10 @@ export default class Player extends Entity {
         }
 
         for (let hash of this.loadingChunks) {
-            let [x, z] = CoordinateUtils.decodePos(hash);
-
+            let [xx, zz] = CoordinateUtils.decodePos(hash as string);
+            let x: number, z: number;
+            x = parseFloat(xx);
+            z = parseFloat(zz);
             if (Math.abs(x - currentXChunk) > viewDistance ||
                 Math.abs(z - currentZChunk) > viewDistance) {
                 this.loadingChunks.delete(hash);
@@ -430,10 +435,10 @@ export default class Player extends Entity {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Add;
         let entry = new PlayerListEntry();
-        entry.uuid = UUID.fromString(this.uuid);
+        entry.uuid = UUID.fromString(this.uuid as string);
         entry.uniqueEntityId = this.runtimeId;
         entry.name = this.name;
-        entry.xuid = this.xuid;
+        entry.xuid = this.xuid as string;
         entry.platformChatId = '';  // TODO: read this value from StartGamePacket
         entry.buildPlatform = -1;  // TODO: read also this
         entry.skin = this.skin;
@@ -452,7 +457,7 @@ export default class Player extends Entity {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Remove;
         let entry = new PlayerListEntry();
-        entry.uuid = UUID.fromString(this.uuid);
+        entry.uuid = UUID.fromString(this.uuid as string);
         pk.entries.push(entry);
         for (let player of this.getServer().getOnlinePlayers()) {
             player.sendDataPacket(pk);
@@ -469,10 +474,10 @@ export default class Player extends Entity {
         for (let player of this.getServer().getOnlinePlayers()) {
             if (player === this) continue;
             let entry = new PlayerListEntry();
-            entry.uuid = UUID.fromString(player.uuid);
+            entry.uuid = UUID.fromString(player.uuid as string);
             entry.uniqueEntityId = player.runtimeId;
             entry.name = player.name;
-            entry.xuid = player.xuid;
+            entry.xuid = player.xuid as string;
             entry.platformChatId = '';  // TODO: read this value from StartGamePacket
             entry.buildPlatform = 0;  // TODO: read also this
             entry.skin = player.skin;
@@ -489,7 +494,7 @@ export default class Player extends Entity {
      */
     public sendSpawn(player: Player) {
         let pk = new AddPlayerPacket();
-        pk.uuid = UUID.fromString(this.uuid);
+        pk.uuid = UUID.fromString(this.uuid as string);
         pk.runtimeEntityId = this.runtimeId;
         pk.name = this.name;
 

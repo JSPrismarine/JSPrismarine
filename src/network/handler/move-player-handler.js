@@ -1,4 +1,4 @@
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const MovePlayerPacket = require('../packet/move-player').default;
 const Player = require('../../player/Player').default;
 const EventManager = require('../../events/event-manager');

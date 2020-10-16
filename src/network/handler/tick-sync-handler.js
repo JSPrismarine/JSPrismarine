@@ -1,4 +1,4 @@
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const TickSyncPacket = require('../packet/tick-sync');
 const Player = require('../../player/Player').default;
 const Prismarine = require('../../Prismarine');

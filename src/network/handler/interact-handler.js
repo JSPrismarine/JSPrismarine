@@ -1,5 +1,5 @@
 const Player = require('../../player/Player').default;
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const EventManager = require('../../events/event-manager');
 const EventIdentifiers = require('../../events/event-identifiers');
 const InteractPacket = require('../packet/interact');

@@ -4,7 +4,7 @@ const DataPacket = require('./packet');
 const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
 const RequiredBlockStates = require('@jsprismarine/bedrock-data').required_block_states;
 const PacketBinaryStream = require('../PacketBinaryStream');
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 
 class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket

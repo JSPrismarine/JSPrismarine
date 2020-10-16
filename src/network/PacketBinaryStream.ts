@@ -1,4 +1,4 @@
-import Prismarine from "../Prismarine";
+import type Prismarine from "../Prismarine";
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import NBT from '@jsprismarine/nbt';
 import UUID from '../utils/UUID';
@@ -9,14 +9,14 @@ import CommandOrigin from './type/command-origin';
 import NetworkLittleEndianBinaryStream from '@jsprismarine/nbt/streams/network-le-binary-stream';
 import CompoundTag from '@jsprismarine/nbt/tags/compound-tag';
 import SkinImage from '../utils/skin/SkinImage';
-import PlayerListEntry from './type/PlayerListEntry';
-import CreativeContentEntry from './type/creative-content-entry';
+import type PlayerListEntry from './type/PlayerListEntry';
+import type CreativeContentEntry from './type/creative-content-entry';
 import SkinAnimation from '../utils/skin/SkinAnimation';
 import SkinCape from '../utils/skin/SkinCape';
 import SkinPersonaPiece from '../utils/skin/skin-persona/PersonaPiece';
 import SkinPersona from '../utils/skin/skin-persona/Persona';
 import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/PieceTintColor';
-import Block from "../block";
+import type Block from "../block";
 import Item from "../item";
 import Logger from '../utils/Logger';
 
@@ -29,7 +29,7 @@ import ItemStackRequestDestroy from './type/item-stack-requests/destroy';
 import ItemStackRequestCreativeCreate from './type/item-stack-requests/creative-create';
 import ItemStackRequestConsume from './type/item-stack-requests/consume';
 import { triggerAsyncId } from 'async_hooks';
-import EntityAttribute from "./type/EntityAttribute";
+import type EntityAttribute from "./type/EntityAttribute";
 
 class PacketBinaryStream extends BinaryStream {
     #server: Prismarine;

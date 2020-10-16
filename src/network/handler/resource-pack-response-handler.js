@@ -1,4 +1,4 @@
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const ResourcePackResponsePacket = require('../packet/resource-pack-response');
 const ResourcePackStatus = require('../type/resource-pack-status');
 const BiomeDefinitionListPacket = require('../packet/biome-definition-list');

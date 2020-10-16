@@ -15,6 +15,5 @@ class CommandData {
     aliases = []
     /** @type {Set<CommandParameter>} */
     parameters = new Set()
-
 }
 module.exports = CommandData;

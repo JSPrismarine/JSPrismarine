@@ -1,5 +1,5 @@
 const DataPacket = require('./packet');
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const Logger = require('../../utils/Logger');
 
 class ItemStackRequestPacket extends DataPacket {

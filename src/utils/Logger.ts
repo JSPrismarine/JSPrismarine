@@ -1,7 +1,8 @@
-import { Logger } from "winston";
+import type { Logger } from "winston";
 
-const { createLogger, format, transports } = require('winston');
+import { createLogger, format, transports } from 'winston';
 const { combine, timestamp, printf } = format;
+// Todo refactor and type
 const mcColors = require("mccolorstoconsole");
 
 export default class LoggerBuilder {

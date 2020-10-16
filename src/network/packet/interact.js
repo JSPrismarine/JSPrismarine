@@ -1,5 +1,5 @@
 const DataPacket = require('./packet');
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const InteractAction = require('../type/interact-action');
 
 
