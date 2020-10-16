@@ -66,6 +66,7 @@ export default class Prismarine {
             let timing = await new Promise((resolve, reject) => {
                 let time = Date.now();
                 let world = this.getWorldManager().getDefaultWorld();
+                if (!world) return reject();  // Temp solution
                 let player = new Player(
                     connection, connection.address, world, this
                 );
