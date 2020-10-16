@@ -2,7 +2,7 @@ const logger = require('../../utils/Logger');
 
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
-const PlayerListEntry = require('../type/player-list-entry');
+const PlayerListEntry = require('../type/PlayerListEntry');
 const PlayerListAction = require('../type/player-list-action');
 
 

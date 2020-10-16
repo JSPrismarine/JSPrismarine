@@ -1,4 +1,4 @@
-const UUID = require('../../utils/UUID');
+import UUID from '../../utils/UUID';
 
 
 class CommandOriginData {
@@ -15,4 +15,4 @@ class CommandOriginData {
     uniqueEntityId = null
     
 }
-module.exports = CommandOriginData;
+export default CommandOriginData;

@@ -9,15 +9,15 @@ import CommandOrigin from './type/command-origin';
 import NetworkLittleEndianBinaryStream from '@jsprismarine/nbt/streams/network-le-binary-stream';
 import CompoundTag from '@jsprismarine/nbt/tags/compound-tag';
 import SkinImage from '../utils/skin/skin-image';
-import PlayerListEntry from './type/player-list-entry';
+import PlayerListEntry from './type/PlayerListEntry';
 import CreativeContentEntry from './type/creative-content-entry';
 import SkinAnimation from '../utils/skin/skin-animation';
 import SkinCape from '../utils/skin/skin-cape';
 import SkinPersonaPiece from '../utils/skin/skin-persona/persona-piece';
 import SkinPersona from '../utils/skin/skin-persona/persona';
 import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/piece-tint-color';
-const Item = require('../item').default;
-const Block = require('../block').default;
+import Block from "../block";
+import Item from "../item";
 import Logger from '../utils/Logger';
 
 import ItemStackRequest from './type/item-stack-requests/item-stack-request';
@@ -29,6 +29,7 @@ import ItemStackRequestDestroy from './type/item-stack-requests/destroy';
 import ItemStackRequestCreativeCreate from './type/item-stack-requests/creative-create';
 import ItemStackRequestConsume from './type/item-stack-requests/consume';
 import { triggerAsyncId } from 'async_hooks';
+import EntityAttribute from "./type/EntityAttribute";
 
 class PacketBinaryStream extends BinaryStream {
     #server: Prismarine;
@@ -231,7 +232,7 @@ class PacketBinaryStream extends BinaryStream {
     /**
      * Encodes a skin image into the buffer.
      */
-    public writeSkinImage(image: SkinImage) {
+    public writeSkinImage(image: SkinImage): void {
         this.writeLInt(image.width);
         this.writeLInt(image.height);
         this.writeBuffer(image.data);
@@ -239,12 +240,10 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Encodes a player list entry into the buffer.
-     * 
-     * @param {PlayerListEntry} entry 
      */
-    public writePlayerListAddEntry(entry: PlayerListEntry) {
+    public writePlayerListAddEntry(entry: PlayerListEntry): void {
         this.writeUUID(entry.uuid);
-        this.writeVarLong(entry.uniqueEntityId);
+        this.writeVarLong(BigInt(entry.uniqueEntityId));
         this.writeString(entry.name);
         this.writeString(entry.xuid);
         this.writeString(entry.platformChatId);
@@ -256,14 +255,12 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Removes a player list entry by UUID.
-     * 
-     * @param {PlayerListEntry} entry 
      */
-    public writePlayerListRemoveEntry(entry) {
+    public writePlayerListRemoveEntry(entry: PlayerListEntry): void {
         this.writeUUID(entry.uuid);
     }
 
-    public writeAttributes(attributes) {
+    public writeAttributes(attributes: EntityAttribute[]): void {
         this.writeUnsignedVarInt(attributes.length);
         for (let attribute of attributes) {
             this.writeLFloat(attribute.min);
@@ -274,20 +271,15 @@ class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    /**
-     * @param {CreativeContentEntry} entry 
-     */
-    public writeCreativeContentEntry(entry) {
+    public writeCreativeContentEntry(entry: CreativeContentEntry): void {
         this.writeVarInt(entry.entryId);
         this.writeItemStack(entry.item);
     }
 
     /**
      * Serializes gamerules into the buffer.
-     * 
-     * @param {Map<String, Boolean|Number>} rules 
      */
-    public writeGamerules(rules) {
+    public writeGamerules(rules: Map<string, boolean|number>): void {
         this.writeUnsignedVarInt(rules.size);
         for (let [name, value] of rules) {
             this.writeString(name);
@@ -311,42 +303,26 @@ class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    /**
-     * @private
-     * @param {number} n
-     */
-    public isInt(n) {
-        return n % 1 === 0;
-    }
-
-    /**
-     * @private
-     * @param {number} n
-     */
-    public isFloat(n) {
-        return n % 1 !== 0;
-    }
-
-    public writeEntityMetadata(metadata) {
+    public writeEntityMetadata(metadata: Map<number, Array<number|string>>) {
         this.writeUnsignedVarInt(metadata.size);
         for (const [index, value] of metadata) {
             this.writeUnsignedVarInt(index);
-            this.writeUnsignedVarInt(value[0]);
+            this.writeUnsignedVarInt(value[0] as number);
             switch (value[0]) {
                 case FlagType.Byte:
-                    this.writeByte(value[1]);
+                    this.writeByte(value[1] as number);
                     break;
                 case FlagType.Float:
-                    this.writeLFloat(value[1]);
+                    this.writeLFloat(value[1] as number);
                     break;
                 case FlagType.Long:
-                    this.writeVarLong(value[1]);
+                    this.writeVarLong(BigInt(value[1] as number));
                     break;
                 case FlagType.String:
-                    this.writeString(value[1]);
+                    this.writeString(value[1] as string);
                     break;
                 case FlagType.Short:
-                    this.writeLShort(value[1]);
+                    this.writeLShort(value[1] as number);
                     break;
                 default:
                     this.#server.getLogger().warn(`Unknown meta type ${value}`);
@@ -354,10 +330,7 @@ class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    /**
-     * @returns {Item}
-     */
-    public readItemStack() {
+    public readItemStack(): any {
         let id = this.readVarInt();
         if (id == 0) {
             // TODO: items
@@ -410,7 +383,7 @@ class PacketBinaryStream extends BinaryStream {
      * 
      * @param {Item | Block} itemstack 
      */
-    public writeItemStack(itemstack) {
+    public writeItemStack(itemstack: Item|Block) {
         if (itemstack.name === 'minecraft:air') {
             return this.writeVarInt(0);
         }
@@ -555,9 +528,18 @@ class PacketBinaryStream extends BinaryStream {
 
         if (data.type === CommandOrigin.DevConsole ||
             data.type === CommandOrigin.Test) {
-            data.uniqueEntityId = this.readVarLong();
+            data.uniqueEntityId = Number(this.readVarLong());
         }
         return data;
+    }
+
+    
+    private isInt(n: number): boolean {
+        return n % 1 === 0;
+    }
+
+    private isFloat(n: number): boolean {
+        return n % 1 !== 0;
     }
 
 }

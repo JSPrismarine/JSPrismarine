@@ -1,6 +1,6 @@
 const DataPacket = require('./packet');
 const Identifiers = require('../identifiers');
-const CommandOriginData = require('../type/command-origin-data');
+const CommandOriginData = require('../type/command-origin-data').default;
 
 
 class CommandRequestPacket extends DataPacket {
