@@ -89,7 +89,7 @@ export default class Prismarine {
                     resolve(Date.now() - time);
                 });
 
-                this.logger.debug(`Player creation took about ${timing} ms`);
+                this.logger.silly(`Player creation took about ${timing} ms`);
                 resolve();
             })
         });
@@ -115,6 +115,7 @@ export default class Prismarine {
                     return reject(`Error while decoding batch`);
                 }
 
+                const handlers = [];
                 // Read all packets inside batch and handle them
                 for (let buf of pk.getPackets()) {
                     if (this.packetRegistry.getPackets().has(buf[0])) {
@@ -127,13 +128,14 @@ export default class Prismarine {
                             // Check if the handler exists
                             if (this.packetRegistry.getHandlers().has(packet.id)) {
                                 let handler = this.packetRegistry.getHandlers().get(packet.id);
-
-                                try {
-                                    await handler.handle(packet, this, player);
-                                } catch (err) {
-                                    return reject(`Handler error ${packet.constructor.name}-handler: (${err})`);
-                                }
-
+                                handlers.push(new Promise(async (resolve, reject) => {
+                                    try {
+                                        await handler.handle(packet, this, player);
+                                        return resolve();
+                                    } catch (err) {
+                                        return reject(`Handler error ${packet.constructor.name}-handler: (${err})`);
+                                    }
+                                }));
                             } else {
                                 return reject(`Packet ${packet.constructor.name} doesn't have a handler`);
                             }
@@ -146,33 +148,41 @@ export default class Prismarine {
                     }
                 }
 
-                return resolve();
+                try {
+                    await Promise.all(handlers);
+                    return resolve();
+                } catch (err) {
+                    return reject(err);
+                }
             }).catch(err => this.logger.error(err));
         });
 
-        this.raknet.on('closeConnection', async (inetAddr: any, reason: string) => {
-            let timing = await new Promise((resolve, reject) => {
-                let time = Date.now();
-                let token = `${inetAddr.address}:${inetAddr.port}`;
-                if (this.players.has(token)) {
-                    let player = this.players.get(token);
-                    if (!player) return reject(this.logger.error(`Could not find player: ${token}`));
+        this.raknet.on('closeConnection', (inetAddr: any, reason: string) => {
+            return new Promise(async (resolve, reject) => {
+                let timing = await new Promise((resolve, reject) => {
+                    let time = Date.now();
+                    let token = `${inetAddr.address}:${inetAddr.port}`;
+                    if (this.players.has(token)) {
+                        let player = this.players.get(token);
+                        if (!player) return reject(this.logger.error(`Could not find player: ${token}`));
 
-                    // Despawn the player to all online players
-                    player.removeFromPlayerList();
-                    this.players.delete(token);
-                    for (let onlinePlayer of this.players.values()) {
-                        player.sendDespawn(onlinePlayer);
+                        // Despawn the player to all online players
+                        player.removeFromPlayerList();
+                        this.players.delete(token);
+                        for (let onlinePlayer of this.players.values()) {
+                            player.sendDespawn(onlinePlayer);
+                        }
+                        player.getWorld().removePlayer(player);
+
                     }
-                    player.getWorld().removePlayer(player);
+                    this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
+                    this.raknet.name.setOnlinePlayerCount(this.players.size);
+                    resolve(Date.now() - time);
+                });
 
-                }
-                this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
-                this.raknet.name.setOnlinePlayerCount(this.players.size);
-                resolve(Date.now() - time);
+                this.logger.silly(`Player destruction took about ${timing} ms`);
+                resolve();
             });
-
-            this.logger.debug(`Player destruction took about ${timing} ms`);
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
