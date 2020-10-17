@@ -20,8 +20,6 @@ export default class QueryManager {
             const type = buffer.readByte();
             const sessionId = buffer.readInt();
 
-            console.log({ magic, type, sessionId });
-
             if (magic !== 65277)
                 return server.getLogger().silly(`Query ${magic} !== 65277. ${JSON.stringify(info)}`);
 
