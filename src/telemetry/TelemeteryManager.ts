@@ -1,6 +1,7 @@
 import fetch, { Headers } from 'node-fetch';
 import { machineIdSync } from 'node-machine-id';
 import Prismarine from "../prismarine";
+import git from 'git-rev-sync';
 
 export default class TelemetryManager {
     private server: Prismarine;
@@ -8,6 +9,7 @@ export default class TelemetryManager {
         this.server = server;
         const { enabled, urls } = server.getConfig().getTelemetry();
         const id = this.generateAnonomizedId();
+        const git_rev = git.short() || 'unknown';
 
         if (!enabled)
             return;
@@ -22,27 +24,36 @@ export default class TelemetryManager {
         server.getLogger().info('To find out exactly what we\'re collecting please visit the following url(s):');
         urls.forEach(url => server.getLogger().info(`- ${url}/id/${id}`));
 
-        setInterval(async () => {
+        const tick = async () => {
             const body = {
                 id,
-                version: `${server.getConfig().getVersion()}:unknown`, // TODO
+                version: `${server.getConfig().getVersion()}:${git_rev}`,
                 online_mode: true, // TODO,
-                player_count: server.getRaknet().name.getOnlinePlayerCount(),
+                player_count: server.getRaknet()?.name.getOnlinePlayerCount() || 0,
                 max_player_count: server.getConfig().getMaxPlayers(),
                 plugins: [], //  TODO
                 tps: 20, // TODO
-                uptime: process.uptime(),
+                uptime: Math.trunc(process.uptime() / 1000),
                 node_env: process.env.NODE_ENV
             };
 
-            urls.forEach(url => fetch(`${url}/api/heartbeat`, {
-                method: 'POST',
-                body: JSON.stringify(body),
-                headers: new Headers({
-                    'Content-Type': 'application/json'
-                })
+            await Promise.all(urls.map(async url => {
+                try {
+                    await fetch(`${url}/api/heartbeat`, {
+                        method: 'POST',
+                        body: JSON.stringify(body),
+                        headers: new Headers({
+                            'Content-Type': 'application/json'
+                        })
+                    });
+                } catch (err) {
+                    server.getLogger().debug(`Failed to tick: ${url} (${err})`)
+                }
             }))
-        }, 5 * 60 * 1000);
+        };
+
+        tick();
+        setInterval(tick, 5 * 60 * 1000);
     }
 
     public generateAnonomizedId(): string {
