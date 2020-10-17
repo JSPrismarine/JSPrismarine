@@ -1,3 +1,5 @@
+import { RemoteInfo } from "dgram";
+
 export interface InetAddressData {
     address: string;
     port: number;
@@ -25,5 +27,16 @@ export default class InetAddress {
 
     public getFamily(): string {
         return this.family;
+    }
+
+    public toToken(): string {
+        return `${this.address}:${this.port}`;
+    }
+
+    public static fromRemoteInfo(rinfo: RemoteInfo) {
+        return new InetAddress({ 
+            address: rinfo.address,
+            port: rinfo.port
+        });
     }
 }

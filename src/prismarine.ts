@@ -7,6 +7,7 @@ import Config from "./config";
 import WorldManager from "./world/world-manager";
 import QueryManager from "./query/QueryManager";
 import PluginManager from "./plugin/plugin-manager";
+import RakNetServer from "./network/raknet/server/RakNetServer";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -55,6 +56,9 @@ export default class Prismarine {
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132) {
+        let raknet = new RakNetServer({ address: serverIp, port: 19132, type: "udp4" });
+        raknet.listen();
+
         this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
         this.raknet.name.setVersion(Identifiers.Protocol);

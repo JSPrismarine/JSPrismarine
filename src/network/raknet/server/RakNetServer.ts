@@ -1,9 +1,13 @@
 import { createSocket, RemoteInfo, Socket as DSocket } from "dgram";
+import OfflineMessageHandler from "../handler/OfflineMessageHandler";
 import InetAddress, { InetAddressData } from "../util/InetAddress";
 import IRakNetServer from "./IRakNetServer";
 import RakNetConnection from "./RakNetConnection";
 
 interface RakNetServerData extends InetAddressData {
+    /**
+     * Socket interface type (IPv4/IPv6).
+     */
     type: "udp4" | "udp6";
     /**
      * Maximum transfer unit (buffer per packet).
@@ -18,7 +22,8 @@ interface RakNetServerData extends InetAddressData {
 export default class RakNetServer implements IRakNetServer {
     private readonly bindAddress: InetAddress;
     private readonly socket: DSocket = createSocket("udp4");  
-    private clients: Map<RemoteInfo, RakNetConnection> = new Map();
+    private readonly offlineMsgHandler = new OfflineMessageHandler();
+    private clients: Map<String, RakNetConnection> = new Map(); 
 
     constructor(raknetData: RakNetServerData) {
         if (raknetData.type == "udp6") {
@@ -43,8 +48,16 @@ export default class RakNetServer implements IRakNetServer {
     }
 
     private async handleMessage(msg: Buffer, rinfo: RemoteInfo): Promise<void> {
-        const packetID = msg.readUInt8();  
+        const header = msg.readUInt8();  
 
-        switch (packetID) {}
+        let token = InetAddress.fromRemoteInfo(rinfo).toToken();
+        if (this.clients.has(token)) {
+             
+        } else {
+            this.socket.send(
+                await this.offlineMsgHandler.handle(header, msg),
+                rinfo.port, rinfo.address
+            ) 
+        }
     }
 }
