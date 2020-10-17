@@ -7,6 +7,8 @@ import Config from "./config";
 import WorldManager from "./world/world-manager";
 import QueryManager from "./query/QueryManager";
 import PluginManager from "./plugin/plugin-manager";
+import LoggerBuilder from "./utils/Logger";
+import TelemetryManager from "./telemetry/TelemeteryManager";
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -19,10 +21,11 @@ interface PrismarineData {
 
 export default class Prismarine {
     private raknet: any;
-    private logger: any;
+    private logger: LoggerBuilder;
     private config: Config;
 
     private players: Map<string, Player> = new Map();
+    private telemetryManager: TelemetryManager;
     private packetRegistry: PacketRegistry;
     private pluginManager: PluginManager;
     private commandManager: CommandManager;
@@ -36,6 +39,7 @@ export default class Prismarine {
     constructor({ logger, config }: PrismarineData) {
         this.logger = logger;
         this.config = config;
+        this.telemetryManager = new TelemetryManager(this);
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
@@ -293,7 +297,7 @@ export default class Prismarine {
         return this.blockManager;
     }
 
-    getLogger() {
+    getLogger(): LoggerBuilder {
         return this.logger;
     }
 
