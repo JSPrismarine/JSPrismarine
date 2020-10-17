@@ -1,8 +1,17 @@
 import { createSocket, RemoteInfo, Socket as DSocket } from "dgram";
-import OfflineMessageHandler from "../handler/OfflineMessageHandler";
+import { RakNetIdentifiers } from "../protocol/RakNetIdentifiers";
+import Packet from "../protocol/types/Packet";
+import UnconnectedPing from "../protocol/UnconnectedPing";
+import UnconnectedPong from "../protocol/UnconnectedPong";
 import InetAddress, { InetAddressData } from "../util/InetAddress";
 import IRakNetServer from "./IRakNetServer";
-import RakNetConnection from "./RakNetConnection";
+import { randomBytes } from "crypto"
+import OpenConnectionRequestOne from "../protocol/OpenConnectionRequestOne";
+import OpenConnectionReplyOne from "../protocol/OpenConnectionReplyOne";
+import { RAKNET_PROTOCOL } from "./RakNetCostants";
+import OpenConnectionRequestTwo from "../protocol/OpenConnectionRequestTwo";
+import OpenConnectionReplyTwo from "../protocol/OpenConnectionReplyTwo";
+import NetworkQueueHandler from "../handler/NetworkQueueHandler";
 
 interface RakNetServerData extends InetAddressData {
     /**
@@ -22,7 +31,7 @@ interface RakNetServerData extends InetAddressData {
 export default class RakNetServer implements IRakNetServer {
     private readonly bindAddress: InetAddress;
     private readonly socket: DSocket = createSocket("udp4");  
-    private readonly offlineMsgHandler = new OfflineMessageHandler();
+    private readonly GUID: bigint = randomBytes(8).readBigInt64BE();
     private clients: Map<String, RakNetConnection> = new Map(); 
 
     constructor(raknetData: RakNetServerData) {
@@ -55,9 +64,71 @@ export default class RakNetServer implements IRakNetServer {
              
         } else {
             this.socket.send(
-                await this.offlineMsgHandler.handle(header, msg),
+                await this.handleOfflineMessage(header, msg, rinfo),
                 rinfo.port, rinfo.address
-            ) 
+            )
         }
+    }
+
+    public async handleOfflineMessage(header: number, msg: Buffer, rinfo: RemoteInfo): Promise<Buffer> {
+        return await new Promise(resolve => {
+            let decoded, encoded;
+            switch (header) {
+                case RakNetIdentifiers.UNCONNECTED_PING:
+                    decoded = new UnconnectedPing(msg);
+                    decoded.decodeInternal();
+
+                    if (!decoded.isMagicValid()) {
+                        // TODO: skip fake Offline packet...
+                    }
+
+                    encoded = new UnconnectedPong();
+                    encoded.timestamp = decoded.timestamp;
+                    encoded.pongId = this.GUID;
+                    encoded.serverName = 'MCPE;JSRakNet;407;1.16.0;0;5;server_id;JSRakNet;Creative;1;19132;19132;';  // TODO: change with actual MOTD
+                    encoded.encodeInternal();
+                    return resolve(encoded.getOutputBuffer());
+                case RakNetIdentifiers.OPEN_CONNECTION_REQUEST_1:
+                    decoded = new OpenConnectionRequestOne(msg);
+                    decoded.decodeInternal();
+
+                    if (!decoded.isMagicValid()) {
+                        // TODO: skip fake Offline packet...
+                    }
+
+                    if (decoded.protocolVersion != RAKNET_PROTOCOL) {
+                        encoded = new Packet() // TODO
+                        // Send incompatible protocol
+                        console.log("Incom proto")
+                    } else {
+                        encoded = new OpenConnectionReplyOne();
+                        encoded.GUID = this.GUID;
+                        encoded.maximumTransferUnit = decoded.maximumTransferUnit;
+                        encoded.encodeInternal();
+                    }
+                    return resolve(encoded.getOutputBuffer());
+                case RakNetIdentifiers.OPEN_CONNECTION_REQUEST_2:
+                    decoded = new OpenConnectionRequestTwo(msg);
+                    decoded.decodeInternal();
+
+                    if (!decoded.isMagicValid()) {
+                        // TODO: skip fake Offline packet...
+                    }
+
+                    const clientAddr = InetAddress.fromRemoteInfo(rinfo);
+                    encoded = new OpenConnectionReplyTwo();
+                    encoded.mtuSize = decoded.mtuSize;   // TODO: able to change from config
+                    encoded.serverGUID = this.GUID;
+                    encoded.clientAddress = clientAddr;
+                    encoded.encodeInternal();
+
+                    // Create session
+                    const token = clientAddr.toToken();
+                    const conn = new NetworkQueueHandler(this, decoded.clientGUID, decoded.mtuSize); 
+                    this.clients.set(token, conn);
+
+                    return resolve(encoded.getOutputBuffer());
+            }
+        });
     }
 }
