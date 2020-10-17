@@ -23,8 +23,6 @@ export default class TelemetryManager {
         urls.forEach(url => server.getLogger().info(`- ${url}/id/${id}`));
 
         setInterval(async () => {
-            this.server.getLogger().error(`Something went terrible wrong`);
-
             const body = {
                 id,
                 version: `${server.getConfig().getVersion()}:unknown`, // TODO
@@ -78,7 +76,7 @@ export default class TelemetryManager {
         }))).filter(a => a);
 
         if (!links.length) {
-            this.server.getLogger().error('Failed to submit error to telemetry backend');
+            this.server.getLogger().error('Failed to submit error to telemetry service!');
             return;
         }
 
