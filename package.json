@@ -1,7 +1,7 @@
 {
-  "name": "@jsprismarine/jsprismarine",
+  "name": "@jsprismarine/prismarine",
   "version": "1.0.0",
-  "description": "Basic Minecraft Bedrock Edition software ",
+  "description": "Dedicated Minecraft Bedrock Edition server written in JavaScript",
   "main": "./dist/src/server.js",
   "types": "./dist/src/server.d.ts",
   "bin": "./dist/src/server.js",

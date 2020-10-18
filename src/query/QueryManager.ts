@@ -56,6 +56,7 @@ export default class QueryManager {
                         res.writeByte(0);
                         // End padding
 
+                        const plugins = server.getPluginManager().getPlugins().map(plugin => `${plugin.manifest.name} ${plugin.manifest.version}`);
                         res.append(Buffer.from(`\0${[
                             'hostname',
                             server.getRaknet().name.getMotd(),
@@ -66,7 +67,7 @@ export default class QueryManager {
                             'version',
                             `${server.getConfig().getVersion()}:${git_rev}`,
                             'plugins',
-                            'JSPrismarine:', // TODO
+                            `JSPrismarine on Prismarine ${server.getConfig().getVersion()}-${git_rev}${plugins.length && ': ' || ''}${plugins.join('; ')}`, // TODO
                             'map',
                             server.getWorldManager().getDefaultWorld()?.getName(),
                             'numplayers',

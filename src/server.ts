@@ -33,21 +33,6 @@ Server.getWorldManager().loadWorld(
     defaultWorld
 );
 
-// Load all plugins
-let pluginFolders = fs.readdirSync(process.cwd() + '/plugins');
-for (let i = 0; i < pluginFolders.length; i++) {
-    const folderName = pluginFolders[i];
-    try {
-        Server.getPluginManager().loadPlugin(
-            path.resolve('./plugins', folderName)
-        );
-    } catch (error) {
-        Server.getLogger().warn(
-            `Error while loading plugin §b${folderName}§r: §c${error}`
-        );
-    }
-}
-
 // Console command reader
 process.stdin.setEncoding('utf8');
 let rl = readline.createInterface({ input: process.stdin });

@@ -17,7 +17,7 @@ const Identifiers = require('./network/identifiers');
 interface PrismarineData {
     logger: any,
     config: any
-}
+};
 
 export default class Prismarine {
     private raknet: any;
