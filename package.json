@@ -81,7 +81,9 @@
     "husky": "4.3.0",
     "node-fetch": "2.6.1",
     "nodemon": "2.0.5",
-    "pkg": "git+https://github.com/geekuillaume/pkg.git",
     "typescript": "4.0.3"
+  },
+  "peerOptionalDependencies": {
+    "pkg": "git+https://github.com/geekuillaume/pkg.git"
   }
 }
