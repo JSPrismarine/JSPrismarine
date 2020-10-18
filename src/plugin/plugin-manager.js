@@ -3,7 +3,6 @@ const Plugin = require('./plugin');
 const fs = require('fs');
 const path = require('path');
 const PluginManifest = require('./plugin-manifest');
-const EventManager = require('../events/event-manager');
 const PluginAPI = require('./plugin-api');
 
 
@@ -19,10 +18,26 @@ class PluginManager {
 
     constructor(server) {
         this.#server = server;
+
+        // Load all plugins
+        let plugins = fs.readdirSync(process.cwd() + '/plugins');
+        for (let i = 0; i < plugins.length; i++) {
+            const folderName = plugins[i];
+            try {
+                this.loadPlugin(
+                    path.resolve('./plugins', folderName)
+                );
+            } catch (error) {
+                this.#server.getLogger().warn(
+                    `Error while loading plugin §b${folderName}§r: §c${error}`
+                );
+            }
+        }
+        this.#server.getLogger().debug(`Registered §b${plugins.length}§r plugin(s)!`);
     }
 
     /**
-     * @param {String} pluginFolder 
+     * @param {String} pluginFolder
      */
     loadPlugin(pluginFolder) {
         let manifestFilePath = path.join(pluginFolder, 'manifest.json');
@@ -49,7 +64,7 @@ class PluginManager {
         }
 
         if (
-            typeof pluginManifest.version != 'string' || 
+            typeof pluginManifest.version != 'string' ||
             !/^\d{1,2}.\d{1,2}.\d{1,3}$/.test(pluginManifest.version)
         ) {
             throw `invalid plugin version, /^\\d{1,2}.\\d{1,2}.\\d{1,3}$/ expected, ${pluginManifest.version} found`;
@@ -77,7 +92,7 @@ class PluginManager {
 
         this.#plugins.set(pluginManifest.name, plugin);
         plugin.main(new PluginAPI(this.#server, plugin)); // i did in better way the *Plugin API*
-        this.#server.getLogger().info(`Plugin §b${plugin.manifest.name}§r loaded successfully!`);
+        this.#server.getLogger().info(`Plugin §b${plugin.manifest.name}@${plugin.manifest.version}§r loaded successfully!`);
         return true;
     }
 
