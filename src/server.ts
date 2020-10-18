@@ -6,10 +6,14 @@ import Prismarine from './Prismarine';
 import ConsoleSender from './utils/ConsoleSender';
 import ConfigBuilder from './config';
 import LoggerBuilder from './utils/Logger';
+import pkg from '../package.json';
+import Identifiers from './network/identifiers';
 
-const Config: ConfigBuilder = new ConfigBuilder();
-const Logger: LoggerBuilder = new LoggerBuilder();
-const Server: Prismarine = new Prismarine({
+const Config = new ConfigBuilder();
+const Logger = new LoggerBuilder();
+
+Logger.info(`Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`)
+const Server = new Prismarine({
     config: Config,
     logger: Logger,
 });

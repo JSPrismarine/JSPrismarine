@@ -22,9 +22,10 @@ class WorldManager {
      * @param worldData - World properties data
      * @param folderName - World folder name
      */
-    public loadWorld(worldData: any, folderName: string): World {
+    public loadWorld(worldData: any, folderName: string): World | null {
         if (this.isWorldLoaded(folderName)) {
-            return this.server.getLogger().warn(`World §e${folderName}§r has already been loaded!`);
+            this.server.getLogger().warn(`World §e${folderName}§r has already been loaded!`);
+            return null;
         }
         let levelPath = process.cwd() + `/worlds/${folderName}/`;
         // TODO: figure out provider by data
