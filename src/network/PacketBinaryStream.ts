@@ -1,13 +1,10 @@
 import type Prismarine from "../Prismarine";
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import NBT from '@jsprismarine/nbt';
 import UUID from '../utils/UUID';
 import Skin from '../utils/skin/Skin';
 import { FlagType } from '../entity/metadata';
 import CommandOriginData from './type/CommandOriginData';
 import CommandOrigin from './type/CommandOrigin';
-import NetworkLittleEndianBinaryStream from '@jsprismarine/nbt/streams/network-le-binary-stream';
-import CompoundTag from '@jsprismarine/nbt/tags/compound-tag';
 import SkinImage from '../utils/skin/SkinImage';
 import type PlayerListEntry from './type/PlayerListEntry';
 import type CreativeContentEntry from './type/CreativeContentEntry';
@@ -30,6 +27,10 @@ import ItemStackRequestCreativeCreate from './type/item-stack-requests/creative-
 import ItemStackRequestConsume from './type/item-stack-requests/consume';
 import { triggerAsyncId } from 'async_hooks';
 import type EntityAttribute from "./type/EntityAttribute";
+
+const NBT = require('@jsprismarine/nbt');
+const NetworkLittleEndianBinaryStream = require('@jsprismarine/nbt/streams/network-le-binary-stream');
+const CompoundTag = require('@jsprismarine/nbt/tags/compound-tag');
 
 class PacketBinaryStream extends BinaryStream {
     #server: Prismarine;
@@ -196,7 +197,7 @@ class PacketBinaryStream extends BinaryStream {
 
         // Miscellaneus
         this.writeString(skin.geometry);
-        this.writeString(skin.animationData);
+        this.writeString(skin.animationData as string);
         this.writeBool(skin.isPremium);
         this.writeBool(skin.isPersona);
         this.writeBool(skin.isCapeOnClassicSkin);
@@ -235,7 +236,7 @@ class PacketBinaryStream extends BinaryStream {
     public writeSkinImage(image: SkinImage): void {
         this.writeLInt(image.width);
         this.writeLInt(image.height);
-        this.writeBuffer(image.data);
+        this.writeBuffer(image.data as Buffer);
     }
 
     /**
@@ -375,7 +376,11 @@ class PacketBinaryStream extends BinaryStream {
             }
         } */
 
-        return new Item(id, meta, amount, nbt, name);
+        let item: Item = new Item({ name: name || 'air', id: id });
+        item.meta = meta;
+        item.count = amount;
+        item.nbt = nbt;
+        return item;
     }
 
     /**

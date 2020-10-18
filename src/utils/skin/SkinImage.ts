@@ -1,13 +1,13 @@
 interface SkinImageData {
     width: number;
     height: number;
-    data: Buffer;
+    data: Buffer|string;
 }
 
 class SkinImage {
     public width: number;
     public height: number;
-    public data: Buffer;
+    public data: Buffer|string;
 
     constructor(options: SkinImageData) {
         this.width = options.width;

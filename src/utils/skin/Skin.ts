@@ -13,12 +13,12 @@ class Skin {
     public cape!: SkinCape;
     // TODO Class for geometry??
     public geometry!: string;
-    public animationData!: Buffer;
+    public animationData!: Buffer|string;
     public isPremium!: boolean;
     public isPersona!: boolean;
     public isCapeOnClassicSkin!: boolean;
     public color!: string;
-    public armSize!: boolean;
+    public armSize!: string;
     public persona!: SkinPersona;
     /**
      * Full skin ID, computed because

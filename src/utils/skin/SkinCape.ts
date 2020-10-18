@@ -6,12 +6,14 @@ interface SkinCapeData {
 }
 
 class SkinCape {
-    public id: string;
-    public image: SkinImage;
+    public id!: string;
+    public image!: SkinImage;
 
-    constructor(options: SkinCapeData) {
-        this.id = options.id;
-        this.image = options.image;
+    constructor(options?: SkinCapeData) {
+        if (options) {
+            this.id = options.id;
+            this.image = options.image;
+        }
     }
 }
 
