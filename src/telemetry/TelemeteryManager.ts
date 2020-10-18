@@ -33,7 +33,7 @@ export default class TelemetryManager {
                 max_player_count: server.getConfig().getMaxPlayers(),
                 plugins: [], //  TODO
                 tps: 20, // TODO
-                uptime: Math.trunc(process.uptime() / 1000),
+                uptime: Math.trunc(process.uptime() * 1000),
                 node_env: process.env.NODE_ENV
             };
 
