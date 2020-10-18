@@ -7,7 +7,7 @@ import ConsoleSender from './utils/ConsoleSender';
 import ConfigBuilder from './config';
 import LoggerBuilder from './utils/Logger';
 import pkg from '../package.json';
-import Identifiers from './network/identifiers';
+import Identifiers from './network/Identifiers';
 
 const Config = new ConfigBuilder();
 const Logger = new LoggerBuilder();
