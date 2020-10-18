@@ -7,7 +7,7 @@ import type Config from "./config";
 import WorldManager from "./world/WorldManager";
 import QueryManager from "./query/QueryManager";
 import PluginManager from "./plugin/plugin-manager";
-import LoggerBuilder from "./utils/Logger";
+import type LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
 
 const Listener = require('@jsprismarine/raknet');

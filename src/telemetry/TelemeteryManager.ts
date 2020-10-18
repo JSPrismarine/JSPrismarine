@@ -1,6 +1,6 @@
 import fetch, { Headers } from 'node-fetch';
 import { machineIdSync } from 'node-machine-id';
-import Prismarine from "../prismarine";
+import type Prismarine from "../Prismarine";
 import git from 'git-rev-sync';
 
 export default class TelemetryManager {
