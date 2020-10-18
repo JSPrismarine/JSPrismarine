@@ -83,7 +83,7 @@
     "nodemon": "2.0.5",
     "typescript": "4.0.3"
   },
-  "peerOptionalDependencies": {
+  "optionalDependencies": {
     "pkg": "git+https://github.com/geekuillaume/pkg.git"
   }
 }

@@ -46,8 +46,9 @@ export default class TelemetryManager {
                             'Content-Type': 'application/json'
                         })
                     });
+                    server.getLogger().silly('[telemetry] Sent heartbeat');
                 } catch (err) {
-                    server.getLogger().debug(`Failed to tick: ${url} (${err})`)
+                    server.getLogger().warn(`[telemetry] Failed to tick: ${url} (${err})`)
                 }
             }))
         };
