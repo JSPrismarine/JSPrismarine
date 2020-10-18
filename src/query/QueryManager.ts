@@ -63,7 +63,7 @@ export default class QueryManager {
                             'gametype',
                             'SMP',
                             'game_id',
-                            'MINECRAFT',
+                            'MINECRAFTPE',
                             'version',
                             `${server.getConfig().getVersion()}:${git_rev}`,
                             'plugins',
