@@ -309,7 +309,7 @@ export default class Prismarine {
         return this.raknet;
     }
 
-    getPluginManager() {
+    getPluginManager(): PluginManager {
         return this.pluginManager;
     }
 
@@ -321,4 +321,8 @@ export default class Prismarine {
         return this;
     }
 
+    getTPS() {
+        // TODO: get actual TPS after completing the network rework
+        return 20;
+    }
 }

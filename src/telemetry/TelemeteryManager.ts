@@ -2,6 +2,7 @@ import fetch, { Headers } from 'node-fetch';
 import { machineIdSync } from 'node-machine-id';
 import Prismarine from "../prismarine";
 import git from 'git-rev-sync';
+import Plugin from '../plugin/plugin';
 
 export default class TelemetryManager {
     private server: Prismarine;
@@ -28,11 +29,14 @@ export default class TelemetryManager {
             const body = {
                 id,
                 version: `${server.getConfig().getVersion()}:${git_rev}`,
-                online_mode: true, // TODO,
+                online_mode: server.getConfig().getOnlineMode(),
                 player_count: server.getRaknet()?.name.getOnlinePlayerCount() || 0,
                 max_player_count: server.getConfig().getMaxPlayers(),
-                plugins: [], //  TODO
-                tps: 20, // TODO
+                plugins: server.getPluginManager()?.getPlugins().map(plugin => ({
+                    name: plugin.manifest.name,
+                    version: plugin.manifest.version
+                })),
+                tps: server.getTPS(),
                 uptime: Math.trunc(process.uptime() * 1000),
                 node_env: process.env.NODE_ENV
             };
