@@ -1,5 +1,5 @@
 const BiomeDefinitions = require('@jsprismarine/bedrock-data').biome_definitions;
-const DataPacket = require('./packet');
+const DataPacket = require('./packet').default;
 const Identifiers = require('../Identifiers').default;
 
 class BiomeDefinitionListPacket extends DataPacket {

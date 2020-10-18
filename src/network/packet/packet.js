@@ -1,4 +1,4 @@
-const PacketBinaryStream = require('../PacketBinaryStream');
+import PacketBinaryStream from '../PacketBinaryStream';
 
 
 const PID_MASK = 0x3ff;
@@ -74,4 +74,4 @@ class DataPacket extends PacketBinaryStream {
         return this._allowBatching;
     }
 }
-module.exports = DataPacket;
+export default DataPacket;

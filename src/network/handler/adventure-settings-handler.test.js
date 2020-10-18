@@ -1,5 +1,5 @@
-const Handler = require('./adventure-settings-handler');
-const Identifiers = require('../identifiers');
+import Handler from './adventure-settings-handler';
+import { AdventureSettingsPacket } from '../identifiers';
 
 describe('network', () => {
     describe('handler', () => {
@@ -7,7 +7,7 @@ describe('network', () => {
             const handler = new Handler();
 
             it.skip('packet id should match', () => {
-                expect(handler.NetID).toBe(Identifiers.AdventureSettingsPacket);
+                expect(handler.NetID).toBe(AdventureSettingsPacket);
             });
         });
     });

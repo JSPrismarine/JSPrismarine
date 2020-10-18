@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const DataPacket = require('./packet');
+const DataPacket = require('./packet').default;
 const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
 const RequiredBlockStates = require('@jsprismarine/bedrock-data').required_block_states;
 const PacketBinaryStream = require('../PacketBinaryStream');

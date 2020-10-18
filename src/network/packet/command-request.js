@@ -1,4 +1,4 @@
-const DataPacket = require('./packet');
+const DataPacket = require('./packet').default;
 const Identifiers = require('../Identifiers').default;
 const CommandOriginData = require('../type/CommandOriginData').default;
 

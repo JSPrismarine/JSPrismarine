@@ -1,7 +1,7 @@
-const Player = require('../../player/Player').default;
-const Prismarine = require('../../Prismarine');
-const Identifiers = require('../Identifiers').default;
-const AdventureSettingsPacket = require('../packet/adventure-settings-packet');
+import Player from '../../player/Player';
+import Prismarine from '../../Prismarine';
+import Identifiers from '../Identifiers';
+import AdventureSettingsPacket from '../packet/adventure-settings-packet';
 
 class AdventureSettingsHandler {
     static NetID = Identifiers.AdventureSettingsPacket
@@ -14,4 +14,4 @@ class AdventureSettingsHandler {
     static handle(_packet, _server, _player) {}
 }
 
-module.exports = AdventureSettingsHandler;
+export default AdventureSettingsHandler;

@@ -1,6 +1,6 @@
-import CommandParameter from "../network/type/CommandParameter";
-import Player from "../player/Player";
-const CommandData = require('../network/type/command-data');
+import type CommandParameter from "../network/type/CommandParameter";
+import type Player from "../player/Player";
+import CommandData from '../network/type/CommandData';
 
 interface CommandProps {
     id: string,
@@ -14,7 +14,7 @@ interface CommandProps {
 export default class Command extends CommandData {
     id: string;
     description?: string;
-    aliases?: Array<string>;
+    aliases?: string[];
     flags?: number;
     permission?: number;
     parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
