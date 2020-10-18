@@ -7,7 +7,7 @@ const ResourcePackStackPacket = require('../packet/resource-pack-stack');
 const StartGamePacket = require('../packet/start-game');
 const Player = require('../../player/Player').default;
 const Prismarine = require('../../Prismarine');
-const Gamemode = require('../../world/gamemode');
+const Gamemode = require('../../world/Gamemode').default;
 // const Item = require('../../item')
 
 

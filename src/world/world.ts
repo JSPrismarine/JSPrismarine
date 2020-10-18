@@ -1,14 +1,14 @@
-import Entity from "../entity/entity";
-import Item from "../item";
+import type Entity from "../entity/entity";
+import type Item from "../item";
+import type Player from "../player/Player";
+import type Prismarine from "../Prismarine";
 import Vector3 from "../math/vector3";
-import Player from "../player/Player";
-import Prismarine from "../Prismarine";
 
 import LevelSoundEventPacket from '../network/packet/level-sound-event';
 import UUID from '../utils/UUID';
-import CoordinateUtils from '../world/coordinate-utils';
+import CoordinateUtils from './CoordinateUtils';
 import WorldEventPacket from '../network/packet/world-event';
-import { GameruleManager, Rules } from '../world/gamerule-manager';
+import { GameruleManager, Rules } from './GameruleManager';
 import SharedSeedRandom from './util/shared-seed-random';
 
 interface WorldData {
@@ -29,7 +29,7 @@ export default class World {
     private currentTick: number = 0;
     private provider: any;   // TODO: interface
     private server: Prismarine
-    private seed: number | bigint;
+    private seed: SharedSeedRandom;
     private generator: any;  // TODO: interface
 
     constructor({ name, server, provider, seed, generator = 'overworld' }: WorldData) {
@@ -37,7 +37,7 @@ export default class World {
         this.server = server;
         this.provider = provider;
         this.gameruleManager = new GameruleManager(server);
-        this.seed = new SharedSeedRandom(seed);
+        this.seed = new SharedSeedRandom(BigInt(seed));
         this.generator = generator;
 
         // TODO: Load default gamrules
@@ -122,7 +122,7 @@ export default class World {
      * @param data 
      */
     public sendWorldEvent(position: Vector3 | null, worldEvent: number, data: number): void {
-        let worldEventPacket = new WorldEventPacket();
+        let worldEventPacket = new WorldEventPacket(this.server);
         worldEventPacket.eventId = worldEvent;
         worldEventPacket.data = data;
         if (position != null) {
@@ -166,7 +166,7 @@ export default class World {
         // TODO: block.place() ?
         chunk.setBlockId(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ(), 7 /* get block runtime id from item */);
 
-        let pk = new LevelSoundEventPacket();
+        let pk = new LevelSoundEventPacket(this.server);
         pk.sound = 6;  // TODO: enum
 
         pk.positionX = player.getX();

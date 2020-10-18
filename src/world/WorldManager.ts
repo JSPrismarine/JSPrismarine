@@ -1,11 +1,11 @@
-import Prismarine from "../Prismarine";
-import GeneratorManager from "./generator-manager";
+import type Prismarine from "../Prismarine";
+import GeneratorManager from "./GeneratorManager";
 import World from "./World";
 
-const logger = require('../utils/Logger');
-const LevelDB = require('./leveldb/leveldb');
+import logger from '../utils/Logger';
+import LevelDB from './leveldb/leveldb';
 
-export default class WorldManager {
+class WorldManager {
     private worlds: Map<string, World> = new Map();
     private defaultWorld: World | null = null;
     private genManager: GeneratorManager;
@@ -116,5 +116,5 @@ export default class WorldManager {
     public getGeneratorManager(): GeneratorManager {
         return this.genManager;
     }
-
 }
+export default WorldManager;

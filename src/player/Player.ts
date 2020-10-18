@@ -3,7 +3,7 @@ import type Item from "../item";
 import type Chunk from "../world/chunk/chunk";
 import type World from "../world/World";
 import Entity from "../entity/entity";
-import Gamemode from "../world/gamemode";
+import Gamemode from "../world/Gamemode";
 
 import EncapsulatedPacket from '@jsprismarine/raknet/protocol/encapsulated_packet';
 import PlayStatusPacket from '../network/packet/play-status';
@@ -22,7 +22,7 @@ import TextType from '../network/type/text-type';
 import RemoveActorPacket from '../network/packet/remove-actor';
 import UpdateAttributesPacket from '../network/packet/update-attributes';
 import SetActorDataPacket from '../network/packet/set-actor-data';
-import CoordinateUtils from '../world/coordinate-utils';
+import CoordinateUtils from '../world/CoordinateUtils';
 import AvailableCommandsPacket from '../network/packet/available-commands';
 import SetGamemodePacket from '../network/packet/set-gamemode';
 import CreativeContentPacket from '../network/packet/creative-content-packet';

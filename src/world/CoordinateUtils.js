@@ -33,4 +33,4 @@ class CoordinateUtils {
         return encodedPos.split(':');
     }
 }
-module.exports = CoordinateUtils;
+export default CoordinateUtils;

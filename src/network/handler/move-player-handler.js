@@ -3,7 +3,7 @@ const MovePlayerPacket = require('../packet/move-player').default;
 const Player = require('../../player/Player').default;
 const EventManager = require('../../events/event-manager');
 const Prismarine = require('../../Prismarine');
-const CoordinateUtils = require('../../world/coordinate-utils');
+const CoordinateUtils = require('../../world/CoordinateUtils').default;
 
 
 class MovePlayerHandler {

@@ -1,11 +1,11 @@
-const fs = require('fs');
-const path = require('path');
+import { readdirSync } from 'fs';
+import { resolve } from 'path';
 
 class GeneratorManager {
     #generators = new Map()
 
     constructor(server) {
-        const generators = fs.readdirSync(__dirname + '/generators');
+        const generators = readdirSync(__dirname + '/generators');
         generators.forEach((generator) => {
             if (generator.includes('.test.') || generator.includes('.d.ts'))
                 return;
@@ -15,7 +15,7 @@ class GeneratorManager {
     }
 
     registerClassGenerator(id, server) {
-        const generator = require(path.resolve(__dirname + '/generators', id));
+        const generator = require(resolve(__dirname + '/generators', id));
         this.#generators.set(id, new generator());
         server.getLogger().silly(`Generator with id §b${id}§r registered`);
     }
@@ -24,4 +24,4 @@ class GeneratorManager {
         return this.#generators.get(id);
     }
 }
-module.exports = GeneratorManager;
+export default GeneratorManager;
