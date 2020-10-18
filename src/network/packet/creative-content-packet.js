@@ -1,6 +1,6 @@
 const DataPacket = require('./packet');
 const Identifiers = require('../Identifiers').default;
-const CreativeContentEntry = require('../type/creative-content-entry');
+const CreativeContentEntry = require('../type/CreativeContentEntry').default;
 
 
 class CreativeContentPacket extends DataPacket {

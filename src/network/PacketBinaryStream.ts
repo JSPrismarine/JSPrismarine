@@ -4,13 +4,13 @@ import NBT from '@jsprismarine/nbt';
 import UUID from '../utils/UUID';
 import Skin from '../utils/skin/Skin';
 import { FlagType } from '../entity/metadata';
-import CommandOriginData from './type/command-origin-data';
-import CommandOrigin from './type/command-origin';
+import CommandOriginData from './type/CommandOriginData';
+import CommandOrigin from './type/CommandOrigin';
 import NetworkLittleEndianBinaryStream from '@jsprismarine/nbt/streams/network-le-binary-stream';
 import CompoundTag from '@jsprismarine/nbt/tags/compound-tag';
 import SkinImage from '../utils/skin/SkinImage';
 import type PlayerListEntry from './type/PlayerListEntry';
-import type CreativeContentEntry from './type/creative-content-entry';
+import type CreativeContentEntry from './type/CreativeContentEntry';
 import SkinAnimation from '../utils/skin/SkinAnimation';
 import SkinCape from '../utils/skin/SkinCape';
 import SkinPersonaPiece from '../utils/skin/skin-persona/PersonaPiece';
@@ -543,4 +543,4 @@ class PacketBinaryStream extends BinaryStream {
     }
 
 }
-module.exports = PacketBinaryStream;
+export default PacketBinaryStream;

@@ -32,7 +32,7 @@ import SetTimePacket from '../network/packet/set-time';
 import PlayerInventory from '../inventory/player-inventory';
 import InventoryContentPacket from '../network/packet/inventory-content-packet';
 import MobEquipmentPacket from '../network/packet/mob-equipment-packet';
-import CreativeContentEntry from '../network/type/creative-content-entry';
+import CreativeContentEntry from '../network/type/CreativeContentEntry';
 
 export enum PlayerPermission {
     Visitor,
