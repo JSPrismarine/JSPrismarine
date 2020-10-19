@@ -64,9 +64,11 @@
     "jest": "^26.5.2",
     "jwt-decode": "^3.0.0",
     "level": "^6.0.1",
+    "live-plugin-manager": "^0.15.1",
     "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
     "node-machine-id": "^1.1.12",
+    "silent": "^0.1.2",
     "winston": "^3.3.3",
     "yaml": "^1.10.0"
   },

@@ -2,6 +2,7 @@ import Prismarine from "../prismarine";
 import BinaryStream from "@jsprismarine/jsbinaryutils";
 import udp from 'dgram';
 import git from 'git-rev-sync';
+import PluginFile from "../plugin/PluginFile";
 
 export default class QueryManager {
     private server?: udp.Socket;
@@ -56,7 +57,7 @@ export default class QueryManager {
                         res.writeByte(0);
                         // End padding
 
-                        const plugins = server.getPluginManager().getPlugins().map(plugin => `${plugin.manifest.name} ${plugin.manifest.version}`);
+                        const plugins = server.getPluginManager().getPlugins().map((plugin: PluginFile) => `${plugin.getDisplayName()} ${plugin.getVersion()}`);
                         res.append(Buffer.from(`\0${[
                             'hostname',
                             server.getRaknet().name.getMotd(),
@@ -93,7 +94,7 @@ export default class QueryManager {
                         res.writeByte(0);
                         // End padding
 
-                        res.append(Buffer.from(`${server.getOnlinePlayers().map(player => `${player.name}\0`)}\0\0`, 'binary'));
+                        res.append(Buffer.from(`${server.getOnlinePlayers().map(player => `${player.name}\0`)}\0`, 'binary'));
                         this.server?.send(res.getBuffer(), info.port, info.address);
                     }
                     break;
