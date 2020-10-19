@@ -6,7 +6,7 @@ import CommandManager from "./command/CommandManager";
 import Config from "./config";
 import WorldManager from "./world/world-manager";
 import QueryManager from "./query/QueryManager";
-import PluginManager from "./plugin/plugin-manager";
+import PluginManager from "./plugin/PluginManager";
 import LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
 
