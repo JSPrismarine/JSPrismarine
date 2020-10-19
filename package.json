@@ -69,7 +69,9 @@
     "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
     "node-machine-id": "^1.1.12",
+    "rimraf": "^3.0.2",
     "silent": "^0.1.2",
+    "unzipper": "^0.10.11",
     "winston": "^3.3.3",
     "yaml": "^1.10.0"
   },
@@ -78,6 +80,8 @@
     "@types/jest": "26.0.14",
     "@types/node": "14.11.10",
     "@types/node-fetch": "2.5.7",
+    "@types/rimraf": "^3.0.0",
+    "@types/unzipper": "^0.10.3",
     "babel-eslint": "10.1.0",
     "cross-env": "7.0.2",
     "eslint": "7.11.0",

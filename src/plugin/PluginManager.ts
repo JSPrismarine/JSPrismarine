@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { PluginManager as ModuleManager } from 'live-plugin-manager';
+import rimraf from "rimraf";
+import unzipper from "unzipper";
+import { PluginManager as ModuleManager } from "live-plugin-manager";
 import Prismarine from "../prismarine";
 import PluginFile from "./PluginFile";
 import PluginApiVersion from "./api/PluginApiVersion";
@@ -18,6 +20,11 @@ export default class PluginManager {
      * onStart hook
      */
     public async onStart() {
+        // Create plugin folder
+        if (!(fs.existsSync(process.cwd() + '/plugins'))) {
+            fs.mkdirSync(process.cwd() + '/plugins');
+        }
+
         // Register PluginApiVersion(s)
         const pluginApiVersions = fs.readdirSync(path.join(__dirname, 'api/versions'));
         await Promise.all(pluginApiVersions.map((id: string) => {
@@ -49,6 +56,8 @@ export default class PluginManager {
             return this.deregisterPlugin(id);
         }));
         this.pluginApiVersions.clear();
+
+        rimraf.sync(path.join(process.cwd(), '/plugins/.extracted'));
     }
 
     /**
@@ -65,11 +74,23 @@ export default class PluginManager {
      * Register a new plugin and download the required dependencies
      */
     private async registerPlugin(id: string) {
+        if (id === '.extracted')
+            return;
+
         let dir = path.join(process.cwd(), 'plugins', id);
         if (!fs.lstatSync(dir).isDirectory()) {
-            // TODO: extract plugin into ./temp
-            dir = path.join(process.cwd(), 'plugins/.temp/', id);
-            throw new Error(`.jspz plugin support is UNIMPLEMENTED`);
+            if (!(fs.existsSync(path.join(process.cwd(), '/plugins/.extracted/')))) {
+                fs.mkdirSync(path.join(process.cwd(), '/plugins/.extracted/'));
+            }
+            if (!(fs.existsSync(path.join(process.cwd(), '/plugins/.extracted/')))) {
+                fs.mkdirSync(path.join(process.cwd(), '/plugins/.extracted/'));
+            }
+
+            dir = path.join(process.cwd(), '/plugins/.extracted/', id);
+            this.server.getLogger().silly(`Extracting plugin with id ${id}...`);
+
+            await fs.createReadStream(path.join(process.cwd(), 'plugins/', id))
+                .pipe(unzipper.Extract({ path: dir })).promise();
         }
 
         const pkg = require(path.join(dir, 'package.json'));
