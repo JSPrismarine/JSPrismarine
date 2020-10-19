@@ -38,12 +38,23 @@ export default class PluginFile {
         this.plugin = new Plugin(pluginApiVersion);
     }
 
+    /**
+     * returns the plugin's name
+     */
     public getName() {
         return this.name;
     }
+
+    /**
+     * returns the plugin's display name
+     */
     public getDisplayName() {
         return this.displayName;
     }
+
+    /**
+     * returns the plugin's version
+     */
     public getVersion() {
         return this.version;
     }

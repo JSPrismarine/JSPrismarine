@@ -11,32 +11,66 @@ export default class BlockManager {
 
     constructor(server: Prismarine) {
         this.server = server;
+    }
+
+    /**
+     * onStart hook
+     */
+    public async onStart() {
         this.importBlocks();
     }
 
+     /**
+     * onExit hook
+     */
+    public async onExit() {
+        this.blocks.clear();
+    }
+
+    /**
+     * Get block by namespaced  id
+     */
     public getBlock(name: string): Block | null {
         return this.blocks.get(name) || null;
     }
+
+    /**
+     * Get block by numeric id
+     */
     public getBlockById(id: number): Block | null {
         if (!BlockToolType[id])
             return null;
 
         return this.getBlocks().filter(a => a.id === id)[0] || null;
     }
+
+    /**
+     * Get block by numeric id and damage value
+     */
     public getBlockByIdAndMeta(id: number, meta: number): Block | null {
         if (!BlockToolType[id])
             return null;
 
         return this.getBlocks().filter(a => a.id === id && a.meta == meta)[0] || null;
     }
+
+    /**
+     * Get block by runtime id
+     */
     public getBlockByRuntimeId(id: number): Block | null {
         return this.getBlocks()[id] || null;
     }
+
+    /**
+     * Get all blocks
+     */
     public getBlocks(): Array<Block> {
         return Array.from(this.blocks.values());
     }
 
-
+    /**
+     * Registers block from block class
+     */
     public registerClassBlock(block: Block) {
         // The runtime ID is a unique ID sent with the start-game packet
         // ours is always based on the block's index in the this.blocks map
@@ -46,7 +80,10 @@ export default class BlockManager {
         this.blocks.set(block.name, block);
     }
 
-    importBlocks() {
+    /**
+     * Loops through ./src/block/blocks and register them
+     */
+    private importBlocks() {
         try {
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             blocks.forEach((id: string) => {

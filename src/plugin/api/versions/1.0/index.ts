@@ -1,4 +1,5 @@
 import Prismarine from "../../../../prismarine";
+import LoggerBuilder from "../../../../utils/Logger";
 import AnnotatePluginApiFunction from "../../../AnnotatePluginApiFunction";
 import PluginApiVersion from "../../PluginApiVersion";
 
@@ -16,7 +17,10 @@ export default class PluginApi extends PluginApiVersion {
     public async onInit() { }
     public async onExit() { }
 
-    public getLogger() {
+    /**
+     * returns an instance of the logger
+     */
+    public getLogger(): LoggerBuilder {
         return this.getServer().getLogger();
     }
 

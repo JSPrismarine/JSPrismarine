@@ -10,7 +10,21 @@ export default class ItemManager {
 
     constructor(server: Prismarine) {
         this.server = server;
+        
+    }
+
+    /**
+     * onStart hook
+     */
+    public async onStart() {
         this.importItems();
+    }
+
+     /**
+     * onExit hook
+     */
+    public async onExit() {
+        this.items.clear();
     }
 
     public getItem(name: string): Item {

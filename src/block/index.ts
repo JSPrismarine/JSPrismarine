@@ -25,51 +25,89 @@ export default class Block {
         this.hardness = hardness || 0;
     }
 
-    getName() {
+    /**
+     * Get the Block's namespaced id
+     */
+    public getName() {
         return this.name;
     }
 
-    getId() {
+    /**
+     * Get the Block's numeric id
+     */
+    public getId() {
         return this.id;
     }
 
-    getRuntimeId() {
+    /**
+     * Get the Block's runtime id
+     */
+    public getRuntimeId() {
         return this.id;
     }
-    setRuntimeId(id: number) {
+    /**
+     * Set the Block's runtime id
+     * 
+     * WARNING: this should ONLY be used internally by the BlockManager class
+     */
+    public setRuntimeId(id: number) {
         this.runtimeId = id;
     }
 
+    /**
+     * Get the Block's hardness value
+     */
     getHardness() {
         return this.hardness;
     }
 
+    /**
+     * Get the Block's blast resistance
+     */
     getBlastResistance() {
         return this.getHardness() * 5;
     }
 
+    /**
+     * Get the Block's light level emission
+     */
     getLightLevel() {
         return 0;
     }
 
+    /**
+     * Get the Block's flammability
+     */
     getFlammability() {
         return 0;
     }
 
+    /**
+     * Get the Block's required tool type
+     */
     getToolType(): BlockToolType {
         return BlockToolType.None;
     }
 
-    getToolHarvestLevel() {
+    /**
+     * Get the Block's required item tool tier
+     */
+    getToolHarvestLevel(): ItemTieredToolType {
         return ItemTieredToolType.None;
     }
 
+    /**
+     * Get the Block's drop(s) if the tool is compatible
+     */
     getDropsForCompatibleTool(item: Item, server: Prismarine): Array<Block | Item | null> {
         return [
             this
         ];
     }
 
+    /**
+     * Get the Block's drop(s) from the current item
+     */
     getDrops(item: Item, server: Prismarine): Array<Block | Item | null> {
         if (this.isCompatibleWithTool(item)) {
             if (this.isAffectedBySilkTouch() && item.hasEnchantment(ItemEnchantmentType.SilkTouch))
@@ -81,6 +119,9 @@ export default class Block {
         return [];
     }
 
+    /**
+     * Get the Block's drop(s) if silk touch is used
+     */
     getSilkTouchDrops(item: Item, server: Prismarine) {
         return [
             this
