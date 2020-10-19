@@ -80,8 +80,8 @@
     "@types/jest": "26.0.14",
     "@types/node": "14.11.10",
     "@types/node-fetch": "2.5.7",
-    "@types/rimraf": "^3.0.0",
-    "@types/unzipper": "^0.10.3",
+    "@types/rimraf": "3.0.0",
+    "@types/unzipper": "0.10.3",
     "babel-eslint": "10.1.0",
     "cross-env": "7.0.2",
     "eslint": "7.11.0",
@@ -89,7 +89,7 @@
     "node-fetch": "2.6.1",
     "nodemon": "2.0.6",
     "typedoc": "0.19.2",
-    "typedoc-neo-theme": "^1.0.10",
+    "typedoc-neo-theme": "1.0.10",
     "typescript": "4.0.3"
   },
   "optionalDependencies": {
