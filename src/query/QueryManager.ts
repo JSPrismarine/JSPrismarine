@@ -65,7 +65,7 @@ export default class QueryManager {
                             'game_id',
                             'MINECRAFTPE',
                             'version',
-                            server.getConfig().getVersion(),
+                            server.getRaknet().name.getVersion(),
                             'plugins',
                             `JSPrismarine on Prismarine ${server.getConfig().getVersion()}-${git_rev}${plugins.length && ': ' || ''}${plugins.join('; ')}`, // TODO
                             'map',
