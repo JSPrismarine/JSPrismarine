@@ -9,7 +9,7 @@
     "start": "cross-env NODE_ENV=production node ./dist/src/server.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
     "build": "tsc --extendedDiagnostics",
-    "docs": "typedoc",
+    "docs": "typedoc --theme ./node_modules/typedoc-neo-theme/bin/default --plugin typedoc-neo-theme",
     "package": "pkg package.json --out-path ./packages/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
@@ -85,6 +85,7 @@
     "node-fetch": "2.6.1",
     "nodemon": "2.0.5",
     "typedoc": "^0.19.2",
+    "typedoc-neo-theme": "^1.0.10",
     "typescript": "4.0.3"
   },
   "optionalDependencies": {
