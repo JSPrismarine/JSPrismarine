@@ -44,19 +44,20 @@ export default class TelemetryManager {
     }
 
     private async tick() {
-        const server = this.server;
+        if (!this.server)
+            return;
 
         const body = {
             id: this.id,
-            version: `${server.getConfig().getVersion()}:${this.gitRev}`,
-            online_mode: server.getConfig().getOnlineMode(),
-            player_count: server.getRaknet()?.name.getOnlinePlayerCount() || 0,
-            max_player_count: server.getConfig().getMaxPlayers(),
-            plugins: server.getPluginManager()?.getPlugins().map((plugin: PluginFile) => ({
+            version: `${this.server.getConfig().getVersion()}:${this.gitRev}`,
+            online_mode: this.server.getConfig().getOnlineMode(),
+            player_count: this.server.getRaknet()?.name.getOnlinePlayerCount() || 0,
+            max_player_count: this.server.getConfig().getMaxPlayers(),
+            plugins: this.server.getPluginManager()?.getPlugins().map((plugin: PluginFile) => ({
                 name: plugin.getName(),
                 version: plugin.getVersion(),
             })),
-            tps: server.getTPS(),
+            tps: this.server.getTPS(),
             uptime: Math.trunc(process.uptime() * 1000),
             node_env: process.env.NODE_ENV
         };
@@ -70,9 +71,9 @@ export default class TelemetryManager {
                         'Content-Type': 'application/json'
                     })
                 });
-                server.getLogger().silly('[telemetry] Sent heartbeat');
+                this.server.getLogger().silly('[telemetry] Sent heartbeat');
             } catch (err) {
-                server.getLogger().warn(`[telemetry] Failed to tick: ${url} (${err})`)
+                this.server.getLogger().warn(`[telemetry] Failed to tick: ${url} (${err})`)
             }
         }))
     }

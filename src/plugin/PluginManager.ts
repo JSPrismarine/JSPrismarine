@@ -20,6 +20,9 @@ export default class PluginManager {
      * onStart hook
      */
     public async onStart() {
+        // Remove left-over extracted files
+        rimraf.sync(path.join(process.cwd(), '/plugins/.extracted'));
+
         // Create plugin folder
         if (!(fs.existsSync(process.cwd() + '/plugins'))) {
             fs.mkdirSync(process.cwd() + '/plugins');
@@ -77,6 +80,7 @@ export default class PluginManager {
         if (id === '.extracted')
             return;
 
+        let time = Date.now();
         let dir = path.join(process.cwd(), 'plugins', id);
         if (!fs.lstatSync(dir).isDirectory()) {
             if (!(fs.existsSync(path.join(process.cwd(), '/plugins/.extracted/')))) {
@@ -87,8 +91,8 @@ export default class PluginManager {
             }
 
             dir = path.join(process.cwd(), '/plugins/.extracted/', id);
-            this.server.getLogger().silly(`Extracting plugin with id ${id}...`);
 
+            this.server.getLogger().silly(`Extracting plugin with id §b${id}...`);
             await fs.createReadStream(path.join(process.cwd(), 'plugins/', id))
                 .pipe(unzipper.Extract({ path: dir })).promise();
         }
@@ -119,7 +123,7 @@ export default class PluginManager {
         this.plugins.set(pkg.name, plugin);
 
         this.server.getLogger().silly(`Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`);
-        this.server.getLogger().info(`Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully!`);
+        this.server.getLogger().info(`Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${Date.now() - time} ms)!`);
     }
 
     /**
