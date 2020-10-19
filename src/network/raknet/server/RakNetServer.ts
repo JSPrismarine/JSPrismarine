@@ -14,8 +14,7 @@ import OpenConnectionReplyTwo from "../protocol/OpenConnectionReplyTwo";
 import Identifiers from "../../identifiers";
 import { EventEmitter } from "events";
 import { Priorities } from "../queue/priority/Priorities";
-import NetworkQueueHandlerType from "../handler/NetworkQueueHandlerType";
-import PlayerConnection from "../../PlayerConnection";
+import PlayerConnection, { PlayerConnectionStatus } from "../../PlayerConnection";
 
 interface RakNetServerData extends InetAddressData {
     /**
@@ -36,7 +35,7 @@ export default class RakNetServer extends EventEmitter implements RakNetServerTy
     private readonly bindAddress: InetAddress;
     private readonly socket: DSocket = createSocket("udp4");
     private readonly GUID: bigint = randomBytes(8).readBigInt64BE();
-    private clients: Map<String, NetworkQueueHandlerType> = new Map();
+    private clients: Map<String, PlayerConnection> = new Map();
 
     private motd: string = 'Another JSPrismarine server!';
     private version: string = Identifiers.MinecraftVersion;
@@ -75,7 +74,18 @@ export default class RakNetServer extends EventEmitter implements RakNetServerTy
 
         const token = InetAddress.fromRemoteInfo(rinfo).toToken();
         if (this.clients.has(token)) {
-            this.clients.get(token)!.incomingPackets.add(msg, Priorities.HIGH);
+            if (header < 0x80) {
+                if (this.clients.get(token)!.status === PlayerConnectionStatus.Connecting) {
+                    if (header === RakNetIdentifiers.NEW_INCOMING_CONNECTION) {
+                        this.clients.get(token)!.status = PlayerConnectionStatus.Connected;
+                        this.emit('openConnection', {
+                            address: InetAddress.fromRemoteInfo(rinfo)
+                        });
+                    }
+                }
+            } else {
+                this.clients.get(token)?.pushIncomingQueue(msg, Priorities.HIGH);
+            }
         } else {
             this.socket.send(
                 await this.handleOfflineMessage(header, msg, rinfo),

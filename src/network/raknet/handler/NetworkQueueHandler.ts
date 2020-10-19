@@ -1,3 +1,4 @@
+import { Priorities } from "../queue/priority/Priorities";
 import PriorityQueue from "../queue/priority/PriorityQueue";
 import InetAddress from "../util/InetAddress";
 import NetworkQueueHandlerType from "./NetworkQueueHandlerType";
@@ -16,11 +17,10 @@ export default class NetworkQueueHandler implements NetworkQueueHandlerType {  /
         this.mtuSize = mtuSize;
     }
 
-    public pushIncomingQueue(): void {
-        
+    public pushIncomingQueue(element: any, priority: Priorities): void {
+        this.incomingPackets.add(element, priority);
     }
 
-    
     public async reorderQueues(): Promise<void> {
         await new Promise(resolve => {
             // Do all for each / heavy checks
