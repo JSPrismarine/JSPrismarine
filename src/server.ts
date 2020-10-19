@@ -19,9 +19,6 @@ const Server = new Prismarine({
 });
 
 // Create folders
-if (!(fs.existsSync(process.cwd() + '/plugins'))) {
-    fs.mkdirSync(process.cwd() + '/plugins');
-}
 if (!(fs.existsSync(process.cwd() + '/worlds'))) {
     fs.mkdirSync(process.cwd() + '/worlds');
 }
