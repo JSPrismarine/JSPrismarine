@@ -50,18 +50,29 @@ export default class Prismarine {
         Prismarine.instance = this;
     }
 
+    private async onStart() {
+        await this.pluginManager.onStart();
+        await this.telemetryManager.onStart();
+        // TODO: rework managers to this format
+    }
+    private async onExit() {
+        await this.telemetryManager.onExit();
+        await this.pluginManager.onExit();
+        // TODO: rework managers to this format
+    }
+
     public async reload() {
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.commandManager = new CommandManager(this);
-        await this.pluginManager.onExit();
-
-        await this.pluginManager.onStart();
+        
+        await this.onExit();
+        await this.onStart();
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132) {
-        await this.pluginManager.onStart();
+        await this.onStart();
         
         this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
@@ -279,6 +290,7 @@ export default class Prismarine {
             await world.save();
         }
 
+        await this.onExit();
         setTimeout(() => { process.exit(0); }, 1000);
     }
 
