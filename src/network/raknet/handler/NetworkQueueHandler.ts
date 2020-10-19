@@ -1,18 +1,37 @@
 import PriorityQueue from "../queue/priority/PriorityQueue";
-import RakNetServer from "../server/RakNetServer";
+import InetAddress from "../util/InetAddress";
 import NetworkQueueHandlerType from "./NetworkQueueHandlerType";
 
 export default class NetworkQueueHandler implements NetworkQueueHandlerType {  // Entities will extend this class
-    private readonly incomingPackets: PriorityQueue = new PriorityQueue();  // client -> server
-    private readonly outcomingPackets: PriorityQueue = new PriorityQueue();  // server -> client
+    public readonly incomingPackets: PriorityQueue = new PriorityQueue();  // client -> server
+    public readonly outcomingPackets: PriorityQueue = new PriorityQueue();  // server -> client
 
-    private server: RakNetServer;
+    private clientAddress: InetAddress;
     private clientGUID: bigint;  
     private mtuSize: number;
 
-    constructor(server: RakNetServer, clientGUID: bigint, mtuSize: number) {
-        this.server = server;
+    constructor(clientAddress: InetAddress, clientGUID: bigint, mtuSize: number) {
+        this.clientAddress = clientAddress;
         this.clientGUID = clientGUID;
         this.mtuSize = mtuSize;
+    }
+
+    public pushIncomingQueue(): void {
+        
+    }
+
+    
+    public async reorderQueues(): Promise<void> {
+        await new Promise(resolve => {
+            // Do all for each / heavy checks
+            return resolve();
+        });
+    }
+
+    public async sendOutcoming(): Promise<void> {
+        await new Promise(resolve => {
+            console.log('ah')
+            return resolve();
+        });
     }
 }

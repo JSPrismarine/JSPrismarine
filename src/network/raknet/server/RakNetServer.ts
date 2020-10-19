@@ -5,13 +5,15 @@ import UnconnectedPing from "../protocol/UnconnectedPing";
 import UnconnectedPong from "../protocol/UnconnectedPong";
 import InetAddress, { InetAddressData } from "../util/InetAddress";
 import RakNetServerType from "./RakNetServerType";
-import { randomBytes } from "crypto"
+import { randomBytes } from "crypto";
 import OpenConnectionRequestOne from "../protocol/OpenConnectionRequestOne";
 import OpenConnectionReplyOne from "../protocol/OpenConnectionReplyOne";
 import { RAKNET_PROTOCOL } from "./RakNetCostants";
 import OpenConnectionRequestTwo from "../protocol/OpenConnectionRequestTwo";
 import OpenConnectionReplyTwo from "../protocol/OpenConnectionReplyTwo";
-import NetworkQueueHandler from "../handler/NetworkQueueHandler";
+import NetworkQueueHandlerType from "../handler/NetworkQueueHandlerType";
+import PlayerConnection from "../../PlayerConnection";
+import { Priorities } from "../queue/priority/Priorities";
 
 interface RakNetServerData extends InetAddressData {
     /**
@@ -30,9 +32,9 @@ interface RakNetServerData extends InetAddressData {
 
 export default class RakNetServer implements RakNetServerType {
     private readonly bindAddress: InetAddress;
-    private readonly socket: DSocket = createSocket("udp4");  
+    private readonly socket: DSocket = createSocket("udp4");
     private readonly GUID: bigint = randomBytes(8).readBigInt64BE();
-    private clients: Map<String, RakNetConnection> = new Map(); 
+    private clients: Map<String, NetworkQueueHandlerType> = new Map();
 
     constructor(raknetData: RakNetServerData) {
         if (raknetData.type == "udp6") {
@@ -59,11 +61,11 @@ export default class RakNetServer implements RakNetServerType {
     }
 
     private async handleMessage(msg: Buffer, rinfo: RemoteInfo): Promise<void> {
-        const header = msg.readUInt8();  
+        const header = msg.readUInt8();
 
         let token = InetAddress.fromRemoteInfo(rinfo).toToken();
         if (this.clients.has(token)) {
-             
+            this.clients.get(token)!.incomingPackets.add(msg, Priorities.HIGH);
         } else {
             this.socket.send(
                 await this.handleOfflineMessage(header, msg, rinfo),
@@ -105,7 +107,7 @@ export default class RakNetServer implements RakNetServerType {
                     } else {
                         encoded = new OpenConnectionReplyOne();
                         encoded.GUID = this.GUID;
-                        encoded.maximumTransferUnit = decoded.maximumTransferUnit;
+                        encoded.mtuSize = decoded.mtuSize;
                         encoded.encodeInternal();
                     }
                     return resolve(encoded.getOutputBuffer());
@@ -125,9 +127,11 @@ export default class RakNetServer implements RakNetServerType {
                     encoded.encodeInternal();
 
                     // Create session
-                    const token = clientAddr.toToken();
-                    const conn = new NetworkQueueHandler(this, decoded.clientGUID, decoded.mtuSize); 
-                    this.clients.set(token, conn);
+                    this.clients.set(clientAddr.toToken(), new PlayerConnection(
+                        clientAddr,
+                        decoded.clientGUID,
+                        decoded.mtuSize
+                    ));
 
                     return resolve(encoded.getOutputBuffer());
             }

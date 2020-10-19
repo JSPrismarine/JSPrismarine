@@ -1,4 +1,4 @@
-export default interface IRakNetServer {
+export default interface IRakNetServerType {
     /**
      * Binds the socket and initialises all handling events.
      */
