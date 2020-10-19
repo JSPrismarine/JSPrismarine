@@ -64,13 +64,14 @@ export default class PluginManager {
         if (!pkg)
             throw new Error(`package.json is invalid or missing!`);
 
-        const modules = await Promise.all(Object.entries(pkg?.dependencies)?.map((dependency) => {
-            const moduleManager = new ModuleManager({
-                cwd: dir,
-                pluginsPath: path.join(dir, 'node_modules')
-            });
-            return moduleManager.installFromNpm(dependency[0] as string, dependency[1] as string);
-        }));
+        if (pkg.dependencies)
+            await Promise.all(Object.entries(pkg?.dependencies)?.map((dependency) => {
+                const moduleManager = new ModuleManager({
+                    cwd: dir,
+                    pluginsPath: path.join(dir, 'node_modules')
+                });
+                return moduleManager.installFromNpm(dependency[0] as string, dependency[1] as string);
+            }));
 
         if (!pkg?.prismarine?.apiVersion)
             throw new Error(`apiVersion is missing in package.json!`);
