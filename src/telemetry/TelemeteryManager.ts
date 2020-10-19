@@ -26,7 +26,6 @@ export default class TelemetryManager {
             this.server.getLogger().error(`${err}`);
             process.exit(1);
         });
-        this.tick();
     }
 
     public async onStart() {

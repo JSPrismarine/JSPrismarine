@@ -226,7 +226,7 @@ export default class Prismarine {
      * @returns {Player[]}
      */
     getOnlinePlayers() {
-        return Array.from(this.players.values());
+        return Array.from(this.players.values()) || [];
     }
 
     /**
