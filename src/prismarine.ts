@@ -61,8 +61,8 @@ export default class Prismarine {
     public async listen(serverIp = '0.0.0.0', port = 19132) {
         this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
-        this.raknet.name.setVersion(Identifiers.Protocol);
-        this.raknet.name.setProtocol(Identifiers.MinecraftVersion);
+        this.raknet.name.setProtocol(Identifiers.Protocol);
+        this.raknet.name.setVersion(Identifiers.MinecraftVersion);
         this.raknet.name.setMaxPlayerCount(this.config.getMaxPlayers());
         this.raknet.name.setMotd(this.config.getMotd());
 
