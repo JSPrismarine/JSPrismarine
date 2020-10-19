@@ -20,21 +20,23 @@ export default class PluginApi extends PluginApiVersion {
         return this.getServer().getLogger();
     }
 
-    private _getPlayerManager() {
+    private _getPlayerManager(server: Prismarine) {
         return {
             getOnlinePlayers: () => {
-                this.getServer().getOnlinePlayers();
+                return server.getOnlinePlayers();
             },
 
             getPlayerByName: (name: string) => {
-                this.getServer().getPlayerByName(name);
+                return server.getPlayerByName(name);
             },
             getPlayerById: (id: number) => {
-                this.getServer().getPlayerById(id);
+                return server.getPlayerById(id);
             },
         };
     }
-    public getPlayerManager = () => this.withAnnotate().deprecated(new Date('2020-10-19'), this._getPlayerManager);
+    public getPlayerManager () {
+        return (this.withAnnotate().deprecated(new Date('2020-10-19'), this._getPlayerManager))(this.server);
+    }
 
     private getServer() {
         return this.server;
