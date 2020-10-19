@@ -7,8 +7,16 @@ const fs = require('fs');
 
 export default class CommandManager {
     private commands: Set<Command> = new Set();
+    private server: Prismarine;
 
     constructor(server: Prismarine) {
+        this.server = server;
+    }
+
+    /**
+     * onStart hook
+     */
+    public async onStart() {
         // Register vanilla commands
         const vanilla = fs.readdirSync(path.join(__dirname, 'vanilla'));
         vanilla.forEach((id: string) => {
@@ -16,7 +24,7 @@ export default class CommandManager {
                 return;  // Exclude test files
 
             const command = require(`./vanilla/${id}`);
-            this.registerClassCommand(new (command.default || command)(), server);
+            this.registerClassCommand(new (command.default || command)(), this.server);
         });
 
         // Register jsprismarine commands
@@ -26,16 +34,21 @@ export default class CommandManager {
                 return;  // Exclude test files
 
             const command = require(`./jsprismarine/${id}`);
-            this.registerClassCommand(new (command.default || command)(), server);
+            this.registerClassCommand(new (command.default || command)(), this.server);
         });
 
-        server.getLogger().debug(`Registered §b${vanilla.length + jsprismarine.length}§r commands(s)!`);
+        this.server.getLogger().debug(`Registered §b${vanilla.length + jsprismarine.length}§r commands(s)!`);
+    }
+
+    /**
+     * onExit hook
+     */
+    public async onExit() {
+        this.commands.clear();
     }
 
     /**
      * Register a command into command manager by class.
-     * 
-     * @param {Command} command 
      */
     public registerClassCommand(command: Command, server: Prismarine) {
         this.commands.add(command);
@@ -44,9 +57,6 @@ export default class CommandManager {
 
     /**
      * Dispatches a command and executes them.
-     * 
-     * @param sender 
-     * @param commandInput 
      */
     public dispatchCommand(sender: Player, commandInput = '') {
         if (!(commandInput.startsWith('/'))) {
@@ -87,6 +97,9 @@ export default class CommandManager {
         return sender.sendMessage('§cCannot find the desired command!');
     }
 
+    /**
+     * Get all enabled commands
+     */
     public getCommands(): Set<Command> {
         return this.commands;
     }

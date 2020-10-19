@@ -51,13 +51,21 @@ export default class Prismarine {
     }
 
     private async onStart() {
+        await this.itemManager.onStart();
+        await this.blockManager.onStart();
+        await this.commandManager.onStart();
         await this.pluginManager.onStart();
         await this.telemetryManager.onStart();
+        
         // TODO: rework managers to this format
     }
     private async onExit() {
         await this.telemetryManager.onExit();
         await this.pluginManager.onExit();
+        await this.commandManager.onExit();
+        await this.blockManager.onExit();
+        await this.itemManager.onExit();
+        
         // TODO: rework managers to this format
     }
 
@@ -222,8 +230,6 @@ export default class Prismarine {
 
     /**
      * Returns an array containing all online players.
-     * 
-     * @returns {Player[]}
      */
     getOnlinePlayers() {
         return Array.from(this.players.values()) || [];
@@ -232,10 +238,8 @@ export default class Prismarine {
     /**
      * Returns an online player by its runtime ID,
      * if it is not found, null is returned.
-     * 
-     * @param id 
      */
-    getPlayerById(id: number) {
+    getPlayerById(id: number): Player | null {
         for (let player of this.players.values()) {
             if (player.runtimeId === id) return player;
         }
@@ -248,10 +252,8 @@ export default class Prismarine {
      * if it is not found, null is returned.
      * 
      * CASE INSENSITIVE.
-     * 
-     * @param name 
      */
-    getPlayerByName(name: string) {
+    getPlayerByName(name: string): Player | null {
         for (let player of this.players.values()) {
             if (player.name.toLowerCase().startsWith(name.toLowerCase()) ||
                 player.name.toLowerCase() === name.toLowerCase()) return player;
@@ -265,10 +267,8 @@ export default class Prismarine {
      * if it is not found, null is returned.
      * 
      * CASE SENSITIVE.
-     * 
-     * @param name 
      */
-    getPlayerByExactName(name: string) {
+    getPlayerByExactName(name: string): Player | null {
         for (let player of this.players.values()) {
             if (player.name === name) return player;
         }
@@ -277,7 +277,7 @@ export default class Prismarine {
     }
 
     /**
-     * Kills the server async asynchronously.
+     * Kills the server asynchronously.
      */
     async kill() {
         // Kick all online players
@@ -294,49 +294,87 @@ export default class Prismarine {
         setTimeout(() => { process.exit(0); }, 1000);
     }
 
+    /**
+     * Returns the query manager
+     */
     getQueryManager(): QueryManager | null {
         return this.queryManager;
     };
 
+    /**
+     * Returns the command manager
+     */
     getCommandManager(): CommandManager {
         return this.commandManager;
     }
 
+    /**
+     * Returns the world manager
+     */
     getWorldManager(): WorldManager {
         return this.worldManager;
     }
 
+    /**
+     * Returns the item manager
+     */
     getItemManager(): ItemManager {
         return this.itemManager;
     }
+
+    /**
+     * Returns the block manager
+     */
     getBlockManager(): BlockManager {
         return this.blockManager;
     }
 
+    /**
+     * Returns the logger
+     */
     getLogger(): LoggerBuilder {
         return this.logger;
     }
 
+    /**
+     * Returns the packet registry
+     */
     getPacketRegistry() {
         return this.packetRegistry;
     }
 
+    /**
+     * Returns the raknet instance
+     */
     getRaknet() {
         return this.raknet;
     }
 
+    /**
+     * Returns the plugin manager
+     */
     getPluginManager(): PluginManager {
         return this.pluginManager;
     }
 
+    /**
+     * Returns the config
+     */
     getConfig(): Config {
         return this.config;
     }
 
+    /**
+     * Returns this Prismarine instance
+     */
     getServer() {
         return this;
     }
 
+    /**
+     * Returns the current TPS
+     * WARNING: This is currently stubbed
+     */
     getTPS() {
         // TODO: get actual TPS after completing the network rework
         return 20;

@@ -14,6 +14,9 @@ export default class PluginManager {
         this.server = server;
     }
 
+    /**
+     * onStart hook
+     */
     public async onStart() {
         // Register PluginApiVersion(s)
         const pluginApiVersions = fs.readdirSync(path.join(__dirname, 'api/versions'));
@@ -38,6 +41,9 @@ export default class PluginManager {
         this.server.getLogger().debug(`Registered §b${plugins.length}§r plugin(s)!`);
     }
 
+    /**
+     * onExit hook
+     */
     public async onExit() {
         await Promise.all(Array.from(this.plugins.keys()).map((id: string) => {
             return this.deregisterPlugin(id);
@@ -45,6 +51,9 @@ export default class PluginManager {
         this.pluginApiVersions.clear();
     }
 
+    /**
+     * Register a pluginApiVersion
+     */
     private async registerPluginApiVersion(id: string) {
         let dir = path.join(__dirname, 'api/versions', id);
         const PluginVersion = require(dir).default;
@@ -52,6 +61,9 @@ export default class PluginManager {
         this.server.getLogger().silly(`PluginApiVersion with id §b${id}§r registered`);
     }
 
+    /**
+     * Register a new plugin and download the required dependencies
+     */
     private async registerPlugin(id: string) {
         let dir = path.join(process.cwd(), 'plugins', id);
         if (!fs.lstatSync(dir).isDirectory()) {
@@ -88,6 +100,10 @@ export default class PluginManager {
         this.server.getLogger().silly(`Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`);
         this.server.getLogger().info(`Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully!`);
     }
+
+    /**
+     * Deregister a plugin
+     */
     private async deregisterPlugin(id: string) {
         const plugin: PluginFile = this.plugins.get(id);
         await plugin.onExit?.();
@@ -95,6 +111,10 @@ export default class PluginManager {
         this.plugins.delete(id);
     }
 
+    /**
+     * Get a specific pluginApiVersion.
+     * NOTE: the minor version returned may be higher but NEVER lower.
+     */
     private getPluginApiVersion(id: string): PluginApiVersion {
         const version = this.pluginApiVersions.get(id);
         if (version)
@@ -107,6 +127,10 @@ export default class PluginManager {
         )[0];
 
     }
+
+    /**
+     * Return enabled plugins
+     */
     public getPlugins() {
         return Array.from(this.plugins.values());
     }
