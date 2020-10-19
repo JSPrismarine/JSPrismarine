@@ -1,33 +1,51 @@
 import path from 'path';
+import Prismarine from '../prismarine';
 import PluginApiVersion from './api/PluginApiVersion';
 
 export class Plugin {
-    constructor (api: PluginApiVersion) {}
-    async onStart() {}
-    async onExit() {}
+    constructor(api: PluginApiVersion) { }
+    async onStart() { }
+    async onExit() { }
 };
 
 export default class PluginFile {
+    private server: Prismarine;
     private path: string;
     private package;
     private plugin: Plugin;
 
-    constructor(dir: string, pluginApiVersion: any) {
-        this.path = dir;
-        this.package = require(path.join(dir, 'package.json'))
+    private name: string;
+    private displayName: string;
+    private version: string;
 
-        const Plugin = require(path.join(dir, this.package.main)).default;
+    constructor(server: Prismarine, dir: string, pluginApiVersion: PluginApiVersion) {
+        this.server = server;
+        this.path = dir;
+        this.package = require(path.join(this.path, 'package.json'))
+
+        if (!this.package.name)
+            throw new Error('name is missing in package.json!');
+        else if (!this.package.version)
+            throw new Error('version is missing in package.json!');
+        else if (!this.package.prismarine.displayName)
+            this.server.getLogger().debug(`Plugin with id ${this.package.name}@${this.package.version} is missing displayName!`);
+
+        this.name = this.package.name;
+        this.displayName = this.package.prismarine?.name || this.name;
+        this.version = this.package.version;
+
+        const Plugin = require(path.join(this.path, this.package.main)).default;
         this.plugin = new Plugin(pluginApiVersion);
     }
 
     public getName() {
-        return this.package.name;
+        return this.name;
     }
     public getDisplayName() {
-        return this.package.prismarine.displayName;
+        return this.displayName;
     }
     public getVersion() {
-        return this.package.version;
+        return this.version;
     }
 
     public async onStart() {

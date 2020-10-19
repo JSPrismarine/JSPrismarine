@@ -2,7 +2,6 @@ import Player from "../../player";
 import PluginFile from "../../plugin/PluginFile";
 
 const Command = require('../').default;
-// const Plugin = require('../../plugin/plugin');  // TODO: to interface
 
 export default class PluginsCommand extends Command {
     constructor() {
@@ -21,7 +20,7 @@ export default class PluginsCommand extends Command {
             return;
         }
 
-        let message = `§7Plugins (${plugins.length}):§r ${plugins.map((p: PluginFile) => `${p.getDisplayName()} ${p.getVersion()}`).join(", ")}`;
+        let message = `§7Plugins (${plugins.length}):§r ${plugins.map((p: PluginFile) => `§a${p.getDisplayName()} ${p.getVersion()}`).join("§r, ")}`;
 
         sender.sendMessage(message);
         return;
