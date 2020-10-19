@@ -3,7 +3,6 @@ on:
     push:
         branches:
             - master
-            - dev-pkg
 
 jobs:
     build:
@@ -28,3 +27,18 @@ jobs:
               with:
                   name: jsprismarine-x64-win32.exe
                   path: packages/jsprismarine-win.exe
+    docs:
+        runs-on: macos-latest
+        steps:
+            - uses: actions/checkout@v1
+            - uses: actions/setup-node@v1
+              with:
+                  node-version: 14
+            - run: npm install
+            - run: npm run docs
+            - uses: peaceiris/actions-gh-pages@v3
+              with:
+                github_token: ${{ secrets.GITHUB_TOKEN }}
+                publish_dir: ./docs
+                destination_dir: ./docs
+                keep_file: true

@@ -8,6 +8,7 @@ yarn.lock
 /plugins/
 /worlds/
 /src/resources/
+/docs/
 config.yaml
 *.log
 
