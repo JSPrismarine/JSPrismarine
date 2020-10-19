@@ -3,7 +3,7 @@ import { RemoteInfo } from "dgram";
 export interface InetAddressData {
     address: string;
     port: number;
-    family?: "IPv4" | "IPv6";
+    family?: "ipv4" | "ipv6";
 }
 
 export default class InetAddress {
@@ -14,7 +14,7 @@ export default class InetAddress {
     constructor(addressInfo: InetAddressData) {
         this.address = addressInfo.address;
         this.port = addressInfo.port;
-        this.family = addressInfo.family ?? "IPv4";
+        this.family = addressInfo.family ?? "ipv4";
     }
 
     public getAddress(): string {

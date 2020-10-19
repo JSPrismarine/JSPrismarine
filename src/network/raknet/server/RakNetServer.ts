@@ -5,15 +5,17 @@ import UnconnectedPing from "../protocol/UnconnectedPing";
 import UnconnectedPong from "../protocol/UnconnectedPong";
 import InetAddress, { InetAddressData } from "../util/InetAddress";
 import RakNetServerType from "./RakNetServerType";
-import { randomBytes } from "crypto"
+import { randomBytes } from "crypto";
 import OpenConnectionRequestOne from "../protocol/OpenConnectionRequestOne";
 import OpenConnectionReplyOne from "../protocol/OpenConnectionReplyOne";
 import { RAKNET_PROTOCOL } from "./RakNetCostants";
 import OpenConnectionRequestTwo from "../protocol/OpenConnectionRequestTwo";
 import OpenConnectionReplyTwo from "../protocol/OpenConnectionReplyTwo";
-import NetworkQueueHandler from "../handler/NetworkQueueHandler";
 import Identifiers from "../../identifiers";
 import { EventEmitter } from "events";
+import { Priorities } from "../queue/priority/Priorities";
+import NetworkQueueHandlerType from "../handler/NetworkQueueHandlerType";
+import PlayerConnection from "../../PlayerConnection";
 
 interface RakNetServerData extends InetAddressData {
     /**
@@ -32,9 +34,9 @@ interface RakNetServerData extends InetAddressData {
 
 export default class RakNetServer extends EventEmitter implements RakNetServerType {
     private readonly bindAddress: InetAddress;
-    private readonly socket: DSocket = createSocket("udp4");  
+    private readonly socket: DSocket = createSocket("udp4");
     private readonly GUID: bigint = randomBytes(8).readBigInt64BE();
-    private clients: Map<String, RakNetConnection> = new Map(); 
+    private clients: Map<String, NetworkQueueHandlerType> = new Map();
 
     private motd: string = 'Another JSPrismarine server!';
     private version: string = Identifiers.MinecraftVersion;
@@ -69,27 +71,11 @@ export default class RakNetServer extends EventEmitter implements RakNetServerTy
     }
 
     private async handleMessage(msg: Buffer, rinfo: RemoteInfo): Promise<void> {
-        const header = msg.readUInt8();  
+        const header = msg.readUInt8();
 
         const token = InetAddress.fromRemoteInfo(rinfo).toToken();
         if (this.clients.has(token)) {
-            console.log(header.toString(16));
-            if(header < 0x80) {
-                switch(header) {
-                    case RakNetIdentifiers.NEW_INCOMING_CONNECTION:
-                        this.emit('openConnection', {
-                            address: InetAddress.fromRemoteInfo(rinfo)
-                        });
-                        break;
-                    default:
-                        // TODO: logger
-                        console.warn(`Unknown MessageIdentifier: 0x${header.toString(16)}`);
-                };
-            } else if (true) { // TODO: check client status
-                this.emit('encapsulated', {
-                    buffer: msg
-                }, InetAddress.fromRemoteInfo(rinfo))
-            }
+            this.clients.get(token)!.incomingPackets.add(msg, Priorities.HIGH);
         } else {
             this.socket.send(
                 await this.handleOfflineMessage(header, msg, rinfo),
@@ -132,7 +118,7 @@ export default class RakNetServer extends EventEmitter implements RakNetServerTy
                     } else {
                         encoded = new OpenConnectionReplyOne();
                         encoded.GUID = this.GUID;
-                        encoded.maximumTransferUnit = decoded.maximumTransferUnit;
+                        encoded.mtuSize = decoded.mtuSize;
                         encoded.encodeInternal();
                     }
                     return resolve(encoded.getOutputBuffer());
@@ -152,9 +138,11 @@ export default class RakNetServer extends EventEmitter implements RakNetServerTy
                     encoded.encodeInternal();
 
                     // Create session
-                    const token = clientAddr.toToken();
-                    const conn = new NetworkQueueHandler(this, decoded.clientGUID, decoded.mtuSize); 
-                    this.clients.set(token, conn);
+                    this.clients.set(clientAddr.toToken(), new PlayerConnection(
+                        clientAddr,
+                        decoded.clientGUID,
+                        decoded.mtuSize
+                    ));
 
                     return resolve(encoded.getOutputBuffer());
             }

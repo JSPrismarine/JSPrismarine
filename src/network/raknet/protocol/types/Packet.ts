@@ -1,6 +1,5 @@
 import BinaryStream from "@jsprismarine/jsbinaryutils";
 import { assert } from "console";
-import { add } from "winston";
 import InetAddress from "../../util/InetAddress";
 
 export default class Packet {
