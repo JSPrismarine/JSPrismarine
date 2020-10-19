@@ -83,8 +83,8 @@
     "eslint": "7.11.0",
     "husky": "4.3.0",
     "node-fetch": "2.6.1",
-    "nodemon": "2.0.5",
-    "typedoc": "^0.19.2",
+    "nodemon": "2.0.6",
+    "typedoc": "0.19.2",
     "typedoc-neo-theme": "^1.0.10",
     "typescript": "4.0.3"
   },
