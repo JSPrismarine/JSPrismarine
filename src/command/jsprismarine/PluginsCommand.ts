@@ -1,4 +1,5 @@
 import Player from "../../player";
+import PluginFile from "../../plugin/PluginFile";
 
 const Command = require('../').default;
 // const Plugin = require('../../plugin/plugin');  // TODO: to interface
@@ -13,18 +14,16 @@ export default class PluginsCommand extends Command {
      * @param {Array} args
      */
     public execute(sender: Player, args: Array<any>): void {
-        return;
-
-        /* let plugins = sender.getServer().getPluginManager().getPlugins();
+        let plugins = sender.getServer().getPluginManager().getPlugins();
 
         if (plugins.length == 0) {
             sender.sendMessage("§cCan't find any plugins.");
             return;
         }
 
-        let message = `§7Plugins (${plugins.length}):§r ${plugins.map((p: typeof Plugin) => `${p.manifest.name} ${p.manifest.version}`).join(", ")}`;
+        let message = `§7Plugins (${plugins.length}):§r ${plugins.map((p: PluginFile) => `${p.getDisplayName()} ${p.getVersion()}`).join(", ")}`;
 
         sender.sendMessage(message);
-        return; */
+        return;
     }
 }
