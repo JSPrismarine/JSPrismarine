@@ -7,12 +7,9 @@ import Config from "./config";
 import WorldManager from "./world/world-manager";
 import QueryManager from "./query/QueryManager";
 import PluginManager from "./plugin/plugin-manager";
-<<<<<<< HEAD
 import RakNetServer from "./network/raknet/server/RakNetServer";
-=======
 import LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
->>>>>>> 666b8d628c8849f42129acc0156fe47791de9ac2
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
