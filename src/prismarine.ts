@@ -66,52 +66,51 @@ export default class Prismarine {
         });
         this.raknet.listen().then(() => {
             this.logger.info(`JSPrismarine is now listening port §b${port}`);
-
-            /*this.raknet = await (new Listener).listen(serverIp, port); */
-            /*this.raknet.setOnlinePlayerCount(this.players.size);
-            this.raknet.setVersion(Identifiers.Protocol);
-            this.raknet.setProtocol(Identifiers.MinecraftVersion);
+            this.raknet.setProtocol(Identifiers.Protocol);
+            this.raknet.setVersion(Identifiers.MinecraftVersion);
             this.raknet.setMaxPlayerCount(this.config.getMaxPlayers());
-            this.raknet.setMotd(this.config.getMotd()); */
-
+            this.raknet.setCurrentPlayerCount(this.players.size);
+            this.raknet.setMotd(this.config.getMotd());
 
             // Client connected, instantiate player
-            /* this.raknet.on('openConnection', (connection: any) => {
+            this.raknet.on('openConnection', (connection: any) => {
                 return new Promise(async (resolve, reject) => {
                     let inetAddr = connection.address;
-    
+
                     // TODO: Get last world by player data
                     // and if it doesn't exists, return the default one
                     let timing = await new Promise((resolve, reject) => {
                         let time = Date.now();
                         let world = this.getWorldManager().getDefaultWorld();
-                        if (!world) return reject();  // Temp solution
+                        if (!world)
+                            return reject();  // Temp solution
                         let player = new Player(
                             connection, connection.address, world, this
                         );
                         this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
-    
+
                         if (!world)
                             reject();
-    
+
                         // Add the player into the world
                         world?.addPlayer(player);
-                        this.raknet.name.setOnlinePlayerCount(this.players.size);
+                        this.raknet.setCurrentPlayerCount(this.players.size);
                         resolve(Date.now() - time);
                     });
-    
+
                     this.logger.silly(`Player creation took about ${timing} ms`);
                     resolve();
                 })
             });
-    
+
             // Get player from map by address, then handle packet
             this.raknet.on('encapsulated', (packet: any, inetAddr: any) => {
                 let token = `${inetAddr.address}:${inetAddr.port}`;
+
                 if (!this.players.has(token))
                     return;
                 let player = this.players.get(token);
-    
+
                 // TODO: simplify promise code and add an option to 
                 // log incoming and outcoming buffers (maybe an option in config)
                 // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
@@ -119,23 +118,23 @@ export default class Prismarine {
                     // Read batch content and handle them
                     let pk = new BatchPacket();
                     pk.buffer = packet.buffer;
-    
+
                     try {
                         pk.decode();
                     } catch {
                         return reject(`Error while decoding batch`);
                     }
-    
+
                     const handlers = [];
                     // Read all packets inside batch and handle them
                     for (let buf of pk.getPackets()) {
                         if (this.packetRegistry.getPackets().has(buf[0])) {
                             let packet = new (this.packetRegistry.getPackets().get(buf[0]))();  // Get packet from registry
                             packet.buffer = buf;
-    
+
                             try {
                                 packet.decode();
-    
+
                                 // Check if the handler exists
                                 if (this.packetRegistry.getHandlers().has(packet.id)) {
                                     let handler = this.packetRegistry.getHandlers().get(packet.id);
@@ -153,12 +152,12 @@ export default class Prismarine {
                             } catch (err) {
                                 return reject(`Error while decoding packet: ${packet.constructor.name}: ${err}`);
                             }
-    
+
                         } else {
                             return reject(`Packet ${packet.id} doesn't have a handler`);
                         }
                     }
-    
+
                     try {
                         await Promise.all(handlers);
                         return resolve();
@@ -167,7 +166,7 @@ export default class Prismarine {
                     }
                 }).catch(err => this.logger.error(err));
             });
-    
+
             this.raknet.on('closeConnection', (inetAddr: any, reason: string) => {
                 return new Promise(async (resolve, reject) => {
                     let timing = await new Promise((resolve, reject) => {
@@ -176,7 +175,7 @@ export default class Prismarine {
                         if (this.players.has(token)) {
                             let player = this.players.get(token);
                             if (!player) return reject(this.logger.error(`Could not find player: ${token}`));
-    
+
                             // Despawn the player to all online players
                             player.removeFromPlayerList();
                             this.players.delete(token);
@@ -184,17 +183,17 @@ export default class Prismarine {
                                 player.sendDespawn(onlinePlayer);
                             }
                             player.getWorld().removePlayer(player);
-    
+
                         }
                         this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
-                        this.raknet.name.setOnlinePlayerCount(this.players.size);
+                        this.raknet.setCurrentPlayerCount(this.players.size);
                         resolve(Date.now() - time);
                     });
-    
+
                     this.logger.silly(`Player destruction took about ${timing} ms`);
                     resolve();
                 });
-            }); */
+            });
 
             // Tick worlds every 1/20 of a second (a minecraft tick)
             setInterval(async () => {

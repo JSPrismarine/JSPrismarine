@@ -23,6 +23,8 @@ export default class PriorityQueue {
     private elements: Array<any> = new Array();
 
     public add(element: any, priority: number) {
+        this.elements.push(new PriorityItem(element, priority));
+
         /* 
         PROTOTYPE 1:
         switch (priority) {
