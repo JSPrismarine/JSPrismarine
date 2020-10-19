@@ -11,7 +11,6 @@ import RakNetServer from "./network/raknet/server/RakNetServer";
 import LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
 
-const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
 const Identifiers = require('./network/identifiers');
 
@@ -21,7 +20,7 @@ interface PrismarineData {
 };
 
 export default class Prismarine {
-    private raknet: any;
+    private raknet: RakNetServer;
     private logger: LoggerBuilder;
     private config: Config;
 
@@ -60,153 +59,158 @@ export default class Prismarine {
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132) {
-        let raknet = new RakNetServer({ address: serverIp, port: 19132, type: "udp4" });
-        raknet.listen();
-
-        this.raknet = await (new Listener).listen(serverIp, port);
-        this.raknet.name.setOnlinePlayerCount(this.players.size);
-        this.raknet.name.setVersion(Identifiers.Protocol);
-        this.raknet.name.setProtocol(Identifiers.MinecraftVersion);
-        this.raknet.name.setMaxPlayerCount(this.config.getMaxPlayers());
-        this.raknet.name.setMotd(this.config.getMotd());
-
-        this.logger.info(`JSPrismarine is now listening port §b${port}`);
-
-        // Client connected, instantiate player
-        this.raknet.on('openConnection', (connection: any) => {
-            return new Promise(async (resolve, reject) => {
-                let inetAddr = connection.address;
-
-                // TODO: Get last world by player data
-                // and if it doesn't exists, return the default one
-                let timing = await new Promise((resolve, reject) => {
-                    let time = Date.now();
-                    let world = this.getWorldManager().getDefaultWorld();
-                    if (!world) return reject();  // Temp solution
-                    let player = new Player(
-                        connection, connection.address, world, this
-                    );
-                    this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
-
-                    if (!world)
-                        reject();
-
-                    // Add the player into the world
-                    world?.addPlayer(player);
-                    this.raknet.name.setOnlinePlayerCount(this.players.size);
-                    resolve(Date.now() - time);
-                });
-
-                this.logger.silly(`Player creation took about ${timing} ms`);
-                resolve();
-            })
+        this.raknet = new RakNetServer({
+            address: serverIp,
+            port: port,
+            type: "udp4",
         });
+        this.raknet.listen().then(() => {
+            this.logger.info(`JSPrismarine is now listening port §b${port}`);
 
-        // Get player from map by address, then handle packet
-        this.raknet.on('encapsulated', (packet: any, inetAddr: any) => {
-            let token = `${inetAddr.address}:${inetAddr.port}`;
-            if (!this.players.has(token))
-                return;
-            let player = this.players.get(token);
+            /*this.raknet = await (new Listener).listen(serverIp, port); */
+            /*this.raknet.setOnlinePlayerCount(this.players.size);
+            this.raknet.setVersion(Identifiers.Protocol);
+            this.raknet.setProtocol(Identifiers.MinecraftVersion);
+            this.raknet.setMaxPlayerCount(this.config.getMaxPlayers());
+            this.raknet.setMotd(this.config.getMotd()); */
 
-            // TODO: simplify promise code and add an option to 
-            // log incoming and outcoming buffers (maybe an option in config)
-            // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
-            return new Promise(async (resolve, reject) => {
-                // Read batch content and handle them
-                let pk = new BatchPacket();
-                pk.buffer = packet.buffer;
 
-                try {
-                    pk.decode();
-                } catch {
-                    return reject(`Error while decoding batch`);
-                }
-
-                const handlers = [];
-                // Read all packets inside batch and handle them
-                for (let buf of pk.getPackets()) {
-                    if (this.packetRegistry.getPackets().has(buf[0])) {
-                        let packet = new (this.packetRegistry.getPackets().get(buf[0]))();  // Get packet from registry
-                        packet.buffer = buf;
-
-                        try {
-                            packet.decode();
-
-                            // Check if the handler exists
-                            if (this.packetRegistry.getHandlers().has(packet.id)) {
-                                let handler = this.packetRegistry.getHandlers().get(packet.id);
-                                handlers.push(new Promise(async (resolve, reject) => {
-                                    try {
-                                        await handler.handle(packet, this, player);
-                                        return resolve();
-                                    } catch (err) {
-                                        return reject(`Handler error ${packet.constructor.name}-handler: (${err})`);
-                                    }
-                                }));
-                            } else {
-                                return reject(`Packet ${packet.constructor.name} doesn't have a handler`);
-                            }
-                        } catch (err) {
-                            return reject(`Error while decoding packet: ${packet.constructor.name}: ${err}`);
-                        }
-
-                    } else {
-                        return reject(`Packet ${packet.id} doesn't have a handler`);
-                    }
-                }
-
-                try {
-                    await Promise.all(handlers);
-                    return resolve();
-                } catch (err) {
-                    return reject(err);
-                }
-            }).catch(err => this.logger.error(err));
-        });
-
-        this.raknet.on('closeConnection', (inetAddr: any, reason: string) => {
-            return new Promise(async (resolve, reject) => {
-                let timing = await new Promise((resolve, reject) => {
-                    let time = Date.now();
-                    let token = `${inetAddr.address}:${inetAddr.port}`;
-                    if (this.players.has(token)) {
-                        let player = this.players.get(token);
-                        if (!player) return reject(this.logger.error(`Could not find player: ${token}`));
-
-                        // Despawn the player to all online players
-                        player.removeFromPlayerList();
-                        this.players.delete(token);
-                        for (let onlinePlayer of this.players.values()) {
-                            player.sendDespawn(onlinePlayer);
-                        }
-                        player.getWorld().removePlayer(player);
-
-                    }
-                    this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
-                    this.raknet.name.setOnlinePlayerCount(this.players.size);
-                    resolve(Date.now() - time);
-                });
-
-                this.logger.silly(`Player destruction took about ${timing} ms`);
-                resolve();
+            // Client connected, instantiate player
+            /* this.raknet.on('openConnection', (connection: any) => {
+                return new Promise(async (resolve, reject) => {
+                    let inetAddr = connection.address;
+    
+                    // TODO: Get last world by player data
+                    // and if it doesn't exists, return the default one
+                    let timing = await new Promise((resolve, reject) => {
+                        let time = Date.now();
+                        let world = this.getWorldManager().getDefaultWorld();
+                        if (!world) return reject();  // Temp solution
+                        let player = new Player(
+                            connection, connection.address, world, this
+                        );
+                        this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
+    
+                        if (!world)
+                            reject();
+    
+                        // Add the player into the world
+                        world?.addPlayer(player);
+                        this.raknet.name.setOnlinePlayerCount(this.players.size);
+                        resolve(Date.now() - time);
+                    });
+    
+                    this.logger.silly(`Player creation took about ${timing} ms`);
+                    resolve();
+                })
             });
+    
+            // Get player from map by address, then handle packet
+            this.raknet.on('encapsulated', (packet: any, inetAddr: any) => {
+                let token = `${inetAddr.address}:${inetAddr.port}`;
+                if (!this.players.has(token))
+                    return;
+                let player = this.players.get(token);
+    
+                // TODO: simplify promise code and add an option to 
+                // log incoming and outcoming buffers (maybe an option in config)
+                // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
+                return new Promise(async (resolve, reject) => {
+                    // Read batch content and handle them
+                    let pk = new BatchPacket();
+                    pk.buffer = packet.buffer;
+    
+                    try {
+                        pk.decode();
+                    } catch {
+                        return reject(`Error while decoding batch`);
+                    }
+    
+                    const handlers = [];
+                    // Read all packets inside batch and handle them
+                    for (let buf of pk.getPackets()) {
+                        if (this.packetRegistry.getPackets().has(buf[0])) {
+                            let packet = new (this.packetRegistry.getPackets().get(buf[0]))();  // Get packet from registry
+                            packet.buffer = buf;
+    
+                            try {
+                                packet.decode();
+    
+                                // Check if the handler exists
+                                if (this.packetRegistry.getHandlers().has(packet.id)) {
+                                    let handler = this.packetRegistry.getHandlers().get(packet.id);
+                                    handlers.push(new Promise(async (resolve, reject) => {
+                                        try {
+                                            await handler.handle(packet, this, player);
+                                            return resolve();
+                                        } catch (err) {
+                                            return reject(`Handler error ${packet.constructor.name}-handler: (${err})`);
+                                        }
+                                    }));
+                                } else {
+                                    return reject(`Packet ${packet.constructor.name} doesn't have a handler`);
+                                }
+                            } catch (err) {
+                                return reject(`Error while decoding packet: ${packet.constructor.name}: ${err}`);
+                            }
+    
+                        } else {
+                            return reject(`Packet ${packet.id} doesn't have a handler`);
+                        }
+                    }
+    
+                    try {
+                        await Promise.all(handlers);
+                        return resolve();
+                    } catch (err) {
+                        return reject(err);
+                    }
+                }).catch(err => this.logger.error(err));
+            });
+    
+            this.raknet.on('closeConnection', (inetAddr: any, reason: string) => {
+                return new Promise(async (resolve, reject) => {
+                    let timing = await new Promise((resolve, reject) => {
+                        let time = Date.now();
+                        let token = `${inetAddr.address}:${inetAddr.port}`;
+                        if (this.players.has(token)) {
+                            let player = this.players.get(token);
+                            if (!player) return reject(this.logger.error(`Could not find player: ${token}`));
+    
+                            // Despawn the player to all online players
+                            player.removeFromPlayerList();
+                            this.players.delete(token);
+                            for (let onlinePlayer of this.players.values()) {
+                                player.sendDespawn(onlinePlayer);
+                            }
+                            player.getWorld().removePlayer(player);
+    
+                        }
+                        this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
+                        this.raknet.name.setOnlinePlayerCount(this.players.size);
+                        resolve(Date.now() - time);
+                    });
+    
+                    this.logger.silly(`Player destruction took about ${timing} ms`);
+                    resolve();
+                });
+            }); */
+
+            // Tick worlds every 1/20 of a second (a minecraft tick)
+            setInterval(async () => {
+                for (let world of this.getWorldManager().getWorlds()) {
+                    await world.update(Date.now());
+                }
+            }, 1000 / 20);
+
+            // Auto save (default: 5 minutes)
+            // TODO: level.ticks % 6000 == 0 and save
+            setInterval(async () => {
+                for (let world of this.getWorldManager().getWorlds()) {
+                    await world.save();
+                }
+            }, 1000 * 60 * 5);
         });
-
-        // Tick worlds every 1/20 of a second (a minecraft tick)
-        setInterval(async () => {
-            for (let world of this.getWorldManager().getWorlds()) {
-                await world.update(Date.now());
-            }
-        }, 1000 / 20);
-
-        // Auto save (default: 5 minutes)
-        // TODO: level.ticks % 6000 == 0 and save
-        setInterval(async () => {
-            for (let world of this.getWorldManager().getWorlds()) {
-                await world.save();
-            }
-        }, 1000 * 60 * 5);
     }
 
     /**

@@ -5,7 +5,6 @@ import Entity from "../entity/entity";
 import World from "../world/world";
 import Gamemode from "../world/gamemode";
 
-const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
 const BatchPacket = require("../network/packet/batch");
 const ChunkRadiusUpdatedPacket = require('../network/packet/chunk-radius-updated');
@@ -547,11 +546,11 @@ export default class Player extends Entity {
         batch.encode();
 
         // Add this in raknet
-        let sendPacket = new EncapsulatedPacket();
+        /* let sendPacket = new EncapsulatedPacket();
         sendPacket.reliability = 0;
         sendPacket.buffer = batch.buffer;
 
-        this.#connection.addEncapsulatedToQueue(sendPacket);
+        this.#connection.addEncapsulatedToQueue(sendPacket); */
     }
 
     // Return all the players in the same chunk

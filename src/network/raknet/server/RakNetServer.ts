@@ -41,19 +41,21 @@ export default class RakNetServer implements RakNetServerType {
         this.bindAddress = new InetAddress(raknetData);
     }
 
-    public listen(): void {
-        try {
-            this.socket.bind({
-                address: this.bindAddress.getAddress(),
-                port: this.bindAddress.getPort()
-            }, () => console.log(
-                "RakNet socket listening on port %d", this.bindAddress.getPort()
-            )); // TODO: replace with an actual logger
-        } catch (err) {
-            throw err;
-        }
-
+    public listen(): Promise<void> {
         this.socket.on("message", async (msg, rinfo) => await this.handleMessage(msg, rinfo));
+
+        return new Promise((resolve, reject) => {
+            try {
+                this.socket.bind({
+                    address: this.bindAddress.getAddress(),
+                    port: this.bindAddress.getPort()
+                }, () => {
+                    resolve();
+                });
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 
     private async handleMessage(msg: Buffer, rinfo: RemoteInfo): Promise<void> {
