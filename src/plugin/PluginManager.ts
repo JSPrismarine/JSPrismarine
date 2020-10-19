@@ -56,6 +56,8 @@ export default class PluginManager {
         let dir = path.join(process.cwd(), 'plugins', id);
         if (!fs.lstatSync(dir).isDirectory()) {
             // TODO: extract plugin into ./temp
+            dir = path.join(process.cwd(), 'plugins/.temp/', id);
+            throw new Error(`.jspz plugin support is UNIMPLEMENTED`);
         }
 
         const pkg = require(path.join(dir, 'package.json'));
