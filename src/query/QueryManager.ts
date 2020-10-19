@@ -1,6 +1,7 @@
 import Prismarine from "../prismarine";
 import BinaryStream from "@jsprismarine/jsbinaryutils";
 import udp from 'dgram';
+import git from 'git-rev-sync';
 
 export default class QueryManager {
     private server?: udp.Socket;
@@ -9,8 +10,8 @@ export default class QueryManager {
         if (!server.getConfig().getEnableQuery())
             return;
 
-        // TODO: setup query
         const port = server.getConfig().getQueryPort()
+        const git_rev = git.short() || 'unknown';
         this.server = udp.createSocket('udp4');
 
         // TODO: https://wiki.vg/Server_List_Ping
@@ -18,9 +19,7 @@ export default class QueryManager {
             const buffer = new BinaryStream(Buffer.from(data.buffer))
             const magic = buffer.readShort();
             const type = buffer.readByte();
-            const sessionId = buffer.readInt();
-
-            console.log({ magic, type, sessionId });
+            const sessionId = buffer.readInt() & 0x0F0F0F0F;
 
             if (magic !== 65277)
                 return server.getLogger().silly(`Query ${magic} !== 65277. ${JSON.stringify(info)}`);
@@ -29,16 +28,17 @@ export default class QueryManager {
                 case 0: { // Stats
                     const padding = buffer.readRemaining();
                     if (padding.length < 8) {
-                        // TODO: use bonary stream
-                        let res = Buffer.alloc(5);
-                        res.writeUInt8(0);
-                        res.writeInt32BE(0);
-                        res = Buffer.concat([res, Buffer.from(`${server.getRaknet().name.getMotd()}\0`, 'binary')]);
-                        res = Buffer.concat([res, Buffer.from('SMP\0', 'binary')]);
-                        res = Buffer.concat([res, Buffer.from(`${server.getWorldManager().getDefaultWorld()?.getName()}\0`, 'binary')]);
-                        res = Buffer.concat([res, Buffer.from(`${server.getRaknet().name.getOnlinePlayerCount()}\0`, 'binary')]);
-                        res = Buffer.concat([res, Buffer.from(`${server.getRaknet().name.getMaxPlayerCount()}\0`, 'binary')]);
-                        this.server?.send(res, info.port, info.address);
+                        const res = new BinaryStream();
+                        res.writeByte(0);
+                        res.writeInt(sessionId);
+                        res.append(Buffer.from(`${[
+                            server.getRaknet().name.getMotd(),
+                            'SMP',
+                            server.getWorldManager().getDefaultWorld()?.getName(),
+                            server.getRaknet().name.getOnlinePlayerCount(),
+                            server.getRaknet().name.getMaxPlayerCount(),
+                        ].join('\0')}\0`, 'binary'));
+                        this.server?.send(res.getBuffer(), info.port, info.address);
                     } else {
                         const res = new BinaryStream();
                         res.writeByte(0);
@@ -54,19 +54,20 @@ export default class QueryManager {
                         res.writeByte(0);
                         res.writeByte(128);
                         res.writeByte(0);
-
                         // End padding
+
+                        const plugins = server.getPluginManager().getPlugins().map(plugin => `${plugin.manifest.name} ${plugin.manifest.version}`);
                         res.append(Buffer.from(`\0${[
                             'hostname',
                             server.getRaknet().name.getMotd(),
                             'gametype',
                             'SMP',
                             'game_id',
-                            'MINECRAFT',
+                            'MINECRAFTPE',
                             'version',
-                            '', // TODO
+                            server.getConfig().getVersion(),
                             'plugins',
-                            'JSPrismarine:', // TODO
+                            `JSPrismarine on Prismarine ${server.getConfig().getVersion()}-${git_rev}${plugins.length && ': ' || ''}${plugins.join('; ')}`, // TODO
                             'map',
                             server.getWorldManager().getDefaultWorld()?.getName(),
                             'numplayers',
@@ -74,7 +75,7 @@ export default class QueryManager {
                             'maxplayers',
                             server.getRaknet().name.getMaxPlayerCount(),
                             'hostport',
-                            server.getConfig().getQueryPort(),
+                            server.getConfig().getPort(),
                             'hostip',
                             server.getConfig().getServerIp()
                         ].join('\0')}\0\0`, 'binary'));
@@ -97,12 +98,11 @@ export default class QueryManager {
                     }
                     break;
                 } case 9: { // Handshake
-                    // TODO: use bonary stream
-                    const buffer = Buffer.alloc(7);
-                    buffer.writeUInt8(9);
-                    buffer.writeInt32BE(sessionId);
-                    buffer.writeInt32BE(9513307);
-                    this.server?.send(buffer, info.port, info.address);
+                    const res = new BinaryStream();
+                    res.writeByte(9);
+                    res.writeInt(sessionId);
+                    res.append(Buffer.from(`9513307\0`, 'binary'));
+                    this.server?.send(res.getBuffer(), info.port, info.address);
                     break;
                 }
             };

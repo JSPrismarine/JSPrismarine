@@ -2,7 +2,7 @@
 	<img width="300" height="300" src="https://user-images.githubusercontent.com/34418030/88539249-3165d480-d011-11ea-82d3-ecfebfffa3bd.png" alt="JSPrismarine logo"/>
 </p>
 <h1 align="center">
-	<a href="https://github.com/HerryYT/JSPrismarine">JSPrismarine</a>
+	<a href="https://github.com/JSPrismarine/JSPrismarine">JSPrismarine</a>
 </h1>
 
 <p align="center">

@@ -7,7 +7,12 @@ import Config from "./config";
 import WorldManager from "./world/world-manager";
 import QueryManager from "./query/QueryManager";
 import PluginManager from "./plugin/plugin-manager";
+<<<<<<< HEAD
 import RakNetServer from "./network/raknet/server/RakNetServer";
+=======
+import LoggerBuilder from "./utils/Logger";
+import TelemetryManager from "./telemetry/TelemeteryManager";
+>>>>>>> 666b8d628c8849f42129acc0156fe47791de9ac2
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -16,14 +21,15 @@ const Identifiers = require('./network/identifiers');
 interface PrismarineData {
     logger: any,
     config: any
-}
+};
 
 export default class Prismarine {
     private raknet: any;
-    private logger: any;
+    private logger: LoggerBuilder;
     private config: Config;
 
     private players: Map<string, Player> = new Map();
+    private telemetryManager: TelemetryManager;
     private packetRegistry: PacketRegistry;
     private pluginManager: PluginManager;
     private commandManager: CommandManager;
@@ -37,6 +43,7 @@ export default class Prismarine {
     constructor({ logger, config }: PrismarineData) {
         this.logger = logger;
         this.config = config;
+        this.telemetryManager = new TelemetryManager(this);
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
@@ -297,7 +304,7 @@ export default class Prismarine {
         return this.blockManager;
     }
 
-    getLogger() {
+    getLogger(): LoggerBuilder {
         return this.logger;
     }
 
@@ -309,7 +316,7 @@ export default class Prismarine {
         return this.raknet;
     }
 
-    getPluginManager() {
+    getPluginManager(): PluginManager {
         return this.pluginManager;
     }
 
@@ -321,4 +328,8 @@ export default class Prismarine {
         return this;
     }
 
+    getTPS() {
+        // TODO: get actual TPS after completing the network rework
+        return 20;
+    }
 }

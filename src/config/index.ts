@@ -1,9 +1,11 @@
 import path from 'path';
 import ConfigBuilder from "./ConfigBuilder";
+import pkg from '../../package.json';
 
 export default class Config {
     private configBuilder: ConfigBuilder;
 
+    private version: string;
     private port: number;
     private serverIp: string;
     private levelName: string;
@@ -12,10 +14,15 @@ export default class Config {
     private gamemode: string | number;
     private motd: string;
     private viewDistance: number;
+    private onlineMode: boolean;
     private enableQuery: boolean;
     private queryPort: number;
+    private enableTelemetry: boolean;
+    private telemetryUrls: Array<string>;
 
     constructor() {
+        this.version = pkg.version;
+
         this.configBuilder = new ConfigBuilder(path.join(process.cwd(), 'config.yaml'));
         (global as any).log_level = this.configBuilder.get('log-level', 'info');
 
@@ -32,10 +39,16 @@ export default class Config {
         this.gamemode = this.configBuilder.get('gamemode', 'survival');
         this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!');
         this.viewDistance = this.configBuilder.get('view-distance', 10);
+        this.onlineMode = this.configBuilder.get('online-mode', true);
         this.enableQuery = this.configBuilder.get('enable-query', false);
         this.queryPort = this.configBuilder.get('query-port', 25565);
+        this.enableTelemetry = this.configBuilder.get('enable-telemetry', true);
+        this.telemetryUrls = this.configBuilder.get('telemetry-urls', ['https://telemetry.prismarine.dev']);
     }
 
+    public getVersion() {
+        return this.version;
+    }
     public getPort() {
         return this.port;
     }
@@ -60,10 +73,19 @@ export default class Config {
     public getViewDistance() {
         return this.viewDistance;
     }
+    public getOnlineMode() {
+        return this.onlineMode;
+    }
     public getEnableQuery() {
         return this.enableQuery;
     }
     public getQueryPort() {
         return this.queryPort;
     }
+    public getTelemetry() {
+        return {
+            enabled: this.enableTelemetry,
+            urls: this.telemetryUrls
+        }
+    };
 };
