@@ -55,10 +55,14 @@ export default class Prismarine {
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.commandManager = new CommandManager(this);
-        this.pluginManager = new PluginManager(this);
+        await this.pluginManager.onExit();
+
+        await this.pluginManager.onStart();
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132) {
+        await this.pluginManager.onStart();
+        
         this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
         this.raknet.name.setProtocol(Identifiers.Protocol);

@@ -23,7 +23,7 @@ describe('command', () => {
                 }, []);
             });
 
-            it('plugins command should succeed with 1 plugin', (done) => {
+            it.skip('plugins command should succeed with 1 plugin', (done) => {
                 command.execute({
                     getServer: () => ({
                         getPluginManager: () => ({
@@ -42,7 +42,7 @@ describe('command', () => {
                 }, []);
             });
 
-            it('plugins command should succeed with more than 1 plugin', (done) => {
+            it.skip('plugins command should succeed with more than 1 plugin', (done) => {
                 command.execute({
                     getServer: () => ({
                         getPluginManager: () => ({

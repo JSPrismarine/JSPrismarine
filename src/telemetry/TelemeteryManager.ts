@@ -32,10 +32,10 @@ export default class TelemetryManager {
                 online_mode: server.getConfig().getOnlineMode(),
                 player_count: server.getRaknet()?.name.getOnlinePlayerCount() || 0,
                 max_player_count: server.getConfig().getMaxPlayers(),
-                plugins: server.getPluginManager()?.getPlugins().map(plugin => ({
+                plugins: []/*server.getPluginManager()?.getPlugins().map(plugin => ({
                     name: plugin.manifest.name,
                     version: plugin.manifest.version
-                })),
+                }))*/,
                 tps: server.getTPS(),
                 uptime: Math.trunc(process.uptime() * 1000),
                 node_env: process.env.NODE_ENV
