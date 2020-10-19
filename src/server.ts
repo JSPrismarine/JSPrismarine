@@ -51,8 +51,10 @@ rl.on('line', (input: string) => {
 });
 
 
-Server.listen(Server.getConfig().getServerIp(),Server.getConfig().getPort()).catch(() => {
+Server.listen(Server.getConfig().getServerIp(), Server.getConfig().getPort()).catch((err) => {
     Server.getLogger().error(`Cannot start the server, is it already running on the same port?`);
+    if (err)
+        Server.getLogger().error(err);
     Server.kill();
     process.exit(1);
 });

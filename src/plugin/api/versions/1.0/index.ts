@@ -1,14 +1,17 @@
 import Prismarine from "../../../../prismarine";
+import AnnotatePluginApiFunction from "../../../AnnotatePluginApiFunction";
 import PluginApiVersion from "../../PluginApiVersion";
 
 export const PLUGIN_API_VERSION = '1.0';
 
 export default class PluginApi extends PluginApiVersion {
-    server: Prismarine;
+    private server: Prismarine;
+    private annotate;
     
     constructor(server: Prismarine) {
         super(PLUGIN_API_VERSION);
         this.server = server;
+        this.annotate = new AnnotatePluginApiFunction(server);
     };
     public async onInit() { }
     public async onExit() { }
@@ -16,7 +19,8 @@ export default class PluginApi extends PluginApiVersion {
     public getLogger() {
         return this.getServer().getLogger();
     }
-    public getPlayerManager() {
+
+    private _getPlayerManager() {
         return {
             getOnlinePlayers: () => {
                 this.getServer().getOnlinePlayers();
@@ -30,8 +34,12 @@ export default class PluginApi extends PluginApiVersion {
             },
         };
     }
+    public getPlayerManager = () => this.withAnnotate().deprecated(new Date('2020-10-19'), this._getPlayerManager);
 
     private getServer() {
         return this.server;
+    }
+    private withAnnotate() {
+        return this.annotate;
     }
 };
