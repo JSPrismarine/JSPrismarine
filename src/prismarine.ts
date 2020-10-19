@@ -6,7 +6,7 @@ import CommandManager from "./command/CommandManager";
 import Config from "./config";
 import WorldManager from "./world/world-manager";
 import QueryManager from "./query/QueryManager";
-import PluginManager from "./plugin/plugin-manager";
+import PluginManager from "./plugin/PluginManager";
 import LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
 
@@ -50,15 +50,30 @@ export default class Prismarine {
         Prismarine.instance = this;
     }
 
+    private async onStart() {
+        await this.pluginManager.onStart();
+        await this.telemetryManager.onStart();
+        // TODO: rework managers to this format
+    }
+    private async onExit() {
+        await this.telemetryManager.onExit();
+        await this.pluginManager.onExit();
+        // TODO: rework managers to this format
+    }
+
     public async reload() {
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.commandManager = new CommandManager(this);
-        this.pluginManager = new PluginManager(this);
+        
+        await this.onExit();
+        await this.onStart();
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132) {
+        await this.onStart();
+        
         this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
         this.raknet.name.setProtocol(Identifiers.Protocol);
@@ -275,6 +290,7 @@ export default class Prismarine {
             await world.save();
         }
 
+        await this.onExit();
         setTimeout(() => { process.exit(0); }, 1000);
     }
 
