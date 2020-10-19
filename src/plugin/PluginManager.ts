@@ -14,25 +14,28 @@ export default class PluginManager {
         // Register plugins
         const plugins = fs.readdirSync(path.join(process.cwd(), 'plugins'));
         plugins.forEach(async (id: string) => {
-            if (id.includes('.temp'))
-                return;
-
-            let dir = path.join(process.cwd(), 'plugins', id);
-            if (!fs.lstatSync(dir).isDirectory()) {
-                // TODO: extract plugin into ./temp
-            }
-
-            const pkg = require(path.join(dir, 'package.json'));
-            const modules = await Promise.all(Object.entries(pkg?.dependencies)?.map((dependency) => {
-                const moduleManager = new ModuleManager({
-                    cwd: dir,
-                    pluginsPath: path.join(dir, 'node_modules')
-                });
-                return moduleManager.installFromNpm(dependency[0] as string, dependency[1] as string);
-            }));
-
-            // TODO: register plugin
-            this.plugins.set(pkg.name, new PluginFile(dir));
+            await this.registerPlugin(id);
         });
     }
+
+    private async registerPlugin(id: string) {
+        let dir = path.join(process.cwd(), 'plugins', id);
+        if (!fs.lstatSync(dir).isDirectory()) {
+            // TODO: extract plugin into ./temp
+        }
+
+        const pkg = require(path.join(dir, 'package.json'));
+        const modules = await Promise.all(Object.entries(pkg?.dependencies)?.map((dependency) => {
+            const moduleManager = new ModuleManager({
+                cwd: dir,
+                pluginsPath: path.join(dir, 'node_modules')
+            });
+            return moduleManager.installFromNpm(dependency[0] as string, dependency[1] as string);
+        }));
+
+        this.plugins.set(pkg.name, new PluginFile(dir));
+        this.server.getLogger().silly(`Plugin with id §b${pkg.name}@${pkg.version}§r registered`);
+        // this.plugins.get(pkg.name)
+    }
+    private async deregisterPlugin(id: string) { }
 }
