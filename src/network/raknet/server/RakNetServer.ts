@@ -4,7 +4,7 @@ import Packet from "../protocol/types/Packet";
 import UnconnectedPing from "../protocol/UnconnectedPing";
 import UnconnectedPong from "../protocol/UnconnectedPong";
 import InetAddress, { InetAddressData } from "../util/InetAddress";
-import IRakNetServer from "./IRakNetServer";
+import RakNetServerType from "./RakNetServerType";
 import { randomBytes } from "crypto"
 import OpenConnectionRequestOne from "../protocol/OpenConnectionRequestOne";
 import OpenConnectionReplyOne from "../protocol/OpenConnectionReplyOne";
@@ -28,7 +28,7 @@ interface RakNetServerData extends InetAddressData {
     maxConnections?: number;
 }
 
-export default class RakNetServer implements IRakNetServer {
+export default class RakNetServer implements RakNetServerType {
     private readonly bindAddress: InetAddress;
     private readonly socket: DSocket = createSocket("udp4");  
     private readonly GUID: bigint = randomBytes(8).readBigInt64BE();
