@@ -103,7 +103,7 @@ export default class Prismarine {
                     let world = this.getWorldManager().getDefaultWorld();
                     if (!world)
                         return reject();  // Temp solution
-                        
+
                     let player = new Player(
                         connection,
                         connection.address,
@@ -217,12 +217,13 @@ export default class Prismarine {
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
-        let tps = Date.now();
+        let tpsTimer = Date.now();
         setIntervalAsync(async () => {
-            Promise.all(this.getWorldManager().getWorlds().map(world => world.update(tps)));
+            Promise.all(this.getWorldManager().getWorlds().map(world => world.update(tpsTimer)));
 
-            this.tps = Math.ceil(1000 / (Date.now() - tps));
-            tps = Date.now();
+            // Calculate current tps
+            this.tps = Math.round((1000 / (Date.now() - tpsTimer)) * 100) / 100;
+            tpsTimer = Date.now();
         }, 1000 / 20);
 
         // Auto save (default: 5 minutes)
