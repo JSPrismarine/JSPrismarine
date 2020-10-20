@@ -43,21 +43,21 @@ export default class World {
         // TODO: Load default gamrules
         this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true);
         this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true);
+    }
 
-        (async () => {
-            server.getLogger().info(`Preparing start region for dimension §b'${name}'/${generator}§r`);
-            const chunksToLoad: Array<Promise<void>> = [];
-            const time = Date.now();
+    public async onStart() {
+        this.server.getLogger().info(`Preparing start region for dimension §b'${this.name}'/${this.generator}§r`);
+        const chunksToLoad: Array<Promise<void>> = [];
+        const time = Date.now();
 
-            for (let x = 0; x < 32; x++) {
-                for (let z = 0; z < 32; z++) {
-                    chunksToLoad.push(this.loadChunk(x, z, true));
-                }
+        for (let x = 0; x < 32; x++) {
+            for (let z = 0; z < 32; z++) {
+                chunksToLoad.push(this.loadChunk(x, z, true));
             }
+        }
 
-            await Promise.all(chunksToLoad);
-            server.getLogger().info(`Time elapsed: ${(Date.now() - time)} ms`);
-        })();
+        await Promise.all(chunksToLoad);
+        this.server.getLogger().info(`(took ${Date.now() - time} ms)`);
     }
 
     /**
@@ -72,8 +72,7 @@ export default class World {
         // Tick players 
         for (let player of this.players.values()) {
             player.update(timestamp);
-            // Maybe send time to players? 
-            // this.sendTime()
+            player.sendTime(this.currentTick);
         }
 
         // TODO: tick chunks
@@ -239,6 +238,9 @@ export default class World {
 
     public getTicks(): number {
         return this.currentTick;
+    }
+    public setTicks(tick: number) {
+        this.currentTick = tick;
     }
 
     public getProvider(): any {

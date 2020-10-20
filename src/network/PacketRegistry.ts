@@ -23,32 +23,37 @@ export default class PacketRegistry {
     }
 
     private loadPackets(server: Prismarine): void {
+        const time = Date.now();
         let dir = path.join(__dirname + '/packet');
         fs.readdir(dir, (err: Error, files: string[]) => {
-            if (err) server.getLogger().error(`Cannot load packets: ${err}`);
+            if (err)
+                return server.getLogger().error(`Cannot load packets: ${err}`);
 
-            files = files.filter(a => !a.includes('.test.') && !a.includes('.d.ts')); // Exclude test files
-
+            // Exclude test files
+            files = files.filter(a => !a.includes('.test.') && !a.includes('.d.ts'));
             for (let i = 0; i < files.length; i++) {
-                let packet = require(path.join(dir, files[i]));  // TODO: import when convert to TS
+                let packet = require(path.join(dir, files[i]));
                 this.registerPacket(packet.default || packet);
             }
-            server.getLogger().debug(`Loaded §b${this.packets.size}§r Minecraft packets!`);
+            server.getLogger().debug(`Registered §b${this.packets.size}§r packet(s) (took ${Date.now() - time} ms)!`);
         });
     }
 
     private loadHandlers(server: Prismarine): void {
+        const time = Date.now();
         let dir = path.join(__dirname + '/handler');
         fs.readdir(dir, (err: Error, files: string[]) => {
-            if (err) server.getLogger().error(`Cannot load packets: ${err}`);
+            if (err)
+                return server.getLogger().error(`Cannot load packet handlers: ${err}`);
 
-            files = files.filter(a => !a.includes('.test.') && !a.includes('.d.ts')); // Exclude test files
+            // Exclude test files
+            files = files.filter(a => !a.includes('.test.') && !a.includes('.d.ts'));
 
             for (let i = 0; i < files.length; i++) {
-                let handler = require(path.join(dir, files[i]));  // TODO: import when convert to TS
+                let handler = require(path.join(dir, files[i]));
                 this.registerHandler(handler.default || handler);
             }
-            server.getLogger().debug(`Loaded §b${this.handlers.size}§r packet handlers!`);
+            server.getLogger().debug(`Registered §b${this.handlers.size}§r packet handler(s) (took ${Date.now() - time} ms)!`);
         });
     }
 
@@ -59,6 +64,6 @@ export default class PacketRegistry {
     public getHandlers() {
         return this.handlers;
     }
- 
+
 }
 module.exports = PacketRegistry;

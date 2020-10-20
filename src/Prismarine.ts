@@ -1,3 +1,4 @@
+import { setIntervalAsync } from 'set-interval-async/dynamic';
 import PacketRegistry from "./network/PacketRegistry";
 import Player from "./player/Player";
 import BlockManager from "./block/BlockManager";
@@ -6,9 +7,10 @@ import CommandManager from "./command/CommandManager";
 import type Config from "./config";
 import WorldManager from "./world/WorldManager";
 import QueryManager from "./query/QueryManager";
-import PluginManager from "./plugin/plugin-manager";
+import PluginManager from "./plugin/PluginManager";
 import type LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
+import pkg from '../package.json';
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -17,12 +19,13 @@ const Identifiers = require('./network/identifiers');
 interface PrismarineData {
     logger: any,
     config: any
-}
+};
 
 export default class Prismarine {
     private raknet: any;
     private logger: LoggerBuilder;
     private config: Config;
+    private tps: number = 20;
 
     private players: Map<string, Player> = new Map();
     private telemetryManager: TelemetryManager;
@@ -37,6 +40,8 @@ export default class Prismarine {
     static instance: null | Prismarine = null;
 
     constructor({ logger, config }: PrismarineData) {
+        logger.info(`Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`)
+
         this.logger = logger;
         this.config = config;
         this.telemetryManager = new TelemetryManager(this);
@@ -50,23 +55,41 @@ export default class Prismarine {
         Prismarine.instance = this;
     }
 
+    private async onStart() {
+        await this.itemManager.onStart();
+        await this.blockManager.onStart();
+        await this.commandManager.onStart();
+        await this.pluginManager.onStart();
+        await this.telemetryManager.onStart();
+        // TODO: rework managers to this format
+    }
+    private async onExit() {
+        await this.telemetryManager.onExit();
+        await this.pluginManager.onExit();
+        await this.commandManager.onExit();
+        await this.blockManager.onExit();
+        await this.itemManager.onExit();
+        // TODO: rework managers to this format
+    }
+
     public async reload() {
         this.packetRegistry = new PacketRegistry(this);
-        this.itemManager = new ItemManager(this);
-        this.blockManager = new BlockManager(this);
-        this.commandManager = new CommandManager(this);
-        this.pluginManager = new PluginManager(this);
+        await this.onExit();
+        await this.onStart();
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132) {
+        await this.onStart();
+        await this.worldManager.onStart();
+
         this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
-        this.raknet.name.setVersion(Identifiers.Protocol);
-        this.raknet.name.setProtocol(Identifiers.MinecraftVersion);
+        this.raknet.name.setProtocol(Identifiers.Protocol);
+        this.raknet.name.setVersion(Identifiers.MinecraftVersion);
         this.raknet.name.setMaxPlayerCount(this.config.getMaxPlayers());
         this.raknet.name.setMotd(this.config.getMotd());
 
-        this.logger.info(`JSPrismarine is now listening port §b${port}`);
+        this.logger.info(`JSPrismarine is now listening on port §b${port}`);
 
         // Client connected, instantiate player
         this.raknet.on('openConnection', (connection: any) => {
@@ -78,9 +101,13 @@ export default class Prismarine {
                 let timing = await new Promise((resolve, reject) => {
                     let time = Date.now();
                     let world = this.getWorldManager().getDefaultWorld();
-                    if (!world) return reject();  // Temp solution
+                    if (!world)
+                        return reject();  // Temp solution
+
                     let player = new Player(
-                        connection, connection.address, world, this
+                        connection,
+                        connection.address,
+                        world, this
                     );
                     this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
 
@@ -190,10 +217,13 @@ export default class Prismarine {
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
-        setInterval(async () => {
-            for (let world of this.getWorldManager().getWorlds()) {
-                await world.update(Date.now());
-            }
+        let tpsTimer = Date.now();
+        setIntervalAsync(async () => {
+            Promise.all(this.getWorldManager().getWorlds().map(world => world.update(tpsTimer)));
+
+            // Calculate current tps
+            this.tps = Math.round((1000 / (Date.now() - tpsTimer)) * 100) / 100;
+            tpsTimer = Date.now();
         }, 1000 / 20);
 
         // Auto save (default: 5 minutes)
@@ -207,20 +237,16 @@ export default class Prismarine {
 
     /**
      * Returns an array containing all online players.
-     * 
-     * @returns {Player[]}
      */
     getOnlinePlayers() {
-        return Array.from(this.players.values());
+        return Array.from(this.players.values()) || [];
     }
 
     /**
      * Returns an online player by its runtime ID,
      * if it is not found, null is returned.
-     * 
-     * @param id 
      */
-    getPlayerById(id: number) {
+    getPlayerById(id: number): Player | null {
         for (let player of this.players.values()) {
             if (player.runtimeId === id) return player;
         }
@@ -233,10 +259,8 @@ export default class Prismarine {
      * if it is not found, null is returned.
      * 
      * CASE INSENSITIVE.
-     * 
-     * @param name 
      */
-    getPlayerByName(name: string) {
+    getPlayerByName(name: string): Player | null {
         for (let player of this.players.values()) {
             if (player.name.toLowerCase().startsWith(name.toLowerCase()) ||
                 player.name.toLowerCase() === name.toLowerCase()) return player;
@@ -250,10 +274,8 @@ export default class Prismarine {
      * if it is not found, null is returned.
      * 
      * CASE SENSITIVE.
-     * 
-     * @param name 
      */
-    getPlayerByExactName(name: string) {
+    getPlayerByExactName(name: string): Player | null {
         for (let player of this.players.values()) {
             if (player.name === name) return player;
         }
@@ -262,7 +284,7 @@ export default class Prismarine {
     }
 
     /**
-     * Kills the server async asynchronously.
+     * Kills the server asynchronously.
      */
     async kill() {
         // Kick all online players
@@ -275,50 +297,92 @@ export default class Prismarine {
             await world.save();
         }
 
-        setTimeout(() => { process.exit(0); }, 1000);
+        await this.worldManager.onExit();
+        await this.onExit();
+        process.exit(0);
     }
 
+    /**
+     * Returns the query manager
+     */
     getQueryManager(): QueryManager | null {
         return this.queryManager;
     };
 
+    /**
+     * Returns the command manager
+     */
     getCommandManager(): CommandManager {
         return this.commandManager;
     }
 
+    /**
+     * Returns the world manager
+     */
     getWorldManager(): WorldManager {
         return this.worldManager;
     }
 
+    /**
+     * Returns the item manager
+     */
     getItemManager(): ItemManager {
         return this.itemManager;
     }
+
+    /**
+     * Returns the block manager
+     */
     getBlockManager(): BlockManager {
         return this.blockManager;
     }
 
+    /**
+     * Returns the logger
+     */
     getLogger(): LoggerBuilder {
         return this.logger;
     }
 
+    /**
+     * Returns the packet registry
+     */
     getPacketRegistry() {
         return this.packetRegistry;
     }
 
+    /**
+     * Returns the raknet instance
+     */
     getRaknet() {
         return this.raknet;
     }
 
-    getPluginManager() {
+    /**
+     * Returns the plugin manager
+     */
+    getPluginManager(): PluginManager {
         return this.pluginManager;
     }
 
+    /**
+     * Returns the config
+     */
     getConfig(): Config {
         return this.config;
     }
 
+    /**
+     * Returns this Prismarine instance
+     */
     getServer() {
         return this;
     }
 
+    /**
+     * Returns the current TPS
+     */
+    getTPS() {
+        return this.tps;
+    }
 }

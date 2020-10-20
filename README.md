@@ -2,7 +2,7 @@
 	<img width="300" height="300" src="https://user-images.githubusercontent.com/34418030/88539249-3165d480-d011-11ea-82d3-ecfebfffa3bd.png" alt="JSPrismarine logo"/>
 </p>
 <h1 align="center">
-	<a href="https://github.com/HerryYT/JSPrismarine">JSPrismarine</a>
+	<a href="https://github.com/JSPrismarine/JSPrismarine">JSPrismarine</a>
 </h1>
 
 <p align="center">
@@ -58,17 +58,17 @@
   - Can I contribute?
     - Sure.
     
-  - Is it for minecraft Bedrock or Java?
-  	 - It's only for Bedrock.
+  - Is it for Minecraft Bedrock Edition or Java Edition?
+  	 - It's only for Bedrock Edition.
   	 
   - With which devices devices can I join?
-  	 - PC/Windows, Android, iOS and with some tricks you can join with Xbox (one), Switch and PS4.
+  	 - PC/Windows, Android, iOS and with some tricks you can join with Xbox One, Switch and PS4.
   	 
   - Which OS can run JSPrismarine?
-    - Linux, Windows, MacOS or any other OS that can run Node.js but there's no guarantee that it will run on these other OS (like FreeBSD, Solaris and Android).
+    - Linux, Windows, MacOS.
     
   - Does it support plugins?
-  	 - Yes, but the plugin API isn't stable yet.
+  	 - Yes but JSPrismarine is in fast development-mode. That means that currently SEMVER isn't strictly followed. We do however try to provide a deprecation warning one week ahead.
   	 
   - If my question isn't here what should I do?
    	- You can join the [Discord server](https://discord.gg/fGkHZhu) or open an [issue](https://github.com/HerryYT/JSPrismarine/issues/new).

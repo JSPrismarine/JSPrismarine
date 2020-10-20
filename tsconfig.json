@@ -16,7 +16,9 @@
         "declaration": true,
         "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true,
-        "importsNotUsedAsValues": "error"
+        "importsNotUsedAsValues": "error",
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true
     },
     "include": [
         "./src/**/*"

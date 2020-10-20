@@ -1,7 +1,7 @@
 {
-  "name": "@jsprismarine/jsprismarine",
+  "name": "@jsprismarine/prismarine",
   "version": "1.0.0",
-  "description": "Basic Minecraft Bedrock Edition software ",
+  "description": "Dedicated Minecraft Bedrock Edition server written in JavaScript",
   "main": "./dist/src/server.js",
   "types": "./dist/src/server.d.ts",
   "bin": "./dist/src/server.js",
@@ -9,6 +9,7 @@
     "start": "cross-env NODE_ENV=production node ./dist/src/server.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
     "build": "tsc --extendedDiagnostics",
+    "docs": "typedoc --theme ./node_modules/typedoc-neo-theme/bin/default --plugin typedoc-neo-theme",
     "package": "pkg package.json --out-path ./packages/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
@@ -25,7 +26,7 @@
     "be"
   ],
   "author": "@JSPrismarine",
-  "license": "MPL-2",
+  "license": "MPL-2.0",
   "bugs": {
     "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
   },
@@ -64,26 +65,37 @@
     "jest": "^26.5.2",
     "jwt-decode": "^3.0.0",
     "level": "^6.0.1",
+    "live-plugin-manager": "^0.15.1",
     "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
     "node-machine-id": "^1.1.12",
+    "rimraf": "^3.0.2",
+    "set-interval-async": "^1.0.33",
+    "silent": "^0.1.2",
+    "unzipper": "^0.10.11",
     "winston": "^3.3.3",
     "yaml": "^1.10.0"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-decorators": "7.12.1",
     "@types/git-rev-sync": "2.0.0",
-    "@types/jest": "26.0.14",
-    "@types/node": "14.11.10",
-    "@types/node-fetch": "^2.5.7",
+    "@types/jest": "26.0.15",
+    "@types/node": "14.14.0",
+    "@types/node-fetch": "2.5.7",
+    "@types/rimraf": "3.0.0",
+    "@types/set-interval-async": "1.0.0",
+    "@types/unzipper": "0.10.3",
     "babel-eslint": "10.1.0",
     "cross-env": "7.0.2",
     "eslint": "7.11.0",
     "husky": "4.3.0",
     "node-fetch": "2.6.1",
-    "nodemon": "2.0.5",
+    "nodemon": "2.0.6",
+    "typedoc": "0.19.2",
+    "typedoc-neo-theme": "1.0.10",
     "typescript": "4.0.3"
   },
-  "peerOptionalDependencies": {
+  "optionalDependencies": {
     "pkg": "git+https://github.com/geekuillaume/pkg.git"
   }
 }

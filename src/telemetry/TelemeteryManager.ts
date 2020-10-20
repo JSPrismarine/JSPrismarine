@@ -2,58 +2,80 @@ import fetch, { Headers } from 'node-fetch';
 import { machineIdSync } from 'node-machine-id';
 import type Prismarine from "../Prismarine";
 import git from 'git-rev-sync';
+import PluginFile from '../plugin/PluginFile';
 
 export default class TelemetryManager {
+    private id = this.generateAnonomizedId();
+    private gitRev = git.short() || 'unknown';
     private server: Prismarine;
+    private ticker: any;
+    private enabled: boolean;
+    private urls: string[];
+
     constructor(server: Prismarine) {
         this.server = server;
         const { enabled, urls } = server.getConfig().getTelemetry();
-        const id = this.generateAnonomizedId();
-        const git_rev = git.short() || 'unknown';
+        this.enabled = enabled;
+        this.urls = urls;
 
-        if (!enabled)
+        if (!this.enabled)
             return;
 
         process.on('uncaughtException', async (err) => {
             await this.sendCrashLog(err, urls);
-
+            this.server.getLogger().error(`${err}`);
             process.exit(1);
         });
+    }
 
-        server.getLogger().info('Thank you for helping us improve JSPrismarine by enabling anonymized telemetry data.');
-        server.getLogger().info('To find out exactly what we\'re collecting please visit the following url(s):');
-        urls.forEach(url => server.getLogger().info(`- ${url}/id/${id}`));
+    public async onStart() {
+        if (!this.enabled)
+            return;
 
-        const tick = async () => {
-            const body = {
-                id,
-                version: `${server.getConfig().getVersion()}:${git_rev}`,
-                online_mode: true, // TODO,
-                player_count: server.getRaknet()?.name.getOnlinePlayerCount() || 0,
-                max_player_count: server.getConfig().getMaxPlayers(),
-                plugins: [], //  TODO
-                tps: 20, // TODO
-                uptime: Math.trunc(process.uptime() * 1000),
-                node_env: process.env.NODE_ENV
-            };
+        this.server.getLogger().info('Thank you for helping us improve JSPrismarine by enabling anonymized telemetry data.');
+        this.server.getLogger().info('To find out exactly what we\'re collecting please visit the following url(s):');
+        this.urls.forEach(url => this.server.getLogger().info(`- ${url}/id/${this.id}`));
 
-            await Promise.all(urls.map(async url => {
-                try {
-                    await fetch(`${url}/api/heartbeat`, {
-                        method: 'POST',
-                        body: JSON.stringify(body),
-                        headers: new Headers({
-                            'Content-Type': 'application/json'
-                        })
-                    });
-                } catch (err) {
-                    server.getLogger().debug(`Failed to tick: ${url} (${err})`)
-                }
-            }))
+        await this.tick();
+        this.ticker = setInterval(this.tick, 5 * 60 * 1000);
+    }
+    public async onExit() {
+        clearInterval(this.ticker);
+    }
+
+    private async tick() {
+        if (!this.server)
+            return;
+
+        const body = {
+            id: this.id,
+            version: `${this.server.getConfig().getVersion()}:${this.gitRev}`,
+            online_mode: this.server.getConfig().getOnlineMode(),
+            player_count: this.server.getRaknet()?.name.getOnlinePlayerCount() || 0,
+            max_player_count: this.server.getConfig().getMaxPlayers(),
+            plugins: this.server.getPluginManager()?.getPlugins().map((plugin: PluginFile) => ({
+                name: plugin.getName(),
+                version: plugin.getVersion(),
+            })),
+            tps: this.server.getTPS(),
+            uptime: Math.trunc(process.uptime() * 1000),
+            node_env: process.env.NODE_ENV
         };
 
-        tick();
-        setInterval(tick, 5 * 60 * 1000);
+        await Promise.all(this.urls.map(async url => {
+            try {
+                await fetch(`${url}/api/heartbeat`, {
+                    method: 'POST',
+                    body: JSON.stringify(body),
+                    headers: new Headers({
+                        'Content-Type': 'application/json'
+                    })
+                });
+                this.server.getLogger().silly('[telemetry] Sent heartbeat');
+            } catch (err) {
+                this.server.getLogger().warn(`[telemetry] Failed to tick: ${url} (${err})`)
+            }
+        }))
     }
 
     public generateAnonomizedId(): string {

@@ -18,7 +18,7 @@ export default class LoggerBuilder {
                         format.colorize(),
                         format.simple(),
                         printf(({ level, message, timestamp }: any) => {
-                            return `[${timestamp}] ${level}: ${mcColors.minecraftToConsole(message)}`;
+                            return `[${timestamp}] [${level.padStart(15)}]: ${mcColors.minecraftToConsole(message)}`;
                         })
                     ),
                 }),

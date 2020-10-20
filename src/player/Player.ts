@@ -123,7 +123,7 @@ export default class Player extends Entity {
         this.gamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
     }
 
-    public async update(_timestamp: number) {
+    public async update(tick: number) {
         // Update movement for every player
         for (const player of this.getServer().getOnlinePlayers()) {
             if (player === this) continue;

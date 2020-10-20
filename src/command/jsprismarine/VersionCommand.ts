@@ -2,8 +2,9 @@
 This command is non-vanilla, but exists in PMMP, Altay, MiNET, Nukkit a.s.o.
 */
 
-import Player from "../../player/Player";
+import type Player from "../../player/Player";
 import Command from "../";
+import git from 'git-rev-sync';
 
 const packageFile = require('../../../package.json');
 const identifiers = require('../../network/identifiers');
@@ -22,6 +23,6 @@ export default class VersionCommand extends Command {
         let protocolVersion = identifiers.Protocol;
         let minecraftVersion = identifiers.MinecraftVersion;
 
-        sender.sendMessage(`This server is running on JSPrismarine ${serverVersion} for Minecraft: Bedrock Edition v${minecraftVersion} (protocol version ${protocolVersion})`);
+        sender.sendMessage(`This server is running on JSPrismarine ${serverVersion} (rev-${git.short() || 'unknown'}) for Minecraft: Bedrock Edition v${minecraftVersion} (protocol version ${protocolVersion})`);
     }
 }

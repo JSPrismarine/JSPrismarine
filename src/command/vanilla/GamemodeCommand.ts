@@ -27,10 +27,6 @@ export default class GamemodeCommand extends Command {
         }));
     }
 
-    /**
-     * @param {Player} sender 
-     * @param {Array} args
-     */
     execute(sender: Player, args: Array<any>) {
         if (args.length < 1 || args.length > 2) {
             return sender.sendMessage('§cYou have to specify a gamemode.');
@@ -48,27 +44,42 @@ export default class GamemodeCommand extends Command {
             case 'creative':
                 mode = Gamemode.Creative;
                 break;
+            case 2:
+            case 'adventure':
+                mode = Gamemode.Adventure;
+                break;
+            case 3:
+            case 'spectator':
+                mode = Gamemode.Spectator;
+                break;
             default:
-                return sender.sendMessage('§cInvalid gamemode specified.');
+                // TODO: Syntax validation utility class
+                sender.sendMessage('§cIncorrect argyment for command');
+                return sender.sendMessage(`§7/gamemode §c${args.join(' ')}<--[HERE]`);
         }
 
         let target: Player | null = sender;
         if (args.length > 1 && typeof args[1] === 'string') {
             if ((target = sender.getServer().getPlayerByName(args[1])) === null)
-                return sender.sendMessage('§cTarget player is not online!');
+                return sender.sendMessage('§cNo player was found');
 
             target.setGamemode(mode);
-            mode === Gamemode.Creative && target.sendCreativeContents();
-            return target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode));
+            if (mode === Gamemode.Creative)
+                target.sendCreativeContents();
+
+            sender.sendMessage(`Set ${target.name}'s game mode to ${Gamemode.getGamemodeName(mode)} Mode`);
+            return target.sendMessage(`Your game mode has been updated to ${Gamemode.getGamemodeName(mode)} Mode`);
         } else if (args.length > 1 && typeof args[1] === 'number') {
-            return sender.sendMessage('§cTarget player is not online!');
+            return sender.sendMessage('§cNo player was found');
         } else {
             if (!(sender instanceof Player)) {
                 return target.sendMessage('§cYou have to run this command in-game!');
             }
             target.setGamemode(mode);
-            mode === Gamemode.Creative && target.sendCreativeContents();
-            return target.sendMessage('Your game mode has been updated to ' + Gamemode.getGamemodeName(mode));
+            if (mode === Gamemode.Creative)
+                target.sendCreativeContents();
+
+            return target.sendMessage(`Set own game mode to ${Gamemode.getGamemodeName(mode)} Mode`);
         }
     }
 }

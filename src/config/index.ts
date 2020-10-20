@@ -14,6 +14,7 @@ export default class Config {
     private gamemode: string | number;
     private motd: string;
     private viewDistance: number;
+    private onlineMode: boolean;
     private enableQuery: boolean;
     private queryPort: number;
     private enableTelemetry: boolean;
@@ -38,6 +39,7 @@ export default class Config {
         this.gamemode = this.configBuilder.get('gamemode', 'survival');
         this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!');
         this.viewDistance = this.configBuilder.get('view-distance', 10);
+        this.onlineMode = this.configBuilder.get('online-mode', true);
         this.enableQuery = this.configBuilder.get('enable-query', false);
         this.queryPort = this.configBuilder.get('query-port', 25565);
         this.enableTelemetry = this.configBuilder.get('enable-telemetry', true);
@@ -70,6 +72,9 @@ export default class Config {
     }
     public getViewDistance() {
         return this.viewDistance;
+    }
+    public getOnlineMode() {
+        return this.onlineMode;
     }
     public getEnableQuery() {
         return this.enableQuery;
