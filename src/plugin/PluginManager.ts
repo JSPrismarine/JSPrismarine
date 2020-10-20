@@ -41,14 +41,14 @@ export default class PluginManager {
 
         // Register Plugin(s)
         const plugins = fs.readdirSync(path.join(process.cwd(), 'plugins'));
-        await Promise.all(plugins.map(async (id: string) => {
+        const res = (await Promise.all(plugins.map(async (id: string) => {
             try {
                 await this.registerPlugin(id);
             } catch (err) {
                 this.server.getLogger().error(`§cFailed to load plugin ${id}: ${err}`);
             }
-        }));
-        this.server.getLogger().debug(`Registered §b${plugins.length}§r plugin(s)!`);
+        }))).filter(a => a);
+        this.server.getLogger().debug(`Registered §b${res.length}§r plugin(s)!`);
     }
 
     /**
@@ -78,14 +78,16 @@ export default class PluginManager {
      */
     private async registerPlugin(id: string) {
         if (id === '.extracted')
-            return;
+            return null;
 
         let time = Date.now();
         let dir = path.join(process.cwd(), 'plugins', id);
         if (!fs.lstatSync(dir).isDirectory()) {
-            if (!(fs.existsSync(path.join(process.cwd(), '/plugins/.extracted/')))) {
-                fs.mkdirSync(path.join(process.cwd(), '/plugins/.extracted/'));
+            // Invalid file
+            if (!dir.includes('.jspz')) {
+                return null;
             }
+
             if (!(fs.existsSync(path.join(process.cwd(), '/plugins/.extracted/')))) {
                 fs.mkdirSync(path.join(process.cwd(), '/plugins/.extracted/'));
             }
@@ -97,9 +99,18 @@ export default class PluginManager {
                 .pipe(unzipper.Extract({ path: dir })).promise();
         }
 
+        // Asset or config folder
+        if (!(fs.existsSync(path.join(dir, 'package.json')))) {
+            return null;
+        }
+
         const pkg = require(path.join(dir, 'package.json'));
         if (!pkg)
-            throw new Error(`package.json is invalid or missing!`);
+            throw new Error(`package.json is invalid!`);
+
+        if (!(fs.existsSync(path.join(process.cwd(), '/plugins/', pkg.name)))) {
+            fs.mkdirSync(path.join(process.cwd(), '/plugins/', pkg.name));
+        }
 
         if (pkg.dependencies)
             await Promise.all(Object.entries(pkg?.dependencies)?.map((dependency) => {
@@ -124,6 +135,7 @@ export default class PluginManager {
 
         this.server.getLogger().silly(`Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`);
         this.server.getLogger().info(`Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${Date.now() - time} ms)!`);
+        return plugin;
     }
 
     /**
