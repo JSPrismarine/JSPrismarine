@@ -219,9 +219,7 @@ export default class Prismarine {
         // Tick worlds every 1/20 of a second (a minecraft tick)
         let tps = Date.now();
         setIntervalAsync(async () => {
-            for (let world of this.getWorldManager().getWorlds()) {
-                await world.update(Date.now());
-            }
+            Promise.all(this.getWorldManager().getWorlds().map(world => world.update(tps)));
 
             this.tps = Math.ceil(1000 / (Date.now() - tps));
             tps = Date.now();
