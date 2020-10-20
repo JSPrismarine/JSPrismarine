@@ -1,5 +1,5 @@
 import Item from "../item"
-import Prismarine from "../prismarine"
+import Prismarine from "../Prismarine"
 import { ItemTieredToolType } from "../item/ItemTieredToolType"
 import { BlockToolType } from "./BlockToolType"
 import { ItemEnchantmentType } from "../item/ItemEnchantmentType"

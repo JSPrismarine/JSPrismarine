@@ -5,7 +5,7 @@ const EventManager = require('../../events/event-manager');
 const logger = require('../../utils/Logger');
 const PlayerChatEvent = require('../../events/player/player-chat-event');
 const TextType = require('../type/text-type');
-const Prismarine = require('../../prismarine');
+const Prismarine = require('../../Prismarine');
 
 
 class TextHandler {

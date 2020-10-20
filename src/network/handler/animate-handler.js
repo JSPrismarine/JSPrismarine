@@ -1,5 +1,5 @@
 const Player = require('../../player').default;
-const Prismarine = require('../../prismarine');
+const Prismarine = require('../../Prismarine');
 const Identifiers = require('../identifiers');
 const EventManager = require('../../events/event-manager');
 const AnimatePacket = require('../packet/animate');

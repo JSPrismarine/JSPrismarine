@@ -3,7 +3,7 @@ const ResourcePacksInfoPacket = require('../packet/resource-packs-info');
 const PlayStatus = require('../type/play-status');
 const LoginPacket = require('../packet/login');
 const Player = require('../../player').default;
-const Prismarine = require('../../prismarine');
+const Prismarine = require('../../Prismarine');
 
 
 class LoginHandler {

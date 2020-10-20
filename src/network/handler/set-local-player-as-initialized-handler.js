@@ -2,7 +2,7 @@ const Player = require('../../player').default;
 const Identifiers = require('../identifiers');
 const SetLocalPlayerAsInitializedPacket = require('../packet/set-local-player-as-initialized');
 const EventManager = require('../../events/event-manager');
-const Prismarine = require('../../prismarine');
+const Prismarine = require('../../Prismarine');
 
 
 class SetLocalPlayerAsInitializedHandler {

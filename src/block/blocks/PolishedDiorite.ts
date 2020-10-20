@@ -1,6 +1,6 @@
 import Stone, { StoneType } from './Stone';
 import Item from '../../item';
-import Prismarine from '../../prismarine';
+import Prismarine from '../../Prismarine';
 
 export default class PolishedDiorite extends Stone {
     constructor() {

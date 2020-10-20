@@ -1,4 +1,4 @@
-import Prismarine from "../prismarine";
+import Prismarine from "../Prismarine";
 import Item from "../item/";
 import Chunk from "../world/chunk/chunk";
 import Entity from "../entity/entity";

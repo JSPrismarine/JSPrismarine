@@ -1,5 +1,5 @@
 import readline from 'readline';
-import Prismarine from './prismarine';
+import Prismarine from './Prismarine';
 import ConsoleSender from './utils/ConsoleSender';
 import ConfigBuilder from './config';
 import LoggerBuilder from './utils/Logger';

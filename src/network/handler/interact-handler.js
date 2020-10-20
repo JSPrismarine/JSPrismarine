@@ -6,7 +6,7 @@ const InteractPacket = require('../packet/interact');
 const InteractAction = require('../type/interact-action');
 const ContainerOpenPacket = require('../packet/container-open');
 const logger = require('../../utils/Logger');
-const Prismarine = require('../../prismarine');
+const Prismarine = require('../../Prismarine');
 
 
 class InteractHandler {
