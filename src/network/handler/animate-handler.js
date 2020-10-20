@@ -1,7 +1,7 @@
 const Player = require('../../player').default;
 const Prismarine = require('../../Prismarine');
 const Identifiers = require('../identifiers');
-const EventManager = require('../../events/event-manager');
+const EventManager = require('../../events/EventManager');
 const AnimatePacket = require('../packet/animate');
 
 
@@ -14,9 +14,6 @@ class AnimateHandler {
      * @param {Player} player 
      */
     static handle(packet, server, player) {
-        // TODO: event
-        EventManager.emit('player_animate', this);
-
         let pk = new AnimatePacket();
         pk.runtimeEntityId = player.runtimeId;
         pk.action = packet.action;

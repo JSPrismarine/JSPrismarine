@@ -5,6 +5,7 @@ import LoggerBuilder from "../../../../utils/Logger";
 import PluginApiVersion from "../../PluginApiVersion";
 import withDeprecated from '../../../hoc/withDeprecated';
 import Server from './Server';
+import EventManager from './EventManager';
 
 export const PLUGIN_API_VERSION = '1.0';
 
@@ -47,6 +48,13 @@ export default class PluginApi extends PluginApiVersion {
      */
     public getServer(): Server {
         return new Server(this.server);
+    }
+
+    /**
+     * returns an instance of the event manager
+     */
+    public getEventManager(): EventManager {
+        return new EventManager(this.server);
     }
 
     /**

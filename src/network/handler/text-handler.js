@@ -1,7 +1,7 @@
 const Player = require('../../player').default;
 const Identifiers = require('../identifiers');
 const TextPacket = require('../packet/text');
-const EventManager = require('../../events/event-manager');
+const EventManager = require('../../events/EventManager');
 const logger = require('../../utils/Logger');
 const PlayerChatEvent = require('../../events/player/player-chat-event');
 const TextType = require('../type/text-type');
@@ -18,8 +18,8 @@ class TextHandler {
      */
     static handle(packet, server, player) {
         let event = new PlayerChatEvent(this, packet.message);
-        EventManager.emit('player_chat', event);
-        if (event.isCancelled()) return;
+        if (event.isCancelled())
+            return;
 
         let vanillaFormat = `<${packet.sourceName}> ${event.getMessage()}`;
         server.getLogger().info(vanillaFormat);
@@ -30,6 +30,12 @@ class TextHandler {
                 onlinePlayer.sendMessage(vanillaFormat, packet.xuid);
             }
         }
+
+        // Emit chat event
+        server.getEventManager().post(['chat', {
+            sender: player,
+            message: event.getMessage()
+        }]);
     }
 }
 module.exports = TextHandler;
