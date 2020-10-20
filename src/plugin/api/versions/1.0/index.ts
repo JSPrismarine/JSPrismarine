@@ -1,3 +1,5 @@
+import path from 'path';
+import ConfigBuilder from "../../../../config/ConfigBuilder";
 import Prismarine from "../../../../prismarine";
 import LoggerBuilder from "../../../../utils/Logger";
 import AnnotatePluginApiFunction from "../../../AnnotatePluginApiFunction";
@@ -22,6 +24,13 @@ export default class PluginApi extends PluginApiVersion {
      */
     public getLogger(): LoggerBuilder {
         return this.getServer().getLogger();
+    }
+
+    /**
+     * returns an instance of the config builder
+     */
+    public getConfigBuilder(configFile: string): ConfigBuilder {
+        return new ConfigBuilder(path.join(process.cwd(), '/plugins/', configFile));
     }
 
     private _getPlayerManager(server: Prismarine) {
