@@ -1,5 +1,5 @@
 import path from 'path';
-import Prismarine from '../prismarine';
+import Prismarine from '../Prismarine';
 import PluginApiVersion from './api/PluginApiVersion';
 
 export class Plugin {

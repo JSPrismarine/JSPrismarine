@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import Item from "./";
-import Prismarine from "../prismarine";
+import Prismarine from "../Prismarine";
 
 export default class ItemManager {
     private server: Prismarine;

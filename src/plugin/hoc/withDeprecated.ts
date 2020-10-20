@@ -1,4 +1,4 @@
-import Prismarine from "../../prismarine";
+import Prismarine from "../../Prismarine";
 import LoggerBuilder from "../../utils/Logger";
 
 function withDeprecated(date: Date) {

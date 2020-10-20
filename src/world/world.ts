@@ -2,7 +2,7 @@ import Entity from "../entity/entity";
 import Item from "../item";
 import Vector3 from "../math/vector3";
 import Player from "../player";
-import Prismarine from "../prismarine";
+import Prismarine from "../Prismarine";
 
 const LevelSoundEventPacket = require('../network/packet/level-sound-event');
 const UUID = require('../utils/uuid');

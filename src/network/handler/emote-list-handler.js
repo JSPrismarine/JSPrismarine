@@ -1,5 +1,5 @@
 const Player = require('../../player').default;
-const Prismarine = require('../../prismarine');
+const Prismarine = require('../../Prismarine');
 const Identifiers = require('../identifiers');
 const EmoteListPacket = require('../packet/emote-list');
 

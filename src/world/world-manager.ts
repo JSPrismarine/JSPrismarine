@@ -1,5 +1,5 @@
 import fs from "fs";
-import Prismarine from "../prismarine";
+import Prismarine from "../Prismarine";
 import GeneratorManager from "./generator-manager";
 import World from "./world";
 const LevelDB = require('./leveldb/leveldb');
