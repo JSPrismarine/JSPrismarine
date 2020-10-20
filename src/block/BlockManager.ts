@@ -20,9 +20,9 @@ export default class BlockManager {
         this.importBlocks();
     }
 
-     /**
-     * onExit hook
-     */
+    /**
+    * onExit hook
+    */
     public async onExit() {
         this.blocks.clear();
     }
@@ -85,6 +85,7 @@ export default class BlockManager {
      */
     private importBlocks() {
         try {
+            const time = Date.now();
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             blocks.forEach((id: string) => {
                 if (id.includes('.test.') || id.includes('.d.ts'))
@@ -97,7 +98,7 @@ export default class BlockManager {
                     this.server.getLogger().error(`${id} failed to register!`);
                 }
             });
-            this.server.getLogger().debug(`Registered §b${blocks.length}§r block(s)!`);
+            this.server.getLogger().debug(`Registered §b${blocks.length}§r block(s) (took ${Date.now() - time} ms)!`);
         } catch (err) {
             this.server.getLogger().error(`Failed to register blocks: ${err}`);
         }

@@ -56,10 +56,12 @@ export default class Prismarine {
         await this.commandManager.onStart();
         await this.pluginManager.onStart();
         await this.telemetryManager.onStart();
+        await this.worldManager.onStart();
         
         // TODO: rework managers to this format
     }
     private async onExit() {
+        await this.worldManager.onExit();
         await this.telemetryManager.onExit();
         await this.pluginManager.onExit();
         await this.commandManager.onExit();
@@ -89,7 +91,7 @@ export default class Prismarine {
         this.raknet.name.setMaxPlayerCount(this.config.getMaxPlayers());
         this.raknet.name.setMotd(this.config.getMotd());
 
-        this.logger.info(`JSPrismarine is now listening port §b${port}`);
+        this.logger.info(`JSPrismarine is now listening on port §b${port}`);
 
         // Client connected, instantiate player
         this.raknet.on('openConnection', (connection: any) => {
@@ -291,7 +293,7 @@ export default class Prismarine {
         }
 
         await this.onExit();
-        setTimeout(() => { process.exit(0); }, 1000);
+        process.exit(0);
     }
 
     /**

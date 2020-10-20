@@ -17,6 +17,8 @@ export default class CommandManager {
      * onStart hook
      */
     public async onStart() {
+        const time = Date.now();
+
         // Register vanilla commands
         const vanilla = fs.readdirSync(path.join(__dirname, 'vanilla'));
         vanilla.forEach((id: string) => {
@@ -37,7 +39,7 @@ export default class CommandManager {
             this.registerClassCommand(new (command.default || command)(), this.server);
         });
 
-        this.server.getLogger().debug(`Registered §b${vanilla.length + jsprismarine.length}§r commands(s)!`);
+        this.server.getLogger().debug(`Registered §b${vanilla.length + jsprismarine.length}§r commands(s) (took ${Date.now() - time} ms)!`);
     }
 
     /**
