@@ -8,7 +8,7 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node ./dist/src/server.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
-    "build": "tsc --extendedDiagnostics",
+    "build": "tsc",
     "docs": "typedoc --theme ./node_modules/typedoc-neo-theme/bin/default --plugin typedoc-neo-theme",
     "package": "pkg package.json --out-path ./packages/",
     "test": "jest --passWithNoTests",
