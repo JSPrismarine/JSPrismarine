@@ -79,7 +79,7 @@
   "devDependencies": {
     "@types/git-rev-sync": "2.0.0",
     "@types/jest": "26.0.14",
-    "@types/node": "14.11.10",
+    "@types/node": "14.11.11",
     "@types/node-fetch": "2.5.7",
     "@types/rimraf": "3.0.0",
     "@types/set-interval-async": "1.0.0",
