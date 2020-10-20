@@ -11,6 +11,7 @@ import PluginManager from "./plugin/PluginManager";
 import LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
 import pkg from '../package.json';
+import EventManager from './events/EventManager';
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -29,6 +30,7 @@ export default class Prismarine {
 
     private players: Map<string, Player> = new Map();
     private telemetryManager: TelemetryManager;
+    private eventManager = new EventManager(this);
     private packetRegistry: PacketRegistry;
     private pluginManager: PluginManager;
     private commandManager: CommandManager;
@@ -110,9 +112,6 @@ export default class Prismarine {
                         world, this
                     );
                     this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
-
-                    if (!world)
-                        reject();
 
                     // Add the player into the world
                     world?.addPlayer(player);
@@ -363,6 +362,13 @@ export default class Prismarine {
      */
     getPluginManager(): PluginManager {
         return this.pluginManager;
+    }
+
+    /**
+     * Returns the event manager
+     */
+    getEventManager(): EventManager {
+        return this.eventManager;
     }
 
     /**

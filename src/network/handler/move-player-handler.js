@@ -1,7 +1,7 @@
 const Identifiers = require('../identifiers');
 const MovePlayerPacket = require('../packet/move-player').default;
 const Player = require('../../player').default;
-const EventManager = require('../../events/event-manager');
+const EventManager = require('../../events/EventManager');
 const Prismarine = require('../../Prismarine');
 const CoordinateUtils = require('../../world/coordinate-utils');
 
@@ -14,7 +14,7 @@ class MovePlayerHandler {
      * @param {Prismarine} _server
      * @param {Player} player 
      */
-    static async handle(packet, _server, player) {
+    static async handle(packet, server, player) {
         // Position
         player.x = packet.positionX;
         player.y = packet.positionY;
@@ -33,8 +33,8 @@ class MovePlayerHandler {
         let chunk = await player.getWorld().getChunkAt(player.x, player.z);
         if (player.currentChunk !== chunk) player.currentChunk = chunk;
 
-        // TODO: proper event
-        EventManager.emit('player_move', player);
+        // Emit move event
+        server.getEventManager().post(['playerMove', player]);
     }
 }
 module.exports = MovePlayerHandler;

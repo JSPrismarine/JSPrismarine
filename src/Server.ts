@@ -7,7 +7,6 @@ import LoggerBuilder from './utils/Logger';
 const Config = new ConfigBuilder();
 const Logger = new LoggerBuilder();
 
-
 const Server = new Prismarine({
     config: Config,
     logger: Logger,

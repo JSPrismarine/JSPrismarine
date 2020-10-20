@@ -1,6 +1,6 @@
 const Player = require('../../player').default;
 const Identifiers = require('../identifiers');
-const EventManager = require('../../events/event-manager');
+const EventManager = require('../../events/EventManager');
 const EventIdentifiers = require('../../events/event-identifiers');
 const InteractPacket = require('../packet/interact');
 const InteractAction = require('../type/interact-action');
@@ -18,9 +18,6 @@ class InteractHandler {
      * @param {Player} player 
      */
     static handle(packet, server, player) {
-        // TODO: event
-        EventManager.emit(EventIdentifiers.PlayerInteractEvent, this);
-
         switch (packet.action) {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:

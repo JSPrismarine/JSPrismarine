@@ -1,12 +1,13 @@
+import type Player from "../../player";
+import type Prismarine from "../../Prismarine";
+import type ResourcePackResponsePacket from "../packet/resource-pack-response";
+
 const Identifiers = require('../identifiers');
-const ResourcePackResponsePacket = require('../packet/resource-pack-response');
 const ResourcePackStatus = require('../type/resource-pack-status');
 const BiomeDefinitionListPacket = require('../packet/biome-definition-list');
 const AvailableActorIdentifiersPacket = require('../packet/available-actor-identifiers');
 const ResourcePackStackPacket = require('../packet/resource-pack-stack');
 const StartGamePacket = require('../packet/start-game');
-const Player = require('../../player').default;
-const Prismarine = require('../../Prismarine');
 const Gamemode = require('../../world/gamemode');
 // const Item = require('../../item')
 
@@ -19,7 +20,7 @@ class ResourcePackResponseHandler {
      * @param {Prismarine} server
      * @param {Player} player 
      */
-    static async handle(packet, server, player) {
+    static async handle(packet: ResourcePackResponsePacket, server: Prismarine, player: Player) {
         let pk;
         if (packet.status === ResourcePackStatus.HaveAllPacks) {
             pk = new ResourcePackStackPacket();
@@ -41,8 +42,8 @@ class ResourcePackResponseHandler {
             pk.playerY = worldSpawnPos.getY();
             pk.playerZ = worldSpawnPos.getZ();
 
-            pk.levelId = world.uniqueId;
-            pk.worldName = world.name;
+            pk.levelId = world.getUniqueId();
+            pk.worldName = world.getName();
             pk.gamerules = world.getGameruleManager().getGamerules();
             player.sendDataPacket(pk);
 
@@ -75,6 +76,9 @@ class ResourcePackResponseHandler {
             if (server.getOnlinePlayers().length > 1) {
                 player.sendPlayerList(); 
             }
+
+            // Emit playerConnect event
+            server.getEventManager().post(['playerConnect', player]);
         }
     }
 }
