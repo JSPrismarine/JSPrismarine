@@ -14,7 +14,7 @@ import pkg from '../package.json';
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
-const Identifiers = require('./network/identifiers');
+const Identifiers = require('./network/Identifiers');
 
 interface PrismarineData {
     logger: any,

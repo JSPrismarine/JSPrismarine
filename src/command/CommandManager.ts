@@ -1,6 +1,6 @@
-import Player from "../player/Player";
-import Prismarine from "../Prismarine";
-import Command from "./";
+import type Player from "../player/Player";
+import type Prismarine from "../Prismarine";
+import type Command from "./";
 
 const path = require('path');
 const fs = require('fs');

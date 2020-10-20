@@ -7,7 +7,7 @@ import Command from "../";
 import git from 'git-rev-sync';
 
 const packageFile = require('../../../package.json');
-const identifiers = require('../../network/identifiers');
+const identifiers = require('../../network/Identifiers');
 
 export default class VersionCommand extends Command {
     constructor() {

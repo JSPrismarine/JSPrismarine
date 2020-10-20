@@ -1,5 +1,5 @@
 import Handler from './adventure-settings-handler';
-import { AdventureSettingsPacket } from '../identifiers';
+import { AdventureSettingsPacket } from '../Identifiers';
 
 describe('network', () => {
     describe('handler', () => {

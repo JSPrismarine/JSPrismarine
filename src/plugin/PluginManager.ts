@@ -3,9 +3,9 @@ import path from "path";
 import rimraf from "rimraf";
 import unzipper from "unzipper";
 import { PluginManager as ModuleManager } from "live-plugin-manager";
-import Prismarine from "../prismarine";
 import PluginFile from "./PluginFile";
-import PluginApiVersion from "./api/PluginApiVersion";
+import type Prismarine from "../Prismarine";
+import type PluginApiVersion from "./api/PluginApiVersion";
 
 export default class PluginManager {
     private server: Prismarine;

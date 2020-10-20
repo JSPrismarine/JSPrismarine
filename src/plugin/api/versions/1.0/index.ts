@@ -1,31 +1,12 @@
 import path from 'path';
 import ConfigBuilder from "../../../../config/ConfigBuilder";
-import Prismarine from "../../../../prismarine";
+import Prismarine from "../../../../Prismarine";
 import LoggerBuilder from "../../../../utils/Logger";
 import PluginApiVersion from "../../PluginApiVersion";
 import withDeprecated from '../../../hoc/withDeprecated';
+import Server from './Server';
 
 export const PLUGIN_API_VERSION = '1.0';
-
-/**
- * Provides generic server details such as motd, player-count etc.
- */
-class ServerDetails {
-    private server: Prismarine;
-
-    constructor(server: Prismarine) {
-        this.server = server;
-
-    }
-
-    public getMotd(): string {
-        return this.server.getRaknet()?.name.getMotd() || this.server.getConfig().getMotd();
-    }
-
-    public getMaxPlayerCount(): number {
-        return this.server.getConfig().getMaxPlayers();
-    }
-};
 
 export default class PluginApi extends PluginApiVersion {
     private server: Prismarine;
@@ -46,11 +27,11 @@ export default class PluginApi extends PluginApiVersion {
         const name = this.pkg.prismarine?.displayName || this.pkg.name;
 
         return {
-            silly: (...args) => this.getServer().getLogger().silly(`[${name}] ${args}`),
-            debug: (...args) => this.getServer().getLogger().debug(`[${name}] ${args}`),
-            info: (...args) => this.getServer().getLogger().info(`[${name}] ${args}`),
-            warn: (...args) => this.getServer().getLogger().warn(`[${name}] ${args}`),
-            error: (...args) => this.getServer().getLogger().error(`[${name}] ${args}`),
+            silly: (...args) => this.server.getLogger().silly(`[${name}] ${args}`),
+            debug: (...args) => this.server.getLogger().debug(`[${name}] ${args}`),
+            info: (...args) => this.server.getLogger().info(`[${name}] ${args}`),
+            warn: (...args) => this.server.getLogger().warn(`[${name}] ${args}`),
+            error: (...args) => this.server.getLogger().error(`[${name}] ${args}`),
         } as LoggerBuilder;
     }
 
@@ -62,10 +43,18 @@ export default class PluginApi extends PluginApiVersion {
     }
 
     /**
+     * returns an instance of the server class
+     */
+    public getServer(): Server {
+        return new Server(this.server);
+    }
+
+    /**
      * returns an instance of the sever details class
      */
-    public getServerDetails(): ServerDetails {
-        return new ServerDetails(this.getServer());
+    @withDeprecated(new Date('2020-10-20'))
+    public getServerDetails(): Server {
+        return new Server(this.server);
     }
 
     @withDeprecated(new Date('2020-10-19'))
@@ -82,9 +71,5 @@ export default class PluginApi extends PluginApiVersion {
                 return this.server.getPlayerById(id);
             },
         };
-    }
-
-    private getServer() {
-        return this.server;
     }
 };

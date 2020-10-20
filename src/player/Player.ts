@@ -1,7 +1,6 @@
 import type Prismarine from "../Prismarine";
-import type Item from "../item";
+import type Item from "../item/";
 import type Chunk from "../world/chunk/chunk";
-import type World from "../world/World";
 import Entity from "../entity/entity";
 import Gamemode from "../world/Gamemode";
 
@@ -33,6 +32,7 @@ import PlayerInventory from '../inventory/player-inventory';
 import InventoryContentPacket from '../network/packet/inventory-content-packet';
 import MobEquipmentPacket from '../network/packet/mob-equipment-packet';
 import CreativeContentEntry from '../network/type/CreativeContentEntry';
+import type World from "../world/World";
 
 export enum PlayerPermission {
     Visitor,
