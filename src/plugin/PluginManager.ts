@@ -20,15 +20,13 @@ export default class PluginManager {
      * onStart hook
      */
     public async onStart() {
-        // Remove left-over extracted files
-        rimraf.sync(path.join(process.cwd(), '/plugins/.extracted'));
-
         // Create plugin folder
         if (!(fs.existsSync(process.cwd() + '/plugins'))) {
             fs.mkdirSync(process.cwd() + '/plugins');
         }
 
         // Register PluginApiVersion(s)
+        let time = Date.now();
         const pluginApiVersions = fs.readdirSync(path.join(__dirname, 'api/versions'));
         await Promise.all(pluginApiVersions.map((id: string) => {
             try {
@@ -37,18 +35,19 @@ export default class PluginManager {
                 this.server.getLogger().error(`§cFailed to load pluginApiVersion ${id}: ${err}`);
             }
         }));
-        this.server.getLogger().debug(`Registered §b${pluginApiVersions.length}§r pluginApiVersion(s)!`);
+        this.server.getLogger().debug(`Registered §b${pluginApiVersions.length}§r pluginApiVersion(s) (took ${Date.now() - time} ms)!`);
 
         // Register Plugin(s)
+        time = Date.now();
         const plugins = fs.readdirSync(path.join(process.cwd(), 'plugins'));
         const res = (await Promise.all(plugins.map(async (id: string) => {
             try {
-                await this.registerPlugin(id);
+                return await this.registerPlugin(id);
             } catch (err) {
                 this.server.getLogger().error(`§cFailed to load plugin ${id}: ${err}`);
             }
         }))).filter(a => a);
-        this.server.getLogger().debug(`Registered §b${res.length}§r plugin(s)!`);
+        this.server.getLogger().debug(`Registered §b${res.length}§r plugin(s) (took ${Date.now() - time} ms)!`);
     }
 
     /**
@@ -59,8 +58,6 @@ export default class PluginManager {
             return this.deregisterPlugin(id);
         }));
         this.pluginApiVersions.clear();
-
-        rimraf.sync(path.join(process.cwd(), '/plugins/.extracted'));
     }
 
     /**
@@ -69,7 +66,7 @@ export default class PluginManager {
     private async registerPluginApiVersion(id: string) {
         let dir = path.join(__dirname, 'api/versions', id);
         const PluginVersion = require(dir).default;
-        this.pluginApiVersions.set(id, new PluginVersion(this.server))
+        this.pluginApiVersions.set(id, PluginVersion)
         this.server.getLogger().silly(`PluginApiVersion with id §b${id}§r registered`);
     }
 
@@ -124,11 +121,11 @@ export default class PluginManager {
         if (!pkg?.prismarine?.apiVersion)
             throw new Error(`apiVersion is missing in package.json!`);
 
-        const pluginApiVersion = this.getPluginApiVersion(pkg.prismarine.apiVersion);
+        const pluginApiVersion: any = this.getPluginApiVersion(pkg.prismarine.apiVersion);
         if (!pluginApiVersion)
             throw new Error(`Invalid PluginApiVersion ${pkg.prismarine.apiVersion}!`);
 
-        const plugin = new PluginFile(this.server, dir, pluginApiVersion);
+        const plugin = new PluginFile(this.server, dir, new pluginApiVersion(this.server, pkg));
         await plugin.onStart();
 
         this.plugins.set(pkg.name, plugin);
@@ -152,16 +149,16 @@ export default class PluginManager {
      * Get a specific pluginApiVersion.
      * NOTE: the minor version returned may be higher but NEVER lower.
      */
-    private getPluginApiVersion(id: string): PluginApiVersion {
+    private getPluginApiVersion(id: string): typeof PluginApiVersion {
         const version = this.pluginApiVersions.get(id);
         if (version)
             return version;
 
         // Try to use a higher minor version instead
-        return Array.from(this.pluginApiVersions.values()).filter((apiVersion: PluginApiVersion) =>
-            apiVersion.getVersion().split('.')[0] === id.split('.')[0]
-            && apiVersion.getVersion().split('.')[1] >= id.split('.')[1]
-        )[0];
+        return this.pluginApiVersions.get(Array.from(this.pluginApiVersions.keys()).filter((apiVersion: string) =>
+            apiVersion.split('.')[0] === id.split('.')[0]
+            && apiVersion.split('.')[1] >= id.split('.')[1]
+        )[0]);
 
     }
 

@@ -10,7 +10,7 @@ export default class ItemManager {
 
     constructor(server: Prismarine) {
         this.server = server;
-        
+
     }
 
     /**
@@ -20,9 +20,9 @@ export default class ItemManager {
         this.importItems();
     }
 
-     /**
-     * onExit hook
-     */
+    /**
+    * onExit hook
+    */
     public async onExit() {
         this.items.clear();
     }
@@ -40,8 +40,12 @@ export default class ItemManager {
         this.items.set(item.name, item);
     }
 
+    /**
+     * Loops through ./src/item/items and register them
+     */
     importItems() {
         try {
+            const time = Date.now();
             const items = fs.readdirSync(path.join(__dirname, 'items'));
             items.forEach((id: string) => {
                 if (id.includes('.test.') || id.includes('.d.ts'))
@@ -54,7 +58,7 @@ export default class ItemManager {
                     this.server.getLogger().error(`${id} failed to register!`);
                 }
             });
-            this.server.getLogger().debug(`Registered §b${items.length}§r item(s)!`);
+            this.server.getLogger().debug(`Registered §b${items.length}§r item(s) (took ${Date.now() - time} ms)!`);
         } catch (err) {
             this.server.getLogger().error(`Failed to register items: ${err}`);
         }

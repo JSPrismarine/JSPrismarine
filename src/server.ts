@@ -18,18 +18,6 @@ const Server = new Prismarine({
     logger: Logger,
 });
 
-// Create folders
-if (!(fs.existsSync(process.cwd() + '/worlds'))) {
-    fs.mkdirSync(process.cwd() + '/worlds');
-}
-
-// Load default level
-const defaultWorld = Server.getConfig().getLevelName();
-Server.getWorldManager().loadWorld(
-    Server.getConfig().getWorlds()[defaultWorld],
-    defaultWorld
-);
-
 // Console command reader
 process.stdin.setEncoding('utf8');
 let rl = readline.createInterface({ input: process.stdin });
