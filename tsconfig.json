@@ -15,7 +15,9 @@
         "esModuleInterop": true,
         "declaration": true,
         "allowSyntheticDefaultImports": true,
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true
     },
     "include": [
         "./src/**/*"
