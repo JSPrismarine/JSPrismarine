@@ -1,3 +1,4 @@
+import { setIntervalAsync } from 'set-interval-async/dynamic';
 import PacketRegistry from "./network/packet-registry";
 import Player from "./player";
 import BlockManager from "./block/BlockManager";
@@ -9,6 +10,7 @@ import QueryManager from "./query/QueryManager";
 import PluginManager from "./plugin/PluginManager";
 import LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
+import pkg from '../package.json';
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -23,6 +25,7 @@ export default class Prismarine {
     private raknet: any;
     private logger: LoggerBuilder;
     private config: Config;
+    private tps: number = 20;
 
     private players: Map<string, Player> = new Map();
     private telemetryManager: TelemetryManager;
@@ -37,6 +40,8 @@ export default class Prismarine {
     static instance: null | Prismarine = null;
 
     constructor({ logger, config }: PrismarineData) {
+        logger.info(`Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`)
+
         this.logger = logger;
         this.config = config;
         this.telemetryManager = new TelemetryManager(this);
@@ -56,33 +61,26 @@ export default class Prismarine {
         await this.commandManager.onStart();
         await this.pluginManager.onStart();
         await this.telemetryManager.onStart();
-        await this.worldManager.onStart();
-        
         // TODO: rework managers to this format
     }
     private async onExit() {
-        await this.worldManager.onExit();
         await this.telemetryManager.onExit();
         await this.pluginManager.onExit();
         await this.commandManager.onExit();
         await this.blockManager.onExit();
         await this.itemManager.onExit();
-        
         // TODO: rework managers to this format
     }
 
     public async reload() {
         this.packetRegistry = new PacketRegistry(this);
-        this.itemManager = new ItemManager(this);
-        this.blockManager = new BlockManager(this);
-        this.commandManager = new CommandManager(this);
-        
         await this.onExit();
         await this.onStart();
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132) {
         await this.onStart();
+        await this.worldManager.onStart();
         
         this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
@@ -215,10 +213,14 @@ export default class Prismarine {
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
-        setInterval(async () => {
+        let tps = Date.now();
+        setIntervalAsync(async () => {
             for (let world of this.getWorldManager().getWorlds()) {
                 await world.update(Date.now());
             }
+
+            this.tps = Math.ceil(1000 / (Date.now() - tps));
+            tps = Date.now();
         }, 1000 / 20);
 
         // Auto save (default: 5 minutes)
@@ -292,6 +294,7 @@ export default class Prismarine {
             await world.save();
         }
 
+        await this.worldManager.onExit();
         await this.onExit();
         process.exit(0);
     }
@@ -375,10 +378,8 @@ export default class Prismarine {
 
     /**
      * Returns the current TPS
-     * WARNING: This is currently stubbed
      */
     getTPS() {
-        // TODO: get actual TPS after completing the network rework
-        return 20;
+        return this.tps;
     }
 }
