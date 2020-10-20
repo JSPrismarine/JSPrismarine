@@ -72,9 +72,7 @@ export default class World {
         // Tick players 
         for (let player of this.players.values()) {
             player.update(timestamp);
-
-            if (this.currentTick % 20)
-                player.sendTime(this.currentTick);
+            player.sendTime(this.currentTick);
         }
 
         // TODO: tick chunks
