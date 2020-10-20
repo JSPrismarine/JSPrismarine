@@ -2,8 +2,8 @@ import path from 'path';
 import ConfigBuilder from "../../../../config/ConfigBuilder";
 import Prismarine from "../../../../prismarine";
 import LoggerBuilder from "../../../../utils/Logger";
-import AnnotatePluginApiFunction from "../../../AnnotatePluginApiFunction";
 import PluginApiVersion from "../../PluginApiVersion";
+import withDeprecated from '../../../hoc/withDeprecated';
 
 export const PLUGIN_API_VERSION = '1.0';
 
@@ -15,7 +15,7 @@ class ServerDetails {
 
     constructor(server: Prismarine) {
         this.server = server;
-        
+
     }
 
     public getMotd(): string {
@@ -30,13 +30,11 @@ class ServerDetails {
 export default class PluginApi extends PluginApiVersion {
     private server: Prismarine;
     private pkg;
-    private annotate;
-    
+
     constructor(server: Prismarine, pkg: any) {
         super(PLUGIN_API_VERSION);
         this.server = server;
         this.pkg = pkg;
-        this.annotate = new AnnotatePluginApiFunction(server, pkg.name);
     };
     public async onInit() { }
     public async onExit() { }
@@ -70,29 +68,23 @@ export default class PluginApi extends PluginApiVersion {
         return new ServerDetails(this.getServer());
     }
 
-
-    private _getPlayerManager(server: Prismarine) {
+    @withDeprecated(new Date('2020-10-19'))
+    public getPlayerManager() {
         return {
             getOnlinePlayers: () => {
-                return server.getOnlinePlayers();
+                return this.server.getOnlinePlayers();
             },
 
             getPlayerByName: (name: string) => {
-                return server.getPlayerByName(name);
+                return this.server.getPlayerByName(name);
             },
             getPlayerById: (id: number) => {
-                return server.getPlayerById(id);
+                return this.server.getPlayerById(id);
             },
         };
-    }
-    public getPlayerManager () {
-        return (this.withAnnotate().deprecated(new Date('2020-10-19'), this._getPlayerManager))(this.server);
     }
 
     private getServer() {
         return this.server;
-    }
-    private withAnnotate() {
-        return this.annotate;
     }
 };
