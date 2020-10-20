@@ -72,8 +72,9 @@ export default class World {
         // Tick players 
         for (let player of this.players.values()) {
             player.update(timestamp);
-            // Maybe send time to players? 
-            // this.sendTime()
+
+            if (this.currentTick % 20)
+                player.sendTime(this.currentTick);
         }
 
         // TODO: tick chunks
@@ -239,6 +240,9 @@ export default class World {
 
     public getTicks(): number {
         return this.currentTick;
+    }
+    public setTicks(tick: number) {
+        this.currentTick = tick;
     }
 
     public getProvider(): any {

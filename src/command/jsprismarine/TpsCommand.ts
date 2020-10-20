@@ -1,5 +1,4 @@
 import Player from "../../player";
-import PluginFile from "../../plugin/PluginFile";
 
 const Command = require('../').default;
 

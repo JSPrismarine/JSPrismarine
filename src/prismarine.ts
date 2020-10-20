@@ -81,7 +81,7 @@ export default class Prismarine {
     public async listen(serverIp = '0.0.0.0', port = 19132) {
         await this.onStart();
         await this.worldManager.onStart();
-        
+
         this.raknet = await (new Listener).listen(serverIp, port);
         this.raknet.name.setOnlinePlayerCount(this.players.size);
         this.raknet.name.setProtocol(Identifiers.Protocol);
@@ -101,9 +101,13 @@ export default class Prismarine {
                 let timing = await new Promise((resolve, reject) => {
                     let time = Date.now();
                     let world = this.getWorldManager().getDefaultWorld();
-                    if (!world) return reject();  // Temp solution
+                    if (!world)
+                        return reject();  // Temp solution
+                        
                     let player = new Player(
-                        connection, connection.address, world, this
+                        connection,
+                        connection.address,
+                        world, this
                     );
                     this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
 
