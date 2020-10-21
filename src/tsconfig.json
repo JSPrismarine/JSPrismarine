@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "outDir": "./dist",
+        "outDir": "../dist/src",
         "target": "es2020",
         "rootDir": ".",
         "lib": [
@@ -18,11 +18,12 @@
         "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true,
         "emitDecoratorMetadata": true,
-        "experimentalDecorators": true,
-        "composite": true
+        "experimentalDecorators": true
     },
-    "files": [
-        "package.json"
+    "references": [
+        {
+            "path": "../"
+        }
     ],
     "exclude": [
         "./**/*.test.*"
