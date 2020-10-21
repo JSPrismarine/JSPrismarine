@@ -10,10 +10,7 @@ class SetLocalPlayerAsInitializedHandler {
      * @param {Prismarine} server
      * @param {Player} player 
      */
-    static handle(packet, server, player) {
-        // Emit playerSpawn event
-        server.getEventManager().post(['playerSpawn', player]);
-
+    static async handle(packet, server, player) {
         for (let onlinePlayer of server.getOnlinePlayers()) {
             if (onlinePlayer === player)
                 continue;
