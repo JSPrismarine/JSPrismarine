@@ -6,6 +6,7 @@ const Prismarine = require('../../Prismarine');
 const WorldEventPacket = require('../packet/world-event');
 const LevelEventType = require('../type/level-event-type');
 const Vector3 = require('../../math/vector3').default;
+const UpdateBlockPacket = require('../packet/update-block');
 
 
 class PlayerActionHandler {
@@ -60,6 +61,18 @@ class PlayerActionHandler {
                     let chunk = await player.getWorld().getChunkAt(
                         blockVector3.getX(), blockVector3.getZ()
                     );
+                    let blockId = chunk.getSubChunk(blockVector3.getY()).getBlockId(blockVector3.getX(), blockVector3.getY(), blockVector3.getZ());
+
+                    pk = new UpdateBlockPacket();
+                    pk.x = blockVector3.getX();
+                    pk.y = blockVector3.getY();
+                    pk.z = blockVector3.getZ();
+                    pk.BlockRuntimeId = blockId;
+
+                    for (let onlinePlayer of server.getOnlinePlayers()) {
+                        onlinePlayer.sendDataPacket(pk);
+                    }
+
                     chunk.setBlock(
                         blockVector3.getX() % 16, blockVector3.getY(), blockVector3.getZ() % 16, server.getBlockManager().getBlock('minecraft:air')
                     );
