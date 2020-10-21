@@ -22,4 +22,8 @@ export default class EventManager extends Evt<
     public async on(id: string, callback: any) {
         return await this.$attach(to(id as any), callback);
     }
+
+    public async emit(id: string, callback: any) {
+        return await this.post([id, callback] as any);
+    }
 };
