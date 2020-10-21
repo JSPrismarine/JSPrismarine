@@ -6,8 +6,13 @@ import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
 import type PlayerMoveEvent from './player/PlayerMoveEvent';
 import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
+import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
+import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 
 export default class EventManager extends Evt<
+    ['raknetConnect', RaknetConnectEvent] |
+    ['raknetDisconnect', RaknetDisconnectEvent] |
+    ['raknetEncapsulatedPacket', RaknetConnectEvent] |
     ['chat', ChatEvent] |
     ['playerConnect', PlayerConnectEvent] |
     ['playerDisconnect', PlayerDisconnectEvent] |
