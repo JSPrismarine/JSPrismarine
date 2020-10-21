@@ -6,7 +6,7 @@ const Prismarine = require('../../Prismarine');
 const WorldEventPacket = require('../packet/world-event');
 const LevelEventType = require('../type/level-event-type');
 const Vector3 = require('../../math/vector3').default;
-const UpdateBlockPacket = require('../packet/update-block');
+const UpdateBlockPacket = require('../packet/UpdateBlockPacket').default;
 
 
 class PlayerActionHandler {
@@ -62,13 +62,12 @@ class PlayerActionHandler {
                         blockVector3.getX(), blockVector3.getZ()
                     );
                     let blockId = chunk.getSubChunk(blockVector3.getY()).getBlockId(blockVector3.getX(), blockVector3.getY(), blockVector3.getZ());
-
+                    
                     pk = new UpdateBlockPacket();
                     pk.x = blockVector3.getX();
                     pk.y = blockVector3.getY();
                     pk.z = blockVector3.getZ();
-                    pk.BlockRuntimeId = blockId;
-
+                    pk.BlockRuntimeId = blockId; // TODO: get runtime ID
                     for (let onlinePlayer of server.getOnlinePlayers()) {
                         onlinePlayer.sendDataPacket(pk);
                     }
