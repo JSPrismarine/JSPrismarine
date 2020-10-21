@@ -17,16 +17,16 @@ jobs:
             - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
-                  name: jsprismarine-x64-linux
-                  path: packages/jsprismarine-linux
+                  name: prismarine-x64-linux
+                  path: packages/prismarine-linux
             - uses: actions/upload-artifact@v2
               with:
-                  name: jsprismarine-x64-macos
-                  path: packages/jsprismarine-macos
+                  name: prismarine-x64-macos
+                  path: packages/prismarine-macos
             - uses: actions/upload-artifact@v2
               with:
-                  name: jsprismarine-x64-win32.exe
-                  path: packages/jsprismarine-win.exe
+                  name: prismarine-x64-win32.exe
+                  path: packages/prismarine-win.exe
     docs:
         runs-on: macos-latest
         steps:
