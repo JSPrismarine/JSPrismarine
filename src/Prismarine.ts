@@ -12,6 +12,7 @@ import LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
 import pkg from '../package.json';
 import EventManager from './events/EventManager';
+import PlayerConnectEvent from './events/player/PlayerConnectEvent';
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -100,7 +101,7 @@ export default class Prismarine {
 
                 // TODO: Get last world by player data
                 // and if it doesn't exists, return the default one
-                let timing = await new Promise((resolve, reject) => {
+                let timing = await new Promise(async (resolve, reject) => {
                     let time = Date.now();
                     let world = this.getWorldManager().getDefaultWorld();
                     if (!world)
@@ -111,6 +112,13 @@ export default class Prismarine {
                         connection.address,
                         world, this
                     );
+
+                    // Emit playerConnect event
+                    const event = new PlayerConnectEvent(player, inetAddr);
+                    await this.getEventManager().post(['playerConnect', event]);
+                    if (event.cancelled)
+                        return reject();
+
                     this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
 
                     // Add the player into the world

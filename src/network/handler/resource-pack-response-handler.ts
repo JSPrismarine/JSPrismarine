@@ -76,9 +76,6 @@ class ResourcePackResponseHandler {
             if (server.getOnlinePlayers().length > 1) {
                 player.sendPlayerList(); 
             }
-
-            // Emit playerConnect event
-            server.getEventManager().post(['playerConnect', player]);
         }
     }
 }

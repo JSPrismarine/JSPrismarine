@@ -1,16 +1,18 @@
 import { Evt, to } from 'evt';
-import type Player from '../player';
 import type Prismarine from '../Prismarine';
 import type ChatEvent from './chat/ChatEvent';
+import type PlayerConnectEvent from './player/PlayerConnectEvent';
+import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
+import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
 import type PlayerMoveEvent from './player/PlayerMoveEvent';
 import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
 
 export default class EventManager extends Evt<
     ['chat', ChatEvent] |
-    ['playerConnect', Player] |
-    ['playerDisconnect', Player] |
+    ['playerConnect', PlayerConnectEvent] |
+    ['playerDisconnect', PlayerDisconnectEvent] |
     ['playerSpawn', PlayerSpawnEvent] |
-    ['playerDespawn', Player] |
+    ['playerDespawn', PlayerDespawnEvent] |
     ['playerMove', PlayerMoveEvent]
     > {
     constructor(server: Prismarine) {
