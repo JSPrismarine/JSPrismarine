@@ -2,7 +2,7 @@ import Event from "../Event";
 import type Player from "../../player";
 
 /**
- * Fired right just after player spawns into the world
+ * Fired just before a player spawns into the world
  */
 export default class PlayerSpawnEvent extends Event {
     private player;

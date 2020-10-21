@@ -2,6 +2,7 @@ import { Evt, to } from 'evt';
 import type Player from '../player';
 import type Prismarine from '../Prismarine';
 import type ChatEvent from './chat/ChatEvent';
+import type PlayerMoveEvent from './player/PlayerMoveEvent';
 import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
 
 export default class EventManager extends Evt<
@@ -10,7 +11,7 @@ export default class EventManager extends Evt<
     ['playerDisconnect', Player] |
     ['playerSpawn', PlayerSpawnEvent] |
     ['playerDespawn', Player] |
-    ['playerMove', Player]
+    ['playerMove', PlayerMoveEvent]
     > {
     constructor(server: Prismarine) {
         super();
