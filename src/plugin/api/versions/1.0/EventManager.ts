@@ -7,8 +7,8 @@ export default class EventManager {
         this.server = server;
     }
 
-    public on(id: string, callback: any) {
-        return this.server.getEventManager().on(id, callback);
+    public async on(id: string, callback: any) {
+        return await this.server.getEventManager().on(id, callback);
     }
-    public emit(id: string, value: any) {}
+    public async emit(id: string, value: any) {}
 };
