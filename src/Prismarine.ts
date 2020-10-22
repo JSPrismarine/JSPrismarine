@@ -96,26 +96,26 @@ export default class Prismarine {
         this.raknet.name.setMotd(this.config.getMotd());
         this.raknet.on('openConnection', async (connection: any) => {
             const event = new RaknetConnectEvent(connection);
-            await this.getEventManager().post(['raknetConnect', event]);
+            this.getEventManager().evtRaknetConnect.post(event);
         });
         this.raknet.on('closeConnection', async (inetAddr: any, reason: string) => {
             const event = new RaknetDisconnectEvent(
                 inetAddr,
                 reason
             );
-            await this.getEventManager().post(['raknetDisconnect', event]);
+            this.getEventManager().evtRaknetDisconnect.post(event);
         });
         this.raknet.on('encapsulated', async (packet: any, inetAddr: any) => {
             const event = new RaknetEncapsulatedPacketEvent(
                 inetAddr,
                 packet
             );
-            await this.getEventManager().post(['raknetEncapsulatedPacket', event]);
+            this.getEventManager().evtRaknetEncapsulatedPacket.post(event);
         });
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
 
-        this.getEventManager().on('raknetConnect', async (event: RaknetConnectEvent) => {
+        this.getEventManager().evtRaknetConnect.attach(event => {
             const connection = event.getConnection();
 
             return new Promise(async (resolve, reject) => {
@@ -137,7 +137,7 @@ export default class Prismarine {
 
                     // Emit playerConnect event
                     const event = new PlayerConnectEvent(player, inetAddr);
-                    await this.getEventManager().post(['playerConnect', event]);
+                    this.getEventManager().evtPlayerConnect.post(event);
                     if (event.cancelled)
                         return reject();
 
@@ -154,7 +154,7 @@ export default class Prismarine {
             })
         });
 
-        this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
+        this.getEventManager().evtRaknetDisconnect.attach(event => {
             const inetAddr = event.getInetAddr();
             const reason = event.getReason();
 
@@ -185,7 +185,7 @@ export default class Prismarine {
             });
         });
 
-        this.getEventManager().on('raknetEncapsulatedPacket', async (event: RaknetEncapsulatedPacketEvent) => {
+        this.getEventManager().evtRaknetEncapsulatedPacket.attach(async event => {
             const packet = event.getPacket();
             const inetAddr = event.getInetAddr();
 

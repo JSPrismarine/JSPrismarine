@@ -19,7 +19,7 @@ class MovePlayerHandler {
 
         // Emit move event
         const event = new PlayerMoveEvent(player, to, packet.mode);
-        await server.getEventManager().post(['playerMove', event]);
+        server.getEventManager().evtPlayerMove.post(event);
         if (event.cancelled) {
             // Reset the player position
             player.broadcastMove(player, MovementType.Reset);

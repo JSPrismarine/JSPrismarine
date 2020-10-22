@@ -23,7 +23,7 @@ export default class RequestChunkRadiusHandler {
         // TODO: This shouldn't be here
         // Emit playerSpawn event
         const event = new PlayerSpawnEvent(player);
-        await server.getEventManager().post(['playerSpawn', event]);
+        server.getEventManager().evtPlayerSpawn.post(event);
         if (event.cancelled)
             return;
         player.sendPlayStatus(PlayStatus.PlayerSpawn);

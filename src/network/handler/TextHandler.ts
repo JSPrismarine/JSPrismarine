@@ -12,7 +12,7 @@ export default class TextHandler {
     static async handle(packet: TextPacket, server: Prismarine, player: Player) {
         // Emit chat event
         const event = new ChatEvent(player, packet.message);
-        await server.getEventManager().post(['chat', event]);
+        server.getEventManager().evtChat.post(event);
         if (event.cancelled)
             return;
 

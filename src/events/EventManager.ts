@@ -1,4 +1,4 @@
-import { Evt, to } from 'evt';
+import { Evt } from 'evt';
 import type Prismarine from '../Prismarine';
 import type ChatEvent from './chat/ChatEvent';
 import type PlayerConnectEvent from './player/PlayerConnectEvent';
@@ -10,26 +10,19 @@ import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
 
-export default class EventManager extends Evt<
-    ['raknetConnect', RaknetConnectEvent] |
-    ['raknetDisconnect', RaknetDisconnectEvent] |
-    ['raknetEncapsulatedPacket', RaknetEncapsulatedPacketEvent] |
-    ['chat', ChatEvent] |
-    ['playerConnect', PlayerConnectEvent] |
-    ['playerDisconnect', PlayerDisconnectEvent] |
-    ['playerSpawn', PlayerSpawnEvent] |
-    ['playerDespawn', PlayerDespawnEvent] |
-    ['playerMove', PlayerMoveEvent]
-    > {
+export default class EventManager {
+
     constructor(server: Prismarine) {
-        super();
     }
 
-    public async on(id: string, callback: any) {
-        return await this.$attach(to(id as any), callback);
-    }
+    evtRaknetConnect = Evt.create<RaknetConnectEvent>();
+    evtRaknetDisconnect= Evt.create<RaknetDisconnectEvent>();
+    evtRaknetEncapsulatedPacket = Evt.create<RaknetEncapsulatedPacketEvent>();
+    evtChat = Evt.create<ChatEvent>();
+    evtPlayerConnect = Evt.create<PlayerConnectEvent>();
+    evtPlayerDisconnect = Evt.create<PlayerDisconnectEvent>();
+    evtPlayerSpawn= Evt.create<PlayerSpawnEvent>();
+    evtPlayerDespawn = Evt.create<PlayerDespawnEvent>();
+    evtPlayerMove= Evt.create<PlayerMoveEvent>();
 
-    public async emit(id: string, callback: any) {
-        return await this.post([id, callback] as any);
-    }
 };
