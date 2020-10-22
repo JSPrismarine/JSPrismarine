@@ -1,18 +1,18 @@
-const DataPacket = require('./packet');
-const Identifiers = require('../identifiers');
+import Identifiers from "../identifiers";
+import DataPacket from "./packet";
 
 
-class PlayerActionPacket extends DataPacket {
+export default class PlayerActionPacket extends DataPacket {
     static NetID = Identifiers.PlayerActionPacket
 
-    runtimeEntityId
-    action
+    runtimeEntityId: bigint = BigInt(0);
+    action: number = 0;
 
-    x
-    y
-    z
+    x: number = 0;
+    y: number = 0;
+    z: number = 0;
 
-    face
+    face: number = 0;
 
     decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
@@ -25,4 +25,3 @@ class PlayerActionPacket extends DataPacket {
         this.face = this.readVarInt();
     }
 }
-module.exports = PlayerActionPacket;

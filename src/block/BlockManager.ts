@@ -41,7 +41,7 @@ export default class BlockManager {
         if (!BlockIdsType[id])
             return null;
 
-        return this.getBlocks().filter(a => a.getId() === id)[0] || null;
+        return this.getBlocks().filter(a => a.getId() === id && a.meta === 0)[0] || null;
     }
 
     /**

@@ -136,13 +136,10 @@ export default class World {
 
     /**
      * Returns a chunk from minecraft block positions x and z.
-     * 
-     * @param x 
-     * @param z 
-     * @param generate
      */
     public async getChunkAt(x: number, z: number, generate = false): Promise<any> {
-        return await this.getChunk(x % 16, z % 16, generate);
+        // Handle negative chunk values, where "">> 4" doesn't work for obvious reasons
+        return await this.getChunk(x < 0 ? -1 : 1 * (Math.abs(x) >> 4), z < 0 ? -1 : 1 * (Math.abs(z) >> 4), generate);
     }
 
     /**
