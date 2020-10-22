@@ -88,23 +88,21 @@ class Chunk {
     }
 
     setBiomeId(x, z, biomeId) {
-        this.#hasChanged = true;
         this.#biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff;
+        this.#hasChanged = true;
     }
 
     getBlockId(x, y, z, id) {
         return this.getSubChunk(y >> 4, true).getBlockId(Math.abs(x), y & 0x0f, Math.abs(z), id);
     }
     setBlockId(x, y, z, id) {
-        if (this.getSubChunk(y >> 4, true).setBlockId(Math.abs(x), y & 0x0f, Math.abs(x), id)) {
-            this.#hasChanged = true;
-        }
+        this.getSubChunk(y >> 4, true).setBlockId(Math.abs(x), y & 0x0f, Math.abs(z), id);
+        this.#hasChanged = true;
     }
 
     setBlock(x, y, z, block) {
-        if (this.getSubChunk(y >> 4, true).setBlockId(Math.abs(x), y & 0x0f, Math.abs(x), block.id)) {
-            this.#hasChanged = true;
-        }
+        this.#hasChanged = true;
+        this.getSubChunk(y >> 4, true).setBlockId(Math.abs(x), y & 0x0f, Math.abs(z), block.id);
     }
 
     getSubChunk(y, generateNew = false) {
