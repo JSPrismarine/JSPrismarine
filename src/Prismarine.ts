@@ -226,7 +226,6 @@ export default class Prismarine {
                                         await handler.handle(packet, this, player);
                                         return resolve();
                                     } catch (err) {
-                                        console.log(err);
                                         return reject(`Handler error ${packet.constructor.name}-handler: (${err})`);
                                     }
                                 }));
