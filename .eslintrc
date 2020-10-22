@@ -19,7 +19,7 @@
         "no-async-promise-executor": 0,
         "import/first": 0,
         "no-unused-vars": 0,
-        "no-console": 1,
+        "no-console": 2,
         "no-fallthrough": 0,
         "no-case-declarations": 0,
         "indent": [
