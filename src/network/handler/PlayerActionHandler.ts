@@ -12,7 +12,6 @@ class PlayerActionHandler {
     static NetID = Identifiers.PlayerActionPacket
 
     static async handle(packet: PlayerActionPacket, server: Prismarine, player: Player) {
-        console.log(packet);
         switch (packet.action) {
             case PlayerAction.StartBreak: {
                 const chunk = await player.getWorld().getChunkAt(
