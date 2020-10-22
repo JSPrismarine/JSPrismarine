@@ -43,7 +43,7 @@ export default class Block {
      * Get the Block's runtime id
      */
     public getRuntimeId() {
-        return this.id;
+        return this.id; // this.runtimeId;
     }
     /**
      * Set the Block's runtime id
@@ -57,8 +57,24 @@ export default class Block {
     /**
      * Get the Block's hardness value
      */
-    getHardness() {
+    public getHardness() {
         return this.hardness;
+    }
+
+    /**
+     * Get the Block's break time
+     */
+    public getBreakTime(item: Item | null, server: Prismarine) {
+        let base = this.getHardness()
+
+        if (this.isCompatibleWithTool(item))
+            base *= 1.5
+        else
+            base *= 5;
+
+        const efficiency = 1; // item.getMiningEfficiency(this);
+
+        return base /= efficiency;
     }
 
     /**
@@ -156,14 +172,17 @@ export default class Block {
         return false;
     }
 
-    isCompatibleWithTool(item: Item) {
+    isCompatibleWithTool(item: Item | null) {
+        if (!item)
+            return false;
+
         if (this.getHardness() < 0)
             return false;
 
         const toolType = this.getToolType();
         const harvestLevel = this.getToolHarvestLevel();
 
-        if (toolType  === BlockToolType.None || harvestLevel === 0)
+        if (toolType === BlockToolType.None || harvestLevel === 0)
             return true;
         else if (toolType & item.getToolType() && (item.getToolHarvestLevel() >= harvestLevel))
             return true;

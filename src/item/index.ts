@@ -26,7 +26,10 @@ export default class Item {
         this.name = name;
     }
 
-    getRuntimeId() {
+    public getId() {
+        return this.id;
+    }
+    public getRuntimeId() {
         // TODO: runtimeId
         return this.id;
     }

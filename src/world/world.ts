@@ -142,7 +142,7 @@ export default class World {
      * @param generate
      */
     public async getChunkAt(x: number, z: number, generate = false): Promise<any> {
-        return await this.getChunk(x >> 4, z >> 4, generate);
+        return await this.getChunk(x % 16, z % 16, generate);
     }
 
     /**

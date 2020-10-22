@@ -8,7 +8,6 @@ const LevelEventType = require('../type/level-event-type');
 const Vector3 = require('../../math/vector3').default;
 const UpdateBlockPacket = require('../packet/UpdateBlockPacket').default;
 
-
 class PlayerActionHandler {
     static NetID = Identifiers.PlayerActionPacket
 
@@ -18,29 +17,31 @@ class PlayerActionHandler {
      * @param {Player} player 
      */
     static async handle(packet, server, player) {
-        let pk;
         switch (packet.action) {
-            case PlayerAction.StartBreak:
-                // TODO: world.sendEvent(type, psoition(Vector3), data) (?)
-                pk = new WorldEventPacket();
+            case PlayerAction.StartBreak: {
+                const chunk = await player.getWorld().getChunkAt(
+                    packet.x, packet.z
+                );
+                const block = server.getBlockManager().getBlockById(chunk.getBlockId(packet.x, packet.y, packet.z));
+                const breakTime = player.gamemode === 1 ? 0 : block.getBreakTime(null, server); // TODO: calculate with item in hand
+
+                // TODO: world.sendEvent(type, position(Vector3), data) (?)
+                let pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.BlockStartBreak;
                 pk.x = packet.x;
                 pk.y = packet.y;
                 pk.z = packet.z;
-                pk.data = 65535 / (0.6 * 20);  
-                // TODO: all break times or 
-                // my hack will not work properly
-                // (0.6 is dirt break time)
+                pk.data = 65535 / (breakTime * 20);
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
-                } 
+                }
 
                 player.breakingBlockPos = new Vector3(packet.x, packet.y, packet.z);
                 break;
-            case PlayerAction.AbortBreak:
+            } case PlayerAction.AbortBreak:
                 // Gets called when player didn't finished 
                 // to break the block
-                pk = new WorldEventPacket();
+                let pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.BlockStopBreak;
                 pk.x = packet.x;
                 pk.y = packet.y;
@@ -48,47 +49,53 @@ class PlayerActionHandler {
                 pk.data = 0;
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
-                } 
+                }
 
                 player.breakingBlockPos = null;
                 break;
-            case PlayerAction.StopBreak:
+            case PlayerAction.StopBreak: {
                 // Doesn't send block position, so we 
                 // save it on the player (best temp solution)
-                if (player.breakingBlockPos !== null) {
-                    // TODO: player.breakBlock
-                    let blockVector3 = player.breakingBlockPos;
-                    let chunk = await player.getWorld().getChunkAt(
-                        blockVector3.getX(), blockVector3.getZ()
-                    );
-                    let blockId = chunk.getSubChunk(blockVector3.getY()).getBlockId(blockVector3.getX(), blockVector3.getY(), blockVector3.getZ());
-                    
-                    pk = new UpdateBlockPacket();
-                    pk.x = blockVector3.getX();
-                    pk.y = blockVector3.getY();
-                    pk.z = blockVector3.getZ();
-                    pk.BlockRuntimeId = blockId; // TODO: get runtime ID
-                    for (let onlinePlayer of server.getOnlinePlayers()) {
-                        onlinePlayer.sendDataPacket(pk);
-                    }
+                if (!player.breakingBlockPos)
+                    return;
 
-                    chunk.setBlock(
-                        blockVector3.getX() % 16, blockVector3.getY(), blockVector3.getZ() % 16, server.getBlockManager().getBlock('minecraft:air')
-                    );
+                // TODO: player.breakBlock
+                const blockVector3 = player.breakingBlockPos;
+                const chunk = await player.getWorld().getChunkAt(
+                    blockVector3.getX(), blockVector3.getZ()
+                );
+                
+                // TODO: figure out why blockId sometimes === 0
+                // Appears to happen
+                const blockId = chunk.getBlockId(blockVector3.getX() % 16, blockVector3.getY(), blockVector3.getZ() % 16);
+                const block = server.getBlockManager().getBlockById(blockId);
+
+                let pk = new UpdateBlockPacket();
+                pk.x = blockVector3.getX();
+                pk.y = blockVector3.getY();
+                pk.z = blockVector3.getZ();
+                pk.BlockRuntimeId = block.getRuntimeId(); // TODO: add NBT writing to support our own block palette
+                for (let onlinePlayer of server.getOnlinePlayers()) {
+                    onlinePlayer.sendDataPacket(pk);
                 }
+
+                chunk.setBlock(
+                    blockVector3.getX() % 16, blockVector3.getY(), blockVector3.getZ() % 16, server.getBlockManager().getBlock('minecraft:air')
+                );
                 break;
-            case PlayerAction.ContinueBreak:
-                pk = new WorldEventPacket();
+            } case PlayerAction.ContinueBreak: {
+                let pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.ParticlePunchBlock;
                 pk.x = packet.x;
                 pk.y = packet.y;
                 pk.z = packet.z;
                 pk.data = 7;  // TODO: runtime ID
+
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
-                } 
-                break; 
-            default:
+                }
+                break;
+            } default:
                 // This will get triggered even if an action is simply not handled
                 // server.getLogger().debug(`Unknown PlayerAction: ${packet.action}`)
         }

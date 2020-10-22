@@ -80,11 +80,11 @@ class Chunk {
     }
 
     static getBiomeIndex(x, z) {
-        return (z << 4) | x;
+        return (z % 16) | x;
     }
 
     static getHeightMapIndex(x, z) {
-        return (z << 4) | x;
+        return (z % 16) | x;
     }
 
     setBiomeId(x, z, biomeId) {
@@ -92,14 +92,17 @@ class Chunk {
         this.#biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff;
     }
 
+    getBlockId(x, y, z, id) {
+        return this.getSubChunk(y >> 4, true).getBlockId(Math.abs(x), y & 0x0f, Math.abs(z), id);
+    }
     setBlockId(x, y, z, id) {
-        if (this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id)) {
+        if (this.getSubChunk(y >> 4, true).setBlockId(Math.abs(x), y & 0x0f, Math.abs(x), id)) {
             this.#hasChanged = true;
         }
     }
 
     setBlock(x, y, z, block) {
-        if (this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, block.id)) {
+        if (this.getSubChunk(y >> 4, true).setBlockId(Math.abs(x), y & 0x0f, Math.abs(x), block.id)) {
             this.#hasChanged = true;
         }
     }
@@ -143,7 +146,7 @@ class Chunk {
             let height = this.getSubChunk(y).getHighestBlockAt(x, z) | (y << 4);
             if (height !== -1) {
                 return height;
-            } 
+            }
         }
 
         return -1;

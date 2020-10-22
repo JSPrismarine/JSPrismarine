@@ -4,7 +4,6 @@ const Sizes = {
     Metadata: (16 * 16 * 16) / 2
 };
 class SubChunk {
-    
     ids = Buffer.alloc(Sizes.BlockSize).fill(0x00)
     metadata = Buffer.alloc(Sizes.Metadata).fill(0x00)
 

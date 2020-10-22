@@ -12,14 +12,9 @@ const Gamemode = require('../../world/gamemode');
 // const Item = require('../../item')
 
 
-class ResourcePackResponseHandler {
+export default class ResourcePackResponseHandler {
     static NetID = Identifiers.ResourcePackResponsePacket
 
-    /**
-     * @param {ResourcePackResponsePacket} packet 
-     * @param {Prismarine} server
-     * @param {Player} player 
-     */
     static async handle(packet: ResourcePackResponsePacket, server: Prismarine, player: Player) {
         let pk;
         if (packet.status === ResourcePackStatus.HaveAllPacks) {
@@ -79,4 +74,3 @@ class ResourcePackResponseHandler {
         }
     }
 }
-module.exports = ResourcePackResponseHandler;
