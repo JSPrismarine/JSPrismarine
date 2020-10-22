@@ -6,6 +6,7 @@ import World from "../world/world";
 import Gamemode from "../world/gamemode";
 import MovementType from "../network/type/MovementType";
 import Block from "../block";
+import Vector3 from "../math/vector3";
 
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
@@ -101,7 +102,7 @@ export default class Player extends Entity {
     chunkSendQueue = new Set()
 
     /** @type {null|Vector3} */
-    breakingBlockPos = null  // temphack
+    breakingBlockPos: Vector3 | null = null  // temphack
 
     /** @type {null|Chunk} */
     currentChunk = null;

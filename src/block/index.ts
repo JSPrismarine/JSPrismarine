@@ -65,6 +65,8 @@ export default class Block {
      * Get the Block's break time
      */
     public getBreakTime(item: Item | null, server: Prismarine) {
+        return this.getHardness(); // TODO
+
         let base = this.getHardness()
 
         if (this.isCompatibleWithTool(item))

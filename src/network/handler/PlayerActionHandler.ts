@@ -1,39 +1,41 @@
-const Player = require('../../player').default;
-const Identifiers = require('../identifiers');
-const PlayerActionPacket = require('../packet/player-action');
-const PlayerAction = require('../type/player-action');
-const Prismarine = require('../../Prismarine');
-const WorldEventPacket = require('../packet/world-event');
-const LevelEventType = require('../type/level-event-type');
-const Vector3 = require('../../math/vector3').default;
-const UpdateBlockPacket = require('../packet/UpdateBlockPacket').default;
+import type Player from "../../player";
+import type Prismarine from "../../Prismarine";
+import type PlayerActionPacket from "../packet/PlayerActionPacket";
+import Identifiers from "../identifiers";
+import PlayerAction from "../type/player-action";
+import WorldEventPacket from "../packet/world-event";
+import Vector3 from "../../math/vector3";
+import LevelEventType from "../type/level-event-type";
+import UpdateBlockPacket from "../packet/UpdateBlockPacket";
 
 class PlayerActionHandler {
     static NetID = Identifiers.PlayerActionPacket
 
-    /**
-     * @param {PlayerActionPacket} packet 
-     * @param {Prismarine} server
-     * @param {Player} player 
-     */
-    static async handle(packet, server, player) {
+    static async handle(packet: PlayerActionPacket, server: Prismarine, player: Player) {
+        console.log(packet);
         switch (packet.action) {
             case PlayerAction.StartBreak: {
                 const chunk = await player.getWorld().getChunkAt(
                     packet.x, packet.z
                 );
-                const block = server.getBlockManager().getBlockById(chunk.getBlockId(packet.x, packet.y, packet.z));
-                const breakTime = player.gamemode === 1 ? 0 : block.getBreakTime(null, server); // TODO: calculate with item in hand
 
-                // TODO: world.sendEvent(type, position(Vector3), data) (?)
-                let pk = new WorldEventPacket();
-                pk.eventId = LevelEventType.BlockStartBreak;
-                pk.x = packet.x;
-                pk.y = packet.y;
-                pk.z = packet.z;
-                pk.data = 65535 / (breakTime * 20);
-                for (let onlinePlayer of server.getOnlinePlayers()) {
-                    onlinePlayer.sendDataPacket(pk);
+                const block = server.getBlockManager().getBlockById(chunk.getBlockId(packet.x % 16, packet.y, packet.z % 16));
+                if (!block)
+                    return server.getLogger().warn(`Block at ${packet.x} ${packet.y} ${packet.z} is undefined!`);
+
+                const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
+
+                if (player.gamemode !== 1) {
+                    // TODO: world.sendEvent(type, position(Vector3), data) (?)
+                    let pk = new WorldEventPacket();
+                    pk.eventId = LevelEventType.BlockStartBreak;
+                    pk.x = packet.x;
+                    pk.y = packet.y;
+                    pk.z = packet.z;
+                    pk.data = 65535 / breakTime
+                    for (let onlinePlayer of server.getOnlinePlayers()) {
+                        onlinePlayer.sendDataPacket(pk);
+                    }
                 }
 
                 player.breakingBlockPos = new Vector3(packet.x, packet.y, packet.z);
@@ -64,11 +66,15 @@ class PlayerActionHandler {
                 const chunk = await player.getWorld().getChunkAt(
                     blockVector3.getX(), blockVector3.getZ()
                 );
-                
+
                 // TODO: figure out why blockId sometimes === 0
-                // Appears to happen
-                const blockId = chunk.getBlockId(blockVector3.getX() % 16, blockVector3.getY(), blockVector3.getZ() % 16);
-                const block = server.getBlockManager().getBlockById(blockId);
+                const chunkPos = new Vector3(blockVector3.getX() % 16, blockVector3.getY(), blockVector3.getZ() % 16);
+                const blockId = chunk.getBlockId(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
+                const blockMeta = chunk.getBlockMetadata(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
+                const block = server.getBlockManager().getBlockByIdAndMeta(blockId, blockMeta);
+
+                if (!block)
+                    return server.getLogger().warn(`Block at ${blockVector3.getX()} ${blockVector3.getY()} ${blockVector3.getZ()} is undefined!`);
 
                 let pk = new UpdateBlockPacket();
                 pk.x = blockVector3.getX();
@@ -80,7 +86,7 @@ class PlayerActionHandler {
                 }
 
                 chunk.setBlock(
-                    blockVector3.getX() % 16, blockVector3.getY(), blockVector3.getZ() % 16, server.getBlockManager().getBlock('minecraft:air')
+                    chunkPos.getX(), chunkPos.getY(), chunkPos.getZ(), server.getBlockManager().getBlock('minecraft:air')
                 );
                 break;
             } case PlayerAction.ContinueBreak: {
@@ -94,10 +100,12 @@ class PlayerActionHandler {
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
                 }
+
+                // TODO: this fires twice in creative.. wtf Mojang?
                 break;
             } default:
-                // This will get triggered even if an action is simply not handled
-                // server.getLogger().debug(`Unknown PlayerAction: ${packet.action}`)
+            // This will get triggered even if an action is simply not handled
+            //server.getLogger().debug(`Unknown PlayerAction: ${packet.action}`)
         }
     }
 }

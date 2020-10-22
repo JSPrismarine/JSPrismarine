@@ -92,17 +92,20 @@ class Chunk {
         this.#hasChanged = true;
     }
 
-    getBlockId(x, y, z, id) {
-        return this.getSubChunk(y >> 4, true).getBlockId(Math.abs(x), y & 0x0f, Math.abs(z), id);
+    getBlockId(x, y, z) {
+        return this.getSubChunk(y >> 4, true).getBlockId(x, y & 0x0f, z);
+    }
+    getBlockMetadata(x, y, z) {
+        return this.getSubChunk(y >> 4, true).getBlockMetadata(x, y & 0x0f, z);
     }
     setBlockId(x, y, z, id) {
-        this.getSubChunk(y >> 4, true).setBlockId(Math.abs(x), y & 0x0f, Math.abs(z), id);
+        this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id);
         this.#hasChanged = true;
     }
 
     setBlock(x, y, z, block) {
+        this.getSubChunk(y >> 4, true).setBlock(x, y & 0x0f, z, block);
         this.#hasChanged = true;
-        this.getSubChunk(y >> 4, true).setBlockId(Math.abs(x), y & 0x0f, Math.abs(z), block.id);
     }
 
     getSubChunk(y, generateNew = false) {
