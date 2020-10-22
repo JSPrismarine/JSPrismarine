@@ -1,7 +1,7 @@
 
 const Sizes = {
     BlockSize: 16 * 16 * 16,
-    Metadata: 16 * 16 * 16
+    Metadata: 16 * 16 * 16 / 2
 };
 class SubChunk {
     ids = Buffer.alloc(Sizes.BlockSize).fill(0x00)

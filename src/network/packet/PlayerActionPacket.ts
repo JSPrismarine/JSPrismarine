@@ -1,6 +1,5 @@
 import Identifiers from "../identifiers";
-import DataPacket from "./packet";
-
+import DataPacket from "./Packet";
 
 export default class PlayerActionPacket extends DataPacket {
     static NetID = Identifiers.PlayerActionPacket
@@ -17,7 +16,7 @@ export default class PlayerActionPacket extends DataPacket {
     decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
         this.action = this.readVarInt();
-        
+
         this.x = this.readVarInt();
         this.y = this.readUnsignedVarInt();
         this.z = this.readVarInt();

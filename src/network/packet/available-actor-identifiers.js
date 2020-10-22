@@ -1,4 +1,4 @@
-const DataPacket = require('./packet');
+const DataPacket = require('./Packet').default;
 const Identifiers = require('../identifiers');
 const EntityIdentifiers = require('@jsprismarine/bedrock-data').entity_identifiers;
 

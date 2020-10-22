@@ -5,7 +5,7 @@ export default class NetworkLittleEndianBinaryStream extends LittleEndianBinaryS
         return this.readVarInt();
     }
 
-    writeInt(v) {
+    writeInt(v: number) {
         this.writeVarInt(v);
     }
 
@@ -13,7 +13,7 @@ export default class NetworkLittleEndianBinaryStream extends LittleEndianBinaryS
         return this.readVarLong();
     }
 
-    writeLong(v) {
+    writeLong(v: bigint) {
         this.writeVarLong(v);
     }
 
