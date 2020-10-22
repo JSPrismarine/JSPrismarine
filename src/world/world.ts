@@ -108,7 +108,8 @@ export default class World {
                 x,
                 z,
                 generator,
-                seed: this.seed
+                seed: this.seed,
+                server: this.server
             });
             this.chunks.set(index, chunk);
         }
