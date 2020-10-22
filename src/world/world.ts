@@ -218,6 +218,7 @@ export default class World {
         this.server.getLogger().debug('[World save] saving chunks...');
         for (let chunk of this.chunks.values()) {
             if (chunk.hasChanged()) {
+                console.log('!!!')
                 await this.provider.writeChunk(chunk);
                 chunk.setChanged(false);
             }
