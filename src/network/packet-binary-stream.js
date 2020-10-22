@@ -1,12 +1,13 @@
-const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-const NBT = require('@jsprismarine/nbt');
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import NBT from '../nbt/NBT';
+import NetworkLittleEndianBinaryStream from '../nbt/streams/NetworkLittleEndianBinaryStream';
+import CompoundTag from '../nbt/tags/CompoundTag';
+
 const UUID = require('../utils/uuid');
 const Skin = require('../utils/skin/skin');
 const { FlagType } = require('../entity/metadata');
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
-const NetworkLittleEndianBinaryStream = require('@jsprismarine/nbt/streams/network-le-binary-stream');
-const CompoundTag = require('@jsprismarine/nbt/tags/compound-tag');
 const SkinImage = require('../utils/skin/skin-image');
 const PlayerListEntry = require('./type/player-list-entry');
 const CreativeContentEntry = require('./type/creative-content-entry');

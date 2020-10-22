@@ -59,7 +59,6 @@
     "@iarna/toml": "^2.2.5",
     "@jsprismarine/bedrock-data": "1.16.20e",
     "@jsprismarine/jsbinaryutils": "2.1.6",
-    "@jsprismarine/nbt": "1.0.0",
     "@jsprismarine/raknet": "1.4.7",
     "async": "^3.2.0",
     "evt": "^1.8.10",
