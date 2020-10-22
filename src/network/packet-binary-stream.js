@@ -18,7 +18,6 @@ const SkinPersona = require('../utils/skin/skin-persona/persona');
 const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color');
 const Item = require('../item').default;
 const Block = require('../block').default;
-const Logger = require('../utils/Logger');
 
 const ItemStackRequest = require('./type/item-stack-requests/item-stack-request');
 const ItemStackRequestTake = require('./type/item-stack-requests/take');
@@ -28,7 +27,6 @@ const ItemStackRequestSwap = require('./type/item-stack-requests/swap');
 const ItemStackRequestDestroy = require('./type/item-stack-requests/destroy');
 const ItemStackRequestCreativeCreate = require('./type/item-stack-requests/creative-create');
 const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
-const { triggerAsyncId } = require('async_hooks');
 
 class PacketBinaryStream extends BinaryStream {
     #server = null;

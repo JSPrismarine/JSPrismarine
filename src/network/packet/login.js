@@ -1,6 +1,6 @@
 const jwt_decode = require('jwt-decode');
 
-const DataPacket = require('./packet');
+const DataPacket = require('./Packet').default;
 const Identifiers = require('../identifiers');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Skin = require('../../utils/skin/skin');

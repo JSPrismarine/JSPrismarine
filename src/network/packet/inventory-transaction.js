@@ -1,4 +1,4 @@
-const DataPacket = require('./packet');
+const DataPacket = require('./Packet').default;
 const Identifiers = require('../identifiers');
 const logger = require('../../utils/Logger');
 const ChangeSlot = require('../type/change-slot');

@@ -5,9 +5,8 @@ const PID_MASK = 0x3ff;
 const SENDER_SHIFT = 10;
 const RECEIVER_SHIFT = 12;
 const SUBCLIENT_MASK = 0x03;
-class DataPacket extends PacketBinaryStream {
-
-    static NetID 
+export default class DataPacket extends PacketBinaryStream {
+    static NetID: number;
 
     #encoded = false
 
@@ -16,7 +15,7 @@ class DataPacket extends PacketBinaryStream {
     #receiverSubId = 0
 
     get id() {
-        return this.constructor.NetID;
+        return (this.constructor as any).NetID;
     }
 
     getName() {
@@ -25,12 +24,12 @@ class DataPacket extends PacketBinaryStream {
 
     decode() {
         this.offset = 0;
-        this.decodeHeader(this.getServer());
-        this.decodePayload(this.getServer());
+        this.decodeHeader();
+        this.decodePayload();
         // Mark all the packets sent by the client
         // as encoded, because they have all the properties
         // and a buffer (like a manually encoded packet). 
-        this.#encoded = true;  
+        this.#encoded = true;
     }
 
     decodeHeader() {
@@ -73,5 +72,4 @@ class DataPacket extends PacketBinaryStream {
     get allowBatching() {
         return this._allowBatching;
     }
-}
-module.exports = DataPacket;
+};
