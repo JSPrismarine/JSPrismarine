@@ -1,7 +1,7 @@
 
 const Sizes = {
     BlockSize: 16 * 16 * 16,
-    Metadata: 16 * 16 * 16 / 2
+    Metadata: (16 * 16 * 16) / 2
 };
 class SubChunk {
     ids = Buffer.alloc(Sizes.BlockSize).fill(0x00)
@@ -37,7 +37,7 @@ class SubChunk {
     setBlock(x, y, z, block) {
         const index = SubChunk.getIndex(x, y, z);
         this.ids[index] = block.getRuntimeId();
-        this.metadata[index] = block.meta;
+        this.metadata[index] = block.meta; // TODO: fix metadata index
         return true;
     }
 
@@ -52,7 +52,7 @@ class SubChunk {
         return this.ids[SubChunk.getIndex(x, y, z)];
     }
     getBlockMetadata(x, y, z) {
-        return this.metadata[SubChunk.getIndex(x, y, z)];
+        return this.metadata[SubChunk.getIndex(x, y, z)]; // TODO: fix metadata index
     }
 
     getHighestBlockAt(x, z) {
