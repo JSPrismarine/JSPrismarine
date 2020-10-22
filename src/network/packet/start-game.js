@@ -72,11 +72,11 @@ class StartGamePacket extends DataPacket {
         this.writeUnsignedVarInt(this.worldSpawnY);
         this.writeVarInt(this.worldSpawnZ);
 
-        this.writeByte(1); // achievement disabled
+        this.writeBool(true); // achievement disabled
 
         this.writeVarInt(0); // day cycle / time
         this.writeVarInt(0); // edu edition offer
-        this.writeByte(0); // edu features
+        this.writeBool(false); // edu features
         this.writeString(''); // edu product id
 
         this.writeLFloat(0); // rain lvl
@@ -125,11 +125,10 @@ class StartGamePacket extends DataPacket {
 
         // PMMP states
         this.append(RequiredBlockStates);
-
         this.append(this.serializeItemTable(ItemTable));
 
         this.writeString('');
-        this.writeBool(false); 
+        this.writeBool(false); // new inventory system
     }
 
     serializeItemTable(table) {

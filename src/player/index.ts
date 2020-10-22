@@ -5,6 +5,7 @@ import Entity from "../entity/entity";
 import World from "../world/world";
 import Gamemode from "../world/gamemode";
 import MovementType from "../network/type/MovementType";
+import Block from "../block";
 
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
@@ -276,9 +277,9 @@ export default class Player extends Entity {
         ];
 
         // Sort based on numeric block ids and name
-        pk.entries = entries.sort((a, b) => a.id - b.id || a.meta - b.meta)
-            .filter(a => a.isPartOfCreativeInventory())
-            .map((block: any, index: number) => new CreativeContentEntry(index, block));
+        pk.entries = entries.filter(a => a.isPartOfCreativeInventory())
+            .sort((a, b) => a.id - b.id || a.meta - b.meta)
+            .map((block: Block | Item, index: number) => new CreativeContentEntry(index, block));
         this.sendDataPacket(pk);
     }
 
@@ -305,7 +306,7 @@ export default class Player extends Entity {
 
     public setGamemode(mode: number) {
         this.gamemode = mode;
-        
+
         let pk = new SetGamemodePacket();
         pk.gamemode = mode;
         this.sendDataPacket(pk);
@@ -410,7 +411,7 @@ export default class Player extends Entity {
         pk.positionX = this.getX();
         pk.positionY = this.getY();
         pk.positionZ = this.getZ();
-        
+
         pk.pitch = this.pitch;
         pk.yaw = this.yaw;
         pk.headYaw = this.headYaw;

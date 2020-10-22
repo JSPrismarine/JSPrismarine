@@ -54,7 +54,7 @@ export default class GamemodeCommand extends Command {
                 break;
             default:
                 // TODO: Syntax validation utility class
-                sender.sendMessage('§cIncorrect argyment for command');
+                sender.sendMessage('§cIncorrect argument for command');
                 return sender.sendMessage(`§7/gamemode §c${args.join(' ')}<--[HERE]`);
         }
 

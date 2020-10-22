@@ -1,5 +1,5 @@
 export enum ItemTieredToolType {
-    None,
+    None = 0,
     Wooden = 1,
     Gold = 2,
     Stone = 3,

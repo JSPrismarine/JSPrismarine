@@ -15,6 +15,7 @@ import EventManager from './events/EventManager';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import PlayerConnectEvent from './events/player/PlayerConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
+import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 
 const Listener = require('@jsprismarine/raknet');
 const BatchPacket = require('./network/packet/batch');
@@ -101,8 +102,15 @@ export default class Prismarine {
             const event = new RaknetDisconnectEvent(
                 inetAddr,
                 reason
-            ); 
+            );
             await this.getEventManager().post(['raknetDisconnect', event]);
+        });
+        this.raknet.on('encapsulated', async (packet: any, inetAddr: any) => {
+            const event = new RaknetEncapsulatedPacketEvent(
+                inetAddr,
+                packet
+            );
+            await this.getEventManager().post(['raknetEncapsulatedPacket', event]);
         });
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
@@ -177,12 +185,10 @@ export default class Prismarine {
             });
         });
 
-        this.getEventManager().on('raknetEncapsulatedPacket', async (event: RaknetConnectEvent) => {
-            // TODO
-        });
+        this.getEventManager().on('raknetEncapsulatedPacket', async (event: RaknetEncapsulatedPacketEvent) => {
+            const packet = event.getPacket();
+            const inetAddr = event.getInetAddr();
 
-        // Get player from map by address, then handle packet
-        this.raknet.on('encapsulated', (packet: any, inetAddr: any) => {
             let token = `${inetAddr.address}:${inetAddr.port}`;
             if (!this.players.has(token))
                 return;
@@ -220,6 +226,7 @@ export default class Prismarine {
                                         await handler.handle(packet, this, player);
                                         return resolve();
                                     } catch (err) {
+                                        console.log(err);
                                         return reject(`Handler error ${packet.constructor.name}-handler: (${err})`);
                                     }
                                 }));

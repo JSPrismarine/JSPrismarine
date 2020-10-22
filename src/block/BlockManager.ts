@@ -2,8 +2,8 @@ import fs from "fs";
 import path from "path";
 
 import Block from "./";
-import { BlockToolType } from "./BlockToolType";
 import Prismarine from "../Prismarine";
+import { BlockIdsType } from "./BlockIdsType";
 
 export default class BlockManager {
     private server: Prismarine;
@@ -38,17 +38,17 @@ export default class BlockManager {
      * Get block by numeric id
      */
     public getBlockById(id: number): Block | null {
-        if (!BlockToolType[id])
+        if (!BlockIdsType[id])
             return null;
 
-        return this.getBlocks().filter(a => a.id === id)[0] || null;
+        return this.getBlocks().filter(a => a.getId() === id)[0] || null;
     }
 
     /**
      * Get block by numeric id and damage value
      */
     public getBlockByIdAndMeta(id: number, meta: number): Block | null {
-        if (!BlockToolType[id])
+        if (!BlockIdsType[id])
             return null;
 
         return this.getBlocks().filter(a => a.id === id && a.meta == meta)[0] || null;
