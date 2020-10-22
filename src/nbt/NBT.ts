@@ -59,7 +59,7 @@ export default class NBT {
                 }
                 return new ListTag(listType, list, name);
             case TagType.Compound:
-                let value: any = {}
+                let value: any = {};
                 while (true) {
                     let tag = this.readTag(stream, true, true);
 
