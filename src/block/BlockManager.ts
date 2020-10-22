@@ -8,6 +8,7 @@ import { BlockIdsType } from "./BlockIdsType";
 export default class BlockManager {
     private server: Prismarine;
     private blocks = new Map()
+    private runtimeIds: Array<number> = [];
 
     constructor(server: Prismarine) {
         this.server = server;
@@ -18,6 +19,7 @@ export default class BlockManager {
      */
     public async onStart() {
         this.importBlocks();
+        this.generateRuntimeIds();
     }
 
     /**
@@ -57,8 +59,8 @@ export default class BlockManager {
     /**
      * Get block by runtime id
      */
-    public getBlockByRuntimeId(id: number): Block | null {
-        return this.getBlocks()[id] || null;
+    public getBlockByRuntimeId(id: number, meta: number = 0): Block | null {
+        return this.getBlockByIdAndMeta(this.runtimeIds[id], meta) || null;
     }
 
     /**
@@ -75,7 +77,6 @@ export default class BlockManager {
         // The runtime ID is a unique ID sent with the start-game packet
         // ours is always based on the block's index in the this.blocks map
         // starting from 0.
-        block.setRuntimeId(this.blocks.size);
         this.server.getLogger().silly(`Block with id §b${block.name}§r registered`);
         this.blocks.set(block.name, block);
     }
@@ -101,6 +102,20 @@ export default class BlockManager {
             this.server.getLogger().debug(`Registered §b${blocks.length}§r block(s) (took ${Date.now() - time} ms)!`);
         } catch (err) {
             this.server.getLogger().error(`Failed to register blocks: ${err}`);
+        }
+    }
+
+    private generateRuntimeIds() {
+        // TODO: once we have NBT writing
+        const blocks = this.getBlocks()
+            .filter(a => a.meta === 0 && a.getId() !== 0)
+            .sort(() => .5 - Math.random()) // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
+
+        this.runtimeIds.push(0);
+        for (let i = 0; i < blocks.length; i++) {
+            const variants = this.getBlocks().filter(a => a.getId() === blocks[i].getId())
+            variants.forEach(variant => variant.setRuntimeId(i + 1));
+            this.runtimeIds.push(blocks[i].getId());
         }
     }
 }
