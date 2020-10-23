@@ -10,7 +10,7 @@ import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
 
-export default class EventManager extends Evt<
+type EventTypes =
     ['raknetConnect', RaknetConnectEvent] |
     ['raknetDisconnect', RaknetDisconnectEvent] |
     ['raknetEncapsulatedPacket', RaknetEncapsulatedPacketEvent] |
@@ -19,17 +19,27 @@ export default class EventManager extends Evt<
     ['playerDisconnect', PlayerDisconnectEvent] |
     ['playerSpawn', PlayerSpawnEvent] |
     ['playerDespawn', PlayerDespawnEvent] |
-    ['playerMove', PlayerMoveEvent]
-    > {
+    ['playerMove', PlayerMoveEvent];
+
+export default class EventManager extends Evt<EventTypes> {
+
     constructor(server: Prismarine) {
         super();
     }
 
-    public async on(id: string, callback: any) {
-        return await this.$attach(to(id as any), callback);
+    public on<T extends EventTypes, K extends T[0]>(
+        id: K,
+        callback: (event: T extends readonly [K, infer U] ? U : never) => void
+    ) {
+        this.$attach(to(id), callback as any);
     }
 
-    public async emit(id: string, callback: any) {
-        return await this.post([id, callback] as any);
+    public emit<T extends EventTypes, K extends T[0]>(
+        id: K,
+        event: T extends readonly [K, infer U] ? U : never
+    ) {
+        this.post([id, event] as any);
     }
+
 };
+
