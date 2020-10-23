@@ -6,6 +6,7 @@ import PluginApiVersion from "../../PluginApiVersion";
 import withDeprecated from '../../../hoc/withDeprecated';
 import Server from './Server';
 import EventManager from './EventManager';
+import PlayerManager from './PlayerManager';
 
 export const PLUGIN_API_VERSION = '1.0';
 
@@ -58,26 +59,17 @@ export default class PluginApi extends PluginApiVersion {
     }
 
     /**
+     * returns an instance of the event manager
+     */
+    public getPlayerManager(): PlayerManager {
+        return new PlayerManager(this.server);
+    }
+
+    /**
      * returns an instance of the sever details class
      */
     @withDeprecated(new Date('2020-10-20'))
     public getServerDetails(): Server {
         return new Server(this.server);
-    }
-
-    @withDeprecated(new Date('2020-10-19'))
-    public getPlayerManager() {
-        return {
-            getOnlinePlayers: () => {
-                return this.server.getOnlinePlayers();
-            },
-
-            getPlayerByName: (name: string) => {
-                return this.server.getPlayerByName(name);
-            },
-            getPlayerById: (id: number) => {
-                return this.server.getPlayerById(id);
-            },
-        };
     }
 };
