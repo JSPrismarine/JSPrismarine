@@ -115,7 +115,7 @@ export default class Prismarine {
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
 
-        this.getEventManager().on('raknetConnect', async (event: RaknetConnectEvent) => {
+        this.getEventManager().on('raknetConnect', async event => {
             const connection = event.getConnection();
 
             return new Promise(async (resolve, reject) => {
@@ -154,7 +154,7 @@ export default class Prismarine {
             })
         });
 
-        this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
+        this.getEventManager().on('raknetDisconnect', async event => {
             const inetAddr = event.getInetAddr();
             const reason = event.getReason();
 
@@ -185,7 +185,7 @@ export default class Prismarine {
             });
         });
 
-        this.getEventManager().on('raknetEncapsulatedPacket', async (event: RaknetEncapsulatedPacketEvent) => {
+        this.getEventManager().on('raknetEncapsulatedPacket', async event => {
             const packet = event.getPacket();
             const inetAddr = event.getInetAddr();
 
