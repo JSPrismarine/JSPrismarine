@@ -8,10 +8,12 @@ export default class EventManager {
         this.server = server;
     }
 
-    public async on(id: string, callback: any) {
-        return await this.server.getEventManager().on(id, callback);
-    }
-    public async emit(id: string, value: any) {
-        return await this.server.getEventManager().emit(id, value);
-    }
+    private get em(){ return this.server.getEventManager(); }
+
+    /*
+    get $attach(){ return this.em.$attach.bind(this.em); }
+
+    get post() { return this.em.post.bind(this.em); }
+    */
+
 };

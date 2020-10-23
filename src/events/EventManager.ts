@@ -1,4 +1,4 @@
-import { Evt, to } from 'evt';
+import { Evt } from 'evt';
 import type Prismarine from '../Prismarine';
 import type ChatEvent from './chat/ChatEvent';
 import type PlayerConnectEvent from './player/PlayerConnectEvent';
@@ -23,13 +23,5 @@ export default class EventManager extends Evt<
     > {
     constructor(server: Prismarine) {
         super();
-    }
-
-    public async on(id: string, callback: any) {
-        return await this.$attach(to(id as any), callback);
-    }
-
-    public async emit(id: string, callback: any) {
-        return await this.post([id, callback] as any);
     }
 };
