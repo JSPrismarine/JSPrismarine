@@ -2,16 +2,13 @@ import type Prismarine from "../../../../Prismarine";
 
 // TODO: create an event forwarder, plugins shouldn't directly access internal classes such as the Player, World etc.
 export default class EventManager {
-    private server;
 
-    constructor(server: Prismarine) {
-        this.server = server;
-    }
+    constructor(private server: Prismarine) { }
 
-    public async on(id: string, callback: any) {
-        return await this.server.getEventManager().on(id, callback);
-    }
-    public async emit(id: string, value: any) {
-        return await this.server.getEventManager().emit(id, value);
-    }
+    private get sem() { return this.server.getEventManager() };
+
+    get on(){ return this.sem.on.bind(this.sem); }
+
+    get emit() { return this.sem.emit.bind(this.sem); }
+
 };
