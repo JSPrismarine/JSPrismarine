@@ -10,7 +10,7 @@ import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
 
-export type EventTypes = 
+type EventTypes =
     ['raknetConnect', RaknetConnectEvent] |
     ['raknetDisconnect', RaknetDisconnectEvent] |
     ['raknetEncapsulatedPacket', RaknetEncapsulatedPacketEvent] |
@@ -28,16 +28,15 @@ export default class EventManager extends Evt<EventTypes> {
     }
 
     public on<T extends EventTypes, K extends T[0]>(
-        id: K, 
-        callback: (event: T extends readonly [K, infer U] ? U : never )=> void 
-
+        id: K,
+        callback: (event: T extends readonly [K, infer U] ? U : never) => void
     ) {
-         this.$attach(to(id), callback as any);
+        this.$attach(to(id), callback as any);
     }
 
     public emit<T extends EventTypes, K extends T[0]>(
-        id: K, 
-        event:  T extends readonly [K, infer U] ? U : never
+        id: K,
+        event: T extends readonly [K, infer U] ? U : never
     ) {
         this.post([id, event] as any);
     }
