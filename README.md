@@ -21,7 +21,9 @@
   <a href="https://discord.gg/6w8JWhy">
     <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=for-the-badge">
   </a>
-  
+  <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
+    <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=for-the-badge">
+  </a>
 </p>
 
 
