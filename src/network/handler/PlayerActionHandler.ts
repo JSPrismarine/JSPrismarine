@@ -7,6 +7,7 @@ import WorldEventPacket from "../packet/WorldEventPacket";
 import Vector3 from "../../math/Vector3";
 import LevelEventType from "../type/level-event-type";
 import UpdateBlockPacket from "../packet/UpdateBlockPacket";
+import type Block from "../../block";
 
 class PlayerActionHandler {
     static NetID = Identifiers.PlayerActionPacket
@@ -18,23 +19,22 @@ class PlayerActionHandler {
                     packet.x as number, packet.z as number
                 );
 
-                const block = server.getBlockManager().getBlockById(chunk.getBlockId((packet.x as number) % 16, packet.y, (packet.z as number) % 16));
+                const blockId = chunk.getBlockId((packet.x as number) % 15, packet.y, (packet.z as number) % 15);
+                const block = server.getBlockManager().getBlockById(blockId);
                 if (!block)
                     return server.getLogger().warn(`Block at ${packet.x} ${packet.y} ${packet.z} is undefined!`);
 
                 const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
 
-                if (player.gamemode !== 1) {
-                    // TODO: world.sendEvent(type, position(Vector3), data) (?)
-                    let pk = new WorldEventPacket();
-                    pk.eventId = LevelEventType.BlockStartBreak;
-                    pk.x = packet.x;
-                    pk.y = packet.y;
-                    pk.z = packet.z;
-                    pk.data = 65535 / breakTime
-                    for (let onlinePlayer of server.getOnlinePlayers()) {
-                        onlinePlayer.sendDataPacket(pk);
-                    }
+                // TODO: world.sendEvent(type, position(Vector3), data) (?)
+                let pk = new WorldEventPacket();
+                pk.eventId = LevelEventType.BlockStartBreak;
+                pk.x = packet.x;
+                pk.y = packet.y;
+                pk.z = packet.z;
+                pk.data = 65535 / breakTime
+                for (let onlinePlayer of server.getOnlinePlayers()) {
+                    onlinePlayer.sendDataPacket(pk);
                 }
 
                 player.breakingBlockPos = new Vector3(packet.x as number, packet.y as number, packet.z as number);
@@ -67,7 +67,7 @@ class PlayerActionHandler {
                 );
 
                 // TODO: figure out why blockId sometimes === 0
-                const chunkPos = new Vector3((blockVector3.getX() as number) % 16, blockVector3.getY(), (blockVector3.getZ() as number) % 16);
+                const chunkPos = new Vector3((blockVector3.getX() as number) % 15, blockVector3.getY(), (blockVector3.getZ() as number) % 15);
                 const blockId = chunk.getBlockId(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                 const blockMeta = chunk.getBlockMetadata(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                 const block = server.getBlockManager().getBlockByIdAndMeta(blockId, blockMeta);
@@ -79,7 +79,8 @@ class PlayerActionHandler {
                 pk.x = blockVector3.getX();
                 pk.y = blockVector3.getY();
                 pk.z = blockVector3.getZ();
-                pk.BlockRuntimeId = block.getRuntimeId(); // TODO: add NBT writing to support our own block palette
+                // TODO: add NBT writing to support our own block palette
+                pk.BlockRuntimeId = (server.getBlockManager().getBlock('minecraft:air') as Block).getRuntimeId();
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
                 }
