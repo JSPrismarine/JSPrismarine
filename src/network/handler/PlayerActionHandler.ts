@@ -1,7 +1,7 @@
 import type Player from "../../player";
 import type Prismarine from "../../Prismarine";
 import type PlayerActionPacket from "../packet/PlayerActionPacket";
-import Identifiers from "../identifiers";
+import Identifiers from "../Identifiers";
 import PlayerAction from "../type/player-action";
 import WorldEventPacket from "../packet/WorldEventPacket";
 import Vector3 from "../../math/Vector3";

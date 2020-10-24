@@ -1,5 +1,5 @@
 const DataPacket = require('./Packet').default;
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 
 
 class AddPlayerPacket extends DataPacket {

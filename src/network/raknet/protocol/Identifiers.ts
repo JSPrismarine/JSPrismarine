@@ -1,8 +1,4 @@
-'use strict';
-
-// Identifiers used to identify incoming packets
 const Identifiers = {
-
     ConnectedPing: 0x00,
     UnconnectedPing: 0x01,
     UnconnectedPong: 0x1c,
@@ -21,4 +17,5 @@ const Identifiers = {
     NacknowledgePacket: 0xa0
 
 };
-module.exports = Identifiers;
+
+export default Identifiers;

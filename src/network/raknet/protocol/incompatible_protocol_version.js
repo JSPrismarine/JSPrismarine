@@ -1,5 +1,5 @@
 const OfflinePacket = require("./offline_packet");
-const Identifiers = require("./identifiers");
+const Identifiers = require('./Identifiers').default;
 
 'use strict'; 
 

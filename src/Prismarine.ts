@@ -16,9 +16,10 @@ import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import PlayerConnectEvent from './events/player/PlayerConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
-import Listener from './network/raknet/listener';
+import Listener from './network/raknet/Listener';
 import BatchPacket from './network/packet/batch';
-import Identifiers from './network/identifiers';
+import Identifiers from './network/Identifiers';
+import type InetAddress from './network/raknet/utils/InetAddress';
 
 export default class Prismarine {
     private raknet: any;
@@ -85,24 +86,20 @@ export default class Prismarine {
         await this.onStart();
         await this.worldManager.onStart();
 
-        this.raknet = await (new Listener).listen(serverIp, port);
-        this.raknet.name.setOnlinePlayerCount(this.players.size);
-        this.raknet.name.setProtocol(Identifiers.Protocol);
-        this.raknet.name.setVersion(Identifiers.MinecraftVersion);
-        this.raknet.name.setMaxPlayerCount(this.config.getMaxPlayers());
-        this.raknet.name.setMotd(this.config.getMotd());
+        this.raknet = await (new Listener(this)).listen(serverIp, port);
+        this.raknet.getName().setOnlinePlayerCount(this.players.size);
         this.raknet.on('openConnection', async (connection: any) => {
             const event = new RaknetConnectEvent(connection);
             await this.getEventManager().post(['raknetConnect', event]);
         });
-        this.raknet.on('closeConnection', async (inetAddr: any, reason: string) => {
+        this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
             const event = new RaknetDisconnectEvent(
                 inetAddr,
                 reason
             );
             await this.getEventManager().post(['raknetDisconnect', event]);
         });
-        this.raknet.on('encapsulated', async (packet: any, inetAddr: any) => {
+        this.raknet.on('encapsulated', async (packet: any, inetAddr: InetAddress) => {
             const event = new RaknetEncapsulatedPacketEvent(
                 inetAddr,
                 packet
@@ -142,7 +139,7 @@ export default class Prismarine {
 
                     // Add the player into the world
                     world?.addPlayer(player);
-                    this.raknet.name.setOnlinePlayerCount(this.players.size);
+                    this.raknet.getName().setOnlinePlayerCount(this.players.size);
                     resolve(Date.now() - time);
                 });
 
@@ -173,7 +170,7 @@ export default class Prismarine {
 
                     }
                     this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
-                    this.raknet.name.setOnlinePlayerCount(this.players.size);
+                    this.raknet.getName().setOnlinePlayerCount(this.players.size);
                     resolve(Date.now() - time);
                 });
 

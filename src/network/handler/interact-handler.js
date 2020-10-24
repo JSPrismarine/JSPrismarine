@@ -1,5 +1,5 @@
 const Player = require('../../player').default;
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const InteractPacket = require('../packet/interact');
 const InteractAction = require('../type/interact-action');
 const ContainerOpenPacket = require('../packet/container-open');

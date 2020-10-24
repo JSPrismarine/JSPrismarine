@@ -1,9 +1,9 @@
 import Player from "../../player";
 import Command from "../";
 import git from 'git-rev-sync';
+import Identifiers from "../../network/Identifiers";
 
 const packageFile = require('../../../package.json');
-const identifiers = require('../../network/identifiers');
 
 export default class VersionCommand extends Command {
     constructor() {
@@ -16,8 +16,8 @@ export default class VersionCommand extends Command {
      */
     public execute(sender: Player, args: Array<any>): void {
         let serverVersion = packageFile.version;
-        let protocolVersion = identifiers.Protocol;
-        let minecraftVersion = identifiers.MinecraftVersion;
+        let protocolVersion = Identifiers.Protocol;
+        let minecraftVersion = Identifiers.MinecraftVersion;
 
         sender.sendMessage(`This server is running on JSPrismarine ${serverVersion} (rev-${git.short() || 'unknown'}) for Minecraft: Bedrock Edition v${minecraftVersion} (protocol version ${protocolVersion})`);
     }

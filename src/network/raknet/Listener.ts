@@ -1,20 +1,20 @@
+import type Prismarine from "../../Prismarine";
+import Identifiers from "./protocol/Identifiers";
+import Connection from "./connection";
+import ServerName from "./utils/ServerName";
+import InetAddress from "./utils/InetAddress";
+
 const Dgram = require('dgram');
 const Crypto = require('crypto');
-const EventEmitter  = require('events');
+const EventEmitter = require('events');
 
-const Connection = require('./connection');
-const ServerName = require('./utils/server_name');
-const InetAddress = require('./utils/inet_address');
-const Identifiers = require('./protocol/identifiers');
 const UnconnectedPing = require('./protocol/unconnected_ping');
 const UnconnectedPong = require('./protocol/unconnected_pong');
 const OpenConnectionRequest1 = require('./protocol/open_connection_request_1');
 const OpenConnectionReply1 = require('./protocol/open_connection_reply_1');
-const OpenConnectionRequest2  = require('./protocol/open_connection_request_2');
+const OpenConnectionRequest2 = require('./protocol/open_connection_request_2');
 const OpenConnectionReply2 = require('./protocol/open_connection_reply_2');
-const IncompatibleProtocolVersion = require('./protocol/incompatible_protoco_version');
-
-'use strict';
+const IncompatibleProtocolVersion = require('./protocol/incompatible_protocol_version');
 
 // Minecraft related protocol 
 const PROTOCOL = 10;
@@ -24,48 +24,52 @@ const RAKNET_TPS = 100;
 const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
 // Listen to packets and then process them
-class Listener extends EventEmitter {
+export default class Listener extends EventEmitter {
+    server: Prismarine;
 
     /** @type {number} */
     #id = Crypto.randomBytes(8).readBigInt64BE()  // Generate a signed random 64 bit GUID
     /** @type {ServerName} */
-    #name = new ServerName()
+    private name: ServerName;
     /** @type {Dgram.Socket} */
-    #socket
+    #socket: any
     /** @type {Map<string, Connection>} */
     #connections = new Map()
     /** @type {boolean} */
-    #shutdown = false 
+    #shutdown = false;
+
+    constructor(server: Prismarine) {
+        super();
+        this.server = server;
+        this.name = new ServerName(server);
+    }
 
     /**
      * Creates a packet listener on given address and port.
-     * 
-     * @param {string} address 
-     * @param {number} port 
      */
-    async listen(address, port) {
+    async listen(address: string, port: number) {
         this.#socket = Dgram.createSocket({ type: 'udp4' });
-        this.#name.setServerId(this.#id);
+        this.name.setServerId(this.#id);
 
-        this.#socket.on('message', (buffer, rinfo) => {
+        this.#socket.on('message', (buffer: Buffer, rinfo: any) => {
             this.handle(buffer, rinfo);
         });
 
         await new Promise((resolve, reject) => {
-            const failFn = e => reject(e);
-            
+            const failFn = (e: Error) => reject(e);
+
             this.#socket.once('error', failFn);
             this.#socket.bind(port, address, () => {
                 this.#socket.removeListener('error', failFn);
                 resolve();
             });
         });
-        
+
         this.tick();  // tick sessions
         return this;
     }
 
-    handle(buffer, rinfo) {
+    handle(buffer: Buffer, rinfo: any) {
         let header = buffer.readUInt8();  // Read packet header to recognize packet type
 
         let token = `${rinfo.address}:${rinfo.port}`;
@@ -73,7 +77,7 @@ class Listener extends EventEmitter {
             let connection = this.#connections.get(token);
             connection.receive(buffer);
         } else {
-            switch(header) {
+            switch (header) {
                 case Identifiers.UnconnectedPing:
                     this.handleUnconnectedPing(buffer).then(buffer => {
                         this.#socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address);
@@ -83,20 +87,22 @@ class Listener extends EventEmitter {
                     this.handleOpenConnectionRequest1(buffer).then(buffer => {
                         this.#socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address);
                     });
-                    break;  
+                    break;
                 case Identifiers.OpenConnectionRequest2:
                     let address = new InetAddress(rinfo.address, rinfo.port);
                     this.handleOpenConnectionRequest2(buffer, address).then(buffer => {
                         this.#socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address);
                     });
-                    break;      
-            } 
+                default:
+                    this.server.getLogger().debug(`Invalid RakNet header: 0x${header.toString(16)}!`);
+                    break;
+            }
         }
     }
 
     // async handlers
 
-    async handleUnconnectedPing(buffer) {
+    async handleUnconnectedPing(buffer: Buffer) {
         let decodedPacket, packet;
 
         // Decode server packet
@@ -111,24 +117,24 @@ class Listener extends EventEmitter {
         }
 
         // Encode response
-        packet = new UnconnectedPong(); 
+        packet = new UnconnectedPong();
         packet.sendTimestamp = decodedPacket.sendTimeStamp;
         packet.serverGUID = this.#id;
 
-        let serverQuery = this.#name;
+        let serverQuery = this.name;
 
         /**
          * @param {ServerName} serverQuery
          */
         this.emit('unconnectedPong', serverQuery);
-                
+
         packet.serverName = serverQuery.toString();
         packet.write();
 
         return packet.buffer;
     }
 
-    async handleOpenConnectionRequest1(buffer) {
+    async handleOpenConnectionRequest1(buffer: Buffer) {
         let decodedPacket, packet;
 
         // Decode server packet
@@ -159,7 +165,7 @@ class Listener extends EventEmitter {
         return packet.buffer;
     }
 
-    async handleOpenConnectionRequest2(buffer, address) {
+    async handleOpenConnectionRequest2(buffer: Buffer, address: any) {
         let decodedPacket, packet;
 
         // Decode server packet
@@ -191,7 +197,7 @@ class Listener extends EventEmitter {
     tick() {
         let int = setInterval(() => {
             if (!this.#shutdown) {
-                for (let [_, connection]of this.#connections) {
+                for (let [_, connection] of this.#connections) {
                     connection.update(Date.now());
                 }
             } else {
@@ -202,11 +208,8 @@ class Listener extends EventEmitter {
 
     /**
      * Remove a connection from all connections.
-     * 
-     * @param {Connection} connection 
-     * @param {string} reason 
      */
-    removeConnection(connection, reason) {
+    removeConnection(connection: Connection, reason: string) {
         let inetAddr = connection.address;
         let token = `${inetAddr.address}:${inetAddr.port}`;
         if (this.#connections.has(token)) {
@@ -218,12 +221,8 @@ class Listener extends EventEmitter {
 
     /**
      * Send packet buffer to the client.
-     * 
-     * @param {Buffer} buffer 
-     * @param {string} address 
-     * @param {number} port 
      */
-    sendBuffer(buffer, address, port) {
+    sendBuffer(buffer: Buffer, address: string, port: number) {
         this.#socket.send(buffer, 0, buffer.length, port, address);
     }
 
@@ -235,13 +234,10 @@ class Listener extends EventEmitter {
         return this.#connections;
     }
 
-    get name () {
-        return this.#name;
+    public getName() {
+        return this.name;
     }
-
-    set name(name) {
-        this.#name = name;
+    public setName(name: ServerName) {
+        this.name = name;
     }
-
-}
-module.exports = Listener;
+};

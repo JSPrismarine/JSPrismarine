@@ -1,5 +1,5 @@
 const Handler = require('./adventure-settings-handler');
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 
 describe('network', () => {
     describe('handler', () => {

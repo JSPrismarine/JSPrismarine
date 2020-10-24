@@ -2,7 +2,7 @@ import PlayerMoveEvent from "../../events/player/PlayerMoveEvent";
 import Vector3 from "../../math/Vector3";
 import type Player from "../../player";
 import type Prismarine from "../../Prismarine";
-import Identifiers from "../identifiers";
+import Identifiers from "../Identifiers";
 import type MovePlayerPacket from "../packet/move-player";
 import MovementType from "../type/MovementType";
 

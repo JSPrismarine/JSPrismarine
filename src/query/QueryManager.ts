@@ -33,11 +33,11 @@ export default class QueryManager {
                         res.writeByte(0);
                         res.writeInt(sessionId);
                         res.append(Buffer.from(`${[
-                            server.getRaknet().name.getMotd(),
+                            server.getRaknet().getName().getMotd(),
                             'SMP',
                             server.getWorldManager().getDefaultWorld()?.getName(),
-                            server.getRaknet().name.getOnlinePlayerCount(),
-                            server.getRaknet().name.getMaxPlayerCount(),
+                            server.getRaknet().getName().getOnlinePlayerCount(),
+                            server.getRaknet().getName().getMaxPlayerCount(),
                         ].join('\0')}\0`, 'binary'));
                         this.server?.send(res.getBuffer(), info.port, info.address);
                     } else {
@@ -60,21 +60,21 @@ export default class QueryManager {
                         const plugins = server.getPluginManager().getPlugins().map((plugin: PluginFile) => `${plugin.getDisplayName()} ${plugin.getVersion()}`);
                         res.append(Buffer.from(`\0${[
                             'hostname',
-                            server.getRaknet().name.getMotd(),
+                            server.getRaknet().getName().getMotd(),
                             'gametype',
                             'SMP',
                             'game_id',
                             'MINECRAFTPE',
                             'version',
-                            server.getRaknet().name.getVersion(),
+                            server.getRaknet().getName().getVersion(),
                             'plugins',
                             `JSPrismarine on Prismarine ${server.getConfig().getVersion()}-${git_rev}${plugins.length && ': ' || ''}${plugins.join('; ')}`, // TODO
                             'map',
                             server.getWorldManager().getDefaultWorld()?.getName(),
                             'numplayers',
-                            server.getRaknet().name.getOnlinePlayerCount(),
+                            server.getRaknet().getName().getOnlinePlayerCount(),
                             'maxplayers',
-                            server.getRaknet().name.getMaxPlayerCount(),
+                            server.getRaknet().getName().getMaxPlayerCount(),
                             'hostport',
                             server.getConfig().getPort(),
                             'hostip',

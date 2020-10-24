@@ -2,7 +2,7 @@ import { message } from "git-rev-sync";
 import ChatEvent from "../../events/chat/ChatEvent";
 import type Player from "../../player";
 import type Prismarine from "../../Prismarine";
-import Identifiers from "../identifiers";
+import Identifiers from "../Identifiers";
 import type TextPacket from "../packet/text";
 import TextType from "../type/text-type";
 

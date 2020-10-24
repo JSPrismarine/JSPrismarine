@@ -2,7 +2,7 @@ import type Player from "../../player";
 import type Prismarine from "../../Prismarine";
 import type ResourcePackResponsePacket from "../packet/resource-pack-response";
 
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const ResourcePackStatus = require('../type/resource-pack-status');
 const BiomeDefinitionListPacket = require('../packet/biome-definition-list');
 const AvailableActorIdentifiersPacket = require('../packet/available-actor-identifiers');
@@ -46,7 +46,7 @@ export default class ResourcePackResponseHandler {
 
             player.sendDataPacket(new AvailableActorIdentifiersPacket());
             player.sendDataPacket(new BiomeDefinitionListPacket());
-            
+
             player.sendAttributes(player.attributes.getDefaults());
 
             server.getLogger().info(
@@ -64,12 +64,12 @@ export default class ResourcePackResponseHandler {
             if (player.gamemode === Gamemode.Creative) {
                 player.sendCreativeContents();
             }
-            
+
             // First add
             player.addToPlayerList();
             // Then retrive other players
             if (server.getOnlinePlayers().length > 1) {
-                player.sendPlayerList(); 
+                player.sendPlayerList();
             }
         }
     }
