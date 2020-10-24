@@ -1,8 +1,8 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class CustomBinaryStream extends BinaryStream {
-    constructor(buffer: Buffer) {
-        super(buffer);
+    constructor(buffer: Buffer, offset = 0) {
+        super(buffer, offset);
     }
 
     public readString() {

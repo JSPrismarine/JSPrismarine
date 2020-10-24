@@ -3,7 +3,7 @@ const fs = require('fs');
 const DataPacket = require('./Packet').default;
 const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
 const RequiredBlockStates = require('@jsprismarine/bedrock-data').required_block_states;
-const PacketBinaryStream = require('../packet-binary-stream');
+const PacketBinaryStream = require('../PacketBinaryStream').default;
 const Identifiers = require('../Identifiers').default;
 
 class StartGamePacket extends DataPacket {

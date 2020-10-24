@@ -19,12 +19,12 @@ export default class WorldEventPacket extends DataPacket {
     }
 
     encodePayload() {
-        this.writeVarInt(this.eventId);
+        this.writeVarInt(this.eventId as number);
 
-        this.writeLFloat(this.x);
-        this.writeLFloat(this.y);
-        this.writeLFloat(this.z);
+        this.writeLFloat(this.x as number);
+        this.writeLFloat(this.y as number);
+        this.writeLFloat(this.z as number);
 
-        this.writeVarInt(this.data);
+        this.writeVarInt(this.data as number);
     }
 };

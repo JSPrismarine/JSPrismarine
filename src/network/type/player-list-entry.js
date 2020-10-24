@@ -6,7 +6,7 @@ class PlayerListEntry {
 
     /** @type {UUID} */
     uuid
-    /** @type {number} */
+    /** @type {bigint} */
     uniqueEntityId
     /** @type {string} */
     name
