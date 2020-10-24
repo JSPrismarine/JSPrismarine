@@ -13,7 +13,7 @@
     "package": "pkg package.json --out-path ./packages/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
-    "eslint": "eslint --fix ./src/"
+    "eslint": "eslint ./src/"
   },
   "repository": {
     "type": "git",
@@ -34,7 +34,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run eslint && git add . && npm run test"
+      "pre-commit": "npm run build && npm run eslint && npm run test"
     }
   },
   "pkg": {
