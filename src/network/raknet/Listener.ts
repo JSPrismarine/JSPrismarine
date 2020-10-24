@@ -28,15 +28,15 @@ export default class Listener extends EventEmitter {
     server: Prismarine;
 
     /** @type {number} */
-    #id = Crypto.randomBytes(8).readBigInt64BE()  // Generate a signed random 64 bit GUID
+    private id = Crypto.randomBytes(8).readBigInt64BE()  // Generate a signed random 64 bit GUID
     /** @type {ServerName} */
     private name: ServerName;
     /** @type {Dgram.Socket} */
-    #socket: any
+    private socket: any
     /** @type {Map<string, Connection>} */
-    #connections = new Map()
+    private connections: Map<string, Connection> = new Map()
     /** @type {boolean} */
-    #shutdown = false;
+    private shutdown = false;
 
     constructor(server: Prismarine) {
         super();
@@ -48,19 +48,19 @@ export default class Listener extends EventEmitter {
      * Creates a packet listener on given address and port.
      */
     async listen(address: string, port: number) {
-        this.#socket = Dgram.createSocket({ type: 'udp4' });
-        this.name.setServerId(this.#id);
+        this.socket = Dgram.createSocket({ type: 'udp4' });
+        this.name.setServerId(this.id);
 
-        this.#socket.on('message', (buffer: Buffer, rinfo: any) => {
+        this.socket.on('message', (buffer: Buffer, rinfo: any) => {
             this.handle(buffer, rinfo);
         });
 
         await new Promise((resolve, reject) => {
             const failFn = (e: Error) => reject(e);
 
-            this.#socket.once('error', failFn);
-            this.#socket.bind(port, address, () => {
-                this.#socket.removeListener('error', failFn);
+            this.socket.once('error', failFn);
+            this.socket.bind(port, address, () => {
+                this.socket.removeListener('error', failFn);
                 resolve();
             });
         });
@@ -73,25 +73,25 @@ export default class Listener extends EventEmitter {
         let header = buffer.readUInt8();  // Read packet header to recognize packet type
 
         let token = `${rinfo.address}:${rinfo.port}`;
-        if (this.#connections.has(token)) {
-            let connection = this.#connections.get(token);
-            connection.receive(buffer);
+        if (this.connections.has(token)) {
+            let connection = this.connections.get(token);
+            connection?.receive(buffer);
         } else {
             switch (header) {
                 case Identifiers.UnconnectedPing:
                     this.handleUnconnectedPing(buffer).then(buffer => {
-                        this.#socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address);
+                        this.socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address);
                     });
                     break;
                 case Identifiers.OpenConnectionRequest1:
                     this.handleOpenConnectionRequest1(buffer).then(buffer => {
-                        this.#socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address);
+                        this.socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address);
                     });
                     break;
                 case Identifiers.OpenConnectionRequest2:
                     let address = new InetAddress(rinfo.address, rinfo.port);
                     this.handleOpenConnectionRequest2(buffer, address).then(buffer => {
-                        this.#socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address);
+                        this.socket.send(buffer, 0, buffer.length, rinfo.port, rinfo.address);
                     });
                 default:
                     this.server.getLogger().debug(`Invalid RakNet header: 0x${header.toString(16)}!`);
@@ -119,7 +119,7 @@ export default class Listener extends EventEmitter {
         // Encode response
         packet = new UnconnectedPong();
         packet.sendTimestamp = decodedPacket.sendTimeStamp;
-        packet.serverGUID = this.#id;
+        packet.serverGUID = this.id;
 
         let serverQuery = this.name;
 
@@ -151,14 +151,14 @@ export default class Listener extends EventEmitter {
         if (decodedPacket.protocol !== PROTOCOL) {
             packet = new IncompatibleProtocolVersion();
             packet.protocol = PROTOCOL;
-            packet.serverGUID = this.#id;
+            packet.serverGUID = this.id;
             packet.write();
             return packet.buffer;
         }
 
         // Encode response
         packet = new OpenConnectionReply1();
-        packet.serverGUID = this.#id;
+        packet.serverGUID = this.id;
         packet.mtuSize = decodedPacket.mtuSize;
         packet.write();
 
@@ -181,7 +181,7 @@ export default class Listener extends EventEmitter {
 
         // Encode response
         packet = new OpenConnectionReply2();
-        packet.serverGUID = this.#id;
+        packet.serverGUID = this.id;
         packet.mtuSize = decodedPacket.mtuSize;
         packet.clientAddress = address;
         packet.write();
@@ -189,15 +189,15 @@ export default class Listener extends EventEmitter {
         // Create a session
         let token = `${address.address}:${address.port}`;
         let conn = new Connection(this, decodedPacket.mtuSize, address);
-        this.#connections.set(token, conn);
+        this.connections.set(token, conn);
 
         return packet.buffer;
     }
 
     tick() {
         let int = setInterval(() => {
-            if (!this.#shutdown) {
-                for (let [_, connection] of this.#connections) {
+            if (!this.shutdown) {
+                for (let [_, connection] of this.connections) {
                     connection.update(Date.now());
                 }
             } else {
@@ -212,9 +212,9 @@ export default class Listener extends EventEmitter {
     removeConnection(connection: Connection, reason: string) {
         let inetAddr = connection.address;
         let token = `${inetAddr.address}:${inetAddr.port}`;
-        if (this.#connections.has(token)) {
-            (this.#connections.get(token)).close();
-            this.#connections.delete(token);
+        if (this.connections.has(token)) {
+            (this.connections.get(token))?.close();
+            this.connections.delete(token);
         }
         this.emit('closeConnection', connection.address, reason);
     }
@@ -223,15 +223,14 @@ export default class Listener extends EventEmitter {
      * Send packet buffer to the client.
      */
     sendBuffer(buffer: Buffer, address: string, port: number) {
-        this.#socket.send(buffer, 0, buffer.length, port, address);
+        this.socket.send(buffer, 0, buffer.length, port, address);
+    }
+    public getSocket() {
+        return this.socket;
     }
 
-    get socket() {
-        return this.#socket;
-    }
-
-    get connections() {
-        return this.#connections;
+    public getConnections() {
+        return this.connections;
     }
 
     public getName() {
