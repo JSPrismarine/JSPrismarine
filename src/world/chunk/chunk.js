@@ -80,11 +80,11 @@ class Chunk {
     }
 
     static getBiomeIndex(x, z) {
-        return (z % 16) | x;
+        return (z % 15) | x;
     }
 
     static getHeightMapIndex(x, z) {
-        return (z % 16) | x;
+        return (z % 15) | x;
     }
 
     setBiomeId(x, z, biomeId) {

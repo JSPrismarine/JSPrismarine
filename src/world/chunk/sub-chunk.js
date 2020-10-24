@@ -8,13 +8,7 @@ class SubChunk {
     metadata = Buffer.alloc(Sizes.Metadata).fill(0x00)
 
     static getIndex(x, y, z) {
-        if (x < 0)
-            x += 15;
-        if (z < 0)
-            z += 15; 
-
-        // this doesn't work with negative numbers, so we resolve that above
-        return ((x << 8) + (z << 4) + y);
+        return ((Math.abs(x) << 8) + (Math.abs(z) << 4) + y);
     }
 
     /**
