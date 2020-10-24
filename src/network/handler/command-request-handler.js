@@ -1,6 +1,6 @@
 const Player = require('../../player').default;
 const Prismarine = require('../../Prismarine');
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const CommandRequestPacket = require('../packet/command-request');
 
 

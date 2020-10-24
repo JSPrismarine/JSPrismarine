@@ -1,4 +1,3 @@
-
 const Identifiers = {
     Protocol: 408,
 
@@ -158,4 +157,5 @@ const Identifiers = {
     DebugInfoPacket: 0x9b,
     PacketViolationWarningPacket: 0x9c
 };
-module.exports = Identifiers;
+
+export default Identifiers;

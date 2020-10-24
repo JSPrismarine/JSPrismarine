@@ -1,4 +1,4 @@
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const ItemStackRequestPacket = require('../packet/item-stack-request');
 
 

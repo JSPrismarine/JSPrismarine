@@ -1,6 +1,6 @@
 const OfflinePacket = require('./offline_packet');
-const Identifiers = require('./identifiers');
-const InetAddress = require('../utils/inet_address');
+const Identifiers = require('./Identifiers').default;
+const InetAddress = require('../utils/InetAddress').default;
 
 'use strict';
 

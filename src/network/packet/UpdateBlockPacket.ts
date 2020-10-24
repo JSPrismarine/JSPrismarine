@@ -1,4 +1,4 @@
-import Identifiers from "../identifiers";
+import Identifiers from "../Identifiers";
 import DataPacket from "./Packet";
 
 export enum UpdateBlockLayerType {

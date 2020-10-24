@@ -1,5 +1,5 @@
 const DataPacket = require('./Packet').default;
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const CommandEnum = require('../type/command-enum');
 const CommandData = require('../type/command-data');
 

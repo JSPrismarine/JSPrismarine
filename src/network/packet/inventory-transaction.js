@@ -1,5 +1,5 @@
 const DataPacket = require('./Packet').default;
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const logger = require('../../utils/Logger');
 const ChangeSlot = require('../type/change-slot');
 const NetworkTransaction = require('../type/network-transaction');

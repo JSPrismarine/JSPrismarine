@@ -1,9 +1,9 @@
 const BitFlags = require('./protocol/bitflags');
-const InetAddress = require('./utils/inet_address');
+const InetAddress = require('./utils/InetAddress').default;
 const DataPacket = require('./protocol/data_packet');
 const NACK = require('./protocol/nack');
 const ACK = require('./protocol/ack');
-const Identifiers = require('./protocol/identifiers');
+const Identifiers = require('./protocol/Identifiers').default;
 const ConnectionRequest = require('./protocol/connection_request');
 const ConnectionRequestAccepted = require('./protocol/connection_request_accepted');
 const EncapsulatedPacket = require('./protocol/encapsulated_packet');
@@ -11,8 +11,6 @@ const NewIncomingConnection = require('./protocol/new_incoming_connection');
 const ConnectedPing = require('./protocol/connected_ping');
 const ConnectedPong = require('./protocol/connected_pong');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-
-'use strict';
 
 const Priority = {
     Normal: 0,

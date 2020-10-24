@@ -1,7 +1,7 @@
 import Vector3 from "../../math/Vector3";
 import Player from "../../player";
 import Prismarine from "../../Prismarine";
-import Identifiers from "../identifiers";
+import Identifiers from "../Identifiers";
 const Logger = require('../../utils/Logger');
 
 export default class InventoryTransactionHandler {

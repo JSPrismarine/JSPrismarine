@@ -1,6 +1,6 @@
 const Command = require('./VersionCommand').default;
 const packageFile = require('../../../package.json');
-const identifiers = require('../../network/identifiers');
+const identifiers = require('../../network/Identifiers').default;
 
 describe('command', () => {
     describe('jsprismarine', () => {

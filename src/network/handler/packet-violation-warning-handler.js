@@ -1,4 +1,4 @@
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const PacketViolationWarningPacket = require('../packet/packet-violation-warning');
 
 class PacketViolationWarningHandler {

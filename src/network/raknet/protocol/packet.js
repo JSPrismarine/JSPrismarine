@@ -1,5 +1,5 @@
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-const InetAddress = require('../utils/inet_address');
+const InetAddress = require('../utils/InetAddress').default;
 
 'use strict';
 

@@ -1,5 +1,5 @@
 const Player = require('../../player').default;
-const Identifiers = require('../identifiers');
+const Identifiers = require('../Identifiers').default;
 const SetLocalPlayerAsInitializedPacket = require('../packet/set-local-player-as-initialized');
 
 class SetLocalPlayerAsInitializedHandler {
