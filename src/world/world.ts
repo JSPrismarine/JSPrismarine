@@ -1,13 +1,13 @@
 import Entity from "../entity/entity";
 import Item from "../item";
-import Vector3 from "../math/vector3";
+import Vector3 from "../math/Vector3";
+import WorldEventPacket from "../network/packet/WorldEventPacket";
 import Player from "../player";
 import Prismarine from "../Prismarine";
 
 const LevelSoundEventPacket = require('../network/packet/level-sound-event');
 const UUID = require('../utils/uuid');
 const CoordinateUtils = require('../world/coordinate-utils');
-const WorldEventPacket = require('../network/packet/world-event');
 const { GameruleManager, Rules } = require('../world/gamerule-manager');
 const SharedSeedRandom = require('./util/shared-seed-random');
 
@@ -138,9 +138,9 @@ export default class World {
     /**
      * Returns a chunk from minecraft block positions x and z.
      */
-    public async getChunkAt(x: number, z: number, generate = false): Promise<any> {
+    public async getChunkAt(x: number | VarInt, z: number | VarInt, generate = false): Promise<any> {
         // Handle negative chunk values, where "">> 4" doesn't work for obvious reasons
-        return await this.getChunk(x < 0 ? -1 : 1 * (Math.abs(x) >> 4), z < 0 ? -1 : 1 * (Math.abs(z) >> 4), generate);
+        return await this.getChunk(x < 0 ? -1 : 1 * (Math.abs(x as number) >> 4), z < 0 ? -1 : 1 * (Math.abs(z as number) >> 4), generate);
     }
 
     /**

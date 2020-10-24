@@ -3,8 +3,8 @@ import type Prismarine from "../../Prismarine";
 import type PlayerActionPacket from "../packet/PlayerActionPacket";
 import Identifiers from "../identifiers";
 import PlayerAction from "../type/player-action";
-import WorldEventPacket from "../packet/world-event";
-import Vector3 from "../../math/vector3";
+import WorldEventPacket from "../packet/WorldEventPacket";
+import Vector3 from "../../math/Vector3";
 import LevelEventType from "../type/level-event-type";
 import UpdateBlockPacket from "../packet/UpdateBlockPacket";
 
@@ -15,10 +15,10 @@ class PlayerActionHandler {
         switch (packet.action) {
             case PlayerAction.StartBreak: {
                 const chunk = await player.getWorld().getChunkAt(
-                    packet.x, packet.z
+                    packet.x as number, packet.z as number
                 );
 
-                const block = server.getBlockManager().getBlockById(chunk.getBlockId(packet.x % 16, packet.y, packet.z % 16));
+                const block = server.getBlockManager().getBlockById(chunk.getBlockId((packet.x as number) % 16, packet.y, (packet.z as number) % 16));
                 if (!block)
                     return server.getLogger().warn(`Block at ${packet.x} ${packet.y} ${packet.z} is undefined!`);
 
@@ -37,7 +37,7 @@ class PlayerActionHandler {
                     }
                 }
 
-                player.breakingBlockPos = new Vector3(packet.x, packet.y, packet.z);
+                player.breakingBlockPos = new Vector3(packet.x as number, packet.y as number, packet.z as number);
                 break;
             } case PlayerAction.AbortBreak:
                 // Gets called when player didn't finished 
@@ -67,7 +67,7 @@ class PlayerActionHandler {
                 );
 
                 // TODO: figure out why blockId sometimes === 0
-                const chunkPos = new Vector3(blockVector3.getX() % 16, blockVector3.getY(), blockVector3.getZ() % 16);
+                const chunkPos = new Vector3((blockVector3.getX() as number) % 16, blockVector3.getY(), (blockVector3.getZ() as number) % 16);
                 const blockId = chunk.getBlockId(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                 const blockMeta = chunk.getBlockMetadata(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                 const block = server.getBlockManager().getBlockByIdAndMeta(blockId, blockMeta);
@@ -102,9 +102,10 @@ class PlayerActionHandler {
 
                 // TODO: this fires twice in creative.. wtf Mojang?
                 break;
-            } default:
-            // This will get triggered even if an action is simply not handled
-            //server.getLogger().debug(`Unknown PlayerAction: ${packet.action}`)
+            } default: {
+                // This will get triggered even if an action is simply not handled
+                server.getLogger().debug(`Unknown or unhandled PlayerAction: ${packet.action}`);
+            }
         }
     }
 }

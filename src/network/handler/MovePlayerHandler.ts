@@ -1,5 +1,5 @@
 import PlayerMoveEvent from "../../events/player/PlayerMoveEvent";
-import Vector3 from "../../math/vector3";
+import Vector3 from "../../math/Vector3";
 import type Player from "../../player";
 import type Prismarine from "../../Prismarine";
 import Identifiers from "../identifiers";
