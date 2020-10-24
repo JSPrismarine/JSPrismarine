@@ -2,15 +2,16 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import NBT from '../nbt/NBT';
 import NetworkLittleEndianBinaryStream from '../nbt/streams/NetworkLittleEndianBinaryStream';
 import CompoundTag from '../nbt/tags/CompoundTag';
+import type Prismarine from '../Prismarine';
+import Skin from '../utils/skin/skin';
+import SkinImage from '../utils/skin/skin-image';
+import CreativeContentEntry from './type/creative-content-entry';
+import PlayerListEntry from './type/player-list-entry';
 
 const UUID = require('../utils/uuid');
-const Skin = require('../utils/skin/skin');
 const { FlagType } = require('../entity/metadata');
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
-const SkinImage = require('../utils/skin/skin-image');
-const PlayerListEntry = require('./type/player-list-entry');
-const CreativeContentEntry = require('./type/creative-content-entry');
 const SkinAnimation = require('../utils/skin/skin-animation');
 const SkinCape = require('../utils/skin/skin-cape');
 const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece');
@@ -28,33 +29,29 @@ const ItemStackRequestDestroy = require('./type/item-stack-requests/destroy');
 const ItemStackRequestCreativeCreate = require('./type/item-stack-requests/creative-create');
 const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
 
-class PacketBinaryStream extends BinaryStream {
-    #server = null;
+export default class PacketBinaryStream extends BinaryStream {
+    #server: Prismarine;
 
-    constructor(server) {
+    constructor(server: Prismarine) {
         super();
         this.#server = server;
     }
 
-    getServer() {
+    getServer(): Prismarine {
         return this.#server;
     }
 
     /**
      * Returns a string encoded into the buffer.
-     * 
-     * @returns {string}
      */
-    readString() {
+    readString(): string {
         return this.read(this.readUnsignedVarInt()).toString();
     }
 
     /**
      * Encodes a string into the buffer.
-     * 
-     * @param {string} v 
      */
-    writeString(v) {
+    writeString(v: string) {
         this.writeUnsignedVarInt(Buffer.byteLength(v));
         this.append(Buffer.from(v, 'utf8'));
     }
@@ -73,10 +70,8 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Encodes an UUID into the buffer.
-     * 
-     * @param {UUID} uuid 
      */
-    writeUUID(uuid) {
+    writeUUID(uuid: any) {
         this.writeLInt(uuid.parts[1]);
         this.writeLInt(uuid.parts[0]);
         this.writeLInt(uuid.parts[3]);
@@ -85,10 +80,8 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Retrurns a skin encoded into the buffer.
-     * 
-     * @returns {Skin}
      */
-    readSkin() {
+    readSkin(): Skin {
         let skin = new Skin();
         skin.id = this.readString();
         skin.resourcePatch = this.readString();
@@ -167,11 +160,9 @@ class PacketBinaryStream extends BinaryStream {
     }
 
     /**
-     * Encodes a skin into the buffer.
-     * 
-     * @param {Skin} skin
+     * Encodes a skin into the buffer
      */
-    writeSkin(skin) {
+    writeSkin(skin: Skin) {
         this.writeString(skin.id);
         this.writeString(skin.resourcePatch);
 
@@ -192,9 +183,9 @@ class PacketBinaryStream extends BinaryStream {
         // Miscellaneus
         this.writeString(skin.geometry);
         this.writeString(skin.animationData);
-        this.writeBool(skin.isPremium);
-        this.writeBool(skin.isPersona);
-        this.writeBool(skin.isCapeOnClassicSkin);
+        this.writeBool(skin.isPremium as unknown as number);
+        this.writeBool(skin.isPersona as unknown as number);
+        this.writeBool(skin.isCapeOnClassicSkin as unknown as number);
         this.writeString(skin.cape.id);
         this.writeString(skin.fullId);
         this.writeString(skin.armSize);
@@ -207,7 +198,7 @@ class PacketBinaryStream extends BinaryStream {
                 this.writeString(personaPiece.pieceId);
                 this.writeString(personaPiece.pieceType);
                 this.writeString(personaPiece.packId);
-                this.writeBool(personaPiece.isDefault);
+                this.writeBool(personaPiece.isDefault as unknown as number);
                 this.writeString(personaPiece.productId);
             }
             this.writeLInt(skin.persona.tintColors.size);
@@ -226,11 +217,8 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Encodes a skin image into the buffer.
-     * 
-     * @param {SkinImage} image 
-     * @private
      */
-    writeSkinImage(image) {
+    private writeSkinImage(image: SkinImage) {
         this.writeLInt(image.width);
         this.writeLInt(image.height);
         this.writeString(image.data);
@@ -238,10 +226,8 @@ class PacketBinaryStream extends BinaryStream {
 
     /**
      * Encodes a player list entry into the buffer.
-     * 
-     * @param {PlayerListEntry} entry 
      */
-    writePlayerListAddEntry(entry) {
+    writePlayerListAddEntry(entry: PlayerListEntry) {
         this.writeUUID(entry.uuid);
         this.writeVarLong(entry.uniqueEntityId);
         this.writeString(entry.name);
@@ -249,20 +235,18 @@ class PacketBinaryStream extends BinaryStream {
         this.writeString(entry.platformChatId);
         this.writeLInt(entry.buildPlatform);
         this.writeSkin(entry.skin);
-        this.writeBool(entry.isTeacher);
-        this.writeBool(entry.isHost);
+        this.writeBool(entry.isTeacher as unknown as number);
+        this.writeBool(entry.isHost as unknown as number);
     }
 
     /**
      * Removes a player list entry by UUID.
-     * 
-     * @param {PlayerListEntry} entry 
      */
-    writePlayerListRemoveEntry(entry) {
+    writePlayerListRemoveEntry(entry: PlayerListEntry) {
         this.writeUUID(entry.uuid);
     }
 
-    writeAttributes(attributes) {
+    writeAttributes(attributes: any) {
         this.writeUnsignedVarInt(attributes.length);
         for (let attribute of attributes) {
             this.writeLFloat(attribute.min);
@@ -272,28 +256,22 @@ class PacketBinaryStream extends BinaryStream {
             this.writeString(attribute.name);
         }
     }
-
-    /**
-     * @param {CreativeContentEntry} entry 
-     */
-    writeCreativeContentEntry(entry) {
+    writeCreativeContentEntry(entry: CreativeContentEntry) {
         this.writeVarInt(entry.entryId);
         this.writeItemStack(entry.item);
     }
 
     /**
      * Serializes gamerules into the buffer.
-     * 
-     * @param {Map<String, Boolean|Number>} rules 
      */
-    writeGamerules(rules) {
+    writeGamerules(rules: any) {
         this.writeUnsignedVarInt(rules.size);
         for (let [name, value] of rules) {
             this.writeString(name);
             switch (typeof value) {
                 case 'boolean':
                     this.writeByte(1);  // maybe value type ??     
-                    this.writeBool(value);
+                    this.writeBool(value as unknown as number);
                     break;
                 case 'number':
                     if (this.isInt(value)) {
@@ -310,23 +288,14 @@ class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    /**
-     * @private
-     * @param {number} n
-     */
-    isInt(n) {
+    private isInt(n: number) {
         return n % 1 === 0;
     }
-
-    /**
-     * @private
-     * @param {number} n
-     */
-    isFloat(n) {
+    private isFloat(n: number) {
         return n % 1 !== 0;
     }
 
-    writeEntityMetadata(metadata) {
+    writeEntityMetadata(metadata: any) {
         this.writeUnsignedVarInt(metadata.size);
         for (const [index, value] of metadata) {
             this.writeUnsignedVarInt(index);
@@ -373,13 +342,13 @@ class PacketBinaryStream extends BinaryStream {
         if (extraLen == 0xffff) {
             this.readByte();  // ? nbt version
             // As i cannot pass offset by reference, i keep it using this binary stream directly
-            let stream = new NetworkLittleEndianBinaryStream(this.buffer, this.offset);
+            let stream = new NetworkLittleEndianBinaryStream(this.getBuffer(), this.getOffset());
             let decodedNBT = (new NBT()).readTag(stream, true, true);
             if (!(decodedNBT instanceof CompoundTag)) {
                 throw new Error('Invalid NBT root tag for itemstack');
             }
             nbt = decodedNBT;
-            this.offset = stream.offset;
+            (this as any).offset = stream.getOffset();
         } else if (extraLen !== 0) {
             throw new Error(`Invalid NBT itemstack length ${extraLen}`);
         }
@@ -409,11 +378,11 @@ class PacketBinaryStream extends BinaryStream {
      * 
      * @param {Item | Block} itemstack 
      */
-    writeItemStack(itemstack) {
+    writeItemStack(itemstack: any) {
         if (itemstack.name === 'minecraft:air') {
             return this.writeVarInt(0);
         }
-        
+
         this.writeVarInt(itemstack.getRuntimeId());
         this.writeVarInt(((itemstack.meta & 0x7fff) << 8) | itemstack.count);
 
@@ -454,7 +423,7 @@ class PacketBinaryStream extends BinaryStream {
 
     writeItemStackRequest() {
         // TODO
-        this.writeBool(true);
+        this.writeBool(1);
         this.writeVarInt(0);
         this.writeVarInt(0);
     }
@@ -481,12 +450,12 @@ class PacketBinaryStream extends BinaryStream {
                     from: this.readItemStackRequestSlotInfo(),
                     to: this.readItemStackRequestSlotInfo()
                 });
-            case 3: 
+            case 3:
                 return new ItemStackRequestDrop({
                     count: this.readByte(),
                     from: this.readItemStackRequestSlotInfo(),
                     randomly: this.readBool()
-                }); 
+                });
             case 4:
                 return new ItemStackRequestDestroy({
                     count: this.readByte(),
@@ -501,14 +470,14 @@ class PacketBinaryStream extends BinaryStream {
                 return {
                     slot: this.readByte()
                 };
-            case 7: 
+            case 7:
                 return {};
             case 8:
                 return {
                     primaryEffect: this.readVarInt(),
                     secondaryEffect: this.readVarInt()
                 };
-            case 9: 
+            case 9:
                 return {
                     recipeNetworkId: this.readUnsignedVarInt()
                 };
@@ -518,7 +487,7 @@ class PacketBinaryStream extends BinaryStream {
                 };
             case 11:
                 return new ItemStackRequestCreativeCreate({
-                    itemId: this.readUnsignedVarInt()  
+                    itemId: this.readUnsignedVarInt()
                 });
             case 12: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
                 this.#server.getLogger().silly('Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)');
@@ -559,5 +528,4 @@ class PacketBinaryStream extends BinaryStream {
         return data;
     }
 
-}
-module.exports = PacketBinaryStream;
+};

@@ -1,13 +1,15 @@
 import Vector3 from "../../math/Vector3";
-import Player from "../../player";
-import Prismarine from "../../Prismarine";
 import Identifiers from "../Identifiers";
-const Logger = require('../../utils/Logger');
+import type Player from "../../player";
+import type Prismarine from "../../Prismarine";
+import InventoryTransactionPacket, { InventoryTransactionActionType } from "../packet/InventoryTransactionPacket";
+import UpdateBlockPacket from "../packet/UpdateBlockPacket";
+import type Block from "../../block";
 
 export default class InventoryTransactionHandler {
     static NetID = Identifiers.InventoryTransactionPacket;
 
-    static async handle(packet: any, server: Prismarine, player: Player) {
+    static async handle(packet: InventoryTransactionPacket, server: Prismarine, player: Player) {
         // TODO: enum
         switch (packet.type) {
             case 0: // Normal
@@ -15,16 +17,42 @@ export default class InventoryTransactionHandler {
                 break;
             case 2:  // Use item (build - interact)
                 // TODO: sanity checks (can interact)
-                // check if gamemode is spectator  
+                // TODO: check if gamemode is spectator  
                 if (packet.actionType) {
                     switch (packet.actionType) {
-                        case 1:  // BUILD
-                            let blockPos = new Vector3(packet.blockX, packet.blockY, packet.blockZ);
+                        case InventoryTransactionActionType.Build:
+                            const blockPos = new Vector3(packet.blockX, packet.blockY, packet.blockZ);
                             await player.getWorld().useItemOn(
                                 packet.itemInHand, blockPos, packet.face, packet.clickPosition, player
                             );
                             break;
-                        case 2: // BREAK (Move from action packet)
+                        case InventoryTransactionActionType.Break:
+                            const chunk = await player.getWorld().getChunkAt(
+                                packet.blockX, packet.blockZ
+                            );
+
+                            // TODO: figure out why blockId sometimes === 0
+                            const chunkPos = new Vector3((packet.blockX as number) % 15, packet.blockY, (packet.blockZ as number) % 15);
+                            const blockId = chunk.getBlockId(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
+                            const blockMeta = chunk.getBlockMetadata(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
+                            const block = server.getBlockManager().getBlockByIdAndMeta(blockId, blockMeta);
+
+                            if (!block)
+                                return server.getLogger().warn(`Block at ${packet.blockX} ${packet.blockY} ${packet.blockZ} is undefined!`);
+
+                            let pk = new UpdateBlockPacket(server);
+                            pk.x = packet.blockX;
+                            pk.y = packet.blockY;
+                            pk.z = packet.blockZ;
+                            // TODO: add NBT writing to support our own block palette
+                            pk.BlockRuntimeId = (server.getBlockManager().getBlock('minecraft:air') as Block).getRuntimeId();
+                            for (let onlinePlayer of server.getOnlinePlayers()) {
+                                onlinePlayer.sendDataPacket(pk);
+                            }
+
+                            chunk.setBlock(
+                                chunkPos.getX(), chunkPos.getY(), chunkPos.getZ(), server.getBlockManager().getBlock('minecraft:air')
+                            );
                             break;
                         default:
                             server.getLogger().debug(`Unknown action type: ${packet.actionType}`);

@@ -188,8 +188,8 @@ export default class Prismarine {
             // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
 
             // Read batch content and handle them
-            let pk = new BatchPacket();
-            pk.buffer = raknetPacket.buffer;
+            let pk = new BatchPacket(this);
+            (pk as any).buffer = raknetPacket.buffer;
 
             try {
                 pk.decode();

@@ -27,7 +27,7 @@ class PlayerActionHandler {
                 const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
 
                 // TODO: world.sendEvent(type, position(Vector3), data) (?)
-                let pk = new WorldEventPacket();
+                let pk = new WorldEventPacket(server);
                 pk.eventId = LevelEventType.BlockStartBreak;
                 pk.x = packet.x;
                 pk.y = packet.y;
@@ -42,7 +42,7 @@ class PlayerActionHandler {
             } case PlayerAction.AbortBreak:
                 // Gets called when player didn't finished 
                 // to break the block
-                let pk = new WorldEventPacket();
+                let pk = new WorldEventPacket(server);
                 pk.eventId = LevelEventType.BlockStopBreak;
                 pk.x = packet.x;
                 pk.y = packet.y;
@@ -55,42 +55,9 @@ class PlayerActionHandler {
                 player.breakingBlockPos = null;
                 break;
             case PlayerAction.StopBreak: {
-                // Doesn't send block position, so we 
-                // save it on the player (best temp solution)
-                if (!player.breakingBlockPos)
-                    return;
-
-                // TODO: player.breakBlock
-                const blockVector3 = player.breakingBlockPos;
-                const chunk = await player.getWorld().getChunkAt(
-                    blockVector3.getX(), blockVector3.getZ()
-                );
-
-                // TODO: figure out why blockId sometimes === 0
-                const chunkPos = new Vector3((blockVector3.getX() as number) % 15, blockVector3.getY(), (blockVector3.getZ() as number) % 15);
-                const blockId = chunk.getBlockId(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
-                const blockMeta = chunk.getBlockMetadata(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
-                const block = server.getBlockManager().getBlockByIdAndMeta(blockId, blockMeta);
-
-                if (!block)
-                    return server.getLogger().warn(`Block at ${blockVector3.getX()} ${blockVector3.getY()} ${blockVector3.getZ()} is undefined!`);
-
-                let pk = new UpdateBlockPacket();
-                pk.x = blockVector3.getX();
-                pk.y = blockVector3.getY();
-                pk.z = blockVector3.getZ();
-                // TODO: add NBT writing to support our own block palette
-                pk.BlockRuntimeId = (server.getBlockManager().getBlock('minecraft:air') as Block).getRuntimeId();
-                for (let onlinePlayer of server.getOnlinePlayers()) {
-                    onlinePlayer.sendDataPacket(pk);
-                }
-
-                chunk.setBlock(
-                    chunkPos.getX(), chunkPos.getY(), chunkPos.getZ(), server.getBlockManager().getBlock('minecraft:air')
-                );
                 break;
             } case PlayerAction.ContinueBreak: {
-                let pk = new WorldEventPacket();
+                let pk = new WorldEventPacket(server);
                 pk.eventId = LevelEventType.ParticlePunchBlock;
                 pk.x = packet.x;
                 pk.y = packet.y;

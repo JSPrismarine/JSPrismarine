@@ -5,7 +5,7 @@ class SkinImage {
     width
     /** @type {number} */
     height
-    /** @type {Buffer} */
+    /** @type {string} */
     data
 
     constructor({width, height, data}) {

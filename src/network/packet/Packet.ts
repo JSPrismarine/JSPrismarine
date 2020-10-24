@@ -1,4 +1,5 @@
-const PacketBinaryStream = require('../packet-binary-stream');
+import type Prismarine from "../../Prismarine";
+import PacketBinaryStream from "../PacketBinaryStream";
 
 const PID_MASK = 0x3ff;
 const SENDER_SHIFT = 10;
@@ -22,7 +23,7 @@ export default class DataPacket extends PacketBinaryStream {
     }
 
     decode() {
-        this.offset = 0;
+        (this as any).offset = 0;
         this.decodeHeader();
         this.decodePayload();
         // Mark all the packets sent by the client
@@ -41,9 +42,7 @@ export default class DataPacket extends PacketBinaryStream {
         this.#receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK;
     }
 
-    decodePayload() {
-
-    }
+    decodePayload(server?: Prismarine) { }
 
     encode() {
         this.reset();
@@ -60,15 +59,13 @@ export default class DataPacket extends PacketBinaryStream {
         );
     }
 
-    encodePayload() {
-
-    }
+    encodePayload(server?: Prismarine) { }
 
     get encoded() {
         return this.#encoded;
     }
 
     get allowBatching() {
-        return this._allowBatching;
+        return (this as any)._allowBatching;
     }
 };
