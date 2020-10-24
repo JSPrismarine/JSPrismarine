@@ -8,6 +8,11 @@ class SubChunk {
     metadata = Buffer.alloc(Sizes.Metadata).fill(0x00)
 
     static getIndex(x, y, z) {
+        // Handle negative values
+        if (x <= -1)
+            x += 16;
+        if (z <= -1)
+            z += 16;
         return ((Math.abs(x) << 8) + (Math.abs(z) << 4) + y);
     }
 
@@ -30,7 +35,7 @@ class SubChunk {
 
     setBlock(x, y, z, block) {
         const index = SubChunk.getIndex(x, y, z);
-        this.ids[index] = block.getRuntimeId();
+        this.ids[index] = block.getId();
         this.metadata[index] = block.meta; // TODO: fix metadata index
         return true;
     }

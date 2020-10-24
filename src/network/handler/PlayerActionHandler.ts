@@ -4,12 +4,9 @@ import type PlayerActionPacket from "../packet/PlayerActionPacket";
 import Identifiers from "../Identifiers";
 import PlayerAction from "../type/player-action";
 import WorldEventPacket from "../packet/WorldEventPacket";
-import Vector3 from "../../math/Vector3";
 import LevelEventType from "../type/level-event-type";
-import UpdateBlockPacket from "../packet/UpdateBlockPacket";
-import type Block from "../../block";
 
-class PlayerActionHandler {
+export default class PlayerActionHandler {
     static NetID = Identifiers.PlayerActionPacket
 
     static async handle(packet: PlayerActionPacket, server: Prismarine, player: Player) {
@@ -19,7 +16,7 @@ class PlayerActionHandler {
                     packet.x as number, packet.z as number
                 );
 
-                const blockId = chunk.getBlockId((packet.x as number) % 15, packet.y, (packet.z as number) % 15);
+                const blockId = chunk.getBlockId((packet.x as number) % 16, packet.y, (packet.z as number) % 16);
                 const block = server.getBlockManager().getBlockById(blockId);
                 if (!block)
                     return server.getLogger().warn(`Block at ${packet.x} ${packet.y} ${packet.z} is undefined!`);
@@ -36,10 +33,8 @@ class PlayerActionHandler {
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
                 }
-
-                player.breakingBlockPos = new Vector3(packet.x as number, packet.y as number, packet.z as number);
                 break;
-            } case PlayerAction.AbortBreak:
+            } case PlayerAction.AbortBreak: {
                 // Gets called when player didn't finished 
                 // to break the block
                 let pk = new WorldEventPacket(server);
@@ -51,12 +46,13 @@ class PlayerActionHandler {
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
                 }
-
-                player.breakingBlockPos = null;
                 break;
-            case PlayerAction.StopBreak: {
+            } case PlayerAction.StopBreak: {
+                // Handled in InventoryTransactionHandler
                 break;
             } case PlayerAction.ContinueBreak: {
+                // This fires twice in creative.. wtf Mojang?
+
                 let pk = new WorldEventPacket(server);
                 pk.eventId = LevelEventType.ParticlePunchBlock;
                 pk.x = packet.x;
@@ -67,8 +63,6 @@ class PlayerActionHandler {
                 for (let onlinePlayer of server.getOnlinePlayers()) {
                     onlinePlayer.sendDataPacket(pk);
                 }
-
-                // TODO: this fires twice in creative.. wtf Mojang?
                 break;
             } default: {
                 // This will get triggered even if an action is simply not handled
@@ -76,5 +70,4 @@ class PlayerActionHandler {
             }
         }
     }
-}
-module.exports = PlayerActionHandler;
+};

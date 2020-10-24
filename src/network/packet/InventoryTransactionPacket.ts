@@ -79,7 +79,7 @@ export default class InventoryTransactionPacket extends DataPacket {
                 this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 break;
-            case InventoryTransactionType.RelaseItem:
+            case InventoryTransactionType.ReleaseItem:
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = this.readItemStack();

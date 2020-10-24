@@ -101,9 +101,6 @@ export default class Player extends Entity {
     /** @type {Set<Chunk>} */
     chunkSendQueue = new Set()
 
-    /** @type {null|Vector3} */
-    breakingBlockPos: Vector3 | null = null  // temphack
-
     /** @type {null|Chunk} */
     currentChunk = null;
 
