@@ -6,7 +6,7 @@ import World from "../world/world";
 import Gamemode from "../world/gamemode";
 import MovementType from "../network/type/MovementType";
 import Block from "../block";
-import Vector3 from "../math/vector3";
+import Vector3 from "../math/Vector3";
 
 const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
@@ -315,9 +315,9 @@ export default class Player extends Entity {
 
     public sendNetworkChunkPublisher() {
         let pk = new NetworkChunkPublisherUpdatePacket();
-        pk.x = Math.floor(this.getX());
-        pk.y = Math.floor(this.getY());
-        pk.z = Math.floor(this.getZ());
+        pk.x = Math.floor(this.getX() as number);
+        pk.y = Math.floor(this.getY() as number);
+        pk.z = Math.floor(this.getZ() as number);
         pk.radius = this.viewDistance << 4;
         this.sendDataPacket(pk);
     }
