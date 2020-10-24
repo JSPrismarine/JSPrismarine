@@ -1,3 +1,4 @@
+import Block from "../block";
 import Entity from "../entity/entity";
 import Item from "../item";
 import Vector3 from "../math/Vector3";
@@ -124,7 +125,7 @@ export default class World {
      * @param data 
      */
     public sendWorldEvent(position: Vector3 | null, worldEvent: number, data: number): void {
-        let worldEventPacket = new WorldEventPacket();
+        let worldEventPacket = new WorldEventPacket(this.server);
         worldEventPacket.eventId = worldEvent;
         worldEventPacket.data = data;
         if (position != null) {
@@ -153,7 +154,7 @@ export default class World {
         return new Vector3(z, y + 2, z);
     }
 
-    public async useItemOn(itemInHand: Item, blockPosition: Vector3, face: number, clickPosition: Vector3, player: Player): Promise<void> {
+    public async useItemOn(itemInHand: Item | Block | null, blockPosition: Vector3, face: number, clickPosition: Vector3, player: Player): Promise<void> {
         //TODO: checks
 
         // TODO: set block on the desired face
@@ -163,7 +164,7 @@ export default class World {
 
         let chunk = await this.getChunkAt(blockPosition.getX(), blockPosition.getZ());
         // TODO: block.place() ?
-        chunk.setBlockId(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ(), 7 /* get block runtime id from item */);
+        chunk.setBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ(), 7 /* get block runtime id from item */);
 
         let pk = new LevelSoundEventPacket();
         pk.sound = 6;  // TODO: enum

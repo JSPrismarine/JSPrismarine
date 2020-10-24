@@ -193,8 +193,8 @@ export default class Prismarine {
             // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
             return new Promise(async (resolve, reject) => {
                 // Read batch content and handle them
-                let pk = new BatchPacket();
-                pk.buffer = packet.buffer;
+                let pk = new BatchPacket(this);
+                (pk as any).buffer = packet.buffer;
 
                 try {
                     pk.decode();
