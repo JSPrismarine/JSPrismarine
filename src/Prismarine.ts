@@ -4,11 +4,11 @@ import Player from "./player";
 import BlockManager from "./block/BlockManager";
 import ItemManager from "./item/ItemManager";
 import CommandManager from "./command/CommandManager";
-import Config from "./config";
+import type Config from "./config";
 import WorldManager from "./world/world-manager";
 import QueryManager from "./query/QueryManager";
 import PluginManager from "./plugin/PluginManager";
-import LoggerBuilder from "./utils/Logger";
+import type LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
 import pkg from '../package.json';
 import EventManager from './events/EventManager';
@@ -16,15 +16,9 @@ import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import PlayerConnectEvent from './events/player/PlayerConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
-
-const Listener = require('@jsprismarine/raknet');
-const BatchPacket = require('./network/packet/batch');
-const Identifiers = require('./network/identifiers');
-
-interface PrismarineData {
-    logger: any,
-    config: any
-};
+import Listener from './network/raknet/listener';
+import BatchPacket from './network/packet/batch';
+import Identifiers from './network/identifiers';
 
 export default class Prismarine {
     private raknet: any;
@@ -45,7 +39,10 @@ export default class Prismarine {
 
     static instance: null | Prismarine = null;
 
-    constructor({ logger, config }: PrismarineData) {
+    constructor({ logger, config }: {
+        logger: LoggerBuilder,
+        config: Config
+    }) {
         logger.info(`Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`)
 
         this.logger = logger;

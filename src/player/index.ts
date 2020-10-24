@@ -8,7 +8,7 @@ import MovementType from "../network/type/MovementType";
 import Block from "../block";
 import Vector3 from "../math/Vector3";
 
-const EncapsulatedPacket = require('@jsprismarine/raknet/protocol/encapsulated_packet');
+const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
 const BatchPacket = require("../network/packet/batch");
 const ChunkRadiusUpdatedPacket = require('../network/packet/chunk-radius-updated');
