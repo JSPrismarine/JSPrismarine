@@ -17,10 +17,10 @@ export default class InventoryTransactionHandler {
                 break;
             case 2:  // Use item (build - interact)
                 // TODO: sanity checks (can interact)
-                // TODO: check if gamemode is spectator  
-                if (packet.actionType) {
+                if (packet.actionType && player.gamemode !== 3) {
                     switch (packet.actionType) {
                         case InventoryTransactionActionType.Build:
+                            // TODO: Position isn't decoded properly
                             const blockPos = new Vector3(packet.blockX, packet.blockY, packet.blockZ);
                             await player.getWorld().useItemOn(
                                 packet.itemInHand, blockPos, packet.face, packet.clickPosition, player
@@ -32,7 +32,7 @@ export default class InventoryTransactionHandler {
                             );
 
                             // TODO: figure out why blockId sometimes === 0
-                            const chunkPos = new Vector3((packet.blockX as number) % 15, packet.blockY, (packet.blockZ as number) % 15);
+                            const chunkPos = new Vector3((packet.blockX as number) % 16, packet.blockY, (packet.blockZ as number) % 16);
                             const blockId = chunk.getBlockId(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                             const blockMeta = chunk.getBlockMetadata(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                             const block = server.getBlockManager().getBlockByIdAndMeta(blockId, blockMeta);
@@ -61,7 +61,6 @@ export default class InventoryTransactionHandler {
                 break;
             case 4:
                 // TODO: sanity checks (can interact)
-                // check if gamemode is spectator
                 break;
         }
     }

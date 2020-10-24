@@ -48,7 +48,7 @@ class MovePlayerHandler {
 
         let chunk = await player.getWorld().getChunkAt(player.getX(), player.getZ());
         if (player.currentChunk !== chunk)
-            player.currentChunk = chunk;
+            player.currentChunk = chunk as any;
     }
 }
 module.exports = MovePlayerHandler;
