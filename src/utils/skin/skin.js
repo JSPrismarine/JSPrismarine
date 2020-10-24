@@ -20,7 +20,7 @@ class Skin {
     cape
     /** @type {string} */
     geometry
-    /** @type {Buffer} */
+    /** @type {string} */
     animationData
     /** @type {boolean} */
     isPremium

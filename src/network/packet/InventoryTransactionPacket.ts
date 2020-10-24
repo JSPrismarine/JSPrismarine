@@ -1,52 +1,43 @@
-const DataPacket = require('./Packet').default;
-const Identifiers = require('../Identifiers').default;
-const logger = require('../../utils/Logger');
+import Block from "../../block";
+import Item from "../../item";
+import Vector3 from "../../math/Vector3";
+import type Prismarine from "../../Prismarine";
+import Identifiers from "../Identifiers";
+import DataPacket from "./Packet";
+
 const ChangeSlot = require('../type/change-slot');
 const NetworkTransaction = require('../type/network-transaction');
 const InventoryTransactionType = require('../type/inventory-transaction-type');
-const Vector3 = require('../../math/Vector3').default;
 
+export enum InventoryTransactionActionType {
+    Build = 1,
+    Break = 2
+};
 
-class InventoryTransactionPacket extends DataPacket {
+export default class InventoryTransactionPacket extends DataPacket {
     static NetID = Identifiers.InventoryTransactionPacket
 
-    /** @type {number} */
-    type
-    actions = new Map()
-
-    /** @type {number} */
-    actionType = null
-    /** @type {number} */
-    hotbarSlot = null
-    itemInHand = null
-
-    /** @type {number|null} */
-    blockX = null
-    /** @type {number|null} */
-    blockY = null
-    /** @type {number|null} */
-    blockZ = null
-    /** @type {number} */
-    face = null
-    /** @type {Vector3} */
-    playerPosition = null
-    /** @type {Vector3} */
-    clickPosition = null
-    /** @type {number|null} */
-    blockRuntimeId = null
-
-    /** @type {number|null} */
-    entityId = null
+    type = 0;
+    actions = new Map();
+    actionType = 0;
+    hotbarSlot = 0;
+    itemInHand: Block | Item | null = null
+    blockX = 0;
+    blockY = 0;
+    blockZ = 0;
+    face = 0;
+    playerPosition = new Vector3();
+    clickPosition = new Vector3();
+    blockRuntimeId = 0;
+    entityId = BigInt(0);
 
     // 1.16
 
-    /** @type {number} */
-    requestId
+    requestId = 0;
     changeSlot = new Map()
-    /** @type {boolean} */
-    hasItemtackIds
+    hasItemStackIds: boolean = false;
 
-    decodePayload(server) {
+    decodePayload(server: Prismarine) {
         this.requestId = this.readVarInt();
         if (this.requestId != 0) {
             let length = this.readUnsignedVarInt();
@@ -56,20 +47,20 @@ class InventoryTransactionPacket extends DataPacket {
         }
 
         this.type = this.readUnsignedVarInt();
-        this.hasItemtackIds = this.readBool();
+        this.hasItemStackIds = this.readBool();
 
         let actionsCount = this.readUnsignedVarInt();
         for (let i = 0; i < actionsCount; i++) {
-            let networkTransaction = new NetworkTransaction(server).decode(this, this.hasItemtackIds);
+            let networkTransaction = new NetworkTransaction(server).decode(this, this.hasItemStackIds);
             this.actions.set(i, networkTransaction);
         }
 
-        switch(this.type) {
+        switch (this.type) {
             case InventoryTransactionType.Normal:
             case InventoryTransactionType.Mismatch:
                 break;
             case InventoryTransactionType.UseItem:
-                this.actionType = this.readUnsignedVarInt();  
+                this.actionType = this.readUnsignedVarInt();
                 this.blockX = this.readVarInt();
                 this.blockY = this.readUnsignedVarInt();
                 this.blockZ = this.readVarInt();
@@ -87,16 +78,15 @@ class InventoryTransactionPacket extends DataPacket {
                 this.itemInHand = this.readItemStack();
                 this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
-                break;  
+                break;
             case InventoryTransactionType.RelaseItem:
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = this.readItemStack();
-                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());   
+                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 break;
             default:
                 server.getLogger().warn(`Unknown transaction type ${this.type}`);
         }
     }
-}
-module.exports = InventoryTransactionPacket;
+};

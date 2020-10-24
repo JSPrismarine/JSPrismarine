@@ -31,11 +31,11 @@ export default class UpdateBlockPacket extends DataPacket {
     }
 
     encodePayload() {
-        this.writeVarInt(this.x);
-        this.writeUnsignedVarInt(this.y);
-        this.writeVarInt(this.z);
+        this.writeVarInt(this.x as number);
+        this.writeUnsignedVarInt(this.y as number);
+        this.writeVarInt(this.z as number);
 
-        this.writeUnsignedVarInt(this.BlockRuntimeId);
+        this.writeUnsignedVarInt(this.BlockRuntimeId as number);
         this.writeUnsignedVarInt(this.Flags);
         this.writeUnsignedVarInt(this.Layer);
     }
