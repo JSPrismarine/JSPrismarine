@@ -5,7 +5,7 @@ import { to } from "evt";
 
 type Constructor<A extends any[] = any[], T = any> = new (...args: A) => T;
 
-export function EventEmitterIshMixin<
+export function EventEmitterishMixin<
     EventTypes extends [string, any],
     TBase extends Constructor,
     >(
