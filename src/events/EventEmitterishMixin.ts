@@ -2,27 +2,31 @@
 import type { Evt } from "evt";
 import { to } from "evt";
 
-
-type Constructor<A extends any[] = any[], T = any> = new (...args: A) => T;
-
 export function EventEmitterishMixin<
     EventTypes extends [string, any],
-    TBase extends Constructor,
-    >(
-        Base: TBase,
-        getEvt: (
-            constructorArg: TBase extends Constructor<infer U, any> ? U : never,
-            instance: TBase extends Constructor<any, infer U> ? U : never
-        ) => Evt<EventTypes>
-    ) {
-    return class EventEmitterish extends Base {
+    TBase extends (new (...args: any[]) => {})
+>(
+    Base: TBase,
+    getEvt: (params: {
+        constructorArgs: ConstructorParameters<TBase>,
+        instance: InstanceType<TBase>
+    }) => Evt<EventTypes>
+) {
 
-        //private readonly evtProxy; /*: Evt<EventTypes>;*/
+    const evtByInstance = new WeakMap<{}, Evt<EventTypes>>();
+
+    return class EventEmitterish extends Base {
 
         constructor(...args: any[]) {
             super(...args);
 
-            this.evtProxy = getEvt(args as any, this as any);
+            evtByInstance.set(
+                this,
+                getEvt({
+                    "constructorArgs": args as any,
+                    "instance": this as any
+                })
+            );
 
         }
 
@@ -30,7 +34,7 @@ export function EventEmitterishMixin<
             id: K,
             callback: (event: T extends readonly [K, infer U] ? U : never) => void
         ): void {
-            this.evtProxy.$attach(to(id), callback as any);
+            evtByInstance.get(this)!.$attach(to(id), callback as any);
         }
 
         /** 
@@ -41,7 +45,7 @@ export function EventEmitterishMixin<
             id: K,
             event: T extends readonly [K, infer U] ? U : never
         ): Promise<void> {
-            return this.evtProxy.postAndWait([id, event] as any);
+            return evtByInstance.get(this)!.postAndWait([id, event] as any);
         }
 
     };
