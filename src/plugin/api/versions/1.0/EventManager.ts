@@ -4,13 +4,15 @@ import { EventEmitterishMixin } from "../../../../events/EventEmitterishMixin";
 
 type EventTypes = CurrentVersionEventTypes;
 
+class EventManagerWithoutEventEmitterishMethods {
+
+    constructor(server: Prismarine) { }
+
+}
+
 const EventManager = EventEmitterishMixin(
-    class {
-
-        constructor(server: Prismarine) { }
-
-    },
-    ([server]) => server.getEventManager()
+    EventManagerWithoutEventEmitterishMethods,
+    ({ constructorArgs: [server] }) => server.getEventManager()
         .pipe((data): [EventTypes] | null => {
 
             /*
@@ -19,7 +21,6 @@ const EventManager = EventEmitterishMixin(
             API v1.0
             See: https://gist.github.com/garronej/84dddc6dad77d9fd0ce5608148bc59c4
             */
-
             return [data];
 
         })

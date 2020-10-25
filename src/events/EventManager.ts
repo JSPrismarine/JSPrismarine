@@ -23,23 +23,17 @@ export type EventTypes =
     ['playerMove', PlayerMoveEvent];
 
 
+class EventManagerWithoutEventEmitterishMethods extends Evt<EventTypes> {
+
+    constructor(private readonly server: Prismarine) {
+        super();
+    }
+
+}
+
 export const EventManager = EventEmitterishMixin(
-    class extends Evt<EventTypes> {
-
-        constructor(server: Prismarine) {
-            super();
-        }
-
-    },
-    (...[, instance]) => instance
+    EventManagerWithoutEventEmitterishMethods,
+    ({ instance }) => instance
 );
 
 export type EventManager = InstanceType<typeof EventManager>;
-
-
-
-
-
-
-
-
