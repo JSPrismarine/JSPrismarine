@@ -1,10 +1,10 @@
 import type Prismarine from "../../../../Prismarine";
 import type { EventTypes as CurrentVersionEventTypes } from "../../../../events/EventManager";
-import { EventEmitterIshMixin } from "../../../../events/EventEmitterishMixin";
+import { EventEmitterishMixin } from "../../../../events/EventEmitterishMixin";
 
 type EventTypes = CurrentVersionEventTypes;
 
-const EventManager = EventEmitterIshMixin(
+const EventManager = EventEmitterishMixin(
     class {
 
         constructor(server: Prismarine) { }

@@ -9,7 +9,7 @@ import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
 import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
-import { EventEmitterIshMixin } from "./EventEmitterishMixin";
+import { EventEmitterishMixin } from "./EventEmitterishMixin";
 
 export type EventTypes =
     ['raknetConnect', RaknetConnectEvent] |
@@ -23,7 +23,7 @@ export type EventTypes =
     ['playerMove', PlayerMoveEvent];
 
 
-export const EventManager = EventEmitterIshMixin(
+export const EventManager = EventEmitterishMixin(
     class extends Evt<EventTypes> {
 
         constructor(server: Prismarine) {
