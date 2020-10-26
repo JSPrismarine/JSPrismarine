@@ -67,7 +67,7 @@ export default class GamemodeCommand extends Command {
             if (mode === Gamemode.Creative)
                 target.sendCreativeContents();
 
-            sender.sendMessage(`Set ${target.name}'s game mode to ${Gamemode.getGamemodeName(mode)} Mode`);
+            sender.sendMessage(`Set ${target.getUsername()}'s game mode to ${Gamemode.getGamemodeName(mode)} Mode`);
             return target.sendMessage(`Your game mode has been updated to ${Gamemode.getGamemodeName(mode)} Mode`);
         } else if (args.length > 1 && typeof args[1] === 'number') {
             return sender.sendMessage('§cNo player was found');

@@ -56,12 +56,13 @@ export default class Player extends Entity {
     /** @type {Map<Number, Inventory>} */
     windows = new Map()
 
-    /** @type {string} */
-    name: string = ''
-    /** @type {string} */
-    locale: string = ''
-    /** @type {number} */
-    randomId: number = 0
+    username = {
+        prefix: '<',
+        suffix: '>',
+        name: ''
+    };
+    locale: string = '';
+    randomId: number = 0;
 
     /** @type {string} */
     uuid: string | null = null
@@ -120,6 +121,15 @@ export default class Player extends Entity {
 
         // TODO: only set to default gamemode if there doesn't exist any save data for the user
         this.gamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
+
+        // Handle chat messages
+        server.getEventManager().on('chat', (evt) => {
+            if (evt.cancelled)
+                return;
+
+            // TODO: respect channel
+            this.sendMessage(evt.getChat().getFormattedMessage());
+        });
     }
 
     public async update(tick: number) {
@@ -431,7 +441,7 @@ export default class Player extends Entity {
         let entry = new PlayerListEntry();
         entry.uuid = UUID.fromString(this.uuid);
         entry.uniqueEntityId = this.runtimeId;
-        entry.name = this.name;
+        entry.name = this.getUsername();
         entry.xuid = this.xuid;
         entry.platformChatId = '';  // TODO: read this value from StartGamePacket
         entry.buildPlatform = -1;  // TODO: read also this
@@ -470,7 +480,7 @@ export default class Player extends Entity {
             let entry = new PlayerListEntry();
             entry.uuid = UUID.fromString(player.uuid);
             entry.uniqueEntityId = player.runtimeId;
-            entry.name = player.name;
+            entry.name = player.getUsername();
             entry.xuid = player.xuid;
             entry.platformChatId = '';  // TODO: read this value from StartGamePacket
             entry.buildPlatform = 0;  // TODO: read also this
@@ -484,13 +494,12 @@ export default class Player extends Entity {
 
     /**
      * Spawn the player to another player
-     * @param {Player} player 
      */
     public sendSpawn(player: Player) {
         let pk = new AddPlayerPacket();
         pk.uuid = UUID.fromString(this.uuid);
         pk.runtimeEntityId = this.runtimeId;
-        pk.name = this.name;
+        pk.name = this.getUsername();
 
         pk.positionX = this.getX();
         pk.positionY = this.getY();
@@ -565,5 +574,12 @@ export default class Player extends Entity {
 
     public getAddress() {
         return this.#address;
+    }
+
+    public getUsername() {
+        return this.username.name;
+    }
+    public getFormattedUsername() {
+        return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
     }
 }

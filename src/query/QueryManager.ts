@@ -94,7 +94,7 @@ export default class QueryManager {
                         res.writeByte(0);
                         // End padding
 
-                        res.append(Buffer.from(`${server.getOnlinePlayers().map(player => `${player.name}\0`)}\0`, 'binary'));
+                        res.append(Buffer.from(`${server.getOnlinePlayers().map(player => `${player.getUsername()}\0`)}\0`, 'binary'));
                         this.server?.send(res.getBuffer(), info.port, info.address);
                     }
                     break;
