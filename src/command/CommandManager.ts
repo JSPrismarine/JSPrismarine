@@ -68,7 +68,7 @@ export default class CommandManager {
         }
 
         // TODO: emit to global.ops
-        const event = new ChatEvent(new Chat(sender, `§b${sender.getUsername()}§r issued server command: §b${commandInput}§r!`));
+        const event = new ChatEvent(new Chat(this.server.getConsole(), `[§o§b${sender.getUsername()}§r§o issued server command: §b${commandInput}§r§o!]§r`));
         this.server.getEventManager().emit('chat', event);
 
         const commandParts: Array<any> = commandInput.substr(1).split(' ');  // Name + arguments array
