@@ -6,11 +6,8 @@ import type Prismarine from "../Prismarine";
 import type World from "../world/world";
 
 export default class Console extends Player {
-    private server: Prismarine;
-
     constructor(server: Prismarine) {
         super(null, null, null as unknown as World, server);
-        this.server = server;
         this.username = {
             prefix: '[',
             suffix: ']',
@@ -22,16 +19,16 @@ export default class Console extends Player {
         let rl = readline.createInterface({ input: process.stdin });
         rl.on('line', (input: string) => {
             if ((input.startsWith('/')))
-                return (this.server.getCommandManager() as any).dispatchCommand(
+                return (this.getServer().getCommandManager() as any).dispatchCommand(
                     this, input
                 );
 
-            const event = new ChatEvent(new Chat(this, input));
-            return this.server.getEventManager().emit('chat', event);
+            const event = new ChatEvent(new Chat(this, `${this.getFormattedUsername()} ${input}`));
+            return this.getServer().getEventManager().emit('chat', event);
         });
     }
 
     public sendMessage(message: string, xuid = '', needsTranslation = false) {
-        this.server.getLogger().info(message);
+        this.getServer().getLogger().info(message);
     }
 };

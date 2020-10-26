@@ -1,11 +1,12 @@
 import type Player from "../player";
+import type Console from "../player/Console";
 
 export default class Chat {
     private channel: string;
-    private sender: Player;
+    private sender: Player | Console;
     private message: string;
 
-    constructor(sender: Player, message: string, channel = 'global.everyone') {
+    constructor(sender: Player | Console, message: string, channel = 'global.everyone') {
         this.sender = sender;
         this.channel = channel;
         this.message = message;
@@ -19,9 +20,5 @@ export default class Chat {
     }
     public getMessage() {
         return this.message;
-    }
-
-    public getFormattedMessage() {
-        return `${this.getSender().getFormattedUsername()} ${this.getMessage()}`;
     }
 };

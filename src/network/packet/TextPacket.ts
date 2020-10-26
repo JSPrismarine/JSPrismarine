@@ -1,18 +1,17 @@
-const DataPacket = require('./Packet').default;
-const Identifiers = require('../Identifiers').default;
-const TextType = require('../type/text-type');
+import Identifiers from "../Identifiers";
+import TextType from "../type/TextType";
+import DataPacket from "./Packet";
 
-
-class TextPacket extends DataPacket {
+export default class TextPacket extends DataPacket {
     static NetID = Identifiers.TextPacket
 
-    type
-    needsTranslation 
-    sourceName
-    message
-    parameters = []
-    xuid
-    platformChatId = ''
+    type: TextType = TextType.Chat;
+    needsTranslation = false;
+    sourceName = '';
+    message = '';
+    parameters: Array<string> = [];
+    xuid = '';
+    platformChatId = '';
 
     decodePayload() {
         this.type = this.readByte();
@@ -30,7 +29,7 @@ class TextPacket extends DataPacket {
             case TextType.Json:
                 this.message = this.readString();
                 break;
-                
+
             case TextType.Translation:
             case TextType.Popup:
             case TextType.JukeboxPopup:
@@ -48,7 +47,7 @@ class TextPacket extends DataPacket {
 
     encodePayload() {
         this.writeByte(this.type);
-        this.writeBool(this.needsTranslation);
+        this.writeBool(+this.needsTranslation);
 
         switch (this.type) {
             case TextType.Chat:
@@ -62,7 +61,7 @@ class TextPacket extends DataPacket {
             case TextType.Json:
                 this.writeString(this.message);
                 break;
-                
+
             case TextType.Translation:
             case TextType.Popup:
             case TextType.JukeboxPopup:
@@ -77,5 +76,4 @@ class TextPacket extends DataPacket {
         this.writeString(this.xuid);
         this.writeString(this.platformChatId);
     }
-}
-module.exports =  TextPacket;
+};

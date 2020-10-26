@@ -18,7 +18,7 @@ class MeCommand extends Command {
         }
 
         let message = args.join(' ');
-        let messageToSend = `*${sender.name}: ${message}`;
+        let messageToSend = `*${sender.getUsername()}: ${message}`;
 
         sender.getServer().getLogger().info(messageToSend);
         for (let player of sender.getServer().getOnlinePlayers()) {

@@ -6,7 +6,10 @@ import World from "../world/world";
 import Gamemode from "../world/gamemode";
 import MovementType from "../network/type/MovementType";
 import Block from "../block";
-import Vector3 from "../math/Vector3";
+import DisconnectPacket from "../network/packet/DisconnectPacket";
+import type Connection from "../network/raknet/connection";
+import TextType from "../network/type/TextType";
+import TextPacket from "../network/packet/TextPacket";
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
@@ -19,8 +22,6 @@ const PlayerListAction = require('../network/type/player-list-action');
 const PlayerListEntry = require('../network/type/player-list-entry');
 const AddPlayerPacket = require('../network/packet/add-player');
 const MovePlayerPacket = require('../network/packet/move-player');
-const TextPacket = require('../network/packet/text');
-const TextType = require('../network/type/text-type');
 const RemoveActorPacket = require('../network/packet/remove-actor');
 const UpdateAttributesPacket = require('../network/packet/update-attributes');
 const SetActorDataPacket = require('../network/packet/set-actor-data');
@@ -29,7 +30,6 @@ const AvailableCommandsPacket = require('../network/packet/available-commands');
 const SetGamemodePacket = require('../network/packet/set-gamemode');
 const CreativeContentPacket = require('../network/packet/creative-content-packet');
 const NetworkChunkPublisherUpdatePacket = require('../network/packet/network-chunk-publisher-update');
-const DisconnectPacket = require('../network/packet/disconnect-packet');
 const SetTimePacket = require('../network/packet/set-time');
 const PlayerInventory = require('../inventory/player-inventory');
 const InventoryContentPacket = require('../network/packet/inventory-content-packet');
@@ -44,12 +44,9 @@ export enum PlayerPermission {
 };
 
 export default class Player extends Entity {
-    /** @type {Connection} */
-    #connection: any
-    /** @type {Prismarine} */
-    #server: Prismarine
-    /** @type {InetAddress} */
-    #address: any
+    private connection: Connection;
+    private server: Prismarine;
+    private address: any;
 
     /** @type {PlayerInventory} */
     inventory = new PlayerInventory()
@@ -115,9 +112,9 @@ export default class Player extends Entity {
      */
     constructor(connection: any, address: any, world: World, server: Prismarine) {
         super(world);
-        this.#connection = connection;
-        this.#address = address;
-        this.#server = server;
+        this.connection = connection;
+        this.address = address;
+        this.server = server;
 
         // TODO: only set to default gamemode if there doesn't exist any save data for the user
         this.gamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
@@ -128,7 +125,7 @@ export default class Player extends Entity {
                 return;
 
             // TODO: respect channel
-            this.sendMessage(evt.getChat().getFormattedMessage());
+            this.sendMessage(evt.getChat().getMessage());
         });
     }
 
@@ -381,7 +378,7 @@ export default class Player extends Entity {
      * @param {boolean} needsTranslation
      */
     public sendMessage(message: string, xuid = '', needsTranslation = false) {
-        let pk = new TextPacket();
+        let pk = new TextPacket(this.server);
         pk.type = TextType.Raw;
         pk.message = message;
         pk.needsTranslation = needsTranslation;
@@ -538,18 +535,16 @@ export default class Player extends Entity {
         this.sendDataPacket(pk);
     }
 
-    /**
-     * @param {string} reason 
-     */
     public kick(reason = 'unknown reason') {
-        let pk = new DisconnectPacket();
-        pk.hideDiscconnectionWindow = false;
+        let pk = new DisconnectPacket(this.server);
+        pk.hideDisconnectionWindow = false;
         pk.message = reason;
-        this.sendDataPacket(pk);
+        this.sendDataPacket(pk, false, true);
+        this.connection.disconnect(reason);
     }
 
     // To refactor
-    public sendDataPacket(packet: any, _needACK = false, _immediate = false) {
+    async sendDataPacket(packet: any, _needACK = false, _immediate = false) {
         let batch = new BatchPacket();
         batch.addPacket(packet);
         batch.encode();
@@ -559,21 +554,21 @@ export default class Player extends Entity {
         sendPacket.reliability = 0;
         sendPacket.buffer = batch.buffer;
 
-        this.#connection.addEncapsulatedToQueue(sendPacket);
+        this.connection.addEncapsulatedToQueue(sendPacket);
     }
 
     // Return all the players in the same chunk
     public getPlayersInChunk() {
-        return this.#server.getOnlinePlayers()
+        return this.server.getOnlinePlayers()
             .filter(player => player.currentChunk === this.currentChunk);
     }
 
     public getServer() {
-        return this.#server;
+        return this.server;
     }
 
     public getAddress() {
-        return this.#address;
+        return this.address;
     }
 
     public getUsername() {

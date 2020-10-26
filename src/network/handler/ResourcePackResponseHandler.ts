@@ -1,3 +1,6 @@
+import Chat from "../../chat/Chat";
+import ChatEvent from "../../events/chat/ChatEvent";
+import PlayerSpawnEvent from "../../events/player/PlayerSpawnEvent";
 import type Player from "../../player";
 import type Prismarine from "../../Prismarine";
 import type ResourcePackResponsePacket from "../packet/resource-pack-response";
@@ -21,6 +24,12 @@ export default class ResourcePackResponseHandler {
             pk = new ResourcePackStackPacket();
             player.sendDataPacket(pk);
         } else if (packet.status === ResourcePackStatus.Completed) {
+            // Emit playerSpawn event
+            const spawnEvent = new PlayerSpawnEvent(player);
+            await server.getEventManager().post(['playerSpawn', spawnEvent]);
+            if (spawnEvent.cancelled)
+                return;
+
             pk = new StartGamePacket();
             pk.entityId = player.runtimeId;
             pk.runtimeEntityId = player.runtimeId;
@@ -71,6 +80,10 @@ export default class ResourcePackResponseHandler {
             if (server.getOnlinePlayers().length > 1) {
                 player.sendPlayerList();
             }
+
+            // Announce connection
+            const chatSpawnEvent = new ChatEvent(new Chat(server.getConsole(), `§e${player.getUsername()} joined the game`));
+            server.getEventManager().emit('chat', chatSpawnEvent);
         }
     }
 }
