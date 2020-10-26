@@ -22,6 +22,8 @@ import Identifiers from './network/Identifiers';
 import type InetAddress from './network/raknet/utils/InetAddress';
 import ChatManager from './chat/ChatManager';
 import Console from './player/Console';
+import ChatEvent from './events/chat/ChatEvent';
+import Chat from './chat/Chat';
 
 export default class Prismarine {
     private raknet: any;
@@ -173,6 +175,9 @@ export default class Prismarine {
                     }
                     player.getWorld().removePlayer(player);
 
+                    // Announce disconnection
+                    const event = new ChatEvent(new Chat(this.getConsole(), `§e${player.getUsername()} left the game`));
+                    this.getEventManager().emit('chat', event);
                 }
                 this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
                 this.raknet.getName().setOnlinePlayerCount(this.players.size);
@@ -317,7 +322,7 @@ export default class Prismarine {
     async kill() {
         // Kick all online players
         for (let player of this.getOnlinePlayers()) {
-            player.kick('Server closed.');
+            await player.kick('Server closed.');
         }
 
         // Save all worlds
