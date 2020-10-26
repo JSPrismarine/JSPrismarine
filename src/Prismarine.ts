@@ -20,12 +20,15 @@ import Listener from './network/raknet/Listener';
 import BatchPacket from './network/packet/batch';
 import Identifiers from './network/Identifiers';
 import type InetAddress from './network/raknet/utils/InetAddress';
+import ChatManager from './chat/ChatManager';
+import Console from './player/Console';
 
 export default class Prismarine {
     private raknet: any;
     private logger: LoggerBuilder;
     private config: Config;
     private tps: number = 20;
+    private console: Console;
 
     private players: Map<string, Player> = new Map();
     private telemetryManager: TelemetryManager;
@@ -37,6 +40,7 @@ export default class Prismarine {
     private itemManager: ItemManager;
     private blockManager: BlockManager;
     private queryManager: QueryManager;
+    private chatManager: ChatManager;
 
     static instance: null | Prismarine = null;
 
@@ -49,6 +53,7 @@ export default class Prismarine {
         this.logger = logger;
         this.config = config;
         this.telemetryManager = new TelemetryManager(this);
+        this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
@@ -56,6 +61,7 @@ export default class Prismarine {
         this.commandManager = new CommandManager(this);
         this.pluginManager = new PluginManager(this);
         this.queryManager = new QueryManager(this);
+        this.chatManager = new ChatManager(this);
         Prismarine.instance = this;
     }
 
@@ -284,8 +290,8 @@ export default class Prismarine {
      */
     getPlayerByName(name: string): Player | null {
         for (let player of this.players.values()) {
-            if (player.name.toLowerCase().startsWith(name.toLowerCase()) ||
-                player.name.toLowerCase() === name.toLowerCase()) return player;
+            if (player.getUsername().toLowerCase().startsWith(name.toLowerCase()) ||
+                player.getUsername().toLowerCase() === name.toLowerCase()) return player;
         }
 
         return null;
@@ -299,7 +305,7 @@ export default class Prismarine {
      */
     getPlayerByExactName(name: string): Player | null {
         for (let player of this.players.values()) {
-            if (player.name === name) return player;
+            if (player.getUsername() === name) return player;
         }
 
         return null;
@@ -392,6 +398,13 @@ export default class Prismarine {
      */
     getEventManager(): EventManager {
         return this.eventManager;
+    }
+
+    /**
+     * Returns the chat manager
+     */
+    getChatManager(): ChatManager {
+        return this.chatManager;
     }
 
     /**
