@@ -11,7 +11,7 @@ import PluginManager from "./plugin/PluginManager";
 import type LoggerBuilder from "./utils/Logger";
 import TelemetryManager from "./telemetry/TelemeteryManager";
 import pkg from '../package.json';
-import EventManager from './events/EventManager';
+import { EventManager } from './events/EventManager';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import PlayerConnectEvent from './events/player/PlayerConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';

@@ -9,8 +9,9 @@ import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
 import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
+import { EventEmitterishMixin } from "./EventEmitterishMixin";
 
-type EventTypes =
+export type EventTypes =
     ['raknetConnect', RaknetConnectEvent] |
     ['raknetDisconnect', RaknetDisconnectEvent] |
     ['raknetEncapsulatedPacket', RaknetEncapsulatedPacketEvent] |
@@ -21,29 +22,18 @@ type EventTypes =
     ['playerDespawn', PlayerDespawnEvent] |
     ['playerMove', PlayerMoveEvent];
 
-export default class EventManager extends Evt<EventTypes> {
 
-    constructor(server: Prismarine) {
+class EventManagerWithoutEventEmitterishMethods extends Evt<EventTypes> {
+
+    constructor(private readonly server: Prismarine) {
         super();
     }
 
-    public on<T extends EventTypes, K extends T[0]>(
-        id: K,
-        callback: (event: T extends readonly [K, infer U] ? U : never) => void
-    ) {
-        this.$attach(to(id), callback as any);
-    }
+}
 
-    /** 
-     * Returns a promise that resolve after 
-     * each async callback have resolved.
-     */
-    public emit<T extends EventTypes, K extends T[0]>(
-        id: K,
-        event: T extends readonly [K, infer U] ? U : never
-    ): Promise<void> {
-        return this.postAndWait([id, event] as any);
-    }
+export const EventManager = EventEmitterishMixin(
+    EventManagerWithoutEventEmitterishMethods,
+    ({ instance }) => instance
+);
 
-};
-
+export type EventManager = InstanceType<typeof EventManager>;
