@@ -414,6 +414,10 @@ export default class Prismarine {
         return this.config;
     }
 
+    getConsole() {
+        return this.console;
+    }
+
     /**
      * Returns this Prismarine instance
      */

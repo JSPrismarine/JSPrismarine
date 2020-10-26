@@ -15,7 +15,7 @@ class LoginHandler {
      * @param {Player} player 
      */
     static handle(packet, _server, player) {
-        player.name = packet.displayName;
+        player.username.name = packet.displayName;
         player.locale = packet.languageCode;
         player.randomId = packet.clientRandomId;
         player.uuid = packet.identity;
