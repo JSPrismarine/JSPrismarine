@@ -1,3 +1,5 @@
+import Chat from "../chat/Chat";
+import ChatEvent from "../events/chat/ChatEvent";
 import Player from "../player";
 import Prismarine from "../Prismarine";
 import Command from "./";
@@ -66,7 +68,8 @@ export default class CommandManager {
         }
 
         // TODO: emit to global.ops
-        sender.getServer().getLogger().info(`§b${sender.getFormattedUsername}§r issued server command: §b${commandInput}§r!`);
+        const event = new ChatEvent(new Chat(sender, `§b${sender.getUsername()}§r issued server command: §b${commandInput}§r!`));
+        this.server.getEventManager().emit('chat', event);
 
         const commandParts: Array<any> = commandInput.substr(1).split(' ');  // Name + arguments array
         const namespace: string = commandParts[0].split(':').length === 2 ? commandParts[0].split(':')[0] : null;
