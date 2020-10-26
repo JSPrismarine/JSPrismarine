@@ -1,24 +1,15 @@
-import type Player from "../../player";
+import type Chat from "../../chat/Chat";
 import Event from "../Event";
 
-/**
- * Fired right just after player spawns into the world
- */
 export default class ChatEvent extends Event {
-    private sender;
-    private message;
+    private chat;
 
-    constructor(sender: Player, message: string) {
+    constructor(chat: Chat) {
         super();
-        this.sender = sender;
-        this.message = message;
+        this.chat = chat;
     }
 
-    getSender(): Player {
-        return this.sender;
-    }
-
-    getMessage(): string {
-        return this.message;
+    getChat(): Chat {
+        return this.chat;
     }
 };

@@ -11,7 +11,7 @@ export default class VersionCommand extends Command {
     }
 
     /**
-     * @param {ConsoleSender|Player} sender 
+     * @param {Player} sender 
      * @param {Array} args 
      */
     public execute(sender: Player, args: Array<any>): void {

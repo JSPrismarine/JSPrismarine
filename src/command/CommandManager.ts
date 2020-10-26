@@ -65,7 +65,8 @@ export default class CommandManager {
             sender.sendMessage('Received an invalid command!');
         }
 
-        sender.getServer().getLogger().info(`§b${sender.name}§r issued server command: §b${commandInput}§r!`);
+        // TODO: emit to global.ops
+        sender.getServer().getLogger().info(`§b${sender.getFormattedUsername}§r issued server command: §b${commandInput}§r!`);
 
         const commandParts: Array<any> = commandInput.substr(1).split(' ');  // Name + arguments array
         const namespace: string = commandParts[0].split(':').length === 2 ? commandParts[0].split(':')[0] : null;
