@@ -50,10 +50,10 @@ export default class ResourcePackResponseHandler {
             player.sendAttributes(player.attributes.getDefaults());
 
             server.getLogger().info(
-                `§b${player.name}§f is attempting to join with id §b${player.runtimeId}§f from ${player.getAddress().address}:${player.getAddress().port}`
+                `§b${player.getUsername()}§f is attempting to join with id §b${player.runtimeId}§f from ${player.getAddress().address}:${player.getAddress().port}`
             );
 
-            player.setNameTag(player.name);
+            player.setNameTag(player.getUsername());
             // TODO: always visible nametag
             player.sendMetadata();
 

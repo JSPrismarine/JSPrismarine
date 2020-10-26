@@ -1,4 +1,4 @@
-import { message } from "git-rev-sync";
+import Chat from "../../chat/Chat";
 import ChatEvent from "../../events/chat/ChatEvent";
 import type Player from "../../player";
 import type Prismarine from "../../Prismarine";
@@ -11,19 +11,7 @@ export default class TextHandler {
 
     static async handle(packet: TextPacket, server: Prismarine, player: Player) {
         // Emit chat event
-        const event = new ChatEvent(player, packet.message);
+        const event = new ChatEvent(new Chat(player, packet.message));
         await server.getEventManager().post(['chat', event]);
-        if (event.cancelled)
-            return;
-
-        let vanillaFormat = `<${packet.sourceName}> ${packet.message}`;
-        server.getLogger().info(vanillaFormat);
-
-        // Broadcast chat message to every player
-        if (packet.type == TextType.Chat) {
-            for (let onlinePlayer of server.getOnlinePlayers()) {
-                onlinePlayer.sendMessage(vanillaFormat, packet.xuid);
-            }
-        }
     }
 }
