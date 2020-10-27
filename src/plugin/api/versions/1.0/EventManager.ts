@@ -1,6 +1,7 @@
 import type Prismarine from "../../../../Prismarine";
 import type { EventTypes as CurrentVersionEventTypes } from "../../../../events/EventManager";
 import { EventEmitterishMixin } from "../../../../events/EventEmitterishMixin";
+import type { EventEmitterish } from "../../../../events/EventEmitterishMixin";
 import { Evt, compose } from "evt";
 import type { Operator } from "evt";
 
@@ -14,13 +15,35 @@ const currentApiToTargetApi: Operator.fλ<CurrentVersionEventTypes, EventTypes> 
 const targetApiToCurrentApi: Operator.fλ<EventTypes, CurrentVersionEventTypes> =
     data => [data];
 
-class EventManagerWithoutEventEmitterishMethods {
+class EventManagerWithoutEventEmitterishMethods<CustomEventTypes extends [string, any]> {
 
-    constructor(server: Prismarine) { }
+    constructor(private server: Prismarine) { }
+
+    private static readonly CustomEventManager = EventEmitterishMixin(
+        class { 
+            constructor(_server: Prismarine){ }
+        },
+        ({ constructorArgs: [server] }) => Evt.asPostable(server.getEventManager().evtThirdParty)
+    );
+
+    getCustomEventManager(): EventEmitterish<CustomEventTypes> {
+        return new EventManagerWithoutEventEmitterishMethods.CustomEventManager(this.server);
+    }
 
 }
 
-const EventManager = EventEmitterishMixin(
+/*
+ * Here we need to extend again, just to be able to use EventManager both as a type and as 
+ * a class constructor. Example:
+ * 
+ * import EventManager from "./EventManager";
+ * const em: EventManager<["foo", number]> = new EventManager();
+ * 
+ * In src/events/EventManager.ts we didn't had to do that, instead we overloaded the constructor
+ * with the type alias InstanceType<typeof EventManager>. The reason we can't do the same
+ * here is that InstanceType<> 'swallows' the type parameter.
+ */
+export default class EventManager<CustomEventTypes extends [string, any]> extends EventEmitterishMixin(
     EventManagerWithoutEventEmitterishMethods,
     ({ constructorArgs: [server] }) => {
 
@@ -46,8 +69,4 @@ const EventManager = EventEmitterishMixin(
 
         return evtProxy;
     }
-);
-
-type EventManager = InstanceType<typeof EventManager>;
-
-export default EventManager;
+)<CustomEventTypes> { }

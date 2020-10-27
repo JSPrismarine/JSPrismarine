@@ -11,12 +11,10 @@ import PlayerManager from './PlayerManager';
 export const PLUGIN_API_VERSION = '1.0';
 
 export default class PluginApi extends PluginApiVersion {
-    private server: Prismarine;
     private pkg;
 
-    constructor(server: Prismarine, pkg: any) {
+    constructor(private server: Prismarine, pkg: any) {
         super(PLUGIN_API_VERSION);
-        this.server = server;
         this.pkg = pkg;
     };
     public async onInit() { }
@@ -51,11 +49,19 @@ export default class PluginApi extends PluginApiVersion {
         return new Server(this.server);
     }
 
+    private eventManager: EventManager<[string, any]> | undefined = undefined;
+
     /**
      * returns an instance of the event manager
      */
-    public getEventManager(): EventManager {
-        return new EventManager(this.server);
+    public getEventManager<CustomEventTypes extends [string, any] = [string, any]>(): EventManager<CustomEventTypes> {
+
+        if (this.eventManager === undefined) {
+            this.eventManager = new EventManager(this.server);
+        }
+
+        return this.eventManager;
+
     }
 
     /**
