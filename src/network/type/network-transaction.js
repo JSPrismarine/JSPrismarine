@@ -1,5 +1,9 @@
 const NetworkTransactionSource = require('../type/network-transaction-source');
+<<<<<<< HEAD
 const PacketBinaryStream = require('../PacketBinaryStream');
+=======
+const PacketBinaryStream = require('../PacketBinaryStream').default;
+>>>>>>> dd22f1420a92b9577274b6fd1afbed531180b90e
 
 
 class NetworkTransaction {

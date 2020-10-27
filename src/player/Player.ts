@@ -1,38 +1,40 @@
-import type Prismarine from "../Prismarine";
-import type Item from "../item/";
-import type Chunk from "../world/chunk/chunk";
+import Prismarine from "../Prismarine";
+import Item from "../item/";
+import Chunk from "../world/chunk/chunk";
 import Entity from "../entity/entity";
+import World from "../world/World";
 import Gamemode from "../world/Gamemode";
+import MovementType from "../network/type/MovementType";
+import Block from "../block";
+import DisconnectPacket from "../network/packet/DisconnectPacket";
+import type Connection from "../network/raknet/connection";
+import TextType from "../network/type/TextType";
+import TextPacket from "../network/packet/TextPacket";
 
-import EncapsulatedPacket from '@jsprismarine/raknet/protocol/encapsulated_packet';
-import PlayStatusPacket from '../network/packet/play-status';
-import BatchPacket from "../network/packet/batch";
-import ChunkRadiusUpdatedPacket from '../network/packet/chunk-radius-updated';
-import LevelChunkPacket from "../network/packet/level-chunk";
-import UUID from '../utils/UUID';
-import PlayerListPacket from '../network/packet/player-list';
-import PlayerListAction from '../network/type/player-list-action';
-import PlayerListEntry from '../network/type/PlayerListEntry';
-import AddPlayerPacket from '../network/packet/add-player';
-import MovePlayerPacket from '../network/packet/move-player';
-import MovementType from '../network/type/movement-type';
-import TextPacket from '../network/packet/text';
-import TextType from '../network/type/text-type';
-import RemoveActorPacket from '../network/packet/remove-actor';
-import UpdateAttributesPacket from '../network/packet/update-attributes';
-import SetActorDataPacket from '../network/packet/set-actor-data';
-import CoordinateUtils from '../world/CoordinateUtils';
-import AvailableCommandsPacket from '../network/packet/available-commands';
-import SetGamemodePacket from '../network/packet/set-gamemode';
-import CreativeContentPacket from '../network/packet/creative-content-packet';
-import NetworkChunkPublisherUpdatePacket from '../network/packet/network-chunk-publisher-update';
-import DisconnectPacket from '../network/packet/disconnect-packet';
-import SetTimePacket from '../network/packet/set-time';
-import PlayerInventory from '../inventory/player-inventory';
-import InventoryContentPacket from '../network/packet/inventory-content-packet';
-import MobEquipmentPacket from '../network/packet/mob-equipment-packet';
-import CreativeContentEntry from '../network/type/CreativeContentEntry';
-import type World from "../world/World";
+const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
+const PlayStatusPacket = require('../network/packet/play-status');
+const BatchPacket = require("../network/packet/batch");
+const ChunkRadiusUpdatedPacket = require('../network/packet/chunk-radius-updated');
+const LevelChunkPacket = require("../network/packet/level-chunk");
+const UUID = require('../utils/uuid');
+const PlayerListPacket = require('../network/packet/player-list');
+const PlayerListAction = require('../network/type/player-list-action');
+const PlayerListEntry = require('../network/type/player-list-entry');
+const AddPlayerPacket = require('../network/packet/add-player');
+const MovePlayerPacket = require('../network/packet/move-player');
+const RemoveActorPacket = require('../network/packet/remove-actor');
+const UpdateAttributesPacket = require('../network/packet/update-attributes');
+const SetActorDataPacket = require('../network/packet/set-actor-data');
+const CoordinateUtils = require('../world/coordinate-utils');
+const AvailableCommandsPacket = require('../network/packet/available-commands');
+const SetGamemodePacket = require('../network/packet/set-gamemode');
+const CreativeContentPacket = require('../network/packet/creative-content-packet');
+const NetworkChunkPublisherUpdatePacket = require('../network/packet/network-chunk-publisher-update');
+const SetTimePacket = require('../network/packet/set-time');
+const PlayerInventory = require('../inventory/player-inventory');
+const InventoryContentPacket = require('../network/packet/inventory-content-packet');
+const MobEquipmentPacket = require('../network/packet/mob-equipment-packet');
+const CreativeContentEntry = require('../network/type/creative-content-entry');
 
 export enum PlayerPermission {
     Visitor,
@@ -42,24 +44,22 @@ export enum PlayerPermission {
 };
 
 export default class Player extends Entity {
-    /** @type {Connection} */
-    #connection: any
-    /** @type {Prismarine} */
-    #server: Prismarine
-    /** @type {InetAddress} */
-    #address: any
+    private connection: Connection;
+    private server: Prismarine;
+    private address: any;
 
     /** @type {PlayerInventory} */
     inventory = new PlayerInventory()
     /** @type {Map<Number, Inventory>} */
     windows = new Map()
 
-    /** @type {string} */
-    name: string = ''
-    /** @type {string} */
-    locale: string = ''
-    /** @type {number} */
-    randomId: number = 0
+    username = {
+        prefix: '<',
+        suffix: '>',
+        name: ''
+    };
+    locale: string = '';
+    randomId: number = 0;
 
     /** @type {string} */
     uuid: string | null = null
@@ -99,9 +99,6 @@ export default class Player extends Entity {
     /** @type {Set<Chunk>} */
     chunkSendQueue = new Set()
 
-    /** @type {null|Vector3} */
-    breakingBlockPos = null  // temphack
-
     /** @type {null|Chunk} */
     currentChunk = null;
 
@@ -115,12 +112,21 @@ export default class Player extends Entity {
      */
     constructor(connection: any, address: any, world: World, server: Prismarine) {
         super(world);
-        this.#connection = connection;
-        this.#address = address;
-        this.#server = server;
+        this.connection = connection;
+        this.address = address;
+        this.server = server;
 
         // TODO: only set to default gamemode if there doesn't exist any save data for the user
         this.gamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
+
+        // Handle chat messages
+        server.getEventManager().on('chat', (evt) => {
+            if (evt.cancelled)
+                return;
+
+            // TODO: respect channel
+            this.sendMessage(evt.getChat().getMessage());
+        });
     }
 
     public async update(tick: number) {
@@ -216,10 +222,7 @@ export default class Player extends Entity {
         let unloaded = false;
 
         for (let hash of this.loadedChunks) {
-            let [xx, zz] = CoordinateUtils.decodePos(hash as string);
-            let x: number, z: number;
-            x = parseFloat(xx);
-            z = parseFloat(zz);
+            let [x, z] = CoordinateUtils.decodePos(hash);
 
             if (Math.abs(x - currentXChunk) > viewDistance ||
                 Math.abs(z - currentZChunk) > viewDistance) {
@@ -229,10 +232,8 @@ export default class Player extends Entity {
         }
 
         for (let hash of this.loadingChunks) {
-            let [xx, zz] = CoordinateUtils.decodePos(hash as string);
-            let x: number, z: number;
-            x = parseFloat(xx);
-            z = parseFloat(zz);
+            let [x, z] = CoordinateUtils.decodePos(hash);
+
             if (Math.abs(x - currentXChunk) > viewDistance ||
                 Math.abs(z - currentZChunk) > viewDistance) {
                 this.loadingChunks.delete(hash);
@@ -281,9 +282,9 @@ export default class Player extends Entity {
         ];
 
         // Sort based on numeric block ids and name
-        pk.entries = entries.sort((a, b) => a.id - b.id || a.meta - b.meta)
-            .filter(a => a.isPartOfCreativeInventory())
-            .map((block: any, index: number) => new CreativeContentEntry(index, block));
+        pk.entries = entries.filter(a => a.isPartOfCreativeInventory())
+            .sort((a, b) => a.id - b.id || a.meta - b.meta)
+            .map((block: Block | Item, index: number) => new CreativeContentEntry(index, block));
         this.sendDataPacket(pk);
     }
 
@@ -310,7 +311,7 @@ export default class Player extends Entity {
 
     public setGamemode(mode: number) {
         this.gamemode = mode;
-        
+
         let pk = new SetGamemodePacket();
         pk.gamemode = mode;
         this.sendDataPacket(pk);
@@ -318,9 +319,9 @@ export default class Player extends Entity {
 
     public sendNetworkChunkPublisher() {
         let pk = new NetworkChunkPublisherUpdatePacket();
-        pk.x = Math.floor(this.getX());
-        pk.y = Math.floor(this.getY());
-        pk.z = Math.floor(this.getZ());
+        pk.x = Math.floor(this.getX() as number);
+        pk.y = Math.floor(this.getY() as number);
+        pk.z = Math.floor(this.getZ() as number);
         pk.radius = this.viewDistance << 4;
         this.sendDataPacket(pk);
     }
@@ -377,7 +378,7 @@ export default class Player extends Entity {
      * @param {boolean} needsTranslation
      */
     public sendMessage(message: string, xuid = '', needsTranslation = false) {
-        let pk = new TextPacket();
+        let pk = new TextPacket(this.server);
         pk.type = TextType.Raw;
         pk.message = message;
         pk.needsTranslation = needsTranslation;
@@ -408,19 +409,19 @@ export default class Player extends Entity {
      * Broadcast the movement to a defined player
      * @param {Player} player 
      */
-    public broadcastMove(player: Player) {
+    public broadcastMove(player: Player, mode = MovementType.Normal) {
         let pk = new MovePlayerPacket();
         pk.runtimeEntityId = this.runtimeId;
 
         pk.positionX = this.getX();
         pk.positionY = this.getY();
         pk.positionZ = this.getZ();
-        
+
         pk.pitch = this.pitch;
         pk.yaw = this.yaw;
         pk.headYaw = this.headYaw;
 
-        pk.mode = MovementType.Normal;
+        pk.mode = mode;
 
         pk.onGround = this.onGround;
 
@@ -435,10 +436,10 @@ export default class Player extends Entity {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Add;
         let entry = new PlayerListEntry();
-        entry.uuid = UUID.fromString(this.uuid as string);
+        entry.uuid = UUID.fromString(this.uuid);
         entry.uniqueEntityId = this.runtimeId;
-        entry.name = this.name;
-        entry.xuid = this.xuid as string;
+        entry.name = this.getUsername();
+        entry.xuid = this.xuid;
         entry.platformChatId = '';  // TODO: read this value from StartGamePacket
         entry.buildPlatform = -1;  // TODO: read also this
         entry.skin = this.skin;
@@ -457,7 +458,7 @@ export default class Player extends Entity {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Remove;
         let entry = new PlayerListEntry();
-        entry.uuid = UUID.fromString(this.uuid as string);
+        entry.uuid = UUID.fromString(this.uuid);
         pk.entries.push(entry);
         for (let player of this.getServer().getOnlinePlayers()) {
             player.sendDataPacket(pk);
@@ -474,10 +475,10 @@ export default class Player extends Entity {
         for (let player of this.getServer().getOnlinePlayers()) {
             if (player === this) continue;
             let entry = new PlayerListEntry();
-            entry.uuid = UUID.fromString(player.uuid as string);
+            entry.uuid = UUID.fromString(player.uuid);
             entry.uniqueEntityId = player.runtimeId;
-            entry.name = player.name;
-            entry.xuid = player.xuid as string;
+            entry.name = player.getUsername();
+            entry.xuid = player.xuid;
             entry.platformChatId = '';  // TODO: read this value from StartGamePacket
             entry.buildPlatform = 0;  // TODO: read also this
             entry.skin = player.skin;
@@ -490,13 +491,12 @@ export default class Player extends Entity {
 
     /**
      * Spawn the player to another player
-     * @param {Player} player 
      */
     public sendSpawn(player: Player) {
         let pk = new AddPlayerPacket();
-        pk.uuid = UUID.fromString(this.uuid as string);
+        pk.uuid = UUID.fromString(this.uuid);
         pk.runtimeEntityId = this.runtimeId;
-        pk.name = this.name;
+        pk.name = this.getUsername();
 
         pk.positionX = this.getX();
         pk.positionY = this.getY();
@@ -535,18 +535,16 @@ export default class Player extends Entity {
         this.sendDataPacket(pk);
     }
 
-    /**
-     * @param {string} reason 
-     */
     public kick(reason = 'unknown reason') {
-        let pk = new DisconnectPacket();
-        pk.hideDiscconnectionWindow = false;
+        let pk = new DisconnectPacket(this.server);
+        pk.hideDisconnectionWindow = false;
         pk.message = reason;
-        this.sendDataPacket(pk);
+        this.sendDataPacket(pk, false, true);
+        this.connection.disconnect(reason);
     }
 
     // To refactor
-    public sendDataPacket(packet: any, _needACK = false, _immediate = false) {
+    async sendDataPacket(packet: any, _needACK = false, _immediate = false) {
         let batch = new BatchPacket();
         batch.addPacket(packet);
         batch.encode();
@@ -556,20 +554,27 @@ export default class Player extends Entity {
         sendPacket.reliability = 0;
         sendPacket.buffer = batch.buffer;
 
-        this.#connection.addEncapsulatedToQueue(sendPacket);
+        this.connection.addEncapsulatedToQueue(sendPacket);
     }
 
     // Return all the players in the same chunk
     public getPlayersInChunk() {
-        return this.#server.getOnlinePlayers()
+        return this.server.getOnlinePlayers()
             .filter(player => player.currentChunk === this.currentChunk);
     }
 
     public getServer() {
-        return this.#server;
+        return this.server;
     }
 
     public getAddress() {
-        return this.#address;
+        return this.address;
+    }
+
+    public getUsername() {
+        return this.username.name;
+    }
+    public getFormattedUsername() {
+        return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
     }
 }

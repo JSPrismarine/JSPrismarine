@@ -1,7 +1,14 @@
+<<<<<<< HEAD
 const DataPacket = require('./packet').default;
 const Identifiers = require('../Identifiers').default;
 const CommandEnum = require('../type/CommandEnum').default;
 const CommandData = require('../type/CommandData').default;
+=======
+const DataPacket = require('./Packet').default;
+const Identifiers = require('../Identifiers').default;
+const CommandEnum = require('../type/command-enum');
+const CommandData = require('../type/command-data');
+>>>>>>> dd22f1420a92b9577274b6fd1afbed531180b90e
 
 
 class AvailableCommandsPacket extends DataPacket {

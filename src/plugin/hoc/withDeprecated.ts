@@ -1,17 +1,26 @@
-import Prismarine from "../../Prismarine";
-import LoggerBuilder from "../../utils/Logger";
-
-function withDeprecated(date: Date) {
+const withDeprecated = (date: Date) => {
     const removedOn = new Date(date.setDate(date.getDate() + 7));
+    return (target: any, propertyKey: string, descriptor: any) => {
+        // Fix javascript & typescript different runtime fuckery
+        if (!descriptor)
+            descriptor = target.descriptor || descriptor.descriptor
+        if (!target.descriptor)
+            target.descriptor = descriptor.descriptor
+        if (!target.value)
+            target.value = descriptor?.value || target?.value;
+        if (!propertyKey)
+            propertyKey = target.key || descriptor.key;
 
-    return (target: any, propertyKey: string) => {
-        const original = target.descriptor.value;
 
-        target.descriptor.value = function () {
-            this.getLogger().warn(`§c[${target.key}] is deprecated and will be removed on §l§e${removedOn.toISOString().split('T')[0]}§r!`);
-            return original.apply(this, arguments);
+        const targetMethod = target.value;
+        target.value = function (...args: any[]) {
+            this.getLogger().warn(`§c${propertyKey}§r is deprecated and will be removed on §l§e${removedOn.toISOString().split('T')[0]}§r!`);
+
+            return targetMethod.apply(this, args);
         };
 
+        target.descriptor = descriptor;
+        target.descriptor.value = target.value; // More js fuckery
         return target;
     };
 };

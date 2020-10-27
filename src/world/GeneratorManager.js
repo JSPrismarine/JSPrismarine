@@ -15,8 +15,8 @@ class GeneratorManager {
     }
 
     registerClassGenerator(id, server) {
-        const generator = require(resolve(__dirname + '/generators', id));
-        this.#generators.set(id, new generator());
+        const generator = require(path.resolve(__dirname + '/generators', id));
+        this.#generators.set(id.toLowerCase(), new (generator.default || generator)());
         server.getLogger().silly(`Generator with id §b${id}§r registered`);
     }
 

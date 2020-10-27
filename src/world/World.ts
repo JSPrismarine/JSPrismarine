@@ -1,14 +1,17 @@
-import type Entity from "../entity/entity";
-import type Item from "../item";
-import type Player from "../player/Player";
-import type Prismarine from "../Prismarine";
-import Vector3 from "../math/vector3";
+import Block from "../block";
+import Entity from "../entity/entity";
+import Item from "../item";
+import Vector3 from "../math/Vector3";
+import UpdateBlockPacket from "../network/packet/UpdateBlockPacket";
+import WorldEventPacket from "../network/packet/WorldEventPacket";
+import Player from "../player/Player";
+import Prismarine from "../Prismarine";
+import Chunk from "./chunk/chunk";
 
-import LevelSoundEventPacket from '../network/packet/level-sound-event';
+const LevelSoundEventPacket = require('../network/packet/level-sound-event');
 import UUID from '../utils/UUID';
-import CoordinateUtils from './CoordinateUtils';
-import WorldEventPacket from '../network/packet/world-event';
-import { GameruleManager, Rules } from './GameruleManager';
+import CoordinateUtils from '../world/CoordinateUtils';
+import { GameruleManager, Rules } from '../world/GameruleManager';
 import SharedSeedRandom from './util/shared-seed-random';
 
 interface WorldData {
@@ -72,7 +75,9 @@ export default class World {
         // Tick players 
         for (let player of this.players.values()) {
             player.update(timestamp);
-            player.sendTime(this.currentTick);
+
+            if (this.currentTick % 5)
+                player.sendTime(this.currentTick);
         }
 
         // TODO: tick chunks
@@ -106,7 +111,8 @@ export default class World {
                 x,
                 z,
                 generator,
-                seed: this.seed
+                seed: this.seed,
+                server: this.server
             });
             this.chunks.set(index, chunk);
         }
@@ -134,13 +140,10 @@ export default class World {
 
     /**
      * Returns a chunk from minecraft block positions x and z.
-     * 
-     * @param x 
-     * @param z 
-     * @param generate
      */
-    public async getChunkAt(x: number, z: number, generate = false): Promise<any> {
-        return await this.getChunk(x >> 4, z >> 4, generate);
+    public async getChunkAt(x: number | VarInt, z: number | VarInt, generate = false): Promise<Chunk> {
+        // Handle negative chunk values, where "">> 4" doesn't work for obvious reasons
+        return await this.getChunk(x < 0 ? -1 : 1 * (Math.abs(x as number) >> 4), z < 0 ? -1 : 1 * (Math.abs(z as number) >> 4), generate);
     }
 
     /**
@@ -153,7 +156,7 @@ export default class World {
         return new Vector3(z, y + 2, z);
     }
 
-    public async useItemOn(itemInHand: Item, blockPosition: Vector3, face: number, clickPosition: Vector3, player: Player): Promise<void> {
+    public async useItemOn(itemInHand: Item | Block | null, blockPosition: Vector3, face: number, clickPosition: Vector3, player: Player): Promise<void> {
         //TODO: checks
 
         // TODO: set block on the desired face
@@ -161,11 +164,24 @@ export default class World {
         // maybe let place = new Promise ( do all placing stuff )
         // then if place is true, play sound
 
-        let chunk = await this.getChunkAt(blockPosition.getX(), blockPosition.getZ());
-        // TODO: block.place() ?
-        chunk.setBlockId(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ(), 7 /* get block runtime id from item */);
+        const chunk = await this.getChunkAt(blockPosition.getX(), blockPosition.getZ());
+        const block = this.server.getBlockManager().getBlock('minecraft:bedrock'); // TODO: get block from itemInHand
+        if (!block)
+            return this.server.getLogger().warn(`Block with runtimeId ${0} is invalid`);
 
-        let pk = new LevelSoundEventPacket(this.server);
+        chunk.setBlock(blockPosition.getX() % 16, blockPosition.getY(), blockPosition.getZ() % 16, block);
+
+        const blockUpdate = new UpdateBlockPacket(this.server);
+        blockUpdate.x = blockPosition.getX();
+        blockUpdate.y = blockPosition.getY();
+        blockUpdate.z = blockPosition.getZ();
+        blockUpdate.BlockRuntimeId = (block.getRuntimeId());
+
+        for (let p of this.server.getOnlinePlayers()) {
+            p.sendDataPacket(blockUpdate);
+        }
+
+        const pk = new LevelSoundEventPacket();
         pk.sound = 6;  // TODO: enum
 
         pk.positionX = player.getX();
@@ -191,7 +207,7 @@ export default class World {
     public async addEntity(entity: Entity): Promise<void> {
         this.entities.set(entity.runtimeId, entity);
         let chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
-        chunk.addEntity(entity);
+        chunk.addEntity(entity as any);
     }
 
     /**

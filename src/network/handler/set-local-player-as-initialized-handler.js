@@ -1,9 +1,10 @@
+<<<<<<< HEAD
 const Player = require('../../player/Player').default;
+=======
+const Player = require('../../player').default;
+>>>>>>> dd22f1420a92b9577274b6fd1afbed531180b90e
 const Identifiers = require('../Identifiers').default;
 const SetLocalPlayerAsInitializedPacket = require('../packet/set-local-player-as-initialized');
-const EventManager = require('../../events/event-manager');
-const Prismarine = require('../../Prismarine');
-
 
 class SetLocalPlayerAsInitializedHandler {
     static NetID = Identifiers.SetLocalPlayerAsInitializedPacket
@@ -13,12 +14,10 @@ class SetLocalPlayerAsInitializedHandler {
      * @param {Prismarine} server
      * @param {Player} player 
      */
-    static handle(packet, server, player) {
-        // TODO: event
-        EventManager.emit('player_join', player);
-
+    static async handle(packet, server, player) {
         for (let onlinePlayer of server.getOnlinePlayers()) {
-            if (onlinePlayer === player) continue;
+            if (onlinePlayer === player)
+                continue;
             onlinePlayer.sendSpawn(player);
             player.sendSpawn(onlinePlayer);
         }

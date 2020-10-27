@@ -1,8 +1,14 @@
 const Zlib = require('zlib');
 
+<<<<<<< HEAD
 const DataPacket = require("./packet").default;
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const PacketBinaryStream = require('../PacketBinaryStream');
+=======
+const DataPacket = require("./Packet").default;
+const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
+const PacketBinaryStream = require('../PacketBinaryStream').default;
+>>>>>>> dd22f1420a92b9577274b6fd1afbed531180b90e
 
 
 class BatchPacket extends DataPacket {

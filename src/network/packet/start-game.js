@@ -1,9 +1,16 @@
 const fs = require('fs');
 
+<<<<<<< HEAD
 const DataPacket = require('./packet').default;
 const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
 const RequiredBlockStates = require('@jsprismarine/bedrock-data').required_block_states;
 const PacketBinaryStream = require('../PacketBinaryStream');
+=======
+const DataPacket = require('./Packet').default;
+const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
+const RequiredBlockStates = require('@jsprismarine/bedrock-data').required_block_states;
+const PacketBinaryStream = require('../PacketBinaryStream').default;
+>>>>>>> dd22f1420a92b9577274b6fd1afbed531180b90e
 const Identifiers = require('../Identifiers').default;
 
 class StartGamePacket extends DataPacket {
@@ -72,11 +79,11 @@ class StartGamePacket extends DataPacket {
         this.writeUnsignedVarInt(this.worldSpawnY);
         this.writeVarInt(this.worldSpawnZ);
 
-        this.writeByte(1); // achievement disabled
+        this.writeBool(true); // achievement disabled
 
         this.writeVarInt(0); // day cycle / time
         this.writeVarInt(0); // edu edition offer
-        this.writeByte(0); // edu features
+        this.writeBool(false); // edu features
         this.writeString(''); // edu product id
 
         this.writeLFloat(0); // rain lvl
@@ -125,11 +132,10 @@ class StartGamePacket extends DataPacket {
 
         // PMMP states
         this.append(RequiredBlockStates);
-
         this.append(this.serializeItemTable(ItemTable));
 
         this.writeString('');
-        this.writeBool(false); 
+        this.writeBool(false); // new inventory system
     }
 
     serializeItemTable(table) {

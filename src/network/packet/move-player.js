@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 const DataPacket = require('./packet').default;
 const Identifiers = require('../Identifiers').default;
 const MovementType = require('../type/movement-type');
+=======
+const DataPacket = require('./Packet').default;
+const Identifiers = require('../Identifiers').default;
+const MovementType = require('../type/MovementType').default;
+>>>>>>> dd22f1420a92b9577274b6fd1afbed531180b90e
 
 
 class MovePlayerPacket extends DataPacket {
@@ -18,7 +24,7 @@ class MovePlayerPacket extends DataPacket {
 
     mode
 
-    onGround  
+    onGround
 
     ridingEntityRuntimeId
 

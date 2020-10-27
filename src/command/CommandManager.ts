@@ -1,6 +1,14 @@
+<<<<<<< HEAD
 import type Player from "../player/Player";
 import type Prismarine from "../Prismarine";
 import type Command from "./";
+=======
+import Chat from "../chat/Chat";
+import ChatEvent from "../events/chat/ChatEvent";
+import Player from "../player";
+import Prismarine from "../Prismarine";
+import Command from "./";
+>>>>>>> dd22f1420a92b9577274b6fd1afbed531180b90e
 
 const path = require('path');
 const fs = require('fs');
@@ -65,7 +73,9 @@ export default class CommandManager {
             sender.sendMessage('Received an invalid command!');
         }
 
-        sender.getServer().getLogger().info(`§b${sender.name}§r issued server command: §b${commandInput}§r!`);
+        // TODO: emit to global.ops
+        const event = new ChatEvent(new Chat(this.server.getConsole(), `§o§7[${sender.getUsername()} issued server command: ${commandInput}]§r`));
+        this.server.getEventManager().emit('chat', event);
 
         const commandParts: Array<any> = commandInput.substr(1).split(' ');  // Name + arguments array
         const namespace: string = commandParts[0].split(':').length === 2 ? commandParts[0].split(':')[0] : null;

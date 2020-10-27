@@ -1,4 +1,4 @@
-import Vector3 from "../math/vector3";
+import Vector3 from "../math/Vector3";
 import type World from "./World";
 
 interface PositionData {

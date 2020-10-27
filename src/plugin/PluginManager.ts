@@ -64,8 +64,9 @@ export default class PluginManager {
      * Register a pluginApiVersion
      */
     private async registerPluginApiVersion(id: string) {
-        let dir = path.join(__dirname, 'api/versions', id);
-        const PluginVersion = require(dir).default;
+        let dir = path.join(__dirname, 'api/versions', id, 'PluginApi');
+        let PluginVersion = require(dir).default;
+
         this.pluginApiVersions.set(id, PluginVersion)
         this.server.getLogger().silly(`PluginApiVersion with id §b${id}§r registered`);
     }

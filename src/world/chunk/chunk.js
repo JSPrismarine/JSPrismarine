@@ -80,28 +80,32 @@ class Chunk {
     }
 
     static getBiomeIndex(x, z) {
-        return (z << 4) | x;
+        return (z % 16) | x;
     }
 
     static getHeightMapIndex(x, z) {
-        return (z << 4) | x;
+        return (z % 16) | x;
     }
 
     setBiomeId(x, z, biomeId) {
-        this.#hasChanged = true;
         this.#biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff;
+        this.#hasChanged = true;
     }
 
+    getBlockId(x, y, z) {
+        return this.getSubChunk(y >> 4, true).getBlockId(x, y & 0x0f, z);
+    }
+    getBlockMetadata(x, y, z) {
+        return this.getSubChunk(y >> 4, true).getBlockMetadata(x, y & 0x0f, z);
+    }
     setBlockId(x, y, z, id) {
-        if (this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id)) {
-            this.#hasChanged = true;
-        }
+        this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id);
+        this.#hasChanged = true;
     }
 
     setBlock(x, y, z, block) {
-        if (this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, block.id)) {
-            this.#hasChanged = true;
-        }
+        this.getSubChunk(y >> 4, true).setBlock(x, y & 0x0f, z, block);
+        this.#hasChanged = true;
     }
 
     getSubChunk(y, generateNew = false) {
@@ -143,7 +147,7 @@ class Chunk {
             let height = this.getSubChunk(y).getHighestBlockAt(x, z) | (y << 4);
             if (height !== -1) {
                 return height;
-            } 
+            }
         }
 
         return -1;

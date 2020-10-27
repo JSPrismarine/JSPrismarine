@@ -1,8 +1,14 @@
 const logger = require('../../utils/Logger');
 
+<<<<<<< HEAD
 const DataPacket = require('./packet').default;
 const Identifiers = require('../Identifiers').default;
 const PlayerListEntry = require('../type/PlayerListEntry');
+=======
+const DataPacket = require('./Packet').default;
+const Identifiers = require('../Identifiers').default;
+const PlayerListEntry = require('../type/player-list-entry');
+>>>>>>> dd22f1420a92b9577274b6fd1afbed531180b90e
 const PlayerListAction = require('../type/player-list-action');
 
 

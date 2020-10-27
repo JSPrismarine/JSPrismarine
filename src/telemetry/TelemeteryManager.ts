@@ -23,6 +23,7 @@ export default class TelemetryManager {
 
         process.on('uncaughtException', async (err) => {
             await this.sendCrashLog(err, urls);
+            console.error(err);
             this.server.getLogger().error(`${err}`);
             process.exit(1);
         });

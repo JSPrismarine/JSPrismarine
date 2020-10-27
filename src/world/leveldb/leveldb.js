@@ -31,7 +31,7 @@ class LevelDB extends Provider {
      * @param {number} x - chunk X 
      * @param {number} z - chunk Z
      */
-    readChunk({ x, z, generator, seed }) {
+    readChunk({ x, z, generator, seed, server }) {
         return new Promise(async (resolve) => {
             let index = LevelDB.chunkIndex(x, z);
             let subChunks = new Map();
@@ -75,12 +75,14 @@ class LevelDB extends Provider {
                     const chunk = await generator.getChunk({
                         chunkX: x,
                         chunkZ: z,
-                        seed
+                        seed,
+                        server
                     });
 
                     // Put all sub chunks
                     for (let [y, subChunk] of chunk.getSubChunks()) {
-                        if (subChunk instanceof EmptySubChunk) continue;
+                        if (subChunk instanceof EmptySubChunk)
+                            continue;
                         let key = index + Tags.SubChunkPrefix + y;
                         let buffer = Buffer.from([0, ...subChunk.ids, ...subChunk.metadata]);
                         await this.db.put(key, buffer);
