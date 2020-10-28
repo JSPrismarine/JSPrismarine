@@ -123,7 +123,7 @@ export default class TpCommand extends Command {
                 break;
         }
 
-        player.broadcastMove(player);
+        player.getPlayerConnection().broadcastMove(player);
         return `Teleported ${args[0]} to ${args.slice(1).join(' ')}`;
     }
 }

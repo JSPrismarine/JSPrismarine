@@ -1,7 +1,7 @@
 import Position from "../world/Position";
 import World from "../world/world";
 
-const { MetadataManager, MetadataFlag, FlagType} = require('./metadata');
+const { MetadataManager, MetadataFlag, FlagType } = require('./metadata');
 const { AttributeManager } = require('./attribute');
 const AddActorPacket = require('../network/packet/add-actor');
 
@@ -31,7 +31,7 @@ export default class Entity extends Position {
         this.metadata.setFloat(MetadataFlag.Scale, 1);
         this.metadata.setFloat(MetadataFlag.BoundingBoxWidth, 0.6);
         this.metadata.setFloat(MetadataFlag.BoundingBoxHeight, 1.8);
-        this.metadata.setShort(MetadataFlag.Air, 0); 
+        this.metadata.setShort(MetadataFlag.Air, 0);
 
         this.setGenericFlag(MetadataFlag.AffectedByGravity, true);
         this.setGenericFlag(MetadataFlag.HasCollision, true);
@@ -57,7 +57,7 @@ export default class Entity extends Position {
         // we need to handle it like that
         if (typeof this.metadata.getPropertyValue(propertyId) === 'bigint') {
             return (this.metadata.getPropertyValue(propertyId) & (1n << BigInt(flagId))) > 0;
-        } 
+        }
         return (this.metadata.getPropertyValue(propertyId) & (1 << flagId)) > 0;
     }
 
@@ -74,10 +74,10 @@ export default class Entity extends Position {
         pk.y = player.y;
         pk.z = player.z;
         // TODO: motion
-        pk.motionX = 0; 
+        pk.motionX = 0;
         pk.motionY = 0;
         pk.motionZ = 0;
-        player.sendDataPacket(pk);
+        player.getPlayerConnection().sendDataPacket(pk);
     }
 
 }

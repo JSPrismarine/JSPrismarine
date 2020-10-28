@@ -77,7 +77,7 @@ export default class World {
             player.update(timestamp);
 
             if (this.currentTick % 5)
-                player.sendTime(this.currentTick);
+                player.getPlayerConnection().sendTime(this.currentTick);
         }
 
         // TODO: tick chunks
@@ -164,7 +164,6 @@ export default class World {
         // maybe let place = new Promise ( do all placing stuff )
         // then if place is true, play sound
 
-        console.log(blockPosition)
         if (itemInHand instanceof Item)
             return; // TODO
 
@@ -182,7 +181,7 @@ export default class World {
         blockUpdate.BlockRuntimeId = (block.getRuntimeId());
 
         for (let p of this.server.getOnlinePlayers()) {
-            p.sendDataPacket(blockUpdate);
+            p.getPlayerConnection().sendDataPacket(blockUpdate);
         }
 
         const pk = new LevelSoundEventPacket();
@@ -198,7 +197,7 @@ export default class World {
         pk.disableRelativeVolume = false;
 
         for (let p of player.getPlayersInChunk()) {
-            p.sendDataPacket(pk);
+            p.getPlayerConnection().sendDataPacket(pk);
         }
     }
 

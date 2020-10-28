@@ -15,7 +15,7 @@ class ContainerCloseHandler {
     static handle(packet, server, player) {
         let pk = new ContainerClosePacket();
         pk.windowId = packet.windowId;
-        player.sendDataPacket(pk);
+        player.getPlayerConnection().sendDataPacket(pk);
 
         // TODO: event
     }

@@ -46,7 +46,7 @@ export default class InventoryTransactionHandler {
                             // TODO: add NBT writing to support our own block palette
                             pk.BlockRuntimeId = (server.getBlockManager().getBlock('minecraft:air') as Block).getRuntimeId();
                             for (let onlinePlayer of server.getOnlinePlayers()) {
-                                onlinePlayer.sendDataPacket(pk);
+                                onlinePlayer.getPlayerConnection().sendDataPacket(pk);
                             }
 
                             chunk.setBlock(

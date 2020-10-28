@@ -22,7 +22,7 @@ export default class ResourcePackResponseHandler {
         let pk;
         if (packet.status === ResourcePackStatus.HaveAllPacks) {
             pk = new ResourcePackStackPacket();
-            player.sendDataPacket(pk);
+            player.getPlayerConnection().sendDataPacket(pk);
         } else if (packet.status === ResourcePackStatus.Completed) {
             // Emit playerSpawn event
             const spawnEvent = new PlayerSpawnEvent(player);
@@ -49,14 +49,14 @@ export default class ResourcePackResponseHandler {
             pk.levelId = world.getUniqueId();
             pk.worldName = world.getName();
             pk.gamerules = world.getGameruleManager().getGamerules();
-            player.sendDataPacket(pk);
+            player.getPlayerConnection().sendDataPacket(pk);
 
-            player.sendTime(world.getTicks());
+            player.getPlayerConnection().sendTime(world.getTicks());
 
-            player.sendDataPacket(new AvailableActorIdentifiersPacket());
-            player.sendDataPacket(new BiomeDefinitionListPacket());
+            player.getPlayerConnection().sendDataPacket(new AvailableActorIdentifiersPacket());
+            player.getPlayerConnection().sendDataPacket(new BiomeDefinitionListPacket());
 
-            player.sendAttributes(player.attributes.getDefaults());
+            player.getPlayerConnection().sendAttributes(player.attributes.getDefaults());
 
             server.getLogger().info(
                 `§b${player.getUsername()}§f is attempting to join with id §b${player.runtimeId}§f from ${player.getAddress().address}:${player.getAddress().port}`
@@ -64,21 +64,21 @@ export default class ResourcePackResponseHandler {
 
             player.setNameTag(player.getUsername());
             // TODO: always visible nametag
-            player.sendMetadata();
+            player.getPlayerConnection().sendMetadata();
 
-            player.sendAvailableCommands();
+            player.getPlayerConnection().sendAvailableCommands();
 
-            player.sendInventory();
+            player.getPlayerConnection().sendInventory();
 
             if (player.gamemode === Gamemode.Creative) {
-                player.sendCreativeContents();
+                player.getPlayerConnection().sendCreativeContents();
             }
 
             // First add
-            player.addToPlayerList();
+            player.getPlayerConnection().addToPlayerList();
             // Then retrive other players
             if (server.getOnlinePlayers().length > 1) {
-                player.sendPlayerList();
+                player.getPlayerConnection().sendPlayerList();
             }
 
             // Announce connection
