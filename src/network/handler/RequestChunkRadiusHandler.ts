@@ -16,10 +16,10 @@ export default class RequestChunkRadiusHandler {
     static async handle(packet: RequestChunkRadiusPacket, server: Prismarine, player: Player) {
         const maxViewDistance = server.getConfig().getViewDistance();
         const viewDistance = (packet.radius >= maxViewDistance) ? maxViewDistance : packet.radius;
-        player.setViewDistance(viewDistance);
+        player.getPlayerConnection().setViewDistance(viewDistance);
 
-        player.sendNetworkChunkPublisher();
+        player.getPlayerConnection().sendNetworkChunkPublisher();
 
-        player.sendPlayStatus(PlayStatus.PlayerSpawn);
+        player.getPlayerConnection().sendPlayStatus(PlayStatus.PlayerSpawn);
     }
 }
