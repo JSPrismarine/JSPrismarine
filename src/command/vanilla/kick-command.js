@@ -5,7 +5,11 @@ const CommandParameter = require('../../network/type/CommandParameter').default;
 class KickCommand extends Command {
     constructor() {
         // TODO: Add permissions
-        super({ id: 'minecraft:kick', description: 'Kicks a player off the server.' });
+        super({
+            id: 'minecraft:kick',
+            description: 'Kicks a player off the server.',
+            permission: 'minecraft.command.kick'
+        });
 
         this.parameters = [
             new Set()
@@ -39,7 +43,8 @@ class KickCommand extends Command {
             return sender.sendMessage("§cCan't find the selected player.");
         }
 
-        return target.kick("You have been kicked from the server due to: \n\n" + reason);
+        target.kick("You have been kicked from the server due to: \n\n" + reason);
+        return `Kicked ${args[0]}`;
     }
 }
 

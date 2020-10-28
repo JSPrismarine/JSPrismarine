@@ -17,9 +17,9 @@ export default class PluginManager {
     }
 
     /**
-     * onStart hook
+     * onEnable hook
      */
-    public async onStart() {
+    public async onEnable() {
         // Create plugin folder
         if (!(fs.existsSync(process.cwd() + '/plugins'))) {
             fs.mkdirSync(process.cwd() + '/plugins');
@@ -51,9 +51,9 @@ export default class PluginManager {
     }
 
     /**
-     * onExit hook
+     * onDisable hook
      */
-    public async onExit() {
+    public async onDisable() {
         await Promise.all(Array.from(this.plugins.keys()).map((id: string) => {
             return this.deregisterPlugin(id);
         }));
@@ -127,7 +127,7 @@ export default class PluginManager {
             throw new Error(`Invalid PluginApiVersion ${pkg.prismarine.apiVersion}!`);
 
         const plugin = new PluginFile(this.server, dir, new pluginApiVersion(this.server, pkg));
-        await plugin.onStart();
+        await plugin.onEnable();
 
         this.plugins.set(pkg.name, plugin);
 
@@ -141,7 +141,7 @@ export default class PluginManager {
      */
     private async deregisterPlugin(id: string) {
         const plugin: PluginFile = this.plugins.get(id);
-        await plugin.onExit?.();
+        await plugin.onDisable?.();
 
         this.plugins.delete(id);
     }

@@ -563,6 +563,10 @@ export default class Player extends Entity {
             .filter(player => player.currentChunk === this.currentChunk);
     }
 
+    public isPlayer() {
+        return true;
+    }
+
     public getServer() {
         return this.server;
     }
@@ -576,5 +580,9 @@ export default class Player extends Entity {
     }
     public getFormattedUsername() {
         return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
+    }
+
+    public getUUID(): string {
+        return this.uuid || '';
     }
 }

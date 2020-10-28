@@ -48,7 +48,7 @@ export default class World {
         this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true);
     }
 
-    public async onStart() {
+    public async onEnable() {
         this.server.getLogger().info(`Preparing start region for dimension §b'${this.name}'/${this.generator}§r`);
         const chunksToLoad: Array<Promise<void>> = [];
         const time = Date.now();

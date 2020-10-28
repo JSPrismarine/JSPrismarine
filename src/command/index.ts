@@ -7,7 +7,7 @@ interface CommandProps {
     description?: string,
     aliases?: Array<string>,
     flags?: number,
-    permission?: number,
+    permission?: string,
     parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>
 };
 
@@ -16,10 +16,10 @@ export default class Command extends CommandData {
     description?: string;
     aliases?: Array<string>;
     flags?: number;
-    permission?: number;
+    permission?: string;
     parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
 
-    constructor({ id = '', description = '', flags = 0, permission = 0, aliases = [], parameters }: CommandProps) {
+    constructor({ id = '', description = '', flags = 0, permission = '', aliases = [], parameters }: CommandProps) {
         super();
         this.id = id;
         this.description = description;
@@ -32,5 +32,5 @@ export default class Command extends CommandData {
     /**
      * Called when the command is executed.
      */
-    public execute(sender: Player, args: Array<string> = []): void { }
+    public execute(sender: Player, args: Array<string> = []): string | void { }
 }

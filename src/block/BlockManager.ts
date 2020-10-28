@@ -15,17 +15,17 @@ export default class BlockManager {
     }
 
     /**
-     * onStart hook
+     * onEnable hook
      */
-    public async onStart() {
+    public async onEnable() {
         this.importBlocks();
         this.generateRuntimeIds();
     }
 
     /**
-    * onExit hook
+    * onDisable hook
     */
-    public async onExit() {
+    public async onDisable() {
         this.blocks.clear();
     }
 

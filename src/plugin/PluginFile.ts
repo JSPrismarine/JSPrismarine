@@ -4,8 +4,8 @@ import PluginApiVersion from './api/PluginApiVersion';
 
 export class Plugin {
     constructor(api: PluginApiVersion) { }
-    async onStart() { }
-    async onExit() { }
+    async onEnable() { }
+    async onDisable() { }
 };
 
 export default class PluginFile {
@@ -59,10 +59,10 @@ export default class PluginFile {
         return this.version;
     }
 
-    public async onStart() {
-        await this.plugin.onStart();
+    public async onEnable() {
+        await this.plugin.onEnable();
     }
-    public async onExit() {
-        await this.plugin.onExit();
+    public async onDisable() {
+        await this.plugin.onDisable();
     }
 };

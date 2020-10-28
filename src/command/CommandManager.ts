@@ -16,9 +16,9 @@ export default class CommandManager {
     }
 
     /**
-     * onStart hook
+     * onEnable hook
      */
-    public async onStart() {
+    public async onEnable() {
         const time = Date.now();
 
         // Register vanilla commands
@@ -45,9 +45,9 @@ export default class CommandManager {
     }
 
     /**
-     * onExit hook
+     * onDisable hook
      */
-    public async onExit() {
+    public async onDisable() {
         this.commands.clear();
     }
 
@@ -62,14 +62,10 @@ export default class CommandManager {
     /**
      * Dispatches a command and executes them.
      */
-    public dispatchCommand(sender: Player, commandInput = '') {
+    public async dispatchCommand(sender: Player, commandInput = '') {
         if (!(commandInput.startsWith('/'))) {
             sender.sendMessage('Received an invalid command!');
         }
-
-        // TODO: emit to global.ops
-        const event = new ChatEvent(new Chat(this.server.getConsole(), `§o§7[${sender.getUsername()} issued server command: ${commandInput}]§r`));
-        this.server.getEventManager().emit('chat', event);
 
         const commandParts: Array<any> = commandInput.substr(1).split(' ');  // Name + arguments array
         const namespace: string = commandParts[0].split(':').length === 2 ? commandParts[0].split(':')[0] : null;
@@ -84,23 +80,34 @@ export default class CommandManager {
             }
         }
 
+        let command: Command | null = null;
         if (namespace) {
-            for (let command of this.commands) {
-                if (command.id === `${namespace}:${commandName}` || command.id.split(':')[0] === namespace && command.aliases?.includes(commandName)) {
-                    return command.execute(sender, commandParts);
-                }
+            for (let c of this.commands) {
+                if (c.id === `${namespace}:${commandName}` || c.id.split(':')[0] === namespace && c.aliases?.includes(commandName))
+                    command = c;
             }
         } else {
             // TODO: handle multiple commands with same identifier
             // by prioritizing minecraft:->jsprismarine:->first hit
-            for (let command of this.commands) {
-                if (command.id.split(':')[1] === `${commandName}` || command.aliases?.includes(commandName)) {
-                    return command.execute(sender, commandParts);
-                }
+            for (let c of this.commands) {
+                if (c.id.split(':')[1] === `${commandName}` || c.aliases?.includes(commandName))
+                    command = c;
             }
         }
 
-        return sender.sendMessage('§cCannot find the desired command!');
+        if (!command)
+            return sender.sendMessage('§cCannot find the desired command!');
+
+        if (await this.server.getPermissionManager().can(sender).execute(command.permission)) {
+            const res: string | void = await command.execute(sender, commandParts);
+
+            const chat = new Chat(this.server.getConsole(), `§o§7[${sender.getUsername()}: ${res || `issued server command: ${commandInput}`}]§r`, '*.ops');
+            this.server.getChatManager().send(chat);
+
+            return;
+        }
+
+        return sender.sendMessage('§cYou do not have permission to perform this command!');
     }
 
     /**

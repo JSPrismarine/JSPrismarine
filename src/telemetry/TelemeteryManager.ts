@@ -29,7 +29,7 @@ export default class TelemetryManager {
         });
     }
 
-    public async onStart() {
+    public async onEnable() {
         if (!this.enabled)
             return;
 
@@ -40,7 +40,7 @@ export default class TelemetryManager {
         await this.tick();
         this.ticker = setInterval(this.tick, 5 * 60 * 1000);
     }
-    public async onExit() {
+    public async onDisable() {
         clearInterval(this.ticker);
     }
 

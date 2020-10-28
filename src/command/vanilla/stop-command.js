@@ -4,7 +4,11 @@ const Player = require('../../player').default;
 class StopCommand extends Command {
 
     constructor() {
-        super({ id: 'minecraft:stop', description: 'Stops a server.' });
+        super({
+            id: 'minecraft:stop',
+            description: 'Stops a server.',
+            permission: 'minecraft.command.stop'
+        });
     }
 
     /**
@@ -14,11 +18,11 @@ class StopCommand extends Command {
     async execute(sender, args) {
         // TODO: implement operators and just check if player is operator
 
-        sender.getServer().getLogger().warn('Server is closing...');
         if (args[0] && args[0].toLowerCase() == 'f')
             process.exit();
 
-        await sender.getServer().getServer().kill();
+        sender.getServer().getServer().kill();
+        return 'Stopping the server...';
     }
 }
 module.exports = StopCommand;
