@@ -4,7 +4,11 @@ import Command from "../";
 
 export default class TpCommand extends Command {
     constructor() {
-        super({ id: 'minecraft:tp', description: 'Teleports a player to a specified location' });
+        super({
+            id: 'minecraft:tp',
+            description: 'Teleports a player to a specified location',
+            permission: 'minecraft.command.teleport'
+        });
 
         this.parameters = [
             new Set(),
@@ -73,10 +77,11 @@ export default class TpCommand extends Command {
         }));
     }
 
-    public execute(sender: Player, args: Array<string>): void {
+    public execute(sender: Player, args: Array<string>) {
         // TODO: handle relative cords
         if (args.length <= 1) {
-            return sender.sendMessage('§cYou have to specify <player> x y z.');
+            sender.sendMessage('§cYou have to specify <player> x y z.');
+            return;
         }
 
         // TODO: handle only supplying x y, and relative teleport
@@ -103,13 +108,13 @@ export default class TpCommand extends Command {
                 }
                 break;
             case 3:
-                if (typeof args[1] === "string" || 
+                if (typeof args[1] === "string" ||
                     typeof args[2] === "string") return
                 player.setX(args[1]);
                 player.setZ(args[2]);
                 break;
             case 4:
-                if (typeof args[1] === "string" || 
+                if (typeof args[1] === "string" ||
                     typeof args[2] === "string" ||
                     typeof args[3] === "string") return
                 player.setX(args[1]);
@@ -119,7 +124,6 @@ export default class TpCommand extends Command {
         }
 
         player.broadcastMove(player);
-        sender.sendMessage(`Teleported ${args[0]} to ${args.slice(1).join(' ')}`);
-        return;
+        return `Teleported ${args[0]} to ${args.slice(1).join(' ')}`;
     }
 }

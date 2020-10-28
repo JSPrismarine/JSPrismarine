@@ -18,7 +18,7 @@ export default class PluginApi extends PluginApiVersion {
         this.pkg = pkg;
     };
     public async onInit() { }
-    public async onExit() { }
+    public async onDisable() { }
 
     /**
      * returns an instance of the logger builder class with the plugin name prefixed

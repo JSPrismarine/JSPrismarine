@@ -10,6 +10,7 @@ yarn.lock
 /src/resources/
 /docs/
 config.yaml
+ops.json
 *.log
 
 # Text editors/IDE things

@@ -20,15 +20,15 @@ export default class WorldManager {
         }
     }
 
-    public async onStart() {
+    public async onEnable() {
         const defaultWorld = this.server.getConfig().getLevelName();;
         const world = await this.loadWorld(
             this.server.getConfig().getWorlds()[defaultWorld],
             defaultWorld
         );
-        await world.onStart();
+        await world.onEnable();
     }
-    public async onExit() {
+    public async onDisable() {
         await Promise.all(this.getWorlds().map(world => this.unloadWorld(world.getName())))
     }
 

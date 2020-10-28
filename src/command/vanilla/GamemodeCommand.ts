@@ -8,7 +8,8 @@ export default class GamemodeCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:gamemode',
-            description: 'Changes gamemode for a player.'
+            description: 'Changes gamemode for a player.',
+            permission: 'minecraft.command.gamemode'
         } as any);
 
         this.parameters = [

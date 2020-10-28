@@ -24,6 +24,7 @@ import ChatManager from './chat/ChatManager';
 import Console from './player/Console';
 import ChatEvent from './events/chat/ChatEvent';
 import Chat from './chat/Chat';
+import PermissionManager from './permission/PermissionManager';
 
 export default class Prismarine {
     private raknet: any;
@@ -43,6 +44,7 @@ export default class Prismarine {
     private blockManager: BlockManager;
     private queryManager: QueryManager;
     private chatManager: ChatManager;
+    private permissionManager: PermissionManager;
 
     static instance: null | Prismarine = null;
 
@@ -64,35 +66,38 @@ export default class Prismarine {
         this.pluginManager = new PluginManager(this);
         this.queryManager = new QueryManager(this);
         this.chatManager = new ChatManager(this);
+        this.permissionManager = new PermissionManager(this);
         Prismarine.instance = this;
     }
 
-    private async onStart() {
-        await this.itemManager.onStart();
-        await this.blockManager.onStart();
-        await this.commandManager.onStart();
-        await this.pluginManager.onStart();
-        await this.telemetryManager.onStart();
+    private async onEnable() {
+        await this.permissionManager.onEnable();
+        await this.itemManager.onEnable();
+        await this.blockManager.onEnable();
+        await this.commandManager.onEnable();
+        await this.pluginManager.onEnable();
+        await this.telemetryManager.onEnable();
         // TODO: rework managers to this format
     }
-    private async onExit() {
-        await this.telemetryManager.onExit();
-        await this.pluginManager.onExit();
-        await this.commandManager.onExit();
-        await this.blockManager.onExit();
-        await this.itemManager.onExit();
+    private async onDisable() {
+        await this.telemetryManager.onDisable();
+        await this.pluginManager.onDisable();
+        await this.commandManager.onDisable();
+        await this.blockManager.onDisable();
+        await this.itemManager.onDisable();
+        await this.permissionManager.onDisable();
         // TODO: rework managers to this format
     }
 
     public async reload() {
         this.packetRegistry = new PacketRegistry(this);
-        await this.onExit();
-        await this.onStart();
+        await this.onDisable();
+        await this.onEnable();
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132) {
-        await this.onStart();
-        await this.worldManager.onStart();
+        await this.onEnable();
+        await this.worldManager.onEnable();
 
         this.raknet = await (new Listener(this)).listen(serverIp, port);
         this.raknet.getName().setOnlinePlayerCount(this.players.size);
@@ -330,8 +335,8 @@ export default class Prismarine {
             await world.save();
         }
 
-        await this.worldManager.onExit();
-        await this.onExit();
+        await this.worldManager.onDisable();
+        await this.onDisable();
         process.exit(0);
     }
 
@@ -421,6 +426,10 @@ export default class Prismarine {
 
     getConsole() {
         return this.console;
+    }
+
+    getPermissionManager() {
+        return this.permissionManager;
     }
 
     /**

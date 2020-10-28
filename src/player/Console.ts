@@ -31,4 +31,8 @@ export default class Console extends Player {
     public sendMessage(message: string, xuid = '', needsTranslation = false) {
         this.getServer().getLogger().info(message);
     }
+
+    public isPlayer() {
+        return false;
+    }
 };

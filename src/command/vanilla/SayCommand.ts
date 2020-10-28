@@ -3,8 +3,11 @@ import type Player from "../../player";
 
 export default class SayCommand extends Command {
     constructor() {
-        // TODO: add permissions to command
-        super({ id: 'minecraft:say', description: 'Say something to all players.' });
+        super({
+            id: 'minecraft:say',
+            description: 'Say something to all players.',
+            permission: 'minecraft.command.say'
+        });
     }
 
     execute(sender: Player, args: Array<string>) {
@@ -19,6 +22,7 @@ export default class SayCommand extends Command {
         for (let player of sender.getServer().getOnlinePlayers()) {
             player.sendMessage(messageToSend);
         }
-        return null;
+
+        return;
     }
 };
