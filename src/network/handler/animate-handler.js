@@ -20,7 +20,7 @@ class AnimateHandler {
 
         for (let onlinePlayer of server.getOnlinePlayers()) {
             if (onlinePlayer === player) continue;
-            onlinePlayer.sendDataPacket(pk);
+            onlinePlayer.getPlayerConnection().sendDataPacket(pk);
         }
     }
 }

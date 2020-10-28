@@ -77,7 +77,7 @@ export default class World {
             player.update(timestamp);
 
             if (this.currentTick % 5)
-                player.sendTime(this.currentTick);
+                player.getPlayerConnection().sendTime(this.currentTick);
         }
 
         // TODO: tick chunks
@@ -164,8 +164,11 @@ export default class World {
         // maybe let place = new Promise ( do all placing stuff )
         // then if place is true, play sound
 
+        if (itemInHand instanceof Item)
+            return; // TODO
+
         const chunk = await this.getChunkAt(blockPosition.getX(), blockPosition.getZ());
-        const block = this.server.getBlockManager().getBlock('minecraft:bedrock'); // TODO: get block from itemInHand
+        const block = itemInHand; // TODO: get block from itemInHand
         if (!block)
             return this.server.getLogger().warn(`Block with runtimeId ${0} is invalid`);
 
@@ -178,7 +181,7 @@ export default class World {
         blockUpdate.BlockRuntimeId = (block.getRuntimeId());
 
         for (let p of this.server.getOnlinePlayers()) {
-            p.sendDataPacket(blockUpdate);
+            p.getPlayerConnection().sendDataPacket(blockUpdate);
         }
 
         const pk = new LevelSoundEventPacket();
@@ -194,7 +197,7 @@ export default class World {
         pk.disableRelativeVolume = false;
 
         for (let p of player.getPlayersInChunk()) {
-            p.sendDataPacket(pk);
+            p.getPlayerConnection().sendDataPacket(pk);
         }
     }
 

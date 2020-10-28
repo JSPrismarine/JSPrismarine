@@ -173,10 +173,10 @@ export default class Prismarine {
                     }
 
                     // Despawn the player to all online players
-                    player.removeFromPlayerList();
+                    player.getPlayerConnection().removeFromPlayerList();
                     this.players.delete(token);
                     for (let onlinePlayer of this.players.values()) {
-                        player.sendDespawn(onlinePlayer);
+                        player.getPlayerConnection().sendDespawn(onlinePlayer);
                     }
                     player.getWorld().removePlayer(player);
 
@@ -208,7 +208,7 @@ export default class Prismarine {
             (pk as any).buffer = raknetPacket.buffer;
 
             try {
-                pk.decode();
+                pk.decode(this);
             } catch {
                 this.logger.error(`Error while decoding batch`);
                 return;
@@ -226,7 +226,7 @@ export default class Prismarine {
                 packet.buffer = buf;
 
                 try {
-                    packet.decode();
+                    packet.decode(this);
                 } catch (err) {
                     this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${err}`);
                     return;

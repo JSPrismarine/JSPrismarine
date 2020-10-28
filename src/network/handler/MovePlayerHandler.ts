@@ -22,14 +22,14 @@ class MovePlayerHandler {
         await server.getEventManager().post(['playerMove', event]);
         if (event.cancelled) {
             // Reset the player position
-            player.broadcastMove(player, MovementType.Reset);
+            player.getPlayerConnection().broadcastMove(player, MovementType.Reset);
             return;
         }
 
         // Check if the position has been changed through an event listener
         // if so, reset the player position
         if (packet.positionX !== to.getX() || packet.positionY !== to.getY() || packet.positionZ !== to.getZ())
-            player.broadcastMove(player, MovementType.Reset);
+            player.getPlayerConnection().broadcastMove(player, MovementType.Reset);
 
         // Position
         player.setX(to.getX());

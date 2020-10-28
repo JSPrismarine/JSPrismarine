@@ -26,7 +26,7 @@ class InteractHandler {
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerX = pk.containerY = pk.containerZ = 0;
                 pk.containerEntityId = player.runtimeId;
-                player.sendDataPacket(pk);
+                player.getPlayerConnection().sendDataPacket(pk);
                 break;
             default:
                 server.getLogger().debug('Unknown interact action id: ' + packet.action);

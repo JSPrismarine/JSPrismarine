@@ -56,7 +56,7 @@ class TitleCommand extends Command {
             if (args[1] != "clear") {
                 pk.text = text;
             }
-            player.sendDataPacket(pk);
+            player.getPlayerConnection().sendDataPacket(pk);
         }
         return null;
     }

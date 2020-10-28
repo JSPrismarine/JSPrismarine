@@ -10,11 +10,6 @@ export default class SubChunk {
     metadata = Buffer.alloc(Sizes.Metadata).fill(0x00)
 
     static getIndex(x: number, y: number, z: number) {
-        // Handle negative values
-        if (x <= -1)
-            x += 16;
-        if (z <= -1)
-            z += 16;
         return ((Math.abs(x) << 8) + (Math.abs(z) << 4) + y);
     }
 

@@ -2,8 +2,9 @@ const Player = require('../../player/Player').default;
 const Prismarine = require('../../Prismarine');
 const Identifiers = require('../Identifiers').default;
 const AdventureSettingsPacket = require('../packet/adventure-settings-packet');
+const DataPacket = require('../packet/Packet').default;
 
-class AdventureSettingsHandler {
+class AdventureSettingsHandler extends DataPacket {
     static NetID = Identifiers.AdventureSettingsPacket
 
     /**

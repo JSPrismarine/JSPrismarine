@@ -31,7 +31,7 @@ export default class PlayerActionHandler {
                 pk.z = packet.z;
                 pk.data = 65535 / breakTime
                 for (let onlinePlayer of server.getOnlinePlayers()) {
-                    onlinePlayer.sendDataPacket(pk);
+                    onlinePlayer.getPlayerConnection().sendDataPacket(pk);
                 }
                 break;
             } case PlayerAction.AbortBreak: {
@@ -44,7 +44,7 @@ export default class PlayerActionHandler {
                 pk.z = packet.z;
                 pk.data = 0;
                 for (let onlinePlayer of server.getOnlinePlayers()) {
-                    onlinePlayer.sendDataPacket(pk);
+                    onlinePlayer.getPlayerConnection().sendDataPacket(pk);
                 }
                 break;
             } case PlayerAction.StopBreak: {
@@ -61,7 +61,7 @@ export default class PlayerActionHandler {
                 pk.data = 7;  // TODO: runtime ID
 
                 for (let onlinePlayer of server.getOnlinePlayers()) {
-                    onlinePlayer.sendDataPacket(pk);
+                    onlinePlayer.getPlayerConnection().sendDataPacket(pk);
                 }
                 break;
             } default: {

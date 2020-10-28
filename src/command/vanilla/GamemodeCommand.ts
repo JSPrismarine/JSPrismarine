@@ -64,9 +64,9 @@ export default class GamemodeCommand extends Command {
             if ((target = sender.getServer().getPlayerByName(args[1])) === null)
                 return sender.sendMessage('§cNo player was found');
 
-            target.setGamemode(mode);
+            target.getPlayerConnection().setGamemode(mode);
             if (mode === Gamemode.Creative)
-                target.sendCreativeContents();
+                target.getPlayerConnection().sendCreativeContents();
 
             sender.sendMessage(`Set ${target.getUsername()}'s game mode to ${Gamemode.getGamemodeName(mode)} Mode`);
             return target.sendMessage(`Your game mode has been updated to ${Gamemode.getGamemodeName(mode)} Mode`);
@@ -76,9 +76,9 @@ export default class GamemodeCommand extends Command {
             if (!(sender instanceof Player)) {
                 return target.sendMessage('§cYou have to run this command in-game!');
             }
-            target.setGamemode(mode);
+            target.getPlayerConnection().setGamemode(mode);
             if (mode === Gamemode.Creative)
-                target.sendCreativeContents();
+                target.getPlayerConnection().sendCreativeContents();
 
             return target.sendMessage(`Set own game mode to ${Gamemode.getGamemodeName(mode)} Mode`);
         }
