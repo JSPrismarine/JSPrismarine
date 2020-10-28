@@ -1,12 +1,12 @@
+import type Player from "../../player/Player";
+import type Prismarine from "../../Prismarine";
+import type LoginPacket from "../packet/login";
+
 const Identifiers = require('../Identifiers').default;
 const ResourcePacksInfoPacket = require('../packet/resource-packs-info');
 const PlayStatus = require('../type/play-status');
-const LoginPacket = require('../packet/login');
-const Player = require('../../player/Player').default;
-const Prismarine = require('../../Prismarine');
 
-
-class LoginHandler {
+export default class LoginHandler {
     static NetID = Identifiers.LoginPacket
 
     /**
@@ -14,7 +14,7 @@ class LoginHandler {
      * @param {Prismarine} _server
      * @param {Player} player 
      */
-    static handle(packet, _server, player) {
+    static handle(packet: LoginPacket, server: Prismarine, player: Player) {
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;
         player.randomId = packet.clientRandomId;
@@ -26,8 +26,13 @@ class LoginHandler {
 
         player.sendPlayStatus(PlayStatus.LoginSuccess);
 
+        const reason = server.getPermissionManager().isBanned(player);
+        if (reason !== false) {
+            player.kick(`You have been banned${reason ? ` for reason: ${reason}` : ''}!`);
+            return;
+        }
+
         let pk = new ResourcePacksInfoPacket();
         player.sendDataPacket(pk);
     }
-}
-module.exports = LoginHandler;
+};

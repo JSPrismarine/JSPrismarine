@@ -11,6 +11,10 @@ interface OpType {
 export default class PermissionManager {
     private server: Prismarine;
     private ops: Set<string> = new Set();
+    private banned: Map<string, {
+        name: string,
+        reason: string
+    }> = new Map();
     private permissions: Map<string, string> = new Map();
 
     constructor(server: Prismarine) {
@@ -19,6 +23,7 @@ export default class PermissionManager {
 
     public async onEnable() {
         await this.parseOps();
+        await this.parseBanned();
     }
 
     public async onDisable() {
@@ -42,6 +47,22 @@ export default class PermissionManager {
         }
     }
 
+    private async parseBanned() {
+        try {
+            if (!fs.existsSync(path.join(process.cwd(), '/banned-players.json')))
+                fs.writeFileSync(path.join(process.cwd(), '/banned-players.json'), '[]');
+
+            const readFile = util.promisify(fs.readFile);
+            const banned: Array<any> = JSON.parse((await readFile(path.join(process.cwd(), '/banned-players.json'))).toString())
+
+            for (const player of banned)
+                this.banned.set(player.uuid, player);
+        } catch (err) {
+            this.server.getLogger().error(err);
+            throw new Error(`Invalid banned-players.json file.`);
+        }
+    }
+
     public async setOp(player: Player, op: boolean) {
         if (!player.isPlayer())
             return;
@@ -59,13 +80,60 @@ export default class PermissionManager {
                 name: player.getUsername(),
                 level: 4
             })), null, 4));
-        } catch (err) {
-            console.log(err);
+        } catch {
+            return false;
+        }
+    }
+
+    public async setBanned(player: Player, reason = '') {
+        if (!player || !player.isPlayer())
+            return false;
+
+        this.banned.set(player.getUUID(), {
+            reason,
+            name: player.getUsername()
+        });
+
+        const writeFile = util.promisify(fs.writeFile);
+        try {
+            await writeFile(path.join(process.cwd(), '/banned-players.json'), JSON.stringify(Array.from(this.banned).map(entry => ({
+                uuid: entry[0],
+                name: entry[1].name,
+                reason: entry[1].reason
+            })), null, 4));
+        } catch {
+            return false;
+        }
+    }
+
+    public async setUnbanned(username: string) {
+        const uuid = Array.from(this.banned).filter(a => a[1].name === username)?.[0]?.[0];
+        if (!uuid)
+            return false;
+
+        this.banned.delete(uuid);
+
+        const writeFile = util.promisify(fs.writeFile);
+        try {
+            await writeFile(path.join(process.cwd(), '/banned-players.json'), JSON.stringify(Array.from(this.banned).map(entry => ({
+                uuid: entry[0],
+                name: entry[1].name,
+                reason: entry[1].reason
+            })), null, 4));
+        } catch {
+            return false;
         }
     }
 
     public isOp(player: Player) {
         return !player.isPlayer() || this.ops.has(player.getUUID());
+    }
+
+    public isBanned(player: Player) {
+        if (this.banned.has(player.getUUID()))
+            return this.banned.get(player.getUUID())?.reason;
+
+        return false;
     }
 
     public can(player: Player) {

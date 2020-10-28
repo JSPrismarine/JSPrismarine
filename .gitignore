@@ -11,6 +11,7 @@ yarn.lock
 /docs/
 config.yaml
 ops.json
+banned-players.json
 *.log
 
 # Text editors/IDE things
