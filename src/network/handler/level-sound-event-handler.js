@@ -15,7 +15,7 @@ class LevelSoundEventHandler {
     static handle(packet, _server, player) {
         // TODO: broadcast to viewers
         for (let chunkPlayer of player.getPlayersInChunk()) {
-            chunkPlayer.sendDataPacket(packet);
+            chunkPlayer.getPlayerConnection().sendDataPacket(packet);
         }
     }
 }

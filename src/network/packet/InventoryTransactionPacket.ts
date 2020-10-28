@@ -22,9 +22,7 @@ export default class InventoryTransactionPacket extends DataPacket {
     actionType = 0;
     hotbarSlot = 0;
     itemInHand: Block | Item | null = null
-    blockX = 0;
-    blockY = 0;
-    blockZ = 0;
+    blockPosition = new Vector3();
     face = 0;
     playerPosition = new Vector3();
     clickPosition = new Vector3();
@@ -61,9 +59,7 @@ export default class InventoryTransactionPacket extends DataPacket {
                 break;
             case InventoryTransactionType.UseItem:
                 this.actionType = this.readUnsignedVarInt();
-                this.blockX = this.readVarInt();
-                this.blockY = this.readUnsignedVarInt();
-                this.blockZ = this.readVarInt();
+                this.blockPosition = new Vector3(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt());
                 this.face = this.readVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = this.readItemStack();

@@ -114,7 +114,7 @@ export default class BlockManager {
         this.runtimeIds.push(0);
         for (let i = 0; i < blocks.length; i++) {
             const variants = this.getBlocks().filter(a => a.getId() === blocks[i].getId())
-            variants.forEach(variant => variant.setRuntimeId(i + 1));
+            variants.forEach(variant => variant.setRuntimeId(i));
             this.runtimeIds.push(blocks[i].getId());
         }
     }
