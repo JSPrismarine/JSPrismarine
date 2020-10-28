@@ -5,7 +5,7 @@ import BlockManager from "./block/BlockManager";
 import ItemManager from "./item/ItemManager";
 import CommandManager from "./command/CommandManager";
 import type Config from "./config";
-import WorldManager from "./world/world-manager";
+import WorldManager from "./world/WorldManager";
 import QueryManager from "./query/QueryManager";
 import PluginManager from "./plugin/PluginManager";
 import type LoggerBuilder from "./utils/Logger";

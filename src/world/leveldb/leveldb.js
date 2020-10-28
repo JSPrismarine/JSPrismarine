@@ -7,8 +7,6 @@ const Chunk = require('../chunk/Chunk');
 const EmptySubChunk = require('../chunk/empty-sub-chunk');
 const SubChunk = require('../chunk/SubChunk').default;
 
-const Overworld = require('../generators/overworld');
-
 const Tags = {
     Version: 'v',
     SubChunkPrefix: '\x2f'

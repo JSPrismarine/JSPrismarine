@@ -58,7 +58,7 @@ export default class WorldManager {
                 this.defaultWorld = this.worlds.get(world.getUniqueId()) || null;
                 this.server.getLogger().info(`Loaded §b${folderName}§r as default world!`);
             }
-            this.server.getLogger().debug(`World §b${folderName}§r succesfully loaded!`);
+            this.server.getLogger().debug(`World §b${folderName}§r successfully loaded!`);
             resolve(world);
         });
     }
