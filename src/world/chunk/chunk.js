@@ -2,7 +2,7 @@ const SubChunk = require('./sub-chunk');
 const EmptySubChunk = require('./empty-sub-chunk');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Entity = require('../../entity/entity');
-const Player = require('../../player').default;
+const Player = require('../../player/Player').default;
 
 
 const MaxSubChunks = 16;

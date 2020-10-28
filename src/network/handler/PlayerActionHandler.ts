@@ -1,4 +1,4 @@
-import type Player from "../../player";
+import type Player from "../../player/Player";
 import type Prismarine from "../../Prismarine";
 import type PlayerActionPacket from "../packet/PlayerActionPacket";
 import Identifiers from "../Identifiers";

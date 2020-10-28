@@ -1,5 +1,5 @@
 import Chat from "../../chat/Chat";
-import type Player from "../../player";
+import type Player from "../../player/Player";
 import type Prismarine from "../../Prismarine";
 import Identifiers from "../Identifiers";
 import type TextPacket from "../packet/TextPacket";

@@ -1,6 +1,6 @@
 import { setIntervalAsync } from 'set-interval-async/dynamic';
 import PacketRegistry from "./network/packet-registry";
-import Player from "./player";
+import Player from "./player/Player";
 import BlockManager from "./block/BlockManager";
 import ItemManager from "./item/ItemManager";
 import CommandManager from "./command/CommandManager";

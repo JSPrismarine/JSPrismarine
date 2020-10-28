@@ -1,5 +1,5 @@
 import readline from 'readline';
-import Player from ".";
+import Player from "./Player";
 import Chat from '../chat/Chat';
 import ChatEvent from '../events/chat/ChatEvent';
 import type Prismarine from "../Prismarine";

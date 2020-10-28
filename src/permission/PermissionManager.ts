@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import util from "util";
 import type Prismarine from "../Prismarine";
-import type Player from '../player'
+import type Player from '../player/Player'
 
 interface OpType {
     uuid: string

@@ -1,8 +1,7 @@
 import Chat from "../chat/Chat";
-import ChatEvent from "../events/chat/ChatEvent";
-import Player from "../player";
+import Player from "../player/Player";
 import Prismarine from "../Prismarine";
-import Command from "./";
+import Command from "./Command";
 
 const path = require('path');
 const fs = require('fs');

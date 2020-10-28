@@ -1,4 +1,4 @@
-import type Command from "../../../../command";
+import type Command from "../../../../command/Command";
 import type Prismarine from "../../../../Prismarine";
 
 export default class CommandManager {

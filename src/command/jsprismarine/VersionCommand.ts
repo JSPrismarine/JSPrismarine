@@ -1,5 +1,5 @@
-import Player from "../../player";
-import Command from "../";
+import Player from "../../player/Player";
+import Command from "../Command";
 import git from 'git-rev-sync';
 import Identifiers from "../../network/Identifiers";
 

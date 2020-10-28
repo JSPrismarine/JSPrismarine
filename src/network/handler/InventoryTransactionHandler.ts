@@ -1,6 +1,6 @@
 import Vector3 from "../../math/Vector3";
 import Identifiers from "../Identifiers";
-import type Player from "../../player";
+import type Player from "../../player/Player";
 import type Prismarine from "../../Prismarine";
 import InventoryTransactionPacket, { InventoryTransactionActionType } from "../packet/InventoryTransactionPacket";
 import UpdateBlockPacket from "../packet/UpdateBlockPacket";

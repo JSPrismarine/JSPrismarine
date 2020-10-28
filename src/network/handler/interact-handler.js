@@ -1,4 +1,4 @@
-const Player = require('../../player').default;
+const Player = require('../../player/Player').default;
 const Identifiers = require('../Identifiers').default;
 const InteractPacket = require('../packet/interact');
 const InteractAction = require('../type/interact-action');
@@ -29,7 +29,7 @@ class InteractHandler {
                 player.sendDataPacket(pk);
                 break;
             default:
-                server.getLogger().debug('Unknown interact action id: ' + packet.action);    
+                server.getLogger().debug('Unknown interact action id: ' + packet.action);
         }
     }
 }
