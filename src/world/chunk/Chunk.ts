@@ -1,23 +1,22 @@
-const SubChunk = require('./sub-chunk');
+import type Block from "../../block";
+import SubChunk from "./SubChunk";
+
 const EmptySubChunk = require('./empty-sub-chunk');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-const Entity = require('../../entity/entity');
-const Player = require('../../player/Player').default;
-
 
 const MaxSubChunks = 16;
-class Chunk {
+export default class Chunk {
 
     /** @type {number} */
-    #x;
+    #x = 0;
     /** @type {number} */
-    #z;
+    #z = 0;
 
     /** @type {boolean} */
     #hasChanged = false;
 
     /** @type {number} */
-    #height = MaxSubChunks;
+    #height: number = MaxSubChunks;
 
     /**
      * @type {Map<number, SubChunk>}
@@ -25,13 +24,13 @@ class Chunk {
     #subChunks = new Map();
 
     /** @type {number[]} */
-    #biomes = [];
+    #biomes: any = [];
 
     // TODO: #tiles = []
     /** @type {Set<Entity>} */
-    #entities = new Set();
+    #entities: any = new Set();
 
-    #heightMap = [];
+    #heightMap: any = [];
 
     /**
      * Chunk constructor.
@@ -44,7 +43,7 @@ class Chunk {
      * @param {number[]} biomes 
      * @param {number[]} heightMap 
      */
-    constructor(chunkX, chunkZ, subChunks = new Map(), entities = [], tiles = [], biomes = [], heightMap = []) {
+    constructor(chunkX: number, chunkZ: number, subChunks = new Map(), entities = [], tiles = [], biomes = [], heightMap = []) {
         this.#x = chunkX;
         this.#z = chunkZ;
 
@@ -53,10 +52,10 @@ class Chunk {
         }
 
         if (heightMap.length === 256) {
-            this.#height = heightMap;
+            this.#heightMap = heightMap;
         } else {
             if (heightMap.length !== 0) throw new Error(`Wrong HrightMap value count, expected 256, got ${heightMap.length}`);
-            this.#heightMap = new Array(256).fill(this.height * 16);
+            this.#heightMap = new Array(256).fill(this.#height * 16);
         }
 
         if (biomes.length === 256) {
@@ -75,40 +74,43 @@ class Chunk {
         return this.#z;
     }
 
-    static getIdIndex(x, y, z) {
+    static getIdIndex(x: number, y: number, z: number) {
         return (x << 12) | (z << 8) | y;
     }
 
-    static getBiomeIndex(x, z) {
+    static getBiomeIndex(x: number, z: number) {
         return (z % 16) | x;
     }
 
-    static getHeightMapIndex(x, z) {
+    static getHeightMapIndex(x: number, z: number) {
         return (z % 16) | x;
     }
 
-    setBiomeId(x, z, biomeId) {
+    setBiomeId(x: number, z: number, biomeId: any) {
         this.#biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff;
         this.#hasChanged = true;
     }
 
-    getBlockId(x, y, z) {
+    getBlockId(x: number, y: number, z: number) {
         return this.getSubChunk(y >> 4, true).getBlockId(x, y & 0x0f, z);
     }
-    getBlockMetadata(x, y, z) {
+    getBlockMetadata(x: number, y: number, z: number) {
         return this.getSubChunk(y >> 4, true).getBlockMetadata(x, y & 0x0f, z);
     }
-    setBlockId(x, y, z, id) {
+    setBlockId(x: number, y: number, z: number, id: number) {
         this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id);
         this.#hasChanged = true;
     }
 
-    setBlock(x, y, z, block) {
+    setBlock(x: number, y: number, z: number, block: Block | null) {
+        if (!block)
+            return;
+
         this.getSubChunk(y >> 4, true).setBlock(x, y & 0x0f, z, block);
         this.#hasChanged = true;
     }
 
-    getSubChunk(y, generateNew = false) {
+    getSubChunk(y: number, generateNew = false) {
         if (y < 0 || y >= this.#height) {
             return new EmptySubChunk();
         } else if (generateNew && this.#subChunks.get(y) instanceof EmptySubChunk) {
@@ -122,7 +124,7 @@ class Chunk {
         return this.#subChunks;
     }
 
-    setHeightMap(x, z, value) {
+    setHeightMap(x: number, z: number, value: number) {
         this.#heightMap[Chunk.getHeightMapIndex(x, z)] = value;
     }
 
@@ -137,7 +139,7 @@ class Chunk {
         return -1;
     }
 
-    getHighestBlock(x, z) {
+    getHighestBlock(x: number, z: number) {
         let index = this.getHighestSubChunkIndex();
         if (index === -1) {
             return -1;
@@ -183,7 +185,7 @@ class Chunk {
      * 
      * @param {Entity} entity 
      */
-    addEntity(entity) {
+    addEntity(entity: any) {
         this.#entities.push(entity);
     }
 
@@ -207,6 +209,4 @@ class Chunk {
         stream.writeByte(0);
         return stream.buffer;
     }
-
-}
-module.exports = Chunk;
+};

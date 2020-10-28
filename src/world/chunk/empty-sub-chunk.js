@@ -1,4 +1,4 @@
-const SubChunk = require('./sub-chunk');
+const SubChunk = require('./SubChunk').default;
 
 
 class EmptySubChunk extends SubChunk {

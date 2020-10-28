@@ -16,7 +16,7 @@ export default class PlayerActionHandler {
                     packet.x as number, packet.z as number
                 );
 
-                const blockId = chunk.getBlockId((packet.x as number) % 16, packet.y, (packet.z as number) % 16);
+                const blockId = chunk.getBlockId((packet.x as number) % 16, packet.y as number, (packet.z as number) % 16);
                 const block = server.getBlockManager().getBlockById(blockId);
                 if (!block)
                     return server.getLogger().warn(`Block at ${packet.x} ${packet.y} ${packet.z} is undefined!`);

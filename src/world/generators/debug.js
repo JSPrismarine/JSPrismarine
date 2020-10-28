@@ -1,4 +1,4 @@
-const Chunk = require('../chunk/chunk');
+const Chunk = require('../chunk/Chunk').default;
 
 class Debug {
     getChunk({ chunkX, chunkY, chunkZ, seed }) {
