@@ -60,7 +60,7 @@
     "@jsprismarine/bedrock-data": "1.16.20e",
     "@jsprismarine/jsbinaryutils": "2.1.6",
     "async": "^3.2.0",
-    "evt": "^1.9.0",
+    "evt": "^1.9.1",
     "git-rev-sync": "^3.0.1",
     "glob": "^7.1.6",
     "jest": "^26.5.2",

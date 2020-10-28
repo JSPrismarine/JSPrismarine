@@ -1,18 +1,23 @@
 
-import type { Evt } from "evt";
-import { to } from "evt";
-import { id as identity } from "evt/tools/typeSafety/id";
+import type { VoidCtx } from "evt";
+import { Evt, to } from "evt";
 
 export interface EventEmitterish<EventTypes extends [string, any]> {
 
     on<T extends EventTypes, K extends T[0]>(
         id: K,
         callback: (event: T extends readonly [K, infer U] ? U : never) => void
-    ): void;
+    ): this;
+
+    once: EventEmitterish<EventTypes>["on"];
+
+    removeListener: EventEmitterish<EventTypes>["on"];
+
+    removeAllListeners(id?: EventTypes[0]): this;
 
     /** 
      * Returns a promise that resolve after 
-     * each async callback have resolved.
+     * each async callbacks have resolved.
      */
     emit<T extends EventTypes, K extends T[0]>(
         id: K,
@@ -31,32 +36,108 @@ export function EventEmitterishMixin<
         instance: InstanceType<TBase>
     }) => Evt<EventTypes>
 ) {
-    const evtByInstance = new WeakMap<{}, Evt<EventTypes>>();
+
+    //NOTE: We can't use private properties in a mixin hence the use of a weak map.
+    const instanceProperties = new WeakMap<{}, {
+        evt: Evt<EventTypes>;
+        ctx: VoidCtx
+    }>();
 
     return class extends Base implements EventEmitterish<EventTypes> {
 
         constructor(...args: any[]) {
             super(...args);
 
-            evtByInstance.set(
+            instanceProperties.set(
                 this,
-                getEvt({
-                    "constructorArgs": args as any,
-                    "instance": this as any
-                })
+                {
+                    "evt": getEvt({
+                        "constructorArgs": args as any,
+                        "instance": this as any
+                    }),
+                    "ctx": Evt.newCtx()
+                }
             );
 
         }
 
-        on= identity<EventEmitterish<EventTypes>["on"]>(
-            (id, callback)=>{
-                evtByInstance.get(this)!.$attach(to(id), callback);
-            }
-        );
+        on<T extends EventTypes, K extends T[0]>(
+            id: K,
+            callback: (event: T extends readonly [K, infer U] ? U : never) => void
+        ): this {
 
-        emit = identity<EventEmitterish<EventTypes>["emit"]>(
-            (id, event)=> evtByInstance.get(this)!.postAndWait([id, event] as any)
-        );
+            const { evt, ctx } = instanceProperties.get(this)!;
+
+            evt.$attach(to(id), ctx, callback);
+
+            return this;
+        }
+
+        once<T extends EventTypes, K extends T[0]>(
+            id: K,
+            callback: (event: T extends readonly [K, infer U] ? U : never) => void
+        ): this {
+
+            const { evt, ctx } = instanceProperties.get(this)!;
+
+            evt.$attachOnce(to(id), ctx, callback);
+
+            return this;
+
+        }
+
+        removeListener<T extends EventTypes, K extends T[0]>(
+            id: K,
+            callback: (event: T extends readonly [K, infer U] ? U : never) => void
+        ): this {
+
+            const { ctx } = instanceProperties.get(this)!;
+
+            ctx.getHandlers()
+                .filter(({ handler }) => (
+                    handler.op === to(id) &&
+                    handler.callback === callback
+                ))
+                .forEach(({ handler }) => handler.detach());
+
+            return this;
+
+        }
+
+        removeAllListeners(id?: EventTypes[0]): this {
+
+            const { ctx } = instanceProperties.get(this)!;
+
+            if (id === undefined) {
+
+                ctx.done();
+
+            } else {
+
+                ctx.getHandlers()
+                    .filter(({ handler }) => handler.op === to(id))
+                    .forEach(({ handler }) => handler.detach());
+
+            }
+
+            return this;
+        }
+
+        /** 
+         * Returns a promise that resolve after 
+         * each async callbacks have resolved.
+         */
+        emit<T extends EventTypes, K extends T[0]>(
+            id: K,
+            event: T extends readonly [K, infer U] ? U : never
+        ): Promise<void> {
+
+            const { evt } = instanceProperties.get(this)!;
+
+            return evt.postAndWait([id, event] as any);
+
+        }
+
 
     };
 }
