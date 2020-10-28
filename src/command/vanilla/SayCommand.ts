@@ -1,6 +1,6 @@
-import Command from "..";
+import Command from "../Command";
 import Chat from "../../chat/Chat";
-import type Player from "../../player";
+import type Player from "../../player/Player";
 import Server from "../../Server";
 
 export default class SayCommand extends Command {

@@ -4,7 +4,7 @@ import Item from "../item";
 import Vector3 from "../math/Vector3";
 import UpdateBlockPacket from "../network/packet/UpdateBlockPacket";
 import WorldEventPacket from "../network/packet/WorldEventPacket";
-import Player from "../player";
+import Player from "../player/Player";
 import Prismarine from "../Prismarine";
 import Chunk from "./chunk/chunk";
 

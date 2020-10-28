@@ -1,7 +1,7 @@
 import Chat from "../../chat/Chat";
 import ChatEvent from "../../events/chat/ChatEvent";
 import PlayerSpawnEvent from "../../events/player/PlayerSpawnEvent";
-import type Player from "../../player";
+import type Player from "../../player/Player";
 import type Prismarine from "../../Prismarine";
 import type ResourcePackResponsePacket from "../packet/resource-pack-response";
 

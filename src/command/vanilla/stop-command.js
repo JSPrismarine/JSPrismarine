@@ -1,5 +1,5 @@
-const Command = require('../').default;
-const Player = require('../../player').default;
+const Command = require('../Command').default;
+const Player = require('../../player/Player').default;
 
 class StopCommand extends Command {
 

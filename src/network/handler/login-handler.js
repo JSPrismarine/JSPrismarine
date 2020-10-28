@@ -2,7 +2,7 @@ const Identifiers = require('../Identifiers').default;
 const ResourcePacksInfoPacket = require('../packet/resource-packs-info');
 const PlayStatus = require('../type/play-status');
 const LoginPacket = require('../packet/login');
-const Player = require('../../player').default;
+const Player = require('../../player/Player').default;
 const Prismarine = require('../../Prismarine');
 
 

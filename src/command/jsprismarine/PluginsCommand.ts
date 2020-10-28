@@ -1,7 +1,7 @@
-import Player from "../../player";
+import Player from "../../player/Player";
 import PluginFile from "../../plugin/PluginFile";
 
-const Command = require('../').default;
+const Command = require('../Command').default;
 
 export default class PluginsCommand extends Command {
     constructor() {

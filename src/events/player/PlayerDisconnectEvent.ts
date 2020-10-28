@@ -1,6 +1,6 @@
 import PlayerConnectEvent from "./PlayerConnectEvent";
 import type InetAddress from "../../network/raknet/utils/InetAddress";
-import type Player from "../../player";
+import type Player from "../../player/Player";
 
 /**
  * Fired just before a client disconnects from the raknet instance

@@ -1,5 +1,5 @@
 import Event from "../Event";
-import type Player from "../../player";
+import type Player from "../../player/Player";
 import type InetAddress from "../../network/raknet/utils/InetAddress";
 
 /**

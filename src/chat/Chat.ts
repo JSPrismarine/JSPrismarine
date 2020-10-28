@@ -1,4 +1,4 @@
-import type Player from "../player";
+import type Player from "../player/Player";
 import type Console from "../player/Console";
 
 export default class Chat {

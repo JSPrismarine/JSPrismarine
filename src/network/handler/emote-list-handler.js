@@ -1,4 +1,4 @@
-const Player = require('../../player').default;
+const Player = require('../../player/Player').default;
 const Prismarine = require('../../Prismarine');
 const Identifiers = require('../Identifiers').default;
 const EmoteListPacket = require('../packet/emote-list');
@@ -12,6 +12,6 @@ class EmoteListHandler {
      * @param {Prismarine} _server
      * @param {Player} _player 
      */
-    static handle(_packet, _server, _player) {}
+    static handle(_packet, _server, _player) { }
 }
 module.exports = EmoteListHandler;

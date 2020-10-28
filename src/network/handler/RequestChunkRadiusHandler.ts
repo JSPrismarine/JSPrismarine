@@ -1,4 +1,4 @@
-import type Player from "../../player";
+import type Player from "../../player/Player";
 import type Prismarine from "../../Prismarine";
 import type RequestChunkRadiusPacket from "../packet/request-chunk-radius";
 import PlayerSpawnEvent from "../../events/player/PlayerSpawnEvent";

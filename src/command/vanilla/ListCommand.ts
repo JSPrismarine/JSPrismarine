@@ -1,5 +1,5 @@
-import Command from "..";
-import type Player from "../../player";
+import Command from "../Command";
+import type Player from "../../player/Player";
 
 export default class ListCommand extends Command {
 
