@@ -6,7 +6,7 @@ import UpdateBlockPacket from "../network/packet/UpdateBlockPacket";
 import WorldEventPacket from "../network/packet/WorldEventPacket";
 import Player from "../player/Player";
 import Prismarine from "../Prismarine";
-import Chunk from "./chunk/chunk";
+import Chunk from "./chunk/Chunk";
 
 const LevelSoundEventPacket = require('../network/packet/level-sound-event');
 const UUID = require('../utils/uuid');

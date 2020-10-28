@@ -1,13 +1,15 @@
+import Block from "../../block";
 
 const Sizes = {
     BlockSize: 16 * 16 * 16,
     Metadata: (16 * 16 * 16) / 2
 };
-class SubChunk {
+
+export default class SubChunk {
     ids = Buffer.alloc(Sizes.BlockSize).fill(0x00)
     metadata = Buffer.alloc(Sizes.Metadata).fill(0x00)
 
-    static getIndex(x, y, z) {
+    static getIndex(x: number, y: number, z: number) {
         // Handle negative values
         if (x <= -1)
             x += 16;
@@ -18,22 +20,17 @@ class SubChunk {
 
     /**
      * Sets a block in the subchunk block ids
-     * 
-     * @param {number} x - block position x 
-     * @param {number} y - block position y
-     * @param {number} z - block position z
-     * @param {number} id - block id
      */
-    setBlockId(x, y, z, id) {
+    setBlockId(x: number, y: number, z: number, id: number) {
         this.ids[SubChunk.getIndex(x, y, z)] = id;
         return true;
     }
-    setBlockMetadata(x, y, z, metadata) {
+    setBlockMetadata(x: number, y: number, z: number, metadata: number) {
         this.metadata[SubChunk.getIndex(x, y, z)] = metadata;
         return true;
     }
 
-    setBlock(x, y, z, block) {
+    setBlock(x: number, y: number, z: number, block: Block) {
         const index = SubChunk.getIndex(x, y, z);
         this.ids[index] = block.getId();
         this.metadata[index] = block.meta; // TODO: fix metadata index
@@ -42,19 +39,15 @@ class SubChunk {
 
     /**
      * Returns the block ID in the given position
-     * 
-     * @param {number} x - block position x 
-     * @param {number} y - block position y
-     * @param {number} z - block position z
      */
-    getBlockId(x, y, z) {
+    getBlockId(x: number, y: number, z: number) {
         return this.ids[SubChunk.getIndex(x, y, z)];
     }
-    getBlockMetadata(x, y, z) {
+    getBlockMetadata(x: number, y: number, z: number) {
         return this.metadata[SubChunk.getIndex(x, y, z)]; // TODO: fix metadata index
     }
 
-    getHighestBlockAt(x, z) {
+    getHighestBlockAt(x: number, z: number) {
         let low = (x << 8) | (z << 4);
         let i = low | 0x0f;
         for (; i >= low; --i) {
@@ -71,5 +64,4 @@ class SubChunk {
         buffer.writeUInt8(0);  // SubChunk version
         return Buffer.concat([buffer, this.ids, this.metadata]);
     }
-}
-module.exports = SubChunk;
+};

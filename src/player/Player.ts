@@ -1,6 +1,6 @@
 import Prismarine from "../Prismarine";
 import Item from "../item/";
-import Chunk from "../world/chunk/chunk";
+import Chunk from "../world/chunk/Chunk";
 import Entity from "../entity/entity";
 import World from "../world/world";
 import Gamemode from "../world/gamemode";
