@@ -124,8 +124,12 @@ export default class Player extends Entity {
             if (evt.cancelled)
                 return;
 
-            // TODO: respect channel
-            this.sendMessage(evt.getChat().getMessage());
+            // TODO: proper channel system
+            if (
+                evt.getChat().getChannel() === '*.everyone' ||
+                (evt.getChat().getChannel() === '*.ops' && this.server.getPermissionManager().isOp(this))
+            )
+                this.sendMessage(evt.getChat().getMessage());
         });
     }
 

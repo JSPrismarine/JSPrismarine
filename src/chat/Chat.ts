@@ -6,7 +6,7 @@ export default class Chat {
     private sender: Player | Console;
     private message: string;
 
-    constructor(sender: Player | Console, message: string, channel = 'global.everyone') {
+    constructor(sender: Player | Console, message: string, channel = '*.everyone') {
         this.sender = sender;
         this.channel = channel;
         this.message = message;

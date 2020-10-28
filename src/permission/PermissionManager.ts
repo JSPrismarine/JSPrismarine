@@ -62,6 +62,10 @@ export default class PermissionManager {
         }
     }
 
+    public isOp(player: Player) {
+        return !player.isPlayer() || this.ops.has(player.getUUID());
+    }
+
     public can(player: Player) {
         return {
             execute: async (permission?: string) => {
