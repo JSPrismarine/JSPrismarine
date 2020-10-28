@@ -25,9 +25,12 @@ export type EventTypes =
 
 class EventManagerWithoutEventEmitterishMethods extends Evt<EventTypes> {
 
-    constructor(private readonly server: Prismarine) {
-        super();
-    }
+    /** Events emitted by plugin makers. We can only listen those event
+     * from within the server implementation, we are not supposed to post.
+     * Also we can't have static typing for those as they are defined by
+     * the plugin makers
+     */
+    readonly evtThirdParty = Evt.asNonPostable(Evt.create<[string, any]>());
 
 }
 

@@ -34,7 +34,7 @@ export default class Prismarine {
 
     private players: Map<string, Player> = new Map();
     private telemetryManager: TelemetryManager;
-    private eventManager = new EventManager(this);
+    private eventManager = new EventManager();
     private packetRegistry: PacketRegistry;
     private pluginManager: PluginManager;
     private commandManager: CommandManager;
