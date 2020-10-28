@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import NBT from '../nbt/NBT';
 import NetworkLittleEndianBinaryStream from '../nbt/streams/NetworkLittleEndianBinaryStream';
 import CompoundTag from '../nbt/tags/CompoundTag';
-import type Prismarine from '../Prismarine';
+import Prismarine from '../Prismarine';
 import Skin from '../utils/skin/skin';
 import SkinImage from '../utils/skin/skin-image';
 import CreativeContentEntry from './type/creative-content-entry';
@@ -32,9 +32,9 @@ const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
 export default class PacketBinaryStream extends BinaryStream {
     #server: Prismarine;
 
-    constructor(server: Prismarine) {
+    constructor(server?: Prismarine) {
         super();
-        this.#server = server;
+        this.#server = server || Prismarine?.instance as Prismarine;
     }
 
     getServer(): Prismarine {
@@ -329,7 +329,7 @@ export default class PacketBinaryStream extends BinaryStream {
         let id = this.readVarInt();
         if (id == 0) {
             // TODO: items
-            return { id: 0, data: 0, amount: 0 };
+            return this.getServer().getBlockManager().getBlock('minecraft:air');
         }
 
         let name = null;
@@ -370,7 +370,9 @@ export default class PacketBinaryStream extends BinaryStream {
             }
         } */
 
-        return new Item(id, meta, amount, nbt, name);
+        // TODO: runtimeId
+        // TODO: https://github.com/JSPrismarine/JSPrismarine/issues/106
+        return this.getServer().getBlockManager().getBlockByIdAndMeta(id, meta);
     }
 
     /**

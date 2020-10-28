@@ -164,8 +164,12 @@ export default class World {
         // maybe let place = new Promise ( do all placing stuff )
         // then if place is true, play sound
 
+        console.log(blockPosition)
+        if (itemInHand instanceof Item)
+            return; // TODO
+
         const chunk = await this.getChunkAt(blockPosition.getX(), blockPosition.getZ());
-        const block = this.server.getBlockManager().getBlock('minecraft:bedrock'); // TODO: get block from itemInHand
+        const block = itemInHand; // TODO: get block from itemInHand
         if (!block)
             return this.server.getLogger().warn(`Block with runtimeId ${0} is invalid`);
 
