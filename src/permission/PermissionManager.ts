@@ -55,8 +55,10 @@ export default class PermissionManager {
 
         try {
             await writeFile(path.join(process.cwd(), '/ops.json'), JSON.stringify(Array.from(this.ops.values()).map(uuid => ({
-                uuid
-            }))));
+                uuid,
+                name: player.getUsername(),
+                level: 4
+            })), null, 4));
         } catch (err) {
             console.log(err);
         }
