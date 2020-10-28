@@ -21,29 +21,28 @@ export default class InventoryTransactionHandler {
                     switch (packet.actionType) {
                         case InventoryTransactionActionType.Build:
                             // TODO: Position isn't decoded properly
-                            const blockPos = new Vector3(packet.blockX, packet.blockY, packet.blockZ);
                             await player.getWorld().useItemOn(
-                                packet.itemInHand, blockPos, packet.face, packet.clickPosition, player
+                                packet.itemInHand, packet.blockPosition, packet.face, packet.clickPosition, player
                             );
                             break;
                         case InventoryTransactionActionType.Break:
                             const chunk = await player.getWorld().getChunkAt(
-                                packet.blockX, packet.blockZ
+                                packet.blockPosition.getX(), packet.blockPosition.getZ()
                             );
 
                             // TODO: figure out why blockId sometimes === 0
-                            const chunkPos = new Vector3((packet.blockX as number) % 16, packet.blockY, (packet.blockZ as number) % 16);
+                            const chunkPos = new Vector3((packet.blockPosition.getX() as number) % 16, packet.blockPosition.getY(), (packet.blockPosition.getZ() as number) % 16);
                             const blockId = chunk.getBlockId(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                             const blockMeta = chunk.getBlockMetadata(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                             const block = server.getBlockManager().getBlockByIdAndMeta(blockId, blockMeta);
 
                             if (!block)
-                                return server.getLogger().warn(`Block at ${packet.blockX} ${packet.blockY} ${packet.blockZ} is undefined!`);
+                                return server.getLogger().warn(`Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`);
 
                             let pk = new UpdateBlockPacket(server);
-                            pk.x = packet.blockX;
-                            pk.y = packet.blockY;
-                            pk.z = packet.blockZ;
+                            pk.x = packet.blockPosition.getX();
+                            pk.y = packet.blockPosition.getY();
+                            pk.z = packet.blockPosition.getZ();
                             // TODO: add NBT writing to support our own block palette
                             pk.BlockRuntimeId = (server.getBlockManager().getBlock('minecraft:air') as Block).getRuntimeId();
                             for (let onlinePlayer of server.getOnlinePlayers()) {
