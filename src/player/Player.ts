@@ -544,7 +544,6 @@ export default class Player extends Entity {
         pk.hideDisconnectionWindow = false;
         pk.message = reason;
         this.sendDataPacket(pk, false, true);
-        this.connection.disconnect(reason);
     }
 
     // To refactor
