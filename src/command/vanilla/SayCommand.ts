@@ -1,5 +1,7 @@
 import Command from "..";
+import Chat from "../../chat/Chat";
 import type Player from "../../player";
+import Server from "../../Server";
 
 export default class SayCommand extends Command {
     constructor() {
@@ -16,13 +18,8 @@ export default class SayCommand extends Command {
         }
 
         let message = args.join(' ');
-        let messageToSend = `§5[${sender.getUsername()}] ${message}`;
-
-        sender.getServer().getLogger().info(messageToSend);
-        for (let player of sender.getServer().getOnlinePlayers()) {
-            player.sendMessage(messageToSend);
-        }
-
+        const chat = new Chat(sender, `§5[${sender.getUsername()}] ${message}`);
+        Server.getChatManager().send(chat);
         return;
     }
 };
