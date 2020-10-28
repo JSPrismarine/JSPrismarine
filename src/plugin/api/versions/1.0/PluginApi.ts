@@ -7,6 +7,7 @@ import withDeprecated from '../../../hoc/withDeprecated';
 import Server from './Server';
 import EventManager from './EventManager';
 import PlayerManager from './PlayerManager';
+import CommandManager from './CommandManager';
 
 export const PLUGIN_API_VERSION = '1.0';
 
@@ -40,6 +41,13 @@ export default class PluginApi extends PluginApiVersion {
      */
     public getConfigBuilder(configFile: string): ConfigBuilder {
         return new ConfigBuilder(path.join(process.cwd(), '/plugins/', this.pkg.name, configFile));
+    }
+
+    /**
+     * returns an instance of the command manager
+     */
+    public getCommandManager(): CommandManager {
+        return new CommandManager(this.server);
     }
 
     /**
