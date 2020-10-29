@@ -302,14 +302,17 @@ export default class Prismarine {
      * if it is not found, null is returned.
      * 
      * CASE INSENSITIVE.
+     * MATCH IF STARTS WITH
+     * Example getPlayerByName("John") may return
+     * an user with username "John Doe"
      */
     getPlayerByName(name: string): Player | null {
-        for (let player of this.players.values()) {
-            if (player.getUsername().toLowerCase().startsWith(name.toLowerCase()) ||
-                player.getUsername().toLowerCase() === name.toLowerCase()) return player;
-        }
-
-        return null;
+        return Array.from(this.players.values())
+            .find(
+                player => player.getUsername()
+                    .toLowerCase()
+                    .startsWith(name.toLowerCase())
+            ) ?? null;
     }
 
     /**
@@ -319,11 +322,8 @@ export default class Prismarine {
      * CASE SENSITIVE.
      */
     getPlayerByExactName(name: string): Player | null {
-        for (let player of this.players.values()) {
-            if (player.getUsername() === name) return player;
-        }
-
-        return null;
+        return Array.from(this.players.values())
+            .find(player => player.getUsername() === name) ?? null;
     }
 
     /**
