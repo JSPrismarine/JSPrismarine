@@ -22,7 +22,7 @@ export default class InventoryTransactionHandler {
                         case InventoryTransactionActionType.Build:
                             // TODO: Position isn't decoded properly
                             await player.getWorld().useItemOn(
-                                packet.itemInHand, packet.blockPosition, packet.face, packet.clickPosition, player
+                                server.getBlockManager().getBlockByIdAndMeta(packet.itemInHand.id, packet.itemInHand.meta), packet.blockPosition, packet.face, packet.clickPosition, player
                             );
                             break;
                         case InventoryTransactionActionType.Break:
@@ -39,7 +39,7 @@ export default class InventoryTransactionHandler {
                             if (!block)
                                 return server.getLogger().warn(`Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`);
 
-                            let pk = new UpdateBlockPacket(server);
+                            let pk = new UpdateBlockPacket();
                             pk.x = packet.blockPosition.getX();
                             pk.y = packet.blockPosition.getY();
                             pk.z = packet.blockPosition.getZ();
