@@ -25,6 +25,7 @@ import Console from './player/Console';
 import ChatEvent from './events/chat/ChatEvent';
 import Chat from './chat/Chat';
 import PermissionManager from './permission/PermissionManager';
+import BanManager from './ban/BanManager';
 
 export default class Prismarine {
     private raknet: any;
@@ -45,6 +46,7 @@ export default class Prismarine {
     private queryManager: QueryManager;
     private chatManager: ChatManager;
     private permissionManager: PermissionManager;
+    private banManager: BanManager;
 
     static instance: null | Prismarine = null;
 
@@ -67,11 +69,13 @@ export default class Prismarine {
         this.queryManager = new QueryManager(this);
         this.chatManager = new ChatManager(this);
         this.permissionManager = new PermissionManager(this);
+        this.banManager = new BanManager(this);
         Prismarine.instance = this;
     }
 
     private async onEnable() {
         await this.permissionManager.onEnable();
+        await this.banManager.onEnable();
         await this.itemManager.onEnable();
         await this.blockManager.onEnable();
         await this.commandManager.onEnable();
@@ -85,6 +89,7 @@ export default class Prismarine {
         await this.commandManager.onDisable();
         await this.blockManager.onDisable();
         await this.itemManager.onDisable();
+        await this.banManager.onDisable();
         await this.permissionManager.onDisable();
         // TODO: rework managers to this format
     }
@@ -204,11 +209,11 @@ export default class Prismarine {
             // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
 
             // Read batch content and handle them
-            let pk = new BatchPacket(this);
+            let pk = new BatchPacket();
             (pk as any).buffer = raknetPacket.buffer;
 
             try {
-                pk.decode(this);
+                pk.decode();
             } catch {
                 this.logger.error(`Error while decoding batch`);
                 return;
@@ -424,12 +429,25 @@ export default class Prismarine {
         return this.config;
     }
 
+    /**
+     * Returns the console instance
+     */
     getConsole() {
         return this.console;
     }
 
+    /**
+     * Returns the permission manager
+     */
     getPermissionManager() {
         return this.permissionManager;
+    }
+
+    /**
+     * Returns the ban manager
+     */
+    getBanManager() {
+        return this.banManager;
     }
 
     /**
