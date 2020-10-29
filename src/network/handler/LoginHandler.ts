@@ -26,7 +26,7 @@ export default class LoginHandler {
 
         player.getPlayerConnection().sendPlayStatus(PlayStatus.LoginSuccess);
 
-        const reason = server.getPermissionManager().isBanned(player);
+        const reason = server.getBanManager().isBanned(player);
         if (reason !== false) {
             player.kick(`You have been banned${reason ? ` for reason: ${reason}` : ''}!`);
             return;

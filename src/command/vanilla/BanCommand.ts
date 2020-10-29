@@ -30,8 +30,8 @@ export default class BanCommand extends Command {
             if ((target = sender.getServer().getPlayerByName(args[0])) === null)
                 return sender.sendMessage('§cNo player was found'); // TODO: Chat manager
 
-            sender.getServer().getPermissionManager().setBanned(target, args.length > 1 ? args.slice(1).join(' ') : undefined);
-            target.kick(`§cYou have been banned${args.length > 1 ? ` for reason: ${args.slice(1).join(' ')}` : ''}!`);
+            sender.getServer().getBanManager().setBanned(target, args.length > 1 ? args.slice(1).join(' ') : undefined);
+            target.kick(`You have been banned${args.length > 1 ? ` for reason: ${args.slice(1).join(' ')}` : ''}!`);
         }
 
         return `Banned ${args[0] || sender.getUsername()} ${args.length > 1 ? `for reason ${args.slice(1).join(' ')}` : ''}`;
