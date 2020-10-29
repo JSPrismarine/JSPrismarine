@@ -26,7 +26,7 @@ export default class PardonCommand extends Command {
             sender.sendMessage('§cYou have to specify a target.');
             return;
         } else {
-            sender.getServer().getPermissionManager().setUnbanned(args[0]);
+            sender.getServer().getBanManager().setUnbanned(args[0]);
         }
 
         return `Unbanned ${args[0] || sender.getUsername()}`;

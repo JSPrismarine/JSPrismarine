@@ -11,7 +11,6 @@ import ShortTag from "./tags/ShortTag";
 import IntTag from "./tags/IntTag";
 import EndTag from "./tags/EndTag";
 
-
 export default class NBT {
     /**
      * Reads a NBT tag from a buffer. 
