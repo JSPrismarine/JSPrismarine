@@ -21,7 +21,10 @@ export default class InventoryTransactionPacket extends DataPacket {
     actions = new Map();
     actionType = 0;
     hotbarSlot = 0;
-    itemInHand: Block | Item | null = null
+    itemInHand = {
+        id: 0,
+        meta: 0
+    };
     blockPosition = new Vector3();
     face = 0;
     playerPosition = new Vector3();
@@ -35,7 +38,7 @@ export default class InventoryTransactionPacket extends DataPacket {
     changeSlot = new Map()
     hasItemStackIds: boolean = false;
 
-    decodePayload(server: Prismarine) {
+    decodePayload() {
         this.requestId = this.readVarInt();
         if (this.requestId != 0) {
             let length = this.readUnsignedVarInt();
@@ -49,7 +52,7 @@ export default class InventoryTransactionPacket extends DataPacket {
 
         let actionsCount = this.readUnsignedVarInt();
         for (let i = 0; i < actionsCount; i++) {
-            let networkTransaction = new NetworkTransaction(server).decode(this, this.hasItemStackIds);
+            let networkTransaction = new NetworkTransaction().decode(this, this.hasItemStackIds);
             this.actions.set(i, networkTransaction);
         }
 
@@ -82,7 +85,7 @@ export default class InventoryTransactionPacket extends DataPacket {
                 this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 break;
             default:
-                server.getLogger().warn(`Unknown transaction type ${this.type}`);
+                this.getServer().getLogger().warn(`Unknown transaction type ${this.type}`);
         }
     }
 };

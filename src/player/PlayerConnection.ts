@@ -303,7 +303,7 @@ export default class PlayerConnection {
      * @param {boolean} needsTranslation
      */
     public sendMessage(message: string, xuid = '', needsTranslation = false) {
-        let pk = new TextPacket(this.server);
+        let pk = new TextPacket();
         pk.type = TextType.Raw;
         pk.message = message;
         pk.needsTranslation = needsTranslation;
@@ -463,7 +463,7 @@ export default class PlayerConnection {
     }
 
     public kick(reason = 'unknown reason') {
-        let pk = new DisconnectPacket(this.server);
+        let pk = new DisconnectPacket();
         pk.hideDisconnectionWindow = false;
         pk.message = reason;
         this.sendDataPacket(pk, false, true);

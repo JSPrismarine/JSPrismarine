@@ -22,10 +22,10 @@ export default class DataPacket extends PacketBinaryStream {
         return this.constructor.name;
     }
 
-    decode(server?: Prismarine) {
+    decode() {
         (this as any).offset = 0;
         this.decodeHeader();
-        this.decodePayload(server);
+        this.decodePayload();
         // Mark all the packets sent by the client
         // as encoded, because they have all the properties
         // and a buffer (like a manually encoded packet). 
@@ -42,7 +42,7 @@ export default class DataPacket extends PacketBinaryStream {
         this.#receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK;
     }
 
-    decodePayload(server?: Prismarine) { }
+    decodePayload() { }
 
     encode() {
         this.reset();

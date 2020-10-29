@@ -30,12 +30,7 @@ const ItemStackRequestCreativeCreate = require('./type/item-stack-requests/creat
 const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
 
 export default class PacketBinaryStream extends BinaryStream {
-    #server: Prismarine;
-
-    constructor(server?: Prismarine) {
-        super();
-        this.#server = server || Prismarine?.instance as Prismarine;
-    }
+    #server: Prismarine = Prismarine?.instance as Prismarine;
 
     getServer(): Prismarine {
         return this.#server;
@@ -317,19 +312,19 @@ export default class PacketBinaryStream extends BinaryStream {
                     this.writeLShort(value[1]);
                     break;
                 default:
-                    this.#server.getLogger().warn(`Unknown meta type ${value}`);
+                //this.#server.getLogger().warn(`Unknown meta type ${value}`);
             }
         }
     }
 
-    /**
-     * @returns {Item}
-     */
     readItemStack() {
         let id = this.readVarInt();
         if (id == 0) {
             // TODO: items
-            return this.getServer().getBlockManager().getBlock('minecraft:air');
+            return {
+                id: 0,
+                meta: 0
+            };
         }
 
         let name = null;
@@ -372,7 +367,10 @@ export default class PacketBinaryStream extends BinaryStream {
 
         // TODO: runtimeId
         // TODO: https://github.com/JSPrismarine/JSPrismarine/issues/106
-        return this.getServer().getBlockManager().getBlockByIdAndMeta(id, meta);
+        return {
+            id,
+            meta
+        };
     }
 
     /**

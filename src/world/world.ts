@@ -127,7 +127,7 @@ export default class World {
      * @param data 
      */
     public sendWorldEvent(position: Vector3 | null, worldEvent: number, data: number): void {
-        let worldEventPacket = new WorldEventPacket(this.server);
+        let worldEventPacket = new WorldEventPacket();
         worldEventPacket.eventId = worldEvent;
         worldEventPacket.data = data;
         if (position != null) {
@@ -174,7 +174,7 @@ export default class World {
 
         chunk.setBlock(blockPosition.getX() % 16, blockPosition.getY(), blockPosition.getZ() % 16, block);
 
-        const blockUpdate = new UpdateBlockPacket(this.server);
+        const blockUpdate = new UpdateBlockPacket();
         blockUpdate.x = blockPosition.getX();
         blockUpdate.y = blockPosition.getY();
         blockUpdate.z = blockPosition.getZ();

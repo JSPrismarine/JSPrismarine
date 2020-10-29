@@ -24,7 +24,7 @@ export default class PlayerActionHandler {
                 const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
 
                 // TODO: world.sendEvent(type, position(Vector3), data) (?)
-                let pk = new WorldEventPacket(server);
+                let pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.BlockStartBreak;
                 pk.x = packet.x;
                 pk.y = packet.y;
@@ -37,7 +37,7 @@ export default class PlayerActionHandler {
             } case PlayerAction.AbortBreak: {
                 // Gets called when player didn't finished 
                 // to break the block
-                let pk = new WorldEventPacket(server);
+                let pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.BlockStopBreak;
                 pk.x = packet.x;
                 pk.y = packet.y;
@@ -53,7 +53,7 @@ export default class PlayerActionHandler {
             } case PlayerAction.ContinueBreak: {
                 // This fires twice in creative.. wtf Mojang?
 
-                let pk = new WorldEventPacket(server);
+                let pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.ParticlePunchBlock;
                 pk.x = packet.x;
                 pk.y = packet.y;
