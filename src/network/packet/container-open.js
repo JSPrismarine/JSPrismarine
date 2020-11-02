@@ -16,7 +16,7 @@ class ContainerOpenPacket extends DataPacket {
     containerY
     /** @type {number} */
     containerZ
-    
+
     /** @type {number} */
     containerEntityId
 

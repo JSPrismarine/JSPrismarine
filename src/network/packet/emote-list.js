@@ -1,6 +1,6 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
-const UUID = require('../../utils/uuid');
+const UUID = require('../../utils/UUID');
 
 
 class EmoteListPacket extends DataPacket {

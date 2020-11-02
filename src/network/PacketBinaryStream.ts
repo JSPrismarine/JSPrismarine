@@ -1,60 +1,72 @@
+import Prismarine from "../Prismarine";
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import NBT from '../nbt/NBT';
-import NetworkLittleEndianBinaryStream from '../nbt/streams/NetworkLittleEndianBinaryStream';
-import CompoundTag from '../nbt/tags/CompoundTag';
-import Prismarine from '../Prismarine';
-import Skin from '../utils/skin/skin';
-import SkinImage from '../utils/skin/skin-image';
-import CreativeContentEntry from './type/creative-content-entry';
-import PlayerListEntry from './type/player-list-entry';
+import UUID from '../utils/UUID';
+import Skin from '../utils/skin/Skin';
+import { FlagType } from '../entity/metadata';
+import CommandOriginData from './type/CommandOriginData';
+import CommandOrigin from './type/CommandOrigin';
+import SkinImage from '../utils/skin/SkinImage';
+import type PlayerListEntry from './type/PlayerListEntry';
+import type CreativeContentEntry from './type/CreativeContentEntry';
+import SkinAnimation from '../utils/skin/SkinAnimation';
+import SkinCape from '../utils/skin/SkinCape';
+import SkinPersonaPiece from '../utils/skin/skin-persona/PersonaPiece';
+import SkinPersona from '../utils/skin/skin-persona/Persona';
+import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/PieceTintColor';
+import type Block from "../block";
+import Item from "../item";
 
-const UUID = require('../utils/uuid');
-const { FlagType } = require('../entity/metadata');
-const CommandOriginData = require('./type/command-origin-data');
-const CommandOrigin = require('./type/command-origin');
-const SkinAnimation = require('../utils/skin/skin-animation');
-const SkinCape = require('../utils/skin/skin-cape');
-const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece');
-const SkinPersona = require('../utils/skin/skin-persona/persona');
-const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color');
-const Item = require('../item').default;
-const Block = require('../block').default;
-
-const ItemStackRequest = require('./type/item-stack-requests/item-stack-request');
-const ItemStackRequestTake = require('./type/item-stack-requests/take');
-const ItemStackRequestPlace = require('./type/item-stack-requests/place');
-const ItemStackRequestDrop = require('./type/item-stack-requests/drop');
-const ItemStackRequestSwap = require('./type/item-stack-requests/swap');
-const ItemStackRequestDestroy = require('./type/item-stack-requests/destroy');
-const ItemStackRequestCreativeCreate = require('./type/item-stack-requests/creative-create');
-const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
+import ItemStackRequest from './type/item-stack-requests/item-stack-request';
+import ItemStackRequestTake from './type/item-stack-requests/take';
+import ItemStackRequestPlace from './type/item-stack-requests/place';
+import ItemStackRequestDrop from './type/item-stack-requests/drop';
+import ItemStackRequestSwap from './type/item-stack-requests/swap';
+import ItemStackRequestDestroy from './type/item-stack-requests/destroy';
+import ItemStackRequestCreativeCreate from './type/item-stack-requests/creative-create';
+import ItemStackRequestConsume from './type/item-stack-requests/consume';
+import type EntityAttribute from "./type/EntityAttribute";
+import NetworkLittleEndianBinaryStream from "../nbt/streams/NetworkLittleEndianBinaryStream";
+import CompoundTag from "../nbt/tags/CompoundTag";
+import NBT from "../nbt/NBT";
 
 export default class PacketBinaryStream extends BinaryStream {
-    #server: Prismarine = Prismarine?.instance as Prismarine;
+    #server: Prismarine = Prismarine.instance as Prismarine;
 
-    getServer(): Prismarine {
+    public getServer(): Prismarine {
         return this.#server;
     }
 
     /**
      * Returns a string encoded into the buffer.
      */
-    readString(): string {
+    public readString(): string {
         return this.read(this.readUnsignedVarInt()).toString();
     }
 
     /**
      * Encodes a string into the buffer.
      */
-    writeString(v: string) {
+    public writeString(v: string): void {
         this.writeUnsignedVarInt(Buffer.byteLength(v));
         this.append(Buffer.from(v, 'utf8'));
     }
 
     /**
-     * @returns {UUID}
+     * Returns a buffer.
      */
-    readUUID() {
+    public readBuffer(): Buffer {
+        return this.read(this.readUnsignedVarInt());
+    }
+
+    /**
+    * Encodes a string into the buffer.
+    */
+    public writeBuffer(v: Buffer): void {
+        this.writeUnsignedVarInt(Buffer.byteLength(v));
+        this.append(v);
+    }
+
+    public readUUID(): UUID {
         let part1 = this.readLInt();
         let part0 = this.readLInt();
         let part3 = this.readLInt();
@@ -66,7 +78,7 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Encodes an UUID into the buffer.
      */
-    writeUUID(uuid: any) {
+    public writeUUID(uuid: UUID): void {
         this.writeLInt(uuid.parts[1]);
         this.writeLInt(uuid.parts[0]);
         this.writeLInt(uuid.parts[3]);
@@ -76,7 +88,7 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Retrurns a skin encoded into the buffer.
      */
-    readSkin(): Skin {
+    public readSkin(): Skin {
         let skin = new Skin();
         skin.id = this.readString();
         skin.resourcePatch = this.readString();
@@ -108,7 +120,7 @@ export default class PacketBinaryStream extends BinaryStream {
         skin.cape.image = new SkinImage({
             width: this.readLInt(),
             height: this.readLInt(),
-            data: this.readString()
+            data: this.readBuffer()
         });
 
         // Miscellaneus
@@ -155,9 +167,9 @@ export default class PacketBinaryStream extends BinaryStream {
     }
 
     /**
-     * Encodes a skin into the buffer
+     * Encodes a skin into the buffer.
      */
-    writeSkin(skin: Skin) {
+    public writeSkin(skin: Skin): void {
         this.writeString(skin.id);
         this.writeString(skin.resourcePatch);
 
@@ -177,10 +189,10 @@ export default class PacketBinaryStream extends BinaryStream {
 
         // Miscellaneus
         this.writeString(skin.geometry);
-        this.writeString(skin.animationData);
-        this.writeBool(skin.isPremium as unknown as number);
-        this.writeBool(skin.isPersona as unknown as number);
-        this.writeBool(skin.isCapeOnClassicSkin as unknown as number);
+        this.writeString(skin.animationData as string);
+        this.writeBool(+skin.isPremium);
+        this.writeBool(+skin.isPersona);
+        this.writeBool(+skin.isCapeOnClassicSkin);
         this.writeString(skin.cape.id);
         this.writeString(skin.fullId);
         this.writeString(skin.armSize);
@@ -213,18 +225,18 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Encodes a skin image into the buffer.
      */
-    private writeSkinImage(image: SkinImage) {
+    public writeSkinImage(image: SkinImage): void {
         this.writeLInt(image.width);
         this.writeLInt(image.height);
-        this.writeString(image.data);
+        this.writeBuffer(image.data as Buffer);
     }
 
     /**
      * Encodes a player list entry into the buffer.
      */
-    writePlayerListAddEntry(entry: PlayerListEntry) {
+    public writePlayerListAddEntry(entry: PlayerListEntry): void {
         this.writeUUID(entry.uuid);
-        this.writeVarLong(entry.uniqueEntityId);
+        this.writeVarLong(BigInt(entry.uniqueEntityId));
         this.writeString(entry.name);
         this.writeString(entry.xuid);
         this.writeString(entry.platformChatId);
@@ -237,11 +249,11 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Removes a player list entry by UUID.
      */
-    writePlayerListRemoveEntry(entry: PlayerListEntry) {
+    public writePlayerListRemoveEntry(entry: PlayerListEntry): void {
         this.writeUUID(entry.uuid);
     }
 
-    writeAttributes(attributes: any) {
+    public writeAttributes(attributes: EntityAttribute[]): void {
         this.writeUnsignedVarInt(attributes.length);
         for (let attribute of attributes) {
             this.writeLFloat(attribute.min);
@@ -251,7 +263,8 @@ export default class PacketBinaryStream extends BinaryStream {
             this.writeString(attribute.name);
         }
     }
-    writeCreativeContentEntry(entry: CreativeContentEntry) {
+
+    public writeCreativeContentEntry(entry: CreativeContentEntry): void {
         this.writeVarInt(entry.entryId);
         this.writeItemStack(entry.item);
     }
@@ -259,7 +272,7 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Serializes gamerules into the buffer.
      */
-    writeGamerules(rules: any) {
+    public writeGamerules(rules: Map<string, boolean | number>): void {
         this.writeUnsignedVarInt(rules.size);
         for (let [name, value] of rules) {
             this.writeString(name);
@@ -283,33 +296,26 @@ export default class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    private isInt(n: number) {
-        return n % 1 === 0;
-    }
-    private isFloat(n: number) {
-        return n % 1 !== 0;
-    }
-
-    writeEntityMetadata(metadata: any) {
+    public writeEntityMetadata(metadata: Map<number, Array<number | string>>) {
         this.writeUnsignedVarInt(metadata.size);
         for (const [index, value] of metadata) {
             this.writeUnsignedVarInt(index);
-            this.writeUnsignedVarInt(value[0]);
+            this.writeUnsignedVarInt(value[0] as number);
             switch (value[0]) {
                 case FlagType.Byte:
-                    this.writeByte(value[1]);
+                    this.writeByte(value[1] as number);
                     break;
                 case FlagType.Float:
-                    this.writeLFloat(value[1]);
+                    this.writeLFloat(value[1] as number);
                     break;
                 case FlagType.Long:
-                    this.writeVarLong(value[1]);
+                    this.writeVarLong(BigInt(value[1] as number));
                     break;
                 case FlagType.String:
-                    this.writeString(value[1]);
+                    this.writeString(value[1] as string);
                     break;
                 case FlagType.Short:
-                    this.writeLShort(value[1]);
+                    this.writeLShort(value[1] as number);
                     break;
                 default:
                 //this.#server.getLogger().warn(`Unknown meta type ${value}`);
@@ -317,7 +323,7 @@ export default class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    readItemStack() {
+    public readItemStack(): any {
         let id = this.readVarInt();
         if (id == 0) {
             // TODO: items
@@ -378,7 +384,7 @@ export default class PacketBinaryStream extends BinaryStream {
      * 
      * @param {Item | Block} itemstack 
      */
-    writeItemStack(itemstack: any) {
+    public writeItemStack(itemstack: Item | Block) {
         if (itemstack.name === 'minecraft:air') {
             return this.writeVarInt(0);
         }
@@ -406,7 +412,7 @@ export default class PacketBinaryStream extends BinaryStream {
         return null;
     }
 
-    readItemStackRequest() {
+    public readItemStackRequest() {
         const id = this.readVarInt();
         this.#server.getLogger().debug(`Request ID: ${id}`);
 
@@ -421,14 +427,14 @@ export default class PacketBinaryStream extends BinaryStream {
         });
     }
 
-    writeItemStackRequest() {
+    public writeItemStackRequest() {
         // TODO
         this.writeBool(1);
         this.writeVarInt(0);
         this.writeVarInt(0);
     }
 
-    readItemStackRequestAction() {
+    public readItemStackRequestAction() {
         const id = this.readByte();
 
         this.#server.getLogger().debug(`Action ${id}`);
@@ -507,7 +513,7 @@ export default class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    readItemStackRequestSlotInfo() {
+    public readItemStackRequestSlotInfo() {
         return {
             containerId: this.readByte(),
             slot: this.readByte(),
@@ -515,7 +521,7 @@ export default class PacketBinaryStream extends BinaryStream {
         }; // TODO: class
     }
 
-    readCommandOriginData() {
+    public readCommandOriginData() {
         let data = new CommandOriginData();
         data.type = this.readUnsignedVarInt();
         data.uuid = this.readUUID();
@@ -523,9 +529,17 @@ export default class PacketBinaryStream extends BinaryStream {
 
         if (data.type === CommandOrigin.DevConsole ||
             data.type === CommandOrigin.Test) {
-            data.uniqueEntityId = this.readVarLong();
+            data.uniqueEntityId = Number(this.readVarLong());
         }
         return data;
     }
 
+
+    private isInt(n: number): boolean {
+        return n % 1 === 0;
+    }
+
+    private isFloat(n: number): boolean {
+        return n % 1 !== 0;
+    }
 };

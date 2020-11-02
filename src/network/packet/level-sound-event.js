@@ -6,7 +6,7 @@ class LevelSoundEventPacket extends DataPacket {
     static NetID = Identifiers.LevelSoundEventPacket
 
     sound
-    
+
     positionX
     positionY
     positionZ

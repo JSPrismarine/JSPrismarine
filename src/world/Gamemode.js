@@ -38,4 +38,4 @@ const Gamemode = {
         }
     }
 };
-module.exports = Gamemode;
+export default Gamemode;

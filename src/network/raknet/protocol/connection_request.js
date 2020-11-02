@@ -41,6 +41,6 @@ class ConnectionRequest extends Packet {
     set requestTimestamp(requestTimestamp) {
         this.#requestTimestamp = requestTimestamp;
     }
-    
+
 }
 module.exports = ConnectionRequest;

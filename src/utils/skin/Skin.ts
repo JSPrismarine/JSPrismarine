@@ -1,57 +1,39 @@
-const SkinImage = require('../skin/skin-image');
-const SkinAnimation = require('./skin-animation');
-const SkinPersona = require('../../utils/skin/skin-persona/persona');
-const SkinPersonaPiece = require('./skin-persona/persona-piece');
-const SkinPersonaPieceTintColor = require('./skin-persona/piece-tint-color');
-const SkinCape = require('../skin/skin-cape');
-
+import SkinImage from './SkinImage';
+import SkinAnimation from './SkinAnimation';
+import SkinPersona from './skin-persona/Persona';
+import SkinPersonaPiece from './skin-persona/PersonaPiece';
+import SkinPersonaPieceTintColor from './skin-persona/PieceTintColor';
+import SkinCape from './SkinCape';
 
 class Skin {
-
-    /** @type {string} */
-    id
-    /** @type {string} */
-    resourcePatch
-    /** @type {SkinImage} */
-    image
-    /** @type {Set<SkinAnimation>} */
-    animations = new Set()
-    /** @type {SkinCape} */
-    cape
-    /** @type {string} */
-    geometry
-    /** @type {string} */
-    animationData
-    /** @type {boolean} */
-    isPremium
-    /** @type {boolean} */
-    isPersona
-    /** @type {boolean} */
-    isCapeOnClassicSkin
-    /** @type {string} */
-    color
-    /** @type {string} */
-    armSize
-    /** @type {SkinPersona} */
-    persona
+    public id!: string;
+    public resourcePatch!: string;
+    public image!: SkinImage;
+    public animations: Set<SkinAnimation> = new Set();
+    public cape!: SkinCape;
+    // TODO Class for geometry??
+    public geometry!: string;
+    public animationData!: Buffer|string;
+    public isPremium!: boolean;
+    public isPersona!: boolean;
+    public isCapeOnClassicSkin!: boolean;
+    public color!: string;
+    public armSize!: string;
+    public persona!: SkinPersona;
     /**
      * Full skin ID, computed because
      * not sent on JWT.
-     * 
-     * @type {string}
      */
-    fullId
-    /** @type {boolean} */
-    isTrusted = true
+    public fullId!: string;
+    public isTrusted: boolean  = true;
 
     /**
      * Loads a skin from a JSON file contianing skin data 
      * using minecraft bedrock login fields.
      * 
      * (loads the skin persona)
-     * @param {object} jwt 
      */
-    static fromJWT(jwt) {  
+    public static fromJWT(jwt: any): Skin {  
         let skin = new Skin();
 
         // Read skin 
@@ -133,4 +115,4 @@ class Skin {
     }
 
 }
-module.exports = Skin;
+export default Skin;

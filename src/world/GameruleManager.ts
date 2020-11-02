@@ -1,4 +1,4 @@
-import Prismarine from "../Prismarine";
+import type Prismarine from "../Prismarine";
 
 export const Rules = {
     CommandBlockOutput: 'commandblockoutput',

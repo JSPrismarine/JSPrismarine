@@ -1,11 +1,11 @@
-const path = require('path');
-const level = require('level');
+import { join } from 'path';
+import level from 'level';
 
-const Provider = require('../provider');
-const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-const Chunk = require('../chunk/Chunk');
-const EmptySubChunk = require('../chunk/empty-sub-chunk');
-const SubChunk = require('../chunk/SubChunk').default;
+import Provider from '../Provider';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Chunk from '../chunk/Chunk';
+import EmptySubChunk from '../chunk/empty-sub-chunk';
+import SubChunk from '../chunk/SubChunk';
 
 const Tags = {
     Version: 'v',
@@ -18,7 +18,7 @@ class LevelDB extends Provider {
 
     constructor(levelPath, server) {
         super(levelPath);
-        this.db = new level(path.join(levelPath, 'db'));
+        this.db = new level(join(levelPath, 'db'));
         this.#server = server;
     }
 
@@ -132,4 +132,4 @@ class LevelDB extends Provider {
     }
 
 }
-module.exports = LevelDB;
+export default LevelDB;

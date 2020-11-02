@@ -1,6 +1,6 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
-const InteractAction = require('../type/interact-action');
+const InteractAction = require('../type/InteractAction');
 
 
 class InteractPacket extends DataPacket {

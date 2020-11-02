@@ -1,6 +1,6 @@
+import type Player from "../player/Player";
+import type Prismarine from "../Prismarine";
 import Chat from "../chat/Chat";
-import Player from "../player/Player";
-import Prismarine from "../Prismarine";
 import Command from "./Command";
 
 const path = require('path');

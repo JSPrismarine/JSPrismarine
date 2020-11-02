@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 class GeneratorManager {
     #generators = new Map()
@@ -24,4 +24,4 @@ class GeneratorManager {
         return this.#generators.get(id);
     }
 }
-module.exports = GeneratorManager;
+export default GeneratorManager;

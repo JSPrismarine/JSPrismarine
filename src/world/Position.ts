@@ -1,5 +1,5 @@
 import Vector3 from "../math/Vector3";
-import World from "./world";
+import type World from "./World";
 
 interface PositionData {
     x?: number;

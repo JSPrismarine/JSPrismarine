@@ -27,14 +27,14 @@ class NetworkTransaction {
     decode(buffer, hasItemStack = false) {
         this.sourceType = buffer.readUnsignedVarInt();
 
-        switch(this.sourceType) {
+        switch (this.sourceType) {
             case NetworkTransactionSource.Container:
             case NetworkTransactionSource.Unknown:
             case NetworkTransactionSource.CraftingGrid:
                 this.windowId = buffer.readVarInt();
                 break;
             case NetworkTransactionSource.World:
-                this.sourceFlags = buffer.readUnsignedVarInt(); 
+                this.sourceFlags = buffer.readUnsignedVarInt();
                 break;
             case NetworkTransactionSource.Creative:
                 break;

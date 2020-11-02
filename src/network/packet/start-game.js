@@ -16,7 +16,7 @@ class StartGamePacket extends DataPacket {
     /** @type {number} */
     runtimeEntityId
     /** @type {number} */
-    gamemode 
+    gamemode
 
     /** @type {number} */
     playerX
@@ -31,14 +31,14 @@ class StartGamePacket extends DataPacket {
     worldName
 
     /** @type {number} */
-    worldSpawnX 
+    worldSpawnX
     /** @type {number} */
     worldSpawnY
     /** @type {number} */
     worldSpawnZ
 
     /** @type {Map<String, any>} */
-    gamerules 
+    gamerules
 
     /** @type {Buffer|null} */
     cachedItemPalette = null
@@ -47,7 +47,7 @@ class StartGamePacket extends DataPacket {
         this.writeVarLong(this.entityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
-        this.writeVarInt(this.gamemode); 
+        this.writeVarInt(this.gamemode);
 
         // vector 3
         this.writeLFloat(this.playerX);
@@ -107,14 +107,14 @@ class StartGamePacket extends DataPacket {
         this.writeByte(0); // from world template
         this.writeByte(0); // world template option locked
         this.writeByte(1); // only spawn v1 villagers
-        this.writeString(Identifiers.MinecraftVersion); 
+        this.writeString(Identifiers.MinecraftVersion);
         this.writeLInt(0); // limited world height
         this.writeLInt(0); // limited world length
         this.writeBool(false); // has new nether
         this.writeBool(false); // experimental gameplay
 
-        this.writeString(this.levelId); 
-        this.writeString(this.worldName); 
+        this.writeString(this.levelId);
+        this.writeString(this.worldName);
         this.writeString(''); // template content identity
 
         this.writeByte(0); // is trial
@@ -139,7 +139,7 @@ class StartGamePacket extends DataPacket {
                 stream.writeString(name);
                 stream.writeLShort(legacyId);
             }
-            this.cachedItemPalette = stream.buffer; 
+            this.cachedItemPalette = stream.buffer;
         }
 
         return this.cachedItemPalette;

@@ -14,7 +14,6 @@ const StartGamePacket = require('../packet/start-game');
 const Gamemode = require('../../world/gamemode');
 // const Item = require('../../item')
 
-
 export default class ResourcePackResponseHandler {
     static NetID = Identifiers.ResourcePackResponsePacket
 

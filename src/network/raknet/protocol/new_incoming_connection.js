@@ -18,7 +18,7 @@ class NewIncomingConnection extends Packet {
     read() {
         super.read();
         this.#address = this.readAddress();
-        
+
         // Do not save in memory stuff we will not use
         for (let i = 0; i < 20; i++) {
             this.#systemAddresses.push(this.readAddress());
@@ -69,6 +69,6 @@ class NewIncomingConnection extends Packet {
     set acceptedTimestamp(acceptedTimestamp) {
         this.#acceptedTimestamp = acceptedTimestamp;
     }
-    
+
 }
 module.exports = NewIncomingConnection;

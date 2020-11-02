@@ -28,6 +28,6 @@ class ConnectedPing extends Packet {
     set clientTimestamp(clientTimestamp) {
         this.#clientTimestamp = clientTimestamp;
     }
-    
+
 }
 module.exports = ConnectedPing;

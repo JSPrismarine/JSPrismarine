@@ -1,7 +1,4 @@
-import Block from "../../block";
-import Item from "../../item";
 import Vector3 from "../../math/Vector3";
-import type Prismarine from "../../Prismarine";
 import Identifiers from "../Identifiers";
 import DataPacket from "./Packet";
 

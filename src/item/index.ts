@@ -1,5 +1,5 @@
 import { BlockToolType } from "../block/BlockToolType"
-import { ItemEnchantmentType } from "./ItemEnchantmentType"
+import type { ItemEnchantmentType } from "./ItemEnchantmentType"
 import { ItemTieredToolType } from "./ItemTieredToolType"
 
 export interface ItemProps {

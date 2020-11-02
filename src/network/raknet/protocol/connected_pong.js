@@ -33,6 +33,6 @@ class ConnectedPong extends Packet {
     set serverTimestamp(serverTimestamp) {
         this.#serverTimestamp = serverTimestamp;
     }
-        
+
 }
 module.exports = ConnectedPong;

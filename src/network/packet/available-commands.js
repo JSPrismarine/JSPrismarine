@@ -1,7 +1,7 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
-const CommandEnum = require('../type/command-enum');
-const CommandData = require('../type/command-data');
+const CommandEnum = require('../type/CommandEnum');
+const CommandData = require('../type/CommandData');
 
 
 class AvailableCommandsPacket extends DataPacket {
@@ -27,7 +27,7 @@ class AvailableCommandsPacket extends DataPacket {
         this.writeUnsignedVarInt(this.postFixes.size);
         for (let postFix of this.postFixes) {
             this.writeString(postFix);
-        } 
+        }
 
         // Write enum indexes
         this.writeUnsignedVarInt(this.enums.size);
@@ -57,8 +57,8 @@ class AvailableCommandsPacket extends DataPacket {
 
             // Parameters and overloads
             this.writeUnsignedVarInt(1);  // i don't get it, why ??
-            this.writeUnsignedVarInt(data?.parameters?.size || 0); 
-            if(data?.parameters) 
+            this.writeUnsignedVarInt(data?.parameters?.size || 0);
+            if (data?.parameters)
                 for (let parameter of data.parameters) {
                     this.writeString(parameter.name);
                     this.writeLInt(parameter.type);

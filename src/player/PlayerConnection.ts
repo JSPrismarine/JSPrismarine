@@ -17,13 +17,13 @@ const LevelChunkPacket = require("../network/packet/level-chunk");
 const UUID = require('../utils/uuid');
 const PlayerListPacket = require('../network/packet/player-list');
 const PlayerListAction = require('../network/type/player-list-action');
-const PlayerListEntry = require('../network/type/player-list-entry');
+const PlayerListEntry = require('../network/type/PlayerListEntry');
 const AddPlayerPacket = require('../network/packet/add-player');
 const MovePlayerPacket = require('../network/packet/move-player');
 const RemoveActorPacket = require('../network/packet/remove-actor');
 const UpdateAttributesPacket = require('../network/packet/update-attributes');
 const SetActorDataPacket = require('../network/packet/set-actor-data');
-const CoordinateUtils = require('../world/coordinate-utils');
+const CoordinateUtils = require('../world/CoordinateUtils');
 const AvailableCommandsPacket = require('../network/packet/available-commands');
 const SetGamemodePacket = require('../network/packet/set-gamemode');
 const CreativeContentPacket = require('../network/packet/creative-content-packet');
@@ -31,7 +31,7 @@ const NetworkChunkPublisherUpdatePacket = require('../network/packet/network-chu
 const SetTimePacket = require('../network/packet/set-time');
 const InventoryContentPacket = require('../network/packet/inventory-content-packet');
 const MobEquipmentPacket = require('../network/packet/mob-equipment-packet');
-const CreativeContentEntry = require('../network/type/creative-content-entry');
+const CreativeContentEntry = require('../network/type/CreativeContentEntry');
 
 export default class PlayerConnection {
     private player: Player;

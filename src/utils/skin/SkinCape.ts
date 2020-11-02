@@ -1,0 +1,20 @@
+import type SkinImage from './SkinImage';
+
+interface SkinCapeData {
+    id: string;
+    image: SkinImage;
+}
+
+class SkinCape {
+    public id!: string;
+    public image!: SkinImage;
+
+    constructor(options?: SkinCapeData) {
+        if (options) {
+            this.id = options.id;
+            this.image = options.image;
+        }
+    }
+}
+
+export default SkinCape;

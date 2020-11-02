@@ -6,7 +6,7 @@ class ResourcePacksInfoPacket extends DataPacket {
     static NetID = Identifiers.ResourcePacksInfoPacket
 
     mustAccept = false
-    hasScripts = false 
+    hasScripts = false
 
     behaviorPackEntries = []
     resourcePackEntries = []

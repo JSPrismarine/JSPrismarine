@@ -1,6 +1,6 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
-const CommandOriginData = require('../type/command-origin-data');
+const CommandOriginData = require('../type/CommandOriginData');
 
 
 class CommandRequestPacket extends DataPacket {
@@ -18,6 +18,6 @@ class CommandRequestPacket extends DataPacket {
         this.commandOriginData = this.readCommandOriginData();
         this.internal = this.readBool();
     }
-    
+
 }
 module.exports = CommandRequestPacket;

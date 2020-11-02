@@ -9,10 +9,10 @@ import Prismarine from "../Prismarine";
 import Chunk from "./chunk/Chunk";
 
 const LevelSoundEventPacket = require('../network/packet/level-sound-event');
-const UUID = require('../utils/uuid');
-const CoordinateUtils = require('../world/coordinate-utils');
-const { GameruleManager, Rules } = require('../world/gamerule-manager');
-const SharedSeedRandom = require('./util/shared-seed-random');
+import UUID from '../utils/UUID';
+import CoordinateUtils from '../world/CoordinateUtils';
+import { GameruleManager, Rules } from '../world/GameruleManager';
+import SharedSeedRandom from './util/shared-seed-random';
 
 interface WorldData {
     name: string,
@@ -32,7 +32,7 @@ export default class World {
     private currentTick: number = 0;
     private provider: any;   // TODO: interface
     private server: Prismarine
-    private seed: number | bigint;
+    private seed: SharedSeedRandom;
     private generator: any;  // TODO: interface
 
     constructor({ name, server, provider, seed, generator = 'overworld' }: WorldData) {
@@ -40,7 +40,7 @@ export default class World {
         this.server = server;
         this.provider = provider;
         this.gameruleManager = new GameruleManager(server);
-        this.seed = new SharedSeedRandom(seed);
+        this.seed = new SharedSeedRandom(BigInt(seed));
         this.generator = generator;
 
         // TODO: Load default gamrules

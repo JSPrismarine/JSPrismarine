@@ -6,28 +6,28 @@ class AddActorPacket extends DataPacket {
     static NetID = Identifiers.AddActorPacket
 
     /** @type {number} */
-    uniqueEntityId 
+    uniqueEntityId
     /** @type {number} */
     runtimeEntityId
     /** @type {string} */
     type
-    /** @type {number} */ 
+    /** @type {number} */
     x
-    /** @type {number} */ 
+    /** @type {number} */
     y
-    /** @type {number} */ 
+    /** @type {number} */
     z
-    /** @type {number} */ 
+    /** @type {number} */
     motionX
-    /** @type {number} */ 
+    /** @type {number} */
     motionY
-    /** @type {number} */ 
+    /** @type {number} */
     motionZ
-    /** @type {number} */ 
+    /** @type {number} */
     pitch = 0.0
-    /** @type {number} */ 
+    /** @type {number} */
     yaw = 0.0
-    /** @type {number} */ 
+    /** @type {number} */
     headYaw = 0.0
 
     attributes = []

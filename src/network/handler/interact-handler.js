@@ -1,11 +1,9 @@
 const Player = require('../../player/Player').default;
 const Identifiers = require('../Identifiers').default;
 const InteractPacket = require('../packet/interact');
-const InteractAction = require('../type/interact-action');
+const InteractAction = require('../type/InteractAction').default;
 const ContainerOpenPacket = require('../packet/container-open');
-const logger = require('../../utils/Logger');
 const Prismarine = require('../../Prismarine');
-
 
 class InteractHandler {
     static NetID = Identifiers.InteractPacket

@@ -21,7 +21,7 @@ class AcknowledgePacket extends Packet {
             let recordType = this.readByte();
 
             // Range
-            if (recordType == 0) {  
+            if (recordType == 0) {
                 let start = this.readLTriad();
                 let end = this.readLTriad();
 

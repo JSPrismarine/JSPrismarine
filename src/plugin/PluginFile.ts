@@ -1,6 +1,6 @@
 import path from 'path';
-import Prismarine from '../Prismarine';
-import PluginApiVersion from './api/PluginApiVersion';
+import type Prismarine from '../Prismarine';
+import type PluginApiVersion from './api/PluginApiVersion';
 
 export class Plugin {
     constructor(api: PluginApiVersion) { }

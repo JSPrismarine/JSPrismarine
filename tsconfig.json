@@ -17,6 +17,7 @@
         "declaration": true,
         "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true,
+        "importsNotUsedAsValues": "error",
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "composite": true

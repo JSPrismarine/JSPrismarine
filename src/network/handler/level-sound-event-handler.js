@@ -1,7 +1,7 @@
-const Identifiers = require('../Identifiers').default;
 const Player = require('../../player/Player').default;
 const LevelSoundEventPacket = require('../packet/level-sound-event');
 const Prismarine = require('../../Prismarine');
+const Identifiers = require('../Identifiers').default;
 
 
 class LevelSoundEventHandler {

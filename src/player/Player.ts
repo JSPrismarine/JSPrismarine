@@ -1,7 +1,7 @@
 import Prismarine from "../Prismarine";
 import Entity from "../entity/entity";
-import World from "../world/world";
-import Gamemode from "../world/gamemode";
+import World from "../world/World";
+import Gamemode from "../world/Gamemode";
 import PlayerConnection from "./PlayerConnection";
 
 const PlayerInventory = require('../inventory/player-inventory');
@@ -149,4 +149,4 @@ export default class Player extends Entity {
     public getUUID(): string {
         return this.uuid || '';
     }
-}
+};

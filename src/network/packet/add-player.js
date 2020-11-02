@@ -22,7 +22,7 @@ class AddPlayerPacket extends DataPacket {
     pitch
     yaw
     headYaw
-    
+
     deviceId
     buildPlatform = 0  // TODO
 
@@ -34,7 +34,7 @@ class AddPlayerPacket extends DataPacket {
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeString(this.platformChatId);
-        
+
         this.writeLFloat(this.positionX);
         this.writeLFloat(this.positionY);
         this.writeLFloat(this.positionZ);
