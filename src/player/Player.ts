@@ -31,10 +31,8 @@ export default class Player extends Entity {
     locale: string = '';
     randomId: number = 0;
 
-    /** @type {string} */
-    uuid: string | null = null
-    /** @type {string} */
-    xuid: string | null = null
+    uuid: string = '';
+    xuid: string = '';
     /** @type {Skin} */
     skin: any
 

@@ -8,22 +8,22 @@ import Item from "../item/";
 import Chunk from "../world/chunk/Chunk";
 import type Connection from "../network/raknet/connection";
 import type Player from "./Player";
+import CoordinateUtils from "../world/CoordinateUtils";
+import UUID from "../utils/UUID";
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
 const BatchPacket = require("../network/packet/batch");
 const ChunkRadiusUpdatedPacket = require('../network/packet/chunk-radius-updated');
 const LevelChunkPacket = require("../network/packet/level-chunk");
-const UUID = require('../utils/uuid');
 const PlayerListPacket = require('../network/packet/player-list');
 const PlayerListAction = require('../network/type/player-list-action');
-const PlayerListEntry = require('../network/type/PlayerListEntry');
+const PlayerListEntry = require('../network/type/PlayerListEntry').default;
 const AddPlayerPacket = require('../network/packet/add-player');
 const MovePlayerPacket = require('../network/packet/move-player');
 const RemoveActorPacket = require('../network/packet/remove-actor');
 const UpdateAttributesPacket = require('../network/packet/update-attributes');
 const SetActorDataPacket = require('../network/packet/set-actor-data');
-const CoordinateUtils = require('../world/CoordinateUtils');
 const AvailableCommandsPacket = require('../network/packet/available-commands');
 const SetGamemodePacket = require('../network/packet/set-gamemode');
 const CreativeContentPacket = require('../network/packet/creative-content-packet');
@@ -38,8 +38,8 @@ export default class PlayerConnection {
     private connection: Connection;
     private server: Prismarine;
     private chunkSendQueue: Set<Chunk> = new Set();
-    loadedChunks: Set<number> = new Set();
-    loadingChunks: Set<number> = new Set();
+    loadedChunks: Set<string> = new Set();
+    loadingChunks: Set<string> = new Set();
 
     constructor(server: Prismarine, connection: Connection, player: Player) {
         this.server = server;
@@ -149,8 +149,8 @@ export default class PlayerConnection {
         for (let hash of this.loadedChunks) {
             let [x, z] = CoordinateUtils.decodePos(hash);
 
-            if (Math.abs(x - currentXChunk) > viewDistance ||
-                Math.abs(z - currentZChunk) > viewDistance) {
+            if (Math.abs(parseFloat(x) - currentXChunk) > viewDistance ||
+                Math.abs(parseFloat(z) - currentZChunk) > viewDistance) {
                 unloaded = true;
                 this.loadedChunks.delete(hash);
             }
@@ -159,8 +159,8 @@ export default class PlayerConnection {
         for (let hash of this.loadingChunks) {
             let [x, z] = CoordinateUtils.decodePos(hash);
 
-            if (Math.abs(x - currentXChunk) > viewDistance ||
-                Math.abs(z - currentZChunk) > viewDistance) {
+            if (Math.abs(parseFloat(x) - currentXChunk) > viewDistance ||
+                Math.abs(parseFloat(z) - currentZChunk) > viewDistance) {
                 this.loadingChunks.delete(hash);
             }
         }
@@ -173,7 +173,7 @@ export default class PlayerConnection {
     public async requestChunk(x: number, z: number) {
         await this.player.getWorld().getChunk(x, z).then(
             (chunk: any) => {
-                this.chunkSendQueue.add(chunk)
+                return this.chunkSendQueue.add(chunk);
             }
         );
     }

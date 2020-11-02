@@ -1,8 +1,7 @@
 import type UUID from "../../utils/UUID";
 import type Skin from '../../utils/skin/Skin';
 
-
-class PlayerListEntry {
+export default class PlayerListEntry {
     public uuid!: UUID;
     public uniqueEntityId!: number;
     public name!: string;
@@ -13,4 +12,3 @@ class PlayerListEntry {
     public isTeacher!: boolean;
     public isHost!: boolean;
 }
-export default PlayerListEntry;
