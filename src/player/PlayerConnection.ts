@@ -8,6 +8,7 @@ import Item from "../item/";
 import Chunk from "../world/chunk/Chunk";
 import type Connection from "../network/raknet/connection";
 import type Player from "./Player";
+import { constants } from "crypto";
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
@@ -32,6 +33,7 @@ const SetTimePacket = require('../network/packet/set-time');
 const InventoryContentPacket = require('../network/packet/inventory-content-packet');
 const MobEquipmentPacket = require('../network/packet/mob-equipment-packet');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
+const { creativeitems } = require("@jsprismarine/bedrock-data");
 
 export default class PlayerConnection {
     private player: Player;
@@ -206,10 +208,19 @@ export default class PlayerConnection {
             ...this.player.getServer().getItemManager().getItems()
         ];
 
-        // Sort based on numeric block ids and name
-        pk.entries = entries.filter(a => a.isPartOfCreativeInventory())
-            .sort((a, b) => a.id - b.id || a.meta - b.meta)
-            .map((block: Block | Item, index: number) => new CreativeContentEntry(index, block));
+        // Sort based on PmmP Bedrock-data
+        creativeitems.forEach((item: any) => {
+            pk.entries.push(
+                ...entries.filter((entry: any) => {
+                    return entry.meta === (item.damage || 0) && entry.id === item.id
+                })
+            );
+        });
+
+        pk.entries = pk.entries.map((block: Block | Item, index: number) => {
+            return new CreativeContentEntry(index, block);
+        })
+
         this.sendDataPacket(pk);
     }
 
