@@ -7,17 +7,17 @@ export default class Pickaxe extends TieredTool {
     constructor() {
         super(
             {
-                name: "minecraft:stone_pickaxe",
-                id: ItemIdsType.StonePickaxe,
+                name: "minecraft:golden_pickaxe",
+                id: ItemIdsType.GoldenPickaxe,
             },
-            ItemTieredToolType.Stone,
+            ItemTieredToolType.Gold
         );
     }
 
     getMaxDurability() {
-        return 132;
+        return 33;
     }
-    
+
     getToolType() {
         return BlockToolType.Pickaxe;
     }
