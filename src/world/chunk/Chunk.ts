@@ -1,4 +1,4 @@
-import type Block from "../../block";
+import type Block from "../../block/Block";
 import SubChunk from "./SubChunk";
 
 const EmptySubChunk = require('./empty-sub-chunk');

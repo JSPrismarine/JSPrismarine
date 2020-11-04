@@ -3,7 +3,7 @@ import { BlockToolType } from "../../block/BlockToolType";
 import { ItemIdsType } from "../ItemIdsType";
 import { ItemTieredToolType } from "../ItemTieredToolType";
 
-export default class Shovel extends TieredTool {
+export default class WoodenShovel extends TieredTool {
     constructor() {
         super(
             {
@@ -13,7 +13,7 @@ export default class Shovel extends TieredTool {
             ItemTieredToolType.Wood
         );
     }
-    
+
     getBurntime() {
         return 200
     }

@@ -1,4 +1,4 @@
-import Item from "../item"
+import Item from "../item/Item"
 import Prismarine from "../Prismarine"
 import { ItemTieredToolType } from "../item/ItemTieredToolType";
 import { BlockToolType } from "./BlockToolType"

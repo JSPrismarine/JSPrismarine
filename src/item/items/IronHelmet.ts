@@ -1,7 +1,7 @@
 import Armor from "../Armor";
 import { ItemIdsType } from "../ItemIdsType";
 
-export default class Helmet extends Armor {
+export default class IronHelmet extends Armor {
     constructor() {
         super({
             name: "minecraft:iron_helmet",

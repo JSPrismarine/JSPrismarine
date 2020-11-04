@@ -1,7 +1,7 @@
 import Armor from "../Armor";
 import { ItemIdsType } from "../ItemIdsType";
 
-export default class Leggins extends Armor {
+export default class ChainLeggins extends Armor {
     constructor() {
         super({
             name: "minecraft:chainmail_leggins",

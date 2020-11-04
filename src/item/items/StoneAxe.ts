@@ -3,7 +3,7 @@ import { BlockToolType } from "../../block/BlockToolType";
 import { ItemIdsType } from "../ItemIdsType";
 import { ItemTieredToolType } from "../ItemTieredToolType";
 
-export default class Axe extends TieredTool {
+export default class StoneAxe extends TieredTool {
     constructor() {
         super(
             {

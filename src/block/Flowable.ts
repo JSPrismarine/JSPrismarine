@@ -1,4 +1,4 @@
-import Block from ".";
+import Block from "./Block";
 
 export default class Flowable extends Block {
     getHardness() {

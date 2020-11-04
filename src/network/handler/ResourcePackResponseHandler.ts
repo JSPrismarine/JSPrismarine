@@ -12,7 +12,7 @@ const AvailableActorIdentifiersPacket = require('../packet/available-actor-ident
 const ResourcePackStackPacket = require('../packet/resource-pack-stack');
 const StartGamePacket = require('../packet/start-game');
 const Gamemode = require('../../world/gamemode');
-// const Item = require('../../item')
+// const Item = require('../../item/Item')
 
 
 export default class ResourcePackResponseHandler {

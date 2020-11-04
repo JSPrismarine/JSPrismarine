@@ -1,6 +1,6 @@
-import Item from "../item";
+import Item from "../item/Item";
 import Prismarine from "../Prismarine";
-import Block from "./";
+import Block from "./Block";
 
 /**
  * Liquid blocks (eg. Water, Still Water, Lava, Still Lava)

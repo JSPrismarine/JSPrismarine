@@ -1,5 +1,5 @@
-import Block from "../../block";
-import Item from "../../item";
+import Block from "../../block/Block";
+import Item from "../../item/Item";
 import Vector3 from "../../math/Vector3";
 import type Prismarine from "../../Prismarine";
 import Identifiers from "../Identifiers";

@@ -1,5 +1,5 @@
 import Solid from '../Solid';
-import Item from '../../item';
+import Item from '../../item/Item';
 import Prismarine from '../../Prismarine';
 import { ItemTieredToolType } from "../../item/ItemTieredToolType";
 import { BlockIdsType } from '../BlockIdsType';
