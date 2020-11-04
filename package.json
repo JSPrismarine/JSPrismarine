@@ -2,9 +2,9 @@
   "name": "@jsprismarine/prismarine",
   "version": "1.0.0",
   "description": "Dedicated Minecraft Bedrock Edition server written in JavaScript",
-  "main": "./dist/src/server.js",
-  "types": "./dist/src/server.d.ts",
-  "bin": "./dist/src/server.js",
+  "main": "./dist/src/Server.js",
+  "types": "./dist/src/Server.d.ts",
+  "bin": "./dist/src/Server.js",
   "scripts": {
     "start": "cross-env NODE_ENV=production node ./dist/src/server.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
