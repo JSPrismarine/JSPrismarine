@@ -1,5 +1,5 @@
 const ItemAir = require('../block/blocks/Air').default;
-const Item = require('../item').default;
+const Item = require('../item/Item').default;
 
 
 // TODO: viewer logic
@@ -15,7 +15,7 @@ class Inventory {
     constructor(slots = 0, items = []) {
         this.#slots = slots;
         this.setItems(items);
-    } 
+    }
 
     /**
      * Adds an array of items into the inventory.
@@ -28,7 +28,7 @@ class Inventory {
             // than items cut the items array
             items = items.slice(0, this.#slots);
         }
-        
+
         for (let i = 0; i < this.getSlotCount(); i++) {
             this.setItem(i, items[i] || new ItemAir());
         }
@@ -85,7 +85,7 @@ class Inventory {
      */
     removeItem(slot) {
         if (!this.#content.has(slot)) {
-            return new ItemAir();  
+            return new ItemAir();
         }
 
         let item = this.#content.get(slot);

@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import Item from "./";
+import Item from "./Item";
 import Prismarine from "../Prismarine";
 
 export default class ItemManager {
@@ -30,7 +30,7 @@ export default class ItemManager {
     public getItem(name: string): Item {
         return this.items.get(name)
     }
-    
+
     public getItems(): Array<Item> {
         return Array.from(this.items.values());
     }

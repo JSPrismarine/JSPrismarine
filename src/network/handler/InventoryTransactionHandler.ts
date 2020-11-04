@@ -4,7 +4,7 @@ import type Player from "../../player/Player";
 import type Prismarine from "../../Prismarine";
 import InventoryTransactionPacket, { InventoryTransactionActionType } from "../packet/InventoryTransactionPacket";
 import UpdateBlockPacket from "../packet/UpdateBlockPacket";
-import type Block from "../../block";
+import type Block from "../../block/Block";
 
 export default class InventoryTransactionHandler {
     static NetID = Identifiers.InventoryTransactionPacket;

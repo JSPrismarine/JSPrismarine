@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import Block from "./";
+import Block from "./Block";
 import Prismarine from "../Prismarine";
 import { BlockIdsType } from "./BlockIdsType";
 

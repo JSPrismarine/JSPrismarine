@@ -1,7 +1,7 @@
 import Armor from "../Armor";
 import { ItemIdsType } from "../ItemIdsType";
 
-export default class Leggins extends Armor {
+export default class GoldenLeggins extends Armor {
     constructor() {
         super({
             name: "minecraft:golden_leggins",

@@ -1,4 +1,4 @@
-import { ItemProps } from ".";
+import { ItemProps } from "./Item";
 import { ItemTieredToolType } from "./ItemTieredToolType";
 import Tool from "./Tool";
 

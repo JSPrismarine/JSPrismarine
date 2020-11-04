@@ -17,8 +17,6 @@ const SkinCape = require('../utils/skin/skin-cape');
 const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece');
 const SkinPersona = require('../utils/skin/skin-persona/persona');
 const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color');
-const Item = require('../item').default;
-const Block = require('../block').default;
 
 const ItemStackRequest = require('./type/item-stack-requests/item-stack-request');
 const ItemStackRequestTake = require('./type/item-stack-requests/take');

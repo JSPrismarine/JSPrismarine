@@ -1,4 +1,4 @@
-import Block from "../../block";
+import Block from "../../block/Block";
 
 const Sizes = {
     BlockSize: 16 * 16 * 16,

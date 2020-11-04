@@ -3,7 +3,7 @@ import { BlockToolType } from "../../block/BlockToolType";
 import { ItemIdsType } from "../ItemIdsType";
 import { ItemTieredToolType } from "../ItemTieredToolType";
 
-export default class Pickaxe extends TieredTool {
+export default class GoldenPickaxe extends TieredTool {
     constructor() {
         super(
             {

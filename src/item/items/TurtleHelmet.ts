@@ -1,11 +1,11 @@
 import Armor from "../Armor";
 import { ItemIdsType } from "../ItemIdsType";
 
-export default class Helmet extends Armor {
+export default class TurtleShell extends Armor {
     constructor() {
         super({
-            name: "minecraft:turtle_helmet",
-            id: ItemIdsType.TurtleHelmet,
+            name: "minecraft:turtle_shell",
+            id: ItemIdsType.TurtleShell,
         });
     }
 

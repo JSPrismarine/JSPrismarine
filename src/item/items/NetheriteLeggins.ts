@@ -1,7 +1,7 @@
 import Armor from "../Armor";
 import { ItemIdsType } from "../ItemIdsType";
 
-export default class Leggins extends Armor {
+export default class NetheriteLeggins extends Armor {
     constructor() {
         super({
             name: "minecraft:netherite_leggins",

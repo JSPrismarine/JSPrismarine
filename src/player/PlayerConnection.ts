@@ -2,13 +2,12 @@ import type Prismarine from "../Prismarine";
 import TextType from "../network/type/TextType";
 import TextPacket from "../network/packet/TextPacket";
 import MovementType from "../network/type/MovementType";
-import Block from "../block";
+import Block from "../block/Block";
 import DisconnectPacket from "../network/packet/DisconnectPacket";
-import Item from "../item/";
+import Item from "../item/Item";
 import Chunk from "../world/chunk/Chunk";
 import type Connection from "../network/raknet/connection";
 import type Player from "./Player";
-import { constants } from "crypto";
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
