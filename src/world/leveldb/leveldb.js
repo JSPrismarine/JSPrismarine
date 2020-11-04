@@ -5,6 +5,7 @@ const Provider = require('../provider');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Chunk = require('../chunk/Chunk');
 const EmptySubChunk = require('../chunk/empty-sub-chunk');
+const { default: Vector3 } = require('../../math/Vector3');
 const SubChunk = require('../chunk/SubChunk').default;
 
 const Tags = {
@@ -71,8 +72,7 @@ class LevelDB extends Provider {
 
                 return await (async () => {
                     const chunk = await generator.getChunk({
-                        chunkX: x,
-                        chunkZ: z,
+                        pos: new Vector3(x, 0, z),
                         seed,
                         server
                     });

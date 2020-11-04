@@ -1,15 +1,14 @@
+import type Vector3 from "../../math/Vector3";
 import type Prismarine from "../../Prismarine";
 import Chunk from "../chunk/Chunk";
 
 export default class Flat {
-    getChunk({ chunkX, chunkY, chunkZ, seed, server }: {
-        chunkX: number,
-        chunkY: number,
-        chunkZ: number,
+    getChunk({ pos, seed, server }: {
+        pos: Vector3
         seed: number,
         server: Prismarine
     }) {
-        const chunk = new Chunk(chunkX, chunkZ);
+        const chunk = new Chunk(pos.getX(), pos.getZ());
 
         const bedrock = server.getBlockManager().getBlock('minecraft:bedrock');
         const dirt = server.getBlockManager().getBlock('minecraft:dirt');
