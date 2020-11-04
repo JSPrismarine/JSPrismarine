@@ -30,6 +30,7 @@ export default class ItemManager {
     public getItem(name: string): Item {
         return this.items.get(name)
     }
+    
     public getItems(): Array<Item> {
         return Array.from(this.items.values());
     }

@@ -1,7 +1,7 @@
 import Solid from '../Solid';
 import Item from '../../item';
 import Prismarine from '../../Prismarine';
-import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import { ItemTieredToolType } from "../../item/ItemTieredToolType";
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
@@ -30,7 +30,7 @@ export default class Stone extends Solid {
     }
 
     getToolHarvestLevel() {
-        return ItemTieredToolType.Wooden;
+        return ItemTieredToolType.Wood;
     }
 
     getDropsForCompatibleTool(item: Item, server: Prismarine) {
