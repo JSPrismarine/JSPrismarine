@@ -3,22 +3,22 @@ import { BlockToolType } from "../../block/BlockToolType";
 import { ItemIdsType } from "../ItemIdsType";
 import { ItemTieredToolType } from "../ItemTieredToolType";
 
-export default class Pickaxe extends TieredTool {
+export default class Axe extends TieredTool {
     constructor() {
         super(
             {
-                name: "minecraft:stone_pickaxe",
-                id: ItemIdsType.StonePickaxe,
+                name: "minecraft:golden_axe",
+                id: ItemIdsType.GoldenAxe,
             },
-            ItemTieredToolType.Stone,
+            ItemTieredToolType.Gold
         );
     }
 
     getMaxDurability() {
-        return 132;
+        return 33;
     }
-    
+
     getToolType() {
-        return BlockToolType.Pickaxe;
+        return BlockToolType.Axe;
     }
 }
