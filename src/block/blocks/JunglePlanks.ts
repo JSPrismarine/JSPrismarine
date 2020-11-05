@@ -1,7 +1,7 @@
-import Planks, { PlanksType } from './OakPlanks';
+import Planks, { PlanksType } from "./OakPlanks";
 
-export default class BirchPlanks extends Planks {
+export default class JunglePlanks extends Planks {
     constructor() {
-        super('minecraft:jungle_planks', PlanksType.Birch);
+        super("minecraft:jungle_planks", PlanksType.Jungle);
     }
-};
+}
