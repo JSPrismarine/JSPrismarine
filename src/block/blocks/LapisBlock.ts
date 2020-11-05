@@ -6,23 +6,23 @@ import Item from "../../item/Item";
 import Prismarine from "../../Prismarine";
 
 export default class LapisBlock extends Solid {
-	constructor() {
-		super({
-			name: "minecraft:lapis_block",
-			id: BlockIdsType.LapisBlock,
-			hardness: 3,
-		});
-	}
+    constructor() {
+        super({
+            name: "minecraft:lapis_block",
+            id: BlockIdsType.LapisBlock,
+            hardness: 3,
+        });
+    }
 
-	getToolType() {
-		return BlockToolType.Pickaxe;
-	}
+    getToolType() {
+        return BlockToolType.Pickaxe;
+    }
 
-	getToolHarvestLevel() {
-		return ItemTieredToolType.Stone;
-	}
+    getToolHarvestLevel() {
+        return ItemTieredToolType.Stone;
+    }
 
-	getDropsForCompatibleTool(item: Item, server: Prismarine) {
-		return [server.getBlockManager().getBlock("minecraft:lapis_block")];
-	}
+    getDropsForCompatibleTool(item: Item, server: Prismarine) {
+        return [server.getBlockManager().getBlock("minecraft:lapis_block")];
+    }
 }
