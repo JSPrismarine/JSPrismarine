@@ -20,7 +20,7 @@ export default class Overworld {
             this.noise = new Noise(seed);
 
         const noise = this.noise;
-        const chunk = new Chunk(pos.getX(), pos.getY());
+        const chunk = new Chunk(pos.getX(), pos.getZ());
 
         const bedrock = server.getBlockManager().getBlock('minecraft:bedrock');
         const stone = server.getBlockManager().getBlock('minecraft:stone');
