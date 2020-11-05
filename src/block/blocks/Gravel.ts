@@ -5,23 +5,23 @@ import { BlockIdsType } from "../BlockIdsType";
 import { BlockToolType } from "../BlockToolType";
 
 export default class Sand extends Solid {
-	constructor(name: string = "minecraft:gravel") {
-		super({
-			name: name,
-			id: BlockIdsType.Gravel,
-			hardness: 0.6,
-		});
-	}
+    constructor(name: string = "minecraft:gravel") {
+        super({
+            name: name,
+            id: BlockIdsType.Gravel,
+            hardness: 0.6,
+        });
+    }
 
-	getToolType() {
-		return BlockToolType.Shovel;
-	}
+    getToolType() {
+        return BlockToolType.Shovel;
+    }
 
-	getDropsForCompatibleTool(item: Item, server: Prismarine) {
-		if (Math.floor(Math.random() * 10) === 1) {
-			return [server.getItemManager().getItem("minecraft:flint")];
-		}
+    getDropsForCompatibleTool(item: Item, server: Prismarine) {
+        if (Math.floor(Math.random() * 10) === 1) {
+            return [server.getItemManager().getItem("minecraft:flint")];
+        }
 
-		return [server.getBlockManager().getBlock("minecraft:gravel")];
-	}
+        return [server.getBlockManager().getBlock("minecraft:gravel")];
+    }
 }

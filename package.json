@@ -13,7 +13,7 @@
     "package": "pkg package.json --out-path ./packages/",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
-    "eslint": "eslint ./src/"
+    "eslint": "eslint -c .eslintrc ./src/"
   },
   "repository": {
     "type": "git",
