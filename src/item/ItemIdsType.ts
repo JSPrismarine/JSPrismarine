@@ -52,6 +52,7 @@ export enum ItemIdsType {
     GoldenChestplate = 315,
     GoldenLeggins = 316,
     GoldenBoots = 317,
+    Flint = 318,
 
     FishingRod = 346,
 
