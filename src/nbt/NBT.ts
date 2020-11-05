@@ -15,7 +15,7 @@ export default class NBT {
     /**
      * Reads a NBT tag from a buffer. 
      */
-    readTag(buffer: CustomBinaryStream, littleEndian = false, varints = false): Tag | null {
+    public readTag(buffer: CustomBinaryStream, littleEndian = false, varints = false): Tag | null {
         let stream = buffer;
 
         if (buffer instanceof CustomBinaryStream) {
@@ -75,4 +75,57 @@ export default class NBT {
         return null;
     }
 
-}
+    public writeTag(buffer: CustomBinaryStream, tag: Tag, littleEndian = false, varints = false): CustomBinaryStream {
+        let stream = buffer;
+
+        if (buffer instanceof CustomBinaryStream) {
+            stream = buffer;
+        } else {
+            if (littleEndian && varints) {
+                stream = new NetworkLittleEndianBinaryStream(buffer);
+            } else if (littleEndian) {
+                stream = new LittleEndianBinaryStream(buffer);
+            }
+        }
+
+        stream.writeByte(tag.type);
+        stream.writeString(tag.name);
+        
+        switch (tag.type) {
+            case TagType.Byte:
+                stream.writeByte(tag.value);
+                break;
+            case TagType.Short:
+                stream.writeShort(tag.value);
+                break;
+            case TagType.Int:
+                stream.writeInt(tag.value);
+                break;
+            case TagType.String:
+                stream.writeString(tag.value);
+                break;
+            case TagType.List:
+                if (!(tag instanceof ListTag)) break;
+                stream.writeByte(tag.type);
+                console.log(tag.value.length)
+                stream.writeInt(tag.value.length ?? 0);
+                for (let valueTag of tag.value) {
+                    stream = this.writeTag(stream, valueTag, littleEndian, varints);
+                }
+                break;
+            case TagType.Compound:
+                for (let valueTag of Object.keys(tag.value)) {
+                    stream = this.writeTag(stream, tag.value[valueTag], littleEndian, varints);
+                }
+                stream.writeByte(TagType.End);
+                break;
+            case TagType.End:
+                stream.writeByte(TagType.End);
+                break;
+            default:
+                console.log('Unknown tag with id: ' + tag.type);
+        }
+
+        return stream;
+    }
+};

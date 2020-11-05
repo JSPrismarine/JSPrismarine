@@ -1,10 +1,10 @@
 export default class Tag {
-    value: any
-    name: string
+    public value: any;
+    public name: string;
+    public type!: number;
 
     constructor(value: any, name: string) {
         this.value = value;
         this.name = name;
     }
-
 };
