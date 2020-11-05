@@ -2,12 +2,10 @@ import Tag from './internal/Tag';
 import TagType from './internal/TagType';
 
 export default class ListTag extends Tag {
-    listType: any
-    type: TagType = TagType.List
+    public tagType: TagType; 
 
-    constructor(type: any, value: any, name: any) {
+    constructor(value: (Tag|null)[], name: string, tagType = TagType.End) {
         super(value, name);
-        this.listType = type;
+        this.tagType = tagType;
     }
-
 };

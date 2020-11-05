@@ -45,27 +45,31 @@ export default class NBT {
                 let string = stream.readString();
                 return new StringTag(string, name);
             case TagType.List:
-                let listType = stream.readByte();
+                let tagType = stream.readByte();
                 let listSize = stream.readInt();
                 let list = [];
-                for (let i = 0; i < listSize; i++) {
-                    // Read from the same offset
-                    list.push(this.readTag(
-                        stream,
-                        true,
-                        true
-                    ));
+                if (listSize > 0) {
+                    for (let i = 0; i < listSize; i++) {
+                        // Read from the same offset
+                        list.push(this.readTag(
+                            stream,
+                            true,
+                            true
+                        ));
+                    }
+                } else {
+                    tagType = TagType.End;
                 }
-                return new ListTag(listType, list, name);
+                return new ListTag(list, name, tagType);
             case TagType.Compound:
-                let value: any = {};
+                let value = [];
                 while (true) {
-                    let tag = this.readTag(stream, true, true);
-
-                    if (!tag || tag instanceof EndTag)
+                    let tag = this.readTag(stream, littleEndian, varints);
+                    if (tag instanceof EndTag) {
+                        value.push(tag);
                         break;
-
-                    value[tag.name] = tag;
+                    }
+                    value.push(tag);
                 }
                 return new CompoundTag(value, name);
             default:
@@ -106,16 +110,15 @@ export default class NBT {
                 break;
             case TagType.List:
                 if (!(tag instanceof ListTag)) break;
-                stream.writeByte(tag.type);
-                console.log(tag.value.length)
+                stream.writeByte(tag.tagType);
                 stream.writeInt(tag.value.length ?? 0);
                 for (let valueTag of tag.value) {
                     stream = this.writeTag(stream, valueTag, littleEndian, varints);
                 }
                 break;
             case TagType.Compound:
-                for (let valueTag of Object.keys(tag.value)) {
-                    stream = this.writeTag(stream, tag.value[valueTag], littleEndian, varints);
+                for (let valueTag of tag.value.values()) {
+                    stream = this.writeTag(stream, valueTag, littleEndian, varints);
                 }
                 stream.writeByte(TagType.End);
                 break;
