@@ -1,6 +1,3 @@
-/**
- * All IDs are based on https://github.com/pmmp/BedrockData/blob/afc885cccae38048d309911f2c5ddcdcb6af8152/block_id_map.json
- */
 export enum BlockIdsType {
     Air = 0,
     Stone = 1,
