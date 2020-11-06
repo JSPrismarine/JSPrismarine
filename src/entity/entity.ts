@@ -1,8 +1,8 @@
 import Position from '../world/Position';
 import World from '../world/world';
 
-const {MetadataManager, MetadataFlag, FlagType} = require('./metadata');
-const {AttributeManager} = require('./attribute');
+const { MetadataManager, MetadataFlag, FlagType } = require('./metadata');
+const { AttributeManager } = require('./attribute');
 const AddActorPacket = require('../network/packet/add-actor');
 
 // All entities will extend this base class
@@ -22,7 +22,7 @@ export default class Entity extends Position {
      *
      */
     constructor(world: World) {
-        super({world: world}); // TODO
+        super({ world: world }); // TODO
         this.runtimeId = Entity.runtimeIdCount += 1;
 
         this.metadata.setLong(MetadataFlag.Index, 0);

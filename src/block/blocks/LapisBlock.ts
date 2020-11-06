@@ -1,7 +1,7 @@
 import Solid from '../Solid';
-import {ItemTieredToolType} from '../../item/ItemTieredToolType';
-import {BlockIdsType} from '../BlockIdsType';
-import {BlockToolType} from '../BlockToolType';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import { BlockIdsType } from '../BlockIdsType';
+import { BlockToolType } from '../BlockToolType';
 import Item from '../../item/Item';
 import Prismarine from '../../Prismarine';
 

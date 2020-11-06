@@ -1,7 +1,7 @@
-const {parentPort} = require('worker_threads');
+const { parentPort } = require('worker_threads');
 const CoordinateUtils = require('./coordinate-utils');
 
-parentPort.on('message', function ({viewDistance, currentX, currentZ}) {
+parentPort.on('message', function ({ viewDistance, currentX, currentZ }) {
     let currentXChunk = CoordinateUtils.fromBlockToChunk(currentX);
     let currentZChunk = CoordinateUtils.fromBlockToChunk(currentZ);
     for (

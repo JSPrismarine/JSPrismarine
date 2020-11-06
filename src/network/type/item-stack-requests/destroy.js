@@ -4,7 +4,7 @@ class Destroy {
     /** @type {number} */
     from;
 
-    constructor({count, from}) {
+    constructor({ count, from }) {
         this.count = count;
         this.from = from;
     }

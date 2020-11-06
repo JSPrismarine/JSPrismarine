@@ -1,5 +1,5 @@
 import Flowable from '../Flowable';
-import {BlockIdsType} from '../BlockIdsType';
+import { BlockIdsType } from '../BlockIdsType';
 
 export enum SaplingType {
     Oak = 0,

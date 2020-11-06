@@ -1,8 +1,8 @@
 import Solid from '../Solid';
 import Item from '../../item/Item';
 import Prismarine from '../../Prismarine';
-import {BlockIdsType} from '../BlockIdsType';
-import {BlockToolType} from '../BlockToolType';
+import { BlockIdsType } from '../BlockIdsType';
+import { BlockToolType } from '../BlockToolType';
 
 export default class Sand extends Solid {
     constructor(name: string = 'minecraft:gravel') {

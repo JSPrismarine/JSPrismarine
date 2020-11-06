@@ -1,4 +1,4 @@
-import Planks, {PlanksType} from './OakPlanks';
+import Planks, { PlanksType } from './OakPlanks';
 
 export default class BirchPlanks extends Planks {
     constructor() {

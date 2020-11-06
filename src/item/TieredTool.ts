@@ -1,5 +1,5 @@
-import {ItemProps} from './Item';
-import {ItemTieredToolType} from './ItemTieredToolType';
+import { ItemProps } from './Item';
+import { ItemTieredToolType } from './ItemTieredToolType';
 import Tool from './Tool';
 
 export default class TieredTool extends Tool {

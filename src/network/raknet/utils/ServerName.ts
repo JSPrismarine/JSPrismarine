@@ -1,5 +1,5 @@
 import type Prismarine from '../../../Prismarine';
-import {getGamemodeName} from '../../../world/gamemode';
+import { getGamemodeName } from '../../../world/gamemode';
 import Identifiers from '../../Identifiers';
 
 export default class ServerName {

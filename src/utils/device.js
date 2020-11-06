@@ -20,7 +20,7 @@ class Device {
      * @param {number} params.inputMode - input mode (touch, m&k...)
      * @param {number} params.guiScale - gui scale
      */
-    constructor({id, model, os, inputMode, guiScale}) {
+    constructor({ id, model, os, inputMode, guiScale }) {
         this.id = id;
         this.model = model;
         this.os = os;

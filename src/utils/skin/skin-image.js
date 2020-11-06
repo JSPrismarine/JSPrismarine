@@ -6,7 +6,7 @@ class SkinImage {
     /** @type {string} */
     data;
 
-    constructor({width, height, data}) {
+    constructor({ width, height, data }) {
         this.width = width;
         this.height = height;
         this.data = data;
