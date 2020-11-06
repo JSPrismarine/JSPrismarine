@@ -1,7 +1,7 @@
 import Player from '../../player/Player';
 import Command from '../Command';
 
-const Gamemode = require('../../world/gamemode');
+const Gamemode = require('../../world/Gamemode');
 
 export default class GamemodeCommand extends Command {
     constructor() {

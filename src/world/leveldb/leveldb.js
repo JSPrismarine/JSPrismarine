@@ -1,7 +1,7 @@
 const path = require('path');
 const level = require('level');
 
-const Provider = require('../provider');
+const Provider = require('../Provider').default;
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Chunk = require('../chunk/Chunk');
 const EmptySubChunk = require('../chunk/empty-sub-chunk');

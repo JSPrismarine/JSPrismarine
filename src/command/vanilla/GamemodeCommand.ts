@@ -4,7 +4,7 @@ import CommandParameter, {
     CommandParameterType
 } from '../../network/type/CommandParameter';
 
-const Gamemode = require('../../world/gamemode');
+const Gamemode = require('../../world/Gamemode');
 
 export default class GamemodeCommand extends Command {
     constructor() {

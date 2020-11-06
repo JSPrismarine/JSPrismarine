@@ -5,7 +5,7 @@ const Gamemode = {
     Adventure: 2,
     Spectator: 3,
 
-    getGamemodeName: (mode) => {
+    getGamemodeName: (mode: number) => {
         switch (mode) {
             case Gamemode.Survival:
                 return 'Survival';
@@ -19,7 +19,7 @@ const Gamemode = {
                 return 'Unknown';
         }
     },
-    getGamemodeId: (mode) => {
+    getGamemodeId: (mode: string) => {
         switch (`${mode}`.toLowerCase()) {
             case 'survival':
             case '0':
@@ -38,4 +38,5 @@ const Gamemode = {
         }
     }
 };
-module.exports = Gamemode;
+
+export default Gamemode;

@@ -11,7 +11,7 @@ export default class Config {
     private levelName: string;
     private worlds: any;
     private maxPlayers: number;
-    private gamemode: string | number;
+    private gamemode: string;
     private motd: string;
     private viewDistance: number;
     private onlineMode: boolean;
