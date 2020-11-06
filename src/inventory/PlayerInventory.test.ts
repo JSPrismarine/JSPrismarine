@@ -1,7 +1,7 @@
-const PlayerInventory = require('./player-inventory');
+import PlayerInventory from './PlayerInventory';
 
 describe('inventory', () => {
-    describe('player-inventory', () => {
+    describe('PlayerInventory', () => {
         const inventory = new PlayerInventory();
 
         it('inventory size should match expected size', () => {
