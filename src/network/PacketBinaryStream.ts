@@ -9,7 +9,7 @@ import CreativeContentEntry from './type/creative-content-entry';
 import PlayerListEntry from './type/player-list-entry';
 
 const UUID = require('../utils/uuid');
-const { FlagType } = require('../entity/metadata');
+const {FlagType} = require('../entity/metadata');
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
 const SkinAnimation = require('../utils/skin/skin-animation');
@@ -86,22 +86,23 @@ export default class PacketBinaryStream extends BinaryStream {
             data: this.readString()
         });
 
-
         // Read animations
         let animationCount = this.readLInt();
         for (let i = 0; i < animationCount; i++) {
-            skin.animations.add(new SkinAnimation({
-                image: new SkinImage({
-                    width: this.readLInt(),
-                    height: this.readLInt(),
-                    data: this.readString()
-                }),
-                frames: this.readLFloat(),
-                type: this.readLInt()
-            }));
+            skin.animations.add(
+                new SkinAnimation({
+                    image: new SkinImage({
+                        width: this.readLInt(),
+                        height: this.readLInt(),
+                        data: this.readString()
+                    }),
+                    frames: this.readLFloat(),
+                    type: this.readLInt()
+                })
+            );
         }
 
-        // Read cape image 
+        // Read cape image
         skin.cape = new SkinCape();
         skin.cape.image = new SkinImage({
             width: this.readLInt(),
@@ -127,13 +128,15 @@ export default class PacketBinaryStream extends BinaryStream {
             // Read persona pieces
             let personaPieceCount = this.readLInt();
             for (let i = 0; i < personaPieceCount; i++) {
-                skin.persona.pieces.add(new SkinPersonaPiece({
-                    pieceId: this.readString(),
-                    pieceType: this.readString(),
-                    packId: this.readString(),
-                    isDefault: this.readBool(),
-                    productId: this.readString()
-                }));
+                skin.persona.pieces.add(
+                    new SkinPersonaPiece({
+                        pieceId: this.readString(),
+                        pieceType: this.readString(),
+                        packId: this.readString(),
+                        isDefault: this.readBool(),
+                        productId: this.readString()
+                    })
+                );
             }
 
             // Read piece tint colors
@@ -176,22 +179,22 @@ export default class PacketBinaryStream extends BinaryStream {
         // Miscellaneus
         this.writeString(skin.geometry);
         this.writeString(skin.animationData);
-        this.writeBool(skin.isPremium as unknown as number);
-        this.writeBool(skin.isPersona as unknown as number);
-        this.writeBool(skin.isCapeOnClassicSkin as unknown as number);
+        this.writeBool((skin.isPremium as unknown) as number);
+        this.writeBool((skin.isPersona as unknown) as number);
+        this.writeBool((skin.isCapeOnClassicSkin as unknown) as number);
         this.writeString(skin.cape.id);
         this.writeString(skin.fullId);
         this.writeString(skin.armSize);
         this.writeString(skin.color);
 
-        // Hack to keep less useless data in software 
+        // Hack to keep less useless data in software
         if (skin.isPersona) {
             this.writeLInt(skin.persona.pieces.size);
             for (let personaPiece of skin.persona.pieces) {
                 this.writeString(personaPiece.pieceId);
                 this.writeString(personaPiece.pieceType);
                 this.writeString(personaPiece.packId);
-                this.writeBool(personaPiece.isDefault as unknown as number);
+                this.writeBool((personaPiece.isDefault as unknown) as number);
                 this.writeString(personaPiece.productId);
             }
             this.writeLInt(skin.persona.tintColors.size);
@@ -203,8 +206,8 @@ export default class PacketBinaryStream extends BinaryStream {
                 }
             }
         } else {
-            this.writeLInt(0);  // Persona pieces
-            this.writeLInt(0);  // Tint colors
+            this.writeLInt(0); // Persona pieces
+            this.writeLInt(0); // Tint colors
         }
     }
 
@@ -228,8 +231,8 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeString(entry.platformChatId);
         this.writeLInt(entry.buildPlatform);
         this.writeSkin(entry.skin);
-        this.writeBool(entry.isTeacher as unknown as number);
-        this.writeBool(entry.isHost as unknown as number);
+        this.writeBool((entry.isTeacher as unknown) as number);
+        this.writeBool((entry.isHost as unknown) as number);
     }
 
     /**
@@ -263,20 +266,22 @@ export default class PacketBinaryStream extends BinaryStream {
             this.writeString(name);
             switch (typeof value) {
                 case 'boolean':
-                    this.writeByte(1);  // maybe value type ??     
-                    this.writeBool(value as unknown as number);
+                    this.writeByte(1); // maybe value type ??
+                    this.writeBool((value as unknown) as number);
                     break;
                 case 'number':
                     if (this.isInt(value)) {
-                        this.writeByte(2);  // maybe value type ??  
+                        this.writeByte(2); // maybe value type ??
                         this.writeUnsignedVarInt(value);
                     } else if (this.isFloat(value)) {
-                        this.writeByte(3);  // maybe value type ??  
+                        this.writeByte(3); // maybe value type ??
                         this.writeLFloat(value);
                     }
                     break;
                 default:
-                    this.#server.getLogger().error(`Unknown Gamerule type ${value}`);
+                    this.#server
+                        .getLogger()
+                        .error(`Unknown Gamerule type ${value}`);
             }
         }
     }
@@ -327,16 +332,19 @@ export default class PacketBinaryStream extends BinaryStream {
 
         let name = null;
         let temp = this.readVarInt();
-        let amount = (temp & 0xff);
-        let meta = (temp >> 8);
+        let amount = temp & 0xff;
+        let meta = temp >> 8;
 
         let extraLen = this.readLShort();
         let nbt = null;
         if (extraLen == 0xffff) {
-            this.readByte();  // ? nbt version
+            this.readByte(); // ? nbt version
             // As i cannot pass offset by reference, i keep it using this binary stream directly
-            let stream = new NetworkLittleEndianBinaryStream(this.getBuffer(), this.getOffset());
-            let decodedNBT = (new NBT()).readTag(stream, true, true);
+            let stream = new NetworkLittleEndianBinaryStream(
+                this.getBuffer(),
+                this.getOffset()
+            );
+            let decodedNBT = new NBT().readTag(stream, true, true);
             if (!(decodedNBT instanceof CompoundTag)) {
                 throw new Error('Invalid NBT root tag for itemstack');
             }
@@ -373,8 +381,8 @@ export default class PacketBinaryStream extends BinaryStream {
 
     /**
      * Serializes an item into the buffer.
-     * 
-     * @param {Item | Block} itemstack 
+     *
+     * @param {Item | Block} itemstack
      */
     writeItemStack(itemstack: any) {
         if (itemstack.name === 'minecraft:air') {
@@ -415,7 +423,7 @@ export default class PacketBinaryStream extends BinaryStream {
 
         return new ItemStackRequest({
             id,
-            actions: actions.filter(a => a)
+            actions: actions.filter((a) => a)
         });
     }
 
@@ -431,7 +439,7 @@ export default class PacketBinaryStream extends BinaryStream {
 
         this.#server.getLogger().debug(`Action ${id}`);
         switch (id) {
-            case 0:  // TODO: enum
+            case 0: // TODO: enum
                 return new ItemStackRequestTake({
                     count: this.readByte(),
                     from: this.readItemStackRequestSlotInfo(),
@@ -488,19 +496,29 @@ export default class PacketBinaryStream extends BinaryStream {
                     itemId: this.readUnsignedVarInt()
                 });
             case 12: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
-                this.#server.getLogger().silly('Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)');
+                this.#server
+                    .getLogger()
+                    .silly(
+                        'Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)'
+                    );
                 return {};
             case 13: // CRAFTING_RESULTS_DEPRECATED, Deprecated so we'll just ignore it
-                this.#server.getLogger().silly('Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)');
+                this.#server
+                    .getLogger()
+                    .silly(
+                        'Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)'
+                    );
                 // We still need to read it...
                 let items = [];
                 for (let i = 0; i < this.readUnsignedVarInt(); i++) {
                     items.push(this.readItemStack());
                 }
-                this.readByte();  // times crafted
+                this.readByte(); // times crafted
                 return {};
             default:
-                this.#server.getLogger().debug(`Unknown item stack request id: ${id}`);
+                this.#server
+                    .getLogger()
+                    .debug(`Unknown item stack request id: ${id}`);
                 return {};
         }
     }
@@ -519,11 +537,12 @@ export default class PacketBinaryStream extends BinaryStream {
         data.uuid = this.readUUID();
         data.requestId = this.readString();
 
-        if (data.type === CommandOrigin.DevConsole ||
-            data.type === CommandOrigin.Test) {
+        if (
+            data.type === CommandOrigin.DevConsole ||
+            data.type === CommandOrigin.Test
+        ) {
             data.uniqueEntityId = this.readVarLong();
         }
         return data;
     }
-
-};
+}

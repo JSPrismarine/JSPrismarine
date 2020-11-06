@@ -1,18 +1,17 @@
-const OfflinePacket = require("./offline_packet");
+const OfflinePacket = require('./offline_packet');
 const Identifiers = require('./Identifiers').default;
 
-'use strict'; 
+('use strict');
 
 class IncompatibleProtocolVersion extends OfflinePacket {
-
     constructor() {
         super(Identifiers.IncompatibleProtocolVersion);
     }
 
     /** @type {number} */
-    #protocol
+    #protocol;
     /** @type {number} */
-    #serverGUID
+    #serverGUID;
 
     write() {
         super.write();
@@ -28,6 +27,5 @@ class IncompatibleProtocolVersion extends OfflinePacket {
     set serverGUID(serverGUID) {
         this.#serverGUID = serverGUID;
     }
-    
 }
 module.exports = IncompatibleProtocolVersion;

@@ -2,20 +2,19 @@ const Packet = require('./packet');
 const EncapsulatedPacket = require('./encapsulated_packet');
 const BitFlags = require('./bitflags');
 
-'use strict';
+('use strict');
 
 class DataPacket extends Packet {
-
     constructor() {
         super(BitFlags.Valid | 0);
     }
 
     /** @type {EncapsulatedPacket[]} */
-    packets = []
+    packets = [];
 
     // Packet sequence number
     // used to check for missing packets
-    #sequenceNumber
+    #sequenceNumber;
 
     read() {
         super.read();
@@ -29,14 +28,21 @@ class DataPacket extends Packet {
         super.write();
         this.writeLTriad(this.#sequenceNumber);
         for (let packet of this.packets) {
-            this.append(packet instanceof EncapsulatedPacket ? packet.toBinary() : packet.buffer);
+            this.append(
+                packet instanceof EncapsulatedPacket
+                    ? packet.toBinary()
+                    : packet.buffer
+            );
         }
     }
 
     length() {
         let length = 4;
         for (let packet of this.packets) {
-            length += packet instanceof EncapsulatedPacket ? packet.getTotalLength() : packet.buffer.length;
+            length +=
+                packet instanceof EncapsulatedPacket
+                    ? packet.getTotalLength()
+                    : packet.buffer.length;
         }
         return length;
     }
@@ -48,6 +54,5 @@ class DataPacket extends Packet {
     set sequenceNumber(sequenceNumber) {
         this.#sequenceNumber = sequenceNumber;
     }
-
 }
 module.exports = DataPacket;

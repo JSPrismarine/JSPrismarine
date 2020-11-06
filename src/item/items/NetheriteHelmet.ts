@@ -1,11 +1,11 @@
-import Armor from "../Armor";
-import { ItemIdsType } from "../ItemIdsType";
+import Armor from '../Armor';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class NetheriteHelmet extends Armor {
     constructor() {
         super({
-            name: "minecraft:netherite_helmet",
-            id: ItemIdsType.NetheriteHelmet,
+            name: 'minecraft:netherite_helmet',
+            id: ItemIdsType.NetheriteHelmet
         });
     }
 

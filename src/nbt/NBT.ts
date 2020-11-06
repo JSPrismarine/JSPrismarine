@@ -1,21 +1,25 @@
-import CustomBinaryStream from "./streams/CustomBinaryStream";
-import LittleEndianBinaryStream from "./streams/LittleEndianBinaryStream";
-import NetworkLittleEndianBinaryStream from "./streams/NetworkLittleEndianBinaryStream";
-import Tag from "./tags/internal/Tag";
-import ListTag from "./tags/ListTag";
-import CompoundTag from "./tags/CompoundTag";
-import StringTag from "./tags/StringTag";
-import TagType from "./tags/internal/TagType";
-import ByteTag from "./tags/ByteTag";
-import ShortTag from "./tags/ShortTag";
-import IntTag from "./tags/IntTag";
-import EndTag from "./tags/EndTag";
+import CustomBinaryStream from './streams/CustomBinaryStream';
+import LittleEndianBinaryStream from './streams/LittleEndianBinaryStream';
+import NetworkLittleEndianBinaryStream from './streams/NetworkLittleEndianBinaryStream';
+import Tag from './tags/internal/Tag';
+import ListTag from './tags/ListTag';
+import CompoundTag from './tags/CompoundTag';
+import StringTag from './tags/StringTag';
+import TagType from './tags/internal/TagType';
+import ByteTag from './tags/ByteTag';
+import ShortTag from './tags/ShortTag';
+import IntTag from './tags/IntTag';
+import EndTag from './tags/EndTag';
 
 export default class NBT {
     /**
-     * Reads a NBT tag from a buffer. 
+     * Reads a NBT tag from a buffer.
      */
-    public readTag(buffer: CustomBinaryStream, littleEndian = false, varints = false): Tag | null {
+    public readTag(
+        buffer: CustomBinaryStream,
+        littleEndian = false,
+        varints = false
+    ): Tag | null {
         let stream = buffer;
 
         if (buffer instanceof CustomBinaryStream) {
@@ -51,11 +55,7 @@ export default class NBT {
                 if (listSize > 0) {
                     for (let i = 0; i < listSize; i++) {
                         // Read from the same offset
-                        list.push(this.readTag(
-                            stream,
-                            true,
-                            true
-                        ));
+                        list.push(this.readTag(stream, true, true));
                     }
                 } else {
                     tagType = TagType.End;
@@ -79,7 +79,12 @@ export default class NBT {
         return null;
     }
 
-    public writeTag(buffer: CustomBinaryStream, tag: Tag, littleEndian = false, varints = false): CustomBinaryStream {
+    public writeTag(
+        buffer: CustomBinaryStream,
+        tag: Tag,
+        littleEndian = false,
+        varints = false
+    ): CustomBinaryStream {
         let stream = buffer;
 
         if (buffer instanceof CustomBinaryStream) {
@@ -94,7 +99,7 @@ export default class NBT {
 
         stream.writeByte(tag.type);
         stream.writeString(tag.name);
-        
+
         switch (tag.type) {
             case TagType.Byte:
                 stream.writeByte(tag.value);
@@ -113,12 +118,22 @@ export default class NBT {
                 stream.writeByte(tag.tagType);
                 stream.writeInt(tag.value.length ?? 0);
                 for (let valueTag of tag.value) {
-                    stream = this.writeTag(stream, valueTag, littleEndian, varints);
+                    stream = this.writeTag(
+                        stream,
+                        valueTag,
+                        littleEndian,
+                        varints
+                    );
                 }
                 break;
             case TagType.Compound:
                 for (let valueTag of tag.value.values()) {
-                    stream = this.writeTag(stream, valueTag, littleEndian, varints);
+                    stream = this.writeTag(
+                        stream,
+                        valueTag,
+                        littleEndian,
+                        varints
+                    );
                 }
                 stream.writeByte(TagType.End);
                 break;
@@ -131,4 +146,4 @@ export default class NBT {
 
         return stream;
     }
-};
+}

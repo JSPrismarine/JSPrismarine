@@ -1,4 +1,4 @@
-import Block from "./Block";
+import Block from './Block';
 
 export default class Flowable extends Block {
     getHardness() {
@@ -12,4 +12,4 @@ export default class Flowable extends Block {
     canBeFlowedInto() {
         return true;
     }
-};
+}

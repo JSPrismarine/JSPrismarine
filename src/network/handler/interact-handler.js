@@ -6,14 +6,13 @@ const ContainerOpenPacket = require('../packet/container-open');
 const logger = require('../../utils/Logger');
 const Prismarine = require('../../Prismarine');
 
-
 class InteractHandler {
-    static NetID = Identifiers.InteractPacket
+    static NetID = Identifiers.InteractPacket;
 
     /**
-     * @param {InteractPacket} packet 
+     * @param {InteractPacket} packet
      * @param {Prismarine} server
-     * @param {Player} player 
+     * @param {Player} player
      */
     static handle(packet, server, player) {
         switch (packet.action) {
@@ -22,14 +21,16 @@ class InteractHandler {
                 break;
             case InteractAction.OpenInventory:
                 let pk = new ContainerOpenPacket();
-                pk.windowId = 92;  // TODO
+                pk.windowId = 92; // TODO
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerX = pk.containerY = pk.containerZ = 0;
                 pk.containerEntityId = player.runtimeId;
                 player.getPlayerConnection().sendDataPacket(pk);
                 break;
             default:
-                server.getLogger().debug('Unknown interact action id: ' + packet.action);
+                server
+                    .getLogger()
+                    .debug('Unknown interact action id: ' + packet.action);
         }
     }
 }

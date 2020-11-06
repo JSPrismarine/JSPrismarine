@@ -1,12 +1,11 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class SetGamemodePacket extends DataPacket {
-    static NetID = Identifiers.SetPlayerGameTypePacket
+    static NetID = Identifiers.SetPlayerGameTypePacket;
 
     /** @type {number} */
-    gamemode
+    gamemode;
 
     encodePayload() {
         this.writeVarInt(this.gamemode);

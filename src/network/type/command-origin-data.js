@@ -1,18 +1,15 @@
 const UUID = require('../../utils/uuid');
 
-
 class CommandOriginData {
-
     /** @type {number} */
-    type
+    type;
     /** @type {UUID} */
-    uuid
+    uuid;
 
     /** @type {string} */
-    requestId
-    
+    requestId;
+
     /** @type {number|null} */
-    uniqueEntityId = null
-    
+    uniqueEntityId = null;
 }
 module.exports = CommandOriginData;

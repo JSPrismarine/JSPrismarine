@@ -2,21 +2,20 @@ const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 const InteractAction = require('../type/interact-action');
 
-
 class InteractPacket extends DataPacket {
-    static NetID = Identifiers.InteractPacket
+    static NetID = Identifiers.InteractPacket;
 
     /** @type {number} */
-    action
+    action;
     /** @type {number} */
-    target
+    target;
 
     /** @type {number|null} */
-    x = null
+    x = null;
     /** @type {number|null} */
-    y = null
+    y = null;
     /** @type {number|null} */
-    z = null
+    z = null;
 
     decodePayload() {
         this.action = this.readByte();

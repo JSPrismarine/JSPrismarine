@@ -1,8 +1,8 @@
-import Identifiers from "../Identifiers";
-import DataPacket from "./Packet";
+import Identifiers from '../Identifiers';
+import DataPacket from './Packet';
 
 export default class DisconnectPacket extends DataPacket {
-    static NetID = Identifiers.DisconnectPacket
+    static NetID = Identifiers.DisconnectPacket;
 
     hideDisconnectionWindow: boolean = false;
     message: string = '';
@@ -13,4 +13,4 @@ export default class DisconnectPacket extends DataPacket {
             this.writeString(this.message);
         }
     }
-};
+}

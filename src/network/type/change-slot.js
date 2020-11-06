@@ -1,12 +1,10 @@
 const PacketBinaryStream = require('../PacketBinaryStream').default;
 
-
 class ChangeSlot {
-
     /** @type {number} */
-    containerId
+    containerId;
     /** @type {number[]} */
-    changedSlots
+    changedSlots;
 
     /** @param {PacketBinaryStream} buffer */
     decode(buffer) {
@@ -33,6 +31,5 @@ class ChangeSlot {
     setChangedSlots(changedSlots) {
         this.changedSlots = changedSlots;
     }
-
 }
 module.exports = ChangeSlot;

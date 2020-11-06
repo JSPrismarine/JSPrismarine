@@ -1,15 +1,14 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class ResourcePacksInfoPacket extends DataPacket {
-    static NetID = Identifiers.ResourcePacksInfoPacket
+    static NetID = Identifiers.ResourcePacksInfoPacket;
 
-    mustAccept = false
-    hasScripts = false 
+    mustAccept = false;
+    hasScripts = false;
 
-    behaviorPackEntries = []
-    resourcePackEntries = []
+    behaviorPackEntries = [];
+    resourcePackEntries = [];
 
     encodePayload() {
         this.writeBool(this.mustAccept);

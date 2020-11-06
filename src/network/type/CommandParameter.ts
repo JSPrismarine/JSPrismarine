@@ -9,18 +9,19 @@ export enum CommandParameterType {
 
 export default class CommandParameter {
     /** @type {String} */
-    name
+    name;
     /** @type {number} */
-    type
+    type;
     /** @type {boolean} */
-    optional
+    optional;
 
     constructor(data?: {
-        name: string,
-        type: CommandParameterType,
-        optional: boolean
+        name: string;
+        type: CommandParameterType;
+        optional: boolean;
     }) {
-        const { name = 'args', type = 0x100000 | 0x22, optional = true } = data || {};
+        const {name = 'args', type = 0x100000 | 0x22, optional = true} =
+            data || {};
 
         this.name = name;
         this.type = type;

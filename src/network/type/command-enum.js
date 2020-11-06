@@ -1,10 +1,7 @@
-
 class CommandEnum {
-    
     /** @type {String} */
-    enumName
+    enumName;
     /** @type {String[]} */
-    enumValues
-
+    enumValues;
 }
 module.exports = CommandEnum;

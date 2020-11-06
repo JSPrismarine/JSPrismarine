@@ -7,4 +7,4 @@ export default class Tag {
         this.value = value;
         this.name = name;
     }
-};
+}

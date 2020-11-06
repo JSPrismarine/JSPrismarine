@@ -2,7 +2,6 @@ const Command = require('../Command').default;
 const Player = require('../../player/Player').default;
 
 class StopCommand extends Command {
-
     constructor() {
         super({
             id: 'minecraft:stop',
@@ -18,8 +17,7 @@ class StopCommand extends Command {
     async execute(sender, args) {
         // TODO: implement operators and just check if player is operator
 
-        if (args[0] && args[0].toLowerCase() == 'f')
-            process.exit();
+        if (args[0] && args[0].toLowerCase() == 'f') process.exit();
 
         sender.getServer().getServer().kill();
         return 'Stopping the server...';

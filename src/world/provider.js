@@ -1,14 +1,12 @@
 const fs = require('fs');
 
-
 class Provider {
-
     /** @type {string} */
-    #path
+    #path;
 
     constructor(path) {
         this.#path = path;
-        if (!(fs.existsSync(path))) {
+        if (!fs.existsSync(path)) {
             fs.mkdirSync(path);
         }
     }
@@ -16,6 +14,5 @@ class Provider {
     get path() {
         return this.#path;
     }
-
 }
 module.exports = Provider;

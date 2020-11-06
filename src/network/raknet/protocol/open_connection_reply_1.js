@@ -1,24 +1,23 @@
 const OfflinePacket = require('./offline_packet');
 const Identifiers = require('./Identifiers').default;
 
-'use strict';
+('use strict');
 
 class OpenConnectionReply1 extends OfflinePacket {
-    
     constructor() {
         super(Identifiers.OpenConnectionReply1);
     }
 
     /** @type {number} */
-    #serverGUID
+    #serverGUID;
     /** @type {number} */
-    #mtuSize
+    #mtuSize;
 
     read() {
         super.read();
         this.readMagic();
         this.#serverGUID = this.readLong();
-        this.readByte();  // secure
+        this.readByte(); // secure
         this.#mtuSize = this.readShort();
     }
 
@@ -26,7 +25,7 @@ class OpenConnectionReply1 extends OfflinePacket {
         super.write();
         this.writeMagic();
         this.writeLong(this.#serverGUID);
-        this.writeByte(0);  // secure
+        this.writeByte(0); // secure
         this.writeShort(this.#mtuSize);
     }
 
@@ -45,6 +44,5 @@ class OpenConnectionReply1 extends OfflinePacket {
     set mtuSize(mtuSize) {
         this.#mtuSize = mtuSize;
     }
-
 }
 module.exports = OpenConnectionReply1;

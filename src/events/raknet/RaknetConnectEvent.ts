@@ -1,4 +1,4 @@
-import Event from "../Event";
+import Event from '../Event';
 
 /**
  * Fired just as a client connects to the raknet instance
@@ -14,4 +14,4 @@ export default class RaknetConnectEvent extends Event {
     getConnection(): any {
         return this.connection;
     }
-};
+}

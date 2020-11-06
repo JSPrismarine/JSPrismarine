@@ -1,4 +1,4 @@
-import Block from "./Block";
+import Block from './Block';
 
 export default class Transparent extends Block {
     getLightFilter() {
@@ -8,4 +8,4 @@ export default class Transparent extends Block {
     isTransparent() {
         return true;
     }
-};
+}

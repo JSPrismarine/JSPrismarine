@@ -4,16 +4,18 @@ const SetTitlePacket = require('../../network/packet/set-title-packet');
 const SetTitleType = require('../../network/type/set-title-type');
 
 const TitleTypes = {
-    'title': SetTitleType.SetTitle,
-    'subtitle': SetTitleType.SetSubtitle,
-    'actionbar': SetTitleType.SetActionBarMessage,
-    'clear': SetTitleType.ClearTitle
+    title: SetTitleType.SetTitle,
+    subtitle: SetTitleType.SetSubtitle,
+    actionbar: SetTitleType.SetActionBarMessage,
+    clear: SetTitleType.ClearTitle
 };
 class TitleCommand extends Command {
-
     constructor() {
         // TODO: add permissions to command
-        super({ id: 'minecraft:title', description: 'Controls text displayed on the screen.' });
+        super({
+            id: 'minecraft:title',
+            description: 'Controls text displayed on the screen.'
+        });
     }
 
     /**
@@ -44,7 +46,10 @@ class TitleCommand extends Command {
             targets.push(...players);
         } else {
             let player = sender.getServer().getPlayerByName(args[0]);
-            if (!player) return sender.sendMessage(`§cCan't find the player ${args[0]}.`);
+            if (!player)
+                return sender.sendMessage(
+                    `§cCan't find the player ${args[0]}.`
+                );
             targets.push(player);
         }
 
@@ -53,7 +58,7 @@ class TitleCommand extends Command {
             let player = targets[i];
             let pk = new SetTitlePacket();
             pk.type = TitleTypes[args[1]];
-            if (args[1] != "clear") {
+            if (args[1] != 'clear') {
                 pk.text = text;
             }
             player.getPlayerConnection().sendDataPacket(pk);

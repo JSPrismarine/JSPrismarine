@@ -1,5 +1,5 @@
-import Event from "../Event";
-import type InetAddress from "../../network/raknet/utils/InetAddress";
+import Event from '../Event';
+import type InetAddress from '../../network/raknet/utils/InetAddress';
 
 export default class RaknetEncapsulatedPacketEvent extends Event {
     private inetAddr: InetAddress;
@@ -17,4 +17,4 @@ export default class RaknetEncapsulatedPacketEvent extends Event {
     public getPacket(): any {
         return this.packet;
     }
-};
+}

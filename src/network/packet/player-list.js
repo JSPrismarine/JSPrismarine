@@ -5,14 +5,13 @@ const Identifiers = require('../Identifiers').default;
 const PlayerListEntry = require('../type/player-list-entry');
 const PlayerListAction = require('../type/player-list-action');
 
-
 class PlayerListPacket extends DataPacket {
-    static NetID = Identifiers.PlayerListPacket
+    static NetID = Identifiers.PlayerListPacket;
 
     /** @type {PlayerListEntry[]} */
-    entries = []
+    entries = [];
     /** @type {number} */
-    type
+    type;
 
     encodePayload(server) {
         this.writeByte(this.type);
@@ -23,7 +22,9 @@ class PlayerListPacket extends DataPacket {
             } else if (this.type === PlayerListAction.Remove) {
                 this.writePlayerListRemoveEntry(entry);
             } else {
-                server.getLogger().warn(`Invalid player list action type ${this.type}`);
+                server
+                    .getLogger()
+                    .warn(`Invalid player list action type ${this.type}`);
             }
         }
 

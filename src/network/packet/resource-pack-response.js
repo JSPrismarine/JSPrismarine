@@ -1,12 +1,11 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class ResourcePackResponsePacket extends DataPacket {
-    static NetID = Identifiers.ResourcePackResponsePacket
+    static NetID = Identifiers.ResourcePackResponsePacket;
 
-    status
-    packIds = []
+    status;
+    packIds = [];
 
     decodePayload() {
         this.status = this.readByte();

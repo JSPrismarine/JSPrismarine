@@ -1,15 +1,14 @@
-const Packet = require("./packet");
+const Packet = require('./packet');
 const Identifiers = require('./Identifiers').default;
 
-'use strict';
+('use strict');
 
 class ConnectedPing extends Packet {
-
     constructor() {
         super(Identifiers.ConnectedPing);
     }
 
-    #clientTimestamp
+    #clientTimestamp;
 
     read() {
         super.read();
@@ -28,6 +27,5 @@ class ConnectedPing extends Packet {
     set clientTimestamp(clientTimestamp) {
         this.#clientTimestamp = clientTimestamp;
     }
-    
 }
 module.exports = ConnectedPing;

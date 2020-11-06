@@ -15,7 +15,6 @@ const Identifiers = {
 
     AcknowledgePacket: 0xc0,
     NacknowledgePacket: 0xa0
-
 };
 
 export default Identifiers;

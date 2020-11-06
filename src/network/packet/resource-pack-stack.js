@@ -1,14 +1,13 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class ResourcePackStackPacket extends DataPacket {
-    static NetID = Identifiers.ResourcePackStackPacket
+    static NetID = Identifiers.ResourcePackStackPacket;
 
-    mustAccept = false
+    mustAccept = false;
 
-    behaviorPackStack = []
-    resourcePackStack = []
+    behaviorPackStack = [];
+    resourcePackStack = [];
 
     encodePayload() {
         this.writeBool(this.mustAccept);
@@ -27,7 +26,7 @@ class ResourcePackStackPacket extends DataPacket {
             this.writeString('');
         }
 
-        this.writeBool(false);  // experimental
+        this.writeBool(false); // experimental
         this.writeString(Identifiers.MinecraftVersion);
     }
 }

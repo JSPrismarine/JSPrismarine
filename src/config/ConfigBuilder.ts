@@ -12,11 +12,10 @@ const _ = {
     del: require('lodash/unset')
 };
 
-
 const TypeDefaults = {
-    'json': '{}',
-    'yaml': ' ',
-    'toml': ' '
+    json: '{}',
+    yaml: ' ',
+    toml: ' '
 };
 
 /**
@@ -24,8 +23,8 @@ const TypeDefaults = {
  * @author <HerryYT> enricoangelon.ea@gmail.com
  */
 export default class ConfigBuilder {
-    #type:string
-    #path: string
+    #type: string;
+    #path: string;
 
     /**
      * Config constructor.
@@ -33,23 +32,27 @@ export default class ConfigBuilder {
     constructor(filePath: string) {
         let pathSplitted = path.parse(filePath);
 
-        this.#type = pathSplitted.ext.slice(1); 
+        this.#type = pathSplitted.ext.slice(1);
 
         if (
             !Object.keys(TypeDefaults).some(
-                i => i.toLowerCase() === this.#type.toLowerCase()
+                (i) => i.toLowerCase() === this.#type.toLowerCase()
             )
         ) {
-            throw `Unsupported config type. (Supported types: ${Object.keys(TypeDefaults).join(', ')})`;            
+            throw `Unsupported config type. (Supported types: ${Object.keys(
+                TypeDefaults
+            ).join(', ')})`;
         }
 
         if (fs.existsSync(pathSplitted.dir)) {
-            fs.mkdirSync(pathSplitted.dir, { recursive: true });
+            fs.mkdirSync(pathSplitted.dir, {recursive: true});
         }
 
         if (!fs.existsSync(filePath)) {
             fs.writeFileSync(
-                filePath, (TypeDefaults as any)[this.#type], 'utf8'
+                filePath,
+                (TypeDefaults as any)[this.#type],
+                'utf8'
             );
         }
 
@@ -60,7 +63,7 @@ export default class ConfigBuilder {
     getPath() {
         return this.#path;
     }
-    
+
     /** @returns {string} */
     getType() {
         return this.#type;
@@ -79,7 +82,7 @@ export default class ConfigBuilder {
                 fileData = YAML.stringify(data, {indent: 2});
                 break;
             case 'toml':
-                fileData = TOML.stringify(data);    
+                fileData = TOML.stringify(data);
                 break;
             default:
                 throw `Unknown config type ${this.#type}!`;
@@ -89,12 +92,12 @@ export default class ConfigBuilder {
 
     /**
      * @private
-     * 
+     *
      * @returns {Object}
      */
     getFileData() {
         let resultData = {};
-        let rawFileData = fs.readFileSync(this.#path, 'utf8'); 
+        let rawFileData = fs.readFileSync(this.#path, 'utf8');
         switch (this.#type) {
             case 'json':
                 resultData = JSON.parse(rawFileData);
@@ -109,7 +112,7 @@ export default class ConfigBuilder {
                 throw `Unknown config type: ${this.#type}!`;
         }
 
-        return (resultData || {});
+        return resultData || {};
     }
 
     /**
@@ -134,7 +137,7 @@ export default class ConfigBuilder {
         let newData = _.set(data, key, value);
         this.setFileData(newData);
     }
-    
+
     /**
      * Returns true if the config
      * contains that key.
@@ -151,8 +154,8 @@ export default class ConfigBuilder {
      */
     del(key: string) {
         let data = this.getFileData();
-        
-        // it mutates the object, we 
+
+        // it mutates the object, we
         // don't need to define a new
         // variable.
         let isSuccessful = _.del(data, key);
@@ -160,5 +163,4 @@ export default class ConfigBuilder {
         this.setFileData(data);
         return isSuccessful;
     }
-
 }

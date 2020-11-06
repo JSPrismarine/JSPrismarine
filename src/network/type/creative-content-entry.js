@@ -1,17 +1,15 @@
 const Item = require('../../item/Item').default;
 
 class CreativeContentEntry {
-
     /** @type {number} */
-    entryId
+    entryId;
     /** @type {Item} */
-    item
+    item;
 
     constructor(entryId, item) {
         this.entryId = entryId;
         this.item = item;
     }
-
 }
 
 module.exports = CreativeContentEntry;

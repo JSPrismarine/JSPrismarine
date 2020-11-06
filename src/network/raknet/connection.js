@@ -23,52 +23,51 @@ const Status = {
     Disconnected: 3
 };
 class Connection {
-
-    #listener  
+    #listener;
     /** @type {number} */
-    #mtuSize
+    #mtuSize;
     /** @type {InetAddress} */
-    #address
+    #address;
 
     // Client connection state
-    #state = Status.Connecting
+    #state = Status.Connecting;
 
     // Queue containing sequence numbers of packets not received
-    #nackQueue = []
+    #nackQueue = [];
     // Queue containing sequence numbers to let know the game packets we sent
-    #ackQueue = []
+    #ackQueue = [];
     // Need documentation
-    #recoveryQueue = new Map()
+    #recoveryQueue = new Map();
     // Need documentation
-    #packetToSend = []
-    // Queue holding packets to send 
-    #sendQueue = new DataPacket()
+    #packetToSend = [];
+    // Queue holding packets to send
+    #sendQueue = new DataPacket();
 
-    #splitPackets = new Map()
+    #splitPackets = new Map();
 
     // Need documentation
-    #windowStart = -1
-    #windowEnd = 2048
-    #reliableWindowStart = 0
-    #reliableWindowEnd = 2048
-    #reliableWindow = new Map()
-    #lastReliableIndex = -1
+    #windowStart = -1;
+    #windowEnd = 2048;
+    #reliableWindowStart = 0;
+    #reliableWindowEnd = 2048;
+    #reliableWindow = new Map();
+    #lastReliableIndex = -1;
 
     // Array containing received sequence numbers
-    #receivedWindow = []
+    #receivedWindow = [];
     // Last received sequence number
-    #lastSequenceNumber = -1
-    #sendSequenceNumber = 0
+    #lastSequenceNumber = -1;
+    #sendSequenceNumber = 0;
 
-    #messageIndex = 0
-    #channelIndex = []
+    #messageIndex = 0;
+    #channelIndex = [];
 
-    #needACK = new Map()
-    #splitID = 0
+    #needACK = new Map();
+    #splitID = 0;
 
     // Last timestamp of packet received, helpful for timeout
-    #lastUpdate = Date.now()
-    #isActive = false
+    #lastUpdate = Date.now();
+    #isActive = false;
 
     constructor(listener, mtuSize, address) {
         this.#listener = listener;
@@ -83,10 +82,10 @@ class Connection {
     }
 
     update(timestamp) {
-        if (!this.#isActive && (this.#lastUpdate + 10000) < timestamp) {
+        if (!this.#isActive && this.#lastUpdate + 10000 < timestamp) {
             this.disconnect('timeout');
             return;
-        } 
+        }
         this.#isActive = false;
 
         // Send ACKs
@@ -106,8 +105,8 @@ class Connection {
 
         if (this.#packetToSend.length > 0) {
             let limit = 16;
-            for (let pk of this.#packetToSend) {          
-                pk.sendTime = timestamp;  // To implement
+            for (let pk of this.#packetToSend) {
+                pk.sendTime = timestamp; // To implement
                 pk.write();
                 this.#recoveryQueue.set(pk.sequenceNumber, pk);
                 let index = this.#packetToSend.indexOf(pk);
@@ -126,7 +125,7 @@ class Connection {
         }
 
         for (let [seq, pk] of this.#recoveryQueue) {
-            if (pk.sendTime < (Date.now() - 8000)) {
+            if (pk.sendTime < Date.now() - 8000) {
                 this.#packetToSend.push(pk);
                 this.#recoveryQueue.delete(seq);
             }
@@ -150,14 +149,14 @@ class Connection {
 
     /**
      * Receive session packets
-     * 
-     * @param {Buffer} buffer 
+     *
+     * @param {Buffer} buffer
      */
     receive(buffer) {
         this.#isActive = true;
         this.#lastUpdate = Date.now();
         let header = buffer.readUInt8();
-        
+
         if ((header & BitFlags.Valid) == 0) {
             // Don't handle offline packets
             return null;
@@ -178,8 +177,8 @@ class Connection {
         // Check if we already received packet and so we don't handle them
         // i still need to understand what are those window stuff
         if (
-            dataPacket.sequenceNumber < this.#windowStart || 
-            dataPacket.sequenceNumber > this.#windowEnd || 
+            dataPacket.sequenceNumber < this.#windowStart ||
+            dataPacket.sequenceNumber > this.#windowEnd ||
             this.#receivedWindow.includes(dataPacket.sequenceNumber)
         ) {
             return;
@@ -208,7 +207,11 @@ class Connection {
         // Check if the sequence is broken due to a lost packet
         if (diff !== 1) {
             // As i said before, there we search for missing packets in the list of the recieved ones
-            for (let i = this.#lastSequenceNumber + 1; i < dataPacket.sequenceNumber; i++) {
+            for (
+                let i = this.#lastSequenceNumber + 1;
+                i < dataPacket.sequenceNumber;
+                i++
+            ) {
                 // Adding the packet sequence number to the NACK queue and then sending a NACK
                 // will make the Client sending again the lost packet
                 if (!this.#receivedWindow.includes(i)) {
@@ -223,10 +226,10 @@ class Connection {
             this.#lastSequenceNumber = dataPacket.sequenceNumber;
             this.#windowStart += diff;
             this.#windowEnd += diff;
-        } 
+        }
 
         // Handle encapsulated
-        // This is an array but soon 
+        // This is an array but soon
         // will be converted to a porperty
         // because there is alway one packet
         for (let packet of dataPacket.packets) {
@@ -234,7 +237,7 @@ class Connection {
         }
     }
 
-    // Handles a ACK packet, this packet confirm that the other 
+    // Handles a ACK packet, this packet confirm that the other
     // end successfully received the datagram
     handleACK(buffer) {
         let packet = new ACK();
@@ -268,12 +271,12 @@ class Connection {
     }
 
     /**
-     * @param {EncapsulatedPacket} packet 
+     * @param {EncapsulatedPacket} packet
      */
     receivePacket(packet) {
         if (typeof packet.messageIndex === 'undefined') {
-            // Handle the packet directly if it doesn't have a message index    
-            this.handlePacket(packet);        
+            // Handle the packet directly if it doesn't have a message index
+            this.handlePacket(packet);
         } else {
             // Seems like we are checking the same stuff like before
             // but just with reliable packets
@@ -284,7 +287,7 @@ class Connection {
                 return;
             }
 
-            if ((packet.messageIndex - this.#lastReliableIndex) === 1) {
+            if (packet.messageIndex - this.#lastReliableIndex === 1) {
                 this.#lastReliableIndex++;
                 this.#reliableWindowStart++;
                 this.#reliableWindowEnd++;
@@ -302,7 +305,7 @@ class Connection {
                     this.#reliableWindow = reliableWindow;
 
                     for (let [seqIndex, pk] of this.#reliableWindow) {
-                        if ((seqIndex - this.#lastReliableIndex) !== 1) {
+                        if (seqIndex - this.#lastReliableIndex !== 1) {
                             break;
                         }
                         this.#lastReliableIndex++;
@@ -320,29 +323,35 @@ class Connection {
     }
 
     /**
-     * @param {EncapsulatedPacket} packet 
-     * @param {number} flags 
+     * @param {EncapsulatedPacket} packet
+     * @param {number} flags
      */
     addEncapsulatedToQueue(packet, flags = Priority.Normal) {
-        if (packet.reliability === 2 ||
+        if (
+            packet.reliability === 2 ||
             packet.reliability === 3 ||
             packet.reliability === 4 ||
             packet.reliability === 6 ||
-            packet.reliability === 7) {
+            packet.reliability === 7
+        ) {
             packet.messageIndex = this.#messageIndex++;
 
             if (packet.reliability === 3) {
                 packet.orderIndex = this.#channelIndex[packet.orderChannel]++;
             }
-            
         }
 
         if (packet.getTotalLength() + 4 > this.#mtuSize) {
             // Split the buffer into chunks
-            let buffers = [], i = 0, splitIndex = 0;
+            let buffers = [],
+                i = 0,
+                splitIndex = 0;
             while (i < packet.buffer.length) {
                 // Push format: [chunk index: int, chunk: buffer]
-                buffers.push([(splitIndex += 1) - 1, packet.buffer.slice(i, i += this.#mtuSize - 60)]);
+                buffers.push([
+                    (splitIndex += 1) - 1,
+                    packet.buffer.slice(i, (i += this.#mtuSize - 60))
+                ]);
             }
             let splitID = ++this.#splitID % 65536;
             for (let [count, buffer] of buffers) {
@@ -367,14 +376,13 @@ class Connection {
         } else {
             this.addToQueue(packet, flags);
         }
-    } 
-    
+    }
 
     /**
      * Adds a packet into the queue
-     * 
-     * @param {EncapsulatedPacket} pk 
-     * @param {number} flags 
+     *
+     * @param {EncapsulatedPacket} pk
+     * @param {number} flags
      */
     addToQueue(pk, flags = Priority.Normal) {
         let priority = flags & 0b1;
@@ -383,7 +391,7 @@ class Connection {
             packet.sequenceNumber = this.#sendSequenceNumber++;
             packet.packets.push(pk.toBinary());
             this.sendPacket(packet);
-            packet.sendTime = Date.now();  
+            packet.sendTime = Date.now();
             this.#recoveryQueue.set(packet.sequenceNumber, packet);
 
             return;
@@ -398,8 +406,8 @@ class Connection {
 
     /**
      * Encapsulated handling route
-     * 
-     * @param {DataPacket} packet 
+     *
+     * @param {DataPacket} packet
      */
     handlePacket(packet) {
         if (packet.split) {
@@ -413,9 +421,11 @@ class Connection {
         if (id < 0x80) {
             if (this.#state === Status.Connecting) {
                 if (id === Identifiers.ConnectionRequest) {
-                    this.handleConnectionRequest(packet.buffer).then(encapsulated => {
-                        this.addToQueue(encapsulated, Priority.Immediate);
-                    });
+                    this.handleConnectionRequest(packet.buffer).then(
+                        (encapsulated) => {
+                            this.addToQueue(encapsulated, Priority.Immediate);
+                        }
+                    );
                 } else if (id === Identifiers.NewIncomingConnection) {
                     dataPacket = new NewIncomingConnection();
                     dataPacket.buffer = packet.buffer;
@@ -425,17 +435,17 @@ class Connection {
                     if (dataPacket.address.port === serverPort) {
                         this.#state = Status.Connected;
                         this.#listener.emit('openConnection', this);
-                    } 
-                } 
+                    }
+                }
             } else if (id === Identifiers.DisconnectNotification) {
                 this.disconnect('client disconnect');
             } else if (id === Identifiers.ConnectedPing) {
-                this.handleConnectedPing(packet.buffer).then(encapsulated => {
+                this.handleConnectedPing(packet.buffer).then((encapsulated) => {
                     this.addToQueue(encapsulated);
                 });
             }
         } else if (this.#state === Status.Connected) {
-            this.#listener.emit('encapsulated', packet, this.#address);  // To fit in software needs later
+            this.#listener.emit('encapsulated', packet, this.#address); // To fit in software needs later
         }
     }
 
@@ -474,12 +484,12 @@ class Connection {
         sendPacket.buffer = pk.buffer;
 
         return sendPacket;
-    } 
+    }
 
     /**
      * Handles a splitted packet.
-     * 
-     * @param {EncapsulatedPacket} packet 
+     *
+     * @param {EncapsulatedPacket} packet
      */
     handleSplit(packet) {
         if (this.#splitPackets.has(packet.splitID)) {
@@ -487,7 +497,10 @@ class Connection {
             value.set(packet.splitIndex, packet);
             this.#splitPackets.set(packet.splitID, value);
         } else {
-            this.#splitPackets.set(packet.splitID, new Map([[packet.splitIndex, packet]]));
+            this.#splitPackets.set(
+                packet.splitID,
+                new Map([[packet.splitIndex, packet]])
+            );
         }
 
         // If we have all pieces, put them together
@@ -499,7 +512,7 @@ class Connection {
                 stream.append(packet.buffer);
             }
             this.#splitPackets.delete(packet.splitID);
-        
+
             pk.buffer = stream.buffer;
             this.receivePacket(pk);
         }
@@ -509,25 +522,36 @@ class Connection {
         if (this.#sendQueue.packets.length > 0) {
             this.#sendQueue.sequenceNumber = this.#sendSequenceNumber++;
             this.sendPacket(this.#sendQueue);
-            this.#sendQueue.sendTime = Date.now();  
-            this.#recoveryQueue.set(this.#sendQueue.sequenceNumber, this.#sendQueue);
+            this.#sendQueue.sendTime = Date.now();
+            this.#recoveryQueue.set(
+                this.#sendQueue.sequenceNumber,
+                this.#sendQueue
+            );
             this.#sendQueue = new DataPacket();
         }
     }
 
     sendPacket(packet) {
         packet.write();
-        this.#listener.sendBuffer(packet.buffer, this.#address.address, this.#address.port);
+        this.#listener.sendBuffer(
+            packet.buffer,
+            this.#address.address,
+            this.#address.port
+        );
     }
 
     close() {
-        let stream = new BinaryStream(Buffer.from('\x00\x00\x08\x15', 'binary'));
-        this.addEncapsulatedToQueue(EncapsulatedPacket.fromBinary(stream), Priority.Immediate);  // Client discconect packet 0x15
+        let stream = new BinaryStream(
+            Buffer.from('\x00\x00\x08\x15', 'binary')
+        );
+        this.addEncapsulatedToQueue(
+            EncapsulatedPacket.fromBinary(stream),
+            Priority.Immediate
+        ); // Client discconect packet 0x15
     }
 
     get address() {
         return this.#address;
     }
-    
 }
 module.exports = Connection;

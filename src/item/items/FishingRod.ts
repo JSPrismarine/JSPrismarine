@@ -1,11 +1,11 @@
-import Tool from "../Tool";
-import { ItemIdsType } from "../ItemIdsType";
+import Tool from '../Tool';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class FishingRod extends Tool {
     constructor() {
         super({
-            name: "minecraft:fishing_rod",
-            id: ItemIdsType.FishingRod,
+            name: 'minecraft:fishing_rod',
+            id: ItemIdsType.FishingRod
         });
     }
 

@@ -2,10 +2,12 @@ const Command = require('../Command').default;
 const Player = require('../../player/Player').default;
 
 class MeCommand extends Command {
-
     constructor() {
         // TODO: add permissions to command
-        super({ id: 'minecraft:me', description: 'Displays custom message in chat.' });
+        super({
+            id: 'minecraft:me',
+            description: 'Displays custom message in chat.'
+        });
     }
 
     /**

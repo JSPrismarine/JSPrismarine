@@ -1,41 +1,47 @@
-import Block from "../block/Block";
-import Entity from "../entity/entity";
-import Item from "../item/Item";
-import Vector3 from "../math/Vector3";
-import UpdateBlockPacket from "../network/packet/UpdateBlockPacket";
-import WorldEventPacket from "../network/packet/WorldEventPacket";
-import Player from "../player/Player";
-import Prismarine from "../Prismarine";
-import Chunk from "./chunk/Chunk";
+import Block from '../block/Block';
+import Entity from '../entity/entity';
+import Item from '../item/Item';
+import Vector3 from '../math/Vector3';
+import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
+import WorldEventPacket from '../network/packet/WorldEventPacket';
+import Player from '../player/Player';
+import Prismarine from '../Prismarine';
+import Chunk from './chunk/Chunk';
 
 const LevelSoundEventPacket = require('../network/packet/level-sound-event');
 const UUID = require('../utils/uuid');
 const CoordinateUtils = require('../world/coordinate-utils');
-const { GameruleManager, Rules } = require('../world/gamerule-manager');
+const {GameruleManager, Rules} = require('../world/gamerule-manager');
 const SharedSeedRandom = require('./util/shared-seed-random');
 
 interface WorldData {
-    name: string,
-    server: Prismarine,
-    provider: any,
-    seed: number,
-    generator?: string
+    name: string;
+    server: Prismarine;
+    provider: any;
+    seed: number;
+    generator?: string;
 }
 
 export default class World {
     private uniqueId: string = UUID.randomString();
-    private name: string = "Unknown";
+    private name: string = 'Unknown';
     private players: Map<number, Player> = new Map();
     private entities: Map<number, Entity> = new Map();
     private chunks: Map<string, any> = new Map();
     private gameruleManager: any;
     private currentTick: number = 0;
-    private provider: any;   // TODO: interface
-    private server: Prismarine
+    private provider: any; // TODO: interface
+    private server: Prismarine;
     private seed: number | bigint;
-    private generator: any;  // TODO: interface
+    private generator: any; // TODO: interface
 
-    constructor({ name, server, provider, seed, generator = 'overworld' }: WorldData) {
+    constructor({
+        name,
+        server,
+        provider,
+        seed,
+        generator = 'overworld'
+    }: WorldData) {
         this.name = name;
         this.server = server;
         this.provider = provider;
@@ -49,7 +55,11 @@ export default class World {
     }
 
     public async onEnable() {
-        this.server.getLogger().info(`Preparing start region for dimension §b'${this.name}'/${this.generator}§r`);
+        this.server
+            .getLogger()
+            .info(
+                `Preparing start region for dimension §b'${this.name}'/${this.generator}§r`
+            );
         const chunksToLoad: Array<Promise<void>> = [];
         const time = Date.now();
 
@@ -65,14 +75,14 @@ export default class World {
 
     /**
      * Called every tick.
-     * 
-     * @param timestamp 
+     *
+     * @param timestamp
      */
     public async update(timestamp: number): Promise<void> {
         // Continue world time ticks
         this.currentTick += 1;
 
-        // Tick players 
+        // Tick players
         for (let player of this.players.values()) {
             player.update(timestamp);
 
@@ -93,16 +103,25 @@ export default class World {
 
     /**
      * Loads a chunk in a given x and z and returns its.
-     * 
-     * @param x 
-     * @param z 
+     *
+     * @param x
+     * @param z
      */
-    public async loadChunk(x: number, z: number, _generate: boolean): Promise<any> {
+    public async loadChunk(
+        x: number,
+        z: number,
+        _generate: boolean
+    ): Promise<any> {
         let index = CoordinateUtils.encodePos(x, z);
         if (!this.chunks.has(index)) {
-            const generator = this.server.getWorldManager().getGeneratorManager().getGenerator(this.generator);
+            const generator = this.server
+                .getWorldManager()
+                .getGeneratorManager()
+                .getGenerator(this.generator);
             if (!generator) {
-                this.server.getLogger().error(`Invalid generator §b${this.generator}§r!`);
+                this.server
+                    .getLogger()
+                    .error(`Invalid generator §b${this.generator}§r!`);
                 throw new Error('invalid generator');
             }
 
@@ -121,12 +140,16 @@ export default class World {
 
     /**
      * Sends a world event packet to all the viewers in the position chunk.
-     * 
+     *
      * @param position - world positon
      * @param worldEvent - event identifier
-     * @param data 
+     * @param data
      */
-    public sendWorldEvent(position: Vector3 | null, worldEvent: number, data: number): void {
+    public sendWorldEvent(
+        position: Vector3 | null,
+        worldEvent: number,
+        data: number
+    ): void {
         let worldEventPacket = new WorldEventPacket();
         worldEventPacket.eventId = worldEvent;
         worldEventPacket.data = data;
@@ -141,22 +164,37 @@ export default class World {
     /**
      * Returns a chunk from minecraft block positions x and z.
      */
-    public async getChunkAt(x: number | VarInt, z: number | VarInt, generate = false): Promise<Chunk> {
+    public async getChunkAt(
+        x: number | VarInt,
+        z: number | VarInt,
+        generate = false
+    ): Promise<Chunk> {
         // Handle negative chunk values, where "">> 4" doesn't work for obvious reasons
-        return await this.getChunk(x < 0 ? -1 : 1 * (Math.abs(x as number) >> 4), z < 0 ? -1 : 1 * (Math.abs(z as number) >> 4), generate);
+        return await this.getChunk(
+            x < 0 ? -1 : 1 * (Math.abs(x as number) >> 4),
+            z < 0 ? -1 : 1 * (Math.abs(z as number) >> 4),
+            generate
+        );
     }
 
     /**
      * Returns the world default spawn position.
      */
     public async getSpawnPosition(): Promise<Vector3> {
-        let x = 0, z = 0;  // TODO: replace with actual data
+        let x = 0,
+            z = 0; // TODO: replace with actual data
         let chunk = await this.getChunkAt(x, z);
         let y = chunk.getHighestBlock(x, z) + 1;
         return new Vector3(z, y + 2, z);
     }
 
-    public async useItemOn(itemInHand: Item | Block | null, blockPosition: Vector3, face: number, clickPosition: Vector3, player: Player): Promise<void> {
+    public async useItemOn(
+        itemInHand: Item | Block | null,
+        blockPosition: Vector3,
+        face: number,
+        clickPosition: Vector3,
+        player: Player
+    ): Promise<void> {
         //TODO: checks
 
         // TODO: set block on the desired face
@@ -164,28 +202,37 @@ export default class World {
         // maybe let place = new Promise ( do all placing stuff )
         // then if place is true, play sound
 
-        if (itemInHand instanceof Item)
-            return; // TODO
+        if (itemInHand instanceof Item) return; // TODO
 
-        const chunk = await this.getChunkAt(blockPosition.getX(), blockPosition.getZ());
+        const chunk = await this.getChunkAt(
+            blockPosition.getX(),
+            blockPosition.getZ()
+        );
         const block = itemInHand; // TODO: get block from itemInHand
         if (!block)
-            return this.server.getLogger().warn(`Block with runtimeId ${0} is invalid`);
+            return this.server
+                .getLogger()
+                .warn(`Block with runtimeId ${0} is invalid`);
 
-        chunk.setBlock(blockPosition.getX() % 16, blockPosition.getY(), blockPosition.getZ() % 16, block);
+        chunk.setBlock(
+            blockPosition.getX() % 16,
+            blockPosition.getY(),
+            blockPosition.getZ() % 16,
+            block
+        );
 
         const blockUpdate = new UpdateBlockPacket();
         blockUpdate.x = blockPosition.getX();
         blockUpdate.y = blockPosition.getY();
         blockUpdate.z = blockPosition.getZ();
-        blockUpdate.BlockRuntimeId = (block.getRuntimeId());
+        blockUpdate.BlockRuntimeId = block.getRuntimeId();
 
         for (let p of this.server.getOnlinePlayers()) {
             p.getPlayerConnection().sendDataPacket(blockUpdate);
         }
 
         const pk = new LevelSoundEventPacket();
-        pk.sound = 6;  // TODO: enum
+        pk.sound = 6; // TODO: enum
 
         pk.positionX = player.getX();
         pk.positionY = player.getY();
@@ -204,8 +251,8 @@ export default class World {
     /**
      * Adds an entity into the level and in the chunk
      * found from the entity position.
-     * 
-     * @param entity 
+     *
+     * @param entity
      */
     public async addEntity(entity: Entity): Promise<void> {
         this.entities.set(entity.runtimeId, entity);
@@ -214,7 +261,7 @@ export default class World {
     }
 
     /**
-     * Adds a player into the level. 
+     * Adds a player into the level.
      */
     public addPlayer(player: Player): void {
         this.players.set(player.runtimeId, player);
@@ -239,7 +286,9 @@ export default class World {
                 chunk.setChanged(false);
             }
         }
-        this.server.getLogger().debug('[World save] took ' + (Date.now() - time) + 'ms');
+        this.server
+            .getLogger()
+            .debug('[World save] took ' + (Date.now() - time) + 'ms');
     }
 
     public async save(): Promise<void> {
@@ -274,5 +323,4 @@ export default class World {
     public getName(): string {
         return this.name;
     }
-
 }

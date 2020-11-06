@@ -1,4 +1,3 @@
-
 const NetworkTransactionSource = {
     Container: 0,
     World: 2,

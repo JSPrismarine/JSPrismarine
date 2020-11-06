@@ -1,6 +1,6 @@
-import Event from "../Event";
-import type Player from "../../player/Player";
-import type InetAddress from "../../network/raknet/utils/InetAddress";
+import Event from '../Event';
+import type Player from '../../player/Player';
+import type InetAddress from '../../network/raknet/utils/InetAddress';
 
 /**
  * Fired just after a client has connected to the raknet instance
@@ -22,4 +22,4 @@ export default class PlayerConnectEvent extends Event {
     getInetAddr() {
         return this.inetAddr;
     }
-};
+}

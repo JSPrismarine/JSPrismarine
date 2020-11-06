@@ -1,7 +1,7 @@
-import Event from "../Event";
-import type Player from "../../player/Player";
-import Vector3 from "../../math/Vector3";
-import MovementType from "../../network/type/MovementType";
+import Event from '../Event';
+import type Player from '../../player/Player';
+import Vector3 from '../../math/Vector3';
+import MovementType from '../../network/type/MovementType';
 
 /**
  * Fired just before a player moves
@@ -12,7 +12,11 @@ export default class PlayerMoveEvent extends Event {
     private to: Vector3;
     private mode: MovementType;
 
-    constructor(player: Player, to: Vector3, mode: MovementType = MovementType.Normal) {
+    constructor(
+        player: Player,
+        to: Vector3,
+        mode: MovementType = MovementType.Normal
+    ) {
         super();
         this.player = player;
 
@@ -33,4 +37,4 @@ export default class PlayerMoveEvent extends Event {
     getMode(): MovementType {
         return this.mode;
     }
-};
+}

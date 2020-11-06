@@ -1,19 +1,16 @@
 const SkinImage = require('./skin-image');
 
-
 class SkinCape {
-
     /** @type {String} */
-    id
+    id;
 
     /** @type {SkinImage} */
-    image
+    image;
 
     constructor({id, image}) {
         this.id = id;
         this.image = image;
     }
-
 }
 
 module.exports = SkinCape;

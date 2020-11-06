@@ -1,4 +1,3 @@
-
 const InventoryTransactionType = {
     Normal: 0,
     Mismatch: 1,

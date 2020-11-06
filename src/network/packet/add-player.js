@@ -1,32 +1,31 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class AddPlayerPacket extends DataPacket {
-    static NetID = Identifiers.AddPlayerPacket
+    static NetID = Identifiers.AddPlayerPacket;
 
-    uuid
-    name
-    uniqueEntityId
-    runtimeEntityId
-    platformChatId = ''  // TODO
+    uuid;
+    name;
+    uniqueEntityId;
+    runtimeEntityId;
+    platformChatId = ''; // TODO
 
-    positionX
-    positionY
-    positionZ
+    positionX;
+    positionY;
+    positionZ;
 
-    motionX
-    motionY
-    motionZ
+    motionX;
+    motionY;
+    motionZ;
 
-    pitch
-    yaw
-    headYaw
-    
-    deviceId
-    buildPlatform = 0  // TODO
+    pitch;
+    yaw;
+    headYaw;
 
-    metadata = new Map()
+    deviceId;
+    buildPlatform = 0; // TODO
+
+    metadata = new Map();
 
     encodePayload() {
         this.writeUUID(this.uuid);
@@ -34,7 +33,7 @@ class AddPlayerPacket extends DataPacket {
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeString(this.platformChatId);
-        
+
         this.writeLFloat(this.positionX);
         this.writeLFloat(this.positionY);
         this.writeLFloat(this.positionZ);
@@ -47,16 +46,16 @@ class AddPlayerPacket extends DataPacket {
         this.writeLFloat(this.yaw);
         this.writeLFloat(this.headYaw);
 
-        this.writeVarInt(0);  // TODO: Item id
+        this.writeVarInt(0); // TODO: Item id
         this.writeEntityMetadata(this.metadata);
 
         for (let i = 0; i < 5; i++) {
-            this.writeUnsignedVarInt(0);  // TODO: Adventure settings
+            this.writeUnsignedVarInt(0); // TODO: Adventure settings
         }
 
-        this.writeLLong(BigInt(0));  // Unknown 
+        this.writeLLong(BigInt(0)); // Unknown
 
-        this.writeUnsignedVarInt(0);  // TODO: Entity links
+        this.writeUnsignedVarInt(0); // TODO: Entity links
         this.writeString(this.deviceId);
         this.writeLInt(this.buildPlatform);
     }

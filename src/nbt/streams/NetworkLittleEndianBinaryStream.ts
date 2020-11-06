@@ -25,4 +25,4 @@ export default class NetworkLittleEndianBinaryStream extends LittleEndianBinaryS
         this.writeUnsignedVarInt(Buffer.byteLength(str));
         this.append(Buffer.from(str, 'utf-8'));
     }
-};
+}

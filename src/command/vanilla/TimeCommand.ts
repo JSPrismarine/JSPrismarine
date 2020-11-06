@@ -1,5 +1,5 @@
-import Player from "../../player/Player";
-import Command from "../Command";
+import Player from '../../player/Player';
+import Command from '../Command';
 
 const Gamemode = require('../../world/gamemode');
 
@@ -12,10 +12,14 @@ export default class GamemodeCommand extends Command {
     }
 
     execute(sender: Player, args: Array<any>) {
-        const world = sender?.getWorld?.() || sender.getServer().getWorldManager().getDefaultWorld();
+        const world =
+            sender?.getWorld?.() ||
+            sender.getServer().getWorldManager().getDefaultWorld();
 
         if (args.length < 1) {
-            return sender.sendMessage(`The current time is ${world.getTicks()}`);
+            return sender.sendMessage(
+                `The current time is ${world.getTicks()}`
+            );
         }
 
         if (args.length === 2 && typeof args[1] === 'number') {

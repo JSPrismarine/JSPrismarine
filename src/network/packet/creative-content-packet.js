@@ -2,12 +2,11 @@ const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 const CreativeContentEntry = require('../type/creative-content-entry');
 
-
 class CreativeContentPacket extends DataPacket {
-    static NetID = Identifiers.CreativeContentPacket
+    static NetID = Identifiers.CreativeContentPacket;
 
     /** @type {CreativeContentEntry[]} */
-    entries = []
+    entries = [];
 
     encodePayload() {
         this.writeUnsignedVarInt(this.entries.length);

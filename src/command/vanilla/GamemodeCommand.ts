@@ -1,6 +1,8 @@
-import Player from "../../player/Player";
-import Command from "../Command";
-import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
+import Player from '../../player/Player';
+import Command from '../Command';
+import CommandParameter, {
+    CommandParameterType
+} from '../../network/type/CommandParameter';
 
 const Gamemode = require('../../world/gamemode');
 
@@ -12,20 +14,22 @@ export default class GamemodeCommand extends Command {
             permission: 'minecraft.command.gamemode'
         } as any);
 
-        this.parameters = [
-            new Set()
-        ];
+        this.parameters = [new Set()];
 
-        this.parameters[0].add(new CommandParameter({
-            name: 'gamemode',
-            type: CommandParameterType.String,
-            optional: false
-        }));
-        this.parameters[0].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: false
-        }));
+        this.parameters[0].add(
+            new CommandParameter({
+                name: 'gamemode',
+                type: CommandParameterType.String,
+                optional: false
+            })
+        );
+        this.parameters[0].add(
+            new CommandParameter({
+                name: 'target',
+                type: CommandParameterType.Target,
+                optional: false
+            })
+        );
     }
 
     execute(sender: Player, args: Array<any>) {
@@ -56,7 +60,9 @@ export default class GamemodeCommand extends Command {
             default:
                 // TODO: Syntax validation utility class
                 sender.sendMessage('§cIncorrect argument for command');
-                return sender.sendMessage(`§7/gamemode §c${args.join(' ')}<--[HERE]`);
+                return sender.sendMessage(
+                    `§7/gamemode §c${args.join(' ')}<--[HERE]`
+                );
         }
 
         let target: Player | null = sender;
@@ -68,19 +74,31 @@ export default class GamemodeCommand extends Command {
             if (mode === Gamemode.Creative)
                 target.getPlayerConnection().sendCreativeContents();
 
-            sender.sendMessage(`Set ${target.getUsername()}'s game mode to ${Gamemode.getGamemodeName(mode)} Mode`);
-            return target.sendMessage(`Your game mode has been updated to ${Gamemode.getGamemodeName(mode)} Mode`);
+            sender.sendMessage(
+                `Set ${target.getUsername()}'s game mode to ${Gamemode.getGamemodeName(
+                    mode
+                )} Mode`
+            );
+            return target.sendMessage(
+                `Your game mode has been updated to ${Gamemode.getGamemodeName(
+                    mode
+                )} Mode`
+            );
         } else if (args.length > 1 && typeof args[1] === 'number') {
             return sender.sendMessage('§cNo player was found');
         } else {
             if (!(sender instanceof Player)) {
-                return target.sendMessage('§cYou have to run this command in-game!');
+                return target.sendMessage(
+                    '§cYou have to run this command in-game!'
+                );
             }
             target.getPlayerConnection().setGamemode(mode);
             if (mode === Gamemode.Creative)
                 target.getPlayerConnection().sendCreativeContents();
 
-            return target.sendMessage(`Set own game mode to ${Gamemode.getGamemodeName(mode)} Mode`);
+            return target.sendMessage(
+                `Set own game mode to ${Gamemode.getGamemodeName(mode)} Mode`
+            );
         }
     }
 }

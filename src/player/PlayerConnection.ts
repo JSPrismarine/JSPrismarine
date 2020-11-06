@@ -1,19 +1,19 @@
-import type Prismarine from "../Prismarine";
-import TextType from "../network/type/TextType";
-import TextPacket from "../network/packet/TextPacket";
-import MovementType from "../network/type/MovementType";
-import Block from "../block/Block";
-import DisconnectPacket from "../network/packet/DisconnectPacket";
-import Item from "../item/Item";
-import Chunk from "../world/chunk/Chunk";
-import type Connection from "../network/raknet/connection";
-import type Player from "./Player";
+import type Prismarine from '../Prismarine';
+import TextType from '../network/type/TextType';
+import TextPacket from '../network/packet/TextPacket';
+import MovementType from '../network/type/MovementType';
+import Block from '../block/Block';
+import DisconnectPacket from '../network/packet/DisconnectPacket';
+import Item from '../item/Item';
+import Chunk from '../world/chunk/Chunk';
+import type Connection from '../network/raknet/connection';
+import type Player from './Player';
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const PlayStatusPacket = require('../network/packet/play-status');
-const BatchPacket = require("../network/packet/batch");
+const BatchPacket = require('../network/packet/batch');
 const ChunkRadiusUpdatedPacket = require('../network/packet/chunk-radius-updated');
-const LevelChunkPacket = require("../network/packet/level-chunk");
+const LevelChunkPacket = require('../network/packet/level-chunk');
 const UUID = require('../utils/uuid');
 const PlayerListPacket = require('../network/packet/player-list');
 const PlayerListAction = require('../network/type/player-list-action');
@@ -32,7 +32,7 @@ const SetTimePacket = require('../network/packet/set-time');
 const InventoryContentPacket = require('../network/packet/inventory-content-packet');
 const MobEquipmentPacket = require('../network/packet/mob-equipment-packet');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
-const { creativeitems } = require("@jsprismarine/bedrock-data");
+const {creativeitems} = require('@jsprismarine/bedrock-data');
 
 export default class PlayerConnection {
     private player: Player;
@@ -66,7 +66,8 @@ export default class PlayerConnection {
         if (this.chunkSendQueue.size > 0) {
             this.chunkSendQueue.forEach((chunk: any) => {
                 let encodedPos = CoordinateUtils.encodePos(
-                    chunk.getX(), chunk.getZ()
+                    chunk.getX(),
+                    chunk.getZ()
                 );
                 if (!this.loadingChunks.has(encodedPos)) {
                     this.chunkSendQueue.delete(chunk);
@@ -81,25 +82,48 @@ export default class PlayerConnection {
     }
 
     public async needNewChunks(forceResend = false) {
-        let currentXChunk = CoordinateUtils.fromBlockToChunk(this.player.getX());
-        let currentZChunk = CoordinateUtils.fromBlockToChunk(this.player.getZ());
+        let currentXChunk = CoordinateUtils.fromBlockToChunk(
+            this.player.getX()
+        );
+        let currentZChunk = CoordinateUtils.fromBlockToChunk(
+            this.player.getZ()
+        );
 
         let viewDistance = this.player.viewDistance;
         let chunksToSend = [];
 
-        for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
-            for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
-                let distance = Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk);
+        for (
+            let sendXChunk = -viewDistance;
+            sendXChunk <= viewDistance;
+            sendXChunk++
+        ) {
+            for (
+                let sendZChunk = -viewDistance;
+                sendZChunk <= viewDistance;
+                sendZChunk++
+            ) {
+                let distance = Math.sqrt(
+                    sendZChunk * sendZChunk + sendXChunk * sendXChunk
+                );
                 let chunkDistance = Math.round(distance);
 
                 if (chunkDistance <= viewDistance) {
-                    let newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk];
-                    let hash = CoordinateUtils.encodePos(newChunk[0], newChunk[1]);
+                    let newChunk = [
+                        currentXChunk + sendXChunk,
+                        currentZChunk + sendZChunk
+                    ];
+                    let hash = CoordinateUtils.encodePos(
+                        newChunk[0],
+                        newChunk[1]
+                    );
 
                     if (forceResend) {
                         chunksToSend.push(newChunk);
                     } else {
-                        if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
+                        if (
+                            !this.loadedChunks.has(hash) &&
+                            !this.loadingChunks.has(hash)
+                        ) {
                             chunksToSend.push(newChunk);
                         }
                     }
@@ -107,10 +131,9 @@ export default class PlayerConnection {
             }
         }
 
-        // Send closer chunks before 
+        // Send closer chunks before
         chunksToSend.sort((c1, c2) => {
-            if ((c1[0] === c2[0]) &&
-                c1[1] === c2[2]) {
+            if (c1[0] === c2[0] && c1[1] === c2[2]) {
                 return 0;
             }
 
@@ -129,29 +152,38 @@ export default class PlayerConnection {
             return 0;
         });
 
-        await Promise.all(chunksToSend.map(async chunk => {
-            let hash = CoordinateUtils.encodePos(chunk[0], chunk[1]);
-            if (forceResend) {
-                if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
+        await Promise.all(
+            chunksToSend.map(async (chunk) => {
+                let hash = CoordinateUtils.encodePos(chunk[0], chunk[1]);
+                if (forceResend) {
+                    if (
+                        !this.loadedChunks.has(hash) &&
+                        !this.loadingChunks.has(hash)
+                    ) {
+                        this.loadingChunks.add(hash);
+                        await this.requestChunk(chunk[0], chunk[1]);
+                    } else {
+                        let loadedChunk = await this.player
+                            .getWorld()
+                            .getChunk(chunk[0], chunk[1]);
+                        this.sendChunk(loadedChunk);
+                    }
+                } else {
                     this.loadingChunks.add(hash);
                     await this.requestChunk(chunk[0], chunk[1]);
-                } else {
-                    let loadedChunk = await this.player.getWorld().getChunk(chunk[0], chunk[1]);
-                    this.sendChunk(loadedChunk);
                 }
-            } else {
-                this.loadingChunks.add(hash);
-                await this.requestChunk(chunk[0], chunk[1]);
-            }
-        }));
+            })
+        );
 
         let unloaded = false;
 
         for (let hash of this.loadedChunks) {
             let [x, z] = CoordinateUtils.decodePos(hash);
 
-            if (Math.abs(x - currentXChunk) > viewDistance ||
-                Math.abs(z - currentZChunk) > viewDistance) {
+            if (
+                Math.abs(x - currentXChunk) > viewDistance ||
+                Math.abs(z - currentZChunk) > viewDistance
+            ) {
                 unloaded = true;
                 this.loadedChunks.delete(hash);
             }
@@ -160,8 +192,10 @@ export default class PlayerConnection {
         for (let hash of this.loadingChunks) {
             let [x, z] = CoordinateUtils.decodePos(hash);
 
-            if (Math.abs(x - currentXChunk) > viewDistance ||
-                Math.abs(z - currentZChunk) > viewDistance) {
+            if (
+                Math.abs(x - currentXChunk) > viewDistance ||
+                Math.abs(z - currentZChunk) > viewDistance
+            ) {
                 this.loadingChunks.delete(hash);
             }
         }
@@ -172,23 +206,24 @@ export default class PlayerConnection {
     }
 
     public async requestChunk(x: number, z: number) {
-        await this.player.getWorld().getChunk(x, z).then(
-            (chunk: any) => {
-                this.chunkSendQueue.add(chunk)
-            }
-        );
+        await this.player
+            .getWorld()
+            .getChunk(x, z)
+            .then((chunk: any) => {
+                this.chunkSendQueue.add(chunk);
+            });
     }
 
     public sendInventory() {
         let pk;
         pk = new InventoryContentPacket();
         pk.items = this.player.inventory.getItems(true);
-        pk.windowId = 0;  // Inventory window
+        pk.windowId = 0; // Inventory window
         this.sendDataPacket(pk);
 
         pk = new InventoryContentPacket();
-        pk.items = [];  // TODO
-        pk.windowId = 78;  // ArmorInventory window
+        pk.items = []; // TODO
+        pk.windowId = 78; // ArmorInventory window
         this.sendDataPacket(pk);
 
         // https://github.com/NiclasOlofsson/MiNET/blob/master/src/MiNET/MiNET/Player.cs#L1736
@@ -196,7 +231,7 @@ export default class PlayerConnection {
         // 0x7c (ui content)
         // 0x77 (off hand)
 
-        this.sendHandItem(this.player.inventory.getItemInHand());  // TODO: not working
+        this.sendHandItem(this.player.inventory.getItemInHand()); // TODO: not working
     }
 
     public sendCreativeContents() {
@@ -211,22 +246,25 @@ export default class PlayerConnection {
         creativeitems.forEach((item: any) => {
             pk.entries.push(
                 ...entries.filter((entry: any) => {
-                    return entry.meta === (item.damage || 0) && entry.id === item.id
+                    return (
+                        entry.meta === (item.damage || 0) &&
+                        entry.id === item.id
+                    );
                 })
             );
         });
 
         pk.entries = pk.entries.map((block: Block | Item, index: number) => {
             return new CreativeContentEntry(index, block);
-        })
+        });
 
         this.sendDataPacket(pk);
     }
 
     /**
      * Sets the item in the player hand.
-     * 
-     * @param {Item} item 
+     *
+     * @param {Item} item
      */
     public sendHandItem(item: Item) {
         let pk = new MobEquipmentPacket();
@@ -234,7 +272,7 @@ export default class PlayerConnection {
         pk.item = item;
         pk.inventorySlot = this.player.inventory.getHandSlotIndex();
         pk.hotbarSlot = this.player.inventory.getHandSlotIndex();
-        pk.windowId = 0;  // inventory ID
+        pk.windowId = 0; // inventory ID
         this.sendDataPacket(pk);
     }
 
@@ -309,7 +347,7 @@ export default class PlayerConnection {
     }
 
     /**
-     * @param {string} message 
+     * @param {string} message
      * @param {boolean} needsTranslation
      */
     public sendMessage(message: string, xuid = '', needsTranslation = false) {
@@ -318,12 +356,12 @@ export default class PlayerConnection {
         pk.message = message;
         pk.needsTranslation = needsTranslation;
         pk.xuid = xuid;
-        pk.platformChatId = '';  // TODO
+        pk.platformChatId = ''; // TODO
         this.sendDataPacket(pk);
     }
 
     /**
-     * @param {Chunk} chunk 
+     * @param {Chunk} chunk
      */
     public sendChunk(chunk: Chunk) {
         let pk = new LevelChunkPacket();
@@ -333,16 +371,14 @@ export default class PlayerConnection {
         pk.data = chunk.toBinary();
         this.sendDataPacket(pk);
 
-        let hash = CoordinateUtils.encodePos(
-            chunk.getX(), chunk.getZ()
-        );
+        let hash = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
         this.loadedChunks.add(hash);
         this.loadingChunks.delete(hash);
     }
 
     /**
      * Broadcast the movement to a defined player
-     * @param {Player} player 
+     * @param {Player} player
      */
     public broadcastMove(player: Player, mode = MovementType.Normal) {
         let pk = new MovePlayerPacket();
@@ -375,10 +411,10 @@ export default class PlayerConnection {
         entry.uniqueEntityId = this.player.runtimeId;
         entry.name = this.player.getUsername();
         entry.xuid = this.player.xuid;
-        entry.platformChatId = '';  // TODO: read this value from StartGamePacket
-        entry.buildPlatform = -1;  // TODO: read also this
+        entry.platformChatId = ''; // TODO: read this value from StartGamePacket
+        entry.buildPlatform = -1; // TODO: read also this
         entry.skin = this.player.skin;
-        entry.isTeacher = false;  // TODO: figure out where to read teacher and host
+        entry.isTeacher = false; // TODO: figure out where to read teacher and host
         entry.isHost = false;
         pk.entries.push(entry);
         for (let player of this.server.getOnlinePlayers()) {
@@ -408,18 +444,17 @@ export default class PlayerConnection {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Add;
         for (let player of this.server.getOnlinePlayers()) {
-            if (player === this.player)
-                continue;
+            if (player === this.player) continue;
 
             let entry = new PlayerListEntry();
             entry.uuid = UUID.fromString(player.uuid);
             entry.uniqueEntityId = player.runtimeId;
             entry.name = player.getUsername();
             entry.xuid = player.xuid;
-            entry.platformChatId = '';  // TODO: read this value from StartGamePacket
-            entry.buildPlatform = 0;  // TODO: read also this
+            entry.platformChatId = ''; // TODO: read this value from StartGamePacket
+            entry.buildPlatform = 0; // TODO: read also this
             entry.skin = player.skin;
-            entry.isTeacher = false;  // TODO: figure out where to read teacher and host
+            entry.isTeacher = false; // TODO: figure out where to read teacher and host
             entry.isHost = false;
             pk.entries.push(entry);
         }
@@ -455,16 +490,16 @@ export default class PlayerConnection {
 
     /**
      * Despawn the player entity from another player
-     * @param {Player} player 
+     * @param {Player} player
      */
     public sendDespawn(player: Player) {
         let pk = new RemoveActorPacket();
-        pk.uniqueEntityId = this.player.runtimeId;  // We use runtime as unique
+        pk.uniqueEntityId = this.player.runtimeId; // We use runtime as unique
         player.getPlayerConnection().sendDataPacket(pk);
     }
 
     /**
-     * @param {number} status 
+     * @param {number} status
      */
     public sendPlayStatus(status: number) {
         let pk = new PlayStatusPacket();
@@ -478,4 +513,4 @@ export default class PlayerConnection {
         pk.message = reason;
         this.sendDataPacket(pk, false, true);
     }
-};
+}

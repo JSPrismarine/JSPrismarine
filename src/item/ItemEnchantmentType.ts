@@ -36,5 +36,5 @@ export enum ItemEnchantmentType {
     Multishot = 33,
     Piercing = 34,
     QuickCharge = 35,
-    SoulSpeed = 36,
+    SoulSpeed = 36
 }

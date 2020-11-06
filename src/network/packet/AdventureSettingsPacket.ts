@@ -1,8 +1,8 @@
-import Identifiers from "../Identifiers";
-import DataPacket from "./Packet";
+import Identifiers from '../Identifiers';
+import DataPacket from './Packet';
 
 export default class AdventureSettingsPacket extends DataPacket {
-    static NetID = Identifiers.AdventureSettingsPacket
+    static NetID = Identifiers.AdventureSettingsPacket;
     flags = 0;
     commandPermission = 0;
     flags2 = 0;
@@ -27,4 +27,4 @@ export default class AdventureSettingsPacket extends DataPacket {
         this.customFlags = this.readUnsignedVarInt();
         this.entityId = this.readLLong();
     }
-};
+}

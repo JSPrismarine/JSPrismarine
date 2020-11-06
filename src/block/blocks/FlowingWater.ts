@@ -1,8 +1,11 @@
 import Liquid from '../Liquid';
-import { BlockIdsType } from '../BlockIdsType';
+import {BlockIdsType} from '../BlockIdsType';
 
 export default class FlowingWater extends Liquid {
-    constructor(name = 'minecraft:flowing_water', id = BlockIdsType.FlowingWater) {
+    constructor(
+        name = 'minecraft:flowing_water',
+        id = BlockIdsType.FlowingWater
+    ) {
         super({
             name,
             id
@@ -12,4 +15,4 @@ export default class FlowingWater extends Liquid {
     getLightFilter() {
         return 2;
     }
-};
+}

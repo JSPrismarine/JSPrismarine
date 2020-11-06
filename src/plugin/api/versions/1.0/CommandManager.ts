@@ -1,5 +1,5 @@
-import type Command from "../../../../command/Command";
-import type Prismarine from "../../../../Prismarine";
+import type Command from '../../../../command/Command';
+import type Prismarine from '../../../../Prismarine';
 
 export default class CommandManager {
     private server: Prismarine;
@@ -9,6 +9,8 @@ export default class CommandManager {
     }
 
     public registerCommand(command: Command) {
-        this.server.getCommandManager().registerClassCommand(command, this.server);
+        this.server
+            .getCommandManager()
+            .registerClassCommand(command, this.server);
     }
-};
+}

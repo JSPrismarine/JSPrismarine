@@ -1,5 +1,5 @@
-import type Prismarine from "../../Prismarine";
-import PacketBinaryStream from "../PacketBinaryStream";
+import type Prismarine from '../../Prismarine';
+import PacketBinaryStream from '../PacketBinaryStream';
 
 const PID_MASK = 0x3ff;
 const SENDER_SHIFT = 10;
@@ -8,11 +8,11 @@ const SUBCLIENT_MASK = 0x03;
 export default class DataPacket extends PacketBinaryStream {
     static NetID: number;
 
-    #encoded = false
+    #encoded = false;
 
     // Split screen
-    #senderSubId = 0
-    #receiverSubId = 0
+    #senderSubId = 0;
+    #receiverSubId = 0;
 
     get id() {
         return (this.constructor as any).NetID;
@@ -28,7 +28,7 @@ export default class DataPacket extends PacketBinaryStream {
         this.decodePayload();
         // Mark all the packets sent by the client
         // as encoded, because they have all the properties
-        // and a buffer (like a manually encoded packet). 
+        // and a buffer (like a manually encoded packet).
         this.#encoded = true;
     }
 
@@ -42,7 +42,7 @@ export default class DataPacket extends PacketBinaryStream {
         this.#receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK;
     }
 
-    decodePayload() { }
+    decodePayload() {}
 
     encode() {
         this.reset();
@@ -54,12 +54,12 @@ export default class DataPacket extends PacketBinaryStream {
     encodeHeader() {
         this.writeUnsignedVarInt(
             this.id |
-            (this.#senderSubId << SENDER_SHIFT) |
-            (this.#receiverSubId << RECEIVER_SHIFT)
+                (this.#senderSubId << SENDER_SHIFT) |
+                (this.#receiverSubId << RECEIVER_SHIFT)
         );
     }
 
-    encodePayload(server?: Prismarine) { }
+    encodePayload(server?: Prismarine) {}
 
     get encoded() {
         return this.#encoded;
@@ -68,4 +68,4 @@ export default class DataPacket extends PacketBinaryStream {
     get allowBatching() {
         return (this as any)._allowBatching;
     }
-};
+}

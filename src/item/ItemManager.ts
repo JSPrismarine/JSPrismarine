@@ -1,16 +1,15 @@
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
 
-import Item from "./Item";
-import Prismarine from "../Prismarine";
+import Item from './Item';
+import Prismarine from '../Prismarine';
 
 export default class ItemManager {
     private server: Prismarine;
-    private items = new Map()
+    private items = new Map();
 
     constructor(server: Prismarine) {
         this.server = server;
-
     }
 
     /**
@@ -21,14 +20,14 @@ export default class ItemManager {
     }
 
     /**
-    * onDisable hook
-    */
+     * onDisable hook
+     */
     public async onDisable() {
         this.items.clear();
     }
 
     public getItem(name: string): Item {
-        return this.items.get(name)
+        return this.items.get(name);
     }
 
     public getItems(): Array<Item> {
@@ -36,10 +35,12 @@ export default class ItemManager {
     }
 
     public registerClassItem = (item: Item) => {
-        this.server.getLogger().silly(`Item with id §b${item.name}§r registered`);
+        this.server
+            .getLogger()
+            .silly(`Item with id §b${item.name}§r registered`);
         item.setRuntimeId(this.items.size);
         this.items.set(item.name, item);
-    }
+    };
 
     /**
      * Loops through ./src/item/items and register them
@@ -49,8 +50,7 @@ export default class ItemManager {
             const time = Date.now();
             const items = fs.readdirSync(path.join(__dirname, 'items'));
             items.forEach((id: string) => {
-                if (id.includes('.test.') || id.includes('.d.ts'))
-                    return;  // Exclude test files
+                if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
 
                 const item = require(`./items/${id}`).default;
                 try {
@@ -59,7 +59,13 @@ export default class ItemManager {
                     this.server.getLogger().error(`${id} failed to register!`);
                 }
             });
-            this.server.getLogger().debug(`Registered §b${items.length}§r item(s) (took ${Date.now() - time} ms)!`);
+            this.server
+                .getLogger()
+                .debug(
+                    `Registered §b${items.length}§r item(s) (took ${
+                        Date.now() - time
+                    } ms)!`
+                );
         } catch (err) {
             this.server.getLogger().error(`Failed to register items: ${err}`);
         }

@@ -82,5 +82,5 @@ export enum ItemIdsType {
     NetheriteLeggins = 750,
     NetheriteBoots = 751,
 
-    WarpedFungusOnStick = 757,
+    WarpedFungusOnStick = 757
 }

@@ -1,14 +1,14 @@
-import TieredTool from "../TieredTool";
-import { BlockToolType } from "../../block/BlockToolType";
-import { ItemIdsType } from "../ItemIdsType";
-import { ItemTieredToolType } from "../ItemTieredToolType";
+import TieredTool from '../TieredTool';
+import {BlockToolType} from '../../block/BlockToolType';
+import {ItemIdsType} from '../ItemIdsType';
+import {ItemTieredToolType} from '../ItemTieredToolType';
 
 export default class GoldenAxe extends TieredTool {
     constructor() {
         super(
             {
-                name: "minecraft:golden_axe",
-                id: ItemIdsType.GoldenAxe,
+                name: 'minecraft:golden_axe',
+                id: ItemIdsType.GoldenAxe
             },
             ItemTieredToolType.Gold
         );

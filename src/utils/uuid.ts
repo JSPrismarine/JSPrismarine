@@ -1,11 +1,10 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 class UUID {
-
     /** @type {any} */
-    #parts: any
+    #parts: any;
     /** @type {number} */
-    #version: number
+    #version: number;
 
     constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version: number) {
         this.#parts = [part1, part2, part3, part4];
@@ -21,7 +20,7 @@ class UUID {
     }
 
     /**
-     * @param {UUID} uuid 
+     * @param {UUID} uuid
      */
     equals(uuid: UUID) {
         return this.#parts === uuid.parts;
@@ -29,20 +28,22 @@ class UUID {
 
     /**
      * Creates an UUID from a string hex representation
-     * @param {string} uuid 
-     * @param {number} version 
+     * @param {string} uuid
+     * @param {number} version
      */
     static fromString(uuid: string, version: number) {
-        if (!uuid)
-            throw new Error('uuid is null or undefined');
+        if (!uuid) throw new Error('uuid is null or undefined');
 
-        return UUID.fromBinary(Buffer.from(uuid.trim().replace(/-/g, ""), "hex"), version);
+        return UUID.fromBinary(
+            Buffer.from(uuid.trim().replace(/-/g, ''), 'hex'),
+            version
+        );
     }
 
     /**
      * Creates an UUID from a binary representation
-     * @param {Buffer} uuid 
-     * @param {number} version 
+     * @param {Buffer} uuid
+     * @param {number} version
      */
     static fromBinary(uuid: Buffer, version: number) {
         if (Buffer.byteLength(uuid) !== 16) {
@@ -51,7 +52,13 @@ class UUID {
 
         let stream = new BinaryStream();
         (stream as any).buffer = uuid;
-        return new UUID(stream.readInt(), stream.readInt(), stream.readInt(), stream.readInt(), version);
+        return new UUID(
+            stream.readInt(),
+            stream.readInt(),
+            stream.readInt(),
+            stream.readInt(),
+            version
+        );
     }
 
     /**
@@ -59,11 +66,14 @@ class UUID {
      */
     static randomString() {
         let dt = new Date().getTime();
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            let r = (dt + Math.random() * 16) % 16 | 0;
-            dt = Math.floor(dt / 16);
-            return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-        });
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+            /[xy]/g,
+            function (c) {
+                let r = (dt + Math.random() * 16) % 16 | 0;
+                dt = Math.floor(dt / 16);
+                return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+            }
+        );
     }
 
     /**

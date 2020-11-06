@@ -7,4 +7,4 @@ export default class EndTag extends Tag {
     constructor() {
         super(null, '');
     }
-};
+}

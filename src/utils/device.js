@@ -1,26 +1,24 @@
-
 class Device {
-
     /** @type {number} */
-    inputMode
+    inputMode;
     /** @type {string} */
-    id
+    id;
     /** @type {number} */
-    os
+    os;
     /** @type {string} */
-    model
+    model;
     /** @type {number} */
-    guiScale
+    guiScale;
 
     /**
      * Device constructor.
-     * 
-     * @param {object} params 
+     *
+     * @param {object} params
      * @param {string} params.id - device ID
      * @param {string} params.model - device model
      * @param {number} params.os - device OS
      * @param {number} params.inputMode - input mode (touch, m&k...)
-     * @param {number} params.guiScale - gui scale 
+     * @param {number} params.guiScale - gui scale
      */
     constructor({id, model, os, inputMode, guiScale}) {
         this.id = id;
@@ -29,6 +27,5 @@ class Device {
         this.inputMode = inputMode;
         this.guiScale = guiScale;
     }
-
 }
 module.exports = Device;

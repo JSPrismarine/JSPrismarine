@@ -1,11 +1,10 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class ChunkRadiusUpdatedPacket extends DataPacket {
-    static NetID = Identifiers.ChunkRadiusUpdatedPacket
+    static NetID = Identifiers.ChunkRadiusUpdatedPacket;
 
-    radius
+    radius;
 
     encodePayload() {
         this.writeVarInt(this.radius);
