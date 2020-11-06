@@ -1,38 +1,28 @@
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Device from '../../utils/Device';
+import Skin from '../../utils/skin/skin';
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
+
 const jwt_decode = require('jwt-decode');
 
-const DataPacket = require('./Packet').default;
-const Identifiers = require('../Identifiers').default;
-const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-const Skin = require('../../utils/skin/skin');
-const Device = require('../../utils/Device').default;
-
-class LoginPacket extends DataPacket {
+export default class LoginPacket extends DataPacket {
     static NetID = Identifiers.LoginPacket;
 
-    /** @type {string} */
-    XUID;
-    /** @type {string} */
-    identity;
-    /** @type {string} */
-    disaplayName;
-    /** @type {number} */
-    protocol;
-    /** @type {string} */
-    identityPublicKey;
+    public XUID: string = '';
+    public identity: string = '';
+    public displayName: string = '';
+    public protocol: number = 0;
+    public identityPublicKey: string = '';
 
-    /** @type {number} */
-    clientRandomId;
-    /** @type {string} */
-    serverAddress;
-    /** @type {string} */
-    languageCode;
+    public clientRandomId: number = 0;
+    public serverAddress: string = '';
+    public languageCode: string = '';
 
-    /** @type {Device} */
-    device;
-    /** @type {Skin} */
-    skin;
+    public device: Device | null = null;
+    public skin: Skin | null = null;
 
-    decodePayload() {
+    public decodePayload() {
         this.protocol = this.readInt();
 
         let stream = new BinaryStream(this.read(this.readUnsignedVarInt()));
@@ -65,4 +55,3 @@ class LoginPacket extends DataPacket {
         this.languageCode = decodedJWT.LanguageCode;
     }
 }
-module.exports = LoginPacket;

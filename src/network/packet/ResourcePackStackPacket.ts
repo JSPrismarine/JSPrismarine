@@ -1,16 +1,15 @@
-const DataPacket = require('./Packet').default;
-const Identifiers = require('../Identifiers').default;
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
-class ResourcePackStackPacket extends DataPacket {
+export default class ResourcePackStackPacket extends DataPacket {
     static NetID = Identifiers.ResourcePackStackPacket;
 
-    mustAccept = false;
+    public mustAccept = false;
+    public behaviorPackStack = [];
+    public resourcePackStack = [];
 
-    behaviorPackStack = [];
-    resourcePackStack = [];
-
-    encodePayload() {
-        this.writeBool(this.mustAccept);
+    public encodePayload() {
+        this.writeBool(+this.mustAccept);
 
         this.writeUnsignedVarInt(this.behaviorPackStack.length);
         for (let _behaviorPackStack of this.behaviorPackStack) {
@@ -26,8 +25,7 @@ class ResourcePackStackPacket extends DataPacket {
             this.writeString('');
         }
 
-        this.writeBool(false); // experimental
+        this.writeBool(+false); // experimental
         this.writeString(Identifiers.MinecraftVersion);
     }
 }
-module.exports = ResourcePackStackPacket;

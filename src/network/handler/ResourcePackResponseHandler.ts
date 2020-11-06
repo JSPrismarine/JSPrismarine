@@ -3,14 +3,14 @@ import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import type ResourcePackResponsePacket from '../packet/resource-pack-response';
+import Identifiers from '../Identifiers';
+import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
+import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
+import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
+import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
+import StartGamePacket from '../packet/StartGamePacket';
 
-const Identifiers = require('../Identifiers').default;
 const ResourcePackStatus = require('../type/resource-pack-status');
-const BiomeDefinitionListPacket = require('../packet/biome-definition-list');
-const AvailableActorIdentifiersPacket = require('../packet/available-actor-identifiers');
-const ResourcePackStackPacket = require('../packet/resource-pack-stack');
-const StartGamePacket = require('../packet/start-game');
 const Gamemode = require('../../world/gamemode');
 // const Item = require('../../item/Item')
 
@@ -33,8 +33,8 @@ export default class ResourcePackResponseHandler {
             if (spawnEvent.cancelled) return;
 
             pk = new StartGamePacket();
-            pk.entityId = player.runtimeId;
-            pk.runtimeEntityId = player.runtimeId;
+            pk.entityId = BigInt(player.runtimeId);
+            pk.runtimeEntityId = BigInt(player.runtimeId);
             pk.gamemode = player.gamemode;
 
             const world = player.getWorld();

@@ -8,64 +8,65 @@ const SUBCLIENT_MASK = 0x03;
 export default class DataPacket extends PacketBinaryStream {
     static NetID: number;
 
-    #encoded = false;
+    private encoded = false;
 
     // Split screen
-    #senderSubId = 0;
-    #receiverSubId = 0;
+    private senderSubId = 0;
+    private receiverSubId = 0;
 
-    get id() {
+    public getId() {
         return (this.constructor as any).NetID;
     }
 
-    getName() {
+    public getEncoded() {
+        return this.encoded;
+    }
+
+    public getName() {
         return this.constructor.name;
     }
 
-    decode() {
+    public decode() {
         (this as any).offset = 0;
         this.decodeHeader();
         this.decodePayload();
+
         // Mark all the packets sent by the client
         // as encoded, because they have all the properties
         // and a buffer (like a manually encoded packet).
-        this.#encoded = true;
+        this.encoded = true;
     }
 
-    decodeHeader() {
+    public decodeHeader() {
         let header = this.readUnsignedVarInt();
         let pid = header & PID_MASK;
-        if (pid !== this.id) {
-            throw new Error(`Packet ID must be ${this.id}, got ${pid}`);
+        if (pid !== this.getId()) {
+            throw new Error(`Packet ID must be ${this.getId()}, got ${pid}`);
         }
-        this.#senderSubId = (header >> SENDER_SHIFT) & SUBCLIENT_MASK;
-        this.#receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK;
+        this.senderSubId = (header >> SENDER_SHIFT) & SUBCLIENT_MASK;
+        this.receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK;
     }
 
-    decodePayload() {}
+    public decodePayload() {}
 
-    encode() {
+    public encode() {
         this.reset();
         this.encodeHeader();
         this.encodePayload();
-        this.#encoded = true;
+        this.encoded = true;
     }
 
-    encodeHeader() {
+    public encodeHeader() {
         this.writeUnsignedVarInt(
-            this.id |
-                (this.#senderSubId << SENDER_SHIFT) |
-                (this.#receiverSubId << RECEIVER_SHIFT)
+            this.getId() |
+                (this.senderSubId << SENDER_SHIFT) |
+                (this.receiverSubId << RECEIVER_SHIFT)
         );
     }
 
-    encodePayload(server?: Prismarine) {}
+    public encodePayload(server?: Prismarine) {}
 
-    get encoded() {
-        return this.#encoded;
-    }
-
-    get allowBatching() {
-        return (this as any)._allowBatching;
+    public getAllowBatching() {
+        return (this as any).allowBatching;
     }
 }

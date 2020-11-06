@@ -17,7 +17,7 @@ export default class InteractHandler {
                 pk.windowId = 92; // TODO
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerX = pk.containerY = pk.containerZ = 0;
-                pk.containerEntityId = player.runtimeId;
+                pk.containerEntityId = BigInt(player.runtimeId);
                 player.getPlayerConnection().sendDataPacket(pk);
                 break;
             default:
