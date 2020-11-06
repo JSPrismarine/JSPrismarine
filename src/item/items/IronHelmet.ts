@@ -1,5 +1,5 @@
 import Armor from '../Armor';
-import {ItemIdsType} from '../ItemIdsType';
+import { ItemIdsType } from '../ItemIdsType';
 
 export default class IronHelmet extends Armor {
     constructor() {

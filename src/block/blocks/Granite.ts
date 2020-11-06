@@ -1,4 +1,4 @@
-import Stone, {StoneType} from './Stone';
+import Stone, { StoneType } from './Stone';
 import Item from '../../item/Item';
 import Prismarine from '../../Prismarine';
 

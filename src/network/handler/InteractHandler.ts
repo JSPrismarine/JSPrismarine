@@ -1,20 +1,13 @@
-const Player = require('../../player/Player').default;
-const Identifiers = require('../Identifiers').default;
-const InteractPacket = require('../packet/interact');
-const InteractAction = require('../type/interact-action');
-const ContainerOpenPacket = require('../packet/container-open');
-const logger = require('../../utils/Logger');
-const Prismarine = require('../../Prismarine');
+import type Player from '../../player/Player';
+import type Prismarine from '../../Prismarine';
+import Identifiers from '../Identifiers';
+import InteractPacket, { InteractAction } from '../packet/InteractPacket';
+import ContainerOpenPacket from '../packet/container-open';
 
-class InteractHandler {
+export default class InteractHandler {
     static NetID = Identifiers.InteractPacket;
 
-    /**
-     * @param {InteractPacket} packet
-     * @param {Prismarine} server
-     * @param {Player} player
-     */
-    static handle(packet, server, player) {
+    static handle(packet: InteractPacket, server: Prismarine, player: Player) {
         switch (packet.action) {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:
@@ -34,4 +27,3 @@ class InteractHandler {
         }
     }
 }
-module.exports = InteractHandler;

@@ -3,14 +3,15 @@ import DataPacket from './Packet';
 
 export default class AdventureSettingsPacket extends DataPacket {
     static NetID = Identifiers.AdventureSettingsPacket;
-    flags = 0;
-    commandPermission = 0;
-    flags2 = 0;
-    playerPermission = 0;
-    customFlags = 0;
-    entityId = BigInt(0);
 
-    encodePayload() {
+    public flags: number = 0;
+    public commandPermission: number = 0;
+    public flags2: number = 0;
+    public playerPermission: number = 0;
+    public customFlags: number = 0;
+    public entityId: bigint = BigInt(0);
+
+    public encodePayload() {
         this.writeUnsignedVarInt(this.flags);
         this.writeUnsignedVarInt(this.commandPermission);
         this.writeUnsignedVarInt(this.flags2);
@@ -19,7 +20,7 @@ export default class AdventureSettingsPacket extends DataPacket {
         this.writeLLong(this.entityId);
     }
 
-    decodePayload() {
+    public decodePayload() {
         this.flags = this.readUnsignedVarInt();
         this.commandPermission = this.readUnsignedVarInt();
         this.flags2 = this.readUnsignedVarInt();

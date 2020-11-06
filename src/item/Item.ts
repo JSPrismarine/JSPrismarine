@@ -1,5 +1,5 @@
-import {BlockToolType} from '../block/BlockToolType';
-import {ItemEnchantmentType} from './ItemEnchantmentType';
+import { BlockToolType } from '../block/BlockToolType';
+import { ItemEnchantmentType } from './ItemEnchantmentType';
 
 export interface ItemProps {
     id: number;
@@ -21,7 +21,7 @@ export default class Item {
     nbt = null;
     count: number = 1;
 
-    constructor({id, name}: ItemProps) {
+    constructor({ id, name }: ItemProps) {
         this.id = id;
         this.runtimeId = id;
         this.name = name;

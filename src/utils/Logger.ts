@@ -1,7 +1,7 @@
-import {Logger} from 'winston';
+import { Logger } from 'winston';
 
-const {createLogger, format, transports} = require('winston');
-const {combine, timestamp, printf} = format;
+const { createLogger, format, transports } = require('winston');
+const { combine, timestamp, printf } = format;
 const mcColors = require('mccolorstoconsole');
 
 export default class LoggerBuilder {
@@ -15,10 +15,10 @@ export default class LoggerBuilder {
                         /*process.env.NODE_ENV !== 'development' &&*/ (global as any)
                             .log_level || 'info', //|| 'silly',
                     format: combine(
-                        timestamp({format: 'HH:mm:ss'}),
+                        timestamp({ format: 'HH:mm:ss' }),
                         format.colorize(),
                         format.simple(),
-                        printf(({level, message, timestamp}: any) => {
+                        printf(({ level, message, timestamp }: any) => {
                             return `[${timestamp}] [${level.padStart(
                                 15
                             )}]: ${mcColors.minecraftToConsole(message)}`;
@@ -29,9 +29,9 @@ export default class LoggerBuilder {
                     level: 'silly',
                     filename: process.cwd() + '/jsprismarine.log',
                     format: combine(
-                        timestamp({format: 'HH:mm:ss'}),
+                        timestamp({ format: 'HH:mm:ss' }),
                         format.simple(),
-                        printf(({level, message, timestamp}: any) => {
+                        printf(({ level, message, timestamp }: any) => {
                             return `[${timestamp}] ${level}: ${mcColors
                                 .minecraftToConsole(message)
                                 .replace(

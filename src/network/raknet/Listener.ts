@@ -48,7 +48,7 @@ export default class Listener extends EventEmitter {
      * Creates a packet listener on given address and port.
      */
     async listen(address: string, port: number) {
-        this.socket = Dgram.createSocket({type: 'udp4'});
+        this.socket = Dgram.createSocket({ type: 'udp4' });
         this.name.setServerId(this.id);
 
         this.socket.on('message', (buffer: Buffer, rinfo: any) => {

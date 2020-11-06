@@ -1,5 +1,5 @@
 import Solid from '../Solid';
-import {BlockIdsType} from '../BlockIdsType';
+import { BlockIdsType } from '../BlockIdsType';
 
 export default class Bedrock extends Solid {
     constructor() {

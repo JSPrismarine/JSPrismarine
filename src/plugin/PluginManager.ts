@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import rimraf from 'rimraf';
 import unzipper from 'unzipper';
-import {PluginManager as ModuleManager} from 'live-plugin-manager';
+import { PluginManager as ModuleManager } from 'live-plugin-manager';
 import Prismarine from '../Prismarine';
 import PluginFile from './PluginFile';
 import PluginApiVersion from './api/PluginApiVersion';
@@ -128,7 +128,7 @@ export default class PluginManager {
                 .silly(`Extracting plugin with id §b${id}...`);
             await fs
                 .createReadStream(path.join(process.cwd(), 'plugins/', id))
-                .pipe(unzipper.Extract({path: dir}))
+                .pipe(unzipper.Extract({ path: dir }))
                 .promise();
         }
 

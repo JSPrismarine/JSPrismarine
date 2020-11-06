@@ -1,8 +1,6 @@
-import Prismarine from '../Prismarine';
-
-const fs = require('fs');
-const path = require('path');
-const logger = require('../utils/Logger');
+import fs from 'fs';
+import path from 'path';
+import type Prismarine from '../Prismarine';
 
 export default class PacketRegistry {
     private packets: Map<Number, any> = new Map();
@@ -24,7 +22,7 @@ export default class PacketRegistry {
     private loadPackets(server: Prismarine): void {
         const time = Date.now();
         let dir = path.join(__dirname + '/packet');
-        fs.readdir(dir, (err: Error, files: string[]) => {
+        fs.readdir(dir, (err: Error | null, files: string[]) => {
             if (err)
                 return server.getLogger().error(`Cannot load packets: ${err}`);
 
@@ -49,7 +47,7 @@ export default class PacketRegistry {
     private loadHandlers(server: Prismarine): void {
         const time = Date.now();
         let dir = path.join(__dirname + '/handler');
-        fs.readdir(dir, (err: Error, files: string[]) => {
+        fs.readdir(dir, (err: Error | null, files: string[]) => {
             if (err)
                 return server
                     .getLogger()
@@ -82,4 +80,3 @@ export default class PacketRegistry {
         return this.handlers;
     }
 }
-module.exports = PacketRegistry;

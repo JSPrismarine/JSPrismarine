@@ -9,7 +9,7 @@ import CreativeContentEntry from './type/creative-content-entry';
 import PlayerListEntry from './type/player-list-entry';
 
 const UUID = require('../utils/uuid');
-const {FlagType} = require('../entity/metadata');
+const { FlagType } = require('../entity/metadata');
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
 const SkinAnimation = require('../utils/skin/skin-animation');

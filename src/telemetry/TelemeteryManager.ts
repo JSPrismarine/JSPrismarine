@@ -1,5 +1,5 @@
-import fetch, {Headers} from 'node-fetch';
-import {machineIdSync} from 'node-machine-id';
+import fetch, { Headers } from 'node-fetch';
+import { machineIdSync } from 'node-machine-id';
 import Prismarine from '../Prismarine';
 import git from 'git-rev-sync';
 import PluginFile from '../plugin/PluginFile';
@@ -14,7 +14,7 @@ export default class TelemetryManager {
 
     constructor(server: Prismarine) {
         this.server = server;
-        const {enabled, urls} = server.getConfig().getTelemetry();
+        const { enabled, urls } = server.getConfig().getTelemetry();
         this.enabled = enabled;
         this.urls = urls;
 

@@ -13,14 +13,14 @@ export enum UpdateBlockFlagsType {
 export default class UpdateBlockPacket extends DataPacket {
     static NetID = Identifiers.UpdateBlockPacket;
 
-    x: VarInt = 0;
-    y: UnsignedVarInt = 0;
-    z: VarInt = 0;
-    BlockRuntimeId: UnsignedVarInt = 0;
-    Flags: UpdateBlockFlagsType = UpdateBlockFlagsType.None;
-    Layer: UpdateBlockLayerType = UpdateBlockLayerType.Normal;
+    public x: VarInt = 0;
+    public y: UnsignedVarInt = 0;
+    public z: VarInt = 0;
+    public BlockRuntimeId: UnsignedVarInt = 0;
+    public Flags: UpdateBlockFlagsType = UpdateBlockFlagsType.None;
+    public Layer: UpdateBlockLayerType = UpdateBlockLayerType.Normal;
 
-    decodePayload() {
+    public decodePayload() {
         this.x = this.readVarInt();
         this.y = this.readUnsignedVarInt();
         this.z = this.readVarInt();
@@ -30,7 +30,7 @@ export default class UpdateBlockPacket extends DataPacket {
         this.Layer = this.readUnsignedVarInt();
     }
 
-    encodePayload() {
+    public encodePayload() {
         this.writeVarInt(this.x as number);
         this.writeUnsignedVarInt(this.y as number);
         this.writeVarInt(this.z as number);

@@ -16,7 +16,7 @@ export default class Console extends Player {
 
         // Console command reader
         process.stdin.setEncoding('utf8');
-        let rl = readline.createInterface({input: process.stdin});
+        let rl = readline.createInterface({ input: process.stdin });
         rl.on('line', (input: string) => {
             if (input.startsWith('/'))
                 return (this.getServer().getCommandManager() as any).dispatchCommand(

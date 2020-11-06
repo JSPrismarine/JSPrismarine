@@ -6,7 +6,7 @@ class Place {
     /** @type {number} */
     to;
 
-    constructor({count, from, to}) {
+    constructor({ count, from, to }) {
         this.count = count;
         this.from = from;
         this.to = to;

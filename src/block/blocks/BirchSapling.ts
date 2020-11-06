@@ -1,4 +1,4 @@
-import OakSapling, {SaplingType} from './OakSapling';
+import OakSapling, { SaplingType } from './OakSapling';
 
 export default class BirchSapling extends OakSapling {
     constructor() {

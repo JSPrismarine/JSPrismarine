@@ -45,7 +45,7 @@ export default class ConfigBuilder {
         }
 
         if (fs.existsSync(pathSplitted.dir)) {
-            fs.mkdirSync(pathSplitted.dir, {recursive: true});
+            fs.mkdirSync(pathSplitted.dir, { recursive: true });
         }
 
         if (!fs.existsSync(filePath)) {
@@ -79,7 +79,7 @@ export default class ConfigBuilder {
                 fileData = JSON.stringify(data, null, 2);
                 break;
             case 'yaml':
-                fileData = YAML.stringify(data, {indent: 2});
+                fileData = YAML.stringify(data, { indent: 2 });
                 break;
             case 'toml':
                 fileData = TOML.stringify(data);
@@ -103,7 +103,7 @@ export default class ConfigBuilder {
                 resultData = JSON.parse(rawFileData);
                 break;
             case 'yaml':
-                resultData = YAML.parse(rawFileData, {indent: 2});
+                resultData = YAML.parse(rawFileData, { indent: 2 });
                 break;
             case 'toml':
                 resultData = TOML.parse(rawFileData);

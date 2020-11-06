@@ -1,5 +1,5 @@
 import Liquid from '../Liquid';
-import {BlockIdsType} from '../BlockIdsType';
+import { BlockIdsType } from '../BlockIdsType';
 
 export default class FlowingWater extends Liquid {
     constructor(

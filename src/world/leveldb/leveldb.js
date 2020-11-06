@@ -5,7 +5,7 @@ const Provider = require('../provider');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Chunk = require('../chunk/Chunk');
 const EmptySubChunk = require('../chunk/empty-sub-chunk');
-const {default: Vector3} = require('../../math/Vector3');
+const { default: Vector3 } = require('../../math/Vector3');
 const SubChunk = require('../chunk/SubChunk').default;
 
 const Tags = {
@@ -30,7 +30,7 @@ class LevelDB extends Provider {
      * @param {number} x - chunk X
      * @param {number} z - chunk Z
      */
-    readChunk({x, z, generator, seed, server}) {
+    readChunk({ x, z, generator, seed, server }) {
         return new Promise(async (resolve) => {
             let index = LevelDB.chunkIndex(x, z);
             let subChunks = new Map();
