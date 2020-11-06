@@ -1,7 +1,7 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
-import type EmoteListPacket from '../packet/emote-list';
+import type EmoteListPacket from '../packet/EmoteListPacket';
 
 export default class EmoteListHandler {
     static NetID = Identifiers.EmoteListPacket;

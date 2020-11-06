@@ -1,21 +1,17 @@
-const DataPacket = require('./Packet').default;
-const Identifiers = require('../Identifiers').default;
-const CommandEnum = require('../type/command-enum');
-const CommandData = require('../type/command-data');
+import Identifiers from '../Identifiers';
+import CommandData from '../type/command-data';
+import CommandEnum from '../type/command-enum';
+import DataPacket from './DataPacket';
 
-class AvailableCommandsPacket extends DataPacket {
+export default class AvailableCommandsPacket extends DataPacket {
     static NetID = Identifiers.AvailableCommandsPacket;
 
-    /** @type {Set<String>} */
-    enumValues = new Set();
-    /** @type {Set<String>} */
-    postFixes = new Set();
-    /** @type {Set<CommandEnum>} */
-    enums = new Set();
-    /** @type {Set<CommandData>} */
-    commandData = new Set();
+    public enumValues: Set<string> = new Set();
+    public postFixes: Set<string> = new Set();
+    public enums: Set<CommandEnum> = new Set();
+    public commandData: Set<CommandData> = new Set();
 
-    encodePayload() {
+    public encodePayload() {
         // Write enum values
         this.writeUnsignedVarInt(this.enumValues.size);
         for (let enumValue of this.enumValues) {
@@ -61,7 +57,7 @@ class AvailableCommandsPacket extends DataPacket {
                 for (let parameter of data.parameters) {
                     this.writeString(parameter.name);
                     this.writeLInt(parameter.type);
-                    this.writeBool(parameter.optional);
+                    this.writeBool(+parameter.optional);
                     this.writeByte(0); // No idea
                 }
         }
@@ -70,4 +66,3 @@ class AvailableCommandsPacket extends DataPacket {
         this.writeUnsignedVarInt(0);
     }
 }
-module.exports = AvailableCommandsPacket;

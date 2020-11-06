@@ -9,7 +9,7 @@ import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
 
 const LevelSoundEventPacket = require('../network/packet/level-sound-event');
-const UUID = require('../utils/uuid');
+const UUID = require('../utils/uuid').default;
 const CoordinateUtils = require('../world/coordinate-utils');
 const { GameruleManager, Rules } = require('../world/gamerule-manager');
 const SharedSeedRandom = require('./util/shared-seed-random');

@@ -1,6 +1,6 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import type ClientCacheStatusPacket from '../packet/client-cache-status';
+import type ClientCacheStatusPacket from '../packet/ClientCacheStatusPacket';
 import Identifiers from '../Identifiers';
 
 export default class ClientCacheStatusHandler {

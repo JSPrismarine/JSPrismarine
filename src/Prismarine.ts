@@ -17,7 +17,7 @@ import PlayerConnectEvent from './events/player/PlayerConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import Listener from './network/raknet/Listener';
-import BatchPacket from './network/packet/batch';
+import BatchPacket from './network/packet/BatchPacket';
 import Identifiers from './network/Identifiers';
 import type InetAddress from './network/raknet/utils/InetAddress';
 import ChatManager from './chat/ChatManager';
@@ -260,14 +260,16 @@ export default class Prismarine {
                     return;
                 }
 
-                if (!this.packetRegistry.getHandlers().has(packet.id)) {
+                if (!this.packetRegistry.getHandlers().has(packet.getId())) {
                     this.logger.error(
                         `Packet ${packet.constructor.name} doesn't have a handler`
                     );
                     return;
                 }
 
-                let handler = this.packetRegistry.getHandlers().get(packet.id);
+                let handler = this.packetRegistry
+                    .getHandlers()
+                    .get(packet.getId());
 
                 (async () => {
                     try {

@@ -1,33 +1,33 @@
-const DataPacket = require('./Packet').default;
-const Identifiers = require('../Identifiers').default;
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
-class AddPlayerPacket extends DataPacket {
+export default class AddPlayerPacket extends DataPacket {
     static NetID = Identifiers.AddPlayerPacket;
 
-    uuid;
-    name;
-    uniqueEntityId;
-    runtimeEntityId;
-    platformChatId = ''; // TODO
+    public uuid: string = '';
+    public name: string = '';
+    public uniqueEntityId: bigint = BigInt(0);
+    public runtimeEntityId: bigint = BigInt(0);
+    public platformChatId: string = ''; // TODO
 
-    positionX;
-    positionY;
-    positionZ;
+    public positionX: number = 0;
+    public positionY: number = 0;
+    public positionZ: number = 0;
 
-    motionX;
-    motionY;
-    motionZ;
+    public motionX: number = 0;
+    public motionY: number = 0;
+    public motionZ: number = 0;
 
-    pitch;
-    yaw;
-    headYaw;
+    public pitch: number = 0;
+    public yaw: number = 0;
+    public headYaw: number = 0;
 
-    deviceId;
-    buildPlatform = 0; // TODO
+    public deviceId: string = '';
+    public buildPlatform: number = 0; // TODO
 
-    metadata = new Map();
+    public metadata = new Map();
 
-    encodePayload() {
+    public encodePayload() {
         this.writeUUID(this.uuid);
         this.writeString(this.name);
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
@@ -60,4 +60,3 @@ class AddPlayerPacket extends DataPacket {
         this.writeLInt(this.buildPlatform);
     }
 }
-module.exports = AddPlayerPacket;

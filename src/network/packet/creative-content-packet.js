@@ -1,4 +1,4 @@
-const DataPacket = require('./Packet').default;
+const DataPacket = require('./DataPacket').default;
 const Identifiers = require('../Identifiers').default;
 const CreativeContentEntry = require('../type/creative-content-entry');
 

@@ -8,27 +8,27 @@ import Item from '../item/Item';
 import Chunk from '../world/chunk/Chunk';
 import type Connection from '../network/raknet/connection';
 import type Player from './Player';
+import BatchPacket from '../network/packet/BatchPacket';
+import AddPlayerPacket from '../network/packet/AddPlayerPacket';
+import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
+import PlayStatusPacket from '../network/packet/PlayStatusPacket';
+import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
+import SetTimePacket from '../network/packet/SetTimePacket';
+import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
-const PlayStatusPacket = require('../network/packet/play-status');
-const BatchPacket = require('../network/packet/batch');
-const ChunkRadiusUpdatedPacket = require('../network/packet/chunk-radius-updated');
 const LevelChunkPacket = require('../network/packet/level-chunk');
-const UUID = require('../utils/uuid');
+const UUID = require('../utils/uuid').default;
 const PlayerListPacket = require('../network/packet/player-list');
 const PlayerListAction = require('../network/type/player-list-action');
 const PlayerListEntry = require('../network/type/player-list-entry');
-const AddPlayerPacket = require('../network/packet/add-player');
 const MovePlayerPacket = require('../network/packet/move-player');
 const RemoveActorPacket = require('../network/packet/remove-actor');
 const UpdateAttributesPacket = require('../network/packet/update-attributes');
 const SetActorDataPacket = require('../network/packet/set-actor-data');
 const CoordinateUtils = require('../world/coordinate-utils');
-const AvailableCommandsPacket = require('../network/packet/available-commands');
 const SetGamemodePacket = require('../network/packet/set-gamemode');
 const CreativeContentPacket = require('../network/packet/creative-content-packet');
-const NetworkChunkPublisherUpdatePacket = require('../network/packet/network-chunk-publisher-update');
-const SetTimePacket = require('../network/packet/set-time');
 const InventoryContentPacket = require('../network/packet/inventory-content-packet');
 const MobEquipmentPacket = require('../network/packet/mob-equipment-packet');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
@@ -49,7 +49,11 @@ export default class PlayerConnection {
     }
 
     // To refactor
-    async sendDataPacket(packet: any, _needACK = false, _immediate = false) {
+    public async sendDataPacket(
+        packet: any,
+        _needACK = false,
+        _immediate = false
+    ) {
         let batch = new BatchPacket();
         batch.addPacket(packet);
         batch.encode();
@@ -57,7 +61,7 @@ export default class PlayerConnection {
         // Add this in raknet
         let sendPacket = new EncapsulatedPacket();
         sendPacket.reliability = 0;
-        sendPacket.buffer = batch.buffer;
+        sendPacket.buffer = batch.getBuffer();
 
         this.connection.addEncapsulatedToQueue(sendPacket);
     }
@@ -303,7 +307,7 @@ export default class PlayerConnection {
         let pk = new AvailableCommandsPacket();
         for (let command of this.server.getCommandManager().getCommands()) {
             if (!Array.isArray(command.parameters)) {
-                pk.commandData.add({
+                (pk as any).commandData.add({
                     ...command,
                     name: command.id.split(':')[1],
                     execute: undefined,
@@ -311,7 +315,7 @@ export default class PlayerConnection {
                 });
             } else {
                 for (let i = 0; i < command.parameters.length; i++) {
-                    pk.commandData.add({
+                    (pk as any).commandData.add({
                         ...command,
                         name: command.id.split(':')[1],
                         parameters: command.parameters[i],
@@ -467,7 +471,7 @@ export default class PlayerConnection {
     public sendSpawn(player: Player) {
         let pk = new AddPlayerPacket();
         pk.uuid = UUID.fromString(this.player.uuid);
-        pk.runtimeEntityId = this.player.runtimeId;
+        pk.runtimeEntityId = BigInt(this.player.runtimeId);
         pk.name = this.player.getUsername();
 
         pk.positionX = this.player.getX();
@@ -490,7 +494,6 @@ export default class PlayerConnection {
 
     /**
      * Despawn the player entity from another player
-     * @param {Player} player
      */
     public sendDespawn(player: Player) {
         let pk = new RemoveActorPacket();
@@ -498,9 +501,6 @@ export default class PlayerConnection {
         player.getPlayerConnection().sendDataPacket(pk);
     }
 
-    /**
-     * @param {number} status
-     */
     public sendPlayStatus(status: number) {
         let pk = new PlayStatusPacket();
         pk.status = status;

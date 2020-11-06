@@ -1,50 +1,34 @@
-const fs = require('fs');
+import Identifiers from '../Identifiers';
+import PacketBinaryStream from '../PacketBinaryStream';
+import DataPacket from './DataPacket';
 
-const DataPacket = require('./Packet').default;
 const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
 const RequiredBlockStates = require('@jsprismarine/bedrock-data')
     .required_block_states;
-const PacketBinaryStream = require('../PacketBinaryStream').default;
-const Identifiers = require('../Identifiers').default;
 
-class StartGamePacket extends DataPacket {
+export default class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket;
 
-    // Entity properties
+    public entityId: bigint = BigInt(0);
+    public runtimeEntityId: bigint = BigInt(0);
+    public gamemode: number = 0;
 
-    /** @type {number} */
-    entityId;
-    /** @type {number} */
-    runtimeEntityId;
-    /** @type {number} */
-    gamemode;
+    public playerX: number = 0;
+    public playerY: number = 0;
+    public playerZ: number = 0;
 
-    /** @type {number} */
-    playerX;
-    /** @type {number} */
-    playerY;
-    /** @type {number} */
-    playerZ;
+    public levelId: string = '';
+    public worldName: string = '';
 
-    /** @type {string} */
-    levelId;
-    /** @type {string} */
-    worldName;
+    public worldSpawnX: number = 0;
+    public worldSpawnY: number = 0;
+    public worldSpawnZ: number = 0;
 
-    /** @type {number} */
-    worldSpawnX;
-    /** @type {number} */
-    worldSpawnY;
-    /** @type {number} */
-    worldSpawnZ;
+    public gamerules: Map<string, any> = new Map();
 
-    /** @type {Map<String, any>} */
-    gamerules;
+    private cachedItemPalette: Buffer | null = null;
 
-    /** @type {Buffer|null} */
-    cachedItemPalette = null;
-
-    encodePayload() {
+    public encodePayload() {
         this.writeVarLong(this.entityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
@@ -73,11 +57,11 @@ class StartGamePacket extends DataPacket {
         this.writeUnsignedVarInt(this.worldSpawnY);
         this.writeVarInt(this.worldSpawnZ);
 
-        this.writeBool(true); // achievement disabled
+        this.writeBool(+true); // achievement disabled
 
         this.writeVarInt(0); // day cycle / time
         this.writeVarInt(0); // edu edition offer
-        this.writeBool(false); // edu features
+        this.writeBool(+false); // edu features
         this.writeString(''); // edu product id
 
         this.writeLFloat(0); // rain lvl
@@ -111,8 +95,8 @@ class StartGamePacket extends DataPacket {
         this.writeString(Identifiers.MinecraftVersion);
         this.writeLInt(0); // limited world height
         this.writeLInt(0); // limited world length
-        this.writeBool(false); // has new nether
-        this.writeBool(false); // experimental gameplay
+        this.writeBool(+false); // has new nether
+        this.writeBool(+false); // experimental gameplay
 
         this.writeString(this.levelId);
         this.writeString(this.worldName);
@@ -129,21 +113,20 @@ class StartGamePacket extends DataPacket {
         this.append(this.serializeItemTable(ItemTable));
 
         this.writeString('');
-        this.writeBool(false); // new inventory system
+        this.writeBool(+false); // new inventory system
     }
 
-    serializeItemTable(table) {
+    serializeItemTable(table: any): Buffer {
         if (this.cachedItemPalette == null) {
             let stream = new PacketBinaryStream();
             stream.writeUnsignedVarInt(Object.entries(table).length);
             for (const [name, legacyId] of Object.entries(table)) {
                 stream.writeString(name);
-                stream.writeLShort(legacyId);
+                stream.writeLShort(legacyId as number);
             }
-            this.cachedItemPalette = stream.buffer;
+            this.cachedItemPalette = stream.getBuffer();
         }
 
-        return this.cachedItemPalette;
+        return this.cachedItemPalette as Buffer;
     }
 }
-module.exports = StartGamePacket;

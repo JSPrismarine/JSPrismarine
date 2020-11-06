@@ -1,5 +1,5 @@
 import Identifiers from '../Identifiers';
-import DataPacket from './Packet';
+import DataPacket from './DataPacket';
 
 export enum UpdateBlockLayerType {
     Normal = 0,
@@ -13,10 +13,10 @@ export enum UpdateBlockFlagsType {
 export default class UpdateBlockPacket extends DataPacket {
     static NetID = Identifiers.UpdateBlockPacket;
 
-    public x: VarInt = 0;
-    public y: UnsignedVarInt = 0;
-    public z: VarInt = 0;
-    public BlockRuntimeId: UnsignedVarInt = 0;
+    public x: number = 0;
+    public y: number = 0;
+    public z: number = 0;
+    public BlockRuntimeId: number = 0;
     public Flags: UpdateBlockFlagsType = UpdateBlockFlagsType.None;
     public Layer: UpdateBlockLayerType = UpdateBlockLayerType.Normal;
 

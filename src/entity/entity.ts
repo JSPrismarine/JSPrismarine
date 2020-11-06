@@ -3,7 +3,7 @@ import World from '../world/world';
 
 const { MetadataManager, MetadataFlag, FlagType } = require('./metadata');
 const { AttributeManager } = require('./attribute');
-const AddActorPacket = require('../network/packet/add-actor');
+const AddActorPacket = require('../network/packet/AddActorPacket');
 
 // All entities will extend this base class
 export default class Entity extends Position {

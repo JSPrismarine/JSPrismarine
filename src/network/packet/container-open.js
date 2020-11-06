@@ -1,4 +1,4 @@
-const DataPacket = require('./Packet').default;
+const DataPacket = require('./DataPacket').default;
 const Identifiers = require('../Identifiers').default;
 
 class ContainerOpenPacket extends DataPacket {
@@ -16,7 +16,7 @@ class ContainerOpenPacket extends DataPacket {
     /** @type {number} */
     containerZ;
 
-    /** @type {number} */
+    /** @type {bigint} */
     containerEntityId;
 
     encodePayload() {

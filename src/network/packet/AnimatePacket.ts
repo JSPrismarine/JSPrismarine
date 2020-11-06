@@ -1,12 +1,12 @@
-const DataPacket = require('./Packet').default;
-const Identifiers = require('../Identifiers').default;
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
-class AnimatePacket extends DataPacket {
+export default class AnimatePacket extends DataPacket {
     static NetID = Identifiers.AnimatePacket;
 
-    action;
-    runtimeEntityId;
-    boatRowingTime = null;
+    public action: number = 0;
+    public runtimeEntityId: bigint = BigInt(0);
+    public boatRowingTime: number = 0;
 
     encodePayload() {
         this.writeVarInt(this.action);
@@ -24,4 +24,3 @@ class AnimatePacket extends DataPacket {
         }
     }
 }
-module.exports = AnimatePacket;

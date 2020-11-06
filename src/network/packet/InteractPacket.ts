@@ -1,5 +1,5 @@
 import Identifiers from '../Identifiers';
-import DataPacket from './Packet';
+import DataPacket from './DataPacket';
 
 export enum InteractAction {
     LeaveVehicle = 3,

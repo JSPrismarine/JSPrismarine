@@ -1,19 +1,13 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import type LoginPacket from '../packet/login';
-
-const Identifiers = require('../Identifiers').default;
-const ResourcePacksInfoPacket = require('../packet/resource-packs-info');
-const PlayStatus = require('../type/play-status');
+import Identifiers from '../Identifiers';
+import type LoginPacket from '../packet/LoginPacket';
+import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
+import PlayStatus from '../type/play-status';
 
 export default class LoginHandler {
     static NetID = Identifiers.LoginPacket;
 
-    /**
-     * @param {LoginPacket} packet
-     * @param {Prismarine} _server
-     * @param {Player} player
-     */
     static handle(packet: LoginPacket, server: Prismarine, player: Player) {
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;
