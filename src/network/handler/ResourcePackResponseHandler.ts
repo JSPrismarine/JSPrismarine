@@ -11,7 +11,7 @@ import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
 
 const ResourcePackStatus = require('../type/resource-pack-status');
-const Gamemode = require('../../world/gamemode');
+const Gamemode = require('../../world/Gamemode');
 // const Item = require('../../item/Item')
 
 export default class ResourcePackResponseHandler {

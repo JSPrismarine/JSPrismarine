@@ -1,13 +1,13 @@
-class CoordinateUtils {
-    static fromBlockToChunk(v) {
+export default class CoordinateUtils {
+    static fromBlockToChunk(v: number) {
         return v >> 4;
     }
 
-    static getChunkMin(v) {
+    static getChunkMin(v: number) {
         return v << 4;
     }
 
-    static getChunkMax(v) {
+    static getChunkMax(v: number) {
         return ((v + 1) << 4) - 1;
     }
 
@@ -17,18 +17,15 @@ class CoordinateUtils {
      * @param {number} x
      * @param {number} z
      */
-    static encodePos(x, z) {
+    static encodePos(x: number, z: number) {
         return `${x}:${z}`;
     }
 
     /**
      * Returns an array containing decoded positions
      * from the encoded integer given.
-     *
-     * @param {string} encodedPos
      */
-    static decodePos(encodedPos) {
-        return encodedPos.split(':');
+    static decodePos(encodedPos: string): [number, number] {
+        return (encodedPos.split(':') as unknown) as [number, number];
     }
 }
-module.exports = CoordinateUtils;

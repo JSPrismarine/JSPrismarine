@@ -25,12 +25,12 @@ import MovePlayerPacket from '../network/packet/MovePlayerPacket';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
 import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
+import CoordinateUtils from '../world/CoordinateUtils';
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const UUID = require('../utils/uuid').default;
 const PlayerListAction = require('../network/type/player-list-action');
 const PlayerListEntry = require('../network/type/player-list-entry');
-const CoordinateUtils = require('../world/coordinate-utils');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
@@ -39,8 +39,8 @@ export default class PlayerConnection {
     private connection: Connection;
     private server: Prismarine;
     private chunkSendQueue: Set<Chunk> = new Set();
-    loadedChunks: Set<number> = new Set();
-    loadingChunks: Set<number> = new Set();
+    loadedChunks: Set<string> = new Set();
+    loadingChunks: Set<string> = new Set();
 
     constructor(server: Prismarine, connection: Connection, player: Player) {
         this.server = server;

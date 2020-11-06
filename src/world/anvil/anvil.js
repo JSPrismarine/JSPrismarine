@@ -1,5 +1,5 @@
 const { MOB_ID } = require('../../entity/entity');
-const Provider = require('../provider');
+const Provider = require('../Provider').default;
 
 class Anvil extends Provider {
     async readChunk(x, z) {

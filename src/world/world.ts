@@ -7,10 +7,10 @@ import WorldEventPacket from '../network/packet/WorldEventPacket';
 import Player from '../player/Player';
 import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
+import CoordinateUtils from './CoordinateUtils';
 
 const LevelSoundEventPacket = require('../network/packet/LevelSoundEventPacket');
 const UUID = require('../utils/uuid').default;
-const CoordinateUtils = require('../world/coordinate-utils');
 const { GameruleManager, Rules } = require('../world/gamerule-manager');
 const SharedSeedRandom = require('./util/shared-seed-random');
 
