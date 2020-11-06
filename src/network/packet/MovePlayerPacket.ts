@@ -1,30 +1,30 @@
-const DataPacket = require('./DataPacket').default;
-const Identifiers = require('../Identifiers').default;
-const MovementType = require('../type/MovementType').default;
+import Identifiers from '../Identifiers';
+import MovementType from '../type/MovementType';
+import DataPacket from './DataPacket';
 
-class MovePlayerPacket extends DataPacket {
+export default class MovePlayerPacket extends DataPacket {
     static NetID = Identifiers.MovePlayerPacket;
 
-    runtimeEntityId;
+    public runtimeEntityId: bigint = BigInt(0);
 
-    positionX;
-    positionY;
-    positionZ;
+    public positionX: number = 0;
+    public positionY: number = 0;
+    public positionZ: number = 0;
 
-    pitch;
-    yaw;
-    headYaw;
+    public pitch: number = 0;
+    public yaw: number = 0;
+    public headYaw: number = 0;
 
-    mode;
+    public mode: number = 0;
 
-    onGround;
+    public onGround: boolean = false;
 
-    ridingEntityRuntimeId;
+    public ridingEntityRuntimeId: bigint = BigInt(0);
 
-    teleportCause = null;
-    teleportItemId = null;
+    public teleportCause: number = 0;
+    public teleportItemId: number = 0;
 
-    decodePayload() {
+    public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
 
         this.positionX = this.readLFloat();
@@ -44,7 +44,7 @@ class MovePlayerPacket extends DataPacket {
         }
     }
 
-    encodePayload() {
+    public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
         this.writeLFloat(this.positionX);
@@ -56,7 +56,7 @@ class MovePlayerPacket extends DataPacket {
         this.writeLFloat(this.headYaw);
 
         this.writeByte(this.mode);
-        this.writeBool(this.onGround);
+        this.writeBool(+this.onGround);
         this.writeUnsignedVarLong(this.ridingEntityRuntimeId);
         if (this.mode === MovementType.Teleport) {
             this.writeLInt(this.teleportCause);
@@ -64,4 +64,3 @@ class MovePlayerPacket extends DataPacket {
         }
     }
 }
-module.exports = MovePlayerPacket;

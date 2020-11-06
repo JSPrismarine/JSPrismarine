@@ -1,21 +1,16 @@
-const DataPacket = require('./DataPacket').default;
-const Identifiers = require('../Identifiers').default;
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
-class SetTitlePacket extends DataPacket {
+export default class SetTitlePacket extends DataPacket {
     static NetID = Identifiers.SetTitlePacket;
 
-    /** @type {number} */
-    type;
-    /** @type {string} */
-    text = '';
-    /** @type {number} */
-    fadeInTime = 500;
-    /** @type {number} */
-    stayTime = 3000;
-    /** @type {number} */
-    fadeOutTime = 1000;
+    public type: number = 0;
+    public text: string = '';
+    public fadeInTime: number = 500;
+    public stayTime: number = 3000;
+    public fadeOutTime: number = 1000;
 
-    decodePayload() {
+    public decodePayload() {
         this.type = this.readVarInt();
         this.text = this.readString();
         this.fadeInTime = this.readVarInt();
@@ -23,7 +18,7 @@ class SetTitlePacket extends DataPacket {
         this.fadeOutTime = this.readVarInt();
     }
 
-    encodePayload() {
+    public encodePayload() {
         this.writeVarInt(this.type);
         this.writeString(this.text);
         this.writeVarInt(this.fadeInTime);
@@ -31,4 +26,3 @@ class SetTitlePacket extends DataPacket {
         this.writeVarInt(this.fadeOutTime);
     }
 }
-module.exports = SetTitlePacket;

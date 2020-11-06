@@ -15,22 +15,22 @@ import PlayStatusPacket from '../network/packet/PlayStatusPacket';
 import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
 import SetTimePacket from '../network/packet/SetTimePacket';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
+import LevelChunkPacket from '../network/packet/LevelChunkPacket';
+import InventoryContentPacket from '../network/packet/InventoryContentPacket';
+import CreativeContentPacket from '../network/packet/CreativeContentPacket';
+import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
+import RemoveActorPacket from '../network/packet/RemoveActorPacket';
+import PlayerListPacket from '../network/packet/PlayerListPacket';
+import MovePlayerPacket from '../network/packet/MovePlayerPacket';
+import SetActorDataPacket from '../network/packet/SetActorDataPacket';
+import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
+import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
-const LevelChunkPacket = require('../network/packet/level-chunk');
 const UUID = require('../utils/uuid').default;
-const PlayerListPacket = require('../network/packet/player-list');
 const PlayerListAction = require('../network/type/player-list-action');
 const PlayerListEntry = require('../network/type/player-list-entry');
-const MovePlayerPacket = require('../network/packet/move-player');
-const RemoveActorPacket = require('../network/packet/remove-actor');
-const UpdateAttributesPacket = require('../network/packet/update-attributes');
-const SetActorDataPacket = require('../network/packet/set-actor-data');
 const CoordinateUtils = require('../world/coordinate-utils');
-const SetGamemodePacket = require('../network/packet/set-gamemode');
-const CreativeContentPacket = require('../network/packet/creative-content-packet');
-const InventoryContentPacket = require('../network/packet/inventory-content-packet');
-const MobEquipmentPacket = require('../network/packet/mob-equipment-packet');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
@@ -400,7 +400,7 @@ export default class PlayerConnection {
 
         pk.onGround = this.player.onGround;
 
-        pk.ridingEntityRuntimeId = 0;
+        pk.ridingEntityRuntimeId = BigInt(0);
         this.sendDataPacket(pk);
     }
 

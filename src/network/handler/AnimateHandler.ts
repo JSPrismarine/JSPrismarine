@@ -8,7 +8,7 @@ export default class AnimateHandler {
 
     static handle(packet: AnimatePacket, server: Prismarine, player: Player) {
         let pk = new AnimatePacket();
-        pk.runtimeEntityId = BigInt(player.runtimeId);
+        pk.runtimeEntityId = player.runtimeId;
         pk.action = packet.action;
 
         for (let onlinePlayer of server.getOnlinePlayers()) {

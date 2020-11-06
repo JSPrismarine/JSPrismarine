@@ -1,7 +1,7 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
-import type SetLocalPlayerAsInitializedPacket from '../packet/set-local-player-as-initialized';
+import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
 
 export default class SetLocalPlayerAsInitializedHandler {
     static NetID = Identifiers.SetLocalPlayerAsInitializedPacket;

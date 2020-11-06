@@ -1,21 +1,21 @@
-const DataPacket = require('./DataPacket').default;
-const Identifiers = require('../Identifiers').default;
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
-class LevelSoundEventPacket extends DataPacket {
+export default class LevelSoundEventPacket extends DataPacket {
     static NetID = Identifiers.LevelSoundEventPacket;
 
-    sound;
+    public sound: number = 0;
 
-    positionX;
-    positionY;
-    positionZ;
+    public positionX: number = 0;
+    public positionY: number = 0;
+    public positionZ: number = 0;
 
-    extraData;
-    entityType;
-    isBabyMob;
-    disableRelativeVolume;
+    public extraData: number = 0;
+    public entityType: string = '';
+    public isBabyMob: boolean = false;
+    public disableRelativeVolume: boolean = false;
 
-    decodePayload() {
+    public decodePayload() {
         this.sound = this.readUnsignedVarInt();
 
         this.positionX = this.readLFloat();
@@ -28,7 +28,7 @@ class LevelSoundEventPacket extends DataPacket {
         this.disableRelativeVolume = this.readBool();
     }
 
-    encodePayload() {
+    public encodePayload() {
         this.writeUnsignedVarInt(this.sound);
 
         this.writeLFloat(this.positionX);
@@ -37,8 +37,7 @@ class LevelSoundEventPacket extends DataPacket {
 
         this.writeVarInt(this.extraData);
         this.writeString(this.entityType);
-        this.writeBool(this.isBabyMob);
-        this.writeBool(this.disableRelativeVolume);
+        this.writeBool(+this.isBabyMob);
+        this.writeBool(+this.disableRelativeVolume);
     }
 }
-module.exports = LevelSoundEventPacket;

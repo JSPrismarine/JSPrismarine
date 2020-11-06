@@ -17,7 +17,7 @@ Server.listen(
     Server.getLogger().error(
         `Cannot start the server, is it already running on the same port?`
     );
-    if (err) Server.getLogger().error(err);
+    if (err) console.error(err);
 
     Server.kill();
     process.exit(1);

@@ -8,7 +8,7 @@ import Player from '../player/Player';
 import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
 
-const LevelSoundEventPacket = require('../network/packet/level-sound-event');
+const LevelSoundEventPacket = require('../network/packet/LevelSoundEventPacket');
 const UUID = require('../utils/uuid').default;
 const CoordinateUtils = require('../world/coordinate-utils');
 const { GameruleManager, Rules } = require('../world/gamerule-manager');
@@ -25,8 +25,8 @@ interface WorldData {
 export default class World {
     private uniqueId: string = UUID.randomString();
     private name: string = 'Unknown';
-    private players: Map<number, Player> = new Map();
-    private entities: Map<number, Entity> = new Map();
+    private players: Map<bigint, Player> = new Map();
+    private entities: Map<bigint, Entity> = new Map();
     private chunks: Map<string, any> = new Map();
     private gameruleManager: any;
     private currentTick: number = 0;

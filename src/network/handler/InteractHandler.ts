@@ -2,7 +2,7 @@ import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
 import InteractPacket, { InteractAction } from '../packet/InteractPacket';
-import ContainerOpenPacket from '../packet/container-open';
+import ContainerOpenPacket from '../packet/ContainerOpenPacket';
 
 export default class InteractHandler {
     static NetID = Identifiers.InteractPacket;
@@ -17,7 +17,7 @@ export default class InteractHandler {
                 pk.windowId = 92; // TODO
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerX = pk.containerY = pk.containerZ = 0;
-                pk.containerEntityId = BigInt(player.runtimeId);
+                pk.containerEntityId = player.runtimeId;
                 player.getPlayerConnection().sendDataPacket(pk);
                 break;
             default:

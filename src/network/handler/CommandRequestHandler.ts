@@ -1,6 +1,6 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import type CommandRequestPacket from '../packet/command-request';
+import type CommandRequestPacket from '../packet/CommandRequestPacket';
 import Identifiers from '../Identifiers';
 
 export default class CommandRequestHandler {
