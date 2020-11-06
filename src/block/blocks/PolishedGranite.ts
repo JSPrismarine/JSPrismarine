@@ -1,4 +1,4 @@
-import Stone, { StoneType } from './Stone';
+import Stone, {StoneType} from './Stone';
 import Item from '../../item/Item';
 import Prismarine from '../../Prismarine';
 
@@ -12,4 +12,4 @@ export default class Granite extends Stone {
             server.getBlockManager().getBlock('minecraft:polished_granite')
         ];
     }
-};
+}

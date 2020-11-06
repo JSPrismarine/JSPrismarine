@@ -5,5 +5,5 @@ export enum ItemTieredToolType {
     Stone = 3,
     Iron = 4,
     Diamond = 5,
-    Netherite = 6,
+    Netherite = 6
 }

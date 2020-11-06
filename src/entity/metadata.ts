@@ -39,7 +39,7 @@ export const FlagType = {
 
 export class MetadataManager {
     /** @type {Map<number, []>} */
-    #metadata = new Map()
+    #metadata = new Map();
 
     getPropertyValue(key: string) {
         return this.#metadata.has(key) ? this.#metadata.get(key)[1] : null;
@@ -68,5 +68,4 @@ export class MetadataManager {
     getMetadata() {
         return this.#metadata;
     }
-
 }

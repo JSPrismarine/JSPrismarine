@@ -1,8 +1,8 @@
 class Swap {
-    from
-    to
+    from;
+    to;
 
-    constructor({ from, to }) {
+    constructor({from, to}) {
         this.from = from;
         this.to = to;
     }

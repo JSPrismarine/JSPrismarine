@@ -2,30 +2,29 @@ const BitFlags = require('./bitflags');
 const Reliability = require('./reliability');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 
-'use strict';
+('use strict');
 
 class EncapsulatedPacket {
-
     // Decoded Encapsulated content
-    buffer
+    buffer;
 
     // Encapsulation decoded fields
-    reliability
+    reliability;
 
-    messageIndex
-    sequenceIndex
-    orderIndex
-    orderChannel
-    
-    split
+    messageIndex;
+    sequenceIndex;
+    orderIndex;
+    orderChannel;
+
+    split;
     // If packet is not splitted all those
     // fields remains undefined
-    splitCount
-    splitIndex
-    splitID
+    splitCount;
+    splitIndex;
+    splitID;
 
-    needACK = false
-    identifierACK
+    needACK = false;
+    identifierACK;
 
     static fromBinary(stream) {
         let packet = new EncapsulatedPacket();
@@ -34,7 +33,7 @@ class EncapsulatedPacket {
         packet.split = (header & BitFlags.Split) > 0;
 
         let length = stream.readShort();
-        length >>= 3;  
+        length >>= 3;
         if (length == 0) {
             throw new Error('Got an empty encapsulated packet');
         }
@@ -97,10 +96,13 @@ class EncapsulatedPacket {
     }
 
     getTotalLength() {
-        return 3 + this.buffer.length + 
-        (typeof this.messageIndex !== 'undefined' ? 3 : 0) + 
-        (typeof this.orderIndex !== 'undefined' ? 4 : 0) + 
-        (this.split ? 10 : 0);
+        return (
+            3 +
+            this.buffer.length +
+            (typeof this.messageIndex !== 'undefined' ? 3 : 0) +
+            (typeof this.orderIndex !== 'undefined' ? 4 : 0) +
+            (this.split ? 10 : 0)
+        );
     }
 }
 module.exports = EncapsulatedPacket;

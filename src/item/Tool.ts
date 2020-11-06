@@ -1,4 +1,4 @@
-import Item, { ItemProps } from "./Item";
+import Item, {ItemProps} from './Item';
 
 export default class Tool extends Item {
     constructor(args: ItemProps) {

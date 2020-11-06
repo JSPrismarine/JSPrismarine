@@ -1,17 +1,17 @@
-import { setIntervalAsync } from 'set-interval-async/dynamic';
-import PacketRegistry from "./network/packet-registry";
-import Player from "./player/Player";
-import BlockManager from "./block/BlockManager";
-import ItemManager from "./item/ItemManager";
-import CommandManager from "./command/CommandManager";
-import type Config from "./config";
-import WorldManager from "./world/WorldManager";
-import QueryManager from "./query/QueryManager";
-import PluginManager from "./plugin/PluginManager";
-import type LoggerBuilder from "./utils/Logger";
-import TelemetryManager from "./telemetry/TelemeteryManager";
+import {setIntervalAsync} from 'set-interval-async/dynamic';
+import PacketRegistry from './network/packet-registry';
+import Player from './player/Player';
+import BlockManager from './block/BlockManager';
+import ItemManager from './item/ItemManager';
+import CommandManager from './command/CommandManager';
+import type Config from './config';
+import WorldManager from './world/WorldManager';
+import QueryManager from './query/QueryManager';
+import PluginManager from './plugin/PluginManager';
+import type LoggerBuilder from './utils/Logger';
+import TelemetryManager from './telemetry/TelemeteryManager';
 import pkg from '../package.json';
-import { EventManager } from './events/EventManager';
+import {EventManager} from './events/EventManager';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import PlayerConnectEvent from './events/player/PlayerConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
@@ -50,11 +50,10 @@ export default class Prismarine {
 
     static instance: null | Prismarine = null;
 
-    constructor({ logger, config }: {
-        logger: LoggerBuilder,
-        config: Config
-    }) {
-        logger.info(`Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`)
+    constructor({logger, config}: {logger: LoggerBuilder; config: Config}) {
+        logger.info(
+            `Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`
+        );
 
         this.logger = logger;
         this.config = config;
@@ -104,65 +103,77 @@ export default class Prismarine {
         await this.onEnable();
         await this.worldManager.onEnable();
 
-        this.raknet = await (new Listener(this)).listen(serverIp, port);
+        this.raknet = await new Listener(this).listen(serverIp, port);
         this.raknet.getName().setOnlinePlayerCount(this.players.size);
         this.raknet.on('openConnection', (connection: any) => {
             const event = new RaknetConnectEvent(connection);
             this.getEventManager().emit('raknetConnect', event);
         });
-        this.raknet.on('closeConnection', (inetAddr: InetAddress, reason: string) => {
-            const event = new RaknetDisconnectEvent(
-                inetAddr,
-                reason
-            );
-            this.getEventManager().emit('raknetDisconnect', event);
-        });
+        this.raknet.on(
+            'closeConnection',
+            (inetAddr: InetAddress, reason: string) => {
+                const event = new RaknetDisconnectEvent(inetAddr, reason);
+                this.getEventManager().emit('raknetDisconnect', event);
+            }
+        );
         this.raknet.on('encapsulated', (packet: any, inetAddr: InetAddress) => {
-            const event = new RaknetEncapsulatedPacketEvent(
-                inetAddr,
-                packet
-            );
+            const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             this.getEventManager().emit('raknetEncapsulatedPacket', event);
         });
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
 
-        this.getEventManager().on('raknetConnect', async raknetConnectEvent => {
-            const connection = raknetConnectEvent.getConnection();
+        this.getEventManager().on(
+            'raknetConnect',
+            async (raknetConnectEvent) => {
+                const connection = raknetConnectEvent.getConnection();
 
-            let inetAddr = connection.address;
+                let inetAddr = connection.address;
 
-            // TODO: Get last world by player data
-            // and if it doesn't exists, return the default one
-            let time = Date.now();
-            {
-                let world = this.getWorldManager().getDefaultWorld();
-                if (!world)
-                    throw new Error("No world");  // Temp solution
+                // TODO: Get last world by player data
+                // and if it doesn't exists, return the default one
+                let time = Date.now();
+                {
+                    let world = this.getWorldManager().getDefaultWorld();
+                    if (!world) throw new Error('No world'); // Temp solution
 
-                let player = new Player(
-                    connection,
-                    connection.address,
-                    world, this
+                    let player = new Player(
+                        connection,
+                        connection.address,
+                        world,
+                        this
+                    );
+
+                    // Emit playerConnect event
+                    const playerConnectEvent = new PlayerConnectEvent(
+                        player,
+                        inetAddr
+                    );
+                    await this.getEventManager().emit(
+                        'playerConnect',
+                        playerConnectEvent
+                    );
+                    if (playerConnectEvent.cancelled)
+                        throw new Error('Event canceled');
+
+                    this.players.set(
+                        `${inetAddr.address}:${inetAddr.port}`,
+                        player
+                    );
+
+                    // Add the player into the world
+                    world?.addPlayer(player);
+                    this.raknet
+                        .getName()
+                        .setOnlinePlayerCount(this.players.size);
+                }
+                this.logger.silly(
+                    `Player creation took about ${Date.now() - time} ms`
                 );
-
-                // Emit playerConnect event
-                const playerConnectEvent = new PlayerConnectEvent(player, inetAddr);
-                await this.getEventManager().emit('playerConnect', playerConnectEvent);
-                if (playerConnectEvent.cancelled)
-                    throw new Error("Event canceled");
-
-                this.players.set(`${inetAddr.address}:${inetAddr.port}`, player);
-
-                // Add the player into the world
-                world?.addPlayer(player);
-                this.raknet.getName().setOnlinePlayerCount(this.players.size);
             }
-            this.logger.silly(`Player creation took about ${Date.now() - time} ms`);
+        );
 
-        });
-
-        this.getEventManager().on('raknetDisconnect', event => {
+        this.getEventManager().on('raknetDisconnect', (event) => {
             const inetAddr = event.getInetAddr();
             const reason = event.getReason();
 
@@ -173,7 +184,7 @@ export default class Prismarine {
                     let player = this.players.get(token);
                     if (!player) {
                         const message = `Could not find player: ${token}`;
-                        this.logger.error(`Could not find player: ${token}`)
+                        this.logger.error(`Could not find player: ${token}`);
                         throw new Error(message);
                     }
 
@@ -186,23 +197,30 @@ export default class Prismarine {
                     player.getWorld().removePlayer(player);
 
                     // Announce disconnection
-                    const event = new ChatEvent(new Chat(this.getConsole(), `§e${player.getUsername()} left the game`));
+                    const event = new ChatEvent(
+                        new Chat(
+                            this.getConsole(),
+                            `§e${player.getUsername()} left the game`
+                        )
+                    );
                     this.getEventManager().emit('chat', event);
                 }
-                this.logger.info(`${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`);
+                this.logger.info(
+                    `${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`
+                );
                 this.raknet.getName().setOnlinePlayerCount(this.players.size);
             }
-            this.logger.silly(`Player destruction took about ${Date.now() - time} ms`);
-
+            this.logger.silly(
+                `Player destruction took about ${Date.now() - time} ms`
+            );
         });
 
-        this.getEventManager().on('raknetEncapsulatedPacket', event => {
+        this.getEventManager().on('raknetEncapsulatedPacket', (event) => {
             const raknetPacket = event.getPacket();
             const inetAddr = event.getInetAddr();
 
             let token = `${inetAddr.address}:${inetAddr.port}`;
-            if (!this.players.has(token))
-                return;
+            if (!this.players.has(token)) return;
             let player = this.players.get(token);
 
             // TODO: log incoming and outcoming buffers (maybe an option in config)
@@ -221,48 +239,56 @@ export default class Prismarine {
 
             // Read all packets inside batch and handle them
             for (let buf of pk.getPackets()) {
-
                 if (!this.packetRegistry.getPackets().has(buf[0])) {
-                    this.logger.error(`Packet ${raknetPacket.id} doesn't have a handler`);
+                    this.logger.error(
+                        `Packet ${raknetPacket.id} doesn't have a handler`
+                    );
                     return;
                 }
 
-                let packet = new (this.packetRegistry.getPackets().get(buf[0]))();  // Get packet from registry
+                let packet = new (this.packetRegistry
+                    .getPackets()
+                    .get(buf[0]))(); // Get packet from registry
                 packet.buffer = buf;
 
                 try {
                     packet.decode(this);
                 } catch (err) {
-                    this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${err}`);
+                    this.logger.error(
+                        `Error while decoding packet: ${packet.constructor.name}: ${err}`
+                    );
                     return;
                 }
 
                 if (!this.packetRegistry.getHandlers().has(packet.id)) {
-                    this.logger.error(`Packet ${packet.constructor.name} doesn't have a handler`);
+                    this.logger.error(
+                        `Packet ${packet.constructor.name} doesn't have a handler`
+                    );
                     return;
                 }
 
                 let handler = this.packetRegistry.getHandlers().get(packet.id);
 
                 (async () => {
-
                     try {
                         await handler.handle(packet, this, player);
                     } catch (err) {
-                        this.logger.error(`Handler error ${packet.constructor.name}-handler: (${err})`);
+                        this.logger.error(
+                            `Handler error ${packet.constructor.name}-handler: (${err})`
+                        );
                     }
-
                 })();
-
             }
-
-
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
         let tpsTimer = Date.now();
         setIntervalAsync(async () => {
-            Promise.all(this.getWorldManager().getWorlds().map(world => world.update(tpsTimer)));
+            Promise.all(
+                this.getWorldManager()
+                    .getWorlds()
+                    .map((world) => world.update(tpsTimer))
+            );
 
             // Calculate current tps
             this.tps = Math.round((1000 / (Date.now() - tpsTimer)) * 100) / 100;
@@ -300,30 +326,35 @@ export default class Prismarine {
     /**
      * Returns an online player by its name,
      * if it is not found, null is returned.
-     * 
+     *
      * CASE INSENSITIVE.
      * MATCH IF STARTS WITH
      * Example getPlayerByName("John") may return
      * an user with username "John Doe"
      */
     getPlayerByName(name: string): Player | null {
-        return Array.from(this.players.values())
-            .find(
-                player => player.getUsername()
+        return (
+            Array.from(this.players.values()).find((player) =>
+                player
+                    .getUsername()
                     .toLowerCase()
                     .startsWith(name.toLowerCase())
-            ) ?? null;
+            ) ?? null
+        );
     }
 
     /**
      * Returns an online player by its name,
      * if it is not found, null is returned.
-     * 
+     *
      * CASE SENSITIVE.
      */
     getPlayerByExactName(name: string): Player | null {
-        return Array.from(this.players.values())
-            .find(player => player.getUsername() === name) ?? null;
+        return (
+            Array.from(this.players.values()).find(
+                (player) => player.getUsername() === name
+            ) ?? null
+        );
     }
 
     /**
@@ -350,7 +381,7 @@ export default class Prismarine {
      */
     getQueryManager(): QueryManager | null {
         return this.queryManager;
-    };
+    }
 
     /**
      * Returns the command manager

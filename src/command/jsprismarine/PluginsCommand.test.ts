@@ -10,17 +10,20 @@ describe('command', () => {
             });
 
             it('plugins command should fail with no plugins', (done) => {
-                command.execute({
-                    getServer: () => ({
-                        getPluginManager: () => ({
-                            getPlugins: () => []
-                        })
-                    }),
-                    sendMessage: (message: string) => {
-                        expect(message).toBe(`§cCan't find any plugins.`);
-                        done();
-                    }
-                }, []);
+                command.execute(
+                    {
+                        getServer: () => ({
+                            getPluginManager: () => ({
+                                getPlugins: () => []
+                            })
+                        }),
+                        sendMessage: (message: string) => {
+                            expect(message).toBe(`§cCan't find any plugins.`);
+                            done();
+                        }
+                    },
+                    []
+                );
             });
         });
     });

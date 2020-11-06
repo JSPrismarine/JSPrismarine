@@ -2,14 +2,13 @@ const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 const UUID = require('../../utils/uuid');
 
-
 class EmoteListPacket extends DataPacket {
-    static NetID = Identifiers.EmoteListPacket
+    static NetID = Identifiers.EmoteListPacket;
 
     /** @type {number} */
-    runtimeId
+    runtimeId;
     /** @type {Set<UUID>} */
-    emoteIds = new Set()
+    emoteIds = new Set();
 
     decodePayload() {
         this.runtimeId = this.readUnsignedVarInt();

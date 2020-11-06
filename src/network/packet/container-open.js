@@ -1,24 +1,23 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class ContainerOpenPacket extends DataPacket {
-    static NetID = Identifiers.ContainerOpenPacket
+    static NetID = Identifiers.ContainerOpenPacket;
 
     /** @type {number} */
-    windowId
+    windowId;
     /** @type {number} */
-    containerType
+    containerType;
 
     /** @type {number} */
-    containerX
+    containerX;
     /** @type {number} */
-    containerY
+    containerY;
     /** @type {number} */
-    containerZ
-    
+    containerZ;
+
     /** @type {number} */
-    containerEntityId
+    containerEntityId;
 
     encodePayload() {
         this.writeByte(this.windowId);

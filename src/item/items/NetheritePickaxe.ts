@@ -1,14 +1,14 @@
-import TieredTool from "../TieredTool";
-import { BlockToolType } from "../../block/BlockToolType";
-import { ItemIdsType } from "../ItemIdsType";
-import { ItemTieredToolType } from "../ItemTieredToolType";
+import TieredTool from '../TieredTool';
+import {BlockToolType} from '../../block/BlockToolType';
+import {ItemIdsType} from '../ItemIdsType';
+import {ItemTieredToolType} from '../ItemTieredToolType';
 
 export default class NetheritePickaxe extends TieredTool {
     constructor() {
         super(
             {
-                name: "minecraft:netherite_pickaxe",
-                id: ItemIdsType.NetheritePickaxe,
+                name: 'minecraft:netherite_pickaxe',
+                id: ItemIdsType.NetheritePickaxe
             },
             ItemTieredToolType.Netherite
         );

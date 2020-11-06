@@ -2,9 +2,11 @@ const Command = require('../Command').default;
 const Player = require('../../player/Player').default;
 
 class TellCommand extends Command {
-
     constructor() {
-        super({ id: 'minecraft:tell', description: 'Sends a private message to a player.' });
+        super({
+            id: 'minecraft:tell',
+            description: 'Sends a private message to a player.'
+        });
     }
 
     /**
@@ -17,7 +19,7 @@ class TellCommand extends Command {
         }
 
         if (`${args[0]}`.toLowerCase() == sender.name.toLowerCase()) {
-            return sender.sendMessage('§cYou can\'t send message to yourself.');
+            return sender.sendMessage("§cYou can't send message to yourself.");
         }
 
         if (!args[1]) {

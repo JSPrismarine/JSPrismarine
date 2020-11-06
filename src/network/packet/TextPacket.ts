@@ -1,9 +1,9 @@
-import Identifiers from "../Identifiers";
-import TextType from "../type/TextType";
-import DataPacket from "./Packet";
+import Identifiers from '../Identifiers';
+import TextType from '../type/TextType';
+import DataPacket from './Packet';
 
 export default class TextPacket extends DataPacket {
-    static NetID = Identifiers.TextPacket
+    static NetID = Identifiers.TextPacket;
 
     type: TextType = TextType.Chat;
     needsTranslation = false;
@@ -76,4 +76,4 @@ export default class TextPacket extends DataPacket {
         this.writeString(this.xuid);
         this.writeString(this.platformChatId);
     }
-};
+}

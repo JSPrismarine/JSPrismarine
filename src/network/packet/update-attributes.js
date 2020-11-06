@@ -1,13 +1,12 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class UpdateAttributesPacket extends DataPacket {
-    static NetID = Identifiers.UpdateAttributesPacket
+    static NetID = Identifiers.UpdateAttributesPacket;
 
     /** @type {number} */
-    runtimeEntityId
-    attributes = []
+    runtimeEntityId;
+    attributes = [];
 
     encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);

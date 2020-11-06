@@ -32,5 +32,4 @@ export default class Vector3 {
     public getZ(): number {
         return this.z as number;
     }
-
 }

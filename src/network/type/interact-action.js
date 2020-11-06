@@ -1,4 +1,3 @@
-
 const InteractAction = {
     LeaveVehicle: 3,
     MouseOver: 4,

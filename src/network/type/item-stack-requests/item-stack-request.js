@@ -1,8 +1,8 @@
 class ItemStackRequest {
-    id
-    actions
+    id;
+    actions;
 
-    constructor({ id, actions }) {
+    constructor({id, actions}) {
         this.id = id;
         this.actions = actions;
     }

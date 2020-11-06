@@ -5,4 +5,4 @@ export enum BlockToolType {
     Pickaxe = 1 << 2,
     Axe = 1 << 3,
     Shears = 1 << 4
-};
+}

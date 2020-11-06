@@ -1,4 +1,4 @@
-import type Prismarine from "../../../../Prismarine";
+import type Prismarine from '../../../../Prismarine';
 
 export default class PlayerManager {
     private server: Prismarine;
@@ -6,4 +6,4 @@ export default class PlayerManager {
     constructor(server: Prismarine) {
         this.server = server;
     }
-};
+}

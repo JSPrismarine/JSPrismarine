@@ -1,7 +1,7 @@
 export default class InetAddress {
-    #address: string
-    #port: number
-    #version: number
+    #address: string;
+    #port: number;
+    #version: number;
 
     constructor(address: string, port: number, version = 4) {
         this.#address = address;
@@ -20,4 +20,4 @@ export default class InetAddress {
     get version() {
         return this.#version;
     }
-};
+}

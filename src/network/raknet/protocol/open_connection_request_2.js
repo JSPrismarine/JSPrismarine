@@ -2,20 +2,19 @@ const OfflinePacket = require('./offline_packet');
 const Identifiers = require('./Identifiers').default;
 const InetAddress = require('../utils/InetAddress').default;
 
-'use strict';
+('use strict');
 
 class OpenConnectionRequest2 extends OfflinePacket {
-
     constructor() {
         super(Identifiers.OpenConnectionRequest2);
     }
 
     /** @type {InetAddress} */
-    #serverAddress
+    #serverAddress;
     /** @type {number} */
-    #mtuSize
+    #mtuSize;
     /** @type {number} */
-    #clientGUID
+    #clientGUID;
 
     read() {
         super.read();
@@ -56,6 +55,5 @@ class OpenConnectionRequest2 extends OfflinePacket {
     set clientGUID(clientGUID) {
         this.#clientGUID = clientGUID;
     }
-
 }
 module.exports = OpenConnectionRequest2;

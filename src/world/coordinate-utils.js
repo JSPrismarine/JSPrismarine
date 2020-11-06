@@ -1,6 +1,4 @@
-
 class CoordinateUtils {
-
     static fromBlockToChunk(v) {
         return v >> 4;
     }
@@ -15,9 +13,9 @@ class CoordinateUtils {
 
     /**
      * Returns and encoded integer by given integers.
-     *  
-     * @param {number} x 
-     * @param {number} z 
+     *
+     * @param {number} x
+     * @param {number} z
      */
     static encodePos(x, z) {
         return `${x}:${z}`;
@@ -26,8 +24,8 @@ class CoordinateUtils {
     /**
      * Returns an array containing decoded positions
      * from the encoded integer given.
-     * 
-     * @param {string} encodedPos 
+     *
+     * @param {string} encodedPos
      */
     static decodePos(encodedPos) {
         return encodedPos.split(':');

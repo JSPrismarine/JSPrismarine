@@ -1,11 +1,10 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class ClientCacheStatusPacket extends DataPacket {
-    static NetID = Identifiers.ClientCacheStatusPacket
+    static NetID = Identifiers.ClientCacheStatusPacket;
 
-    enabled
+    enabled;
 
     decodePayload() {
         this.enabled = this.readBool();

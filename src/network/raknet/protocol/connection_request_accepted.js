@@ -3,19 +3,18 @@ const Identifiers = require('./Identifiers').default;
 const InetAddress = require('../utils/InetAddress').default;
 
 class ConnectionRequestAccepted extends Packet {
-
     constructor() {
         super(Identifiers.ConnectionRequestAccepted);
     }
 
-    #clientAddress
-    #requestTimestamp
-    #acceptedTimestamp
+    #clientAddress;
+    #requestTimestamp;
+    #acceptedTimestamp;
 
     read() {
         super.read();
         this.#clientAddress = this.readAddress();
-        this.readShort();  // unknown
+        this.readShort(); // unknown
         for (let i = 0; i < 20; i++) {
             this.readAddress();
         }
@@ -26,10 +25,12 @@ class ConnectionRequestAccepted extends Packet {
     write() {
         super.write();
         this.writeAddress(this.#clientAddress);
-        this.writeShort(0);  // unknown
+        this.writeShort(0); // unknown
         let sysAddresses = [new InetAddress('127.0.0.1', 0, 4)];
         for (let i = 0; i < 20; i++) {
-            this.writeAddress(sysAddresses[i] || new InetAddress('0.0.0.0', 0, 4));
+            this.writeAddress(
+                sysAddresses[i] || new InetAddress('0.0.0.0', 0, 4)
+            );
         }
         this.writeLong(this.#requestTimestamp);
         this.writeLong(this.#acceptedTimestamp);
@@ -58,6 +59,5 @@ class ConnectionRequestAccepted extends Packet {
     set accpetedTimestamp(accpetedTimestamp) {
         this.#acceptedTimestamp = accpetedTimestamp;
     }
-
 }
 module.exports = ConnectionRequestAccepted;

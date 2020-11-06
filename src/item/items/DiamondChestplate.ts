@@ -1,11 +1,11 @@
-import Armor from "../Armor";
-import { ItemIdsType } from "../ItemIdsType";
+import Armor from '../Armor';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class DiamondChestplate extends Armor {
     constructor() {
         super({
-            name: "minecraft:diamond_chestplate",
-            id: ItemIdsType.DiamondChestplate,
+            name: 'minecraft:diamond_chestplate',
+            id: ItemIdsType.DiamondChestplate
         });
     }
 

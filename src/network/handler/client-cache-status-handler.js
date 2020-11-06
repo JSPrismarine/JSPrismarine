@@ -3,14 +3,13 @@ const Prismarine = require('../../Prismarine');
 const Identifiers = require('../Identifiers').default;
 const ClientCacheStatusPacket = require('../packet/client-cache-status');
 
-
 class ClientCacheStatusHandler {
-    static NetID = Identifiers.ClientCacheStatusPacket
+    static NetID = Identifiers.ClientCacheStatusPacket;
 
     /**
-     * @param {ClientCacheStatusPacket} packet 
+     * @param {ClientCacheStatusPacket} packet
      * @param {Prismarine} server
-     * @param {Player} player 
+     * @param {Player} player
      */
     static handle(packet, server, player) {
         player.cacheSupport = packet.enabled;

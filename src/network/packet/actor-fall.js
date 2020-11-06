@@ -1,16 +1,15 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class ActorFallPacket extends DataPacket {
-    static NetID = Identifiers.ActorFallPacket
+    static NetID = Identifiers.ActorFallPacket;
 
     /** @type {number} */
-    runtimeEntityId
+    runtimeEntityId;
     /** @type {number} */
-    fallDistance
+    fallDistance;
     /** @type {boolean} */
-    inVoid
+    inVoid;
 
     decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();

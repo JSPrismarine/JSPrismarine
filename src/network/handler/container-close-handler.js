@@ -3,14 +3,13 @@ const Prismarine = require('../../Prismarine');
 const Identifiers = require('../Identifiers').default;
 const ContainerClosePacket = require('../packet/container-close');
 
-
 class ContainerCloseHandler {
-    static NetID = Identifiers.ContainerClosePacket
+    static NetID = Identifiers.ContainerClosePacket;
 
     /**
-     * @param {ContainerClosePacket} packet 
+     * @param {ContainerClosePacket} packet
      * @param {Prismarine} server
-     * @param {Player} player 
+     * @param {Player} player
      */
     static handle(packet, server, player) {
         let pk = new ContainerClosePacket();

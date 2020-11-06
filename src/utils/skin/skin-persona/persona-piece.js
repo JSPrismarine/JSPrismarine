@@ -1,16 +1,14 @@
-
 class SkinPersonaPiece {
-
     /** @type {boolean} */
-    isDefault
-    /** @type {string} */ 
-    packId
-    /** @type {string} */ 
-    pieceId
-    /** @type {string} */ 
-    pieceType
-    /** @type {string} */ 
-    productId
+    isDefault;
+    /** @type {string} */
+    packId;
+    /** @type {string} */
+    pieceId;
+    /** @type {string} */
+    pieceType;
+    /** @type {string} */
+    productId;
 
     constructor({isDefault, packId, pieceId, pieceType, productId}) {
         this.isDefault = isDefault;
@@ -19,6 +17,5 @@ class SkinPersonaPiece {
         this.pieceType = pieceType;
         this.productId = productId;
     }
-    
 }
 module.exports = SkinPersonaPiece;

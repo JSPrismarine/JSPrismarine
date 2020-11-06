@@ -1,11 +1,8 @@
-
 class SkinPersonaPieceTintColor {
-
     /** @type {Array<String>} */
-    colors = []
+    colors = [];
 
     /** @type {string} */
-    pieceType
-    
+    pieceType;
 }
 module.exports = SkinPersonaPieceTintColor;

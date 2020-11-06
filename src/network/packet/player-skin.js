@@ -1,15 +1,14 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class PlayerSkinPacket extends DataPacket {
-    static NetID = Identifiers.PlayerSkinPacket
+    static NetID = Identifiers.PlayerSkinPacket;
 
-    uuid
-    newSkinName
-    oldSkinName
-    skin
-    trusted
+    uuid;
+    newSkinName;
+    oldSkinName;
+    skin;
+    trusted;
 
     decodePayload() {
         this.uuid = this.readUUID();

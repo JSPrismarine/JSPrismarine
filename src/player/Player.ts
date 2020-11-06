@@ -1,8 +1,8 @@
-import Prismarine from "../Prismarine";
-import Entity from "../entity/entity";
-import World from "../world/world";
-import Gamemode from "../world/gamemode";
-import PlayerConnection from "./PlayerConnection";
+import Prismarine from '../Prismarine';
+import Entity from '../entity/entity';
+import World from '../world/world';
+import Gamemode from '../world/gamemode';
+import PlayerConnection from './PlayerConnection';
 
 const PlayerInventory = require('../inventory/player-inventory');
 
@@ -11,7 +11,7 @@ export enum PlayerPermission {
     Member,
     Operator,
     Custom
-};
+}
 
 export default class Player extends Entity {
     private server: Prismarine;
@@ -19,9 +19,9 @@ export default class Player extends Entity {
     private playerConnection: PlayerConnection;
 
     /** @type {PlayerInventory} */
-    inventory = new PlayerInventory()
+    inventory = new PlayerInventory();
     /** @type {Map<Number, Inventory>} */
-    windows = new Map()
+    windows = new Map();
 
     username = {
         prefix: '<',
@@ -32,65 +32,72 @@ export default class Player extends Entity {
     randomId: number = 0;
 
     /** @type {string} */
-    uuid: string | null = null
+    uuid: string | null = null;
     /** @type {string} */
-    xuid: string | null = null
+    xuid: string | null = null;
     /** @type {Skin} */
-    skin: any
+    skin: any;
 
     /** @type {number} */
-    viewDistance: any
+    viewDistance: any;
     /** @type {number} */
-    gamemode = 0
+    gamemode = 0;
 
     /** @type {number} */
-    pitch = 0
+    pitch = 0;
     /** @type {number} */
-    yaw = 0
+    yaw = 0;
     /** @type {number} */
-    headYaw = 0
+    headYaw = 0;
 
     /** @type {boolean} */
-    onGround = false
+    onGround = false;
 
     /** @type {string} */
-    platformChatId = ''
+    platformChatId = '';
 
     /** @type {Device} */
-    device: any
+    device: any;
 
     /** @type {boolean} */
-    cacheSupport: boolean | null = null
+    cacheSupport: boolean | null = null;
 
     /** @type {null|Chunk} */
     public currentChunk = null;
 
     /**
      * Player's constructor.
-     * 
+     *
      * @param {Connection} connection - player's connection
      * @param {InetAddress} address - player's InternetAddress address
-     * @param {World} world - a world to spawn the entity 
+     * @param {World} world - a world to spawn the entity
      * @param {Prismarine} server - the server instance
      */
-    constructor(connection: any, address: any, world: World, server: Prismarine) {
+    constructor(
+        connection: any,
+        address: any,
+        world: World,
+        server: Prismarine
+    ) {
         super(world);
         this.address = address;
         this.server = server;
         this.playerConnection = new PlayerConnection(server, connection, this);
 
         // TODO: only set to default gamemode if there doesn't exist any save data for the user
-        this.gamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
+        this.gamemode = Gamemode.getGamemodeId(
+            server.getConfig().getGamemode()
+        );
 
         // Handle chat messages
         server.getEventManager().on('chat', (evt) => {
-            if (evt.cancelled)
-                return;
+            if (evt.cancelled) return;
 
             // TODO: proper channel system
             if (
                 evt.getChat().getChannel() === '*.everyone' ||
-                (evt.getChat().getChannel() === '*.ops' && this.server.getPermissionManager().isOp(this))
+                (evt.getChat().getChannel() === '*.ops' &&
+                    this.server.getPermissionManager().isOp(this))
             )
                 this.sendMessage(evt.getChat().getMessage());
         });
@@ -99,8 +106,7 @@ export default class Player extends Entity {
     public async update(tick: number) {
         // Update movement for every player
         for (const player of this.server.getOnlinePlayers()) {
-            if (player === this)
-                continue;
+            if (player === this) continue;
             player.getPlayerConnection().broadcastMove(this);
             this.playerConnection.broadcastMove(player);
         }
@@ -115,8 +121,9 @@ export default class Player extends Entity {
     // Return all the players in the same chunk
     // TODO: move to world
     public getPlayersInChunk() {
-        return this.server.getOnlinePlayers()
-            .filter(player => player.currentChunk === this.currentChunk);
+        return this.server
+            .getOnlinePlayers()
+            .filter((player) => player.currentChunk === this.currentChunk);
     }
 
     public sendMessage(message: string) {

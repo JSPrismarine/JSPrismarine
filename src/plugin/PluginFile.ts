@@ -3,10 +3,10 @@ import Prismarine from '../Prismarine';
 import PluginApiVersion from './api/PluginApiVersion';
 
 export class Plugin {
-    constructor(api: PluginApiVersion) { }
-    async onEnable() { }
-    async onDisable() { }
-};
+    constructor(api: PluginApiVersion) {}
+    async onEnable() {}
+    async onDisable() {}
+}
 
 export default class PluginFile {
     private server: Prismarine;
@@ -18,17 +18,25 @@ export default class PluginFile {
     private displayName: string;
     private version: string;
 
-    constructor(server: Prismarine, dir: string, pluginApiVersion: PluginApiVersion) {
+    constructor(
+        server: Prismarine,
+        dir: string,
+        pluginApiVersion: PluginApiVersion
+    ) {
         this.server = server;
         this.path = dir;
-        this.package = require(path.join(this.path, 'package.json'))
+        this.package = require(path.join(this.path, 'package.json'));
 
         if (!this.package.name)
             throw new Error('name is missing in package.json!');
         else if (!this.package.version)
             throw new Error('version is missing in package.json!');
         else if (!this.package.prismarine.displayName)
-            this.server.getLogger().debug(`Plugin with id ${this.package.name}@${this.package.version} is missing displayName!`);
+            this.server
+                .getLogger()
+                .debug(
+                    `Plugin with id ${this.package.name}@${this.package.version} is missing displayName!`
+                );
 
         this.name = this.package.name;
         this.displayName = this.package.prismarine?.name || this.name;
@@ -65,4 +73,4 @@ export default class PluginFile {
     public async onDisable() {
         await this.plugin.onDisable();
     }
-};
+}

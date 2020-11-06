@@ -1,11 +1,10 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class RemoveActorPacket extends DataPacket {
-    static NetID = Identifiers.RemoveActorPacket
+    static NetID = Identifiers.RemoveActorPacket;
 
-    uniqueEntityId
+    uniqueEntityId;
 
     encodePayload() {
         this.writeVarLong(this.uniqueEntityId);

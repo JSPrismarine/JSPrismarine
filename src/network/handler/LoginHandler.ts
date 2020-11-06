@@ -1,18 +1,18 @@
-import type Player from "../../player/Player";
-import type Prismarine from "../../Prismarine";
-import type LoginPacket from "../packet/login";
+import type Player from '../../player/Player';
+import type Prismarine from '../../Prismarine';
+import type LoginPacket from '../packet/login';
 
 const Identifiers = require('../Identifiers').default;
 const ResourcePacksInfoPacket = require('../packet/resource-packs-info');
 const PlayStatus = require('../type/play-status');
 
 export default class LoginHandler {
-    static NetID = Identifiers.LoginPacket
+    static NetID = Identifiers.LoginPacket;
 
     /**
-     * @param {LoginPacket} packet 
+     * @param {LoginPacket} packet
      * @param {Prismarine} _server
-     * @param {Player} player 
+     * @param {Player} player
      */
     static handle(packet: LoginPacket, server: Prismarine, player: Player) {
         player.username.name = packet.displayName;
@@ -28,11 +28,13 @@ export default class LoginHandler {
 
         const reason = server.getBanManager().isBanned(player);
         if (reason !== false) {
-            player.kick(`You have been banned${reason ? ` for reason: ${reason}` : ''}!`);
+            player.kick(
+                `You have been banned${reason ? ` for reason: ${reason}` : ''}!`
+            );
             return;
         }
 
         let pk = new ResourcePacksInfoPacket();
         player.getPlayerConnection().sendDataPacket(pk);
     }
-};
+}

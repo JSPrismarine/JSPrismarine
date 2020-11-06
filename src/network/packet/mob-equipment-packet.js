@@ -2,20 +2,19 @@ const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 const Item = require('../../item/Item').default;
 
-
 class MobEquipmentPacket extends DataPacket {
-    static NetID = Identifiers.MobEquipmentPacket
+    static NetID = Identifiers.MobEquipmentPacket;
 
     /** @type {number} */
-    runtimeEntityId
+    runtimeEntityId;
     /** @type {Item} */
-    item
+    item;
     /** @type {number} */
-    inventorySlot
+    inventorySlot;
     /** @type {number} */
-    hotbarSlot
+    hotbarSlot;
     /** @type {number} */
-    windowId
+    windowId;
 
     encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);

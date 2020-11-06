@@ -1,6 +1,8 @@
-import Player from "../../player/Player";
-import Command from "../Command";
-import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
+import Player from '../../player/Player';
+import Command from '../Command';
+import CommandParameter, {
+    CommandParameterType
+} from '../../network/type/CommandParameter';
 
 export default class BanCommand extends Command {
     constructor() {
@@ -10,15 +12,15 @@ export default class BanCommand extends Command {
             permission: 'minecraft.command.ban'
         } as any);
 
-        this.parameters = [
-            new Set()
-        ];
+        this.parameters = [new Set()];
 
-        this.parameters[0].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: false
-        }));
+        this.parameters[0].add(
+            new CommandParameter({
+                name: 'target',
+                type: CommandParameterType.Target,
+                optional: false
+            })
+        );
     }
 
     execute(sender: Player, args: Array<any>) {
@@ -30,10 +32,24 @@ export default class BanCommand extends Command {
             if ((target = sender.getServer().getPlayerByName(args[0])) === null)
                 return sender.sendMessage('§cNo player was found'); // TODO: Chat manager
 
-            sender.getServer().getBanManager().setBanned(target, args.length > 1 ? args.slice(1).join(' ') : undefined);
-            target.kick(`You have been banned${args.length > 1 ? ` for reason: ${args.slice(1).join(' ')}` : ''}!`);
+            sender
+                .getServer()
+                .getBanManager()
+                .setBanned(
+                    target,
+                    args.length > 1 ? args.slice(1).join(' ') : undefined
+                );
+            target.kick(
+                `You have been banned${
+                    args.length > 1
+                        ? ` for reason: ${args.slice(1).join(' ')}`
+                        : ''
+                }!`
+            );
         }
 
-        return `Banned ${args[0] || sender.getUsername()} ${args.length > 1 ? `for reason ${args.slice(1).join(' ')}` : ''}`;
+        return `Banned ${args[0] || sender.getUsername()} ${
+            args.length > 1 ? `for reason ${args.slice(1).join(' ')}` : ''
+        }`;
     }
 }

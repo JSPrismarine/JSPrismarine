@@ -1,6 +1,8 @@
-import Player from "../../player/Player";
-import Command from "../Command";
-import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
+import Player from '../../player/Player';
+import Command from '../Command';
+import CommandParameter, {
+    CommandParameterType
+} from '../../network/type/CommandParameter';
 
 export default class DeopCommand extends Command {
     constructor() {
@@ -10,15 +12,15 @@ export default class DeopCommand extends Command {
             permission: 'minecraft.command.op'
         } as any);
 
-        this.parameters = [
-            new Set()
-        ];
+        this.parameters = [new Set()];
 
-        this.parameters[0].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: true
-        }));
+        this.parameters[0].add(
+            new CommandParameter({
+                name: 'target',
+                type: CommandParameterType.Target,
+                optional: true
+            })
+        );
     }
 
     execute(sender: Player, args: Array<any>) {
@@ -33,6 +35,8 @@ export default class DeopCommand extends Command {
             target.sendMessage('§eYou are no longer op!'); // TODO: Chat manager
         }
 
-        return `Made ${args[0] || sender.getUsername()} no longer a server operator`;
+        return `Made ${
+            args[0] || sender.getUsername()
+        } no longer a server operator`;
     }
 }

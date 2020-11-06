@@ -1,18 +1,17 @@
 const OfflinePacket = require('./offline_packet');
 const Identifiers = require('./Identifiers').default;
 
-'use strict';
+('use strict');
 
 class UnconnectedPing extends OfflinePacket {
-
     constructor() {
         super(Identifiers.UnconnectedPing);
     }
 
     /** @type {number} */
-    #sendTimestamp
+    #sendTimestamp;
     /** @type {number} */
-    #clientGUID
+    #clientGUID;
 
     read() {
         super.read();
@@ -43,7 +42,5 @@ class UnconnectedPing extends OfflinePacket {
     set clientGUID(clientGUID) {
         this.#clientGUID = clientGUID;
     }
-    
 }
 module.exports = UnconnectedPing;
-

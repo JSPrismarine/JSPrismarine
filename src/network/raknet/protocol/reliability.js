@@ -3,7 +3,6 @@
 // http://www.jenkinssoftware.com/raknet/manual/reliabilitytypes.html
 // Used to recognize packet reliability and know what to write in buffer
 const Reliability = {
-
     Unreliable: 0,
     UnreliableSequenced: 1,
     Reliable: 2,
@@ -13,25 +12,25 @@ const Reliability = {
     ReliableWithAckReceipt: 6,
     ReliableOrderedWithAckReceipt: 7,
 
-    reliable: function(reliability) {
+    reliable: function (reliability) {
         switch (reliability) {
             case this.Reliable:
             case this.ReliableOrdered:
             case this.ReliableSequenced:
                 return true;
             default:
-                return false;    
+                return false;
         }
     },
 
-    sequencedOrOrdered: function(reliability) {
+    sequencedOrOrdered: function (reliability) {
         switch (reliability) {
             case this.UnreliableSequenced:
             case this.ReliableOrdered:
             case this.ReliableSequenced:
                 return true;
             default:
-                return false;    
+                return false;
         }
     },
 
@@ -41,9 +40,8 @@ const Reliability = {
             case this.ReliableSequenced:
                 return true;
             default:
-                return false;    
-        }   
+                return false;
+        }
     }
-
 };
 module.exports = Reliability;

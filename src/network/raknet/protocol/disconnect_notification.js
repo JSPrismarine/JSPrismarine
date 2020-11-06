@@ -1,10 +1,9 @@
 const OfflinePacket = require('./offline_packet');
 const Identifiers = require('./Identifiers').default;
 
-'use strict';
+('use strict');
 
 class DisconnectNotification extends OfflinePacket {
-
     constructor() {
         super(Identifiers.DisconnectNotification);
     }
@@ -12,6 +11,5 @@ class DisconnectNotification extends OfflinePacket {
     read() {
         super.read();
     }
-    
 }
 module.exports = DisconnectNotification;

@@ -1,4 +1,4 @@
-import Block from "../../block/Block";
+import Block from '../../block/Block';
 
 const Sizes = {
     BlockSize: 16 * 16 * 16,
@@ -6,11 +6,11 @@ const Sizes = {
 };
 
 export default class SubChunk {
-    ids = Buffer.alloc(Sizes.BlockSize).fill(0x00)
-    metadata = Buffer.alloc(Sizes.Metadata).fill(0x00)
+    ids = Buffer.alloc(Sizes.BlockSize).fill(0x00);
+    metadata = Buffer.alloc(Sizes.Metadata).fill(0x00);
 
     static getIndex(x: number, y: number, z: number) {
-        return ((Math.abs(x) << 8) + (Math.abs(z) << 4) + y);
+        return (Math.abs(x) << 8) + (Math.abs(z) << 4) + y;
     }
 
     /**
@@ -56,7 +56,7 @@ export default class SubChunk {
 
     toBinary() {
         let buffer = Buffer.alloc(1);
-        buffer.writeUInt8(0);  // SubChunk version
+        buffer.writeUInt8(0); // SubChunk version
         return Buffer.concat([buffer, this.ids, this.metadata]);
     }
-};
+}

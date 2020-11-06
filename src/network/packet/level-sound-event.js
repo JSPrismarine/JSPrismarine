@@ -1,20 +1,19 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class LevelSoundEventPacket extends DataPacket {
-    static NetID = Identifiers.LevelSoundEventPacket
+    static NetID = Identifiers.LevelSoundEventPacket;
 
-    sound
-    
-    positionX
-    positionY
-    positionZ
+    sound;
 
-    extraData
-    entityType
-    isBabyMob
-    disableRelativeVolume
+    positionX;
+    positionY;
+    positionZ;
+
+    extraData;
+    entityType;
+    isBabyMob;
+    disableRelativeVolume;
 
     decodePayload() {
         this.sound = this.readUnsignedVarInt();

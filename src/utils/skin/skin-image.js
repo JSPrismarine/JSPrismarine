@@ -1,18 +1,15 @@
-
 class SkinImage {
-
     /** @type {number} */
-    width
+    width;
     /** @type {number} */
-    height
+    height;
     /** @type {string} */
-    data
+    data;
 
     constructor({width, height, data}) {
         this.width = width;
         this.height = height;
-        this.data = data; 
+        this.data = data;
     }
-
 }
 module.exports = SkinImage;

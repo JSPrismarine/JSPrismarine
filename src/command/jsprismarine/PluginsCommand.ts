@@ -1,11 +1,15 @@
-import Player from "../../player/Player";
-import PluginFile from "../../plugin/PluginFile";
+import Player from '../../player/Player';
+import PluginFile from '../../plugin/PluginFile';
 
 const Command = require('../Command').default;
 
 export default class PluginsCommand extends Command {
     constructor() {
-        super({ id: 'jsprismarine:plugins', description: 'Lists all plugins that run on the server.', aliases: ["pl"] });
+        super({
+            id: 'jsprismarine:plugins',
+            description: 'Lists all plugins that run on the server.',
+            aliases: ['pl']
+        });
     }
 
     /**
@@ -20,7 +24,9 @@ export default class PluginsCommand extends Command {
             return;
         }
 
-        let message = `§7Plugins (${plugins.length}):§r ${plugins.map((p: PluginFile) => `§a${p.getDisplayName()} ${p.getVersion()}`).join("§r, ")}`;
+        let message = `§7Plugins (${plugins.length}):§r ${plugins
+            .map((p: PluginFile) => `§a${p.getDisplayName()} ${p.getVersion()}`)
+            .join('§r, ')}`;
 
         sender.sendMessage(message);
         return;

@@ -2,12 +2,12 @@ const Identifiers = require('../Identifiers').default;
 const PacketViolationWarningPacket = require('../packet/packet-violation-warning');
 
 class PacketViolationWarningHandler {
-    static NetID = Identifiers.PacketViolationWarningPacket
+    static NetID = Identifiers.PacketViolationWarningPacket;
 
     /**
-     * @param {PacketViolationWarningPacket} packet 
+     * @param {PacketViolationWarningPacket} packet
      * @param {Prismarine} server
-     * @param {Player} player 
+     * @param {Player} player
      */
     static handle(packet, server, player) {
         server.getLogger().error(`Packet violation: ${JSON.stringify(packet)}`);

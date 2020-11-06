@@ -1,6 +1,8 @@
-import Player from "../../player/Player";
-import Command from "../Command";
-import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
+import Player from '../../player/Player';
+import Command from '../Command';
+import CommandParameter, {
+    CommandParameterType
+} from '../../network/type/CommandParameter';
 
 export default class PardonCommand extends Command {
     constructor() {
@@ -10,15 +12,15 @@ export default class PardonCommand extends Command {
             permission: 'minecraft.command.pardon'
         } as any);
 
-        this.parameters = [
-            new Set()
-        ];
+        this.parameters = [new Set()];
 
-        this.parameters[0].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: false
-        }));
+        this.parameters[0].add(
+            new CommandParameter({
+                name: 'target',
+                type: CommandParameterType.Target,
+                optional: false
+            })
+        );
     }
 
     execute(sender: Player, args: Array<any>) {
