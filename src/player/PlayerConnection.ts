@@ -267,10 +267,8 @@ export default class PlayerConnection {
 
     /**
      * Sets the item in the player hand.
-     *
-     * @param {Item} item
      */
-    public sendHandItem(item: Item) {
+    public sendHandItem(item: Item | Block) {
         let pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.item = item;
@@ -487,7 +485,7 @@ export default class PlayerConnection {
         pk.yaw = this.player.yaw;
         pk.headYaw = this.player.headYaw;
 
-        pk.deviceId = this.player.device.id;
+        pk.deviceId = this.player.device?.id || '';
         pk.metadata = this.player.metadata.getMetadata();
         player.getPlayerConnection().sendDataPacket(pk);
     }
