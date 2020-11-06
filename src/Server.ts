@@ -1,5 +1,5 @@
 import Prismarine from './Prismarine';
-import ConfigBuilder from './config';
+import ConfigBuilder from './config/Config';
 import LoggerBuilder from './utils/Logger';
 
 const Config = new ConfigBuilder();

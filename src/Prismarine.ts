@@ -4,7 +4,7 @@ import Player from './player/Player';
 import BlockManager from './block/BlockManager';
 import ItemManager from './item/ItemManager';
 import CommandManager from './command/CommandManager';
-import type Config from './config';
+import type Config from './config/Config';
 import WorldManager from './world/WorldManager';
 import QueryManager from './query/QueryManager';
 import PluginManager from './plugin/PluginManager';

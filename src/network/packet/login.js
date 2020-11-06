@@ -4,7 +4,7 @@ const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Skin = require('../../utils/skin/skin');
-const Device = require('../../utils/device');
+const Device = require('../../utils/Device').default;
 
 class LoginPacket extends DataPacket {
     static NetID = Identifiers.LoginPacket;

@@ -5,15 +5,15 @@ import DataPacket from './Packet';
 export default class TextPacket extends DataPacket {
     static NetID = Identifiers.TextPacket;
 
-    type: TextType = TextType.Chat;
-    needsTranslation = false;
-    sourceName = '';
-    message = '';
-    parameters: Array<string> = [];
-    xuid = '';
-    platformChatId = '';
+    public type: TextType = TextType.Chat;
+    public needsTranslation: boolean = false;
+    public sourceName: string = '';
+    public message: string = '';
+    public parameters: Array<string> = [];
+    public xuid: string = '';
+    public platformChatId: string = '';
 
-    decodePayload() {
+    public decodePayload() {
         this.type = this.readByte();
         this.needsTranslation = this.readBool();
 
@@ -45,7 +45,7 @@ export default class TextPacket extends DataPacket {
         this.platformChatId = this.readString();
     }
 
-    encodePayload() {
+    public encodePayload() {
         this.writeByte(this.type);
         this.writeBool(+this.needsTranslation);
 

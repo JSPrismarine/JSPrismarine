@@ -11,14 +11,14 @@ export enum InteractAction {
 export default class InteractPacket extends DataPacket {
     static NetID = Identifiers.InteractPacket;
 
-    action: number = 0;
-    target: bigint = BigInt(0);
+    public action: number = 0;
+    public target: bigint = BigInt(0);
 
-    x: number | null = null;
-    y: number | null = null;
-    z: number | null = null;
+    public x: number | null = null;
+    public y: number | null = null;
+    public z: number | null = null;
 
-    decodePayload() {
+    public decodePayload() {
         this.action = this.readByte();
         this.target = this.readUnsignedVarLong();
 

@@ -4,14 +4,14 @@ import DataPacket from './Packet';
 export default class PlayerActionPacket extends DataPacket {
     static NetID = Identifiers.PlayerActionPacket;
 
-    runtimeEntityId: UnsignedVarLong = BigInt(0);
-    action: VarInt = 0;
-    x: VarInt = 0;
-    y: UnsignedVarInt = 0;
-    z: VarInt = 0;
-    face: VarInt = 0;
+    public runtimeEntityId: UnsignedVarLong = BigInt(0);
+    public action: VarInt = 0;
+    public x: VarInt = 0;
+    public y: UnsignedVarInt = 0;
+    public z: VarInt = 0;
+    public face: VarInt = 0;
 
-    decodePayload() {
+    public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
         this.action = this.readVarInt();
 
@@ -22,7 +22,7 @@ export default class PlayerActionPacket extends DataPacket {
         this.face = this.readVarInt();
     }
 
-    encodePayload() {
+    public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId as bigint);
         this.writeVarInt(this.action as number);
         this.writeVarInt(this.x as number);

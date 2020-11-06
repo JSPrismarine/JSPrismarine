@@ -1,7 +1,4 @@
-import Block from '../../block/Block';
-import Item from '../../item/Item';
 import Vector3 from '../../math/Vector3';
-import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
 import DataPacket from './Packet';
 
@@ -17,28 +14,25 @@ export enum InventoryTransactionActionType {
 export default class InventoryTransactionPacket extends DataPacket {
     static NetID = Identifiers.InventoryTransactionPacket;
 
-    type = 0;
-    actions = new Map();
-    actionType = 0;
-    hotbarSlot = 0;
-    itemInHand = {
+    public type: number = 0;
+    public actions = new Map();
+    public actionType: number = 0;
+    public hotbarSlot: number = 0;
+    public itemInHand = {
         id: 0,
         meta: 0
     };
-    blockPosition = new Vector3();
-    face = 0;
-    playerPosition = new Vector3();
-    clickPosition = new Vector3();
-    blockRuntimeId = 0;
-    entityId = BigInt(0);
+    public blockPosition: Vector3 = new Vector3();
+    public face: number = 0;
+    public playerPosition: Vector3 = new Vector3();
+    public clickPosition: Vector3 = new Vector3();
+    public blockRuntimeId = 0;
+    public entityId = BigInt(0);
+    public requestId: number = 0;
+    public changeSlot = new Map();
+    public hasItemStackIds: boolean = false;
 
-    // 1.16
-
-    requestId = 0;
-    changeSlot = new Map();
-    hasItemStackIds: boolean = false;
-
-    decodePayload() {
+    public decodePayload() {
         this.requestId = this.readVarInt();
         if (this.requestId != 0) {
             let length = this.readUnsignedVarInt();
