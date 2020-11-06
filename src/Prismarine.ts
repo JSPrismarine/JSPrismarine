@@ -133,40 +133,36 @@ export default class Prismarine {
                 // TODO: Get last world by player data
                 // and if it doesn't exists, return the default one
                 let time = Date.now();
-                {
-                    let world = this.getWorldManager().getDefaultWorld();
-                    if (!world) throw new Error('No world'); // Temp solution
+                let world = this.getWorldManager().getDefaultWorld();
+                if (!world) throw new Error('No world'); // Temp solution
 
-                    let player = new Player(
-                        connection,
-                        connection.address,
-                        world,
-                        this
-                    );
+                let player = new Player(
+                    connection,
+                    connection.address,
+                    world,
+                    this
+                );
 
-                    // Emit playerConnect event
-                    const playerConnectEvent = new PlayerConnectEvent(
-                        player,
-                        inetAddr
-                    );
-                    await this.getEventManager().emit(
-                        'playerConnect',
-                        playerConnectEvent
-                    );
-                    if (playerConnectEvent.cancelled)
-                        throw new Error('Event canceled');
+                // Emit playerConnect event
+                const playerConnectEvent = new PlayerConnectEvent(
+                    player,
+                    inetAddr
+                );
+                await this.getEventManager().emit(
+                    'playerConnect',
+                    playerConnectEvent
+                );
+                if (playerConnectEvent.cancelled)
+                    throw new Error('Event canceled');
 
-                    this.players.set(
-                        `${inetAddr.address}:${inetAddr.port}`,
-                        player
-                    );
+                this.players.set(
+                    `${inetAddr.address}:${inetAddr.port}`,
+                    player
+                );
 
-                    // Add the player into the world
-                    world?.addPlayer(player);
-                    this.raknet
-                        .getName()
-                        .setOnlinePlayerCount(this.players.size);
-                }
+                // Add the player into the world
+                world?.addPlayer(player);
+                this.raknet.getName().setOnlinePlayerCount(this.players.size);
                 this.logger.silly(
                     `Player creation took about ${Date.now() - time} ms`
                 );
