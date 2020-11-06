@@ -1,7 +1,7 @@
 import Identifiers from '../Identifiers';
 import DataPacket from './Packet';
 
-export const enum InteractAction {
+export enum InteractAction {
     LeaveVehicle = 3,
     MouseOver = 4,
     OpenNPC = 5,
