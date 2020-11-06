@@ -5,4 +5,4 @@ export default class Event {
     public preventDefault(): void {
         this.cancelled = true;
     }
-};
+}

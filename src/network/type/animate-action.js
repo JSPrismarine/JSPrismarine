@@ -1,4 +1,3 @@
-
 const AnimateAction = {
     SwingArm: 1,
     StopSleep: 3,

@@ -1,4 +1,3 @@
-
 const ResourcePackStatus = {
     Refused: 1,
     SendPacks: 2,

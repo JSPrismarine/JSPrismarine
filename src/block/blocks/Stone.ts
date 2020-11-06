@@ -1,9 +1,9 @@
 import Solid from '../Solid';
 import Item from '../../item/Item';
 import Prismarine from '../../Prismarine';
-import { ItemTieredToolType } from "../../item/ItemTieredToolType";
-import { BlockIdsType } from '../BlockIdsType';
-import { BlockToolType } from '../BlockToolType';
+import {ItemTieredToolType} from '../../item/ItemTieredToolType';
+import {BlockIdsType} from '../BlockIdsType';
+import {BlockToolType} from '../BlockToolType';
 
 export enum StoneType {
     Stone = 0,
@@ -13,14 +13,17 @@ export enum StoneType {
     PolishedDiorite = 4,
     Andesite = 5,
     PolishedAndesite = 6
-};
+}
 
 export default class Stone extends Solid {
-    constructor(name: string = 'minecraft:stone', type: StoneType = StoneType.Stone) {
+    constructor(
+        name: string = 'minecraft:stone',
+        type: StoneType = StoneType.Stone
+    ) {
         super({
             name,
             id: BlockIdsType.Stone,
-            hardness: 1.5,
+            hardness: 1.5
         });
         this.meta = type;
     }
@@ -34,8 +37,6 @@ export default class Stone extends Solid {
     }
 
     getDropsForCompatibleTool(item: Item, server: Prismarine) {
-        return [
-            server.getBlockManager().getBlock('minecraft:cobblestone')
-        ];
+        return [server.getBlockManager().getBlock('minecraft:cobblestone')];
     }
-};
+}

@@ -1,7 +1,7 @@
-import Command from "../Command";
-import Chat from "../../chat/Chat";
-import type Player from "../../player/Player";
-import Server from "../../Server";
+import Command from '../Command';
+import Chat from '../../chat/Chat';
+import type Player from '../../player/Player';
+import Server from '../../Server';
 
 export default class SayCommand extends Command {
     constructor() {
@@ -22,4 +22,4 @@ export default class SayCommand extends Command {
         Server.getChatManager().send(chat);
         return;
     }
-};
+}

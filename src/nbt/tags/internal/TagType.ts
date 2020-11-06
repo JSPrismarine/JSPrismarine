@@ -11,6 +11,6 @@ enum TagType {
     List = 9,
     Compound = 10,
     IntArray = 11
-};
+}
 
 export default TagType;

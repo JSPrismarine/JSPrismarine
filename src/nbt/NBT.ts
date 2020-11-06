@@ -1,21 +1,25 @@
-import CustomBinaryStream from "./streams/CustomBinaryStream";
-import LittleEndianBinaryStream from "./streams/LittleEndianBinaryStream";
-import NetworkLittleEndianBinaryStream from "./streams/NetworkLittleEndianBinaryStream";
-import Tag from "./tags/internal/Tag";
-import ListTag from "./tags/ListTag";
-import CompoundTag from "./tags/CompoundTag";
-import StringTag from "./tags/StringTag";
-import TagType from "./tags/internal/TagType";
-import ByteTag from "./tags/ByteTag";
-import ShortTag from "./tags/ShortTag";
-import IntTag from "./tags/IntTag";
-import EndTag from "./tags/EndTag";
+import CustomBinaryStream from './streams/CustomBinaryStream';
+import LittleEndianBinaryStream from './streams/LittleEndianBinaryStream';
+import NetworkLittleEndianBinaryStream from './streams/NetworkLittleEndianBinaryStream';
+import Tag from './tags/internal/Tag';
+import ListTag from './tags/ListTag';
+import CompoundTag from './tags/CompoundTag';
+import StringTag from './tags/StringTag';
+import TagType from './tags/internal/TagType';
+import ByteTag from './tags/ByteTag';
+import ShortTag from './tags/ShortTag';
+import IntTag from './tags/IntTag';
+import EndTag from './tags/EndTag';
 
 export default class NBT {
     /**
-     * Reads a NBT tag from a buffer. 
+     * Reads a NBT tag from a buffer.
      */
-    readTag(buffer: CustomBinaryStream, littleEndian = false, varints = false): Tag | null {
+    readTag(
+        buffer: CustomBinaryStream,
+        littleEndian = false,
+        varints = false
+    ): Tag | null {
         let stream = buffer;
 
         if (buffer instanceof CustomBinaryStream) {
@@ -50,11 +54,7 @@ export default class NBT {
                 let list = [];
                 for (let i = 0; i < listSize; i++) {
                     // Read from the same offset
-                    list.push(this.readTag(
-                        stream,
-                        true,
-                        true
-                    ));
+                    list.push(this.readTag(stream, true, true));
                 }
                 return new ListTag(listType, list, name);
             case TagType.Compound:
@@ -62,8 +62,7 @@ export default class NBT {
                 while (true) {
                     let tag = this.readTag(stream, true, true);
 
-                    if (!tag || tag instanceof EndTag)
-                        break;
+                    if (!tag || tag instanceof EndTag) break;
 
                     value[tag.name] = tag;
                 }
@@ -74,5 +73,4 @@ export default class NBT {
 
         return null;
     }
-
 }

@@ -1,8 +1,8 @@
-import Item from "../item/Item"
-import Prismarine from "../Prismarine"
-import { ItemTieredToolType } from "../item/ItemTieredToolType";
-import { BlockToolType } from "./BlockToolType"
-import { ItemEnchantmentType } from "../item/ItemEnchantmentType";
+import Item from '../item/Item';
+import Prismarine from '../Prismarine';
+import {ItemTieredToolType} from '../item/ItemTieredToolType';
+import {BlockToolType} from './BlockToolType';
+import {ItemEnchantmentType} from '../item/ItemEnchantmentType';
 
 export default class Block {
     id: number;
@@ -15,10 +15,14 @@ export default class Block {
     nbt = null;
     count = 1;
 
-    constructor({ id, name, hardness }: {
-        id: number,
-        name: string,
-        hardness?: number
+    constructor({
+        id,
+        name,
+        hardness
+    }: {
+        id: number;
+        name: string;
+        hardness?: number;
     }) {
         this.id = id;
         this.name = name;
@@ -47,7 +51,7 @@ export default class Block {
     }
     /**
      * Set the Block's runtime id
-     * 
+     *
      * WARNING: this should ONLY be used internally by the BlockManager class
      */
     public setRuntimeId(id: number) {
@@ -67,16 +71,14 @@ export default class Block {
     public getBreakTime(item: Item | null, server: Prismarine) {
         return this.getHardness(); // TODO
 
-        let base = this.getHardness()
+        let base = this.getHardness();
 
-        if (this.isCompatibleWithTool(item))
-            base *= 1.5
-        else
-            base *= 5;
+        if (this.isCompatibleWithTool(item)) base *= 1.5;
+        else base *= 5;
 
         const efficiency = 1; // item.getMiningEfficiency(this);
 
-        return base /= efficiency;
+        return (base /= efficiency);
     }
 
     /**
@@ -117,10 +119,11 @@ export default class Block {
     /**
      * Get the Block's drop(s) if the tool is compatible
      */
-    getDropsForCompatibleTool(item: Item, server: Prismarine): Array<Block | Item | null> {
-        return [
-            this
-        ];
+    getDropsForCompatibleTool(
+        item: Item,
+        server: Prismarine
+    ): Array<Block | Item | null> {
+        return [this];
     }
 
     /**
@@ -128,10 +131,13 @@ export default class Block {
      */
     getDrops(item: Item, server: Prismarine): Array<Block | Item | null> {
         if (this.isCompatibleWithTool(item)) {
-            if (this.isAffectedBySilkTouch() && item.hasEnchantment(ItemEnchantmentType.SilkTouch))
+            if (
+                this.isAffectedBySilkTouch() &&
+                item.hasEnchantment(ItemEnchantmentType.SilkTouch)
+            )
                 return this.getSilkTouchDrops(item, server);
 
-            return this.getDropsForCompatibleTool(item, server)
+            return this.getDropsForCompatibleTool(item, server);
         }
 
         return [];
@@ -141,9 +147,7 @@ export default class Block {
      * Get the Block's drop(s) if silk touch is used
      */
     getSilkTouchDrops(item: Item, server: Prismarine) {
-        return [
-            this
-        ];
+        return [this];
     }
 
     getLightFilter() {
@@ -175,18 +179,18 @@ export default class Block {
     }
 
     isCompatibleWithTool(item: Item | null) {
-        if (!item)
-            return false;
+        if (!item) return false;
 
-        if (this.getHardness() < 0)
-            return false;
+        if (this.getHardness() < 0) return false;
 
         const toolType = this.getToolType();
         const harvestLevel = this.getToolHarvestLevel();
 
-        if (toolType === BlockToolType.None || harvestLevel === 0)
-            return true;
-        else if (toolType & item.getToolType() && (item.getToolHarvestLevel() >= harvestLevel))
+        if (toolType === BlockToolType.None || harvestLevel === 0) return true;
+        else if (
+            toolType & item.getToolType() &&
+            item.getToolHarvestLevel() >= harvestLevel
+        )
             return true;
 
         return false;

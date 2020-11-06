@@ -1,27 +1,26 @@
 const OfflinePacket = require('./offline_packet');
 const Identifiers = require('./Identifiers').default;
 
-'use strict';
+('use strict');
 
 class UnconnectedPong extends OfflinePacket {
-    
     constructor() {
         super(Identifiers.UnconnectedPong);
     }
 
     /** @type {number} */
-    #sendTimestamp
+    #sendTimestamp;
     /** @type {number} */
-    #serverGUID
+    #serverGUID;
     /** @type {string} */
-    #serverName
+    #serverName;
 
     read() {
         super.read();
         this.#sendTimestamp = this.readLong();
         this.#serverGUID = this.readLong();
         this.readMagic();
-        this.#serverName = this.readRemaining().toString();  // readString
+        this.#serverName = this.readRemaining().toString(); // readString
     }
 
     write() {
@@ -55,6 +54,5 @@ class UnconnectedPong extends OfflinePacket {
     set serverName(serverName) {
         this.#serverName = serverName;
     }
-    
 }
 module.exports = UnconnectedPong;

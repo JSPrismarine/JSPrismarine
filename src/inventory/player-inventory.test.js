@@ -3,7 +3,7 @@ const PlayerInventory = require('./player-inventory');
 describe('inventory', () => {
     describe('player-inventory', () => {
         const inventory = new PlayerInventory();
-        
+
         it('inventory size should match expected size', () => {
             expect(inventory.getSlotCount()).toBe(36);
         });

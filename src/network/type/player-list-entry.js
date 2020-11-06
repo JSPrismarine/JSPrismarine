@@ -1,27 +1,24 @@
 const Skin = require('../../utils/skin/skin');
 const UUID = require('../../utils/uuid');
 
-
 class PlayerListEntry {
-
     /** @type {UUID} */
-    uuid
+    uuid;
     /** @type {bigint} */
-    uniqueEntityId
+    uniqueEntityId;
     /** @type {string} */
-    name
+    name;
     /** @type {string} */
-    xuid
+    xuid;
     /** @type {string} */
-    platformChatId
+    platformChatId;
     /** @type {number} */
-    buildPlatform
+    buildPlatform;
     /** @type {Skin} */
-    skin
+    skin;
     /** @type {boolean} */
-    isTeacher 
-    /** @type {boolean} */ 
-    isHost 
-
+    isTeacher;
+    /** @type {boolean} */
+    isHost;
 }
 module.exports = PlayerListEntry;

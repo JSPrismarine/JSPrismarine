@@ -10,6 +10,6 @@ enum TextType {
     Announcement = 8,
     JsonWhisper = 9,
     Json = 10
-};
+}
 
 export default TextType;

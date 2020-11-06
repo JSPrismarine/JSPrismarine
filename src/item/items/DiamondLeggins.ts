@@ -1,11 +1,11 @@
-import Armor from "../Armor";
-import { ItemIdsType } from "../ItemIdsType";
+import Armor from '../Armor';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class DiamondLeggins extends Armor {
     constructor() {
         super({
-            name: "minecraft:diamond_Leggins",
-            id: ItemIdsType.DiamondLeggins,
+            name: 'minecraft:diamond_Leggins',
+            id: ItemIdsType.DiamondLeggins
         });
     }
 

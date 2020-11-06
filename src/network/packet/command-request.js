@@ -2,22 +2,20 @@ const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 const CommandOriginData = require('../type/command-origin-data');
 
-
 class CommandRequestPacket extends DataPacket {
-    static NetID = Identifiers.CommandRequestPacket
+    static NetID = Identifiers.CommandRequestPacket;
 
     /** @type {String} */
-    commandName
+    commandName;
     /** @type {CommandOriginData} */
-    commandOriginData
+    commandOriginData;
     /** @type {boolean} */
-    internal
+    internal;
 
     decodePayload() {
         this.commandName = this.readString();
         this.commandOriginData = this.readCommandOriginData();
         this.internal = this.readBool();
     }
-    
 }
 module.exports = CommandRequestPacket;

@@ -1,13 +1,13 @@
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
 
-import Block from "./Block";
-import Prismarine from "../Prismarine";
-import { BlockIdsType } from "./BlockIdsType";
+import Block from './Block';
+import Prismarine from '../Prismarine';
+import {BlockIdsType} from './BlockIdsType';
 
 export default class BlockManager {
     private server: Prismarine;
-    private blocks = new Map()
+    private blocks = new Map();
     private runtimeIds: Array<number> = [];
 
     constructor(server: Prismarine) {
@@ -23,8 +23,8 @@ export default class BlockManager {
     }
 
     /**
-    * onDisable hook
-    */
+     * onDisable hook
+     */
     public async onDisable() {
         this.blocks.clear();
     }
@@ -40,20 +40,25 @@ export default class BlockManager {
      * Get block by numeric id
      */
     public getBlockById(id: number): Block | null {
-        if (!BlockIdsType[id])
-            return null;
+        if (!BlockIdsType[id]) return null;
 
-        return this.getBlocks().filter(a => a.getId() === id && a.meta === 0)[0] || null;
+        return (
+            this.getBlocks().filter(
+                (a) => a.getId() === id && a.meta === 0
+            )[0] || null
+        );
     }
 
     /**
      * Get block by numeric id and damage value
      */
     public getBlockByIdAndMeta(id: number, meta: number): Block | null {
-        if (!BlockIdsType[id])
-            return null;
+        if (!BlockIdsType[id]) return null;
 
-        return this.getBlocks().filter(a => a.id === id && a.meta == meta)[0] || null;
+        return (
+            this.getBlocks().filter((a) => a.id === id && a.meta == meta)[0] ||
+            null
+        );
     }
 
     /**
@@ -77,7 +82,9 @@ export default class BlockManager {
         // The runtime ID is a unique ID sent with the start-game packet
         // ours is always based on the block's index in the this.blocks map
         // starting from 0.
-        this.server.getLogger().silly(`Block with id §b${block.name}§r registered`);
+        this.server
+            .getLogger()
+            .silly(`Block with id §b${block.name}§r registered`);
         this.blocks.set(block.name, block);
     }
 
@@ -89,8 +96,7 @@ export default class BlockManager {
             const time = Date.now();
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             blocks.forEach((id: string) => {
-                if (id.includes('.test.') || id.includes('.d.ts'))
-                    return;  // Exclude test files
+                if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
 
                 const block = require(`./blocks/${id}`).default;
                 try {
@@ -99,7 +105,13 @@ export default class BlockManager {
                     this.server.getLogger().error(`${id} failed to register!`);
                 }
             });
-            this.server.getLogger().debug(`Registered §b${blocks.length}§r block(s) (took ${Date.now() - time} ms)!`);
+            this.server
+                .getLogger()
+                .debug(
+                    `Registered §b${blocks.length}§r block(s) (took ${
+                        Date.now() - time
+                    } ms)!`
+                );
         } catch (err) {
             this.server.getLogger().error(`Failed to register blocks: ${err}`);
         }
@@ -108,13 +120,15 @@ export default class BlockManager {
     private generateRuntimeIds() {
         // TODO: once we have NBT writing
         const blocks = this.getBlocks()
-            .filter(a => a.meta === 0 && a.getId() !== 0)
-            .sort(() => .5 - Math.random()) // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
+            .filter((a) => a.meta === 0 && a.getId() !== 0)
+            .sort(() => 0.5 - Math.random()); // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
 
         this.runtimeIds.push(0);
         for (let i = 0; i < blocks.length; i++) {
-            const variants = this.getBlocks().filter(a => a.getId() === blocks[i].getId())
-            variants.forEach(variant => variant.setRuntimeId(i));
+            const variants = this.getBlocks().filter(
+                (a) => a.getId() === blocks[i].getId()
+            );
+            variants.forEach((variant) => variant.setRuntimeId(i));
             this.runtimeIds.push(blocks[i].getId());
         }
     }

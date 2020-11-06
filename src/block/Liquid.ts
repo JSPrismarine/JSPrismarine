@@ -1,6 +1,6 @@
-import Item from "../item/Item";
-import Prismarine from "../Prismarine";
-import Block from "./Block";
+import Item from '../item/Item';
+import Prismarine from '../Prismarine';
+import Block from './Block';
 
 /**
  * Liquid blocks (eg. Water, Still Water, Lava, Still Lava)
@@ -29,4 +29,4 @@ export default class Liquid extends Block {
     isPartOfCreativeInventory() {
         return false;
     }
-};
+}

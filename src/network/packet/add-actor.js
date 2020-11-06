@@ -1,38 +1,37 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class AddActorPacket extends DataPacket {
-    static NetID = Identifiers.AddActorPacket
+    static NetID = Identifiers.AddActorPacket;
 
     /** @type {number} */
-    uniqueEntityId 
+    uniqueEntityId;
     /** @type {number} */
-    runtimeEntityId
+    runtimeEntityId;
     /** @type {string} */
-    type
-    /** @type {number} */ 
-    x
-    /** @type {number} */ 
-    y
-    /** @type {number} */ 
-    z
-    /** @type {number} */ 
-    motionX
-    /** @type {number} */ 
-    motionY
-    /** @type {number} */ 
-    motionZ
-    /** @type {number} */ 
-    pitch = 0.0
-    /** @type {number} */ 
-    yaw = 0.0
-    /** @type {number} */ 
-    headYaw = 0.0
+    type;
+    /** @type {number} */
+    x;
+    /** @type {number} */
+    y;
+    /** @type {number} */
+    z;
+    /** @type {number} */
+    motionX;
+    /** @type {number} */
+    motionY;
+    /** @type {number} */
+    motionZ;
+    /** @type {number} */
+    pitch = 0.0;
+    /** @type {number} */
+    yaw = 0.0;
+    /** @type {number} */
+    headYaw = 0.0;
 
-    attributes = []
-    metadata = []
-    links = []
+    attributes = [];
+    metadata = [];
+    links = [];
 
     encodePayload() {
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);

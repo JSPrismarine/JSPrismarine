@@ -7,13 +7,17 @@ const Logger = new LoggerBuilder();
 
 const Server = new Prismarine({
     config: Config,
-    logger: Logger,
+    logger: Logger
 });
 
-Server.listen(Server.getConfig().getServerIp(), Server.getConfig().getPort()).catch((err) => {
-    Server.getLogger().error(`Cannot start the server, is it already running on the same port?`);
-    if (err)
-        Server.getLogger().error(err);
+Server.listen(
+    Server.getConfig().getServerIp(),
+    Server.getConfig().getPort()
+).catch((err) => {
+    Server.getLogger().error(
+        `Cannot start the server, is it already running on the same port?`
+    );
+    if (err) Server.getLogger().error(err);
 
     Server.kill();
     process.exit(1);

@@ -1,18 +1,17 @@
 const Zlib = require('zlib');
 
-const DataPacket = require("./Packet").default;
+const DataPacket = require('./Packet').default;
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const PacketBinaryStream = require('../PacketBinaryStream').default;
 
-
 class BatchPacket extends DataPacket {
-    static NetID = 0xfe
+    static NetID = 0xfe;
 
-    payload = Buffer.alloc(0)
-    _compressionLevel
+    payload = Buffer.alloc(0);
+    _compressionLevel;
 
-    _allowBatching = false
-    _allowBeforeLogin = true
+    _allowBatching = false;
+    _allowBeforeLogin = true;
 
     decodeHeader() {
         let pid = this.readByte();
@@ -24,7 +23,9 @@ class BatchPacket extends DataPacket {
     decodePayload() {
         let data = this.readRemaining();
         try {
-            this.payload = Zlib.inflateRawSync(data, { chunkSize: 1024 * 1024 * 2 });
+            this.payload = Zlib.inflateRawSync(data, {
+                chunkSize: 1024 * 1024 * 2
+            });
         } catch (e) {
             this.payload = Buffer.alloc(0);
         }
@@ -35,11 +36,13 @@ class BatchPacket extends DataPacket {
     }
 
     encodePayload() {
-        this.append(Zlib.deflateRawSync(this.payload, { level: this._compressionLevel }));
+        this.append(
+            Zlib.deflateRawSync(this.payload, {level: this._compressionLevel})
+        );
     }
 
     /**
-     * @param {DataPacket} packet 
+     * @param {DataPacket} packet
      */
     addPacket(packet) {
         // if (!packet.allowBatching) {

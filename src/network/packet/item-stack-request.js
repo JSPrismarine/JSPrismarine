@@ -3,9 +3,9 @@ const Identifiers = require('../Identifiers').default;
 const Logger = require('../../utils/Logger');
 
 class ItemStackRequestPacket extends DataPacket {
-    static NetID = Identifiers.ItemStackRequestPacket
+    static NetID = Identifiers.ItemStackRequestPacket;
 
-    requests = []
+    requests = [];
 
     decodePayload(server) {
         let count = this.readUnsignedVarInt();

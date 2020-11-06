@@ -1,11 +1,11 @@
-import Armor from "../Armor";
-import { ItemIdsType } from "../ItemIdsType";
+import Armor from '../Armor';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class NetheriteBoots extends Armor {
     constructor() {
         super({
-            name: "minecraft:netherite_boots",
-            id: ItemIdsType.NetheriteBoots,
+            name: 'minecraft:netherite_boots',
+            id: ItemIdsType.NetheriteBoots
         });
     }
 

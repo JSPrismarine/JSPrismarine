@@ -1,13 +1,12 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class AnimatePacket extends DataPacket {
-    static NetID = Identifiers.AnimatePacket
+    static NetID = Identifiers.AnimatePacket;
 
-    action
-    runtimeEntityId
-    boatRowingTime = null
+    action;
+    runtimeEntityId;
+    boatRowingTime = null;
 
     encodePayload() {
         this.writeVarInt(this.action);

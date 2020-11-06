@@ -13,4 +13,4 @@ export default class CustomBinaryStream extends BinaryStream {
         this.writeShort(Buffer.byteLength(str));
         this.append(Buffer.from(str, 'utf-8'));
     }
-};
+}

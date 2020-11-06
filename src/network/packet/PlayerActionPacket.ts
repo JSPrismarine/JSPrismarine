@@ -1,8 +1,8 @@
-import Identifiers from "../Identifiers";
-import DataPacket from "./Packet";
+import Identifiers from '../Identifiers';
+import DataPacket from './Packet';
 
 export default class PlayerActionPacket extends DataPacket {
-    static NetID = Identifiers.PlayerActionPacket
+    static NetID = Identifiers.PlayerActionPacket;
 
     runtimeEntityId: UnsignedVarLong = BigInt(0);
     action: VarInt = 0;
@@ -30,4 +30,4 @@ export default class PlayerActionPacket extends DataPacket {
         this.writeVarInt(this.z as number);
         this.writeVarInt(this.face as number);
     }
-};
+}

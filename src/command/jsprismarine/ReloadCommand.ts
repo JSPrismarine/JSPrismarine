@@ -1,5 +1,5 @@
-import Player from "../../player/Player";
-import Command from "../Command";
+import Player from '../../player/Player';
+import Command from '../Command';
 
 export default class ReloadCommand extends Command {
     constructor() {
@@ -11,11 +11,18 @@ export default class ReloadCommand extends Command {
     }
 
     public execute(sender: Player, args: Array<string>) {
-        sender.sendMessage('§cPlease note that this command is not supported and may cause issues when using some plugins.');
-        sender.sendMessage('§cIf you encounter any issues please use the /stop command to restart your server.');
-        sender.getServer().reload().then(() => {
-            sender.sendMessage('§aReload complete.');
-        });
+        sender.sendMessage(
+            '§cPlease note that this command is not supported and may cause issues when using some plugins.'
+        );
+        sender.sendMessage(
+            '§cIf you encounter any issues please use the /stop command to restart your server.'
+        );
+        sender
+            .getServer()
+            .reload()
+            .then(() => {
+                sender.sendMessage('§aReload complete.');
+            });
 
         return 'Reloaded the server';
     }

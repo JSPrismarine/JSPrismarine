@@ -2,52 +2,53 @@ const fs = require('fs');
 
 const DataPacket = require('./Packet').default;
 const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
-const RequiredBlockStates = require('@jsprismarine/bedrock-data').required_block_states;
+const RequiredBlockStates = require('@jsprismarine/bedrock-data')
+    .required_block_states;
 const PacketBinaryStream = require('../PacketBinaryStream').default;
 const Identifiers = require('../Identifiers').default;
 
 class StartGamePacket extends DataPacket {
-    static NetID = Identifiers.StartGamePacket
+    static NetID = Identifiers.StartGamePacket;
 
     // Entity properties
 
     /** @type {number} */
-    entityId
+    entityId;
     /** @type {number} */
-    runtimeEntityId
+    runtimeEntityId;
     /** @type {number} */
-    gamemode 
+    gamemode;
 
     /** @type {number} */
-    playerX
+    playerX;
     /** @type {number} */
-    playerY
+    playerY;
     /** @type {number} */
-    playerZ
+    playerZ;
 
     /** @type {string} */
-    levelId
+    levelId;
     /** @type {string} */
-    worldName
+    worldName;
 
     /** @type {number} */
-    worldSpawnX 
+    worldSpawnX;
     /** @type {number} */
-    worldSpawnY
+    worldSpawnY;
     /** @type {number} */
-    worldSpawnZ
+    worldSpawnZ;
 
     /** @type {Map<String, any>} */
-    gamerules 
+    gamerules;
 
     /** @type {Buffer|null} */
-    cachedItemPalette = null
+    cachedItemPalette = null;
 
     encodePayload() {
         this.writeVarLong(this.entityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
-        this.writeVarInt(this.gamemode); 
+        this.writeVarInt(this.gamemode);
 
         // vector 3
         this.writeLFloat(this.playerX);
@@ -107,14 +108,14 @@ class StartGamePacket extends DataPacket {
         this.writeByte(0); // from world template
         this.writeByte(0); // world template option locked
         this.writeByte(1); // only spawn v1 villagers
-        this.writeString(Identifiers.MinecraftVersion); 
+        this.writeString(Identifiers.MinecraftVersion);
         this.writeLInt(0); // limited world height
         this.writeLInt(0); // limited world length
         this.writeBool(false); // has new nether
         this.writeBool(false); // experimental gameplay
 
-        this.writeString(this.levelId); 
-        this.writeString(this.worldName); 
+        this.writeString(this.levelId);
+        this.writeString(this.worldName);
         this.writeString(''); // template content identity
 
         this.writeByte(0); // is trial
@@ -139,11 +140,10 @@ class StartGamePacket extends DataPacket {
                 stream.writeString(name);
                 stream.writeLShort(legacyId);
             }
-            this.cachedItemPalette = stream.buffer; 
+            this.cachedItemPalette = stream.buffer;
         }
 
         return this.cachedItemPalette;
     }
-
 }
 module.exports = StartGamePacket;

@@ -2,14 +2,13 @@ const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 const Item = require('../../item/Item').default;
 
-
 class InventoryContentPacket extends DataPacket {
-    static NetID = Identifiers.InventoryContentPacket
+    static NetID = Identifiers.InventoryContentPacket;
 
     /** @type {number} */
-    windowId
+    windowId;
     /** @type {Item[]} */
-    items
+    items;
 
     encodePayload() {
         this.writeUnsignedVarInt(this.windowId);

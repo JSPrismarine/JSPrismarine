@@ -4,14 +4,13 @@ const Identifiers = require('../Identifiers').default;
 const EventManager = require('../../events/EventManager');
 const AnimatePacket = require('../packet/animate');
 
-
 class AnimateHandler {
-    static NetID = Identifiers.AnimatePacket
+    static NetID = Identifiers.AnimatePacket;
 
     /**
-     * @param {AnimatePacket} packet 
+     * @param {AnimatePacket} packet
      * @param {Prismarine} server
-     * @param {Player} player 
+     * @param {Player} player
      */
     static handle(packet, server, player) {
         let pk = new AnimatePacket();

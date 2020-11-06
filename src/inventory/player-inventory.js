@@ -1,11 +1,10 @@
 const Inventory = require('./inventory');
 const Item = require('../item/Item').default;
 
-
 const PlayerInventorySlots = 36;
 class PlayerInventory extends Inventory {
     /** @type {number} */
-    #handSlot = 0
+    #handSlot = 0;
 
     constructor() {
         super(PlayerInventorySlots);
@@ -13,8 +12,8 @@ class PlayerInventory extends Inventory {
 
     /**
      * Sets an item into the hand slot.
-     * 
-     * @param {Item} item 
+     *
+     * @param {Item} item
      */
     setItemInHand(item) {
         this.setItem(this.#handSlot, item);
@@ -22,7 +21,7 @@ class PlayerInventory extends Inventory {
 
     /**
      * Returns the item in the player hand.
-     * 
+     *
      * @returns {Item}
      */
     getItemInHand() {
@@ -31,7 +30,7 @@ class PlayerInventory extends Inventory {
 
     /**
      * Returns the hand slot.
-     * 
+     *
      * @returns {number}
      */
     getHandSlotIndex() {

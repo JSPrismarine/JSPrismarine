@@ -1,20 +1,17 @@
 const CommandParameter = require('./CommandParameter').default;
 
-
 class CommandData {
-
     /** @type {String} */
-    name
+    name;
     /** @type {String} */
-    description
+    description;
     /** @type {number} */
-    flags
+    flags;
     /** @type {number} */
-    permission
+    permission;
     /** @type {Array} */
-    aliases = []
+    aliases = [];
     /** @type {Set<CommandParameter>} */
-    parameters = new Set()
-
+    parameters = new Set();
 }
 module.exports = CommandData;

@@ -1,14 +1,13 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class PacketViolationWarningPacket extends DataPacket {
-    static NetID = Identifiers.PacketViolationWarningPacket
+    static NetID = Identifiers.PacketViolationWarningPacket;
 
-    type
-    severity
-    packetId
-    message
+    type;
+    severity;
+    packetId;
+    message;
 
     decodePayload() {
         this.type = this.readVarInt();

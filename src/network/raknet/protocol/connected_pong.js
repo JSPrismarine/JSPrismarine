@@ -1,16 +1,15 @@
-const Packet = require("./packet");
+const Packet = require('./packet');
 const Identifiers = require('./Identifiers').default;
 
-'use strict';
+('use strict');
 
 class ConnectedPong extends Packet {
-
     constructor() {
         super(Identifiers.ConnectedPong);
     }
 
-    #clientTimestamp
-    #serverTimestamp
+    #clientTimestamp;
+    #serverTimestamp;
 
     write() {
         super.write();
@@ -33,6 +32,5 @@ class ConnectedPong extends Packet {
     set serverTimestamp(serverTimestamp) {
         this.#serverTimestamp = serverTimestamp;
     }
-        
 }
 module.exports = ConnectedPong;

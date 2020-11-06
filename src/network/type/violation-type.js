@@ -1,4 +1,3 @@
-
 const ViolationType = {
     SeverityWarning: 0,
     SeverityFinalWarning: 1,

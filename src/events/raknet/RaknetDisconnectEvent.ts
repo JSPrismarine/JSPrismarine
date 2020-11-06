@@ -1,5 +1,5 @@
-import Event from "../Event";
-import type InetAddress from "../../network/raknet/utils/InetAddress";
+import Event from '../Event';
+import type InetAddress from '../../network/raknet/utils/InetAddress';
 
 /**
  * Fired just as a client disconnects from the raknet instance
@@ -20,4 +20,4 @@ export default class RaknetDisconnectEvent extends Event {
     public getReason(): string {
         return this.reason;
     }
-};
+}

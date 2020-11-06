@@ -3,18 +3,18 @@ const withDeprecated = (date: Date) => {
     return (target: any, propertyKey: string, descriptor: any) => {
         // Fix javascript & typescript different runtime fuckery
         if (!descriptor)
-            descriptor = target.descriptor || descriptor.descriptor
-        if (!target.descriptor)
-            target.descriptor = descriptor.descriptor
-        if (!target.value)
-            target.value = descriptor?.value || target?.value;
-        if (!propertyKey)
-            propertyKey = target.key || descriptor.key;
-
+            descriptor = target.descriptor || descriptor.descriptor;
+        if (!target.descriptor) target.descriptor = descriptor.descriptor;
+        if (!target.value) target.value = descriptor?.value || target?.value;
+        if (!propertyKey) propertyKey = target.key || descriptor.key;
 
         const targetMethod = target.value;
         target.value = function (...args: any[]) {
-            this.getLogger().warn(`§c${propertyKey}§r is deprecated and will be removed on §l§e${removedOn.toISOString().split('T')[0]}§r!`);
+            this.getLogger().warn(
+                `§c${propertyKey}§r is deprecated and will be removed on §l§e${
+                    removedOn.toISOString().split('T')[0]
+                }§r!`
+            );
 
             return targetMethod.apply(this, args);
         };

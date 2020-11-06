@@ -1,4 +1,3 @@
-
 const PlayerAction = {
     StartBreak: 0,
     AbortBreak: 1,
@@ -12,7 +11,7 @@ const PlayerAction = {
     StartSprint: 9,
     StopSprint: 10,
     StartSneak: 11,
-    StopSneak: 12, 
+    StopSneak: 12,
     DimensionChangeRequest: 13,
     DimensionChangeACK: 14,
     StartGlide: 15,

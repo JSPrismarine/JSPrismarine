@@ -1,8 +1,8 @@
 import path from 'path';
-import ConfigBuilder from "../../../../config/ConfigBuilder";
-import Prismarine from "../../../../Prismarine";
-import LoggerBuilder from "../../../../utils/Logger";
-import PluginApiVersion from "../../PluginApiVersion";
+import ConfigBuilder from '../../../../config/ConfigBuilder';
+import Prismarine from '../../../../Prismarine';
+import LoggerBuilder from '../../../../utils/Logger';
+import PluginApiVersion from '../../PluginApiVersion';
 import withDeprecated from '../../../hoc/withDeprecated';
 import Server from './Server';
 import EventManager from './EventManager';
@@ -17,9 +17,9 @@ export default class PluginApi extends PluginApiVersion {
     constructor(private server: Prismarine, pkg: any) {
         super(PLUGIN_API_VERSION);
         this.pkg = pkg;
-    };
-    public async onInit() { }
-    public async onDisable() { }
+    }
+    public async onInit() {}
+    public async onDisable() {}
 
     /**
      * returns an instance of the logger builder class with the plugin name prefixed
@@ -28,11 +28,16 @@ export default class PluginApi extends PluginApiVersion {
         const name = this.pkg.prismarine?.displayName || this.pkg.name;
 
         return {
-            silly: (...args) => this.server.getLogger().silly(`[${name}] ${args}`),
-            debug: (...args) => this.server.getLogger().debug(`[${name}] ${args}`),
-            info: (...args) => this.server.getLogger().info(`[${name}] ${args}`),
-            warn: (...args) => this.server.getLogger().warn(`[${name}] ${args}`),
-            error: (...args) => this.server.getLogger().error(`[${name}] ${args}`),
+            silly: (...args) =>
+                this.server.getLogger().silly(`[${name}] ${args}`),
+            debug: (...args) =>
+                this.server.getLogger().debug(`[${name}] ${args}`),
+            info: (...args) =>
+                this.server.getLogger().info(`[${name}] ${args}`),
+            warn: (...args) =>
+                this.server.getLogger().warn(`[${name}] ${args}`),
+            error: (...args) =>
+                this.server.getLogger().error(`[${name}] ${args}`)
         } as LoggerBuilder;
     }
 
@@ -40,7 +45,9 @@ export default class PluginApi extends PluginApiVersion {
      * returns an instance of the config builder class
      */
     public getConfigBuilder(configFile: string): ConfigBuilder {
-        return new ConfigBuilder(path.join(process.cwd(), '/plugins/', this.pkg.name, configFile));
+        return new ConfigBuilder(
+            path.join(process.cwd(), '/plugins/', this.pkg.name, configFile)
+        );
     }
 
     /**
@@ -62,9 +69,13 @@ export default class PluginApi extends PluginApiVersion {
     /**
      * returns an instance of the event manager
      */
-    public getEventManager<CustomEventTypes extends [string, any] = [string, any]>(): EventManager<CustomEventTypes> {
-        return this.eventManager ?? 
-            (this.eventManager = new EventManager(this.server));
+    public getEventManager<
+        CustomEventTypes extends [string, any] = [string, any]
+    >(): EventManager<CustomEventTypes> {
+        return (
+            this.eventManager ??
+            (this.eventManager = new EventManager(this.server))
+        );
     }
 
     /**
@@ -81,4 +92,4 @@ export default class PluginApi extends PluginApiVersion {
     public getServerDetails(): Server {
         return new Server(this.server);
     }
-};
+}

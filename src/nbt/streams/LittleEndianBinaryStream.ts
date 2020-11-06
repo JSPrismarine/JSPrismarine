@@ -44,5 +44,4 @@ export default class LittleEndianBinaryStream extends CustomBinaryStream {
     writeDouble(v: number) {
         return this.writeLDouble(v);
     }
-
-};
+}

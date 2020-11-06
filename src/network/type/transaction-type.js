@@ -1,4 +1,3 @@
-
 const TransactionType = {
     Normal: 0,
     Mismatch: 1,

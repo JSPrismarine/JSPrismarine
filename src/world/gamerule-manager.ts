@@ -1,4 +1,4 @@
-import Prismarine from "../Prismarine";
+import Prismarine from '../Prismarine';
 
 export const Rules = {
     CommandBlockOutput: 'commandblockoutput',
@@ -17,7 +17,7 @@ export const Rules = {
     NaturalRegeneration: 'naturalregeneration',
     PVP: 'pvp',
     SendCommandFeedback: 'sendcommandfeedback',
-    ShowCoordinates: 'showcoordinates',  // bool
+    ShowCoordinates: 'showcoordinates', // bool
     RandomTickSpeed: 'randomtickspeed',
     TNTExplodes: 'tntexplodes'
 };
@@ -32,9 +32,9 @@ export class GameruleManager {
 
     /**
      * Sets a game rule.
-     * 
-     * @param name 
-     * @param value 
+     *
+     * @param name
+     * @param value
      */
     public setGamerule(name: string, value: boolean | number): void {
         this.rules.set(name, value);
@@ -42,8 +42,8 @@ export class GameruleManager {
 
     /**
      * Returns the game rule value by its name.
-     * 
-     * @param name 
+     *
+     * @param name
      */
     public getGamerule(name: string): any {
         if (!Object.values(Rules).includes(name)) {
@@ -55,5 +55,4 @@ export class GameruleManager {
     public getGamerules(): Map<string, any> {
         return this.rules;
     }
-
 }

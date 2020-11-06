@@ -1,14 +1,14 @@
-import Tool from "../Tool";
-import { ItemIdsType } from "../ItemIdsType";
+import Tool from '../Tool';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class Crossbow extends Tool {
     constructor() {
         super({
-            name: "minecraft:crossbow",
-            id: ItemIdsType.Crossbow,
+            name: 'minecraft:crossbow',
+            id: ItemIdsType.Crossbow
         });
     }
-    
+
     getBurntime() {
         return 200;
     }

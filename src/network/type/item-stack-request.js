@@ -1,10 +1,6 @@
-
-
 class ItemStackRequest {
-
     /** @type {number} */
-    requestId
-    actions = []
-    
+    requestId;
+    actions = [];
 }
 module.exports = ItemStackRequest;

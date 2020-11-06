@@ -6,32 +6,31 @@ const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 const Skin = require('../../utils/skin/skin');
 const Device = require('../../utils/device');
 
-
 class LoginPacket extends DataPacket {
-    static NetID = Identifiers.LoginPacket
+    static NetID = Identifiers.LoginPacket;
 
     /** @type {string} */
-    XUID
+    XUID;
     /** @type {string} */
-    identity
+    identity;
     /** @type {string} */
-    disaplayName
+    disaplayName;
     /** @type {number} */
-    protocol
+    protocol;
     /** @type {string} */
-    identityPublicKey
+    identityPublicKey;
 
     /** @type {number} */
-    clientRandomId
+    clientRandomId;
     /** @type {string} */
-    serverAddress
+    serverAddress;
     /** @type {string} */
-    languageCode
+    languageCode;
 
     /** @type {Device} */
-    device
+    device;
     /** @type {Skin} */
-    skin
+    skin;
 
     decodePayload() {
         this.protocol = this.readInt();

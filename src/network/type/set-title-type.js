@@ -1,4 +1,3 @@
-
 const TitleType = {
     ClearTitle: 0,
     ResetTitle: 1,

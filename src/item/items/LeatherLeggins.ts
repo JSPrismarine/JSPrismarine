@@ -1,11 +1,11 @@
-import Armor from "../Armor";
-import { ItemIdsType } from "../ItemIdsType";
+import Armor from '../Armor';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class LeatherLeggins extends Armor {
     constructor() {
         super({
-            name: "minecraft:leather_leggins",
-            id: ItemIdsType.LeatherPants,
+            name: 'minecraft:leather_leggins',
+            id: ItemIdsType.LeatherPants
         });
     }
 

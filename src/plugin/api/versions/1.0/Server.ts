@@ -1,4 +1,4 @@
-import Prismarine from "../../../../Prismarine";
+import Prismarine from '../../../../Prismarine';
 
 /**
  * Provides generic server details such as motd, player-count etc.
@@ -8,11 +8,13 @@ export default class Server {
 
     constructor(server: Prismarine) {
         this.server = server;
-
     }
 
     public getMotd(): string {
-        return this.server.getRaknet()?.name.getMotd() || this.server.getConfig().getMotd();
+        return (
+            this.server.getRaknet()?.name.getMotd() ||
+            this.server.getConfig().getMotd()
+        );
     }
 
     public getMaxPlayerCount(): number {
@@ -22,4 +24,4 @@ export default class Server {
     public getOnlinePlayerCount(): number {
         return this.server.getOnlinePlayers().length;
     }
-};
+}

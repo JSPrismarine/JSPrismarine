@@ -1,11 +1,11 @@
-import Tool from "../Tool";
-import { ItemIdsType } from "../ItemIdsType";
+import Tool from '../Tool';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class FlintSteel extends Tool {
     constructor() {
         super({
-            name: "minecraft:flint_and_steel",
-            id: ItemIdsType.FlintSteel,
+            name: 'minecraft:flint_and_steel',
+            id: ItemIdsType.FlintSteel
         });
     }
 

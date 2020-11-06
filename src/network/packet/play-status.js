@@ -1,11 +1,10 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class PlayStatusPacket extends DataPacket {
-    static NetID = Identifiers.PlayStatusPacket
+    static NetID = Identifiers.PlayStatusPacket;
 
-    status
+    status;
 
     encodePayload() {
         this.writeInt(this.status);

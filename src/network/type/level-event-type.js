@@ -1,4 +1,3 @@
-
 const LevelEventType = {
     BlockStartBreak: 3600,
     BlockStopBreak: 3601,

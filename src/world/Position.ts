@@ -1,5 +1,5 @@
-import Vector3 from "../math/Vector3";
-import World from "./world";
+import Vector3 from '../math/Vector3';
+import World from './world';
 
 interface PositionData {
     x?: number;
@@ -11,7 +11,7 @@ interface PositionData {
 export default class Position extends Vector3 {
     private world: World;
 
-    constructor({ x, y, z, world }: PositionData) {
+    constructor({x, y, z, world}: PositionData) {
         super(x, y, z);
         this.world = world;
     }

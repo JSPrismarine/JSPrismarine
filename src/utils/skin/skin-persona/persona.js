@@ -1,14 +1,11 @@
 const SkinPersonaPiece = require('./persona-piece');
 const PieceTintColor = require('./piece-tint-color');
 
-
 class SkinPersona {
-
     /** @type {Set<SkinPersonaPiece>} */
-    pieces = new Set()
+    pieces = new Set();
 
     /** @type {Set<PieceTintColor>} */
-    tintColors = new Set()
-
+    tintColors = new Set();
 }
-module.exports = SkinPersona;      
+module.exports = SkinPersona;

@@ -1,5 +1,5 @@
 import Transparent from '../Transparent';
-import { BlockIdsType } from '../BlockIdsType';
+import {BlockIdsType} from '../BlockIdsType';
 
 export default class Air extends Transparent {
     constructor() {
@@ -21,7 +21,7 @@ export default class Air extends Transparent {
     canPassThrough() {
         return true;
     }
-    
+
     canBePlaced() {
         return false;
     }
@@ -37,4 +37,4 @@ export default class Air extends Transparent {
     isPartOfCreativeInventory() {
         return false;
     }
-};
+}

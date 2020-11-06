@@ -1,9 +1,9 @@
-import Chat from "../../chat/Chat";
-import ChatEvent from "../../events/chat/ChatEvent";
-import PlayerSpawnEvent from "../../events/player/PlayerSpawnEvent";
-import type Player from "../../player/Player";
-import type Prismarine from "../../Prismarine";
-import type ResourcePackResponsePacket from "../packet/resource-pack-response";
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
+import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
+import type Player from '../../player/Player';
+import type Prismarine from '../../Prismarine';
+import type ResourcePackResponsePacket from '../packet/resource-pack-response';
 
 const Identifiers = require('../Identifiers').default;
 const ResourcePackStatus = require('../type/resource-pack-status');
@@ -14,11 +14,14 @@ const StartGamePacket = require('../packet/start-game');
 const Gamemode = require('../../world/gamemode');
 // const Item = require('../../item/Item')
 
-
 export default class ResourcePackResponseHandler {
-    static NetID = Identifiers.ResourcePackResponsePacket
+    static NetID = Identifiers.ResourcePackResponsePacket;
 
-    static async handle(packet: ResourcePackResponsePacket, server: Prismarine, player: Player) {
+    static async handle(
+        packet: ResourcePackResponsePacket,
+        server: Prismarine,
+        player: Player
+    ) {
         let pk;
         if (packet.status === ResourcePackStatus.HaveAllPacks) {
             pk = new ResourcePackStackPacket();
@@ -27,8 +30,7 @@ export default class ResourcePackResponseHandler {
             // Emit playerSpawn event
             const spawnEvent = new PlayerSpawnEvent(player);
             await server.getEventManager().post(['playerSpawn', spawnEvent]);
-            if (spawnEvent.cancelled)
-                return;
+            if (spawnEvent.cancelled) return;
 
             pk = new StartGamePacket();
             pk.entityId = player.runtimeId;
@@ -53,14 +55,26 @@ export default class ResourcePackResponseHandler {
 
             player.getPlayerConnection().sendTime(world.getTicks());
 
-            player.getPlayerConnection().sendDataPacket(new AvailableActorIdentifiersPacket());
-            player.getPlayerConnection().sendDataPacket(new BiomeDefinitionListPacket());
+            player
+                .getPlayerConnection()
+                .sendDataPacket(new AvailableActorIdentifiersPacket());
+            player
+                .getPlayerConnection()
+                .sendDataPacket(new BiomeDefinitionListPacket());
 
-            player.getPlayerConnection().sendAttributes(player.attributes.getDefaults());
+            player
+                .getPlayerConnection()
+                .sendAttributes(player.attributes.getDefaults());
 
-            server.getLogger().info(
-                `§b${player.getUsername()}§f is attempting to join with id §b${player.runtimeId}§f from ${player.getAddress().address}:${player.getAddress().port}`
-            );
+            server
+                .getLogger()
+                .info(
+                    `§b${player.getUsername()}§f is attempting to join with id §b${
+                        player.runtimeId
+                    }§f from ${player.getAddress().address}:${
+                        player.getAddress().port
+                    }`
+                );
 
             player.setNameTag(player.getUsername());
             // TODO: always visible nametag
@@ -82,7 +96,12 @@ export default class ResourcePackResponseHandler {
             }
 
             // Announce connection
-            const chatSpawnEvent = new ChatEvent(new Chat(server.getConsole(), `§e${player.getUsername()} joined the game`));
+            const chatSpawnEvent = new ChatEvent(
+                new Chat(
+                    server.getConsole(),
+                    `§e${player.getUsername()} joined the game`
+                )
+            );
             server.getEventManager().emit('chat', chatSpawnEvent);
         }
     }

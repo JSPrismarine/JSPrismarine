@@ -1,12 +1,11 @@
-import type Block from "../../block/Block";
-import SubChunk from "./SubChunk";
+import type Block from '../../block/Block';
+import SubChunk from './SubChunk';
 
 const EmptySubChunk = require('./empty-sub-chunk');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 
 const MaxSubChunks = 16;
 export default class Chunk {
-
     /** @type {number} */
     #x = 0;
     /** @type {number} */
@@ -34,34 +33,51 @@ export default class Chunk {
 
     /**
      * Chunk constructor.
-     * 
-     * @param {number} chunkX 
-     * @param {number} chunkZ 
-     * @param {Map<Number, SubChunk>} subChunks 
-     * @param {Entity[]} entities 
-     * @param {undefined[]} tiles 
-     * @param {number[]} biomes 
-     * @param {number[]} heightMap 
+     *
+     * @param {number} chunkX
+     * @param {number} chunkZ
+     * @param {Map<Number, SubChunk>} subChunks
+     * @param {Entity[]} entities
+     * @param {undefined[]} tiles
+     * @param {number[]} biomes
+     * @param {number[]} heightMap
      */
-    constructor(chunkX: number, chunkZ: number, subChunks = new Map(), entities = [], tiles = [], biomes = [], heightMap = []) {
+    constructor(
+        chunkX: number,
+        chunkZ: number,
+        subChunks = new Map(),
+        entities = [],
+        tiles = [],
+        biomes = [],
+        heightMap = []
+    ) {
         this.#x = chunkX;
         this.#z = chunkZ;
 
         for (let y = 0; y < this.#height; y++) {
-            this.#subChunks.set(y, subChunks.has(y) ? subChunks.get(y) : new EmptySubChunk());
+            this.#subChunks.set(
+                y,
+                subChunks.has(y) ? subChunks.get(y) : new EmptySubChunk()
+            );
         }
 
         if (heightMap.length === 256) {
             this.#heightMap = heightMap;
         } else {
-            if (heightMap.length !== 0) throw new Error(`Wrong HrightMap value count, expected 256, got ${heightMap.length}`);
+            if (heightMap.length !== 0)
+                throw new Error(
+                    `Wrong HrightMap value count, expected 256, got ${heightMap.length}`
+                );
             this.#heightMap = new Array(256).fill(this.#height * 16);
         }
 
         if (biomes.length === 256) {
             this.#biomes = biomes;
         } else {
-            if (biomes.length !== 0) throw new Error(`Wrong Biomes value count, expected 256, got ${biomes.length}`);
+            if (biomes.length !== 0)
+                throw new Error(
+                    `Wrong Biomes value count, expected 256, got ${biomes.length}`
+                );
             this.#biomes = new Array(256).fill(0x00);
         }
     }
@@ -79,11 +95,11 @@ export default class Chunk {
     }
 
     static getBiomeIndex(x: number, z: number) {
-        return (z % 16) | x;
+        return z % 16 | x;
     }
 
     static getHeightMapIndex(x: number, z: number) {
-        return (z % 16) | x;
+        return z % 16 | x;
     }
 
     setBiomeId(x: number, z: number, biomeId: any) {
@@ -103,8 +119,7 @@ export default class Chunk {
     }
 
     setBlock(x: number, y: number, z: number, block: Block | null) {
-        if (!block)
-            return;
+        if (!block) return;
 
         this.getSubChunk(y >> 4, true).setBlock(x, y & 0x0f, z, block);
         this.#hasChanged = true;
@@ -113,7 +128,10 @@ export default class Chunk {
     getSubChunk(y: number, generateNew = false) {
         if (y < 0 || y >= this.#height) {
             return new EmptySubChunk();
-        } else if (generateNew && this.#subChunks.get(y) instanceof EmptySubChunk) {
+        } else if (
+            generateNew &&
+            this.#subChunks.get(y) instanceof EmptySubChunk
+        ) {
             this.#subChunks.set(y, new SubChunk());
         }
 
@@ -169,7 +187,7 @@ export default class Chunk {
 
     /**
      * Returns true if the chunk has been modified.
-     * 
+     *
      * @returns {boolean}
      */
     hasChanged() {
@@ -182,8 +200,8 @@ export default class Chunk {
 
     /**
      * Adds an entity into the chunk
-     * 
-     * @param {Entity} entity 
+     *
+     * @param {Entity} entity
      */
     addEntity(entity: any) {
         this.#entities.push(entity);
@@ -209,4 +227,4 @@ export default class Chunk {
         stream.writeByte(0);
         return stream.buffer;
     }
-};
+}

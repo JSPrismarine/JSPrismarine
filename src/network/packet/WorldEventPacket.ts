@@ -1,13 +1,13 @@
-import Identifiers from "../Identifiers";
-import DataPacket from "./Packet";
+import Identifiers from '../Identifiers';
+import DataPacket from './Packet';
 
 export default class WorldEventPacket extends DataPacket {
-    static NetID = Identifiers.WorldEventPacket
+    static NetID = Identifiers.WorldEventPacket;
 
     eventId: VarInt = 0;
-    x: LFloat = 0
-    y: LFloat = 0
-    z: LFloat = 0
+    x: LFloat = 0;
+    y: LFloat = 0;
+    z: LFloat = 0;
     data: VarInt = 0;
 
     decodePayload() {
@@ -27,4 +27,4 @@ export default class WorldEventPacket extends DataPacket {
 
         this.writeVarInt(this.data as number);
     }
-};
+}

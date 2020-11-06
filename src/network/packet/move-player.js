@@ -2,28 +2,27 @@ const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 const MovementType = require('../type/MovementType').default;
 
-
 class MovePlayerPacket extends DataPacket {
-    static NetID = Identifiers.MovePlayerPacket
+    static NetID = Identifiers.MovePlayerPacket;
 
-    runtimeEntityId
+    runtimeEntityId;
 
-    positionX
-    positionY
-    positionZ
+    positionX;
+    positionY;
+    positionZ;
 
-    pitch
-    yaw
-    headYaw
+    pitch;
+    yaw;
+    headYaw;
 
-    mode
+    mode;
 
-    onGround
+    onGround;
 
-    ridingEntityRuntimeId
+    ridingEntityRuntimeId;
 
-    teleportCause = null
-    teleportItemId = null
+    teleportCause = null;
+    teleportItemId = null;
 
     decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();

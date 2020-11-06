@@ -1,14 +1,13 @@
 const DataPacket = require('./Packet').default;
 const Identifiers = require('../Identifiers').default;
 
-
 class NetworkChunkPublisherUpdatePacket extends DataPacket {
-    static NetID = Identifiers.NetworkChunkPublisherUpdatePacket
+    static NetID = Identifiers.NetworkChunkPublisherUpdatePacket;
 
-    x
-    y
-    z
-    radius
+    x;
+    y;
+    z;
+    radius;
 
     encodePayload() {
         this.writeVarInt(this.x);

@@ -1,9 +1,9 @@
-import Block from "../../block/Block";
-import Item from "../../item/Item";
-import Vector3 from "../../math/Vector3";
-import type Prismarine from "../../Prismarine";
-import Identifiers from "../Identifiers";
-import DataPacket from "./Packet";
+import Block from '../../block/Block';
+import Item from '../../item/Item';
+import Vector3 from '../../math/Vector3';
+import type Prismarine from '../../Prismarine';
+import Identifiers from '../Identifiers';
+import DataPacket from './Packet';
 
 const ChangeSlot = require('../type/change-slot');
 const NetworkTransaction = require('../type/network-transaction');
@@ -12,10 +12,10 @@ const InventoryTransactionType = require('../type/inventory-transaction-type');
 export enum InventoryTransactionActionType {
     Build = 1,
     Break = 2
-};
+}
 
 export default class InventoryTransactionPacket extends DataPacket {
-    static NetID = Identifiers.InventoryTransactionPacket
+    static NetID = Identifiers.InventoryTransactionPacket;
 
     type = 0;
     actions = new Map();
@@ -35,7 +35,7 @@ export default class InventoryTransactionPacket extends DataPacket {
     // 1.16
 
     requestId = 0;
-    changeSlot = new Map()
+    changeSlot = new Map();
     hasItemStackIds: boolean = false;
 
     decodePayload() {
@@ -52,7 +52,10 @@ export default class InventoryTransactionPacket extends DataPacket {
 
         let actionsCount = this.readUnsignedVarInt();
         for (let i = 0; i < actionsCount; i++) {
-            let networkTransaction = new NetworkTransaction().decode(this, this.hasItemStackIds);
+            let networkTransaction = new NetworkTransaction().decode(
+                this,
+                this.hasItemStackIds
+            );
             this.actions.set(i, networkTransaction);
         }
 
@@ -62,12 +65,24 @@ export default class InventoryTransactionPacket extends DataPacket {
                 break;
             case InventoryTransactionType.UseItem:
                 this.actionType = this.readUnsignedVarInt();
-                this.blockPosition = new Vector3(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt());
+                this.blockPosition = new Vector3(
+                    this.readVarInt(),
+                    this.readUnsignedVarInt(),
+                    this.readVarInt()
+                );
                 this.face = this.readVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = this.readItemStack();
-                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
-                this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
+                this.playerPosition = new Vector3(
+                    this.readLFloat(),
+                    this.readLFloat(),
+                    this.readLFloat()
+                );
+                this.clickPosition = new Vector3(
+                    this.readLFloat(),
+                    this.readLFloat(),
+                    this.readLFloat()
+                );
                 this.blockRuntimeId = this.readUnsignedVarInt();
                 break;
             case InventoryTransactionType.UseItemOnEntity:
@@ -75,17 +90,31 @@ export default class InventoryTransactionPacket extends DataPacket {
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = this.readItemStack();
-                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
-                this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
+                this.playerPosition = new Vector3(
+                    this.readLFloat(),
+                    this.readLFloat(),
+                    this.readLFloat()
+                );
+                this.clickPosition = new Vector3(
+                    this.readLFloat(),
+                    this.readLFloat(),
+                    this.readLFloat()
+                );
                 break;
             case InventoryTransactionType.ReleaseItem:
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = this.readItemStack();
-                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
+                this.playerPosition = new Vector3(
+                    this.readLFloat(),
+                    this.readLFloat(),
+                    this.readLFloat()
+                );
                 break;
             default:
-                this.getServer().getLogger().warn(`Unknown transaction type ${this.type}`);
+                this.getServer()
+                    .getLogger()
+                    .warn(`Unknown transaction type ${this.type}`);
         }
     }
-};
+}

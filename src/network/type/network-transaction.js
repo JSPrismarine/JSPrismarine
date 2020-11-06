@@ -1,23 +1,22 @@
 const NetworkTransactionSource = require('../type/network-transaction-source');
 const PacketBinaryStream = require('../PacketBinaryStream').default;
 
-
 class NetworkTransaction {
     #server;
     /** @type {number} */
-    sourceType
+    sourceType;
     /** @type {number} */
-    windowId
+    windowId;
     /** @type {number} */
-    sourceFlags = 0
+    sourceFlags = 0;
     /** @type {number} */
-    slot
+    slot;
 
-    oldItem
-    newItem
+    oldItem;
+    newItem;
 
     // 1.16
-    newItemStackId
+    newItemStackId;
 
     constructor(server) {
         this.#server = server;
@@ -27,19 +26,21 @@ class NetworkTransaction {
     decode(buffer, hasItemStack = false) {
         this.sourceType = buffer.readUnsignedVarInt();
 
-        switch(this.sourceType) {
+        switch (this.sourceType) {
             case NetworkTransactionSource.Container:
             case NetworkTransactionSource.Unknown:
             case NetworkTransactionSource.CraftingGrid:
                 this.windowId = buffer.readVarInt();
                 break;
             case NetworkTransactionSource.World:
-                this.sourceFlags = buffer.readUnsignedVarInt(); 
+                this.sourceFlags = buffer.readUnsignedVarInt();
                 break;
             case NetworkTransactionSource.Creative:
                 break;
             default:
-                this.#server.getLogger().warn(`Unknown source type ${this.sourceType}`);
+                this.#server
+                    .getLogger()
+                    .warn(`Unknown source type ${this.sourceType}`);
         }
 
         this.slot = buffer.readUnsignedVarInt();

@@ -1,11 +1,11 @@
-import Armor from "../Armor";
-import { ItemIdsType } from "../ItemIdsType";
+import Armor from '../Armor';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class DiamondHelmet extends Armor {
     constructor() {
         super({
-            name: "minecraft:diamond_helmet",
-            id: ItemIdsType.DiamondHelmet,
+            name: 'minecraft:diamond_helmet',
+            id: ItemIdsType.DiamondHelmet
         });
     }
 

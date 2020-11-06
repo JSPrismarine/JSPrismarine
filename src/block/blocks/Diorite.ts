@@ -1,4 +1,4 @@
-import Stone, { StoneType } from './Stone';
+import Stone, {StoneType} from './Stone';
 import Item from '../../item/Item';
 import Prismarine from '../../Prismarine';
 
@@ -8,8 +8,6 @@ export default class Diorite extends Stone {
     }
 
     getDropsForCompatibleTool(item: Item, server: Prismarine) {
-        return [
-            server.getBlockManager().getBlock('minecraft:diorite')
-        ];
+        return [server.getBlockManager().getBlock('minecraft:diorite')];
     }
-};
+}

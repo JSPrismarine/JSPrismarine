@@ -1,11 +1,11 @@
-import Tool from "../Tool";
-import { ItemIdsType } from "../ItemIdsType";
+import Tool from '../Tool';
+import {ItemIdsType} from '../ItemIdsType';
 
 export default class Bow extends Tool {
     constructor() {
         super({
-            name: "minecraft:bow",
-            id: ItemIdsType.Bow,
+            name: 'minecraft:bow',
+            id: ItemIdsType.Bow
         });
     }
 

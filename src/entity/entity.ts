@@ -1,8 +1,8 @@
-import Position from "../world/Position";
-import World from "../world/world";
+import Position from '../world/Position';
+import World from '../world/world';
 
-const { MetadataManager, MetadataFlag, FlagType } = require('./metadata');
-const { AttributeManager } = require('./attribute');
+const {MetadataManager, MetadataFlag, FlagType} = require('./metadata');
+const {AttributeManager} = require('./attribute');
 const AddActorPacket = require('../network/packet/add-actor');
 
 // All entities will extend this base class
@@ -19,10 +19,10 @@ export default class Entity extends Position {
 
     /**
      * Entity constructor.
-     * 
+     *
      */
     constructor(world: World) {
-        super({ world: world });  // TODO
+        super({world: world}); // TODO
         this.runtimeId = Entity.runtimeIdCount += 1;
 
         this.metadata.setLong(MetadataFlag.Index, 0);
@@ -43,11 +43,19 @@ export default class Entity extends Position {
         this.metadata.setString(MetadataFlag.Nametag, name);
     }
 
-    public setDataFlag(propertyId: number, flagId: number, value = true, propertyType = FlagType.Long) {
+    public setDataFlag(
+        propertyId: number,
+        flagId: number,
+        value = true,
+        propertyType = FlagType.Long
+    ) {
         if (this.getDataFlag(propertyId, flagId) !== value) {
-            let flags = this.metadata.getPropertyValue(propertyId, propertyType);
+            let flags = this.metadata.getPropertyValue(
+                propertyId,
+                propertyType
+            );
             let biFlags = BigInt(flags);
-            biFlags ^= (1n << BigInt(flagId));
+            biFlags ^= 1n << BigInt(flagId);
             this.metadata.setPropertyValue(propertyId, propertyType, biFlags);
         }
     }
@@ -56,20 +64,30 @@ export default class Entity extends Position {
         // After appending the first flag, it is now a bigint and for further flags
         // we need to handle it like that
         if (typeof this.metadata.getPropertyValue(propertyId) === 'bigint') {
-            return (this.metadata.getPropertyValue(propertyId) & (1n << BigInt(flagId))) > 0;
+            return (
+                (this.metadata.getPropertyValue(propertyId) &
+                    (1n << BigInt(flagId))) >
+                0
+            );
         }
         return (this.metadata.getPropertyValue(propertyId) & (1 << flagId)) > 0;
     }
 
     public setGenericFlag(flagId: number, value = true) {
-        this.setDataFlag(flagId >= 64 ? 94 : MetadataFlag.Index, flagId % 64, value, FlagType.Long);
+        this.setDataFlag(
+            flagId >= 64 ? 94 : MetadataFlag.Index,
+            flagId % 64,
+            value,
+            FlagType.Long
+        );
     }
 
-    public sendSpawn(player: any) {  // Recursive import, find another way  
+    public sendSpawn(player: any) {
+        // Recursive import, find another way
         let pk = new AddActorPacket();
         pk.runtimeEntityId = Entity.runtimeIdCount += 1;
         // @ts-ignore
-        pk.type = this.constructor.MOB_ID;  // TODO
+        pk.type = this.constructor.MOB_ID; // TODO
         pk.x = player.x;
         pk.y = player.y;
         pk.z = player.z;
@@ -79,5 +97,4 @@ export default class Entity extends Position {
         pk.motionZ = 0;
         player.getPlayerConnection().sendDataPacket(pk);
     }
-
 }

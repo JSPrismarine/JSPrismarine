@@ -1,6 +1,6 @@
-import type Prismarine from "../../../Prismarine";
-import { getGamemodeName } from "../../../world/gamemode";
-import Identifiers from "../../Identifiers";
+import type Prismarine from '../../../Prismarine';
+import {getGamemodeName} from '../../../world/gamemode';
+import Identifiers from '../../Identifiers';
 
 export default class ServerName {
     private server: Prismarine;
@@ -87,16 +87,18 @@ export default class ServerName {
     }
 
     public toString() {
-        return [
-            'MCPE',
-            this.motd,
-            this.protocol,
-            this.version,
-            this.players.online,
-            this.players.max,
-            this.serverId,
-            this.name,
-            this.gamemode
-        ].join(';') + ';';
+        return (
+            [
+                'MCPE',
+                this.motd,
+                this.protocol,
+                this.version,
+                this.players.online,
+                this.players.max,
+                this.serverId,
+                this.name,
+                this.gamemode
+            ].join(';') + ';'
+        );
     }
-};
+}

@@ -1,45 +1,65 @@
-import Prismarine from "../Prismarine";
-import BinaryStream from "@jsprismarine/jsbinaryutils";
+import Prismarine from '../Prismarine';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import udp from 'dgram';
 import git from 'git-rev-sync';
-import PluginFile from "../plugin/PluginFile";
+import PluginFile from '../plugin/PluginFile';
 
 export default class QueryManager {
     private server?: udp.Socket;
 
     constructor(server: Prismarine) {
-        if (!server.getConfig().getEnableQuery())
-            return;
+        if (!server.getConfig().getEnableQuery()) return;
 
-        const port = server.getConfig().getQueryPort()
+        const port = server.getConfig().getQueryPort();
         const git_rev = git.short() || 'unknown';
         this.server = udp.createSocket('udp4');
 
         // TODO: https://wiki.vg/Server_List_Ping
         this.server?.on('message', (data, info) => {
-            const buffer = new BinaryStream(Buffer.from(data.buffer))
+            const buffer = new BinaryStream(Buffer.from(data.buffer));
             const magic = buffer.readShort();
             const type = buffer.readByte();
-            const sessionId = buffer.readInt() & 0x0F0F0F0F;
+            const sessionId = buffer.readInt() & 0x0f0f0f0f;
 
             if (magic !== 65277)
-                return server.getLogger().silly(`Query ${magic} !== 65277. ${JSON.stringify(info)}`);
+                return server
+                    .getLogger()
+                    .silly(`Query ${magic} !== 65277. ${JSON.stringify(info)}`);
 
             switch (type) {
-                case 0: { // Stats
+                case 0: {
+                    // Stats
                     const padding = buffer.readRemaining();
                     if (padding.length < 8) {
                         const res = new BinaryStream();
                         res.writeByte(0);
                         res.writeInt(sessionId);
-                        res.append(Buffer.from(`${[
-                            server.getRaknet().getName().getMotd(),
-                            'SMP',
-                            server.getWorldManager().getDefaultWorld()?.getName(),
-                            server.getRaknet().getName().getOnlinePlayerCount(),
-                            server.getRaknet().getName().getMaxPlayerCount(),
-                        ].join('\0')}\0`, 'binary'));
-                        this.server?.send(res.getBuffer(), info.port, info.address);
+                        res.append(
+                            Buffer.from(
+                                `${[
+                                    server.getRaknet().getName().getMotd(),
+                                    'SMP',
+                                    server
+                                        .getWorldManager()
+                                        .getDefaultWorld()
+                                        ?.getName(),
+                                    server
+                                        .getRaknet()
+                                        .getName()
+                                        .getOnlinePlayerCount(),
+                                    server
+                                        .getRaknet()
+                                        .getName()
+                                        .getMaxPlayerCount()
+                                ].join('\0')}\0`,
+                                'binary'
+                            )
+                        );
+                        this.server?.send(
+                            res.getBuffer(),
+                            info.port,
+                            info.address
+                        );
                     } else {
                         const res = new BinaryStream();
                         res.writeByte(0);
@@ -57,29 +77,53 @@ export default class QueryManager {
                         res.writeByte(0);
                         // End padding
 
-                        const plugins = server.getPluginManager().getPlugins().map((plugin: PluginFile) => `${plugin.getDisplayName()} ${plugin.getVersion()}`);
-                        res.append(Buffer.from(`\0${[
-                            'hostname',
-                            server.getRaknet().getName().getMotd(),
-                            'gametype',
-                            'SMP',
-                            'game_id',
-                            'MINECRAFTPE',
-                            'version',
-                            server.getRaknet().getName().getVersion(),
-                            'plugins',
-                            `JSPrismarine on Prismarine ${server.getConfig().getVersion()}-${git_rev}${plugins.length && ': ' || ''}${plugins.join('; ')}`, // TODO
-                            'map',
-                            server.getWorldManager().getDefaultWorld()?.getName(),
-                            'numplayers',
-                            server.getRaknet().getName().getOnlinePlayerCount(),
-                            'maxplayers',
-                            server.getRaknet().getName().getMaxPlayerCount(),
-                            'hostport',
-                            server.getConfig().getPort(),
-                            'hostip',
-                            server.getConfig().getServerIp()
-                        ].join('\0')}\0\0`, 'binary'));
+                        const plugins = server
+                            .getPluginManager()
+                            .getPlugins()
+                            .map(
+                                (plugin: PluginFile) =>
+                                    `${plugin.getDisplayName()} ${plugin.getVersion()}`
+                            );
+                        res.append(
+                            Buffer.from(
+                                `\0${[
+                                    'hostname',
+                                    server.getRaknet().getName().getMotd(),
+                                    'gametype',
+                                    'SMP',
+                                    'game_id',
+                                    'MINECRAFTPE',
+                                    'version',
+                                    server.getRaknet().getName().getVersion(),
+                                    'plugins',
+                                    `JSPrismarine on Prismarine ${server
+                                        .getConfig()
+                                        .getVersion()}-${git_rev}${
+                                        (plugins.length && ': ') || ''
+                                    }${plugins.join('; ')}`, // TODO
+                                    'map',
+                                    server
+                                        .getWorldManager()
+                                        .getDefaultWorld()
+                                        ?.getName(),
+                                    'numplayers',
+                                    server
+                                        .getRaknet()
+                                        .getName()
+                                        .getOnlinePlayerCount(),
+                                    'maxplayers',
+                                    server
+                                        .getRaknet()
+                                        .getName()
+                                        .getMaxPlayerCount(),
+                                    'hostport',
+                                    server.getConfig().getPort(),
+                                    'hostip',
+                                    server.getConfig().getServerIp()
+                                ].join('\0')}\0\0`,
+                                'binary'
+                            )
+                        );
 
                         // padding
                         res.writeByte(1);
@@ -94,11 +138,26 @@ export default class QueryManager {
                         res.writeByte(0);
                         // End padding
 
-                        res.append(Buffer.from(`${server.getOnlinePlayers().map(player => `${player.getUsername()}\0`)}\0`, 'binary'));
-                        this.server?.send(res.getBuffer(), info.port, info.address);
+                        res.append(
+                            Buffer.from(
+                                `${server
+                                    .getOnlinePlayers()
+                                    .map(
+                                        (player) => `${player.getUsername()}\0`
+                                    )}\0`,
+                                'binary'
+                            )
+                        );
+                        this.server?.send(
+                            res.getBuffer(),
+                            info.port,
+                            info.address
+                        );
                     }
                     break;
-                } case 9: { // Handshake
+                }
+                case 9: {
+                    // Handshake
                     const res = new BinaryStream();
                     res.writeByte(9);
                     res.writeInt(sessionId);
@@ -106,14 +165,18 @@ export default class QueryManager {
                     this.server?.send(res.getBuffer(), info.port, info.address);
                     break;
                 }
-            };
+            }
         });
 
         try {
             this.server.bind(port, server.getConfig().getServerIp());
-            server.getLogger().info(`JSPrismarine query is now listening port §b${port}`);
+            server
+                .getLogger()
+                .info(`JSPrismarine query is now listening port §b${port}`);
         } catch (err) {
-            server.getLogger().warn(`Failed to bind port ${port} for query: ${err}`);
+            server
+                .getLogger()
+                .warn(`Failed to bind port ${port} for query: ${err}`);
         }
     }
-};
+}

@@ -1,17 +1,17 @@
-import Identifiers from "../Identifiers";
-import DataPacket from "./Packet";
+import Identifiers from '../Identifiers';
+import DataPacket from './Packet';
 
 export enum UpdateBlockLayerType {
     Normal = 0,
     Liquid = 1
-};
+}
 
 export enum UpdateBlockFlagsType {
     None = 0b0000
-};
+}
 
 export default class UpdateBlockPacket extends DataPacket {
-    static NetID = Identifiers.UpdateBlockPacket
+    static NetID = Identifiers.UpdateBlockPacket;
 
     x: VarInt = 0;
     y: UnsignedVarInt = 0;
@@ -39,4 +39,4 @@ export default class UpdateBlockPacket extends DataPacket {
         this.writeUnsignedVarInt(this.Flags);
         this.writeUnsignedVarInt(this.Layer);
     }
-};
+}

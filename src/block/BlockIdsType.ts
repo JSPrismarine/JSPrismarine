@@ -551,5 +551,5 @@ export enum BlockIdsType {
     StrippedWarpedHyphae = 556,
     ChiseledNetherBricks = 557,
     CrackedNetherBricks = 558,
-    QuartzBricks = 559,
+    QuartzBricks = 559
 }

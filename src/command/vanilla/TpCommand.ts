@@ -1,6 +1,8 @@
-import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
-import Player from "../../player/Player";
-import Command from "../Command";
+import CommandParameter, {
+    CommandParameterType
+} from '../../network/type/CommandParameter';
+import Player from '../../player/Player';
+import Command from '../Command';
 
 export default class TpCommand extends Command {
     constructor() {
@@ -10,71 +12,88 @@ export default class TpCommand extends Command {
             permission: 'minecraft.command.teleport'
         });
 
-        this.parameters = [
-            new Set(),
-            new Set(),
-            new Set(),
-            new Set()
-        ];
+        this.parameters = [new Set(), new Set(), new Set(), new Set()];
 
-        this.parameters[0].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: false
-        }));
-        this.parameters[0].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: true
-        }));
+        this.parameters[0].add(
+            new CommandParameter({
+                name: 'target',
+                type: CommandParameterType.Target,
+                optional: false
+            })
+        );
+        this.parameters[0].add(
+            new CommandParameter({
+                name: 'target',
+                type: CommandParameterType.Target,
+                optional: true
+            })
+        );
 
-        this.parameters[1].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: true
-        }));
-        this.parameters[1].add(new CommandParameter({
-            name: 'x',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
-        this.parameters[1].add(new CommandParameter({
-            name: 'y',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
-        this.parameters[1].add(new CommandParameter({
-            name: 'z',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
+        this.parameters[1].add(
+            new CommandParameter({
+                name: 'target',
+                type: CommandParameterType.Target,
+                optional: true
+            })
+        );
+        this.parameters[1].add(
+            new CommandParameter({
+                name: 'x',
+                type: CommandParameterType.Value,
+                optional: true
+            })
+        );
+        this.parameters[1].add(
+            new CommandParameter({
+                name: 'y',
+                type: CommandParameterType.Value,
+                optional: true
+            })
+        );
+        this.parameters[1].add(
+            new CommandParameter({
+                name: 'z',
+                type: CommandParameterType.Value,
+                optional: true
+            })
+        );
 
-        this.parameters[2].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: true
-        }));
-        this.parameters[2].add(new CommandParameter({
-            name: 'x',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
-        this.parameters[2].add(new CommandParameter({
-            name: 'z',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
+        this.parameters[2].add(
+            new CommandParameter({
+                name: 'target',
+                type: CommandParameterType.Target,
+                optional: true
+            })
+        );
+        this.parameters[2].add(
+            new CommandParameter({
+                name: 'x',
+                type: CommandParameterType.Value,
+                optional: true
+            })
+        );
+        this.parameters[2].add(
+            new CommandParameter({
+                name: 'z',
+                type: CommandParameterType.Value,
+                optional: true
+            })
+        );
 
-        this.parameters[3].add(new CommandParameter({
-            name: 'target',
-            type: CommandParameterType.Target,
-            optional: true
-        }));
-        this.parameters[3].add(new CommandParameter({
-            name: 'y',
-            type: CommandParameterType.Value,
-            optional: true
-        }));
+        this.parameters[3].add(
+            new CommandParameter({
+                name: 'target',
+                type: CommandParameterType.Target,
+                optional: true
+            })
+        );
+        this.parameters[3].add(
+            new CommandParameter({
+                name: 'y',
+                type: CommandParameterType.Value,
+                optional: true
+            })
+        );
     }
 
     public execute(sender: Player, args: Array<string>) {
@@ -108,15 +127,18 @@ export default class TpCommand extends Command {
                 }
                 break;
             case 3:
-                if (typeof args[1] === "string" ||
-                    typeof args[2] === "string") return
+                if (typeof args[1] === 'string' || typeof args[2] === 'string')
+                    return;
                 player.setX(args[1]);
                 player.setZ(args[2]);
                 break;
             case 4:
-                if (typeof args[1] === "string" ||
-                    typeof args[2] === "string" ||
-                    typeof args[3] === "string") return
+                if (
+                    typeof args[1] === 'string' ||
+                    typeof args[2] === 'string' ||
+                    typeof args[3] === 'string'
+                )
+                    return;
                 player.setX(args[1]);
                 player.setY(args[2]);
                 player.setZ(args[3]);
