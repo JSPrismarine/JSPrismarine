@@ -33,8 +33,8 @@ export default class ResourcePackResponseHandler {
             if (spawnEvent.cancelled) return;
 
             pk = new StartGamePacket();
-            pk.entityId = BigInt(player.runtimeId);
-            pk.runtimeEntityId = BigInt(player.runtimeId);
+            pk.entityId = player.runtimeId;
+            pk.runtimeEntityId = player.runtimeId;
             pk.gamemode = player.gamemode;
 
             const world = player.getWorld();

@@ -1,19 +1,15 @@
-const logger = require('../../utils/Logger');
+import Identifiers from '../Identifiers';
+import PlayerListAction from '../type/player-list-action';
+import type PlayerListEntry from '../type/player-list-entry';
+import DataPacket from './DataPacket';
 
-const DataPacket = require('./DataPacket').default;
-const Identifiers = require('../Identifiers').default;
-const PlayerListEntry = require('../type/player-list-entry');
-const PlayerListAction = require('../type/player-list-action');
-
-class PlayerListPacket extends DataPacket {
+export default class PlayerListPacket extends DataPacket {
     static NetID = Identifiers.PlayerListPacket;
 
-    /** @type {PlayerListEntry[]} */
-    entries = [];
-    /** @type {number} */
-    type;
+    public entries: PlayerListEntry[] = [];
+    public type: number = 0;
 
-    encodePayload(server) {
+    public encodePayload() {
         this.writeByte(this.type);
         this.writeUnsignedVarInt(this.entries.length);
         for (let entry of this.entries) {
@@ -22,7 +18,7 @@ class PlayerListPacket extends DataPacket {
             } else if (this.type === PlayerListAction.Remove) {
                 this.writePlayerListRemoveEntry(entry);
             } else {
-                server
+                this.getServer()
                     .getLogger()
                     .warn(`Invalid player list action type ${this.type}`);
             }
@@ -30,9 +26,8 @@ class PlayerListPacket extends DataPacket {
 
         if (this.type === PlayerListAction.Add) {
             for (let entry of this.entries) {
-                this.writeBool(entry.skin.isTrusted);
+                this.writeBool(+entry.skin.isTrusted);
             }
         }
     }
 }
-module.exports = PlayerListPacket;

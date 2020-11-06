@@ -1,6 +1,6 @@
 const Command = require('../Command').default;
 const Player = require('../../player/Player').default;
-const SetTitlePacket = require('../../network/packet/set-title-packet');
+const SetTitlePacket = require('../../network/packet/SetTitlePacket');
 const SetTitleType = require('../../network/type/set-title-type');
 
 const TitleTypes = {

@@ -8,9 +8,9 @@ const AddActorPacket = require('../network/packet/AddActorPacket');
 // All entities will extend this base class
 export default class Entity extends Position {
     public static MOB_ID: number;
-    public static runtimeIdCount = 0;
+    public static runtimeIdCount = -1;
 
-    public runtimeId: number;
+    public runtimeId: bigint;
 
     public metadata: any = new MetadataManager();
     public attributes: any = new AttributeManager();
@@ -23,7 +23,7 @@ export default class Entity extends Position {
      */
     constructor(world: World) {
         super({ world: world }); // TODO
-        this.runtimeId = Entity.runtimeIdCount += 1;
+        this.runtimeId = BigInt((Entity.runtimeIdCount += 1));
 
         this.metadata.setLong(MetadataFlag.Index, 0);
         this.metadata.setShort(MetadataFlag.MaxAir, 400);

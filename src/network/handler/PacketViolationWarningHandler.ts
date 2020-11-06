@@ -1,7 +1,7 @@
 import Player from '../../player/Player';
 import Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
-import PacketViolationWarningPacket from '../packet/packet-violation-warning';
+import PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
 
 export default class PacketViolationWarningHandler {
     static NetID = Identifiers.PacketViolationWarningPacket;

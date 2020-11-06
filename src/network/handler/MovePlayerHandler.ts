@@ -3,7 +3,7 @@ import Vector3 from '../../math/Vector3';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
-import type MovePlayerPacket from '../packet/move-player';
+import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
 
 class MovePlayerHandler {

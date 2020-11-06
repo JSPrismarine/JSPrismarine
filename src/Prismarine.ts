@@ -317,7 +317,7 @@ export default class Prismarine {
      * Returns an online player by its runtime ID,
      * if it is not found, null is returned.
      */
-    getPlayerById(id: number): Player | null {
+    getPlayerById(id: bigint): Player | null {
         for (let player of this.players.values()) {
             if (player.runtimeId === id) return player;
         }
