@@ -14,14 +14,14 @@ Server.listen(Server.getConfig().getServerIp(), Server.getConfig().getPort()).ca
     Server.getLogger().error(`Cannot start the server, is it already running on the same port?`);
     if (err)
         Server.getLogger().error(err);
+
     Server.kill();
     process.exit(1);
 });
 
 // Kills the server when exiting process
-let exitEvents = ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM'];
-for (let event of exitEvents) {
-    process.on(event, () => {
+for (let interruptSignal of ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM']) {
+    process.on(interruptSignal, () => {
         Server.kill();
     });
 }
