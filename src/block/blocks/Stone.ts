@@ -1,9 +1,9 @@
 import Solid from '../Solid';
 import Item from '../../item/Item';
 import Prismarine from '../../Prismarine';
-import {ItemTieredToolType} from '../../item/ItemTieredToolType';
-import {BlockIdsType} from '../BlockIdsType';
-import {BlockToolType} from '../BlockToolType';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import { BlockIdsType } from '../BlockIdsType';
+import { BlockToolType } from '../BlockToolType';
 
 export enum StoneType {
     Stone = 0,

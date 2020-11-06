@@ -3,7 +3,7 @@ import path from 'path';
 
 import Block from './Block';
 import Prismarine from '../Prismarine';
-import {BlockIdsType} from './BlockIdsType';
+import { BlockIdsType } from './BlockIdsType';
 
 export default class BlockManager {
     private server: Prismarine;

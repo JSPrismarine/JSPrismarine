@@ -6,7 +6,7 @@ class Drop {
     /** @type {number} */
     randomly;
 
-    constructor({count, from, randomly}) {
+    constructor({ count, from, randomly }) {
         this.count = count;
         this.from = from;
         this.randomly = randomly;

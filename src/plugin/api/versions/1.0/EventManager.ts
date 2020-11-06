@@ -1,9 +1,9 @@
 import type Prismarine from '../../../../Prismarine';
-import type {EventTypes as CurrentVersionEventTypes} from '../../../../events/EventManager';
-import {EventEmitterishMixin} from '../../../../events/EventEmitterishMixin';
-import type {EventEmitterish} from '../../../../events/EventEmitterishMixin';
-import {Evt, compose} from 'evt';
-import type {Operator} from 'evt';
+import type { EventTypes as CurrentVersionEventTypes } from '../../../../events/EventManager';
+import { EventEmitterishMixin } from '../../../../events/EventEmitterishMixin';
+import type { EventEmitterish } from '../../../../events/EventEmitterishMixin';
+import { Evt, compose } from 'evt';
+import type { Operator } from 'evt';
 
 /* README: https://gist.github.com/garronej/84dddc6dad77d9fd0ce5608148bc59c4 */
 
@@ -28,7 +28,7 @@ class EventManagerWithoutEventEmitterishMethods<
         class {
             constructor(_server: Prismarine) {}
         },
-        ({constructorArgs: [server]}) =>
+        ({ constructorArgs: [server] }) =>
             Evt.asPostable(server.getEventManager().evtThirdParty)
     );
 
@@ -54,7 +54,7 @@ export default class EventManager<
     CustomEventTypes extends [string, any]
 > extends EventEmitterishMixin(
     EventManagerWithoutEventEmitterishMethods,
-    ({constructorArgs: [server]}) => {
+    ({ constructorArgs: [server] }) => {
         const evtProxy = new Evt<EventTypes>();
         const evtSrc = server.getEventManager();
         const internalEvents = new WeakSet<EventTypes>();

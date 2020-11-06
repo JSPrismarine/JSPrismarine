@@ -1,5 +1,5 @@
-import {setIntervalAsync} from 'set-interval-async/dynamic';
-import PacketRegistry from './network/packet-registry';
+import { setIntervalAsync } from 'set-interval-async/dynamic';
+import PacketRegistry from './network/PacketRegistry';
 import Player from './player/Player';
 import BlockManager from './block/BlockManager';
 import ItemManager from './item/ItemManager';
@@ -11,7 +11,7 @@ import PluginManager from './plugin/PluginManager';
 import type LoggerBuilder from './utils/Logger';
 import TelemetryManager from './telemetry/TelemeteryManager';
 import pkg from '../package.json';
-import {EventManager} from './events/EventManager';
+import { EventManager } from './events/EventManager';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import PlayerConnectEvent from './events/player/PlayerConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
@@ -50,7 +50,7 @@ export default class Prismarine {
 
     static instance: null | Prismarine = null;
 
-    constructor({logger, config}: {logger: LoggerBuilder; config: Config}) {
+    constructor({ logger, config }: { logger: LoggerBuilder; config: Config }) {
         logger.info(
             `Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`
         );

@@ -1,7 +1,7 @@
 class CreativeCreate {
     itemId;
 
-    constructor({itemId}) {
+    constructor({ itemId }) {
         this.itemId = itemId;
     }
 }

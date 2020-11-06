@@ -32,7 +32,7 @@ const SetTimePacket = require('../network/packet/set-time');
 const InventoryContentPacket = require('../network/packet/inventory-content-packet');
 const MobEquipmentPacket = require('../network/packet/mob-equipment-packet');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
-const {creativeitems} = require('@jsprismarine/bedrock-data');
+const { creativeitems } = require('@jsprismarine/bedrock-data');
 
 export default class PlayerConnection {
     private player: Player;

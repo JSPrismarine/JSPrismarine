@@ -37,7 +37,7 @@ class BatchPacket extends DataPacket {
 
     encodePayload() {
         this.append(
-            Zlib.deflateRawSync(this.payload, {level: this._compressionLevel})
+            Zlib.deflateRawSync(this.payload, { level: this._compressionLevel })
         );
     }
 

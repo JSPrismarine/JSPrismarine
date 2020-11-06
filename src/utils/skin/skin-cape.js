@@ -7,7 +7,7 @@ class SkinCape {
     /** @type {SkinImage} */
     image;
 
-    constructor({id, image}) {
+    constructor({ id, image }) {
         this.id = id;
         this.image = image;
     }

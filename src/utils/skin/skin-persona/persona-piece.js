@@ -10,7 +10,7 @@ class SkinPersonaPiece {
     /** @type {string} */
     productId;
 
-    constructor({isDefault, packId, pieceId, pieceType, productId}) {
+    constructor({ isDefault, packId, pieceId, pieceType, productId }) {
         this.isDefault = isDefault;
         this.packId = packId;
         this.pieceId = pieceId;

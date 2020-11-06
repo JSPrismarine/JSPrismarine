@@ -8,7 +8,7 @@ class SkinAnimation {
     /** @type {number} */
     type;
 
-    constructor({image, frames, type}) {
+    constructor({ image, frames, type }) {
         this.image = image;
         this.frames = frames;
         this.type = type;

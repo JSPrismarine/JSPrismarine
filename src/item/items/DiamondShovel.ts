@@ -1,7 +1,7 @@
 import TieredTool from '../TieredTool';
-import {BlockToolType} from '../../block/BlockToolType';
-import {ItemIdsType} from '../ItemIdsType';
-import {ItemTieredToolType} from '../ItemTieredToolType';
+import { BlockToolType } from '../../block/BlockToolType';
+import { ItemIdsType } from '../ItemIdsType';
+import { ItemTieredToolType } from '../ItemTieredToolType';
 
 export default class DiamondShovel extends TieredTool {
     constructor() {

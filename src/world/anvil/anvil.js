@@ -1,4 +1,4 @@
-const {MOB_ID} = require('../../entity/entity');
+const { MOB_ID } = require('../../entity/entity');
 const Provider = require('../provider');
 
 class Anvil extends Provider {

@@ -1,5 +1,5 @@
 import Item from '../Item';
-import {ItemIdsType} from '../ItemIdsType';
+import { ItemIdsType } from '../ItemIdsType';
 
 export default class Flint extends Item {
     constructor() {
