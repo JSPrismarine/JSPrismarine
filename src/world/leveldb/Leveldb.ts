@@ -1,36 +1,49 @@
-const path = require('path');
+import path from 'path';
+
+import Provider from '../Provider';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Chunk from '../chunk/Chunk';
+import EmptySubChunk from '../chunk/EmptySubChunk';
+import SubChunk from '../chunk/SubChunk';
+import Vector3 from '../../math/Vector3';
+import type Prismarine from '../../Prismarine';
+
 const level = require('level');
 
-const Provider = require('../Provider').default;
-const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-const Chunk = require('../chunk/Chunk').default;
-const EmptySubChunk = require('../chunk/empty-sub-chunk');
-const { default: Vector3 } = require('../../math/Vector3');
-const SubChunk = require('../chunk/SubChunk').default;
+interface readChunk {
+    x: number;
+    z: number;
+    generator: any;
+    seed: number;
+    server: Prismarine;
+}
 
 const Tags = {
     Version: 'v',
     SubChunkPrefix: '\x2f'
 };
-class LevelDB extends Provider {
-    #server;
-    /** @type {level} */
-    db;
 
-    constructor(levelPath, server) {
+export default class LevelDB extends Provider {
+    private server: Prismarine;
+    private db: any;
+
+    constructor(levelPath: string, server: Prismarine) {
         super(levelPath);
         this.db = new level(path.join(levelPath, 'db'));
-        this.#server = server;
+        this.server = server;
     }
 
     /**
      * Decodes a serialized chunk from
      * the database asynchronously.
-     *
-     * @param {number} x - chunk X
-     * @param {number} z - chunk Z
      */
-    readChunk({ x, z, generator, seed, server }) {
+    readChunk({
+        x,
+        z,
+        generator,
+        seed,
+        server
+    }: readChunk): Promise<Chunk> | null {
         return new Promise(async (resolve) => {
             let index = LevelDB.chunkIndex(x, z);
             let subChunks = new Map();
@@ -61,7 +74,7 @@ class LevelDB extends Provider {
 
                                 subChunks.set(y, subChunk);
                             } else {
-                                this.#server
+                                this.server
                                     .getLogger()
                                     .warn('Unsupported sub chunk version');
                             }
@@ -110,10 +123,8 @@ class LevelDB extends Provider {
 
     /**
      * Serialize a chunk into the database asynchronously.
-     *
-     * @param {Chunk} chunk
      */
-    async writeChunk(chunk) {
+    async writeChunk(chunk: Chunk): Promise<void> {
         let index = LevelDB.chunkIndex(chunk.getX(), chunk.getZ());
         await this.db.put(index + Tags.Version, 7);
         // Put all sub chunks
@@ -136,15 +147,11 @@ class LevelDB extends Provider {
      * Creates an string index from chunk
      * x and z, used to indentify chunks
      * in the db.
-     *
-     * @param {number} chunkX
-     * @param {number} chunkZ
      */
-    static chunkIndex(chunkX, chunkZ) {
+    static chunkIndex(chunkX: number, chunkZ: number): string {
         let stream = new BinaryStream();
         stream.writeLInt(chunkX);
         stream.writeLInt(chunkZ);
-        return stream.buffer.toString('hex');
+        return stream.getBuffer().toString('hex');
     }
 }
-module.exports = LevelDB;
