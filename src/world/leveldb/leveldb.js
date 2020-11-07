@@ -3,7 +3,7 @@ const level = require('level');
 
 const Provider = require('../Provider').default;
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-const Chunk = require('../chunk/Chunk');
+const Chunk = require('../chunk/Chunk').default;
 const EmptySubChunk = require('../chunk/empty-sub-chunk');
 const { default: Vector3 } = require('../../math/Vector3');
 const SubChunk = require('../chunk/SubChunk').default;

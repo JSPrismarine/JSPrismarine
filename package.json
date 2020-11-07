@@ -14,8 +14,8 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --passWithNoTests --watchAll",
     "eslint": "eslint -c .eslintrc ./src/",
-    "prettier": "prettier --config .prettierrc 'src/**/*.*' --check",
-    "prettier-format": "prettier --config .prettierrc 'src/**/*.*' --write"
+    "prettier": "prettier --config .prettierrc src/**/*.* --check",
+    "prettier-format": "prettier --config .prettierrc src/**/*.* --write"
   },
   "repository": {
     "type": "git",
