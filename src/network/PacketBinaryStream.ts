@@ -252,9 +252,16 @@ export default class PacketBinaryStream extends BinaryStream {
             this.writeString(attribute.name);
         }
     }
+
     writeCreativeContentEntry(entry: CreativeContentEntry) {
         this.writeVarInt(entry.entryId);
         this.writeItemStack(entry.item);
+    }
+    readCreativeContentEntry() {
+        return {
+            entryId: this.readVarInt(),
+            item: this.readItemStack()
+        };
     }
 
     /**

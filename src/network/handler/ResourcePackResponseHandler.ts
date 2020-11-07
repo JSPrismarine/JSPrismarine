@@ -3,6 +3,7 @@ import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
+import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
@@ -11,7 +12,6 @@ import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
 
 const ResourcePackStatus = require('../type/resource-pack-status');
-const Gamemode = require('../../world/Gamemode');
 // const Item = require('../../item/Item')
 
 export default class ResourcePackResponseHandler {
@@ -79,14 +79,11 @@ export default class ResourcePackResponseHandler {
             player.setNameTag(player.getUsername());
             // TODO: always visible nametag
             player.getPlayerConnection().sendMetadata();
-
             player.getPlayerConnection().sendAvailableCommands();
-
             player.getPlayerConnection().sendInventory();
 
-            if (player.gamemode === Gamemode.Creative) {
+            if (player.gamemode === Gamemode.Creative)
                 player.getPlayerConnection().sendCreativeContents();
-            }
 
             // First add
             player.getPlayerConnection().addToPlayerList();

@@ -3,10 +3,12 @@ import Identifiers from '../Identifiers';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import InventoryTransactionPacket, {
-    InventoryTransactionActionType
+    InventoryTransactionActionType,
+    InventoryTransactionType
 } from '../packet/InventoryTransactionPacket';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import type Block from '../../block/Block';
+import Gamemode from '../../world/Gamemode';
 
 export default class InventoryTransactionHandler {
     static NetID = Identifiers.InventoryTransactionPacket;
@@ -16,14 +18,13 @@ export default class InventoryTransactionHandler {
         server: Prismarine,
         player: Player
     ) {
-        // TODO: enum
         switch (packet.type) {
-            case 0: // Normal
-                // TODO:
-                break;
-            case 2: // Use item (build - interact)
+            case InventoryTransactionType.UseItem:
                 // TODO: sanity checks (can interact)
-                if (packet.actionType && player.gamemode !== 3) {
+                if (
+                    packet.actionType &&
+                    player.gamemode !== Gamemode.Spectator
+                ) {
                     switch (packet.actionType) {
                         case InventoryTransactionActionType.Build:
                             // TODO: Position isn't decoded properly
@@ -81,7 +82,6 @@ export default class InventoryTransactionHandler {
                             pk.x = packet.blockPosition.getX();
                             pk.y = packet.blockPosition.getY();
                             pk.z = packet.blockPosition.getZ();
-                            // TODO: add NBT writing to support our own block palette
                             pk.BlockRuntimeId = (server
                                 .getBlockManager()
                                 .getBlock(
@@ -110,9 +110,6 @@ export default class InventoryTransactionHandler {
                                 );
                     }
                 }
-                break;
-            case 4:
-                // TODO: sanity checks (can interact)
                 break;
         }
     }
