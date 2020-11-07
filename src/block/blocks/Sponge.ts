@@ -19,9 +19,4 @@ export default class Sponge extends Solid {
         });
         this.meta = type;
     }
-
-    // TODO: BlockToolType Hoe not yet included
-    /* getToolType() {
-        return BlockToolType.Hoe;
-    } */
 }

@@ -2,6 +2,7 @@ import Block from '../block/Block';
 import Entity from '../entity/entity';
 import Item from '../item/Item';
 import Vector3 from '../math/Vector3';
+import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
 import Player from '../player/Player';
@@ -9,7 +10,6 @@ import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
 
-const LevelSoundEventPacket = require('../network/packet/LevelSoundEventPacket');
 const UUID = require('../utils/uuid').default;
 const { GameruleManager, Rules } = require('../world/gamerule-manager');
 const SharedSeedRandom = require('./util/shared-seed-random');

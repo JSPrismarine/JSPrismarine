@@ -15,6 +15,8 @@ export default class CreativeContentPacket extends DataPacket {
     }
 
     public decodePayload() {
-        // TODO
+        for (let i = 0; i < this.readUnsignedVarInt(); i++) {
+            this.entries.push(this.readCreativeContentEntry());
+        }
     }
 }
