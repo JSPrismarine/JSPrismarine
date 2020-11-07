@@ -10,16 +10,17 @@ const TitleTypes: any = {
     clear: TitleType.ClearTitle
 };
 
-class TitleCommand extends Command {
+export default class TitleCommand extends Command {
     constructor() {
         // TODO: add permissions to command
         super({
             id: 'minecraft:title',
-            description: 'Controls text displayed on the screen.'
+            description: 'Controls text displayed on the screen.',
+            permission: 'minecraft.command.title'
         } as any);
     }
 
-    execute(sender: Player, args: string[]): void {
+    execute(sender: Player, args: Array<string>): void {
         if (!args[0]) {
             return sender.sendMessage('§cYou have to select a player.');
         }
@@ -63,5 +64,3 @@ class TitleCommand extends Command {
         }
     }
 }
-
-module.exports = TitleCommand;
