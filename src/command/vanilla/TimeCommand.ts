@@ -7,7 +7,8 @@ export default class GamemodeCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:time',
-            description: 'Get, set and add to the current time.'
+            description: 'Get, set and add to the current time.',
+            permission: 'minecraft.command.time'
         } as any);
     }
 

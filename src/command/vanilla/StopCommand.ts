@@ -1,20 +1,16 @@
-const Command = require('../Command').default;
-const Player = require('../../player/Player').default;
+import Command from '../Command';
+import Player from '../../player/Player';
 
-class StopCommand extends Command {
+export default class StopCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:stop',
             description: 'Stops a server.',
             permission: 'minecraft.command.stop'
-        });
+        } as any);
     }
 
-    /**
-     * @param {Player} sender
-     * @param {Array} args
-     */
-    async execute(sender, args) {
+    execute(sender: Player, args: Array<string>): string {
         // TODO: implement operators and just check if player is operator
 
         if (args[0] && args[0].toLowerCase() == 'f') process.exit();
@@ -23,4 +19,3 @@ class StopCommand extends Command {
         return 'Stopping the server...';
     }
 }
-module.exports = StopCommand;
