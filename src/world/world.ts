@@ -9,9 +9,9 @@ import Player from '../player/Player';
 import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
+import { GameruleManager, Rules } from '../world/GameruleManager';
 
 const UUID = require('../utils/uuid').default;
-const { GameruleManager, Rules } = require('../world/gamerule-manager');
 const SharedSeedRandom = require('./util/shared-seed-random');
 
 interface WorldData {

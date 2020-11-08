@@ -1,20 +1,17 @@
-const Command = require('../Command').default;
-const Player = require('../../player/Player').default;
+import Command from '../Command';
+import Player from '../../player/Player';
 
 class MeCommand extends Command {
     constructor() {
         // TODO: add permissions to command
         super({
             id: 'minecraft:me',
-            description: 'Displays custom message in chat.'
+            description: 'Displays custom message in chat.',
+            permission: 'minecraft.command.me'
         });
     }
 
-    /**
-     * @param {Player} sender
-     * @param {Array} args
-     */
-    execute(sender, args) {
+    execute(sender: Player, args: Array<string>) {
         if (!args[0]) {
             return sender.sendMessage(`§cPlease specify a message.`);
         }
@@ -26,7 +23,6 @@ class MeCommand extends Command {
         for (let player of sender.getServer().getOnlinePlayers()) {
             player.sendMessage(messageToSend);
         }
-        return null;
     }
 }
 
