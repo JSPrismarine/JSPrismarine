@@ -1,10 +1,11 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import type Prismarine from '../Prismarine';
 
-class GeneratorManager {
-    #generators = new Map();
+export default class GeneratorManager {
+    private generators: Map<string, any> = new Map();
 
-    constructor(server) {
+    constructor(server: Prismarine) {
         const generators = fs.readdirSync(__dirname + '/generators');
         generators.forEach((generator) => {
             if (generator.includes('.test.') || generator.includes('.d.ts'))
@@ -16,17 +17,16 @@ class GeneratorManager {
             .debug(`Registered §b${generators.length}§r generator(s)!`);
     }
 
-    registerClassGenerator(id, server) {
+    registerClassGenerator(id: string, server: Prismarine) {
         const generator = require(path.resolve(__dirname + '/generators', id));
-        this.#generators.set(
+        this.generators.set(
             id.toLowerCase(),
             new (generator.default || generator)()
         );
         server.getLogger().silly(`Generator with id §b${id}§r registered`);
     }
 
-    getGenerator(id) {
-        return this.#generators.get(id);
+    getGenerator(id: string) {
+        return this.generators.get(id);
     }
 }
-module.exports = GeneratorManager;
