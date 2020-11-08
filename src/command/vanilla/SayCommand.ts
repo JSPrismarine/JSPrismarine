@@ -9,7 +9,7 @@ export default class SayCommand extends Command {
             id: 'minecraft:say',
             description: 'Say something to all players.',
             permission: 'minecraft.command.say'
-        });
+        } as any);
     }
 
     execute(sender: Player, args: Array<string>) {

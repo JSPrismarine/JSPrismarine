@@ -1,24 +1,20 @@
-const Command = require('../Command').default;
-const Player = require('../../player/Player').default;
+import Player from '../../player/Player';
+import Command from '../Command';
 
-class TellCommand extends Command {
+export default class TellCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:tell',
             description: 'Sends a private message to a player.'
-        });
+        } as any);
     }
 
-    /**
-     * @param {Player} sender
-     * @param {Array} args
-     */
-    execute(sender, args) {
+    execute(sender: Player, args: Array<string>) {
         if (!args[0]) {
             return sender.sendMessage('§cYou have to select a player.');
         }
 
-        if (`${args[0]}`.toLowerCase() == sender.name.toLowerCase()) {
+        if (`${args[0]}`.toLowerCase() == sender.getUsername().toLowerCase()) {
             return sender.sendMessage("§cYou can't send message to yourself.");
         }
 
@@ -33,11 +29,9 @@ class TellCommand extends Command {
         }
 
         let message = args.splice(1).join(' ');
-        let messageToSend = `§e[§f${sender.name} §e->§f ${targetPlayer.name}§e]§f ${message}`;
+        let messageToSend = `§e[§f${sender.getUsername()} §e->§f ${targetPlayer.getUsername()}§e]§f ${message}`;
 
         sender.sendMessage(messageToSend);
         return targetPlayer.sendMessage(messageToSend);
     }
 }
-
-module.exports = TellCommand;
