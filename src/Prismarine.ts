@@ -256,7 +256,7 @@ export default class Prismarine {
                     return;
                 }
 
-                if (!this.packetRegistry.getHandlers().has(packet.getId())) {
+                if (!this.packetRegistry.getHandlers().has(packet?.getId())) {
                     this.logger.error(
                         `Packet ${packet.constructor.name} doesn't have a handler`
                     );
@@ -265,7 +265,7 @@ export default class Prismarine {
 
                 let handler = this.packetRegistry
                     .getHandlers()
-                    .get(packet.getId());
+                    .get(packet?.getId());
 
                 (async () => {
                     try {
