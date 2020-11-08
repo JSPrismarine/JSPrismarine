@@ -1,28 +1,26 @@
-const Command = require('../Command').default;
-const Player = require('../../player/Player').default;
-const SetTitlePacket = require('../../network/packet/SetTitlePacket');
-const SetTitleType = require('../../network/type/set-title-type');
+import Command from '../Command';
+import type Player from '../../player/Player';
+import SetTitlePacket from '../../network/packet/SetTitlePacket';
+import { TitleType } from '../../network/type/SetTitleType';
 
-const TitleTypes = {
-    title: SetTitleType.SetTitle,
-    subtitle: SetTitleType.SetSubtitle,
-    actionbar: SetTitleType.SetActionBarMessage,
-    clear: SetTitleType.ClearTitle
+const TitleTypes: any = {
+    title: TitleType.SetTitle,
+    subtitle: TitleType.SetSubtitle,
+    actionbar: TitleType.SetActionBarMessage,
+    clear: TitleType.ClearTitle
 };
-class TitleCommand extends Command {
+
+export default class TitleCommand extends Command {
     constructor() {
         // TODO: add permissions to command
         super({
             id: 'minecraft:title',
-            description: 'Controls text displayed on the screen.'
-        });
+            description: 'Controls text displayed on the screen.',
+            permission: 'minecraft.command.title'
+        } as any);
     }
 
-    /**
-     * @param {Player} sender
-     * @param {Array} args
-     */
-    execute(sender, args) {
+    execute(sender: Player, args: Array<string>): void {
         if (!args[0]) {
             return sender.sendMessage('§cYou have to select a player.');
         }
@@ -35,11 +33,12 @@ class TitleCommand extends Command {
             return sender.sendMessage('§cPlease specify a message.');
         }
 
-        /** @type {Array<Player>} */
-        let targets = [];
+        let targets: Array<Player> = [];
 
         if (args[0] == '@a') {
-            let players = Array.from(sender.getServer().players.values());
+            let players = Array.from(
+                sender.getServer().getOnlinePlayers().values()
+            );
             if (players.length == 0) {
                 return sender.sendMessage('§cNo player specified.');
             }
@@ -63,8 +62,5 @@ class TitleCommand extends Command {
             }
             player.getPlayerConnection().sendDataPacket(pk);
         }
-        return null;
     }
 }
-
-module.exports = TitleCommand;
