@@ -1,8 +1,8 @@
-const Command = require('../Command').default;
-const Player = require('../../player/Player').default;
-const CommandParameter = require('../../network/type/CommandParameter').default;
+import Command from '../Command';
+import type Player from '../../player/Player';
+import CommandParameter from '../../network/type/CommandParameter';
 
-class KickCommand extends Command {
+export default class KickCommand extends Command {
     constructor() {
         // TODO: Add permissions
         super({
@@ -28,11 +28,7 @@ class KickCommand extends Command {
         );
     }
 
-    /**
-     * @param {Player} sender
-     * @param {Array} args
-     */
-    execute(sender, args) {
+    execute(sender: Player, args: Array<string>) {
         if (!args[0]) {
             return sender.sendMessage('§cYou have to specify a player.');
         }
@@ -50,5 +46,3 @@ class KickCommand extends Command {
         return `Kicked ${args[0]}`;
     }
 }
-
-module.exports = KickCommand;
