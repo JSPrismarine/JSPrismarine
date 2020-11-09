@@ -1,7 +1,7 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
-import type LevelSoundEventPacket from '../packet/level-sound-event';
+import type LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 
 export default class LevelSoundEventHandler {
     static NetID = Identifiers.LevelSoundEventPacket;

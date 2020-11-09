@@ -1,6 +1,6 @@
 import Identifiers from '../Identifiers';
 import TextType from '../type/TextType';
-import DataPacket from './Packet';
+import DataPacket from './DataPacket';
 
 export default class TextPacket extends DataPacket {
     static NetID = Identifiers.TextPacket;

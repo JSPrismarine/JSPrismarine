@@ -8,7 +8,7 @@ import SkinImage from '../utils/skin/skin-image';
 import CreativeContentEntry from './type/creative-content-entry';
 import PlayerListEntry from './type/player-list-entry';
 
-const UUID = require('../utils/uuid');
+const UUID = require('../utils/uuid').default;
 const { FlagType } = require('../entity/metadata');
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
@@ -179,9 +179,9 @@ export default class PacketBinaryStream extends BinaryStream {
         // Miscellaneus
         this.writeString(skin.geometry);
         this.writeString(skin.animationData);
-        this.writeBool((skin.isPremium as unknown) as number);
-        this.writeBool((skin.isPersona as unknown) as number);
-        this.writeBool((skin.isCapeOnClassicSkin as unknown) as number);
+        this.writeBool(+skin.isPremium);
+        this.writeBool(+skin.isPersona);
+        this.writeBool(+skin.isCapeOnClassicSkin);
         this.writeString(skin.cape.id);
         this.writeString(skin.fullId);
         this.writeString(skin.armSize);
@@ -194,7 +194,7 @@ export default class PacketBinaryStream extends BinaryStream {
                 this.writeString(personaPiece.pieceId);
                 this.writeString(personaPiece.pieceType);
                 this.writeString(personaPiece.packId);
-                this.writeBool((personaPiece.isDefault as unknown) as number);
+                this.writeBool(+personaPiece.isDefault);
                 this.writeString(personaPiece.productId);
             }
             this.writeLInt(skin.persona.tintColors.size);
@@ -252,9 +252,16 @@ export default class PacketBinaryStream extends BinaryStream {
             this.writeString(attribute.name);
         }
     }
+
     writeCreativeContentEntry(entry: CreativeContentEntry) {
         this.writeVarInt(entry.entryId);
         this.writeItemStack(entry.item);
+    }
+    readCreativeContentEntry() {
+        return {
+            entryId: this.readVarInt(),
+            item: this.readItemStack()
+        };
     }
 
     /**

@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
-class UUID {
+export default class UUID {
     /** @type {any} */
     #parts: any;
     /** @type {number} */
@@ -106,4 +106,3 @@ class UUID {
         return parts.join('-');
     }
 }
-module.exports = UUID;

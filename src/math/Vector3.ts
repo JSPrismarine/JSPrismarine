@@ -1,7 +1,7 @@
 export default class Vector3 {
-    private x: UnsignedVarInt;
-    private y: UnsignedVarInt;
-    private z: UnsignedVarInt;
+    private x: number;
+    private y: number;
+    private z: number;
 
     constructor(x = 0, y = 0, z = 0) {
         this.x = x;
@@ -22,14 +22,14 @@ export default class Vector3 {
     }
 
     public getX(): number {
-        return this.x as number;
+        return this.x;
     }
 
     public getY(): number {
-        return this.y as number;
+        return this.y;
     }
 
     public getZ(): number {
-        return this.z as number;
+        return this.z;
     }
 }

@@ -1,20 +1,27 @@
 import Vector3 from '../../math/Vector3';
 import Identifiers from '../Identifiers';
-import DataPacket from './Packet';
+import DataPacket from './DataPacket';
 
 const ChangeSlot = require('../type/change-slot');
 const NetworkTransaction = require('../type/network-transaction');
-const InventoryTransactionType = require('../type/inventory-transaction-type');
 
 export enum InventoryTransactionActionType {
     Build = 1,
     Break = 2
 }
 
+export enum InventoryTransactionType {
+    Normal = 0,
+    Mismatch = 1,
+    UseItem = 2,
+    UseItemOnEntity = 3,
+    ReleaseItem = 4
+}
+
 export default class InventoryTransactionPacket extends DataPacket {
     static NetID = Identifiers.InventoryTransactionPacket;
 
-    public type: number = 0;
+    public type: InventoryTransactionType = 0;
     public actions = new Map();
     public actionType: number = 0;
     public hotbarSlot: number = 0;

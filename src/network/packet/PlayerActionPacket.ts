@@ -1,15 +1,15 @@
 import Identifiers from '../Identifiers';
-import DataPacket from './Packet';
+import DataPacket from './DataPacket';
 
 export default class PlayerActionPacket extends DataPacket {
     static NetID = Identifiers.PlayerActionPacket;
 
     public runtimeEntityId: UnsignedVarLong = BigInt(0);
-    public action: VarInt = 0;
-    public x: VarInt = 0;
-    public y: UnsignedVarInt = 0;
-    public z: VarInt = 0;
-    public face: VarInt = 0;
+    public action: number = 0;
+    public x: number = 0;
+    public y: number = 0;
+    public z: number = 0;
+    public face: number = 0;
 
     public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();

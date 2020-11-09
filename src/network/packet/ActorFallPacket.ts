@@ -1,5 +1,5 @@
 import Identifiers from '../Identifiers';
-import DataPacket from './Packet';
+import DataPacket from './DataPacket';
 
 export default class ActorFallPacket extends DataPacket {
     static NetID = Identifiers.ActorFallPacket;

@@ -17,7 +17,7 @@ import PlayerConnectEvent from './events/player/PlayerConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import Listener from './network/raknet/Listener';
-import BatchPacket from './network/packet/batch';
+import BatchPacket from './network/packet/BatchPacket';
 import Identifiers from './network/Identifiers';
 import type InetAddress from './network/raknet/utils/InetAddress';
 import ChatManager from './chat/ChatManager';
@@ -133,40 +133,36 @@ export default class Prismarine {
                 // TODO: Get last world by player data
                 // and if it doesn't exists, return the default one
                 let time = Date.now();
-                {
-                    let world = this.getWorldManager().getDefaultWorld();
-                    if (!world) throw new Error('No world'); // Temp solution
+                let world = this.getWorldManager().getDefaultWorld();
+                if (!world) throw new Error('No world'); // Temp solution
 
-                    let player = new Player(
-                        connection,
-                        connection.address,
-                        world,
-                        this
-                    );
+                let player = new Player(
+                    connection,
+                    connection.address,
+                    world,
+                    this
+                );
 
-                    // Emit playerConnect event
-                    const playerConnectEvent = new PlayerConnectEvent(
-                        player,
-                        inetAddr
-                    );
-                    await this.getEventManager().emit(
-                        'playerConnect',
-                        playerConnectEvent
-                    );
-                    if (playerConnectEvent.cancelled)
-                        throw new Error('Event canceled');
+                // Emit playerConnect event
+                const playerConnectEvent = new PlayerConnectEvent(
+                    player,
+                    inetAddr
+                );
+                await this.getEventManager().emit(
+                    'playerConnect',
+                    playerConnectEvent
+                );
+                if (playerConnectEvent.cancelled)
+                    throw new Error('Event canceled');
 
-                    this.players.set(
-                        `${inetAddr.address}:${inetAddr.port}`,
-                        player
-                    );
+                this.players.set(
+                    `${inetAddr.address}:${inetAddr.port}`,
+                    player
+                );
 
-                    // Add the player into the world
-                    world?.addPlayer(player);
-                    this.raknet
-                        .getName()
-                        .setOnlinePlayerCount(this.players.size);
-                }
+                // Add the player into the world
+                world?.addPlayer(player);
+                this.raknet.getName().setOnlinePlayerCount(this.players.size);
                 this.logger.silly(
                     `Player creation took about ${Date.now() - time} ms`
                 );
@@ -260,14 +256,16 @@ export default class Prismarine {
                     return;
                 }
 
-                if (!this.packetRegistry.getHandlers().has(packet.id)) {
+                if (!this.packetRegistry.getHandlers().has(packet?.getId())) {
                     this.logger.error(
                         `Packet ${packet.constructor.name} doesn't have a handler`
                     );
                     return;
                 }
 
-                let handler = this.packetRegistry.getHandlers().get(packet.id);
+                let handler = this.packetRegistry
+                    .getHandlers()
+                    .get(packet?.getId());
 
                 (async () => {
                     try {
@@ -315,7 +313,7 @@ export default class Prismarine {
      * Returns an online player by its runtime ID,
      * if it is not found, null is returned.
      */
-    getPlayerById(id: number): Player | null {
+    getPlayerById(id: bigint): Player | null {
         for (let player of this.players.values()) {
             if (player.runtimeId === id) return player;
         }

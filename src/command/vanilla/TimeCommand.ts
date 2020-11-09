@@ -1,13 +1,14 @@
 import Player from '../../player/Player';
 import Command from '../Command';
 
-const Gamemode = require('../../world/gamemode');
+const Gamemode = require('../../world/Gamemode');
 
 export default class GamemodeCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:time',
-            description: 'Get, set and add to the current time.'
+            description: 'Get, set and add to the current time.',
+            permission: 'minecraft.command.time'
         } as any);
     }
 

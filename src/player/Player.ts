@@ -1,10 +1,13 @@
 import Prismarine from '../Prismarine';
 import Entity from '../entity/entity';
 import World from '../world/world';
-import Gamemode from '../world/gamemode';
+import Gamemode from '../world/Gamemode';
 import PlayerConnection from './PlayerConnection';
-
-const PlayerInventory = require('../inventory/player-inventory');
+import PlayerInventory from '../inventory/PlayerInventory';
+import Inventory from '../inventory/Inventory';
+import Skin from '../utils/skin/skin';
+import Device from '../utils/Device';
+import Chunk from '../world/chunk/Chunk';
 
 export enum PlayerPermission {
     Visitor,
@@ -18,60 +21,40 @@ export default class Player extends Entity {
     private address: any;
     private playerConnection: PlayerConnection;
 
-    /** @type {PlayerInventory} */
-    inventory = new PlayerInventory();
-    /** @type {Map<Number, Inventory>} */
-    windows = new Map();
+    public inventory = new PlayerInventory();
+    public windows: Map<number, Inventory> = new Map();
 
-    username = {
+    public username = {
         prefix: '<',
         suffix: '>',
         name: ''
     };
-    locale: string = '';
-    randomId: number = 0;
+    public locale: string = '';
+    public randomId: number = 0;
 
-    /** @type {string} */
-    uuid: string | null = null;
-    /** @type {string} */
-    xuid: string | null = null;
-    /** @type {Skin} */
-    skin: any;
+    public uuid: string = '';
+    public xuid: string = '';
+    public skin: Skin | null = null;
 
-    /** @type {number} */
-    viewDistance: any;
-    /** @type {number} */
-    gamemode = 0;
+    public viewDistance: any;
+    public gamemode: number = 0;
 
-    /** @type {number} */
-    pitch = 0;
-    /** @type {number} */
-    yaw = 0;
-    /** @type {number} */
-    headYaw = 0;
+    public pitch: number = 0;
+    public yaw: number = 0;
+    public headYaw: number = 0;
 
-    /** @type {boolean} */
-    onGround = false;
+    public onGround: boolean = false;
 
-    /** @type {string} */
-    platformChatId = '';
+    public platformChatId: string = '';
 
-    /** @type {Device} */
-    device: any;
+    public device: Device | null = null;
 
-    /** @type {boolean} */
-    cacheSupport: boolean | null = null;
+    public cacheSupport: boolean = false;
 
-    /** @type {null|Chunk} */
-    public currentChunk = null;
+    public currentChunk: Chunk | null = null;
 
     /**
      * Player's constructor.
-     *
-     * @param {Connection} connection - player's connection
-     * @param {InetAddress} address - player's InternetAddress address
-     * @param {World} world - a world to spawn the entity
-     * @param {Prismarine} server - the server instance
      */
     constructor(
         connection: any,

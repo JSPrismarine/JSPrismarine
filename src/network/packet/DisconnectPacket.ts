@@ -1,5 +1,5 @@
 import Identifiers from '../Identifiers';
-import DataPacket from './Packet';
+import DataPacket from './DataPacket';
 
 export default class DisconnectPacket extends DataPacket {
     static NetID = Identifiers.DisconnectPacket;

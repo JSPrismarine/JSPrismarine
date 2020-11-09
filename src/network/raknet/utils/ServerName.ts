@@ -1,5 +1,4 @@
 import type Prismarine from '../../../Prismarine';
-import { getGamemodeName } from '../../../world/gamemode';
 import Identifiers from '../../Identifiers';
 
 export default class ServerName {
@@ -18,7 +17,7 @@ export default class ServerName {
     constructor(server: Prismarine) {
         this.server = server;
         this.motd = server.getConfig().getMotd();
-        this.gamemode = getGamemodeName(server.getConfig().getGamemode());
+        this.gamemode = server.getConfig().getGamemode();
         this.players.max = server.getConfig().getMaxPlayers();
     }
 

@@ -2,7 +2,7 @@ import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
 import InteractPacket, { InteractAction } from '../packet/InteractPacket';
-import ContainerOpenPacket from '../packet/container-open';
+import ContainerOpenPacket from '../packet/ContainerOpenPacket';
 
 export default class InteractHandler {
     static NetID = Identifiers.InteractPacket;

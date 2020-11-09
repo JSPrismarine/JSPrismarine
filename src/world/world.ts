@@ -2,16 +2,16 @@ import Block from '../block/Block';
 import Entity from '../entity/entity';
 import Item from '../item/Item';
 import Vector3 from '../math/Vector3';
+import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
 import Player from '../player/Player';
 import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
+import CoordinateUtils from './CoordinateUtils';
+import { GameruleManager, Rules } from '../world/GameruleManager';
 
-const LevelSoundEventPacket = require('../network/packet/level-sound-event');
-const UUID = require('../utils/uuid');
-const CoordinateUtils = require('../world/coordinate-utils');
-const { GameruleManager, Rules } = require('../world/gamerule-manager');
+const UUID = require('../utils/uuid').default;
 const SharedSeedRandom = require('./util/shared-seed-random');
 
 interface WorldData {
@@ -25,8 +25,8 @@ interface WorldData {
 export default class World {
     private uniqueId: string = UUID.randomString();
     private name: string = 'Unknown';
-    private players: Map<number, Player> = new Map();
-    private entities: Map<number, Entity> = new Map();
+    private players: Map<bigint, Player> = new Map();
+    private entities: Map<bigint, Entity> = new Map();
     private chunks: Map<string, any> = new Map();
     private gameruleManager: any;
     private currentTick: number = 0;
