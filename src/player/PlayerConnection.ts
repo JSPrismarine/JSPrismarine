@@ -284,9 +284,7 @@ export default class PlayerConnection {
         this.sendDataPacket(pk);
     }
 
-    public setGamemode(mode: number) {
-        this.player.gamemode = mode;
-
+    public sendGamemode(mode: number) {
         let pk = new SetGamemodePacket();
         pk.gamemode = mode;
         this.sendDataPacket(pk);

@@ -118,6 +118,11 @@ export default class Player extends Entity {
         return true;
     }
 
+    public setGamemode(mode: number) {
+        this.gamemode = mode;
+        this.playerConnection.sendGamemode(this.gamemode);
+    }
+
     public getServer() {
         return this.server;
     }

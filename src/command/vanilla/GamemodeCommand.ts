@@ -70,7 +70,7 @@ export default class GamemodeCommand extends Command {
             if ((target = sender.getServer().getPlayerByName(args[1])) === null)
                 return sender.sendMessage('§cNo player was found');
 
-            target.getPlayerConnection().setGamemode(mode);
+            target.setGamemode(mode);
             if (mode === Gamemode.Creative)
                 target.getPlayerConnection().sendCreativeContents();
 
@@ -92,7 +92,7 @@ export default class GamemodeCommand extends Command {
                     '§cYou have to run this command in-game!'
                 );
             }
-            target.getPlayerConnection().setGamemode(mode);
+            target.setGamemode(mode);
             if (mode === Gamemode.Creative)
                 target.getPlayerConnection().sendCreativeContents();
 
