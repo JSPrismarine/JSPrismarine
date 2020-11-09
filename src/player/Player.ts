@@ -80,7 +80,8 @@ export default class Player extends Entity {
             if (
                 evt.getChat().getChannel() === '*.everyone' ||
                 (evt.getChat().getChannel() === '*.ops' &&
-                    this.server.getPermissionManager().isOp(this))
+                    this.server.getPermissionManager().isOp(this)) ||
+                evt.getChat().getChannel() === `*.player.${this.getUsername()}`
             )
                 this.sendMessage(evt.getChat().getMessage());
         });
