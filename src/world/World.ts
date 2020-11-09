@@ -170,12 +170,8 @@ export default class World {
         generate = false
     ): Promise<Chunk> {
         return await this.getChunk(
-            x > 0
-                ? Math.floor((x as number) / 16)
-                : Math.floor((x as number) / 16),
-            z > 0
-                ? Math.floor((z as number) / 16)
-                : Math.floor((z as number) / 16),
+            Math.floor((x as number) / 16),
+            Math.floor((z as number) / 16),
             generate
         );
     }
