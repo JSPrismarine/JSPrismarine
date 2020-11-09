@@ -1,6 +1,6 @@
 import Prismarine from '../Prismarine';
 import Entity from '../entity/entity';
-import World from '../world/world';
+import World from '../world/World';
 import Gamemode from '../world/Gamemode';
 import PlayerConnection from './PlayerConnection';
 import PlayerInventory from '../inventory/PlayerInventory';
