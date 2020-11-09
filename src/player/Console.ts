@@ -3,7 +3,7 @@ import Player from './Player';
 import Chat from '../chat/Chat';
 import ChatEvent from '../events/chat/ChatEvent';
 import type Prismarine from '../Prismarine';
-import type World from '../world/world';
+import type World from '../world/World';
 
 export default class Console extends Player {
     constructor(server: Prismarine) {
