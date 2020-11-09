@@ -1,7 +1,7 @@
 import fs from 'fs';
 import Prismarine from '../Prismarine';
 import GeneratorManager from './GeneratorManager';
-import World from './world';
+import World from './World';
 import LevelDB from './leveldb/Leveldb';
 
 export default class WorldManager {
