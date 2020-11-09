@@ -169,10 +169,13 @@ export default class World {
         z: number | VarInt,
         generate = false
     ): Promise<Chunk> {
-        // Handle negative chunk values, where "">> 4" doesn't work for obvious reasons
         return await this.getChunk(
-            x < 0 ? -1 : 1 * (Math.abs(x as number) >> 4),
-            z < 0 ? -1 : 1 * (Math.abs(z as number) >> 4),
+            x > 0
+                ? Math.floor((x as number) / 16)
+                : Math.floor((x as number) / 16),
+            z > 0
+                ? Math.floor((z as number) / 16)
+                : Math.floor((z as number) / 16),
             generate
         );
     }
