@@ -17,6 +17,6 @@ export default class ActorFallPacket extends DataPacket {
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeLFloat(this.fallDistance);
-        this.writeBool(+this.inVoid);
+        this.writeBool(this.inVoid);
     }
 }
