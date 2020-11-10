@@ -207,7 +207,8 @@ export default class World {
             blockPosition.getX(),
             blockPosition.getZ()
         );
-        const block = itemInHand; // TODO: get block from itemInHand
+        
+        const block = itemInHand;
         if (!block)
             return this.server
                 .getLogger()
