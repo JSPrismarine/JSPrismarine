@@ -67,7 +67,7 @@ export default class PlayerConnection {
         this.connection.addEncapsulatedToQueue(sendPacket);
     }
 
-    public async update(tick: number) {
+    public async update(_tick: number) {
         if (this.chunkSendQueue.size > 0) {
             this.chunkSendQueue.forEach((chunk: any) => {
                 let encodedPos = CoordinateUtils.encodePos(
@@ -347,11 +347,7 @@ export default class PlayerConnection {
         this.sendDataPacket(pk);
     }
 
-    /**
-     * @param {string} message
-     * @param {boolean} needsTranslation
-     */
-    public sendMessage(message: string, xuid = '', needsTranslation = false) {
+    public sendMessage(message: string, xuid = '', needsTranslation: boolean = false) {
         let pk = new TextPacket();
         pk.type = TextType.Raw;
         pk.message = message;
@@ -361,9 +357,6 @@ export default class PlayerConnection {
         this.sendDataPacket(pk);
     }
 
-    /**
-     * @param {Chunk} chunk
-     */
     public sendChunk(chunk: Chunk) {
         let pk = new LevelChunkPacket();
         pk.chunkX = chunk.getX();
@@ -379,7 +372,7 @@ export default class PlayerConnection {
 
     /**
      * Broadcast the movement to a defined player
-     * @param {Player} player
+     * @param player
      */
     public broadcastMove(player: Player, mode = MovementType.Normal) {
         let pk = new MovePlayerPacket();
@@ -407,20 +400,25 @@ export default class PlayerConnection {
     public addToPlayerList() {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Add;
+
         let entry = new PlayerListEntry();
         entry.uuid = UUID.fromString(this.player.uuid);
         entry.uniqueEntityId = this.player.runtimeId;
         entry.name = this.player.getUsername();
         entry.xuid = this.player.xuid;
-        entry.platformChatId = ''; // TODO: read this value from StartGamePacket
+        entry.platformChatId = ''; // TODO: read this value from Login
         entry.buildPlatform = -1; // TODO: read also this
         entry.skin = this.player.skin as Skin;
         entry.isTeacher = false; // TODO: figure out where to read teacher and host
         entry.isHost = false;
         pk.entries.push(entry);
-        for (let player of this.server.getOnlinePlayers()) {
-            player.getPlayerConnection().sendDataPacket(pk);
-        }
+
+        this.server.getPlayerList().set(this.player.uuid, entry);
+
+        // Add just this entry for every players on the server
+        this.server.getOnlinePlayers().map(
+            player => player.getPlayerConnection().sendDataPacket(pk)
+        );
     }
 
     /**
@@ -429,36 +427,33 @@ export default class PlayerConnection {
     public removeFromPlayerList() {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Remove;
+
         let entry = new PlayerListEntry();
         entry.uuid = UUID.fromString(this.player.uuid);
         pk.entries.push(entry);
-        for (let player of this.server.getOnlinePlayers()) {
-            player.getPlayerConnection().sendDataPacket(pk);
-        }
+
+        this.server.getPlayerList().delete(this.player.uuid);
+
+        this.server.getOnlinePlayers().map(
+            player => player.getPlayerConnection().sendDataPacket(pk)
+        );
     }
 
     /**
      * Retrieve all other player in server
-     * and add them to the player's player list
+     * and add them to the player's in-game player list
      */
     public sendPlayerList() {
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Add;
-        for (let player of this.server.getOnlinePlayers()) {
-            if (player === this.player) continue;
 
-            let entry = new PlayerListEntry();
-            entry.uuid = UUID.fromString(player.uuid);
-            entry.uniqueEntityId = player.runtimeId;
-            entry.name = player.getUsername();
-            entry.xuid = player.xuid;
-            entry.platformChatId = ''; // TODO: read this value from StartGamePacket
-            entry.buildPlatform = 0; // TODO: read also this
-            entry.skin = player.skin as Skin;
-            entry.isTeacher = false; // TODO: figure out where to read teacher and host
-            entry.isHost = false;
-            pk.entries.push(entry);
-        }
+        // Hack to not compute every time entries
+        Array.from(this.server.getPlayerList()).map(([uuid, entry]) => {
+            if (!(uuid === this.player.uuid)) {
+                pk.entries.push(entry);
+            }
+        });
+
         this.sendDataPacket(pk);
     }
 

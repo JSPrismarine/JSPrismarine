@@ -26,6 +26,7 @@ import ChatEvent from './events/chat/ChatEvent';
 import Chat from './chat/Chat';
 import PermissionManager from './permission/PermissionManager';
 import BanManager from './ban/BanManager';
+import PlayerListEntry from './network/type/PlayerListEntry';
 
 export default class Prismarine {
     private raknet: any;
@@ -35,6 +36,7 @@ export default class Prismarine {
     private console: Console;
 
     private players: Map<string, Player> = new Map();
+    private playerList: Map<string, PlayerListEntry> = new Map();
     private telemetryManager: TelemetryManager;
     private eventManager = new EventManager();
     private packetRegistry: PacketRegistry;
@@ -125,7 +127,7 @@ export default class Prismarine {
 
         this.getEventManager().on(
             'raknetConnect',
-            async (raknetConnectEvent) => {
+            async (raknetConnectEvent: RaknetConnectEvent) => {
                 const connection = raknetConnectEvent.getConnection();
 
                 let inetAddr = connection.address;
@@ -169,7 +171,7 @@ export default class Prismarine {
             }
         );
 
-        this.getEventManager().on('raknetDisconnect', (event) => {
+        this.getEventManager().on('raknetDisconnect', (event: RaknetDisconnectEvent) => {
             const inetAddr = event.getInetAddr();
             const reason = event.getReason();
 
@@ -470,6 +472,13 @@ export default class Prismarine {
      */
     getPermissionManager() {
         return this.permissionManager;
+    }
+
+    /**
+     * Returns the player list
+     */
+    getPlayerList() {
+        return this.playerList;
     }
 
     /**
