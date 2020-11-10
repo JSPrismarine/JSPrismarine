@@ -57,7 +57,7 @@ export default class AvailableCommandsPacket extends DataPacket {
                 for (let parameter of data.parameters) {
                     this.writeString(parameter.name);
                     this.writeLInt(parameter.type);
-                    this.writeBool(+parameter.optional);
+                    this.writeBool(parameter.optional);
                     this.writeByte(0); // No idea
                 }
         }

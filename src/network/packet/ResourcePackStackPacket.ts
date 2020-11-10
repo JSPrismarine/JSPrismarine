@@ -9,7 +9,7 @@ export default class ResourcePackStackPacket extends DataPacket {
     public resourcePackStack = [];
 
     public encodePayload() {
-        this.writeBool(+this.mustAccept);
+        this.writeBool(this.mustAccept);
 
         this.writeUnsignedVarInt(this.behaviorPackStack.length);
         for (let _behaviorPackStack of this.behaviorPackStack) {
@@ -25,7 +25,7 @@ export default class ResourcePackStackPacket extends DataPacket {
             this.writeString('');
         }
 
-        this.writeBool(+false); // experimental
+        this.writeBool(false); // experimental
         this.writeString(Identifiers.MinecraftVersion);
     }
 }
