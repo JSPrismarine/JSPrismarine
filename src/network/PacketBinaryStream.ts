@@ -227,7 +227,7 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeUUID(entry.uuid);
         this.writeVarLong(entry.uniqueEntityId);
         this.writeString(entry.name);
-        this.writeString(entry.xuid);
+        this.writeString(entry.xuid || "");
         this.writeString(entry.platformChatId);
         this.writeLInt(entry.buildPlatform);
         this.writeSkin(entry.skin);

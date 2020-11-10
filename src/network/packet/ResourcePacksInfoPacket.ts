@@ -11,8 +11,8 @@ export default class ResourcePacksInfoPacket extends DataPacket {
     public resourcePackEntries = [];
 
     public encodePayload() {
-        this.writeBool(+this.mustAccept);
-        this.writeBool(+this.hasScripts);
+        this.writeBool(this.mustAccept);
+        this.writeBool(this.hasScripts);
         this.writeLShort(this.behaviorPackEntries.length);
         for (let _behaviorEntry of this.behaviorPackEntries) {
             // TODO: we don't need them for now
