@@ -4,7 +4,9 @@
   "description": "Dedicated Minecraft Bedrock Edition server written in JavaScript",
   "main": "./dist/src/Server.js",
   "types": "./dist/src/Server.d.ts",
-  "bin": "./dist/src/Server.js",
+  "bin": {
+    "prismarine": "dist/src/Server.js"
+  },
   "scripts": {
     "start": "cross-env NODE_ENV=production node ./dist/src/Server.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
@@ -72,6 +74,7 @@
     "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
     "node-machine-id": "^1.1.12",
+    "pkg": "git+https://github.com/geekuillaume/pkg.git",
     "rimraf": "^3.0.2",
     "set-interval-async": "^1.0.33",
     "silent": "^0.1.2",
