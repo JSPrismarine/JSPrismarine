@@ -3,7 +3,7 @@ import Identifiers from '../Identifiers';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import InventoryTransactionPacket, {
-    InventoryTransactionActionType,
+    InventoryTransactionUseItemActionType,
     InventoryTransactionType
 } from '../packet/InventoryTransactionPacket';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
@@ -20,14 +20,9 @@ export default class InventoryTransactionHandler {
     ) {
         switch (packet.type) {
             case InventoryTransactionType.UseItem:
-                // TODO: sanity checks (can interact)
-                if (
-                    packet.actionType &&
-                    player.gamemode !== Gamemode.Spectator
-                ) {
+                if (player.gamemode !== Gamemode.Spectator) {
                     switch (packet.actionType) {
-                        case InventoryTransactionActionType.Build:
-                            // TODO: Position isn't decoded properly
+                        case InventoryTransactionUseItemActionType.ClickBlock:
                             await player
                                 .getWorld()
                                 .useItemOn(
@@ -43,7 +38,9 @@ export default class InventoryTransactionHandler {
                                     player
                                 );
                             break;
-                        case InventoryTransactionActionType.Break:
+                        case InventoryTransactionUseItemActionType.ClickAir:
+                            break;
+                        case InventoryTransactionUseItemActionType.BreakBlock:
                             const chunk = await player
                                 .getWorld()
                                 .getChunkAt(
