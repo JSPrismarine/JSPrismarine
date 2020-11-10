@@ -26,11 +26,12 @@ import SetActorDataPacket from '../network/packet/SetActorDataPacket';
 import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import CoordinateUtils from '../world/CoordinateUtils';
+import PlayerListEntry from '../network/type/PlayerListEntry';
+import Skin from '../utils/skin/skin';
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const UUID = require('../utils/uuid').default;
 const PlayerListAction = require('../network/type/player-list-action');
-const PlayerListEntry = require('../network/type/player-list-entry');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
@@ -39,8 +40,8 @@ export default class PlayerConnection {
     private connection: Connection;
     private server: Prismarine;
     private chunkSendQueue: Set<Chunk> = new Set();
-    loadedChunks: Set<string> = new Set();
-    loadingChunks: Set<string> = new Set();
+    private loadedChunks: Set<string> = new Set();
+    private loadingChunks: Set<string> = new Set();
 
     constructor(server: Prismarine, connection: Connection, player: Player) {
         this.server = server;
@@ -413,7 +414,7 @@ export default class PlayerConnection {
         entry.xuid = this.player.xuid;
         entry.platformChatId = ''; // TODO: read this value from StartGamePacket
         entry.buildPlatform = -1; // TODO: read also this
-        entry.skin = this.player.skin;
+        entry.skin = this.player.skin as Skin;
         entry.isTeacher = false; // TODO: figure out where to read teacher and host
         entry.isHost = false;
         pk.entries.push(entry);
@@ -453,7 +454,7 @@ export default class PlayerConnection {
             entry.xuid = player.xuid;
             entry.platformChatId = ''; // TODO: read this value from StartGamePacket
             entry.buildPlatform = 0; // TODO: read also this
-            entry.skin = player.skin;
+            entry.skin = player.skin as Skin;
             entry.isTeacher = false; // TODO: figure out where to read teacher and host
             entry.isHost = false;
             pk.entries.push(entry);
