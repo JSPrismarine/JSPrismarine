@@ -347,7 +347,11 @@ export default class PlayerConnection {
         this.sendDataPacket(pk);
     }
 
-    public sendMessage(message: string, xuid = '', needsTranslation: boolean = false) {
+    public sendMessage(
+        message: string,
+        xuid = '',
+        needsTranslation: boolean = false
+    ) {
         let pk = new TextPacket();
         pk.type = TextType.Raw;
         pk.message = message;
@@ -416,9 +420,9 @@ export default class PlayerConnection {
         this.server.getPlayerList().set(this.player.uuid, entry);
 
         // Add just this entry for every players on the server
-        this.server.getOnlinePlayers().map(
-            player => player.getPlayerConnection().sendDataPacket(pk)
-        );
+        this.server
+            .getOnlinePlayers()
+            .map((player) => player.getPlayerConnection().sendDataPacket(pk));
     }
 
     /**
@@ -434,9 +438,9 @@ export default class PlayerConnection {
 
         this.server.getPlayerList().delete(this.player.uuid);
 
-        this.server.getOnlinePlayers().map(
-            player => player.getPlayerConnection().sendDataPacket(pk)
-        );
+        this.server
+            .getOnlinePlayers()
+            .map((player) => player.getPlayerConnection().sendDataPacket(pk));
     }
 
     /**
