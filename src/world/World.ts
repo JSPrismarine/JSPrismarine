@@ -196,37 +196,68 @@ export default class World {
         player: Player
     ): Promise<void> {
         //TODO: checks
-
         // TODO: set block on the desired face
 
         // maybe let place = new Promise ( do all placing stuff )
         // then if place is true, play sound
 
-        if (itemInHand instanceof Item) return; // TODO
-
-        const chunk = await this.getChunkAt(
-            blockPosition.getX(),
-            blockPosition.getZ()
-        );
-        const block = itemInHand; // TODO: get block from itemInHand
-        if (!block)
+        if (!itemInHand)
             return this.server
                 .getLogger()
                 .warn(`Block with runtimeId ${0} is invalid`);
+        if (itemInHand instanceof Item) return; // TODO
 
-        chunk.setBlock(
-            blockPosition.getX() % 16,
-            blockPosition.getY(),
-            blockPosition.getZ() % 16,
-            block
-        );
+        const success: boolean = await new Promise(async (resolve) => {
+            const chunk = await this.getChunkAt(
+                blockPosition.getX(),
+                blockPosition.getZ()
+            );
+
+            const block = itemInHand; // TODO: get block from itemInHand
+            const clickedBlock = this.server
+                .getBlockManager()
+                .getBlockById(
+                    chunk.getBlockId(
+                        blockPosition.getX() % 16,
+                        blockPosition.getY(),
+                        blockPosition.getZ() % 16
+                    )
+                );
+
+            if (!clickedBlock) return resolve(false);
+
+            if (
+                clickedBlock.getName() === 'minecraft:air' ||
+                block.getName() === 'minecraft:air'
+            )
+                return resolve(false);
+
+            // TODO: canInteract
+
+            /* if (clickedBlock.isReplacable()) {
+                chunk.setBlock(
+                    blockPosition.getX() % 16,
+                    blockPosition.getY(),
+                    blockPosition.getZ() % 16,
+                    block
+                );
+            } */
+        });
+
+        if (!success) {
+            const blockUpdate = new UpdateBlockPacket();
+            blockUpdate.x = blockPosition.getX();
+            blockUpdate.y = blockPosition.getY();
+            blockUpdate.z = blockPosition.getZ();
+            blockUpdate.BlockRuntimeId = 0; // TODO: get previous block
+            return;
+        }
 
         const blockUpdate = new UpdateBlockPacket();
         blockUpdate.x = blockPosition.getX();
         blockUpdate.y = blockPosition.getY();
         blockUpdate.z = blockPosition.getZ();
-        blockUpdate.BlockRuntimeId = block.getRuntimeId();
-
+        blockUpdate.BlockRuntimeId = itemInHand.getRuntimeId();
         for (let p of this.server.getOnlinePlayers()) {
             p.getPlayerConnection().sendDataPacket(blockUpdate);
         }
