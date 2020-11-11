@@ -207,7 +207,7 @@ export default class World {
             blockPosition.getX(),
             blockPosition.getZ()
         );
-        
+
         const block = itemInHand;
         if (!block)
             return this.server
