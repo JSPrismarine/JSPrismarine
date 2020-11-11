@@ -194,11 +194,62 @@ export default class World {
         clickPosition: Vector3,
         player: Player
     ): Promise<void> {
-        //TODO: checks
-        // TODO: set block on the desired face
+        if (!itemInHand)
+            return this.server
+                .getLogger()
+                .warn(`Block with runtimeId ${0} is invalid`);
+        if (itemInHand instanceof Item) return; // TODO
 
-        // maybe let place = new Promise ( do all placing stuff )
-        // then if place is true, play sound
+        //TODO: checks
+        // TODO: canInteract
+
+        const block = itemInHand; // TODO: get block from itemInHand
+        const clickedBlock = this.server
+            .getBlockManager()
+            .getBlockById(
+                (
+                    await this.getChunkAt(
+                        blockPosition.getX(),
+                        blockPosition.getZ()
+                    )
+                ).getBlockId(
+                    blockPosition.getX() % 16,
+                    blockPosition.getY(),
+                    blockPosition.getZ() % 16
+                )
+            );
+        if (!block || !clickedBlock) return;
+        if (
+            clickedBlock.getName() === 'minecraft:air' ||
+            block.getName() === 'minecraft:air'
+        )
+            return;
+
+        const placedPosition = new Vector3(
+            blockPosition.getX(),
+            blockPosition.getY(),
+            blockPosition.getZ()
+        );
+        switch (face) {
+            case 0: // bottom
+                placedPosition.setY(blockPosition.getY() - 1);
+                break;
+            case 1: // top
+                placedPosition.setY(blockPosition.getY() + 1);
+                break;
+            case 2: // front
+                placedPosition.setZ(blockPosition.getZ() - 1);
+                break;
+            case 3: // back
+                placedPosition.setZ(blockPosition.getZ() + 1);
+                break;
+            case 4: // right
+                placedPosition.setX(blockPosition.getX() - 1);
+                break;
+            case 5: // left
+                placedPosition.setX(blockPosition.getX() + 1);
+                break;
+        }
 
         if (!itemInHand)
             return this.server
@@ -208,39 +259,17 @@ export default class World {
 
         const success: boolean = await new Promise(async (resolve) => {
             const chunk = await this.getChunkAt(
-                blockPosition.getX(),
-                blockPosition.getZ()
+                placedPosition.getX(),
+                placedPosition.getZ()
             );
 
-            const block = itemInHand; // TODO: get block from itemInHand
-            const clickedBlock = this.server
-                .getBlockManager()
-                .getBlockById(
-                    chunk.getBlockId(
-                        blockPosition.getX() % 16,
-                        blockPosition.getY(),
-                        blockPosition.getZ() % 16
-                    )
-                );
-
-            if (!clickedBlock) return resolve(false);
-
-            if (
-                clickedBlock.getName() === 'minecraft:air' ||
-                block.getName() === 'minecraft:air'
-            )
-                return resolve(false);
-
-            // TODO: canInteract
-
-            /* if (clickedBlock.isReplacable()) {
-                chunk.setBlock(
-                    blockPosition.getX() % 16,
-                    blockPosition.getY(),
-                    blockPosition.getZ() % 16,
-                    block
-                );
-            } */
+            chunk.setBlock(
+                placedPosition.getX() % 16,
+                placedPosition.getY(),
+                placedPosition.getZ() % 16,
+                block
+            );
+            return resolve(true);
         });
 
         if (!success) {
@@ -253,10 +282,10 @@ export default class World {
         }
 
         const blockUpdate = new UpdateBlockPacket();
-        blockUpdate.x = blockPosition.getX();
-        blockUpdate.y = blockPosition.getY();
-        blockUpdate.z = blockPosition.getZ();
-        blockUpdate.BlockRuntimeId = itemInHand.getRuntimeId();
+        blockUpdate.x = placedPosition.getX();
+        blockUpdate.y = placedPosition.getY();
+        blockUpdate.z = placedPosition.getZ();
+        blockUpdate.BlockRuntimeId = block.getRuntimeId();
         for (let p of this.server.getOnlinePlayers()) {
             p.getPlayerConnection().sendDataPacket(blockUpdate);
         }
