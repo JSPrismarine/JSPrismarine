@@ -39,7 +39,8 @@ export default class SubChunk {
         return this.ids[SubChunk.getIndex(x, y, z)];
     }
     getBlockMetadata(x: number, y: number, z: number) {
-        return this.metadata[SubChunk.getIndex(x, y, z)]; // TODO: fix metadata index
+        return 0;
+        //return this.metadata[SubChunk.getIndex(x, y, z)]; // TODO: fix metadata index
     }
 
     getHighestBlockAt(x: number, z: number) {
