@@ -8,6 +8,7 @@ import Inventory from '../inventory/Inventory';
 import Skin from '../utils/skin/skin';
 import Device from '../utils/Device';
 import Chunk from '../world/chunk/Chunk';
+import ChatEvent from '../events/chat/ChatEvent';
 
 export enum PlayerPermission {
     Visitor,
@@ -73,7 +74,7 @@ export default class Player extends Entity {
         );
 
         // Handle chat messages
-        server.getEventManager().on('chat', (evt) => {
+        server.getEventManager().on('chat', (evt: ChatEvent) => {
             if (evt.cancelled) return;
 
             // TODO: proper channel system

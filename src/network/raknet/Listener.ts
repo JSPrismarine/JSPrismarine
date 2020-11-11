@@ -114,11 +114,6 @@ export default class Listener extends EventEmitter {
                         }
                     );
                 default:
-                    this.server
-                        .getLogger()
-                        .debug(
-                            `Invalid RakNet header: 0x${header.toString(16)}!`
-                        );
                     break;
             }
         }
