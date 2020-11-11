@@ -30,7 +30,7 @@ import PlayerListEntry from './network/type/PlayerListEntry';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class Prismarine {
-    private raknet: any;
+    private raknet!: Listener;
     private logger: LoggerBuilder;
     private config: Config;
     private tps: number = 20;

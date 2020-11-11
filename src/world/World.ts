@@ -220,10 +220,7 @@ export default class World {
             );
 
         if (!block || !clickedBlock) return;
-        if (
-            clickedBlock.getName() === 'minecraft:air' ||
-            block.getName() === 'minecraft:air'
-        )
+        if (clickedBlock.getName() === 'minecraft:air' || !block.canBePlaced())
             return;
 
         const placedPosition = new Vector3(
@@ -231,30 +228,29 @@ export default class World {
             blockPosition.getY(),
             blockPosition.getZ()
         );
-        switch (face) {
-            case 0: // bottom
-                placedPosition.setY(placedPosition.getY() - 1);
-                break;
-            case 1: // top
-                placedPosition.setY(placedPosition.getY() + 1);
-                break;
-            case 2: // front
-                placedPosition.setZ(placedPosition.getZ() - 1);
-                break;
-            case 3: // back
-                placedPosition.setZ(placedPosition.getZ() + 1);
-                break;
-            case 4: // right
-                placedPosition.setX(placedPosition.getX() - 1);
-                break;
-            case 5: // left
-                placedPosition.setX(placedPosition.getX() + 1);
-                break;
-        }
 
-        if (!itemInHand)
-            return this.server.getLogger().warn(`Block or Item is invalid`);
-        if (itemInHand instanceof Item) return; // TODO
+        // Only set correct face if the block can't be replaced
+        if (!clickedBlock.canBeReplaced())
+            switch (face) {
+                case 0: // bottom
+                    placedPosition.setY(placedPosition.getY() - 1);
+                    break;
+                case 1: // top
+                    placedPosition.setY(placedPosition.getY() + 1);
+                    break;
+                case 2: // front
+                    placedPosition.setZ(placedPosition.getZ() - 1);
+                    break;
+                case 3: // back
+                    placedPosition.setZ(placedPosition.getZ() + 1);
+                    break;
+                case 4: // right
+                    placedPosition.setX(placedPosition.getX() - 1);
+                    break;
+                case 5: // left
+                    placedPosition.setX(placedPosition.getX() + 1);
+                    break;
+            }
 
         const success: boolean = await new Promise(async (resolve) => {
             const chunk = await this.getChunkAt(
@@ -273,9 +269,9 @@ export default class World {
 
         if (!success) {
             const blockUpdate = new UpdateBlockPacket();
-            blockUpdate.x = blockPosition.getX();
-            blockUpdate.y = blockPosition.getY();
-            blockUpdate.z = blockPosition.getZ();
+            blockUpdate.x = placedPosition.getX();
+            blockUpdate.y = placedPosition.getY();
+            blockUpdate.z = placedPosition.getZ();
             blockUpdate.BlockRuntimeId = 0; // TODO: get previous block
             return;
         }
@@ -309,8 +305,6 @@ export default class World {
     /**
      * Adds an entity into the level and in the chunk
      * found from the entity position.
-     *
-     * @param entity
      */
     public async addEntity(entity: Entity): Promise<void> {
         this.entities.set(entity.runtimeId, entity);
