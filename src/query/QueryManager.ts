@@ -4,6 +4,11 @@ import git from 'git-rev-sync';
 import PluginFile from '../plugin/PluginFile';
 import type InetAddress from '../network/raknet/utils/InetAddress';
 
+export enum QueryType {
+    Handshake = 0,
+    Stats = 9
+}
+
 export default class QueryManager {
     private server: Prismarine;
     private git_rev = git.short() || 'unknown';
@@ -14,13 +19,28 @@ export default class QueryManager {
 
     public onRaw(buffer: BinaryStream, inetAddr: InetAddress) {
         const magic = buffer.readShort();
-        const type = buffer.readByte();
+        const type: QueryType = buffer.readByte();
         const sessionId = buffer.readInt() & 0x0f0f0f0f;
 
         if (magic !== 65277) return;
 
         switch (type) {
-            case 0: {
+            case QueryType.Handshake: {
+                // Handshake
+                const res = new BinaryStream();
+                res.writeByte(9);
+                res.writeInt(sessionId);
+                res.append(Buffer.from(`9513307\0`, 'binary'));
+                this.server
+                    .getRaknet()
+                    .sendBuffer(
+                        res.getBuffer(),
+                        inetAddr.address,
+                        inetAddr.port
+                    );
+                break;
+            }
+            case QueryType.Stats: {
                 const res = new BinaryStream();
                 res.writeByte(0);
                 // padding
@@ -106,21 +126,6 @@ export default class QueryManager {
                         'binary'
                     )
                 );
-                this.server
-                    .getRaknet()
-                    .sendBuffer(
-                        res.getBuffer(),
-                        inetAddr.address,
-                        inetAddr.port
-                    );
-                break;
-            }
-            case 9: {
-                // Handshake
-                const res = new BinaryStream();
-                res.writeByte(9);
-                res.writeInt(sessionId);
-                res.append(Buffer.from(`9513307\0`, 'binary'));
                 this.server
                     .getRaknet()
                     .sendBuffer(
