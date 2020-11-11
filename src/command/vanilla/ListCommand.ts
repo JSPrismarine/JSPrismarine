@@ -19,7 +19,8 @@ export default class ListCommand extends Command {
         let maxPlayers = sender
             .getServer()
             .getRaknet()
-            .name.getMaxPlayerCount();
+            .getName()
+            .getMaxPlayerCount();
         let counter = playerArray.length;
         let answer = playerArray
             .map((player) => player.getUsername())
