@@ -2,7 +2,7 @@ import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import Flowable from '../Flowable';
 
-export default class DeadShrub extends Flowable {
+export default class DeadBush extends Flowable {
     meta = 0;
 
     constructor() {
