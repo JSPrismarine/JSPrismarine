@@ -37,7 +37,7 @@ export default class LevelSoundEventPacket extends DataPacket {
 
         this.writeVarInt(this.extraData);
         this.writeString(this.entityType);
-        this.writeBool(+this.isBabyMob);
-        this.writeBool(+this.disableRelativeVolume);
+        this.writeBool(this.isBabyMob);
+        this.writeBool(this.disableRelativeVolume);
     }
 }

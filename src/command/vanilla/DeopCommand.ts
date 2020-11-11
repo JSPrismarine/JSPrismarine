@@ -38,28 +38,18 @@ export default class DeopCommand extends Command {
             return;
         } else {
             const target = sender.getServer().getPlayerByName(args[0]);
+            sender.getServer().getPermissionManager().setOp(args[0], false);
 
-            if (!target) {
+            if (target) {
                 const event = new ChatEvent(
                     new Chat(
                         sender,
-                        '§cNo player was found',
-                        `*.player.${sender.getUsername()}`
+                        '§eYou are no longer op!',
+                        `*.player.${target.getUsername()}`
                     )
                 );
                 sender.getServer().getEventManager().emit('chat', event);
-                return;
             }
-
-            sender.getServer().getPermissionManager().setOp(target, false);
-            const event = new ChatEvent(
-                new Chat(
-                    sender,
-                    '§eYou are no longer op!',
-                    `*.player.${target.getUsername()}`
-                )
-            );
-            sender.getServer().getEventManager().emit('chat', event);
         }
 
         return `Made ${

@@ -4,7 +4,9 @@
   "description": "Dedicated Minecraft Bedrock Edition server written in JavaScript",
   "main": "./dist/src/Server.js",
   "types": "./dist/src/Server.d.ts",
-  "bin": "./dist/src/Server.js",
+  "bin": {
+    "prismarine": "dist/src/Server.js"
+  },
   "scripts": {
     "start": "cross-env NODE_ENV=production node ./dist/src/Server.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch src -e ts,js,json bootstrap.js",
@@ -60,7 +62,7 @@
     "@babel/register": "^7.11.5",
     "@iarna/toml": "^2.2.5",
     "@jsprismarine/bedrock-data": "1.16.20e",
-    "@jsprismarine/jsbinaryutils": "2.1.6",
+    "@jsprismarine/jsbinaryutils": "2.1.7",
     "async": "^3.2.0",
     "evt": "^1.9.1",
     "git-rev-sync": "^3.0.1",
@@ -72,6 +74,7 @@
     "lodash": "^4.17.20",
     "mccolorstoconsole": "^1.1.0",
     "node-machine-id": "^1.1.12",
+    "pkg": "git+https://github.com/geekuillaume/pkg.git",
     "rimraf": "^3.0.2",
     "set-interval-async": "^1.0.33",
     "silent": "^0.1.2",
@@ -84,7 +87,7 @@
     "@types/git-rev-sync": "2.0.0",
     "@types/jest": "26.0.15",
     "@types/jwt-decode": "3.1.0",
-    "@types/node": "14.14.6",
+    "@types/node": "14.14.7",
     "@types/node-fetch": "2.5.7",
     "@types/rimraf": "3.0.0",
     "@types/set-interval-async": "1.0.0",

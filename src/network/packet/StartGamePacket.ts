@@ -57,11 +57,11 @@ export default class StartGamePacket extends DataPacket {
         this.writeUnsignedVarInt(this.worldSpawnY);
         this.writeVarInt(this.worldSpawnZ);
 
-        this.writeBool(+true); // achievement disabled
+        this.writeBool(true); // achievement disabled
 
         this.writeVarInt(0); // day cycle / time
         this.writeVarInt(0); // edu edition offer
-        this.writeBool(+false); // edu features
+        this.writeBool(false); // edu features
         this.writeString(''); // edu product id
 
         this.writeLFloat(0); // rain lvl
@@ -95,8 +95,8 @@ export default class StartGamePacket extends DataPacket {
         this.writeString(Identifiers.MinecraftVersion);
         this.writeLInt(0); // limited world height
         this.writeLInt(0); // limited world length
-        this.writeBool(+false); // has new nether
-        this.writeBool(+false); // experimental gameplay
+        this.writeBool(false); // has new nether
+        this.writeBool(false); // experimental gameplay
 
         this.writeString(this.levelId);
         this.writeString(this.worldName);
@@ -113,7 +113,7 @@ export default class StartGamePacket extends DataPacket {
         this.append(this.serializeItemTable(ItemTable));
 
         this.writeString('');
-        this.writeBool(+false); // new inventory system
+        this.writeBool(false); // new inventory system
     }
 
     serializeItemTable(table: any): Buffer {
