@@ -1,12 +1,8 @@
-import NBT from '../../nbt/NBT';
-import LittleEndianBinaryStream from '../../nbt/streams/LittleEndianBinaryStream';
 import Identifiers from '../Identifiers';
 import PacketBinaryStream from '../PacketBinaryStream';
 import DataPacket from './DataPacket';
 
 const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
-const RequiredBlockStates = require('@jsprismarine/bedrock-data')
-    .required_block_states;
 
 export default class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket;
@@ -111,19 +107,8 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(0); // enchantment seed
 
         // PMMP states
-        let statesDecoded = new NBT().readTag(RequiredBlockStates, true, true);
-        /*let reEncodedStates = new NBT().writeTag(
-            new LittleEndianBinaryStream(),
-            statesDecoded,
-            true,
-            true
-        ); */
-        /* console.log(statesDecoded);
 
-        console.log(reEncodedStates);
-        console.log(RequiredBlockStates); */
-
-        this.append(RequiredBlockStates);
+        this.append(this.getServer().getBlockManager().getBlockPalette());
         this.append(this.serializeItemTable(ItemTable));
 
         this.writeString('');

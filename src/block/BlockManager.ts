@@ -1,24 +1,32 @@
 import fs from 'fs';
 import path from 'path';
 
+import NBT from '../nbt/NBT';
+import LittleEndianBinaryStream from '../nbt/streams/LittleEndianBinaryStream';
 import Block from './Block';
+const RequiredBlockStates = require('@jsprismarine/bedrock-data')
+    .required_block_states;
 import Prismarine from '../Prismarine';
 import { BlockIdsType } from './BlockIdsType';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Tag from '../nbt/tags/internal/Tag';
 
 export default class BlockManager {
     private server: Prismarine;
     private blocks = new Map();
     private runtimeIds: Array<number> = [];
+    private blockPalette: Buffer;
 
     constructor(server: Prismarine) {
         this.server = server;
+        this.blockPalette = Buffer.alloc(0);
     }
 
     /**
      * onEnable hook
      */
     public async onEnable() {
-        this.importBlocks();
+        await this.importBlocks();
         this.generateRuntimeIds();
     }
 
@@ -75,10 +83,52 @@ export default class BlockManager {
         return Array.from(this.blocks.values());
     }
 
+    private async generateBlockPalette() {
+        const palette: BinaryStream = await new Promise((resolve) => {
+            resolve(
+                new NBT().writeTag(
+                    new LittleEndianBinaryStream(),
+                    new Tag(
+                        {
+                            value: [
+                                ...this.getBlocks()
+                                    .filter((a) => a.meta)
+                                    .map((block) => {
+                                        return [
+                                            {
+                                                value: [
+                                                    {
+                                                        value: block.getName()
+                                                    }
+                                                ],
+                                                name: 'block'
+                                            },
+                                            {
+                                                value: block.getRuntimeId(),
+                                                name: 'id'
+                                            }
+                                        ];
+                                    })
+                            ]
+                        },
+                        ''
+                    ),
+                    true,
+                    true
+                )
+            );
+        });
+
+        this.blockPalette = RequiredBlockStates; // palette.getBuffer();
+    }
+    public getBlockPalette(): Buffer {
+        return this.blockPalette;
+    }
+
     /**
      * Registers block from block class
      */
-    public registerClassBlock(block: Block) {
+    public registerClassBlock(block: Block, generateBlockPalette = true) {
         // The runtime ID is a unique ID sent with the start-game packet
         // ours is always based on the block's index in the this.blocks map
         // starting from 0.
@@ -86,12 +136,16 @@ export default class BlockManager {
             .getLogger()
             .silly(`Block with id §b${block.name}§r registered`);
         this.blocks.set(block.name, block);
+
+        if (generateBlockPalette) {
+            this.generateBlockPalette();
+        }
     }
 
     /**
      * Loops through ./src/block/blocks and register them
      */
-    private importBlocks() {
+    private async importBlocks() {
         try {
             const time = Date.now();
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
@@ -100,11 +154,13 @@ export default class BlockManager {
 
                 const block = require(`./blocks/${id}`).default;
                 try {
-                    this.registerClassBlock(new block());
+                    this.registerClassBlock(new block(), false);
                 } catch (err) {
                     this.server.getLogger().error(`${id} failed to register!`);
                 }
             });
+
+            await this.generateBlockPalette();
             this.server
                 .getLogger()
                 .debug(
