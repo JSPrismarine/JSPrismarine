@@ -5,9 +5,10 @@ import DataPacket from './DataPacket';
 const ChangeSlot = require('../type/change-slot');
 const NetworkTransaction = require('../type/network-transaction');
 
-export enum InventoryTransactionActionType {
-    Build = 1,
-    Break = 2
+export enum InventoryTransactionUseItemActionType {
+    ClickBlock = 0,
+    ClickAir = 1,
+    BreakBlock = 2
 }
 
 export enum InventoryTransactionType {

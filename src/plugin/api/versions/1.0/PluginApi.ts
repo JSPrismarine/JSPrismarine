@@ -3,11 +3,7 @@ import ConfigBuilder from '../../../../config/ConfigBuilder';
 import Prismarine from '../../../../Prismarine';
 import LoggerBuilder from '../../../../utils/Logger';
 import PluginApiVersion from '../../PluginApiVersion';
-import withDeprecated from '../../../hoc/withDeprecated';
-import Server from './Server';
 import EventManager from './EventManager';
-import PlayerManager from './PlayerManager';
-import CommandManager from './CommandManager';
 
 export const PLUGIN_API_VERSION = '1.0';
 
@@ -51,17 +47,10 @@ export default class PluginApi extends PluginApiVersion {
     }
 
     /**
-     * returns an instance of the command manager
-     */
-    public getCommandManager(): CommandManager {
-        return new CommandManager(this.server);
-    }
-
-    /**
      * returns an instance of the server class
      */
-    public getServer(): Server {
-        return new Server(this.server);
+    public getServer(): Prismarine {
+        return this.server;
     }
 
     private eventManager: EventManager<[string, any]> | undefined = undefined;
@@ -76,20 +65,5 @@ export default class PluginApi extends PluginApiVersion {
             this.eventManager ??
             (this.eventManager = new EventManager(this.server))
         );
-    }
-
-    /**
-     * returns an instance of the event manager
-     */
-    public getPlayerManager(): PlayerManager {
-        return new PlayerManager(this.server);
-    }
-
-    /**
-     * returns an instance of the sever details class
-     */
-    @withDeprecated(new Date('2020-10-20'))
-    public getServerDetails(): Server {
-        return new Server(this.server);
     }
 }
