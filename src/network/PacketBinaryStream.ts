@@ -6,7 +6,7 @@ import Prismarine from '../Prismarine';
 import Skin from '../utils/skin/skin';
 import SkinImage from '../utils/skin/skin-image';
 import CreativeContentEntry from './type/creative-content-entry';
-import PlayerListEntry from './type/player-list-entry';
+import PlayerListEntry from './type/PlayerListEntry';
 
 const UUID = require('../utils/uuid').default;
 const { FlagType } = require('../entity/metadata');
@@ -179,9 +179,9 @@ export default class PacketBinaryStream extends BinaryStream {
         // Miscellaneus
         this.writeString(skin.geometry);
         this.writeString(skin.animationData);
-        this.writeBool(+skin.isPremium);
-        this.writeBool(+skin.isPersona);
-        this.writeBool(+skin.isCapeOnClassicSkin);
+        this.writeBool(skin.isPremium);
+        this.writeBool(skin.isPersona);
+        this.writeBool(skin.isCapeOnClassicSkin);
         this.writeString(skin.cape.id);
         this.writeString(skin.fullId);
         this.writeString(skin.armSize);
@@ -194,7 +194,7 @@ export default class PacketBinaryStream extends BinaryStream {
                 this.writeString(personaPiece.pieceId);
                 this.writeString(personaPiece.pieceType);
                 this.writeString(personaPiece.packId);
-                this.writeBool(+personaPiece.isDefault);
+                this.writeBool(personaPiece.isDefault);
                 this.writeString(personaPiece.productId);
             }
             this.writeLInt(skin.persona.tintColors.size);
@@ -227,12 +227,12 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeUUID(entry.uuid);
         this.writeVarLong(entry.uniqueEntityId);
         this.writeString(entry.name);
-        this.writeString(entry.xuid);
+        this.writeString(entry.xuid || '');
         this.writeString(entry.platformChatId);
         this.writeLInt(entry.buildPlatform);
         this.writeSkin(entry.skin);
-        this.writeBool((entry.isTeacher as unknown) as number);
-        this.writeBool((entry.isHost as unknown) as number);
+        this.writeBool(entry.isTeacher);
+        this.writeBool(entry.isHost);
     }
 
     /**
@@ -274,7 +274,7 @@ export default class PacketBinaryStream extends BinaryStream {
             switch (typeof value) {
                 case 'boolean':
                     this.writeByte(1); // maybe value type ??
-                    this.writeBool((value as unknown) as number);
+                    this.writeBool(value);
                     break;
                 case 'number':
                     if (this.isInt(value)) {
@@ -436,7 +436,7 @@ export default class PacketBinaryStream extends BinaryStream {
 
     writeItemStackRequest() {
         // TODO
-        this.writeBool(1);
+        this.writeBool(true);
         this.writeVarInt(0);
         this.writeVarInt(0);
     }

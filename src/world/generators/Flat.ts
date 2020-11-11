@@ -24,7 +24,7 @@ export default class Flat {
                 chunk.setBlock(x, y++, z, dirt);
                 chunk.setBlock(x, y++, z, dirt);
                 chunk.setBlock(x, y++, z, dirt);
-                chunk.setBlock(x, y, z, grass);
+                chunk.setBlock(x, y++, z, grass);
             }
         }
 

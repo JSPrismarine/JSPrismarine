@@ -9,7 +9,6 @@ export default class BanManager {
     private banned: Map<
         string,
         {
-            name: string;
             reason: string;
         }
     > = new Map();
@@ -45,19 +44,16 @@ export default class BanManager {
                 ).toString()
             );
 
-            for (const player of banned) this.banned.set(player.uuid, player);
+            for (const player of banned) this.banned.set(player.name, player);
         } catch (err) {
             this.server.getLogger().error(err);
             throw new Error(`Invalid banned-players.json file.`);
         }
     }
 
-    public async setBanned(player: Player, reason = '') {
-        if (!player || !player.isPlayer()) return false;
-
-        this.banned.set(player.getUUID(), {
-            reason,
-            name: player.getUsername()
+    public async setBanned(username: string, reason = '') {
+        this.banned.set(username, {
+            reason
         });
 
         const writeFile = util.promisify(fs.writeFile);
@@ -66,8 +62,7 @@ export default class BanManager {
                 path.join(process.cwd(), '/banned-players.json'),
                 JSON.stringify(
                     Array.from(this.banned).map((entry) => ({
-                        uuid: entry[0],
-                        name: entry[1].name,
+                        name: entry[0],
                         reason: entry[1].reason
                     })),
                     null,
@@ -80,12 +75,7 @@ export default class BanManager {
     }
 
     public async setUnbanned(username: string) {
-        const uuid = Array.from(this.banned).filter(
-            (a) => a[1].name === username
-        )?.[0]?.[0];
-        if (!uuid) return false;
-
-        this.banned.delete(uuid);
+        this.banned.delete(username);
 
         const writeFile = util.promisify(fs.writeFile);
         try {
@@ -93,8 +83,7 @@ export default class BanManager {
                 path.join(process.cwd(), '/banned-players.json'),
                 JSON.stringify(
                     Array.from(this.banned).map((entry) => ({
-                        uuid: entry[0],
-                        name: entry[1].name,
+                        name: entry[0],
                         reason: entry[1].reason
                     })),
                     null,
@@ -107,8 +96,8 @@ export default class BanManager {
     }
 
     public isBanned(player: Player) {
-        if (this.banned.has(player.getUUID()))
-            return this.banned.get(player.getUUID())?.reason;
+        if (this.banned.has(player.getUsername()))
+            return this.banned.get(player.getUsername())?.reason;
 
         return false;
     }

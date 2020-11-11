@@ -47,7 +47,7 @@ export default class TextPacket extends DataPacket {
 
     public encodePayload() {
         this.writeByte(this.type);
-        this.writeBool(+this.needsTranslation);
+        this.writeBool(this.needsTranslation);
 
         switch (this.type) {
             case TextType.Chat:

@@ -56,7 +56,7 @@ export default class MovePlayerPacket extends DataPacket {
         this.writeLFloat(this.headYaw);
 
         this.writeByte(this.mode);
-        this.writeBool(+this.onGround);
+        this.writeBool(this.onGround);
         this.writeUnsignedVarLong(this.ridingEntityRuntimeId);
         if (this.mode === MovementType.Teleport) {
             this.writeLInt(this.teleportCause);

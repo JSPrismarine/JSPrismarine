@@ -37,6 +37,13 @@ export default class Block {
     }
 
     /**
+     * Get the Block's meta value
+     */
+    public getMeta() {
+        return this.meta;
+    }
+
+    /**
      * Get the Block's numeric id
      */
     public getId() {
@@ -155,6 +162,13 @@ export default class Block {
     }
 
     canPassThrough() {
+        return false;
+    }
+
+    /**
+     * Sets if the block can be replaced when place action occurs on it
+     */
+    canBeReplaced() {
         return false;
     }
 
