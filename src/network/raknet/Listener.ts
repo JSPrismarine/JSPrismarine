@@ -72,6 +72,11 @@ export default class Listener extends EventEmitter {
     handle(buffer: Buffer, rinfo: any) {
         let header = buffer.readUInt8(); // Read packet header to recognize packet type
 
+        if (header === Identifiers.Query) {
+            this.emit('raw', buffer, rinfo);
+            return;
+        }
+
         let token = `${rinfo.address}:${rinfo.port}`;
         if (this.connections.has(token)) {
             let connection = this.connections.get(token);
@@ -113,12 +118,8 @@ export default class Listener extends EventEmitter {
                             );
                         }
                     );
+                    break;
                 default:
-                    this.server
-                        .getLogger()
-                        .debug(
-                            `Invalid RakNet header: 0x${header.toString(16)}!`
-                        );
                     break;
             }
         }

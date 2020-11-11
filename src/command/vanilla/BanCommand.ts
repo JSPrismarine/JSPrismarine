@@ -28,24 +28,24 @@ export default class BanCommand extends Command {
             sender.sendMessage('§cYou have to specify a target.');
             return;
         } else {
-            let target; // TODO: somehow fetch uuid from username
-            if ((target = sender.getServer().getPlayerByName(args[0])) === null)
-                return sender.sendMessage('§cNo player was found'); // TODO: Chat manager
+            const target = sender.getServer().getPlayerByName(args[0]);
 
             sender
                 .getServer()
                 .getBanManager()
                 .setBanned(
-                    target,
+                    args[0],
                     args.length > 1 ? args.slice(1).join(' ') : undefined
                 );
-            target.kick(
-                `You have been banned${
-                    args.length > 1
-                        ? ` for reason: ${args.slice(1).join(' ')}`
-                        : ''
-                }!`
-            );
+
+            if (target)
+                target.kick(
+                    `You have been banned${
+                        args.length > 1
+                            ? ` for reason: ${args.slice(1).join(' ')}`
+                            : ''
+                    }!`
+                );
         }
 
         return `Banned ${args[0] || sender.getUsername()} ${

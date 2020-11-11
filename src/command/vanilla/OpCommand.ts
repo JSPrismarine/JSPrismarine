@@ -3,6 +3,8 @@ import Command from '../Command';
 import CommandParameter, {
     CommandParameterType
 } from '../../network/type/CommandParameter';
+import ChatEvent from '../../events/chat/ChatEvent';
+import Chat from '../../chat/Chat';
 
 export default class OpCommand extends Command {
     constructor() {
@@ -25,14 +27,29 @@ export default class OpCommand extends Command {
 
     execute(sender: Player, args: Array<any>) {
         if (args.length <= 0) {
-            sender.getServer().getPermissionManager().setOp(sender, true);
+            const event = new ChatEvent(
+                new Chat(
+                    sender,
+                    '§cYou need to specify a player',
+                    `*.player.${sender.getUsername()}`
+                )
+            );
+            sender.getServer().getEventManager().emit('chat', event);
+            return;
         } else {
-            let target;
-            if ((target = sender.getServer().getPlayerByName(args[0])) === null)
-                return sender.sendMessage('§cNo player was found'); // TODO: Chat manager
+            const target = sender.getServer().getPlayerByName(args[0]);
+            sender.getServer().getPermissionManager().setOp(args[0], true);
 
-            sender.getServer().getPermissionManager().setOp(target, true);
-            target.sendMessage('§eYou are now op!'); // TODO: Chat manager
+            if (target) {
+                const event = new ChatEvent(
+                    new Chat(
+                        sender,
+                        '§eYou are now op!',
+                        `*.player.${target.getUsername()}`
+                    )
+                );
+                sender.getServer().getEventManager().emit('chat', event);
+            }
         }
 
         return `Made ${args[0] || sender.getUsername()} a server operator`;

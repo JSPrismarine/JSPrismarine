@@ -1,7 +1,7 @@
 import type Block from '../../block/Block';
+import EmptySubChunk from './EmptySubChunk';
 import SubChunk from './SubChunk';
 
-const EmptySubChunk = require('./empty-sub-chunk');
 const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
 
 const MaxSubChunks = 16;

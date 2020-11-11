@@ -169,10 +169,9 @@ export default class World {
         z: number | VarInt,
         generate = false
     ): Promise<Chunk> {
-        // Handle negative chunk values, where "">> 4" doesn't work for obvious reasons
         return await this.getChunk(
-            x < 0 ? -1 : 1 * (Math.abs(x as number) >> 4),
-            z < 0 ? -1 : 1 * (Math.abs(z as number) >> 4),
+            Math.floor((x as number) / 16),
+            Math.floor((z as number) / 16),
             generate
         );
     }
@@ -195,38 +194,97 @@ export default class World {
         clickPosition: Vector3,
         player: Player
     ): Promise<void> {
-        //TODO: checks
-
-        // TODO: set block on the desired face
-
-        // maybe let place = new Promise ( do all placing stuff )
-        // then if place is true, play sound
-
-        if (itemInHand instanceof Item) return; // TODO
-
-        const chunk = await this.getChunkAt(
-            blockPosition.getX(),
-            blockPosition.getZ()
-        );
-        const block = itemInHand; // TODO: get block from itemInHand
-        if (!block)
+        if (!itemInHand)
             return this.server
                 .getLogger()
                 .warn(`Block with runtimeId ${0} is invalid`);
+        if (itemInHand instanceof Item) return; // TODO
 
-        chunk.setBlock(
-            blockPosition.getX() % 16,
+        //TODO: checks
+        // TODO: canInteract
+
+        const block = itemInHand; // TODO: get block from itemInHand
+        const clickedBlock = this.server
+            .getBlockManager()
+            .getBlockById(
+                (
+                    await this.getChunkAt(
+                        blockPosition.getX(),
+                        blockPosition.getZ()
+                    )
+                ).getBlockId(
+                    blockPosition.getX() % 16,
+                    blockPosition.getY(),
+                    blockPosition.getZ() % 16
+                )
+            );
+
+        if (!block || !clickedBlock) return;
+        if (
+            clickedBlock.getName() === 'minecraft:air' ||
+            block.getName() === 'minecraft:air'
+        )
+            return;
+
+        const placedPosition = new Vector3(
+            blockPosition.getX(),
             blockPosition.getY(),
-            blockPosition.getZ() % 16,
-            block
+            blockPosition.getZ()
         );
+        switch (face) {
+            case 0: // bottom
+                placedPosition.setY(placedPosition.getY() - 1);
+                break;
+            case 1: // top
+                placedPosition.setY(placedPosition.getY() + 1);
+                break;
+            case 2: // front
+                placedPosition.setZ(placedPosition.getZ() - 1);
+                break;
+            case 3: // back
+                placedPosition.setZ(placedPosition.getZ() + 1);
+                break;
+            case 4: // right
+                placedPosition.setX(placedPosition.getX() - 1);
+                break;
+            case 5: // left
+                placedPosition.setX(placedPosition.getX() + 1);
+                break;
+        }
+
+        if (!itemInHand)
+            return this.server.getLogger().warn(`Block or Item is invalid`);
+        if (itemInHand instanceof Item) return; // TODO
+
+        const success: boolean = await new Promise(async (resolve) => {
+            const chunk = await this.getChunkAt(
+                placedPosition.getX(),
+                placedPosition.getZ()
+            );
+
+            chunk.setBlock(
+                placedPosition.getX() % 16,
+                placedPosition.getY(),
+                placedPosition.getZ() % 16,
+                block
+            );
+            return resolve(true);
+        });
+
+        if (!success) {
+            const blockUpdate = new UpdateBlockPacket();
+            blockUpdate.x = blockPosition.getX();
+            blockUpdate.y = blockPosition.getY();
+            blockUpdate.z = blockPosition.getZ();
+            blockUpdate.BlockRuntimeId = 0; // TODO: get previous block
+            return;
+        }
 
         const blockUpdate = new UpdateBlockPacket();
-        blockUpdate.x = blockPosition.getX();
-        blockUpdate.y = blockPosition.getY();
-        blockUpdate.z = blockPosition.getZ();
+        blockUpdate.x = placedPosition.getX();
+        blockUpdate.y = placedPosition.getY();
+        blockUpdate.z = placedPosition.getZ();
         blockUpdate.BlockRuntimeId = block.getRuntimeId();
-
         for (let p of this.server.getOnlinePlayers()) {
             p.getPlayerConnection().sendDataPacket(blockUpdate);
         }

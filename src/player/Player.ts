@@ -1,6 +1,6 @@
 import Prismarine from '../Prismarine';
 import Entity from '../entity/entity';
-import World from '../world/world';
+import World from '../world/World';
 import Gamemode from '../world/Gamemode';
 import PlayerConnection from './PlayerConnection';
 import PlayerInventory from '../inventory/PlayerInventory';
@@ -8,6 +8,7 @@ import Inventory from '../inventory/Inventory';
 import Skin from '../utils/skin/skin';
 import Device from '../utils/Device';
 import Chunk from '../world/chunk/Chunk';
+import ChatEvent from '../events/chat/ChatEvent';
 
 export enum PlayerPermission {
     Visitor,
@@ -73,14 +74,15 @@ export default class Player extends Entity {
         );
 
         // Handle chat messages
-        server.getEventManager().on('chat', (evt) => {
+        server.getEventManager().on('chat', (evt: ChatEvent) => {
             if (evt.cancelled) return;
 
             // TODO: proper channel system
             if (
                 evt.getChat().getChannel() === '*.everyone' ||
                 (evt.getChat().getChannel() === '*.ops' &&
-                    this.server.getPermissionManager().isOp(this))
+                    this.server.getPermissionManager().isOp(this)) ||
+                evt.getChat().getChannel() === `*.player.${this.getUsername()}`
             )
                 this.sendMessage(evt.getChat().getMessage());
         });
@@ -115,6 +117,11 @@ export default class Player extends Entity {
 
     public isPlayer() {
         return true;
+    }
+
+    public setGamemode(mode: number) {
+        this.gamemode = mode;
+        this.playerConnection.sendGamemode(this.gamemode);
     }
 
     public getServer() {

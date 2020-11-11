@@ -14,7 +14,8 @@ const Identifiers = {
     IncompatibleProtocolVersion: 0x19,
 
     AcknowledgePacket: 0xc0,
-    NacknowledgePacket: 0xa0
+    NacknowledgePacket: 0xa0,
+    Query: 0xfe
 };
 
 export default Identifiers;

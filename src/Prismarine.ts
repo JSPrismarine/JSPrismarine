@@ -26,6 +26,8 @@ import ChatEvent from './events/chat/ChatEvent';
 import Chat from './chat/Chat';
 import PermissionManager from './permission/PermissionManager';
 import BanManager from './ban/BanManager';
+import PlayerListEntry from './network/type/PlayerListEntry';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class Prismarine {
     private raknet: any;
@@ -35,6 +37,7 @@ export default class Prismarine {
     private console: Console;
 
     private players: Map<string, Player> = new Map();
+    private playerList: Map<string, PlayerListEntry> = new Map();
     private telemetryManager: TelemetryManager;
     private eventManager = new EventManager();
     private packetRegistry: PacketRegistry;
@@ -120,12 +123,15 @@ export default class Prismarine {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             this.getEventManager().emit('raknetEncapsulatedPacket', event);
         });
+        this.raknet.on('raw', (buffer: Buffer, inetAddr: InetAddress) => {
+            this.getQueryManager()?.onRaw(new BinaryStream(buffer), inetAddr);
+        });
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
 
         this.getEventManager().on(
             'raknetConnect',
-            async (raknetConnectEvent) => {
+            async (raknetConnectEvent: RaknetConnectEvent) => {
                 const connection = raknetConnectEvent.getConnection();
 
                 let inetAddr = connection.address;
@@ -169,47 +175,56 @@ export default class Prismarine {
             }
         );
 
-        this.getEventManager().on('raknetDisconnect', (event) => {
-            const inetAddr = event.getInetAddr();
-            const reason = event.getReason();
+        this.getEventManager().on(
+            'raknetDisconnect',
+            (event: RaknetDisconnectEvent) => {
+                const inetAddr = event.getInetAddr();
+                const reason = event.getReason();
 
-            let time = Date.now();
-            {
-                let token = `${inetAddr.address}:${inetAddr.port}`;
-                if (this.players.has(token)) {
-                    let player = this.players.get(token);
-                    if (!player) {
-                        const message = `Could not find player: ${token}`;
-                        this.logger.error(`Could not find player: ${token}`);
-                        throw new Error(message);
+                let time = Date.now();
+                {
+                    let token = `${inetAddr.address}:${inetAddr.port}`;
+                    if (this.players.has(token)) {
+                        let player = this.players.get(token);
+                        if (!player) {
+                            const message = `Could not find player: ${token}`;
+                            this.logger.error(
+                                `Could not find player: ${token}`
+                            );
+                            throw new Error(message);
+                        }
+
+                        // Despawn the player to all online players
+                        player.getPlayerConnection().removeFromPlayerList();
+                        this.players.delete(token);
+                        for (let onlinePlayer of this.players.values()) {
+                            player
+                                .getPlayerConnection()
+                                .sendDespawn(onlinePlayer);
+                        }
+                        player.getWorld().removePlayer(player);
+
+                        // Announce disconnection
+                        const event = new ChatEvent(
+                            new Chat(
+                                this.getConsole(),
+                                `§e${player.getUsername()} left the game`
+                            )
+                        );
+                        this.getEventManager().emit('chat', event);
                     }
-
-                    // Despawn the player to all online players
-                    player.getPlayerConnection().removeFromPlayerList();
-                    this.players.delete(token);
-                    for (let onlinePlayer of this.players.values()) {
-                        player.getPlayerConnection().sendDespawn(onlinePlayer);
-                    }
-                    player.getWorld().removePlayer(player);
-
-                    // Announce disconnection
-                    const event = new ChatEvent(
-                        new Chat(
-                            this.getConsole(),
-                            `§e${player.getUsername()} left the game`
-                        )
+                    this.logger.info(
+                        `${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`
                     );
-                    this.getEventManager().emit('chat', event);
+                    this.raknet
+                        .getName()
+                        .setOnlinePlayerCount(this.players.size);
                 }
-                this.logger.info(
-                    `${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`
+                this.logger.silly(
+                    `Player destruction took about ${Date.now() - time} ms`
                 );
-                this.raknet.getName().setOnlinePlayerCount(this.players.size);
             }
-            this.logger.silly(
-                `Player destruction took about ${Date.now() - time} ms`
-            );
-        });
+        );
 
         this.getEventManager().on('raknetEncapsulatedPacket', (event) => {
             const raknetPacket = event.getPacket();
@@ -470,6 +485,13 @@ export default class Prismarine {
      */
     getPermissionManager() {
         return this.permissionManager;
+    }
+
+    /**
+     * Returns the player list
+     */
+    getPlayerList() {
+        return this.playerList;
     }
 
     /**

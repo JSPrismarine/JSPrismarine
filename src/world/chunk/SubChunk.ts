@@ -10,7 +10,7 @@ export default class SubChunk {
     metadata = Buffer.alloc(Sizes.Metadata).fill(0x00);
 
     static getIndex(x: number, y: number, z: number) {
-        return (Math.abs(x) << 8) + (Math.abs(z) << 4) + y;
+        return ((x & 0x0f) << 8) + ((z & 0x0f) << 4) + y;
     }
 
     /**
