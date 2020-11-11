@@ -28,6 +28,7 @@ export default class BlockManager {
     public async onEnable() {
         await this.importBlocks();
         this.generateRuntimeIds();
+        await this.generateBlockPalette();
     }
 
     /**
@@ -85,41 +86,71 @@ export default class BlockManager {
 
     private async generateBlockPalette() {
         const palette: BinaryStream = await new Promise((resolve) => {
+            const data = {
+                value: this.getBlocks()
+                    .filter((a) => a.meta === 0)
+                    .map((block) => {
+                        return [
+                            {
+                                value: [
+                                    {
+                                        value: block.getName(),
+                                        name: 'name',
+                                        type: 8
+                                    },
+                                    {
+                                        value: [
+                                            {
+                                                value: null,
+                                                name: '',
+                                                type: 0
+                                            }
+                                        ],
+                                        name: 'states',
+                                        type: 10
+                                    },
+                                    {
+                                        value: 17825808,
+                                        name: 'version',
+                                        type: 3
+                                    },
+                                    {
+                                        value: null,
+                                        name: '',
+                                        type: 0
+                                    }
+                                ],
+                                name: 'block',
+                                type: 10
+                            },
+                            {
+                                value: block.getRuntimeId(),
+                                name: 'id',
+                                type: 2
+                            },
+                            {
+                                value: null,
+                                name: '',
+                                type: 0
+                            }
+                        ];
+                    })
+                    .flat(1),
+                name: '',
+                type: 9
+            };
+
             resolve(
                 new NBT().writeTag(
                     new LittleEndianBinaryStream(),
-                    new Tag(
-                        {
-                            value: [
-                                ...this.getBlocks()
-                                    .filter((a) => a.meta)
-                                    .map((block) => {
-                                        return [
-                                            {
-                                                value: [
-                                                    {
-                                                        value: block.getName()
-                                                    }
-                                                ],
-                                                name: 'block'
-                                            },
-                                            {
-                                                value: block.getRuntimeId(),
-                                                name: 'id'
-                                            }
-                                        ];
-                                    })
-                            ]
-                        },
-                        ''
-                    ),
+                    data as any,
                     true,
                     true
                 )
             );
         });
 
-        this.blockPalette = RequiredBlockStates; // palette.getBuffer();
+        this.blockPalette = palette.getBuffer();
     }
     public getBlockPalette(): Buffer {
         return this.blockPalette;
@@ -160,7 +191,6 @@ export default class BlockManager {
                 }
             });
 
-            await this.generateBlockPalette();
             this.server
                 .getLogger()
                 .debug(

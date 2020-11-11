@@ -11,6 +11,14 @@ export default class PacketViolationWarningHandler {
         server: Prismarine,
         player: Player
     ) {
-        server.getLogger().error(`Packet violation: ${JSON.stringify(packet)}`);
+        server
+            .getLogger()
+            .error(
+                `Packet violation: Type: ${packet.type}, Level: ${
+                    packet.severity
+                }, Packet: 0x${packet.packetId.toString(26)}, Message: ${
+                    packet.message
+                }!`
+            );
     }
 }
