@@ -218,6 +218,7 @@ export default class World {
                     blockPosition.getZ() % 16
                 )
             );
+
         if (!block || !clickedBlock) return;
         if (
             clickedBlock.getName() === 'minecraft:air' ||
@@ -232,29 +233,27 @@ export default class World {
         );
         switch (face) {
             case 0: // bottom
-                placedPosition.setY(blockPosition.getY() - 1);
+                placedPosition.setY(placedPosition.getY() - 1);
                 break;
             case 1: // top
-                placedPosition.setY(blockPosition.getY() + 1);
+                placedPosition.setY(placedPosition.getY() + 1);
                 break;
             case 2: // front
-                placedPosition.setZ(blockPosition.getZ() - 1);
+                placedPosition.setZ(placedPosition.getZ() - 1);
                 break;
             case 3: // back
-                placedPosition.setZ(blockPosition.getZ() + 1);
+                placedPosition.setZ(placedPosition.getZ() + 1);
                 break;
             case 4: // right
-                placedPosition.setX(blockPosition.getX() - 1);
+                placedPosition.setX(placedPosition.getX() - 1);
                 break;
             case 5: // left
-                placedPosition.setX(blockPosition.getX() + 1);
+                placedPosition.setX(placedPosition.getX() + 1);
                 break;
         }
 
         if (!itemInHand)
-            return this.server
-                .getLogger()
-                .warn(`Block with runtimeId ${0} is invalid`);
+            return this.server.getLogger().warn(`Block or Item is invalid`);
         if (itemInHand instanceof Item) return; // TODO
 
         const success: boolean = await new Promise(async (resolve) => {
