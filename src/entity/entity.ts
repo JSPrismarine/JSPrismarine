@@ -1,9 +1,9 @@
 import Position from '../world/Position';
 import World from '../world/World';
+import AddActorPacket from '../network/packet/AddActorPacket';
 
 const { MetadataManager, MetadataFlag, FlagType } = require('./metadata');
 const { AttributeManager } = require('./attribute');
-const AddActorPacket = require('../network/packet/AddActorPacket');
 
 // All entities will extend this base class
 export default class Entity extends Position {
@@ -85,7 +85,7 @@ export default class Entity extends Position {
     public sendSpawn(player: any) {
         // Recursive import, find another way
         let pk = new AddActorPacket();
-        pk.runtimeEntityId = Entity.runtimeIdCount += 1;
+        pk.runtimeEntityId = BigInt((Entity.runtimeIdCount += 1));
         // @ts-ignore
         pk.type = this.constructor.MOB_ID; // TODO
         pk.x = player.x;

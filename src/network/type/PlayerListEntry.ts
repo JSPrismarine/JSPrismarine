@@ -1,5 +1,5 @@
-import Skin from "../../utils/skin/skin";
-import UUID from "../../utils/uuid";
+import Skin from '../../utils/skin/skin';
+import UUID from '../../utils/uuid';
 
 export default class PlayerListEntry {
     public uuid!: UUID;
