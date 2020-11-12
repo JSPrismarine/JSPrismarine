@@ -1,27 +1,21 @@
-const Random = require('../util/random');
+import type Random from '../util/Random';
 
 class Grad {
-    x;
-    y;
-    z;
+    public x: number;
+    public y: number;
+    public z: number;
 
-    /**
-     *
-     * @param {number} x
-     * @param {number} y
-     * @param {number} z
-     */
-    constructor(x, y, z) {
+    constructor(x: number, y: number, z: number) {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    dot2(x, y) {
+    dot2(x: number, y: number) {
         return this.x * x + this.y * y;
     }
 
-    dot3(x, y, z) {
+    dot3(x: number, y: number, z: number) {
         return this.x * x + this.y * y + this.z * z;
     }
 }
@@ -310,13 +304,13 @@ const G2 = (3 - Math.sqrt(3)) / 6;
 const F3 = 1 / 3;
 const G3 = 1 / 6;
 
-module.exports = class Noise {
+export default class Noise {
     seed;
 
     /**
      * A modified version of josephg's noise.js module for modern JS and with more seeds :P
      */
-    constructor(seed) {
+    constructor(seed: Random) {
         this.seed = seed;
 
         for (let l = 0; l < 256; ++l) {
@@ -332,11 +326,8 @@ module.exports = class Noise {
 
     /**
      * 2D Simplex Noise
-     * @param {number} x
-     * @param {number} y
-     * @returns {number}
      */
-    simplex2(x, y) {
+    simplex2(x: number, y: number): number {
         let n0, n1, n2; // Noise contributions from the three corners
 
         // Skew the input space to determine which simplex cell we're in
@@ -408,11 +399,8 @@ module.exports = class Noise {
 
     /**
      * 2D Perlin Noise
-     * @param {number} x
-     * @param {number} y
-     * @returns {number}
      */
-    perlin2(x, y) {
+    perlin2(x: number, y: number): number {
         // Find unit grid cell containing point
         let X = Math.floor(x),
             Y = Math.floor(y);
@@ -437,12 +425,12 @@ module.exports = class Noise {
         // Interpolate the four results
         return lerp(lerp(n00, n10, u), lerp(n01, n11, u), fade(y));
     }
-};
+}
 
-function fade(t) {
+function fade(t: number) {
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
-function lerp(a, b, t) {
+function lerp(a: number, b: number, t: number) {
     return (1 - t) * a + t * b;
 }

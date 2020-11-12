@@ -4,9 +4,9 @@ import DataPacket from './DataPacket';
 export default class ActorFallPacket extends DataPacket {
     static NetID = Identifiers.ActorFallPacket;
 
-    public runtimeEntityId: bigint = BigInt(0);
-    public fallDistance: number = 0;
-    public inVoid: boolean = false;
+    public runtimeEntityId!: bigint;
+    public fallDistance!: number;
+    public inVoid!: boolean;
 
     public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
