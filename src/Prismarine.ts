@@ -168,7 +168,9 @@ export default class Prismarine {
 
                 // Add the player into the world
                 world?.addPlayer(player);
-                this.raknet.getName().setOnlinePlayerCount(this.players.size);
+                this.getRaknet()
+                    .getName()
+                    .setOnlinePlayerCount(this.players.size);
                 this.logger.silly(
                     `Player creation took about ${Date.now() - time} ms`
                 );
