@@ -4,9 +4,9 @@ import DataPacket from './DataPacket';
 export default class LevelChunkPacket extends DataPacket {
     static NetID = Identifiers.LevelChunkPacket;
 
-    public chunkX: number = 0;
-    public chunkZ: number = 0;
-    public subChunkCount: number = 0;
+    public chunkX!: number;
+    public chunkZ!: number;
+    public subChunkCount!: number;
     public data: any;
 
     public encodePayload() {

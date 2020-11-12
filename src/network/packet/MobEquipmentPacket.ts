@@ -6,11 +6,11 @@ import DataPacket from './DataPacket';
 export default class MobEquipmentPacket extends DataPacket {
     static NetID = Identifiers.MobEquipmentPacket;
 
-    public runtimeEntityId: bigint = BigInt(0);
-    public item: Item | Block | null = null;
-    public inventorySlot: number = 0;
-    public hotbarSlot: number = 0;
-    public windowId: number = 0;
+    public runtimeEntityId!: bigint;
+    public item!: Item | Block;
+    public inventorySlot!: number;
+    public hotbarSlot!: number;
+    public windowId!: number;
 
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);

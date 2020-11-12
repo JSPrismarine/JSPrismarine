@@ -22,23 +22,23 @@ export enum InventoryTransactionType {
 export default class InventoryTransactionPacket extends DataPacket {
     static NetID = Identifiers.InventoryTransactionPacket;
 
-    public type: InventoryTransactionType = 0;
+    public type!: InventoryTransactionType;
     public actions = new Map();
-    public actionType: number = 0;
-    public hotbarSlot: number = 0;
+    public actionType!: number;
+    public hotbarSlot!: number;
     public itemInHand = {
         id: 0,
         meta: 0
     };
     public blockPosition: Vector3 = new Vector3();
-    public face: number = 0;
+    public face!: number;
     public playerPosition: Vector3 = new Vector3();
     public clickPosition: Vector3 = new Vector3();
-    public blockRuntimeId = 0;
+    public blockRuntimeId!: number;
     public entityId = BigInt(0);
-    public requestId: number = 0;
+    public requestId!: number;
     public changeSlot = new Map();
-    public hasItemStackIds: boolean = false;
+    public hasItemStackIds!: boolean;
 
     public decodePayload() {
         this.requestId = this.readVarInt();

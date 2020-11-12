@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 export default class ResourcePackResponsePacket extends DataPacket {
     static NetID = Identifiers.ResourcePackResponsePacket;
 
-    public status: number = 0;
+    public status!: number;
     public packIds: string[] = [];
 
     public decodePayload() {

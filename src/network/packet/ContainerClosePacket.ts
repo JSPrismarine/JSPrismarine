@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 export default class ContainerClosePacket extends DataPacket {
     static NetID = Identifiers.ContainerClosePacket;
 
-    public windowId: number = 0;
+    public windowId!: number;
 
     public encodePayload() {
         this.writeByte(this.windowId);

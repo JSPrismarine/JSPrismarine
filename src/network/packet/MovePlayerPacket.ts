@@ -5,24 +5,24 @@ import DataPacket from './DataPacket';
 export default class MovePlayerPacket extends DataPacket {
     static NetID = Identifiers.MovePlayerPacket;
 
-    public runtimeEntityId: bigint = BigInt(0);
+    public runtimeEntityId!: bigint;
 
-    public positionX: number = 0;
-    public positionY: number = 0;
-    public positionZ: number = 0;
+    public positionX!: number;
+    public positionY!: number;
+    public positionZ!: number;
 
-    public pitch: number = 0;
-    public yaw: number = 0;
-    public headYaw: number = 0;
+    public pitch!: number;
+    public yaw!: number;
+    public headYaw!: number;
 
-    public mode: number = 0;
+    public mode!: number;
 
-    public onGround: boolean = false;
+    public onGround!: boolean;
 
-    public ridingEntityRuntimeId: bigint = BigInt(0);
+    public ridingEntityRuntimeId!: bigint;
 
-    public teleportCause: number = 0;
-    public teleportItemId: number = 0;
+    public teleportCause!: number;
+    public teleportItemId!: number;
 
     public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
@@ -38,6 +38,7 @@ export default class MovePlayerPacket extends DataPacket {
         this.mode = this.readByte();
         this.onGround = this.readBool();
         this.ridingEntityRuntimeId = this.readUnsignedVarLong();
+
         if (this.mode === MovementType.Teleport) {
             this.teleportCause = this.readLInt();
             this.teleportItemId = this.readLInt();
@@ -58,6 +59,7 @@ export default class MovePlayerPacket extends DataPacket {
         this.writeByte(this.mode);
         this.writeBool(this.onGround);
         this.writeUnsignedVarLong(this.ridingEntityRuntimeId);
+
         if (this.mode === MovementType.Teleport) {
             this.writeLInt(this.teleportCause);
             this.writeLInt(this.teleportItemId);

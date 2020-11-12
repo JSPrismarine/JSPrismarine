@@ -4,16 +4,16 @@ import DataPacket from './DataPacket';
 export default class LevelSoundEventPacket extends DataPacket {
     static NetID = Identifiers.LevelSoundEventPacket;
 
-    public sound: number = 0;
+    public sound!: number;
 
-    public positionX: number = 0;
-    public positionY: number = 0;
-    public positionZ: number = 0;
+    public positionX!: number;
+    public positionY!: number;
+    public positionZ!: number;
 
-    public extraData: number = 0;
-    public entityType: string = '';
-    public isBabyMob: boolean = false;
-    public disableRelativeVolume: boolean = false;
+    public extraData!: number;
+    public entityType!: string;
+    public isBabyMob!: boolean;
+    public disableRelativeVolume!: boolean;
 
     public decodePayload() {
         this.sound = this.readUnsignedVarInt();

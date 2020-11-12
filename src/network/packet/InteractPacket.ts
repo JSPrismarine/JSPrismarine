@@ -11,12 +11,23 @@ export enum InteractAction {
 export default class InteractPacket extends DataPacket {
     static NetID = Identifiers.InteractPacket;
 
-    public action: number = 0;
-    public target: bigint = BigInt(0);
+    public action!: number;
+    public target!: bigint;
 
-    public x: number | null = null;
-    public y: number | null = null;
-    public z: number | null = null;
+    public x!: number;
+    public y!: number;
+    public z!: number;
+
+    public encodePayload() {
+        this.writeByte(this.action);
+        this.writeUnsignedVarLong(this.target);
+
+        if (this.action == InteractAction.MouseOver) {
+            this.writeLFloat(this.x);
+            this.writeLFloat(this.y);
+            this.writeLFloat(this.z);
+        }
+    }
 
     public decodePayload() {
         this.action = this.readByte();

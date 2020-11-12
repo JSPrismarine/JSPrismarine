@@ -1,3 +1,4 @@
+import Vector3 from '../../math/Vector3';
 import Identifiers from '../Identifiers';
 import PacketBinaryStream from '../PacketBinaryStream';
 import DataPacket from './DataPacket';
@@ -9,24 +10,20 @@ const RequiredBlockStates = require('@jsprismarine/bedrock-data')
 export default class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket;
 
-    public entityId: bigint = BigInt(0);
-    public runtimeEntityId: bigint = BigInt(0);
-    public gamemode: number = 0;
+    public entityId!: bigint;
+    public runtimeEntityId!: bigint;
+    public gamemode!: number;
 
-    public playerX: number = 0;
-    public playerY: number = 0;
-    public playerZ: number = 0;
+    public playerPos!: Vector3;
 
-    public levelId: string = '';
-    public worldName: string = '';
+    public levelId!: string;
+    public worldName!: string;
 
-    public worldSpawnX: number = 0;
-    public worldSpawnY: number = 0;
-    public worldSpawnZ: number = 0;
+    public worldSpawnPos!: Vector3;
 
     public gamerules: Map<string, any> = new Map();
 
-    private cachedItemPalette: Buffer | null = null;
+    private cachedItemPalette!: Buffer;
 
     public encodePayload() {
         this.writeVarLong(this.entityId);
@@ -35,9 +32,9 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(this.gamemode);
 
         // vector 3
-        this.writeLFloat(this.playerX);
-        this.writeLFloat(this.playerY);
-        this.writeLFloat(this.playerZ);
+        this.writeLFloat(this.playerPos.getX());
+        this.writeLFloat(this.playerPos.getY());
+        this.writeLFloat(this.playerPos.getZ());
 
         this.writeLFloat(0); // pitch
         this.writeLFloat(0); // yaw
@@ -53,9 +50,9 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(0); // difficulty
 
         // world spawn vector 3
-        this.writeVarInt(this.worldSpawnX);
-        this.writeUnsignedVarInt(this.worldSpawnY);
-        this.writeVarInt(this.worldSpawnZ);
+        this.writeVarInt(this.worldSpawnPos.getX());
+        this.writeUnsignedVarInt(this.worldSpawnPos.getY());
+        this.writeVarInt(this.worldSpawnPos.getZ());
 
         this.writeBool(true); // achievement disabled
 

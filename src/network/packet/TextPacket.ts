@@ -5,13 +5,13 @@ import DataPacket from './DataPacket';
 export default class TextPacket extends DataPacket {
     static NetID = Identifiers.TextPacket;
 
-    public type: TextType = TextType.Chat;
-    public needsTranslation: boolean = false;
-    public sourceName: string = '';
-    public message: string = '';
+    public type!: TextType;
+    public needsTranslation!: boolean;
+    public sourceName!: string;
+    public message!: string;
     public parameters: Array<string> = [];
-    public xuid: string = '';
-    public platformChatId: string = '';
+    public xuid!: string;
+    public platformChatId!: string;
 
     public decodePayload() {
         this.type = this.readByte();

@@ -4,11 +4,11 @@ import DataPacket from './DataPacket';
 export default class WorldEventPacket extends DataPacket {
     static NetID = Identifiers.WorldEventPacket;
 
-    public eventId: number = 0;
-    public x: number = 0;
-    public y: number = 0;
-    public z: number = 0;
-    public data: number = 0;
+    public eventId!: number;
+    public x!: number;
+    public y!: number;
+    public z!: number;
+    public data!: number;
 
     public decodePayload() {
         this.eventId = this.readVarInt();
@@ -19,12 +19,12 @@ export default class WorldEventPacket extends DataPacket {
     }
 
     public encodePayload() {
-        this.writeVarInt(this.eventId as number);
+        this.writeVarInt(this.eventId);
 
-        this.writeLFloat(this.x as number);
-        this.writeLFloat(this.y as number);
-        this.writeLFloat(this.z as number);
+        this.writeLFloat(this.x);
+        this.writeLFloat(this.y);
+        this.writeLFloat(this.z);
 
-        this.writeVarInt(this.data as number);
+        this.writeVarInt(this.data);
     }
 }

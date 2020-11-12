@@ -3,6 +3,7 @@ import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
 import InteractPacket, { InteractAction } from '../packet/InteractPacket';
 import ContainerOpenPacket from '../packet/ContainerOpenPacket';
+import Vector3 from '../../math/Vector3';
 
 export default class InteractHandler {
     static NetID = Identifiers.InteractPacket;
@@ -16,7 +17,11 @@ export default class InteractHandler {
                 let pk = new ContainerOpenPacket();
                 pk.windowId = 92; // TODO
                 pk.containerType = -1; // -> inventory (TODO)
-                pk.containerX = pk.containerY = pk.containerZ = 0;
+                pk.containerPos = new Vector3(
+                    player.getX(),
+                    player.getY(),
+                    player.getZ()
+                );
                 pk.containerEntityId = player.runtimeId;
                 player.getPlayerConnection().sendDataPacket(pk);
                 break;

@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 export default class SetActorDataPacket extends DataPacket {
     static NetID = Identifiers.SetActorDataPacket;
 
-    public runtimeEntityId: bigint = BigInt(0);
+    public runtimeEntityId!: bigint;
     public metadata: any;
 
     public encodePayload() {

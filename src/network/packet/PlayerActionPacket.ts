@@ -4,12 +4,12 @@ import DataPacket from './DataPacket';
 export default class PlayerActionPacket extends DataPacket {
     static NetID = Identifiers.PlayerActionPacket;
 
-    public runtimeEntityId: bigint = BigInt(0);
-    public action: number = 0;
-    public x: number = 0;
-    public y: number = 0;
-    public z: number = 0;
-    public face: number = 0;
+    public runtimeEntityId!: bigint;
+    public action!: number;
+    public x!: number;
+    public y!: number;
+    public z!: number;
+    public face!: number;
 
     public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
