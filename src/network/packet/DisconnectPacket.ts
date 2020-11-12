@@ -4,13 +4,18 @@ import DataPacket from './DataPacket';
 export default class DisconnectPacket extends DataPacket {
     static NetID = Identifiers.DisconnectPacket;
 
-    public hideDisconnectionWindow: boolean = false;
-    public message: string = '';
+    public hideDisconnectionWindow!: boolean;
+    public message!: string;
 
     encodePayload() {
         this.writeBool(this.hideDisconnectionWindow);
-        if (!this.hideDisconnectionWindow) {
-            this.writeString(this.message);
-        }
+
+        if (!this.hideDisconnectionWindow) this.writeString(this.message);
+    }
+
+    decodePayload() {
+        this.hideDisconnectionWindow = this.readBool();
+
+        if (!this.hideDisconnectionWindow) this.message = this.readString();
     }
 }

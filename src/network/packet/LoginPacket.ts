@@ -9,18 +9,18 @@ const jwt_decode = require('jwt-decode');
 export default class LoginPacket extends DataPacket {
     static NetID = Identifiers.LoginPacket;
 
-    public XUID: string = '';
-    public identity: string = '';
-    public displayName: string = '';
-    public protocol: number = 0;
-    public identityPublicKey: string = '';
+    public XUID!: string;
+    public identity!: string;
+    public displayName!: string;
+    public protocol!: number;
+    public identityPublicKey!: string;
 
-    public clientRandomId: number = 0;
-    public serverAddress: string = '';
-    public languageCode: string = '';
+    public clientRandomId!: number;
+    public serverAddress!: string;
+    public languageCode!: string;
 
-    public device: Device | null = null;
-    public skin: Skin | null = null;
+    public device!: Device;
+    public skin!: Skin;
 
     public decodePayload() {
         this.protocol = this.readInt();

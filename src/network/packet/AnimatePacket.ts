@@ -4,9 +4,9 @@ import DataPacket from './DataPacket';
 export default class AnimatePacket extends DataPacket {
     static NetID = Identifiers.AnimatePacket;
 
-    public action: number = 0;
-    public runtimeEntityId: bigint = BigInt(0);
-    public boatRowingTime: number = 0;
+    public action!: number;
+    public runtimeEntityId!: bigint;
+    public boatRowingTime!: number;
 
     encodePayload() {
         this.writeVarInt(this.action);

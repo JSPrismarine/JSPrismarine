@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 export default class SetGamemodePacket extends DataPacket {
     static NetID = Identifiers.SetPlayerGameTypePacket;
 
-    public gamemode: number = 0;
+    public gamemode!: number;
 
     public encodePayload() {
         this.writeVarInt(this.gamemode);

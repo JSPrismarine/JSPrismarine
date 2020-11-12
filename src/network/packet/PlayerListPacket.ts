@@ -7,7 +7,7 @@ export default class PlayerListPacket extends DataPacket {
     static NetID = Identifiers.PlayerListPacket;
 
     public entries: PlayerListEntry[] = [];
-    public type: number = 0;
+    public type!: number;
 
     public encodePayload() {
         this.writeByte(this.type);

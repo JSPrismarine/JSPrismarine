@@ -4,11 +4,11 @@ import DataPacket from './DataPacket';
 export default class SetTitlePacket extends DataPacket {
     static NetID = Identifiers.SetTitlePacket;
 
-    public type: number = 0;
-    public text: string = '';
-    public fadeInTime: number = 500;
-    public stayTime: number = 3000;
-    public fadeOutTime: number = 1000;
+    public type!: number;
+    public text!: string;
+    public fadeInTime!: number;
+    public stayTime!: number;
+    public fadeOutTime!: number;
 
     public decodePayload() {
         this.type = this.readVarInt();
@@ -21,8 +21,8 @@ export default class SetTitlePacket extends DataPacket {
     public encodePayload() {
         this.writeVarInt(this.type);
         this.writeString(this.text);
-        this.writeVarInt(this.fadeInTime);
-        this.writeVarInt(this.stayTime);
-        this.writeVarInt(this.fadeOutTime);
+        this.writeVarInt(this.fadeInTime || 500);
+        this.writeVarInt(this.stayTime || 3000);
+        this.writeVarInt(this.fadeOutTime || 1000);
     }
 }

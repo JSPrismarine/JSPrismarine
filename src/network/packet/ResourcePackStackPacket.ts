@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 export default class ResourcePackStackPacket extends DataPacket {
     static NetID = Identifiers.ResourcePackStackPacket;
 
-    public mustAccept = false;
+    public mustAccept!: boolean;
     public behaviorPackStack = [];
     public resourcePackStack = [];
 

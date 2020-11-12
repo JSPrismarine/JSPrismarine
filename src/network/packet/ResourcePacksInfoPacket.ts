@@ -4,8 +4,8 @@ import DataPacket from './DataPacket';
 export default class ResourcePacksInfoPacket extends DataPacket {
     static NetID = Identifiers.ResourcePacksInfoPacket;
 
-    public mustAccept = false;
-    public hasScripts = false;
+    public mustAccept!: boolean;
+    public hasScripts!: boolean;
 
     public behaviorPackEntries = [];
     public resourcePackEntries = [];

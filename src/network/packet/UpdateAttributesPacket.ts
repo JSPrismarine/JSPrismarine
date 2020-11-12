@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 export default class UpdateAttributesPacket extends DataPacket {
     static NetID = Identifiers.UpdateAttributesPacket;
 
-    runtimeEntityId: bigint = BigInt(0);
+    runtimeEntityId!: bigint;
     attributes = [];
 
     encodePayload() {

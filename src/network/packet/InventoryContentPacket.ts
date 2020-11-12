@@ -6,7 +6,7 @@ import DataPacket from './DataPacket';
 export default class InventoryContentPacket extends DataPacket {
     static NetID = Identifiers.InventoryContentPacket;
 
-    public windowId: number = 0;
+    public windowId!: number;
     public items: Array<Item | Block> = [];
 
     public encodePayload() {

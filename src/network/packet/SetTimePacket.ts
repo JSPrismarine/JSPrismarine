@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 export default class SetTimePacket extends DataPacket {
     static NetID = Identifiers.SetTimePacket;
 
-    public time: number = 0;
+    public time!: number;
 
     public decodePayload() {
         this.time = this.readVarInt();

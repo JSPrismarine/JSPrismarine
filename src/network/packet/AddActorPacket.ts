@@ -4,18 +4,18 @@ import DataPacket from './DataPacket';
 export default class AddActorPacket extends DataPacket {
     static NetID = Identifiers.AddActorPacket;
 
-    public uniqueEntityId: bigint = BigInt(0);
-    public runtimeEntityId: bigint = BigInt(0);
-    public type: string = '';
-    public x: number = 0;
-    public y: number = 0;
-    public z: number = 0;
-    public motionX: number = 0;
-    public motionY: number = 0;
-    public motionZ: number = 0;
-    public pitch: number = 0;
-    public yaw: number = 0;
-    public headYaw: number = 0;
+    public uniqueEntityId!: bigint;
+    public runtimeEntityId!: bigint;
+    public type!: string;
+    public x!: number;
+    public y!: number;
+    public z!: number;
+    public motionX!: number;
+    public motionY!: number;
+    public motionZ!: number;
+    public pitch!: number;
+    public yaw!: number;
+    public headYaw!: number;
 
     public attributes = [];
     public metadata = [];
@@ -40,12 +40,12 @@ export default class AddActorPacket extends DataPacket {
         this.writeLFloat(this.headYaw);
 
         // TODO: attributes
-        this.writeUnsignedVarInt(0);
+        this.writeUnsignedVarInt(this.attributes.length);
 
         // TODO: metadata
-        this.writeUnsignedVarInt(0);
+        this.writeUnsignedVarInt(this.metadata.length);
 
         // TODO: links
-        this.writeUnsignedVarInt(0);
+        this.writeUnsignedVarInt(this.links.length);
     }
 }

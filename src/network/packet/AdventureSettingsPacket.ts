@@ -4,12 +4,12 @@ import DataPacket from './DataPacket';
 export default class AdventureSettingsPacket extends DataPacket {
     static NetID = Identifiers.AdventureSettingsPacket;
 
-    public flags: number = 0;
-    public commandPermission: number = 0;
-    public flags2: number = 0;
-    public playerPermission: number = 0;
-    public customFlags: number = 0;
-    public entityId: bigint = BigInt(0);
+    public flags!: number;
+    public commandPermission!: number;
+    public flags2!: number;
+    public playerPermission!: number;
+    public customFlags!: number;
+    public entityId!: bigint;
 
     public encodePayload() {
         this.writeUnsignedVarInt(this.flags);

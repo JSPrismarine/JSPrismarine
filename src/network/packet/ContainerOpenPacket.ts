@@ -1,25 +1,36 @@
+import Vector3 from '../../math/Vector3';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 export default class ContainerOpenPacket extends DataPacket {
     static NetID = Identifiers.ContainerOpenPacket;
-    public windowId: number = 0;
-    public containerType: number = 0;
+    public windowId!: number;
+    public containerType!: number;
 
-    public containerX: number = 0;
-    public containerY: number = 0;
-    public containerZ: number = 0;
-    public containerEntityId: bigint = BigInt(0);
+    public containerPos!: Vector3;
+    public containerEntityId!: bigint;
 
     public encodePayload() {
         this.writeByte(this.windowId);
         this.writeByte(this.containerType);
 
-        // Container position
-        this.writeVarInt(this.containerX);
-        this.writeUnsignedVarInt(this.containerY);
-        this.writeVarInt(this.containerZ);
+        this.writeVarInt(this.containerPos.getX());
+        this.writeUnsignedVarInt(this.containerPos.getY());
+        this.writeVarInt(this.containerPos.getZ());
 
         this.writeVarLong(this.containerEntityId);
+    }
+
+    public decodePayload() {
+        this.windowId = this.readByte();
+        this.containerType = this.readByte();
+
+        this.containerPos = new Vector3(
+            this.readVarInt(),
+            this.readUnsignedVarInt(),
+            this.readVarInt()
+        );
+
+        this.containerEntityId = this.readVarLong();
     }
 }

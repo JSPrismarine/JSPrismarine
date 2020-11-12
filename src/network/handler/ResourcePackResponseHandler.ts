@@ -39,14 +39,10 @@ export default class ResourcePackResponseHandler {
 
             const world = player.getWorld();
             const worldSpawnPos = await world.getSpawnPosition();
-            pk.worldSpawnX = worldSpawnPos.getX();
-            pk.worldSpawnY = worldSpawnPos.getY();
-            pk.worldSpawnZ = worldSpawnPos.getZ();
+            pk.worldSpawnPos = worldSpawnPos;
 
             // TODO: replace with actual data soon
-            pk.playerX = worldSpawnPos.getX();
-            pk.playerY = worldSpawnPos.getY();
-            pk.playerZ = worldSpawnPos.getZ();
+            pk.playerPos = worldSpawnPos;
 
             pk.levelId = world.getUniqueId();
             pk.worldName = world.getName();
