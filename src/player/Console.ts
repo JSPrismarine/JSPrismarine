@@ -15,14 +15,44 @@ export default class Console extends Player {
         };
 
         // Console command reader
+        readline.emitKeypressEvents(process.stdin);
         process.stdin.setEncoding('utf8');
-        let rl = readline.createInterface({ input: process.stdin });
-        rl.on('line', (input: string) => {
+        if (process.stdin.isTTY) process.stdin.setRawMode(true);
+
+        const completer = (line: string) => {
+            const hits = Array.from(
+                this.getServer().getCommandManager().getCommands().values()
+            )
+                .filter((a) =>
+                    a.id.split(':')[1].startsWith(line.replace('/', ''))
+                )
+                .map((a) => '/' + a.id.split(':')[1]);
+            return [
+                hits.length
+                    ? hits
+                    : Array.from(
+                          this.getServer()
+                              .getCommandManager()
+                              .getCommands()
+                              .values()
+                      ).map((a) => '/' + a.id.split(':')[1]),
+                line
+            ];
+        };
+
+        const cli = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+            terminal: true,
+            prompt: '',
+            completer: process.stdin.isTTY ? completer : undefined
+        });
+
+        cli.on('line', (input: string) => {
             if (input.startsWith('/'))
-                return (this.getServer().getCommandManager() as any).dispatchCommand(
-                    this,
-                    input
-                );
+                return this.getServer()
+                    .getCommandManager()
+                    .dispatchCommand(this, input);
 
             const event = new ChatEvent(
                 new Chat(this, `${this.getFormattedUsername()} ${input}`)
