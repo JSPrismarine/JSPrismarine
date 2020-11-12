@@ -14,7 +14,7 @@
     "docs": "typedoc --ignoreCompilerErrors --out ./docs --tsconfig ./src/tsconfig.json src  --exclude **/*.test.* --includeDeclarations --excludeExternals",
     "package": "pkg package.json --out-path ./packages/",
     "test": "jest --passWithNoTests",
-    "test:watch": "jest --passWithNoTests --watchAll",
+    "test:watch": "jest --passWithNoTests --watch",
     "eslint": "eslint -c .eslintrc ./src/",
     "prettier": "prettier --config .prettierrc src/**/*.* --check",
     "prettier-format": "prettier --config .prettierrc src/**/*.* --write"

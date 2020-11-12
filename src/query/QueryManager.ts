@@ -38,7 +38,7 @@ export default class QueryManager {
                         inetAddr.address,
                         inetAddr.port
                     );
-                break;
+                return res.getBuffer();
             }
             case QueryType.Stats: {
                 const res = new BinaryStream();
@@ -133,7 +133,7 @@ export default class QueryManager {
                         inetAddr.address,
                         inetAddr.port
                     );
-                break;
+                return res.getBuffer();
             }
         }
     }
