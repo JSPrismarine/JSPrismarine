@@ -10,9 +10,9 @@ import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
 import { GameruleManager, Rules } from '../world/GameruleManager';
+import SharedSeedRandom from './util/SharedSeedRandom';
 
 const UUID = require('../utils/uuid').default;
-const SharedSeedRandom = require('./util/shared-seed-random');
 
 interface WorldData {
     name: string;
@@ -32,7 +32,7 @@ export default class World {
     private currentTick: number = 0;
     private provider: any; // TODO: interface
     private server: Prismarine;
-    private seed: number | bigint;
+    private seed: SharedSeedRandom;
     private generator: any; // TODO: interface
 
     constructor({

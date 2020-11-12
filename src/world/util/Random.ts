@@ -13,27 +13,19 @@ const DOUBLE_UNIT = 1.1102230246251565e-16; // 1.0 / Number(1n << 53n)
  * An almost-complete JavaScript implementation of java.util.Random.
  * What's currently missing are the streams, which are unimportant for this project.
  */
-module.exports = class Random {
-    /** @type {bigint} */
-    seed;
-    /** @type {boolean} */
-    #haveNextNextGaussian;
-    /** @type {number} */
-    #nextNextGaussian;
+export default class Random {
+    public seed!: bigint;
+    #haveNextNextGaussian!: boolean;
+    #nextNextGaussian!: number;
 
-    /**
-     *
-     * @param {number | bigint} seed
-     */
-    constructor(seed = Random._seedUniquifier() ^ process.hrtime.bigint()) {
+    constructor(
+        seed: number | bigint = Random._seedUniquifier() ^
+            process.hrtime.bigint()
+    ) {
         this.setSeed(seed);
     }
 
-    /**
-     *
-     * @param {number | bigint} n
-     */
-    _checkIsNumber(n) {
+    private checkIsNumber(n: number | bigint) {
         if (typeof n != 'number' && typeof n != 'bigint') {
             throw new TypeError(`Seed "${n}" is not a number or BigInt!`);
         }
@@ -52,21 +44,12 @@ module.exports = class Random {
         }
     }
 
-    /**
-     *
-     * @param {number | bigint} seed
-     */
-    setSeed(seed) {
+    setSeed(seed: number | bigint) {
         this.seed = (BigInt(seed) ^ multiplier) & mask; // seed 44444 = 25214864369
         this.#haveNextNextGaussian = false;
     }
 
-    /**
-     *
-     * @param {number} bits
-     * @returns {number}
-     */
-    next(bits) {
+    next(bits: number): number {
         // seed 44444, next(32) returns these values in Java:
         /*
         808335106
@@ -95,12 +78,8 @@ module.exports = class Random {
      * Generates random bytes and places them into a user-supplied
      * byte array.  The number of random bytes produced is equal to
      * the length of the byte array.
-     *
-     * @param {number[]} bytes - the byte array to fill with random bytes
-     * @throws {TypeError} - if the byte array is null
-     * @returns {void}
      */
-    nextBytes(bytes) {
+    nextBytes(bytes: number[]): void {
         for (let i = 0, len = bytes.length; i < len; ) {
             for (
                 let rnd = this.nextInt(),
@@ -116,12 +95,8 @@ module.exports = class Random {
      * The form of nextLong used by LongStream Spliterators.  If
      * origin is greater than bound, acts as unbounded form of
      * nextLong, else as bounded form.
-     *
-     * @param {bigint} origin the least value, unless greater than bound
-     * @param {bigint} bound the upper bound (exclusive), must not equal origin
-     * @returns {bigint} a pseudorandom value
      */
-    internalNextLong(origin, bound) {
+    internalNextLong(origin: bigint, bound: bigint): bigint {
         let r = this.nextLong();
         if (origin < bound) {
             const n = bound - origin,
@@ -133,8 +108,10 @@ module.exports = class Random {
             else if (n > 0n) {
                 // reject over-represented candidates
                 for (
+                    // @ts-ignore
                     let u = r >>> 1n; // ensure nonnegative
                     u + m - (r = u % n) < 0n; // rejection check
+                    // @ts-ignore
                     u = this.nextLong() >>> 1n
                 ); // retry
 
@@ -153,12 +130,8 @@ module.exports = class Random {
      * For the unbounded case: uses nextInt().
      * For the bounded case with representable range: uses nextInt(int bound)
      * For the bounded case with unrepresentable range: uses nextInt()
-     *
-     * @param {number} origin the least value, unless greater than bound
-     * @param {number} bound the upper bound (exclusive), must not equal origin
-     * @return {number} a pseudorandom value
      */
-    internalNextInt(origin, bound) {
+    internalNextInt(origin: number, bound: number): number {
         if (origin < bound) {
             const n = bound - origin;
             if (n > 0) {
@@ -179,12 +152,8 @@ module.exports = class Random {
 
     /**
      * The form of nextDouble used by DoubleStream Spliterators.
-     *
-     * @param {number} origin the least value, unless greater than bound
-     * @param {number} bound the upper bound (exclusive), must not equal origin
-     * @return {number} a pseudorandom value
      */
-    internalNextDouble(origin, bound) {
+    internalNextDouble(origin: number, bound: number): number {
         let r = this.nextDouble();
         if (origin < bound) {
             r = r * (bound - origin) + origin;
@@ -202,11 +171,8 @@ module.exports = class Random {
      * contract of nextInt is that one in value is
      * pseudorandomly generated and returned. All 2^(32) possible
      * int values are produced with (approximately) equal probability
-     *
-     * @param {number?} bound the upper bound (exclusive).  Must be positive.
-     * @returns {number}
      */
-    nextInt(bound = undefined) {
+    nextInt(bound: number | undefined = undefined): number {
         if (!bound) return this.next(32);
         else {
             if (bound <= 0) throw new TypeError('NextInt: Bound is below 0!');
@@ -231,9 +197,8 @@ module.exports = class Random {
      * contract of nextLong is that one long value is
      * pseudorandomly generated and returned.
      *
-     * @returns {bigint}
      */
-    nextLong() {
+    nextLong(): bigint {
         /*
         // Generated from seed 44444 in Java
 
@@ -250,32 +215,21 @@ module.exports = class Random {
         );
     }
 
-    /**
-     *
-     * @returns {boolean}
-     */
-    nextBoolean() {
+    nextBoolean(): boolean {
         return this.next(1) != 0;
     }
 
-    /**
-     *
-     * @returns {number} JavaScript doesn't actually have floats, so this is technically a double
-     */
-    nextFloat() {
+    nextFloat(): number {
         return this.next(24) / (1 << 24);
     }
 
-    nextDouble() {
+    nextDouble(): number {
         return (
             (0x0000008000000 * this.next(26) + this.next(27)) / Math.pow(2, 53)
         );
     }
 
-    /**
-     * @returns {number}
-     */
-    nextGaussian() {
+    nextGaussian(): number {
         if (this.#haveNextNextGaussian) {
             this.#haveNextNextGaussian = false;
             return this.#nextNextGaussian;
@@ -294,9 +248,9 @@ module.exports = class Random {
             return v1 * multiplier;
         }
     }
-};
+}
 
-function compareAndSet(oldVal, currentVal, newVal) {
+function compareAndSet(oldVal: any, currentVal: any, newVal: any) {
     if (oldVal == currentVal) {
         oldVal = newVal;
         return true;
