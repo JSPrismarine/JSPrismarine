@@ -380,19 +380,19 @@ export default class PlayerConnection {
      */
     public broadcastMove(player: Player, mode = MovementType.Normal) {
         let pk = new MovePlayerPacket();
-        pk.runtimeEntityId = this.player.runtimeId;
+        pk.runtimeEntityId = player.runtimeId;
 
-        pk.positionX = this.player.getX();
-        pk.positionY = this.player.getY();
-        pk.positionZ = this.player.getZ();
+        pk.positionX = player.getX();
+        pk.positionY = player.getY();
+        pk.positionZ = player.getZ();
 
-        pk.pitch = this.player.pitch;
-        pk.yaw = this.player.yaw;
-        pk.headYaw = this.player.headYaw;
+        pk.pitch = player.pitch;
+        pk.yaw = player.yaw;
+        pk.headYaw = player.headYaw;
 
         pk.mode = mode;
 
-        pk.onGround = this.player.onGround;
+        pk.onGround = player.onGround;
 
         pk.ridingEntityRuntimeId = BigInt(0);
         this.sendDataPacket(pk);
