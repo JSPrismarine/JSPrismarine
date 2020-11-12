@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Device from '../../utils/Device';
-import Skin from '../../utils/skin/skin';
+import Skin from '../../utils/skin/Skin';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 

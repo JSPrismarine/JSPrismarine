@@ -1,4 +1,4 @@
-import type Skin from '../../utils/skin/skin';
+import type Skin from '../../utils/skin/Skin';
 import type UUID from '../../utils/uuid';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';

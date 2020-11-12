@@ -5,7 +5,7 @@ import Gamemode from '../world/Gamemode';
 import PlayerConnection from './PlayerConnection';
 import PlayerInventory from '../inventory/PlayerInventory';
 import Inventory from '../inventory/Inventory';
-import Skin from '../utils/skin/skin';
+import Skin from '../utils/skin/Skin';
 import Device from '../utils/Device';
 import Chunk from '../world/chunk/Chunk';
 import ChatEvent from '../events/chat/ChatEvent';

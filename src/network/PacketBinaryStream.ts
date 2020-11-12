@@ -3,8 +3,13 @@ import NBT from '../nbt/NBT';
 import NetworkLittleEndianBinaryStream from '../nbt/streams/NetworkLittleEndianBinaryStream';
 import CompoundTag from '../nbt/tags/CompoundTag';
 import Prismarine from '../Prismarine';
-import Skin from '../utils/skin/skin';
-import SkinImage from '../utils/skin/skin-image';
+import Skin from '../utils/skin/Skin';
+import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
+import SkinPersonaPiece from '../utils/skin/skin-persona/SkinPersonaPiece';
+import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/SkinPersonaPieceTintColor';
+import SkinAnimation from '../utils/skin/SkinAnimation';
+import SkinCape from '../utils/skin/SkinCape';
+import SkinImage from '../utils/skin/SkinImage';
 import CreativeContentEntry from './type/creative-content-entry';
 import PlayerListEntry from './type/PlayerListEntry';
 
@@ -12,11 +17,6 @@ const UUID = require('../utils/uuid').default;
 const { FlagType } = require('../entity/metadata');
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
-const SkinAnimation = require('../utils/skin/skin-animation');
-const SkinCape = require('../utils/skin/skin-cape');
-const SkinPersonaPiece = require('../utils/skin/skin-persona/persona-piece');
-const SkinPersona = require('../utils/skin/skin-persona/persona');
-const SkinPersonaPieceTintColor = require('../utils/skin/skin-persona/piece-tint-color');
 
 const ItemStackRequest = require('./type/item-stack-requests/item-stack-request');
 const ItemStackRequestTake = require('./type/item-stack-requests/take');
