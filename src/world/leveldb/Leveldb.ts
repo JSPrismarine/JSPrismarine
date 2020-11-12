@@ -7,8 +7,7 @@ import EmptySubChunk from '../chunk/EmptySubChunk';
 import SubChunk from '../chunk/SubChunk';
 import Vector3 from '../../math/Vector3';
 import type Prismarine from '../../Prismarine';
-
-const level = require('level');
+import Level from 'level';
 
 interface readChunk {
     x: number;
@@ -25,11 +24,11 @@ const Tags = {
 
 export default class LevelDB extends Provider {
     private server: Prismarine;
-    private db: any;
+    private db: Level;
 
     constructor(levelPath: string, server: Prismarine) {
         super(levelPath);
-        this.db = new level(path.join(levelPath, 'db'));
+        this.db = new Level(path.join(levelPath, 'db'));
         this.server = server;
     }
 
@@ -43,8 +42,8 @@ export default class LevelDB extends Provider {
         generator,
         seed,
         server
-    }: readChunk): Promise<Chunk> | null {
-        return new Promise(async (resolve) => {
+    }: readChunk): Promise<Chunk | null> {
+        return new Promise(async (resolve, reject) => {
             let index = LevelDB.chunkIndex(x, z);
             let subChunks = new Map();
 
@@ -85,7 +84,12 @@ export default class LevelDB extends Provider {
                     await this.db.get(index + '\x2d');
                     return resolve(new Chunk(x, z, subChunks));
                 }
-            } catch {
+            } catch (err) {
+                if (!err.notFound) {
+                    // Something else went wrong
+                    return reject(err);
+                }
+
                 // Chunk doesn't exist
                 await this.db.put(index + Tags.Version, 7);
 
@@ -116,8 +120,6 @@ export default class LevelDB extends Provider {
                     return resolve(chunk);
                 })();
             }
-
-            return null;
         });
     }
 
@@ -125,22 +127,34 @@ export default class LevelDB extends Provider {
      * Serialize a chunk into the database asynchronously.
      */
     async writeChunk(chunk: Chunk): Promise<void> {
-        let index = LevelDB.chunkIndex(chunk.getX(), chunk.getZ());
-        await this.db.put(index + Tags.Version, 7);
-        // Put all sub chunks
-        for (let [y, subChunk] of chunk.getSubChunks()) {
-            if (subChunk instanceof EmptySubChunk) continue;
-            let key = index + Tags.SubChunkPrefix + y;
-            let buffer = Buffer.from([
-                0,
-                ...subChunk.ids,
-                ...subChunk.metadata
-            ]);
-            await this.db.put(key, buffer);
-        }
-        // Put data 2D
-        let data = Buffer.from([...chunk.getHeightMap(), chunk.getBiomes()]);
-        await this.db.put(index + '\x2d', data);
+        return new Promise(async (resolve, reject) => {
+            try {
+                const index = LevelDB.chunkIndex(chunk.getX(), chunk.getZ());
+                await this.db.put(index + Tags.Version, 7);
+
+                // Put all sub chunks
+                for (let [y, subChunk] of chunk.getSubChunks()) {
+                    if (subChunk instanceof EmptySubChunk) continue;
+                    let key = index + Tags.SubChunkPrefix + y;
+                    let buffer = Buffer.from([
+                        0,
+                        ...subChunk.ids,
+                        ...subChunk.metadata
+                    ]);
+                    await this.db.put(key, buffer);
+                }
+
+                // Put data 2D
+                let data = Buffer.from([
+                    ...chunk.getHeightMap(),
+                    chunk.getBiomes()
+                ]);
+                await this.db.put(index + '\x2d', data);
+                return resolve();
+            } catch (err) {
+                return reject(err);
+            }
+        });
     }
 
     /**

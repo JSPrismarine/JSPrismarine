@@ -23,5 +23,5 @@
         }
     ],
     "exclude": ["./**/*.test.*"],
-    "typeRoots": ["node_modules/@types", "./src/types"]
+    "typeRoots": ["node_modules/@types", "./src/@types"]
 }
