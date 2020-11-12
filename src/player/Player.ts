@@ -9,7 +9,7 @@ import Skin from '../utils/skin/Skin';
 import Device from '../utils/Device';
 import Chunk from '../world/chunk/Chunk';
 import ChatEvent from '../events/chat/ChatEvent';
-import withDeprecated from '../plugin/hoc/withDeprecated';
+import withDeprecated from '../hoc/withDeprecated';
 import LoggerBuilder from '../utils/Logger';
 
 export enum PlayerPermission {
