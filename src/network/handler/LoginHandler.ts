@@ -18,7 +18,7 @@ export default class LoginHandler {
         player.skin = packet.skin;
         player.device = packet.device;
 
-        player.getPlayerConnection().sendPlayStatus(PlayStatus.LoginSuccess);
+        player.getConnection().sendPlayStatus(PlayStatus.LoginSuccess);
 
         const reason = server.getBanManager().isBanned(player);
         if (reason !== false) {
@@ -29,6 +29,6 @@ export default class LoginHandler {
         }
 
         let pk = new ResourcePacksInfoPacket();
-        player.getPlayerConnection().sendDataPacket(pk);
+        player.getConnection().sendDataPacket(pk);
     }
 }

@@ -13,7 +13,7 @@ export default class ContainerCloseHandler {
     ) {
         let pk = new ContainerClosePacket();
         pk.windowId = packet.windowId;
-        player.getPlayerConnection().sendDataPacket(pk);
+        player.getConnection().sendDataPacket(pk);
 
         // TODO: event
     }

@@ -85,9 +85,7 @@ export default class InventoryTransactionHandler {
                                     'minecraft:air'
                                 ) as Block).getRuntimeId();
                             for (let onlinePlayer of server.getOnlinePlayers()) {
-                                onlinePlayer
-                                    .getPlayerConnection()
-                                    .sendDataPacket(pk);
+                                onlinePlayer.getConnection().sendDataPacket(pk);
                             }
 
                             chunk.setBlock(

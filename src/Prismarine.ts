@@ -197,12 +197,10 @@ export default class Prismarine {
                         }
 
                         // Despawn the player to all online players
-                        player.getPlayerConnection().removeFromPlayerList();
+                        player.getConnection().removeFromPlayerList();
                         this.players.delete(token);
                         for (let onlinePlayer of this.players.values()) {
-                            player
-                                .getPlayerConnection()
-                                .sendDespawn(onlinePlayer);
+                            player.getConnection().sendDespawn(onlinePlayer);
                         }
                         player.getWorld().removePlayer(player);
 

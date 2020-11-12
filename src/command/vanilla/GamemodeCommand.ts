@@ -72,7 +72,7 @@ export default class GamemodeCommand extends Command {
 
             target.setGamemode(mode);
             if (mode === Gamemode.Creative)
-                target.getPlayerConnection().sendCreativeContents();
+                target.getConnection().sendCreativeContents();
 
             sender.sendMessage(
                 `Set ${target.getUsername()}'s game mode to ${Gamemode.getGamemodeName(
@@ -94,7 +94,7 @@ export default class GamemodeCommand extends Command {
             }
             target.setGamemode(mode);
             if (mode === Gamemode.Creative)
-                target.getPlayerConnection().sendCreativeContents();
+                target.getConnection().sendCreativeContents();
 
             return target.sendMessage(
                 `Set own game mode to ${Gamemode.getGamemodeName(mode)} Mode`

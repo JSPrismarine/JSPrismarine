@@ -422,7 +422,7 @@ export default class PlayerConnection {
         // Add just this entry for every players on the server
         this.server
             .getOnlinePlayers()
-            .map((player) => player.getPlayerConnection().sendDataPacket(pk));
+            .map((player) => player.getConnection().sendDataPacket(pk));
     }
 
     /**
@@ -440,7 +440,7 @@ export default class PlayerConnection {
 
         this.server
             .getOnlinePlayers()
-            .map((player) => player.getPlayerConnection().sendDataPacket(pk));
+            .map((player) => player.getConnection().sendDataPacket(pk));
     }
 
     /**
@@ -485,7 +485,7 @@ export default class PlayerConnection {
 
         pk.deviceId = this.player.device?.id || '';
         pk.metadata = this.player.metadata.getMetadata();
-        player.getPlayerConnection().sendDataPacket(pk);
+        player.getConnection().sendDataPacket(pk);
     }
 
     /**
@@ -494,7 +494,7 @@ export default class PlayerConnection {
     public sendDespawn(player: Player) {
         let pk = new RemoveActorPacket();
         pk.uniqueEntityId = this.player.runtimeId; // We use runtime as unique
-        player.getPlayerConnection().sendDataPacket(pk);
+        player.getConnection().sendDataPacket(pk);
     }
 
     public sendPlayStatus(status: number) {

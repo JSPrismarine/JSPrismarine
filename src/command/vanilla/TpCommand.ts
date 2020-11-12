@@ -317,9 +317,7 @@ export default class TpCommand extends Command {
             return;
         }
 
-        player
-            .getPlayerConnection()
-            .broadcastMove(player, MovementType.Teleport);
+        player.getConnection().broadcastMove(player, MovementType.Teleport);
         return `Teleported ${player.getUsername()} to ${player.getX()} ${player.getY()} ${player.getZ()}`;
     }
 

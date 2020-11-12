@@ -13,7 +13,7 @@ export default class AnimateHandler {
 
         for (let onlinePlayer of server.getOnlinePlayers()) {
             if (onlinePlayer === player) continue;
-            onlinePlayer.getPlayerConnection().sendDataPacket(pk);
+            onlinePlayer.getConnection().sendDataPacket(pk);
         }
     }
 }

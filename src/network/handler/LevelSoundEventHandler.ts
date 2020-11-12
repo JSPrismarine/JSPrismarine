@@ -13,7 +13,7 @@ export default class LevelSoundEventHandler {
     ) {
         // TODO: broadcast to viewers
         for (let chunkPlayer of player.getPlayersInChunk()) {
-            chunkPlayer.getPlayerConnection().sendDataPacket(packet);
+            chunkPlayer.getConnection().sendDataPacket(packet);
         }
     }
 }
