@@ -9,6 +9,8 @@ import Skin from '../utils/skin/Skin';
 import Device from '../utils/Device';
 import Chunk from '../world/chunk/Chunk';
 import ChatEvent from '../events/chat/ChatEvent';
+import withDeprecated from '../plugin/hoc/withDeprecated';
+import LoggerBuilder from '../utils/Logger';
 
 export enum PlayerPermission {
     Visitor,
@@ -130,6 +132,11 @@ export default class Player extends Entity {
 
     public getConnection() {
         return this.playerConnection;
+    }
+
+    @withDeprecated(new Date('12/11/2020'), 'getConnection')
+    public getPlayerConnection() {
+        return this.getConnection();
     }
 
     public getAddress() {

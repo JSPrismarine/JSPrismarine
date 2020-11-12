@@ -1,4 +1,6 @@
-const withDeprecated = (date: Date) => {
+import LoggerBuilder from '../../utils/Logger';
+
+const withDeprecated = (date: Date, replacement?: string) => {
     const removedOn = new Date(date.setDate(date.getDate() + 7));
     return (target: any, propertyKey: string, descriptor: any) => {
         // Fix javascript & typescript different runtime fuckery
@@ -10,10 +12,10 @@ const withDeprecated = (date: Date) => {
 
         const targetMethod = target.value;
         target.value = function (...args: any[]) {
-            this.getLogger().warn(
+            (this?.getLogger?.() || new LoggerBuilder()).warn(
                 `§c${propertyKey}§r is deprecated and will be removed on §l§e${
                     removedOn.toISOString().split('T')[0]
-                }§r!`
+                }§r${replacement ? `. Use §2${replacement}§r instead` : ''}!`
             );
 
             return targetMethod.apply(this, args);
