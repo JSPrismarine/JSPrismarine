@@ -30,4 +30,5 @@ for (let interruptSignal of ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM']) {
     });
 }
 
+(global as any).Prismarine = Server;
 export default Server;
