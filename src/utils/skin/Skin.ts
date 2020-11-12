@@ -1,55 +1,39 @@
-const SkinImage = require('../skin/skin-image');
-const SkinAnimation = require('./skin-animation');
-const SkinPersona = require('../../utils/skin/skin-persona/persona');
-const SkinPersonaPiece = require('./skin-persona/persona-piece');
-const SkinPersonaPieceTintColor = require('./skin-persona/piece-tint-color');
-const SkinCape = require('../skin/skin-cape');
+import SkinAnimation from './SkinAnimation';
+import SkinCape from './SkinCape';
+import SkinImage from './SkinImage';
+import SkinPersona from './skin-persona/SkinPersona';
+import SkinPersonaPiece from './skin-persona/SkinPersonaPiece';
+import SkinPersonaPieceTintColor from './skin-persona/SkinPersonaPieceTintColor';
 
-class Skin {
-    /** @type {string} */
-    id;
-    /** @type {string} */
-    resourcePatch;
-    /** @type {SkinImage} */
-    image;
-    /** @type {Set<SkinAnimation>} */
-    animations = new Set();
-    /** @type {SkinCape} */
-    cape;
-    /** @type {string} */
-    geometry;
-    /** @type {string} */
-    animationData;
-    /** @type {boolean} */
-    isPremium;
-    /** @type {boolean} */
-    isPersona;
-    /** @type {boolean} */
-    isCapeOnClassicSkin;
-    /** @type {string} */
-    color;
-    /** @type {string} */
-    armSize;
-    /** @type {SkinPersona} */
-    persona;
+export default class Skin {
+    public id!: string;
+    public resourcePatch!: string;
+    public image!: SkinImage;
+    public animations: Set<SkinAnimation> = new Set();
+    public cape!: SkinCape;
+    public geometry!: string;
+    public animationData!: string;
+    public isPremium!: boolean;
+    public isPersona!: boolean;
+    public isCapeOnClassicSkin!: boolean;
+    public color!: string;
+    public armSize!: string;
+    public persona!: SkinPersona;
+
     /**
      * Full skin ID, computed because
      * not sent on JWT.
-     *
-     * @type {string}
      */
-    fullId;
-    /** @type {boolean} */
-    isTrusted = true;
+    public fullId!: string;
+    public isTrusted: boolean = true;
 
     /**
      * Loads a skin from a JSON file contianing skin data
      * using minecraft bedrock login fields.
      *
      * (loads the skin persona)
-     * @param {object} jwt
      */
-    static fromJWT(jwt) {
+    static fromJWT(jwt: any) {
         let skin = new Skin();
 
         // Read skin
@@ -61,7 +45,7 @@ class Skin {
         skin.image = new SkinImage({
             width: jwt.SkinImageWidth,
             height: jwt.SkinImageHeight,
-            data: Buffer.from(jwt.SkinData, 'base64')
+            data: Buffer.from(jwt.SkinData, 'base64').toString()
         });
         skin.color = jwt.SkinColor;
         skin.armSize = jwt.ArmSize;
@@ -82,20 +66,22 @@ class Skin {
         }
 
         // Read cape
-        skin.cape = new SkinCape({
-            id: jwt.CapeId,
-            image: new SkinImage({
-                width: jwt.CapeImageWidth,
-                height: jwt.CapeImageHeight,
-                data: Buffer.from(jwt.CapeData, 'base64')
-            })
+        skin.cape = new SkinCape();
+        skin.cape.id = jwt.CapeId;
+        skin.cape.image = new SkinImage({
+            width: jwt.CapeImageWidth,
+            height: jwt.CapeImageHeight,
+            data: Buffer.from(jwt.CapeData, 'base64').toString()
         });
 
         // TODO: make a class to manage geometry
         skin.geometry = Buffer.from(jwt.SkinGeometryData, 'base64').toString();
 
         // TODO: Most of the times is empty, figure out what is it
-        skin.animationData = Buffer.from(jwt.SkinAnimationData, 'base64');
+        skin.animationData = Buffer.from(
+            jwt.SkinAnimationData,
+            'base64'
+        ).toString();
 
         // Read skin boolean properties
         skin.isPremium = jwt.PremiumSkin;
@@ -133,4 +119,3 @@ class Skin {
         return skin;
     }
 }
-module.exports = Skin;

@@ -27,7 +27,7 @@ import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import CoordinateUtils from '../world/CoordinateUtils';
 import PlayerListEntry from '../network/type/PlayerListEntry';
-import Skin from '../utils/skin/skin';
+import Skin from '../utils/skin/Skin';
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const UUID = require('../utils/uuid').default;

@@ -1,4 +1,4 @@
-import Skin from '../../utils/skin/skin';
+import Skin from '../../utils/skin/Skin';
 import UUID from '../../utils/uuid';
 
 export default class PlayerListEntry {
