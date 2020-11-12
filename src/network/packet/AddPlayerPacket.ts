@@ -53,7 +53,12 @@ export default class AddPlayerPacket extends DataPacket {
             this.writeUnsignedVarInt(0); // TODO: Adventure settings
         }
 
-        this.writeLLong(BigInt(0)); // Unknown
+        // userId
+        if (this.uniqueEntityId & 1n) {
+            this.writeLLong(-1n * ((this.uniqueEntityId + 1n) >> 1n));
+        } else {
+            this.writeLLong(this.uniqueEntityId >> 1n)
+        }
 
         this.writeUnsignedVarInt(0); // TODO: Entity links
         this.writeString(this.deviceId);
