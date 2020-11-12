@@ -165,8 +165,8 @@ export default class World {
      * Returns a chunk from minecraft block positions x and z.
      */
     public async getChunkAt(
-        x: number | VarInt,
-        z: number | VarInt,
+        x: number,
+        z: number,
         generate = false
     ): Promise<Chunk> {
         return await this.getChunk(

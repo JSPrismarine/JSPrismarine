@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 export default class PlayerActionPacket extends DataPacket {
     static NetID = Identifiers.PlayerActionPacket;
 
-    public runtimeEntityId: UnsignedVarLong = BigInt(0);
+    public runtimeEntityId: bigint = BigInt(0);
     public action: number = 0;
     public x: number = 0;
     public y: number = 0;
