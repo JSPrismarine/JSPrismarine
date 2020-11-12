@@ -92,7 +92,7 @@ export default class Player extends Entity {
         // Update movement for every player
         for (const player of this.server.getOnlinePlayers()) {
             if (player === this) continue;
-            player.getPlayerConnection().broadcastMove(this);
+            player.getConnection().broadcastMove(this);
             this.playerConnection.broadcastMove(player);
         }
 
@@ -128,7 +128,7 @@ export default class Player extends Entity {
         return this.server;
     }
 
-    public getPlayerConnection() {
+    public getConnection() {
         return this.playerConnection;
     }
 

@@ -87,7 +87,7 @@ export default class World {
             player.update(timestamp);
 
             if (this.currentTick % 5)
-                player.getPlayerConnection().sendTime(this.currentTick);
+                player.getConnection().sendTime(this.currentTick);
         }
 
         // TODO: tick chunks
@@ -282,7 +282,7 @@ export default class World {
         blockUpdate.z = placedPosition.getZ();
         blockUpdate.BlockRuntimeId = block.getRuntimeId();
         for (let p of this.server.getOnlinePlayers()) {
-            p.getPlayerConnection().sendDataPacket(blockUpdate);
+            p.getConnection().sendDataPacket(blockUpdate);
         }
 
         const pk = new LevelSoundEventPacket();
@@ -298,7 +298,7 @@ export default class World {
         pk.disableRelativeVolume = false;
 
         for (let p of player.getPlayersInChunk()) {
-            p.getPlayerConnection().sendDataPacket(pk);
+            p.getConnection().sendDataPacket(pk);
         }
     }
 

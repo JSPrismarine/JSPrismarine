@@ -15,10 +15,10 @@ export default class RequestChunkRadiusHandler {
         const maxViewDistance = server.getConfig().getViewDistance();
         const viewDistance =
             packet.radius >= maxViewDistance ? maxViewDistance : packet.radius;
-        player.getPlayerConnection().setViewDistance(viewDistance);
+        player.getConnection().setViewDistance(viewDistance);
 
-        player.getPlayerConnection().sendNetworkChunkPublisher();
+        player.getConnection().sendNetworkChunkPublisher();
 
-        player.getPlayerConnection().sendPlayStatus(PlayStatus.PlayerSpawn);
+        player.getConnection().sendPlayStatus(PlayStatus.PlayerSpawn);
     }
 }

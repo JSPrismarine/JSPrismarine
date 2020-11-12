@@ -23,7 +23,7 @@ export default class InteractHandler {
                     player.getZ()
                 );
                 pk.containerEntityId = player.runtimeId;
-                player.getPlayerConnection().sendDataPacket(pk);
+                player.getConnection().sendDataPacket(pk);
                 break;
             default:
                 server

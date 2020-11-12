@@ -13,8 +13,8 @@ export default class SetLocalPlayerAsInitializedHandler {
     ) {
         for (let onlinePlayer of server.getOnlinePlayers()) {
             if (onlinePlayer === player) continue;
-            onlinePlayer.getPlayerConnection().sendSpawn(player);
-            player.getPlayerConnection().sendSpawn(onlinePlayer);
+            onlinePlayer.getConnection().sendSpawn(player);
+            player.getConnection().sendSpawn(onlinePlayer);
         }
     }
 }

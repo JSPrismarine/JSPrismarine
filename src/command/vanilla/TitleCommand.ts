@@ -60,7 +60,7 @@ export default class TitleCommand extends Command {
             if (args[1] != 'clear') {
                 pk.text = text;
             }
-            player.getPlayerConnection().sendDataPacket(pk);
+            player.getConnection().sendDataPacket(pk);
         }
     }
 }

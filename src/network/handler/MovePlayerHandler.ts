@@ -30,9 +30,7 @@ class MovePlayerHandler {
         await server.getEventManager().post(['playerMove', event]);
         if (event.cancelled) {
             // Reset the player position
-            player
-                .getPlayerConnection()
-                .broadcastMove(player, MovementType.Reset);
+            player.getConnection().broadcastMove(player, MovementType.Reset);
             return;
         }
 
@@ -43,9 +41,7 @@ class MovePlayerHandler {
             packet.positionY !== to.getY() ||
             packet.positionZ !== to.getZ()
         )
-            player
-                .getPlayerConnection()
-                .broadcastMove(player, MovementType.Reset);
+            player.getConnection().broadcastMove(player, MovementType.Reset);
 
         // Position
         player.setX(to.getX());
