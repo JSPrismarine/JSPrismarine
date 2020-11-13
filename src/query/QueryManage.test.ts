@@ -15,7 +15,7 @@ jest.mock('../Prismarine', () => {
 });
 
 describe('QueryManager', () => {
-    it.skip('handshake', async (done) => {
+    it('handshake', async (done) => {
         const prismarine = new Prismarine({
             logger: null,
             config: null
@@ -29,7 +29,12 @@ describe('QueryManager', () => {
         (stream as any).offset = 0;
 
         const buffer = await queryManager.onRaw(stream, {} as any);
-        expect(buffer.toString()).toBe(' 9513307');
+        expect(buffer.toString()).toBe(
+            Buffer.from(
+                '\x09\x00\x00\x00\x00\x39\x35\x31\x33\x33\x30\x37\x00',
+                'binary'
+            ).toString()
+        );
         done();
     });
 });
