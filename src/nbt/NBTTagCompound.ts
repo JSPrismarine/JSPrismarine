@@ -54,4 +54,34 @@ export default class NBTTagCompound {
             return null;
         }
     }
+
+    public getCompound(name: string, insert: boolean): NBTTagCompound | null {
+        if (this.children.has(name)) {
+            return this.children.get(name);
+        }
+
+        if (insert) {
+            let compound: NBTTagCompound = new NBTTagCompound();
+            this.addValue(name, compound);
+            return compound;
+        } else {
+            return null;
+        }
+    }
+
+    public getValue(name: string, defaultValue: any): any {
+        return (this.children.has(name) ? this.children.get(name) : defaultValue);
+    }
+
+    public remove(key: string): boolean {
+        return this.children.delete(key);
+    }
+
+    public has(key: string): boolean {
+        return this.children.has(key);
+    }
+
+    public size(): number {
+        return this.children.size;
+    }
 }
