@@ -3,9 +3,6 @@ import Identifiers from '../Identifiers';
 import PacketBinaryStream from '../PacketBinaryStream';
 import DataPacket from './DataPacket';
 
-import * as util from 'util'
-import NBTReader from '../../nbt/NBTReader';
-
 const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
 const RequiredBlockStates = require('@jsprismarine/bedrock-data')
     .required_block_states;
@@ -110,10 +107,6 @@ export default class StartGamePacket extends DataPacket {
 
         // PMMP states
         this.append(RequiredBlockStates);
-
-        // let str = new NetworkLittleEndianBinaryStream(RequiredBlockStates)
-        // let tag = (new NBT).readTag(str, true, true);
-        // console.log(util.inspect(tag, {showHidden: true, depth: null}));
 
         this.append(this.serializeItemTable(ItemTable));
 
