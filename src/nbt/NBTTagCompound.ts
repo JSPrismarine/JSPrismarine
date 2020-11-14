@@ -1,14 +1,17 @@
-import BinaryStream from "@jsprismarine/jsbinaryutils";
-import { ByteOrder } from "./ByteOrder";
-import NBTReader from "./NBTReader";
-import NBTWriter from "./NBTWriter";
-import * as fs from "fs";
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { ByteOrder } from './ByteOrder';
+import NBTReader from './NBTReader';
+import NBTWriter from './NBTWriter';
+import * as fs from 'fs';
 
 export default class NBTTagCompound {
     private name: string | null;
     private children: Map<string, any> = new Map();
 
-    public static readFromFile(path: string, byteOrder: ByteOrder): NBTTagCompound {
+    public static readFromFile(
+        path: string,
+        byteOrder: ByteOrder
+    ): NBTTagCompound {
         return NBTTagCompound.readFromStream(
             new BinaryStream(fs.readFileSync(path)),
             byteOrder
