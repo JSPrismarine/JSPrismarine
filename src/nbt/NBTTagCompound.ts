@@ -1,15 +1,18 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from './ByteOrder';
-import NBTReader from './NBTReader';
-import NBTWriter from './NBTWriter';
+import BinaryStream from "@jsprismarine/jsbinaryutils";
+import { ByteOrder } from "./ByteOrder";
+import NBTReader from "./NBTReader";
+import NBTWriter from "./NBTWriter";
+import * as fs from "fs";
 
 export default class NBTTagCompound {
     private name: string | null;
     private children: Map<string, any> = new Map();
 
-    public static readFromFile(): NBTTagCompound {
-        // todo
-        return new NBTTagCompound();
+    public static readFromFile(path: string, byteOrder: ByteOrder): NBTTagCompound {
+        return NBTTagCompound.readFromStream(
+            new BinaryStream(fs.readFileSync(path)),
+            byteOrder
+        );
     }
 
     public static readFromStream(
@@ -47,13 +50,13 @@ export default class NBTTagCompound {
         this.children.set(tag.getName() as string, tag);
     }
 
-    public getList(name: string, insert: boolean): Map<string, any> | null {
+    public getList(name: string, insert: boolean): Set<any> | null {
         if (this.children.has(name)) {
             return this.children.get(name);
         }
 
         if (insert) {
-            let backingList: Map<string, any> = new Map();
+            let backingList: Set<any> = new Set();
             this.addValue(name, backingList);
             return backingList;
         } else {
