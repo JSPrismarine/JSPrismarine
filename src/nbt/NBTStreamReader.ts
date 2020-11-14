@@ -1,5 +1,12 @@
 import BinaryStream from "@jsprismarine/jsbinaryutils";
 import { ByteOrder } from "./ByteOrder";
+import ByteVal from "./types/ByteVal";
+import DoubleVal from "./types/DoubleVal";
+import FloatVal from "./types/FloatVal";
+import LongVal from "./types/LongVal";
+import NumberVal from "./types/NumberVal";
+import ShortVal from "./types/ShortVal";
+import StringVal from "./types/StringVal";
 
 export default class NBTStreamReader {
     protected input: BinaryStream;
@@ -25,90 +32,90 @@ export default class NBTStreamReader {
         this.allocateLimit = allocateLimit;
     }
 
-    protected readByteValue(): number {
+    protected readByteValue(): ByteVal {
         this.expectInput(1, 'Invalid NBT Data: Expected byte');
-        return this.input.readByte();
+        return new ByteVal(this.input.readByte());
     }
 
-    protected readStringValue(): string {
-        let length: number = this.useVarint ? this.input.readUnsignedVarInt() : this.readShortValue();
+    protected readStringValue(): StringVal {
+        let length: number = this.useVarint ? this.input.readUnsignedVarInt() : this.readShortValue().getValue();
         this.expectInput(length, 'Invalid NBT Data: Expected string bytes');
 
         let data: Buffer = this.input.read(length);
 
-        return data.toString('utf8');
+        return new StringVal(data.toString('utf8'));
     }
 
-    protected readShortValue(): number {
+    protected readShortValue(): ShortVal {
         this.expectInput(2, 'Invalid NBT Data: Expected short');
 
         if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
-            return this.input.readLShort();
+            return new ShortVal(this.input.readLShort());
         } 
         
-        return this.input.readShort();
+        return new ShortVal(this.input.readShort());
     }
 
-    protected readIntValue(): number {
+    protected readIntValue(): NumberVal {
         if (this.useVarint) {
-            return this.input.readVarInt();
+            return new NumberVal(this.input.readVarInt());
         }
         
         this.expectInput(4, 'Invalid NBT Data: Expected int');
 
         if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
-            return this.input.readLInt();
+            return new NumberVal(this.input.readLInt());
         } 
             
-        return this.input.readInt();
+        return new NumberVal(this.input.readInt());
     }
 
-    protected readLongValue(): bigint {
+    protected readLongValue(): LongVal {
         if (this.useVarint) {
-            return this.input.readVarLong();
+            return new LongVal(this.input.readVarLong());
         } else {
             this.expectInput(8, 'Invalid NBT Data: Expected long');
 
             if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
-                return this.input.readLLong();
+                return new LongVal(this.input.readLLong());
             } 
 
-            return this.input.readLong();
+            return new LongVal(this.input.readLong());
         }
     }
 
-    protected readFloatValue(): number {
+    protected readFloatValue(): FloatVal {
         this.expectInput(4, 'Invalid NBT Data: Expected long');
 
         if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
-            return this.input.readLFloat();
+            return new FloatVal(this.input.readLFloat());
         }
 
-        return this.input.readFloat();
+        return new FloatVal(this.input.readFloat());
     }
 
-    protected readDoubleValue(): number {
+    protected readDoubleValue(): DoubleVal {
         this.expectInput(8, 'Invalid NBT Data: Expected double');
 
         if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
-            return this.input.readLDouble();
+            return new DoubleVal(this.input.readLDouble());
         }
 
-        return this.input.readDouble();
+        return new DoubleVal(this.input.readDouble());
     }
 
     protected readByteArrayValue(): Buffer {
-        let size: number = this.readIntValue();
+        let size: number = this.readIntValue().getValue();
         this.expectInput(size, 'Invalid NBT Data: Expected byte array data');
         return this.input.read(size);
     }
 
     protected readIntArrayValue(): number[] {
-        let size: number = this.readIntValue();
+        let size: number = this.readIntValue().getValue();
         this.expectInput(this.isUsingVarint() ? size : size * 4, 'Invalid NBT Data: Expected int array data');
         let result: number[] = [];
         for (let i = 0; i < size; i++) {
-            result.push(this.readIntValue());
+            result.push(this.readIntValue().getValue());
         }
         return result;
     }

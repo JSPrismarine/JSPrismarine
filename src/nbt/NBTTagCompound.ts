@@ -1,6 +1,7 @@
 import BinaryStream from "@jsprismarine/jsbinaryutils";
 import { ByteOrder } from "./ByteOrder";
 import NBTReader from "./NBTReader";
+import NBTWriter from "./NBTWriter";
 
 export default class NBTTagCompound {
     private name: string|null;
@@ -69,12 +70,21 @@ export default class NBTTagCompound {
         }
     }
 
+    public writeToStream(out: BinaryStream, byteOrder: ByteOrder): void {
+        let writer: NBTWriter = new NBTWriter(out, byteOrder);
+        writer.writeCompound(this);
+    }
+
     public getValue(name: string, defaultValue: any): any {
         return (this.children.has(name) ? this.children.get(name) : defaultValue);
     }
 
     public remove(key: string): boolean {
         return this.children.delete(key);
+    }
+
+    public entries(): IterableIterator<[string, any]> {
+        return this.children.entries();
     }
 
     public has(key: string): boolean {
