@@ -1,14 +1,14 @@
-import BinaryStream from "@jsprismarine/jsbinaryutils";
-import { ByteOrder } from "./ByteOrder";
-import { NBTDefinitions } from "./NBTDefinitions";
-import NBTTagCompound from "./NBTTagCompound";
-import ByteVal from "./types/ByteVal";
-import DoubleVal from "./types/DoubleVal";
-import FloatVal from "./types/FloatVal";
-import LongVal from "./types/LongVal";
-import NumberVal from "./types/NumberVal";
-import ShortVal from "./types/ShortVal";
-import StringVal from "./types/StringVal";
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { ByteOrder } from './ByteOrder';
+import { NBTDefinitions } from './NBTDefinitions';
+import NBTTagCompound from './NBTTagCompound';
+import ByteVal from './types/ByteVal';
+import DoubleVal from './types/DoubleVal';
+import FloatVal from './types/FloatVal';
+import LongVal from './types/LongVal';
+import NumberVal from './types/NumberVal';
+import ShortVal from './types/ShortVal';
+import StringVal from './types/StringVal';
 
 export default class NBTWriter {
     private readonly MAX_SIZE = 10 * 1024 * 1024;
@@ -24,7 +24,7 @@ export default class NBTWriter {
     }
 
     public setUseVarint(useVarint: boolean): void {
-        this.useVarint = useVarint; 
+        this.useVarint = useVarint;
     }
 
     public writeList(list: Set<any>): void {
@@ -33,7 +33,10 @@ export default class NBTWriter {
     }
 
     public writeCompound(compound: NBTTagCompound): void {
-        this.writeTagHeader(NBTDefinitions.TAG_COMPOUND, compound.getName() ?? '');
+        this.writeTagHeader(
+            NBTDefinitions.TAG_COMPOUND,
+            compound.getName() ?? ''
+        );
         this.writeCompoundValue(compound);
     }
 
@@ -50,7 +53,7 @@ export default class NBTWriter {
             this.writeShortValue(bytes.length);
         }
 
-        this.buf.append(bytes); 
+        this.buf.append(bytes);
     }
 
     public writeByteValue(value: number): void {
@@ -112,7 +115,7 @@ export default class NBTWriter {
 
     private writeIntegerArrayValue(value: number[]) {
         this.writeIntegerValue(value.length);
-        value.map(v => this.writeIntegerValue(v));
+        value.map((v) => this.writeIntegerValue(v));
     }
 
     private writeListValue(value: Set<any>): void {
@@ -231,13 +234,15 @@ export default class NBTWriter {
         } else if (Array.isArray(value)) {
             return NBTDefinitions.TAG_INT_ARRAY;
         } else {
-            throw new Error(`Invalid NBT Data: Cannot deduce NBT type of class ${value.constructor.name} (${value})`);
+            throw new Error(
+                `Invalid NBT Data: Cannot deduce NBT type of class ${value.constructor.name} (${value})`
+            );
         }
     }
 
     // Our buffer auto increments its capacity
     // private ensureCapacity(capacity: number): void {
-        // let targetCapacity: number = this.buf.getOffset() + capacity;
-        // if (targetCapacity <= this.buf)
+    // let targetCapacity: number = this.buf.getOffset() + capacity;
+    // if (targetCapacity <= this.buf)
     // }
 }

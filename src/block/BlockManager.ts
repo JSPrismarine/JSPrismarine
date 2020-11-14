@@ -84,19 +84,22 @@ export default class BlockManager {
     private async generateBlockPalette() {
         let palette: BinaryStream = await new Promise((resolve) => {
             let data: BinaryStream = new BinaryStream();
-            let writer: NBTWriter = new NBTWriter(data, ByteOrder.LITTLE_ENDIAN);
+            let writer: NBTWriter = new NBTWriter(
+                data,
+                ByteOrder.LITTLE_ENDIAN
+            );
             writer.setUseVarint(true);
 
             this.getBlocks()
-                .filter(b => b.meta == 0)
-                .map(block => () => {
+                .filter((b) => b.meta == 0)
+                .map((block) => () => {
                     let tag: NBTTagCompound = new NBTTagCompound('');
                     let nbtBlock: NBTTagCompound = new NBTTagCompound('block');
-                    
+
                     nbtBlock.addValue('name', block.getName());
                     // nbtBlock.addValue('states', block.getNBT());
                     // TODO: finish palette
-                })
+                });
 
             resolve(data);
         });
