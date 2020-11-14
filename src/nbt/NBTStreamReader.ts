@@ -1,12 +1,12 @@
-import BinaryStream from "@jsprismarine/jsbinaryutils";
-import { ByteOrder } from "./ByteOrder";
-import ByteVal from "./types/ByteVal";
-import DoubleVal from "./types/DoubleVal";
-import FloatVal from "./types/FloatVal";
-import LongVal from "./types/LongVal";
-import NumberVal from "./types/NumberVal";
-import ShortVal from "./types/ShortVal";
-import StringVal from "./types/StringVal";
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { ByteOrder } from './ByteOrder';
+import ByteVal from './types/ByteVal';
+import DoubleVal from './types/DoubleVal';
+import FloatVal from './types/FloatVal';
+import LongVal from './types/LongVal';
+import NumberVal from './types/NumberVal';
+import ShortVal from './types/ShortVal';
+import StringVal from './types/StringVal';
 
 export default class NBTStreamReader {
     protected input: BinaryStream;
@@ -38,7 +38,9 @@ export default class NBTStreamReader {
     }
 
     protected readStringValue(): StringVal {
-        let length: number = this.useVarint ? this.input.readUnsignedVarInt() : this.readShortValue().getValue();
+        let length: number = this.useVarint
+            ? this.input.readUnsignedVarInt()
+            : this.readShortValue().getValue();
         this.expectInput(length, 'Invalid NBT Data: Expected string bytes');
 
         let data: Buffer = this.input.read(length);
@@ -51,8 +53,8 @@ export default class NBTStreamReader {
 
         if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
             return new ShortVal(this.input.readLShort());
-        } 
-        
+        }
+
         return new ShortVal(this.input.readShort());
     }
 
@@ -60,13 +62,13 @@ export default class NBTStreamReader {
         if (this.useVarint) {
             return new NumberVal(this.input.readVarInt());
         }
-        
+
         this.expectInput(4, 'Invalid NBT Data: Expected int');
 
         if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
             return new NumberVal(this.input.readLInt());
-        } 
-            
+        }
+
         return new NumberVal(this.input.readInt());
     }
 
@@ -78,7 +80,7 @@ export default class NBTStreamReader {
 
             if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
                 return new LongVal(this.input.readLLong());
-            } 
+            }
 
             return new LongVal(this.input.readLong());
         }
@@ -112,7 +114,10 @@ export default class NBTStreamReader {
 
     protected readIntArrayValue(): number[] {
         let size: number = this.readIntValue().getValue();
-        this.expectInput(this.isUsingVarint() ? size : size * 4, 'Invalid NBT Data: Expected int array data');
+        this.expectInput(
+            this.isUsingVarint() ? size : size * 4,
+            'Invalid NBT Data: Expected int array data'
+        );
         let result: number[] = [];
         for (let i = 0; i < size; i++) {
             result.push(this.readIntValue().getValue());
@@ -120,9 +125,13 @@ export default class NBTStreamReader {
         return result;
     }
 
-    protected expectInput(remaining: number, message: string, alterAllocationLimit: boolean = true): void {
+    protected expectInput(
+        remaining: number,
+        message: string,
+        alterAllocationLimit: boolean = true
+    ): void {
         if (alterAllocationLimit) {
-            this.alterAllocationLimit(remaining);    
+            this.alterAllocationLimit(remaining);
         }
 
         let len = this.input.readRemaining().length;
@@ -135,7 +144,9 @@ export default class NBTStreamReader {
     public alterAllocationLimit(remaining: number): void {
         if (this.allocateLimit != -1) {
             if (this.allocateLimit - remaining < 0) {
-                throw new Error('Could not allocate more bytes due to reaching the set limit');
+                throw new Error(
+                    'Could not allocate more bytes due to reaching the set limit'
+                );
             } else {
                 this.allocateLimit -= remaining;
             }
