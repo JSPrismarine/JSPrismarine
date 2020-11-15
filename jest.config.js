@@ -7,6 +7,7 @@ let ignore = [
 
 module.exports = {
     testEnvironment: 'node',
+    clearMocks: true,
     moduleFileExtensions: [
         'ts',
         'js'
