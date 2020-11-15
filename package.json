@@ -17,7 +17,8 @@
     "test:watch": "jest --passWithNoTests --watch",
     "eslint": "eslint -c .eslintrc ./src/",
     "prettier": "prettier --config .prettierrc src/**/*.* --check",
-    "prettier-format": "prettier --config .prettierrc src/**/*.* --write"
+    "prettier-format": "prettier --config .prettierrc src/**/*.* --write",
+    "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls"
   },
   "repository": {
     "type": "git",
@@ -93,6 +94,7 @@
     "@types/set-interval-async": "1.0.0",
     "@types/unzipper": "0.10.3",
     "babel-eslint": "10.1.0",
+    "coveralls": "^3.1.0",
     "cross-env": "7.0.2",
     "eslint": "7.13.0",
     "husky": "4.3.0",
