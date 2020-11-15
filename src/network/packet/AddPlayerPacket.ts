@@ -32,7 +32,7 @@ export default class AddPlayerPacket extends DataPacket {
         this.writeString(this.name);
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.writeString(this.platformChatId || "");
+        this.writeString(this.platformChatId || '');
 
         this.writeLFloat(this.positionX);
         this.writeLFloat(this.positionY);
@@ -62,6 +62,6 @@ export default class AddPlayerPacket extends DataPacket {
 
         this.writeUnsignedVarInt(0); // TODO: Entity links
         this.writeString(this.deviceId);
-        this.writeLInt(this.buildPlatform || -1);  // TODO: OS enum
+        this.writeLInt(this.buildPlatform || -1); // TODO: OS enum
     }
 }

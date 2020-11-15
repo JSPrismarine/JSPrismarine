@@ -1,7 +1,4 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import NBT from '../nbt/NBT';
-import NetworkLittleEndianBinaryStream from '../nbt/streams/NetworkLittleEndianBinaryStream';
-import CompoundTag from '../nbt/tags/CompoundTag';
 import Prismarine from '../Prismarine';
 import Skin from '../utils/skin/Skin';
 import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
@@ -347,7 +344,7 @@ export default class PacketBinaryStream extends BinaryStream {
         if (extraLen == 0xffff) {
             this.readByte(); // ? nbt version
             // As i cannot pass offset by reference, i keep it using this binary stream directly
-            let stream = new NetworkLittleEndianBinaryStream(
+            /* let stream = new NetworkLittleEndianBinaryStream(
                 this.getBuffer(),
                 this.getOffset()
             );
@@ -356,7 +353,7 @@ export default class PacketBinaryStream extends BinaryStream {
                 throw new Error('Invalid NBT root tag for itemstack');
             }
             nbt = decodedNBT;
-            (this as any).offset = stream.getOffset();
+            (this as any).offset = stream.getOffset(); */
         } else if (extraLen !== 0) {
             throw new Error(`Invalid NBT itemstack length ${extraLen}`);
         }
