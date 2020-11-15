@@ -51,7 +51,7 @@ export default class Prismarine {
     private permissionManager: PermissionManager;
     private banManager: BanManager;
 
-    static instance: null | Prismarine = null;
+    static instance: Prismarine;
 
     constructor({ logger, config }: { logger: LoggerBuilder; config: Config }) {
         logger.info(

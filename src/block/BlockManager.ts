@@ -91,7 +91,7 @@ export default class BlockManager {
             writer.setUseVarint(true);
 
             this.getBlocks()
-                .filter((b) => b.meta == 0)
+                .filter((b) => b.meta === 0)
                 .map((block) => () => {
                     let tag: NBTTagCompound = new NBTTagCompound('');
                     let nbtBlock: NBTTagCompound = new NBTTagCompound('block');

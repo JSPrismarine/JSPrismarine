@@ -1,5 +1,4 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Prismarine from '../Prismarine';
 import Skin from '../utils/skin/Skin';
 import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
 import SkinPersonaPiece from '../utils/skin/skin-persona/SkinPersonaPiece';
@@ -25,12 +24,6 @@ const ItemStackRequestCreativeCreate = require('./type/item-stack-requests/creat
 const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
 
 export default class PacketBinaryStream extends BinaryStream {
-    #server: Prismarine = Prismarine?.instance as Prismarine;
-
-    getServer(): Prismarine {
-        return this.#server;
-    }
-
     /**
      * Returns a string encoded into the buffer.
      */
@@ -283,9 +276,9 @@ export default class PacketBinaryStream extends BinaryStream {
                     }
                     break;
                 default:
-                    this.#server
+                /* this.#server
                         .getLogger()
-                        .error(`Unknown Gamerule type ${value}`);
+                        .error(`Unknown Gamerule type ${value}`); */
             }
         }
     }
@@ -418,7 +411,7 @@ export default class PacketBinaryStream extends BinaryStream {
 
     readItemStackRequest() {
         const id = this.readVarInt();
-        this.#server.getLogger().debug(`Request ID: ${id}`);
+        // this.#server.getLogger().debug(`Request ID: ${id}`);
 
         const actions = [];
         for (let i = 0; i < this.readUnsignedVarInt(); i++) {
@@ -441,7 +434,7 @@ export default class PacketBinaryStream extends BinaryStream {
     readItemStackRequestAction() {
         const id = this.readByte();
 
-        this.#server.getLogger().debug(`Action ${id}`);
+        // this.#server.getLogger().debug(`Action ${id}`);
         switch (id) {
             case 0: // TODO: enum
                 return new ItemStackRequestTake({
@@ -500,18 +493,18 @@ export default class PacketBinaryStream extends BinaryStream {
                     itemId: this.readUnsignedVarInt()
                 });
             case 12: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
-                this.#server
+                /* this.#server
                     .getLogger()
                     .silly(
                         'Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)'
-                    );
+                    ); */
                 return {};
             case 13: // CRAFTING_RESULTS_DEPRECATED, Deprecated so we'll just ignore it
-                this.#server
+                /* this.#server
                     .getLogger()
                     .silly(
                         'Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)'
-                    );
+                    ); */
                 // We still need to read it...
                 let items = [];
                 for (let i = 0; i < this.readUnsignedVarInt(); i++) {
@@ -520,9 +513,9 @@ export default class PacketBinaryStream extends BinaryStream {
                 this.readByte(); // times crafted
                 return {};
             default:
-                this.#server
+                /* this.#server
                     .getLogger()
-                    .debug(`Unknown item stack request id: ${id}`);
+                    .debug(`Unknown item stack request id: ${id}`); */
                 return {};
         }
     }

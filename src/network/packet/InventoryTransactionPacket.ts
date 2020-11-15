@@ -114,9 +114,7 @@ export default class InventoryTransactionPacket extends DataPacket {
                 );
                 break;
             default:
-                this.getServer()
-                    .getLogger()
-                    .warn(`Unknown transaction type ${this.type}`);
+                break;
         }
     }
 }
