@@ -15,6 +15,7 @@ export default class Config {
     private motd: string;
     private viewDistance: number;
     private onlineMode: boolean;
+    private enableEval: boolean;
     private enableTelemetry: boolean;
     private telemetryUrls: Array<string>;
 
@@ -43,6 +44,7 @@ export default class Config {
         );
         this.viewDistance = this.configBuilder.get('view-distance', 10);
         this.onlineMode = this.configBuilder.get('online-mode', true);
+        this.enableEval = this.configBuilder.get('enable-eval', false);
         this.enableTelemetry = this.configBuilder.get('enable-telemetry', true);
         this.telemetryUrls = this.configBuilder.get('telemetry-urls', [
             'https://telemetry.prismarine.dev'
@@ -78,6 +80,9 @@ export default class Config {
     }
     public getOnlineMode() {
         return this.onlineMode;
+    }
+    public getEnableEval() {
+        return this.enableEval;
     }
     public getTelemetry() {
         return {

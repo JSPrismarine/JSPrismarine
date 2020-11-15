@@ -39,6 +39,12 @@ export default class CommandManager {
         jsprismarine.forEach((id: string) => {
             if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
 
+            if (
+                !this.server.getConfig().getEnableEval() &&
+                id.includes('EvalCommand')
+            )
+                return;
+
             const command = require(`./jsprismarine/${id}`);
             this.registerClassCommand(
                 new (command.default || command)(),
