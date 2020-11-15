@@ -104,7 +104,7 @@ export default class PluginManager {
     /**
      * Register a new plugin and download the required dependencies
      */
-    private async registerPlugin(id: string) {
+    private async registerPlugin(id: string): Promise<PluginFile | null> {
         if (id === '.extracted') return null;
 
         let time = Date.now();
@@ -174,7 +174,17 @@ export default class PluginManager {
             dir,
             new pluginApiVersion(this.server, pkg)
         );
-        await plugin.onEnable();
+
+        try {
+            await plugin.onEnable();
+        } catch (err) {
+            this.server
+                .getLogger()
+                .warn(
+                    `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${err}!`
+                );
+            return null;
+        }
 
         this.plugins.set(pkg.name, plugin);
 
@@ -198,7 +208,15 @@ export default class PluginManager {
      */
     private async deregisterPlugin(id: string) {
         const plugin: PluginFile = this.plugins.get(id);
-        await plugin.onDisable?.();
+        try {
+            await plugin.onDisable?.();
+        } catch (err) {
+            this.server
+                .getLogger()
+                .warn(
+                    `Failed to disable §b${plugin.getName()}@${plugin.getVersion()}§r: ${err}!`
+                );
+        }
 
         this.plugins.delete(id);
     }
