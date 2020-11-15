@@ -1,6 +1,7 @@
 # Node.js things
 node_modules
 yarn.lock
+/coverage/
 
 # JSPRismarine things
 /dist/
