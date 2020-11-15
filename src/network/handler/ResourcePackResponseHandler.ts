@@ -47,6 +47,7 @@ export default class ResourcePackResponseHandler {
             pk.levelId = world.getUniqueId();
             pk.worldName = world.getName();
             pk.gamerules = world.getGameruleManager().getGamerules();
+            pk.palette = server.getBlockManager().getBlockPalette();
             player.getConnection().sendDataPacket(pk);
 
             player.getConnection().sendTime(world.getTicks());

@@ -24,6 +24,7 @@ export default class StartGamePacket extends DataPacket {
     public gamerules: Map<string, any> = new Map();
 
     private cachedItemPalette!: Buffer;
+    public palette!: Buffer;
 
     public encodePayload() {
         this.writeVarLong(this.entityId);
@@ -105,8 +106,7 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(0); // enchantment seed
 
-        // PMMP states
-        this.append(RequiredBlockStates);
+        this.append(this.palette);
 
         this.append(this.serializeItemTable(ItemTable));
 

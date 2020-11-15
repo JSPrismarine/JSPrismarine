@@ -8,12 +8,16 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import NBTWriter from '../nbt/NBTWriter';
 import { ByteOrder } from '../nbt/ByteOrder';
 import NBTTagCompound from '../nbt/NBTTagCompound';
+import StringVal from '../nbt/types/StringVal';
 
 export default class BlockManager {
     private server: Prismarine;
     private blocks = new Map();
     private runtimeIds: Array<number> = [];
     private blockPalette: Buffer = Buffer.alloc(0);
+
+    private NAME_TO_STATIC: Map<string, number> = new Map();
+    private RUNTIME_TO_STATIC: Map<number, number> = new Map();
 
     constructor(server: Prismarine) {
         this.server = server;
@@ -24,7 +28,6 @@ export default class BlockManager {
      */
     public async onEnable() {
         this.importBlocks();
-        this.generateRuntimeIds();
         await this.generateBlockPalette();
     }
 
@@ -82,29 +85,59 @@ export default class BlockManager {
     }
 
     private async generateBlockPalette() {
-        let palette: BinaryStream = await new Promise((resolve) => {
+        let blockPalette: Set<NBTTagCompound> = await new Promise(resolve => {
+            // Don't create useless variables, we also care about performance!
+            resolve(
+                NBTTagCompound.readFromFile(__dirname + '/../resources/assets.dat', ByteOrder.BIG_ENDIAN)
+                .getList('blockPalette', false) as Set<NBTTagCompound>
+            )
+        });
+
+        let knownBlocks: Set<string> = new Set();
+        let staticId: number = 0;  // Unique block ID
+        let runtimeId: number = 0;  // Id referred also to variants
+        let compounds: Set<NBTTagCompound> = new Set();
+
+        Array.from(blockPalette).map(compoundEntry => {
+            let compoundData: NBTTagCompound = compoundEntry.getCompound('block', false) as NBTTagCompound;
+            let blockName = compoundData.getValue('name', 'minecraft:air').getValue(); // TODO: convert to getString() that does this hack for us
+
+            // If we don't already have the block, we increase the unique block ID
+            if (!(knownBlocks.has(blockName))) {
+                staticId++;
+                knownBlocks.add(blockName);
+            }
+
+            // Before because maybe we don't have it in the software and  
+            // it will not increase if increased the function 'setRuntimeId()' 
+            runtimeId++;  
+            this.getBlock(blockName)?.setRuntimeId(runtimeId);
+
+            // Im a little bit sleepy now, i will check conversion later
+            this.RUNTIME_TO_STATIC.set(runtimeId, staticId);
+            this.NAME_TO_STATIC.set(blockName, staticId);
+
+            let compound: NBTTagCompound = new NBTTagCompound('');
+            let block: NBTTagCompound = new NBTTagCompound('block');
+            
+            block.addValue('name', new StringVal(blockName));
+            block.addValue('states', compoundData.getCompound('states', false));
+            compound.addValue('block', block);
+            compounds.add(compound);
+        });
+
+        let writtenPalette: BinaryStream = await new Promise(resolve => {
             let data: BinaryStream = new BinaryStream();
             let writer: NBTWriter = new NBTWriter(
                 data,
                 ByteOrder.LITTLE_ENDIAN
             );
             writer.setUseVarint(true);
-
-            this.getBlocks()
-                .filter((b) => b.meta === 0)
-                .map((block) => () => {
-                    let tag: NBTTagCompound = new NBTTagCompound('');
-                    let nbtBlock: NBTTagCompound = new NBTTagCompound('block');
-
-                    nbtBlock.addValue('name', block.getName());
-                    // nbtBlock.addValue('states', block.getNBT());
-                    // TODO: finish palette
-                });
-
+            writer.writeList(compounds);
             resolve(data);
         });
 
-        this.blockPalette = palette.getBuffer();
+        this.blockPalette = writtenPalette.getBuffer();
     }
 
     public getBlockPalette(): Buffer {
@@ -150,14 +183,6 @@ export default class BlockManager {
                 );
         } catch (err) {
             this.server.getLogger().error(`Failed to register blocks: ${err}`);
-        }
-    }
-
-    private generateRuntimeIds() {
-        const blocks = this.getBlocks().sort(() => 0.5 - Math.random()); // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
-
-        for (let i = 0; i < blocks.length; i++) {
-            this.runtimeIds.push(blocks[i].getId());
         }
     }
 }

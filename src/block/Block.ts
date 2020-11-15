@@ -6,7 +6,7 @@ import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
 
 export default class Block {
     id: number;
-    runtimeId?: number;
+    runtimeId!: number;
     name: string;
     hardness: number;
     meta: number = 0;
@@ -53,8 +53,8 @@ export default class Block {
     /**
      * Get the Block's runtime id
      */
-    public getRuntimeId() {
-        return this.id; // TODO: this.runtimeId
+    public getRuntimeId(): number {
+        return this.runtimeId; 
     }
     /**
      * Set the Block's runtime id
