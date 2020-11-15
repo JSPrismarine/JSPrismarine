@@ -4,11 +4,16 @@ import path from 'path';
 import Block from './Block';
 import Prismarine from '../Prismarine';
 import { BlockIdsType } from './BlockIdsType';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import NBTWriter from '../nbt/NBTWriter';
+import { ByteOrder } from '../nbt/ByteOrder';
+import NBTTagCompound from '../nbt/NBTTagCompound';
 
 export default class BlockManager {
     private server: Prismarine;
     private blocks = new Map();
     private runtimeIds: Array<number> = [];
+    private blockPalette: Buffer = Buffer.alloc(0);
 
     constructor(server: Prismarine) {
         this.server = server;
@@ -20,6 +25,7 @@ export default class BlockManager {
     public async onEnable() {
         this.importBlocks();
         this.generateRuntimeIds();
+        await this.generateBlockPalette();
     }
 
     /**
@@ -73,6 +79,36 @@ export default class BlockManager {
      */
     public getBlocks(): Array<Block> {
         return Array.from(this.blocks.values());
+    }
+
+    private async generateBlockPalette() {
+        let palette: BinaryStream = await new Promise((resolve) => {
+            let data: BinaryStream = new BinaryStream();
+            let writer: NBTWriter = new NBTWriter(
+                data,
+                ByteOrder.LITTLE_ENDIAN
+            );
+            writer.setUseVarint(true);
+
+            this.getBlocks()
+                .filter((b) => b.meta == 0)
+                .map((block) => () => {
+                    let tag: NBTTagCompound = new NBTTagCompound('');
+                    let nbtBlock: NBTTagCompound = new NBTTagCompound('block');
+
+                    nbtBlock.addValue('name', block.getName());
+                    // nbtBlock.addValue('states', block.getNBT());
+                    // TODO: finish palette
+                });
+
+            resolve(data);
+        });
+
+        this.blockPalette = palette.getBuffer();
+    }
+
+    public getBlockPalette(): Buffer {
+        return this.blockPalette;
     }
 
     /**

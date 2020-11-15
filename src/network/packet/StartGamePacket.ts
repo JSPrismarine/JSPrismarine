@@ -107,6 +107,7 @@ export default class StartGamePacket extends DataPacket {
 
         // PMMP states
         this.append(RequiredBlockStates);
+
         this.append(this.serializeItemTable(ItemTable));
 
         this.writeString('');
