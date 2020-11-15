@@ -24,6 +24,9 @@
   <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
     <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=for-the-badge">
   </a>
+  <a href="https://www.patreon.com/prismarine">
+    <img alt="Patreon" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dprismarine%26type%3Dpledges&style=for-the-badge">
+  </a>
 </p>
 
 
