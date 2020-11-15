@@ -14,6 +14,11 @@ jobs:
             - run: npm build
             - run: npm run eslint
             - run: npm run prettier
+            - run: npm run coveralls
+            - name: Coveralls
+              uses: coverallsapp/github-action@master
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
     linux-test:
         runs-on: ubuntu-latest
         steps:
@@ -37,15 +42,3 @@ jobs:
             - run: npm run test
             - run: npm build
             - run: npm run eslint
-    finish:
-        needs:
-          - macos-test
-          - linux-test
-          - windows-test
-        runs-on: ubuntu-latest
-        steps:
-            - run: npm run coveralls
-            - name: Coveralls
-              uses: coverallsapp/github-action@master
-              with:
-                github-token: ${{ secrets.GITHUB_TOKEN }}
