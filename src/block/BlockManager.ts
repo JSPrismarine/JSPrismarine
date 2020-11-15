@@ -85,32 +85,39 @@ export default class BlockManager {
     }
 
     private async generateBlockPalette() {
-        let blockPalette: Set<NBTTagCompound> = await new Promise(resolve => {
+        let blockPalette: Set<NBTTagCompound> = await new Promise((resolve) => {
             // Don't create useless variables, we also care about performance!
             resolve(
-                NBTTagCompound.readFromFile(__dirname + '/../resources/assets.dat', ByteOrder.BIG_ENDIAN)
-                .getList('blockPalette', false) as Set<NBTTagCompound>
-            )
+                NBTTagCompound.readFromFile(
+                    __dirname + '/../resources/assets.dat',
+                    ByteOrder.BIG_ENDIAN
+                ).getList('blockPalette', false) as Set<NBTTagCompound>
+            );
         });
 
         let knownBlocks: Set<string> = new Set();
-        let staticId: number = 0;  // Unique block ID
-        let runtimeId: number = 0;  // Id referred also to variants
+        let staticId: number = 0; // Unique block ID
+        let runtimeId: number = 0; // Id referred also to variants
         let compounds: Set<NBTTagCompound> = new Set();
 
-        Array.from(blockPalette).map(compoundEntry => {
-            let compoundData: NBTTagCompound = compoundEntry.getCompound('block', false) as NBTTagCompound;
-            let blockName = compoundData.getValue('name', 'minecraft:air').getValue(); // TODO: convert to getString() that does this hack for us
+        Array.from(blockPalette).map((compoundEntry) => {
+            let compoundData: NBTTagCompound = compoundEntry.getCompound(
+                'block',
+                false
+            ) as NBTTagCompound;
+            let blockName = compoundData
+                .getValue('name', 'minecraft:air')
+                .getValue(); // TODO: convert to getString() that does this hack for us
 
             // If we don't already have the block, we increase the unique block ID
-            if (!(knownBlocks.has(blockName))) {
+            if (!knownBlocks.has(blockName)) {
                 staticId++;
                 knownBlocks.add(blockName);
             }
 
-            // Before because maybe we don't have it in the software and  
-            // it will not increase if increased the function 'setRuntimeId()' 
-            runtimeId++;  
+            // Before because maybe we don't have it in the software and
+            // it will not increase if increased the function 'setRuntimeId()'
+            runtimeId++;
             this.getBlock(blockName)?.setRuntimeId(runtimeId);
 
             // Im a little bit sleepy now, i will check conversion later
@@ -119,14 +126,14 @@ export default class BlockManager {
 
             let compound: NBTTagCompound = new NBTTagCompound('');
             let block: NBTTagCompound = new NBTTagCompound('block');
-            
+
             block.addValue('name', new StringVal(blockName));
             block.addValue('states', compoundData.getCompound('states', false));
             compound.addValue('block', block);
             compounds.add(compound);
         });
 
-        let writtenPalette: BinaryStream = await new Promise(resolve => {
+        let writtenPalette: BinaryStream = await new Promise((resolve) => {
             let data: BinaryStream = new BinaryStream();
             let writer: NBTWriter = new NBTWriter(
                 data,

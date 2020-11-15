@@ -54,7 +54,7 @@ export default class Block {
      * Get the Block's runtime id
      */
     public getRuntimeId(): number {
-        return this.runtimeId; 
+        return this.runtimeId;
     }
     /**
      * Set the Block's runtime id
