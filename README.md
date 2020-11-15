@@ -18,6 +18,9 @@
   <a href="https://github.com/HerryYT/JSPrismarine/commits/master">
     <img alt="Build" src="https://img.shields.io/github/workflow/status/JSPrismarine/JSPrismarine/Unit%20&%20Integration%20Testing?style=for-the-badge">
   </a>
+  <a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
+    <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/JSPrismarine/JSPrismarine?style=for-the-badge">
+  </a>
   <a href="https://discord.gg/6w8JWhy">
     <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=for-the-badge">
   </a>
