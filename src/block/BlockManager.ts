@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
 import Block from './Block';
 import Prismarine from '../Prismarine';
 import { BlockIdsType } from './BlockIdsType';
@@ -8,22 +5,24 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import NBTWriter from '../nbt/NBTWriter';
 import { ByteOrder } from '../nbt/ByteOrder';
 import NBTTagCompound from '../nbt/NBTTagCompound';
+import BlockRegistry from './BlockRegistry';
 
 export default class BlockManager {
     private server: Prismarine;
-    private blocks = new Map();
     private runtimeIds: Array<number> = [];
     private blockPalette: Buffer = Buffer.alloc(0);
+    private blockRegistry: BlockRegistry;
 
     constructor(server: Prismarine) {
         this.server = server;
+        this.blockRegistry = new BlockRegistry(server);
     }
 
     /**
      * onEnable hook
      */
     public async onEnable() {
-        this.importBlocks();
+        await this.blockRegistry.onEnable();
         this.generateRuntimeIds();
         await this.generateBlockPalette();
     }
@@ -32,14 +31,14 @@ export default class BlockManager {
      * onDisable hook
      */
     public async onDisable() {
-        this.blocks.clear();
+        await this.blockRegistry.onDisable();
     }
 
     /**
      * Get block by namespaced  id
      */
     public getBlock(name: string): Block | null {
-        return this.blocks.get(name) || null;
+        return this.blockRegistry.getBlocks().get(name) || null;
     }
 
     /**
@@ -78,7 +77,7 @@ export default class BlockManager {
      * Get all blocks
      */
     public getBlocks(): Array<Block> {
-        return Array.from(this.blocks.values());
+        return Array.from(this.blockRegistry.getBlocks().values());
     }
 
     private async generateBlockPalette() {
@@ -121,36 +120,7 @@ export default class BlockManager {
         this.server
             .getLogger()
             .silly(`Block with id §b${block.name}§r registered`);
-        this.blocks.set(block.name, block);
-    }
-
-    /**
-     * Loops through ./src/block/blocks and register them
-     */
-    private importBlocks() {
-        try {
-            const time = Date.now();
-            const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
-            blocks.forEach((id: string) => {
-                if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
-
-                const block = require(`./blocks/${id}`).default;
-                try {
-                    this.registerClassBlock(new block());
-                } catch (err) {
-                    this.server.getLogger().error(`${id} failed to register!`);
-                }
-            });
-            this.server
-                .getLogger()
-                .debug(
-                    `Registered §b${blocks.length}§r block(s) (took ${
-                        Date.now() - time
-                    } ms)!`
-                );
-        } catch (err) {
-            this.server.getLogger().error(`Failed to register blocks: ${err}`);
-        }
+        this.blockRegistry.getBlocks().set(block.name, block);
     }
 
     private generateRuntimeIds() {
