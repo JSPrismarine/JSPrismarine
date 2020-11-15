@@ -2,7 +2,7 @@ name: Unit & Integration Testing
 on: [push, pull_request]
 
 jobs:
-    test:
+    macos-test:
         runs-on: macos-latest
         steps:
             - uses: actions/checkout@v2
@@ -14,3 +14,26 @@ jobs:
             - run: npm build
             - run: npm run eslint
             - run: npm run prettier
+    linux-test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v1
+              with:
+                  node-version: 14
+            - run: npm install
+            - run: npm run test
+            - run: npm build
+            - run: npm run eslint
+            - run: npm run prettier
+    windows-test:
+        runs-on: windows-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v1
+              with:
+                  node-version: 14
+            - run: npm install
+            - run: npm run test
+            - run: npm build
+            - run: npm run eslint

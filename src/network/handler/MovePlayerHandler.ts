@@ -6,7 +6,7 @@ import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
 
-class MovePlayerHandler {
+export default class MovePlayerHandler {
     static NetID = Identifiers.MovePlayerPacket;
 
     /**
@@ -64,4 +64,3 @@ class MovePlayerHandler {
         if (player.currentChunk !== chunk) player.currentChunk = chunk as any;
     }
 }
-module.exports = MovePlayerHandler;
