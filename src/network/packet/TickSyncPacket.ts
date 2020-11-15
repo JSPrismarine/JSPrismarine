@@ -7,6 +7,11 @@ export default class TickSyncPacket extends DataPacket {
     public clientRequestTimestamp!: bigint;
     public serverReceptionTimestamp!: bigint;
 
+    public encodePayload() {
+        this.writeLLong(this.clientRequestTimestamp);
+        this.writeLLong(this.serverReceptionTimestamp);
+    }
+
     public decodePayload() {
         this.clientRequestTimestamp = this.readLLong();
         this.serverReceptionTimestamp = this.readLLong();
