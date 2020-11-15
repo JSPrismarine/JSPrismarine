@@ -17,10 +17,6 @@ export default class PlayerListPacket extends DataPacket {
                 this.writePlayerListAddEntry(entry);
             } else if (this.type === PlayerListAction.Remove) {
                 this.writePlayerListRemoveEntry(entry);
-            } else {
-                this.getServer()
-                    .getLogger()
-                    .warn(`Invalid player list action type ${this.type}`);
             }
         }
 
