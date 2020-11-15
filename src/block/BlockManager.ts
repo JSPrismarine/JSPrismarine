@@ -154,17 +154,9 @@ export default class BlockManager {
     }
 
     private generateRuntimeIds() {
-        // TODO: once we have NBT writing
-        const blocks = this.getBlocks()
-            .filter((a) => a.meta === 0 && a.getId() !== 0)
-            .sort(() => 0.5 - Math.random()); // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
+        const blocks = this.getBlocks().sort(() => 0.5 - Math.random()); // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
 
-        this.runtimeIds.push(0);
         for (let i = 0; i < blocks.length; i++) {
-            const variants = this.getBlocks().filter(
-                (a) => a.getId() === blocks[i].getId()
-            );
-            variants.forEach((variant) => variant.setRuntimeId(i));
             this.runtimeIds.push(blocks[i].getId());
         }
     }
