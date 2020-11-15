@@ -37,4 +37,3 @@ jobs:
             - run: npm run test
             - run: npm build
             - run: npm run eslint
-            - run: npm run prettier
