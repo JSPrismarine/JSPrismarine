@@ -1,7 +1,7 @@
 {
   "name": "@jsprismarine/prismarine",
-  "version": "1.0.0",
-  "description": "Dedicated Minecraft Bedrock Edition server written in JavaScript",
+  "version": "0.1.0",
+  "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
   "main": "./dist/src/Server.js",
   "types": "./dist/src/Server.d.ts",
   "bin": {
@@ -96,7 +96,7 @@
     "@types/set-interval-async": "1.0.0",
     "@types/unzipper": "0.10.3",
     "babel-eslint": "10.1.0",
-    "coveralls": "^3.1.0",
+    "coveralls": "3.1.0",
     "cross-env": "7.0.2",
     "eslint": "7.13.0",
     "husky": "4.3.0",

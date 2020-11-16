@@ -127,7 +127,7 @@ export default class Prismarine {
             this.getEventManager().emit('raknetEncapsulatedPacket', event);
         });
         this.raknet.on('raw', (buffer: Buffer, inetAddr: InetAddress) => {
-            this.getQueryManager()?.onRaw(new BinaryStream(buffer), inetAddr);
+            this.getQueryManager().onRaw(new BinaryStream(buffer), inetAddr);
         });
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
