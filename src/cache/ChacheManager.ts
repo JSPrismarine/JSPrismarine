@@ -5,7 +5,7 @@ export default class CacheManager {
     private filePath: string;
 
     constructor(loc: string) {
-        this.filePath = path.resolve(loc, `cache`); 
+        this.filePath = path.resolve(loc, `cache`);
     }
 
     public async putCachedPalette(buffer: Buffer): Promise<void> {

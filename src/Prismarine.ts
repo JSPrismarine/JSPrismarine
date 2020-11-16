@@ -332,9 +332,10 @@ export default class Prismarine {
      * if it is not found, null is returned.
      */
     public getPlayerById(id: bigint): Player | null {
-        return this.getOnlinePlayers().find(
-            (player) => player.runtimeId == id
-        ) ?? null;
+        return (
+            this.getOnlinePlayers().find((player) => player.runtimeId == id) ??
+            null
+        );
     }
 
     /**
@@ -375,25 +376,29 @@ export default class Prismarine {
      * Kills the server asynchronously.
      */
     public async kill(): Promise<void> {
-        // Kick all online players
-        for (let player of this.getOnlinePlayers()) {
-            await player.kick('Server closed.');
-        }
+        try {
+            // Kick all online players
+            for (let player of this.getOnlinePlayers()) {
+                await player.kick('Server closed.');
+            }
 
-        // Save all worlds
-        for (let world of this.getWorldManager().getWorlds()) {
-            await world.save();
-        }
+            // Save all worlds
+            for (let world of this.getWorldManager().getWorlds()) {
+                await world.save();
+            }
 
-        await this.worldManager.onDisable();
-        await this.onDisable();
-        process.exit(0);
+            await this.worldManager.onDisable();
+            await this.onDisable();
+            process.exit(0);
+        } catch {
+            process.exit(1);
+        }
     }
 
     /**
      * Returns the query manager
      */
-    public getQueryManager(): QueryManager | null {
+    public getQueryManager(): QueryManager {
         return this.queryManager;
     }
 

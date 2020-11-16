@@ -53,7 +53,7 @@ export default class NBTWriter {
             } else {
                 this.writeShortValue(Buffer.byteLength(value));
             }
-    
+
             this.buf.append(bytes);
         } else {
             if (this.useVarint) {

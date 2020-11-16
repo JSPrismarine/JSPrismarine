@@ -88,58 +88,71 @@ export default class BlockManager {
         this.server.getLogger().debug('Checking block palette...');
 
         try {
-            this.blockPalette = await this.server.getCacheManager().getCachedPalette();
-            this.server.getLogger().info('Using cached block palette to speed up start up times!');
+            this.blockPalette = await this.server
+                .getCacheManager()
+                .getCachedPalette();
+            this.server
+                .getLogger()
+                .info('Using cached block palette to speed up start up times!');
         } catch {
-            this.server.getLogger().info('Computing block palette and caching them...');
-    
-            let blockPalette: Set<NBTTagCompound> = await new Promise((resolve) => {
-                // Don't create useless variables, we also care about performance!
-                resolve(
-                    NBTTagCompound.readFromFile(
-                        __dirname + '/../resources/assets.dat',
-                        ByteOrder.BIG_ENDIAN
-                    ).getList('blockPalette', false) as Set<NBTTagCompound>
-                );
-            });
+            this.server
+                .getLogger()
+                .info('Computing block palette and caching them...');
+
+            let blockPalette: Set<NBTTagCompound> = await new Promise(
+                (resolve) => {
+                    // Don't create useless variables, we also care about performance!
+                    resolve(
+                        NBTTagCompound.readFromFile(
+                            __dirname + '/../resources/assets.dat',
+                            ByteOrder.BIG_ENDIAN
+                        ).getList('blockPalette', false) as Set<NBTTagCompound>
+                    );
+                }
+            );
 
             let knownBlocks: Set<string> = new Set();
             let staticId: number = 0; // Unique block ID
             let runtimeId: number = 0; // Id referred also to variants
             let compounds: Set<NBTTagCompound> = new Set();
 
-            await Promise.all(Array.from(blockPalette).map((compoundEntry) => {
-                let compoundData: NBTTagCompound = compoundEntry.getCompound(
-                    'block',
-                    false
-                ) as NBTTagCompound;
-                let blockName = compoundData
-                    .getValue('name', 'minecraft:air')
-                    .getValue(); // TODO: convert to getString() that does this hack for us
+            await Promise.all(
+                Array.from(blockPalette).map((compoundEntry) => {
+                    let compoundData: NBTTagCompound = compoundEntry.getCompound(
+                        'block',
+                        false
+                    ) as NBTTagCompound;
+                    let blockName = compoundData
+                        .getValue('name', 'minecraft:air')
+                        .getValue(); // TODO: convert to getString() that does this hack for us
 
-                // If we don't already have the block, we increase the unique block ID
-                if (!knownBlocks.has(blockName)) {
-                    staticId++;
-                    knownBlocks.add(blockName);
-                }
+                    // If we don't already have the block, we increase the unique block ID
+                    if (!knownBlocks.has(blockName)) {
+                        staticId++;
+                        knownBlocks.add(blockName);
+                    }
 
-                // Before because maybe we don't have it in the software and
-                // it will not increase if increased the function 'setRuntimeId()'
-                runtimeId++;
-                this.getBlock(blockName)?.setRuntimeId(runtimeId);
+                    // Before because maybe we don't have it in the software and
+                    // it will not increase if increased the function 'setRuntimeId()'
+                    runtimeId++;
+                    this.getBlock(blockName)?.setRuntimeId(runtimeId);
 
-                // Im a little bit sleepy now, i will check conversion later
-                this.RUNTIME_TO_STATIC.set(runtimeId, staticId);
-                this.NAME_TO_STATIC.set(blockName, staticId);
+                    // Im a little bit sleepy now, i will check conversion later
+                    this.RUNTIME_TO_STATIC.set(runtimeId, staticId);
+                    this.NAME_TO_STATIC.set(blockName, staticId);
 
-                let compound: NBTTagCompound = new NBTTagCompound('');
-                let block: NBTTagCompound = new NBTTagCompound('block');
+                    let compound: NBTTagCompound = new NBTTagCompound('');
+                    let block: NBTTagCompound = new NBTTagCompound('block');
 
-                block.addValue('name', new StringVal(blockName));
-                block.addValue('states', compoundData.getCompound('states', false));
-                compound.addValue('block', block);
-                compounds.add(compound);
-            }));
+                    block.addValue('name', new StringVal(blockName));
+                    block.addValue(
+                        'states',
+                        compoundData.getCompound('states', false)
+                    );
+                    compound.addValue('block', block);
+                    compounds.add(compound);
+                })
+            );
 
             let writtenPalette: BinaryStream = await new Promise((resolve) => {
                 let data: BinaryStream = new BinaryStream();
@@ -154,7 +167,9 @@ export default class BlockManager {
 
             let buffer = writtenPalette.getBuffer();
             await this.server.getCacheManager().putCachedPalette(buffer);
-            this.server.getLogger().info('Palette successfully saved into cache!');
+            this.server
+                .getLogger()
+                .info('Palette successfully saved into cache!');
             this.blockPalette = buffer;
         }
     }
