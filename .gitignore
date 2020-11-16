@@ -10,6 +10,7 @@ yarn.lock
 /worlds/
 /src/resources/
 /docs/
+/cache/
 config.yaml
 ops.json
 banned-players.json

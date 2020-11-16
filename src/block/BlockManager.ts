@@ -1,5 +1,5 @@
 import fs from 'fs';
-import path, { resolve } from 'path';
+import path from 'path';
 
 import Block from './Block';
 import Prismarine from '../Prismarine';
@@ -10,6 +10,7 @@ import { ByteOrder } from '../nbt/ByteOrder';
 import NBTTagCompound from '../nbt/NBTTagCompound';
 import StringVal from '../nbt/types/StringVal';
 
+const Assets = require('@jsprismarine/bedrock-data').block_states;
 export default class BlockManager {
     private server: Prismarine;
     private blocks = new Map();
@@ -93,18 +94,20 @@ export default class BlockManager {
                 .getCachedPalette();
             this.server
                 .getLogger()
-                .info('Using cached block palette to speed up start up times!');
+                .debug(
+                    'Using cached block palette to speed up start up times!'
+                );
         } catch {
             this.server
                 .getLogger()
-                .info('Computing block palette and caching them...');
+                .info('Computing block palette and caching it...');
 
             let blockPalette: Set<NBTTagCompound> = await new Promise(
                 (resolve) => {
                     // Don't create useless variables, we also care about performance!
                     resolve(
-                        NBTTagCompound.readFromFile(
-                            __dirname + '/../resources/assets.dat',
+                        NBTTagCompound.readFromStream(
+                            new BinaryStream(Assets),
                             ByteOrder.BIG_ENDIAN
                         ).getList('blockPalette', false) as Set<NBTTagCompound>
                     );
