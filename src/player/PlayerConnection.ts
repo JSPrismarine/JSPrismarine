@@ -452,11 +452,11 @@ export default class PlayerConnection {
         pk.type = PlayerListAction.Add;
 
         // Hack to not compute every time entries
-        Array.from(this.server.getPlayerList()).map(([uuid, entry]) => {
-            if (!(uuid === this.player.uuid)) {
+        Array.from(this.server.getPlayerList())
+            .filter(([uuid, _]) => !(uuid == this.player.uuid))
+            .map(([_, entry]) => {
                 pk.entries.push(entry);
-            }
-        });
+            });
 
         this.sendDataPacket(pk);
     }

@@ -281,9 +281,10 @@ export default class World {
         blockUpdate.y = placedPosition.getY();
         blockUpdate.z = placedPosition.getZ();
         blockUpdate.BlockRuntimeId = block.getRuntimeId();
-        for (let p of this.server.getOnlinePlayers()) {
-            p.getConnection().sendDataPacket(blockUpdate);
-        }
+
+        await Promise.all(this.server.getOnlinePlayers().map(
+            (player) => player.getConnection().sendDataPacket(blockUpdate)
+        ));
 
         const pk = new LevelSoundEventPacket();
         pk.sound = 6; // TODO: enum
@@ -297,9 +298,9 @@ export default class World {
         pk.isBabyMob = false;
         pk.disableRelativeVolume = false;
 
-        for (let p of player.getPlayersInChunk()) {
-            p.getConnection().sendDataPacket(pk);
-        }
+        await Promise.all(player.getPlayersInChunk().map(
+            (player) => player.getConnection().sendDataPacket(pk)
+        ));
     }
 
     /**
