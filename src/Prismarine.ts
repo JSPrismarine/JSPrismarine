@@ -28,6 +28,7 @@ import PermissionManager from './permission/PermissionManager';
 import BanManager from './ban/BanManager';
 import PlayerListEntry from './network/type/PlayerListEntry';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import CacheManager from './cache/ChacheManager';
 
 export default class Prismarine {
     private raknet!: Listener;
@@ -50,6 +51,7 @@ export default class Prismarine {
     private chatManager: ChatManager;
     private permissionManager: PermissionManager;
     private banManager: BanManager;
+    private cacheManager: CacheManager;
 
     static instance: Prismarine;
 
@@ -72,10 +74,11 @@ export default class Prismarine {
         this.chatManager = new ChatManager(this);
         this.permissionManager = new PermissionManager(this);
         this.banManager = new BanManager(this);
+        this.cacheManager = new CacheManager(__dirname + '/../');
         Prismarine.instance = this;
     }
 
-    private async onEnable() {
+    private async onEnable(): Promise<void> {
         await this.permissionManager.onEnable();
         await this.banManager.onEnable();
         await this.itemManager.onEnable();
@@ -85,7 +88,7 @@ export default class Prismarine {
         await this.telemetryManager.onEnable();
         // TODO: rework managers to this format
     }
-    private async onDisable() {
+    private async onDisable(): Promise<void> {
         await this.telemetryManager.onDisable();
         await this.pluginManager.onDisable();
         await this.commandManager.onDisable();
@@ -96,13 +99,13 @@ export default class Prismarine {
         // TODO: rework managers to this format
     }
 
-    public async reload() {
+    public async reload(): Promise<void> {
         this.packetRegistry = new PacketRegistry(this);
         await this.onDisable();
         await this.onEnable();
     }
 
-    public async listen(serverIp = '0.0.0.0', port = 19132) {
+    public async listen(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.onEnable();
         await this.worldManager.onEnable();
 
@@ -320,20 +323,18 @@ export default class Prismarine {
     /**
      * Returns an array containing all online players.
      */
-    getOnlinePlayers() {
-        return Array.from(this.players.values()) || [];
+    public getOnlinePlayers(): Array<Player> {
+        return Array.from(this.players.values()) ?? [];
     }
 
     /**
      * Returns an online player by its runtime ID,
      * if it is not found, null is returned.
      */
-    getPlayerById(id: bigint): Player | null {
-        for (let player of this.players.values()) {
-            if (player.runtimeId === id) return player;
-        }
-
-        return null;
+    public getPlayerById(id: bigint): Player | null {
+        return this.getOnlinePlayers().find(
+            (player) => player.runtimeId == id
+        ) ?? null;
     }
 
     /**
@@ -345,7 +346,7 @@ export default class Prismarine {
      * Example getPlayerByName("John") may return
      * an user with username "John Doe"
      */
-    getPlayerByName(name: string): Player | null {
+    public getPlayerByName(name: string): Player | null {
         return (
             Array.from(this.players.values()).find((player) =>
                 player
@@ -362,9 +363,9 @@ export default class Prismarine {
      *
      * CASE SENSITIVE.
      */
-    getPlayerByExactName(name: string): Player | null {
+    public getPlayerByExactName(name: string): Player | null {
         return (
-            Array.from(this.players.values()).find(
+            this.getOnlinePlayers().find(
                 (player) => player.getUsername() === name
             ) ?? null
         );
@@ -373,7 +374,7 @@ export default class Prismarine {
     /**
      * Kills the server asynchronously.
      */
-    async kill() {
+    public async kill(): Promise<void> {
         // Kick all online players
         for (let player of this.getOnlinePlayers()) {
             await player.kick('Server closed.');
@@ -392,126 +393,133 @@ export default class Prismarine {
     /**
      * Returns the query manager
      */
-    getQueryManager(): QueryManager | null {
+    public getQueryManager(): QueryManager | null {
         return this.queryManager;
     }
 
     /**
      * Returns the command manager
      */
-    getCommandManager(): CommandManager {
+    public getCommandManager(): CommandManager {
         return this.commandManager;
     }
 
     /**
      * Returns the world manager
      */
-    getWorldManager(): WorldManager {
+    public getWorldManager(): WorldManager {
         return this.worldManager;
     }
 
     /**
      * Returns the item manager
      */
-    getItemManager(): ItemManager {
+    public getItemManager(): ItemManager {
         return this.itemManager;
     }
 
     /**
      * Returns the block manager
      */
-    getBlockManager(): BlockManager {
+    public getBlockManager(): BlockManager {
         return this.blockManager;
     }
 
     /**
      * Returns the logger
      */
-    getLogger(): LoggerBuilder {
+    public getLogger(): LoggerBuilder {
         return this.logger;
     }
 
     /**
      * Returns the packet registry
      */
-    getPacketRegistry() {
+    public getPacketRegistry() {
         return this.packetRegistry;
     }
 
     /**
      * Returns the raknet instance
      */
-    getRaknet() {
+    public getRaknet() {
         return this.raknet;
     }
 
     /**
      * Returns the plugin manager
      */
-    getPluginManager(): PluginManager {
+    public getPluginManager(): PluginManager {
         return this.pluginManager;
     }
 
     /**
      * Returns the event manager
      */
-    getEventManager(): EventManager {
+    public getEventManager(): EventManager {
         return this.eventManager;
     }
 
     /**
      * Returns the chat manager
      */
-    getChatManager(): ChatManager {
+    public getChatManager(): ChatManager {
         return this.chatManager;
     }
 
     /**
      * Returns the config
      */
-    getConfig(): Config {
+    public getConfig(): Config {
         return this.config;
     }
 
     /**
      * Returns the console instance
      */
-    getConsole() {
+    public getConsole() {
         return this.console;
     }
 
     /**
      * Returns the permission manager
      */
-    getPermissionManager() {
+    public getPermissionManager() {
         return this.permissionManager;
+    }
+
+    /**
+     * Returns the cache manager
+     */
+    public getCacheManager() {
+        return this.cacheManager;
     }
 
     /**
      * Returns the player list
      */
-    getPlayerList() {
+    public getPlayerList() {
         return this.playerList;
     }
 
     /**
      * Returns the ban manager
      */
-    getBanManager() {
+    public getBanManager() {
         return this.banManager;
     }
 
     /**
      * Returns this Prismarine instance
      */
-    getServer() {
+    public getServer() {
         return this;
     }
 
     /**
      * Returns the current TPS
      */
-    getTPS() {
+    public getTPS() {
         return this.tps;
     }
 }
