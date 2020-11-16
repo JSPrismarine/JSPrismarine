@@ -45,15 +45,23 @@ export default class NBTWriter {
         this.writeStringValue(name);
     }
 
-    private writeStringValue(value: string): void {
-        let bytes = Buffer.from(value, 'utf8');
-        if (this.useVarint) {
-            this.buf.writeUnsignedVarInt(bytes.length);
+    private writeStringValue(value: string | null): void {
+        if (value != null) {
+            let bytes = Buffer.from(value, 'utf8');
+            if (this.useVarint) {
+                this.buf.writeUnsignedVarInt(Buffer.byteLength(value));
+            } else {
+                this.writeShortValue(Buffer.byteLength(value));
+            }
+    
+            this.buf.append(bytes);
         } else {
-            this.writeShortValue(bytes.length);
+            if (this.useVarint) {
+                this.writeByteValue(0);
+            } else {
+                this.writeShortValue(0);
+            }
         }
-
-        this.buf.append(bytes);
     }
 
     public writeByteValue(value: number): void {
@@ -70,7 +78,7 @@ export default class NBTWriter {
 
     private writeIntegerValue(value: number): void {
         if (this.useVarint) {
-            this.buf.writeUnsignedVarInt(value);
+            this.buf.writeVarInt(value);
         } else {
             if (this.order == ByteOrder.LITTLE_ENDIAN) {
                 this.buf.writeLInt(value);

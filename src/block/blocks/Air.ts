@@ -10,10 +10,6 @@ export default class Air extends Transparent {
         });
     }
 
-    public getRuntimeId() {
-        return 0;
-    }
-
     getBlastResistance() {
         return 0;
     }
