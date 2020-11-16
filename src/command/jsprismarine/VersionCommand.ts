@@ -1,6 +1,5 @@
 import Player from '../../player/Player';
 import Command from '../Command';
-import git from 'git-rev-sync';
 import Identifiers from '../../network/Identifiers';
 
 const packageFile = require('../../../package.json');
@@ -25,7 +24,7 @@ export default class VersionCommand extends Command {
 
         sender.sendMessage(
             `This server is running on JSPrismarine ${serverVersion} (rev-${
-                git.short() || 'unknown'
+                sender.getServer().getQueryManager().git_rev
             }) for Minecraft: Bedrock Edition v${minecraftVersion} (protocol version ${protocolVersion})`
         );
     }
