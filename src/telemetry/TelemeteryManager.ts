@@ -1,12 +1,10 @@
 import fetch, { Headers } from 'node-fetch';
 import { machineIdSync } from 'node-machine-id';
 import Prismarine from '../Prismarine';
-import git from 'git-rev-sync';
 import PluginFile from '../plugin/PluginFile';
 
 export default class TelemetryManager {
     private id = this.generateAnonomizedId();
-    private gitRev = git.short() || 'unknown';
     private server: Prismarine;
     private ticker: any;
     private enabled: boolean;
@@ -57,7 +55,9 @@ export default class TelemetryManager {
 
         const body = {
             id: this.id,
-            version: `${this.server.getConfig().getVersion()}:${this.gitRev}`,
+            version: `${this.server.getConfig().getVersion()}:${
+                this.server.getQueryManager().git_rev
+            }`,
             online_mode: this.server.getConfig().getOnlineMode(),
             player_count:
                 this.server.getRaknet()?.getName().getOnlinePlayerCount() || 0,

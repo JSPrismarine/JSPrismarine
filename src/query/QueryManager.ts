@@ -11,10 +11,16 @@ export enum QueryType {
 
 export default class QueryManager {
     private server: Prismarine;
-    private git_rev = git.short() || 'unknown';
+    public git_rev: string;
 
     constructor(server: Prismarine) {
         this.server = server;
+
+        try {
+            this.git_rev = git.short() || 'unknown';
+        } catch {
+            this.git_rev = 'unknown;';
+        }
     }
 
     public onRaw(buffer: BinaryStream, inetAddr: InetAddress) {
