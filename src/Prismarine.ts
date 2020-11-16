@@ -374,19 +374,23 @@ export default class Prismarine {
      * Kills the server asynchronously.
      */
     async kill() {
-        // Kick all online players
-        for (let player of this.getOnlinePlayers()) {
-            await player.kick('Server closed.');
-        }
+        try {
+            // Kick all online players
+            for (let player of this.getOnlinePlayers()) {
+                await player.kick('Server closed.');
+            }
 
-        // Save all worlds
-        for (let world of this.getWorldManager().getWorlds()) {
-            await world.save();
-        }
+            // Save all worlds
+            for (let world of this.getWorldManager().getWorlds()) {
+                await world.save();
+            }
 
-        await this.worldManager.onDisable();
-        await this.onDisable();
-        process.exit(0);
+            await this.worldManager.onDisable();
+            await this.onDisable();
+            process.exit(0);
+        } catch {
+            process.exit(1);
+        }
     }
 
     /**
