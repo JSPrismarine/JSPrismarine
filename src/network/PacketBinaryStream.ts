@@ -241,7 +241,6 @@ export default class PacketBinaryStream extends BinaryStream {
             this.writeLFloat(attribute.default);
             this.writeString(attribute.name);
         }
-        this.writeUnsignedVarInt(0); // unknown
     }
 
     writeCreativeContentEntry(entry: CreativeContentEntry) {

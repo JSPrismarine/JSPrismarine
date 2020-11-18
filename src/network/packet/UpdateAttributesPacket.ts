@@ -4,11 +4,14 @@ import DataPacket from './DataPacket';
 export default class UpdateAttributesPacket extends DataPacket {
     static NetID = Identifiers.UpdateAttributesPacket;
 
-    runtimeEntityId!: bigint;
-    attributes = [];
+    public runtimeEntityId!: bigint;
+    public attributes = [];
 
-    encodePayload() {
+    public tick!: bigint;
+
+    public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeAttributes(this.attributes);
+        this.writeUnsignedVarLong(this.tick);
     }
 }

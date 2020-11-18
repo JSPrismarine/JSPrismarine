@@ -38,9 +38,9 @@ export default class StartGamePacket extends DataPacket {
         this.writeLFloat(0); // yaw
 
         this.writeVarInt(0); //  seed
-
-        this.writeLShort(0); // default biome type
-        this.writeString(''); // biome name
+        
+        this.writeLShort(0x00); // default spawn biome type
+        this.writeString('plains'); // user defined biome name
 
         this.writeVarInt(0); // dimension
 
@@ -75,6 +75,9 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeGamerules(this.gamerules);
 
+        this.writeLInt(0); // experiment count
+        this.writeBool(false); // experiments previously toggled?
+
         this.writeByte(0); // bonus chest
         this.writeByte(0); // start with map
 
@@ -87,13 +90,9 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // from locked template
         this.writeByte(0); // msa gamer tags only
         this.writeByte(0); // from world template
-        this.writeByte(1); // world template option locked
+        this.writeByte(0); // world template option locked
         this.writeByte(0); // only spawn v1 villagers
         this.writeString(Identifiers.MinecraftVersion);
-
-        this.writeLInt(0); // unknown
-        this.writeByte(1); // unknown
-        this.writeByte(42); // unknown
 
         this.writeLInt(0); // limited world height
         this.writeLInt(0); // limited world length
@@ -106,16 +105,13 @@ export default class StartGamePacket extends DataPacket {
         this.writeString(''); // template content identity
 
         this.writeByte(0); // is trial
-        this.writeUnsignedVarInt(0); // server auth movement
+        this.writeBool(false); // server auth movement
         
-        this.writeLLong(BigInt(0)); // world time
-
-        this.writeUnsignedVarInt(0); // unknown
+        this.writeLLong(BigInt(0)); // world ticks (for time)
 
         this.writeVarInt(0); // enchantment seed
 
-        // PMMP states
-        // this.append(RequiredBlockStates);
+        this.writeUnsignedVarInt(0); // custom blocks
 
         this.append(this.serializeItemTable(ItemTable));
 
