@@ -6,14 +6,14 @@ import Identifiers from '../Identifiers';
 export default class AnimateHandler {
     static NetID = Identifiers.AnimatePacket;
 
-    static handle(packet: AnimatePacket, server: Prismarine, player: Player) {
+    static async handle(packet: AnimatePacket, server: Prismarine, player: Player) {
         let pk = new AnimatePacket();
         pk.runtimeEntityId = player.runtimeId;
         pk.action = packet.action;
 
-        for (let onlinePlayer of server.getOnlinePlayers()) {
-            if (onlinePlayer === player) continue;
-            onlinePlayer.getConnection().sendDataPacket(pk);
-        }
+        await Promise.all(
+            server.getOnlinePlayers()
+                .filter((onlinePlayer) => !(onlinePlayer == player))
+                .map((otherPlayer) => otherPlayer.getConnection().sendDataPacket(pk)));
     }
 }
