@@ -51,8 +51,6 @@ export default class ResourcePackResponseHandler {
             pk.gamerules = world.getGameruleManager().getGamerules();
             player.getConnection().sendDataPacket(pk);
 
-            // player.getConnection().sendDataPacket(new ItemComponentPacket());
-
             player.getConnection().sendTime(world.getTicks());
 
             player
@@ -83,15 +81,13 @@ export default class ResourcePackResponseHandler {
             player.getConnection().sendAvailableCommands();
             player.getConnection().sendInventory();
 
-            // TODO
-            // if (player.gamemode === Gamemode.Creative)
-            //    player.getConnection().sendCreativeContents();
+            player.getConnection().sendCreativeContents();
 
             // First add
             player.getConnection().addToPlayerList();
             // Then retrive other players
             if (server.getOnlinePlayers().length > 1) {
-               player.getConnection().sendPlayerList();
+                player.getConnection().sendPlayerList();
             }
 
             // Announce connection

@@ -1,9 +1,7 @@
 import Vector3 from '../../math/Vector3';
 import Identifiers from '../Identifiers';
-import PacketBinaryStream from '../PacketBinaryStream';
+// import PacketBinaryStream from '../PacketBinaryStream';
 import DataPacket from './DataPacket';
-
-import ItemTable from '../../resources/Items.json';
 
 export default class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket;
@@ -21,7 +19,7 @@ export default class StartGamePacket extends DataPacket {
 
     public gamerules: Map<string, any> = new Map();
 
-    private cachedItemPalette!: Buffer;
+    //    private cachedItemPalette!: Buffer;
 
     public encodePayload() {
         this.writeVarLong(this.entityId);
@@ -38,14 +36,14 @@ export default class StartGamePacket extends DataPacket {
         this.writeLFloat(0); // yaw
 
         this.writeVarInt(0); //  seed
-        
+
         this.writeLShort(0x00); // default spawn biome type
         this.writeString('plains'); // user defined biome name
 
         this.writeVarInt(0); // dimension
 
         this.writeVarInt(1); // generator
-        this.writeVarInt(0); // gamemode 
+        this.writeVarInt(0); // gamemode
         this.writeVarInt(0); // difficulty
 
         // world spawn vector 3
@@ -105,20 +103,22 @@ export default class StartGamePacket extends DataPacket {
         this.writeString(''); // template content identity
 
         this.writeByte(0); // is trial
-        this.writeBool(false); // server auth movement
-        
+        this.writeUnsignedVarInt(0); // server auth movement
+
         this.writeLLong(BigInt(0)); // world ticks (for time)
 
         this.writeVarInt(0); // enchantment seed
 
         this.writeUnsignedVarInt(0); // custom blocks
 
-        this.append(this.serializeItemTable(ItemTable));
+        this.writeUnsignedVarInt(0); // item palette
 
         this.writeString('');
         this.writeBool(false); // new inventory system
     }
 
+    /* 
+    TODO
     public serializeItemTable(table: object): Buffer {
         if (this.cachedItemPalette == null) {
             let stream = new PacketBinaryStream();
@@ -133,5 +133,6 @@ export default class StartGamePacket extends DataPacket {
         }
 
         return this.cachedItemPalette as Buffer;
-    }
+    } 
+    */
 }

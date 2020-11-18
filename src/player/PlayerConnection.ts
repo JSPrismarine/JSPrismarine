@@ -337,7 +337,7 @@ export default class PlayerConnection {
         let pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.attributes = attributes || this.player.attributes.getAttributes();
-        pk.tick = BigInt(0);  // TODO
+        pk.tick = BigInt(0); // TODO
         this.sendDataPacket(pk);
     }
 

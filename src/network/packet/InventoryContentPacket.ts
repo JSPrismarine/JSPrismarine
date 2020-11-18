@@ -15,7 +15,7 @@ export default class InventoryContentPacket extends DataPacket {
         // Write item stacks
         this.writeUnsignedVarInt(this.items.length);
         for (let i = 0; i < this.items.length; i++) {
-            this.writeVarInt(i+1);  // slot index
+            this.writeVarInt(i + 1); // slot index
             this.writeItemStack(this.items[i]);
         }
     }
