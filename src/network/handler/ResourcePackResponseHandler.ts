@@ -26,6 +26,7 @@ export default class ResourcePackResponseHandler {
         let pk;
         if (packet.status === ResourcePackStatus.HaveAllPacks) {
             pk = new ResourcePackStackPacket();
+            pk.experimentsAlreadyEnabled = false;
             player.getConnection().sendDataPacket(pk);
         } else if (packet.status === ResourcePackStatus.Completed) {
             // Emit playerSpawn event
