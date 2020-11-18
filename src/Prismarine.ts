@@ -177,9 +177,7 @@ export default class Prismarine {
             }
         );
 
-        this.getEventManager().on(
-            'raknetDisconnect',
-            (event: RaknetDisconnectEvent) => {
+        this.getEventManager().on('raknetDisconnect', (event: RaknetDisconnectEvent) => {
                 const inetAddr = event.getInetAddr();
                 const reason = event.getReason();
 
@@ -226,7 +224,7 @@ export default class Prismarine {
             }
         );
 
-        this.getEventManager().on('raknetEncapsulatedPacket', (event) => {
+        this.getEventManager().on('raknetEncapsulatedPacket', async (event) => {
             const raknetPacket = event.getPacket();
             const inetAddr = event.getInetAddr();
 
@@ -234,55 +232,49 @@ export default class Prismarine {
             if (!this.players.has(token)) return;
             let player = this.players.get(token);
 
-            // TODO: log incoming and outcoming buffers (maybe an option in config)
-            // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
+            let batched: BatchPacket = await new Promise((resolve) => {
+                // Read batch content and handle them
+                let pk = new BatchPacket();
+                (pk as any).buffer = raknetPacket.buffer;
 
-            // Read batch content and handle them
-            let pk = new BatchPacket();
-            (pk as any).buffer = raknetPacket.buffer;
-
-            try {
                 pk.decode();
-            } catch {
-                this.logger.error(`Error while decoding batch`);
-                return;
-            }
+                resolve(pk);
+            });
 
             // Read all packets inside batch and handle them
-            for (let buf of pk.getPackets()) {
-                if (!this.packetRegistry.getPackets().has(buf[0])) {
-                    this.logger.error(
-                        `Packet ${raknetPacket.id} doesn't have a handler`
-                    );
-                    return;
-                }
+            await Promise.all(batched.getPackets().map(async (buf) => {
+                    if (!this.packetRegistry.getPackets().has(buf[0])) {
+                        this.logger.error(
+                            `Packet ${raknetPacket.id} doesn't have a handler`
+                        );
+                        return;
+                    }
 
-                let packet = new (this.packetRegistry
-                    .getPackets()
-                    .get(buf[0]))(); // Get packet from registry
-                packet.buffer = buf;
+                    let packet = new (this.packetRegistry
+                        .getPackets()
+                        .get(buf[0]))(); // Get packet from registry
+                    packet.buffer = buf;
 
-                try {
-                    packet.decode(this);
-                } catch (err) {
-                    this.logger.error(
-                        `Error while decoding packet: ${packet.constructor.name}: ${err}`
-                    );
-                    return;
-                }
+                    try {
+                        packet.decode(this);
+                    } catch (err) {
+                        this.logger.error(
+                            `Error while decoding packet: ${packet.constructor.name}: ${err}`
+                        );
+                        return;
+                    }
 
-                if (!this.packetRegistry.getHandlers().has(packet?.getId())) {
-                    this.logger.error(
-                        `Packet ${packet.constructor.name} doesn't have a handler`
-                    );
-                    return;
-                }
+                    if (!this.packetRegistry.getHandlers().has(packet?.getId())) {
+                        this.logger.error(
+                            `Packet ${packet.constructor.name} doesn't have a handler`
+                        );
+                        return;
+                    }
 
-                let handler = this.packetRegistry
+                    let handler = this.packetRegistry
                     .getHandlers()
                     .get(packet?.getId());
 
-                (async () => {
                     try {
                         await handler.handle(packet, this, player);
                     } catch (err) {
@@ -290,8 +282,7 @@ export default class Prismarine {
                             `Handler error ${packet.constructor.name}-handler: (${err})`
                         );
                     }
-                })();
-            }
+                }));
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
