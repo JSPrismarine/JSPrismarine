@@ -7,6 +7,7 @@ import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
+import ItemComponentPacket from '../packet/ItemComponentPacket';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
@@ -51,12 +52,15 @@ export default class ResourcePackResponseHandler {
 
             player.getConnection().sendTime(world.getTicks());
 
-            player
-                .getConnection()
-                .sendDataPacket(new AvailableActorIdentifiersPacket());
+            player.getConnection().sendDataPacket(new ItemComponentPacket());
+
             player
                 .getConnection()
                 .sendDataPacket(new BiomeDefinitionListPacket());
+
+            player
+                .getConnection()
+                .sendDataPacket(new AvailableActorIdentifiersPacket());
 
             player
                 .getConnection()
@@ -74,12 +78,13 @@ export default class ResourcePackResponseHandler {
 
             player.setNameTag(player.getUsername());
             // TODO: always visible nametag
-            player.getConnection().sendMetadata();
+            // TODO: player.getConnection().sendMetadata();
             player.getConnection().sendAvailableCommands();
             player.getConnection().sendInventory();
 
-            if (player.gamemode === Gamemode.Creative)
-                player.getConnection().sendCreativeContents();
+            // TODO
+            // if (player.gamemode === Gamemode.Creative)
+            //    player.getConnection().sendCreativeContents();
 
             // First add
             player.getConnection().addToPlayerList();
