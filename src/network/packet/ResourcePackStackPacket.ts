@@ -8,6 +8,10 @@ export default class ResourcePackStackPacket extends DataPacket {
     public behaviorPackStack = [];
     public resourcePackStack = [];
 
+    // TODO: make a holder / manager
+    public experiments: Map<string, boolean> = new Map();
+    public experimentsAlreadyEnabled!: boolean;
+
     public encodePayload() {
         this.writeBool(this.mustAccept);
 
@@ -26,13 +30,7 @@ export default class ResourcePackStackPacket extends DataPacket {
         }
         this.writeString(Identifiers.MinecraftVersion);
 
-        // this.writeUnsignedVarInt(0); // experiments count
-        // this.writeByte(0); // experiemnts previously toggled?
-        // this.writeByte(0); // allow holiday creator features
-        // this.writeByte(0); // allow creation of custom biomes
-        // this.writeByte(0); // allow additional modding capabilities
-        
-        this.writeLInt(0); // experiments count
-        this.writeBool(false); // experiemnts previously toggled?
+        this.writeLInt(this.experiments.size); // experiments count
+        this.writeBool(this.experimentsAlreadyEnabled); // experiemnts previously toggled?
     }
 }
