@@ -24,10 +24,9 @@ export default class ResourcePackStackPacket extends DataPacket {
             this.writeString('');
             this.writeString('');
         }
-
         this.writeString(Identifiers.MinecraftVersion);
 
-        this.writeVarInt(0); // experimental count
+        this.writeUnsignedVarInt(0); // experiments count
         this.writeByte(0); // experiemnts toggled?
         this.writeByte(0); // allow holiday creator features
         this.writeByte(0); // allow creation of custom biomes
