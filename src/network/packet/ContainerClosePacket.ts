@@ -13,5 +13,6 @@ export default class ContainerClosePacket extends DataPacket {
 
     public decodePayload() {
         this.windowId = this.readByte();
+        this.readByte();
     }
 }
