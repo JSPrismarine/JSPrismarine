@@ -266,7 +266,7 @@ export default class PlayerConnection {
 
         pk.entries = pk.entries.map((block: Block | Item, index: number) => {
             return new CreativeContentEntry(index, block);
-        }); 
+        });
 
         this.sendDataPacket(pk);
     }

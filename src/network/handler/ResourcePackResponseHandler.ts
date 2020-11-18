@@ -80,7 +80,7 @@ export default class ResourcePackResponseHandler {
             player.getConnection().sendMetadata();
             player.getConnection().sendAvailableCommands();
             player.getConnection().sendInventory();
-                    
+
             if (player.gamemode == Gamemode.Creative) {
                 player.getConnection().sendCreativeContents();
             } else {
