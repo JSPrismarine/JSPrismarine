@@ -52,15 +52,15 @@ export default class ResourcePackResponseHandler {
 
             // player.getConnection().sendDataPacket(new ItemComponentPacket());
 
-            player
-                .getConnection()
-                .sendDataPacket(new BiomeDefinitionListPacket());
+            player.getConnection().sendTime(world.getTicks());
 
             player
                 .getConnection()
                 .sendDataPacket(new AvailableActorIdentifiersPacket());
 
-            player.getConnection().sendTime(world.getTicks());
+            player
+                .getConnection()
+                .sendDataPacket(new BiomeDefinitionListPacket());
 
             player
                 .getConnection()
