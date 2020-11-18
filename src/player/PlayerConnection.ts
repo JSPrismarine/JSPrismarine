@@ -337,6 +337,7 @@ export default class PlayerConnection {
         let pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.attributes = attributes || this.player.attributes.getAttributes();
+        pk.tick = BigInt(0);  // TODO
         this.sendDataPacket(pk);
     }
 
@@ -344,6 +345,7 @@ export default class PlayerConnection {
         let pk = new SetActorDataPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.metadata = this.player.metadata.getMetadata();
+        pk.tick = BigInt(0); // TODO
         this.sendDataPacket(pk);
     }
 
@@ -395,6 +397,7 @@ export default class PlayerConnection {
         pk.onGround = player.onGround;
 
         pk.ridingEntityRuntimeId = BigInt(0);
+        pk.tick = BigInt(0); // TODO
         this.sendDataPacket(pk);
     }
 
@@ -422,6 +425,7 @@ export default class PlayerConnection {
         // Add just this entry for every players on the server
         this.server
             .getOnlinePlayers()
+            .filter((onlinePlayer) => !(onlinePlayer == this.player))
             .map((player) => player.getConnection().sendDataPacket(pk));
     }
 

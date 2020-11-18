@@ -50,7 +50,7 @@ export default class ResourcePackResponseHandler {
             pk.gamerules = world.getGameruleManager().getGamerules();
             player.getConnection().sendDataPacket(pk);
 
-            player.getConnection().sendDataPacket(new ItemComponentPacket());
+            // player.getConnection().sendDataPacket(new ItemComponentPacket());
 
             player
                 .getConnection()
@@ -90,7 +90,7 @@ export default class ResourcePackResponseHandler {
             player.getConnection().addToPlayerList();
             // Then retrive other players
             if (server.getOnlinePlayers().length > 1) {
-                player.getConnection().sendPlayerList();
+               player.getConnection().sendPlayerList();
             }
 
             // Announce connection
