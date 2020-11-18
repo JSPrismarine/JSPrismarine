@@ -12,6 +12,6 @@ export default class SetActorDataPacket extends DataPacket {
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeEntityMetadata(this.metadata);
-        this.writeUnsignedVarLong(this.tick); 
+        this.writeUnsignedVarLong(this.tick);
     }
 }
