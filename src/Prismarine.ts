@@ -177,7 +177,9 @@ export default class Prismarine {
             }
         );
 
-        this.getEventManager().on('raknetDisconnect', (event: RaknetDisconnectEvent) => {
+        this.getEventManager().on(
+            'raknetDisconnect',
+            (event: RaknetDisconnectEvent) => {
                 const inetAddr = event.getInetAddr();
                 const reason = event.getReason();
 
@@ -242,7 +244,8 @@ export default class Prismarine {
             });
 
             // Read all packets inside batch and handle them
-            await Promise.all(batched.getPackets().map(async (buf) => {
+            await Promise.all(
+                batched.getPackets().map(async (buf) => {
                     if (!this.packetRegistry.getPackets().has(buf[0])) {
                         this.logger.error(
                             `Packet ${raknetPacket.id} doesn't have a handler`
@@ -264,7 +267,9 @@ export default class Prismarine {
                         return;
                     }
 
-                    if (!this.packetRegistry.getHandlers().has(packet?.getId())) {
+                    if (
+                        !this.packetRegistry.getHandlers().has(packet?.getId())
+                    ) {
                         this.logger.error(
                             `Packet ${packet.constructor.name} doesn't have a handler`
                         );
@@ -272,8 +277,8 @@ export default class Prismarine {
                     }
 
                     let handler = this.packetRegistry
-                    .getHandlers()
-                    .get(packet?.getId());
+                        .getHandlers()
+                        .get(packet?.getId());
 
                     try {
                         await handler.handle(packet, this, player);
@@ -282,7 +287,8 @@ export default class Prismarine {
                             `Handler error ${packet.constructor.name}-handler: (${err})`
                         );
                     }
-                }));
+                })
+            );
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
