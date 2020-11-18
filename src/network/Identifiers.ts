@@ -1,7 +1,7 @@
 const Identifiers = {
-    Protocol: 408,
+    Protocol: 419,
 
-    MinecraftVersion: '1.16.40',
+    MinecraftVersion: '1.16.100',
 
     LoginPacket: 0x01,
     PlayStatusPacket: 0x02,
@@ -155,7 +155,8 @@ const Identifiers = {
     PositionTrackingDBServerBroadcastPacket: 0x99,
     PositionTrackingDBClientRequestPacket: 0x9a,
     DebugInfoPacket: 0x9b,
-    PacketViolationWarningPacket: 0x9c
+    PacketViolationWarningPacket: 0x9c,
+    ItemComponentPacket: 0xa2
 };
 
 export default Identifiers;

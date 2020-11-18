@@ -43,10 +43,11 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeLShort(0); // default biome type
         this.writeString(''); // biome name
+
         this.writeVarInt(0); // dimension
 
         this.writeVarInt(1); // generator
-        this.writeVarInt(0);
+        this.writeVarInt(0); // gamemode 
         this.writeVarInt(0); // difficulty
 
         // world spawn vector 3
@@ -77,21 +78,28 @@ export default class StartGamePacket extends DataPacket {
         this.writeGamerules(this.gamerules);
 
         this.writeByte(0); // bonus chest
-        this.writeByte(0); // start with chest
+        this.writeByte(0); // start with map
 
         this.writeVarInt(1); // player perms
 
-        this.writeInt(32); // chunk tick range
+        this.writeLInt(0); // chunk tick range
+
         this.writeByte(0); // locked behavior
         this.writeByte(0); // locked texture
         this.writeByte(0); // from locked template
         this.writeByte(0); // msa gamer tags only
         this.writeByte(0); // from world template
-        this.writeByte(0); // world template option locked
-        this.writeByte(1); // only spawn v1 villagers
+        this.writeByte(1); // world template option locked
+        this.writeByte(0); // only spawn v1 villagers
         this.writeString(Identifiers.MinecraftVersion);
+
+        this.writeLInt(0); // unknown
+        this.writeByte(1); // unknown
+        this.writeByte(42); // unknown
+
         this.writeLInt(0); // limited world height
         this.writeLInt(0); // limited world length
+
         this.writeBool(false); // has new nether
         this.writeBool(false); // experimental gameplay
 
@@ -100,15 +108,19 @@ export default class StartGamePacket extends DataPacket {
         this.writeString(''); // template content identity
 
         this.writeByte(0); // is trial
-        this.writeByte(0); // server auth movement
+        this.writeVarInt(0); // server auth movement
+        
         this.writeLLong(BigInt(0)); // world time
+
+        this.writeVarInt(0); // unknown
 
         this.writeVarInt(0); // enchantment seed
 
         // PMMP states
-        this.append(RequiredBlockStates);
+        // this.append(RequiredBlockStates);
 
-        this.append(this.serializeItemTable(ItemTable));
+        this.writeUnsignedVarInt(0);
+        // this.append(this.serializeItemTable(ItemTable));
 
         this.writeString('');
         this.writeBool(false); // new inventory system
@@ -121,6 +133,7 @@ export default class StartGamePacket extends DataPacket {
             for (const [name, legacyId] of Object.entries(table)) {
                 stream.writeString(name);
                 stream.writeLShort(legacyId as number);
+                stream.writeByte(0); // unknown
             }
             this.cachedItemPalette = stream.getBuffer();
         }

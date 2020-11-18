@@ -64,5 +64,7 @@ export default class MovePlayerPacket extends DataPacket {
             this.writeLInt(this.teleportCause);
             this.writeLInt(this.teleportItemId);
         }
+
+        this.writeUnsignedVarInt(0);  // PlayerAuthInput related
     }
 }
