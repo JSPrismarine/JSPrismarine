@@ -12,11 +12,13 @@ export default class SetLocalPlayerAsInitializedHandler {
         player: Player
     ) {
         await Promise.all(
-            server.getOnlinePlayers().filter(
-                (onlinePlayer) => !(onlinePlayer == player)
-            ).map((otherOnlinePlayer) => {
-                otherOnlinePlayer.getConnection().sendSpawn(player);
-                player.getConnection().sendSpawn(otherOnlinePlayer);
-            }));
+            server
+                .getOnlinePlayers()
+                .filter((onlinePlayer) => !(onlinePlayer == player))
+                .map((otherOnlinePlayer) => {
+                    otherOnlinePlayer.getConnection().sendSpawn(player);
+                    player.getConnection().sendSpawn(otherOnlinePlayer);
+                })
+        );
     }
 }

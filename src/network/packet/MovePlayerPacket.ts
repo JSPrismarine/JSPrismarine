@@ -69,6 +69,6 @@ export default class MovePlayerPacket extends DataPacket {
             this.writeLInt(this.teleportItemId);
         }
 
-        this.writeUnsignedVarLong(this.tick);  
+        this.writeUnsignedVarLong(this.tick);
     }
 }
