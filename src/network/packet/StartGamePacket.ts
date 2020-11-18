@@ -3,9 +3,7 @@ import Identifiers from '../Identifiers';
 import PacketBinaryStream from '../PacketBinaryStream';
 import DataPacket from './DataPacket';
 
-const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
-const RequiredBlockStates = require('@jsprismarine/bedrock-data')
-    .required_block_states;
+import ItemTable from '../../resources/Items.json';
 
 export default class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket;
@@ -108,33 +106,33 @@ export default class StartGamePacket extends DataPacket {
         this.writeString(''); // template content identity
 
         this.writeByte(0); // is trial
-        this.writeVarInt(0); // server auth movement
+        this.writeUnsignedVarInt(0); // server auth movement
         
         this.writeLLong(BigInt(0)); // world time
 
-        this.writeVarInt(0); // unknown
+        this.writeUnsignedVarInt(0); // unknown
 
         this.writeVarInt(0); // enchantment seed
 
         // PMMP states
         // this.append(RequiredBlockStates);
 
-        this.writeUnsignedVarInt(0);
-        // this.append(this.serializeItemTable(ItemTable));
+        this.append(this.serializeItemTable(ItemTable));
 
         this.writeString('');
         this.writeBool(false); // new inventory system
     }
 
-    serializeItemTable(table: any): Buffer {
+    public serializeItemTable(table: object): Buffer {
         if (this.cachedItemPalette == null) {
             let stream = new PacketBinaryStream();
-            stream.writeUnsignedVarInt(Object.entries(table).length);
-            for (const [name, legacyId] of Object.entries(table)) {
+            let entries = Object.entries(table);
+            stream.writeUnsignedVarInt(entries.length);
+            entries.map(([name, id]) => {
                 stream.writeString(name);
-                stream.writeLShort(legacyId as number);
-                stream.writeByte(0); // unknown
-            }
+                stream.writeLShort(id);
+                stream.writeByte(0);
+            });
             this.cachedItemPalette = stream.getBuffer();
         }
 

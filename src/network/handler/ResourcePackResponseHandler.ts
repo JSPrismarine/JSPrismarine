@@ -50,8 +50,6 @@ export default class ResourcePackResponseHandler {
             pk.gamerules = world.getGameruleManager().getGamerules();
             player.getConnection().sendDataPacket(pk);
 
-            player.getConnection().sendTime(world.getTicks());
-
             player.getConnection().sendDataPacket(new ItemComponentPacket());
 
             player
@@ -61,6 +59,8 @@ export default class ResourcePackResponseHandler {
             player
                 .getConnection()
                 .sendDataPacket(new AvailableActorIdentifiersPacket());
+
+            player.getConnection().sendTime(world.getTicks());
 
             player
                 .getConnection()
@@ -78,7 +78,7 @@ export default class ResourcePackResponseHandler {
 
             player.setNameTag(player.getUsername());
             // TODO: always visible nametag
-            // TODO: player.getConnection().sendMetadata();
+            player.getConnection().sendMetadata();
             player.getConnection().sendAvailableCommands();
             player.getConnection().sendInventory();
 
