@@ -28,6 +28,7 @@ import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import CoordinateUtils from '../world/CoordinateUtils';
 import PlayerListEntry from '../network/type/PlayerListEntry';
 import Skin from '../utils/skin/Skin';
+import { send } from 'process';
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const UUID = require('../utils/uuid').default;
@@ -239,8 +240,12 @@ export default class PlayerConnection {
         this.sendHandItem(this.player.inventory.getItemInHand()); // TODO: not working
     }
 
-    public sendCreativeContents() {
+    public sendCreativeContents(empty: boolean = false) {
         let pk = new CreativeContentPacket();
+        if (empty) {
+            this.sendDataPacket(pk);
+            return;
+        }
 
         const entries = [
             ...this.player.getServer().getBlockManager().getBlocks(),
@@ -261,7 +266,7 @@ export default class PlayerConnection {
 
         pk.entries = pk.entries.map((block: Block | Item, index: number) => {
             return new CreativeContentEntry(index, block);
-        });
+        }); 
 
         this.sendDataPacket(pk);
     }
