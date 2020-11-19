@@ -1,8 +1,17 @@
+import * as fs from 'fs';
+
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { ByteOrder } from './ByteOrder';
 import NBTReader from './NBTReader';
 import NBTWriter from './NBTWriter';
-import * as fs from 'fs';
+
+import ByteVal from './types/ByteVal';
+import StringVal from './types/StringVal';
+import DoubleVal from './types/DoubleVal';
+import FloatVal from './types/FloatVal';
+import LongVal from './types/LongVal';
+import NumberVal from './types/NumberVal';
+import ShortVal from './types/ShortVal';
 
 export default class NBTTagCompound {
     private name: string | null;
@@ -86,8 +95,32 @@ export default class NBTTagCompound {
         writer.writeCompound(this);
     }
 
-    public getValue(name: string, defaultValue: any): any {
-        return this.children.has(name) ? this.children.get(name) : defaultValue;
+    public getByte(name: string, defaultValue: number): number {
+        return this.children.has(name) ? (this.children.get(name) as ByteVal).getValue() : defaultValue;
+    }
+
+    public getShort(name: string, defaultValue: number): number {
+        return this.children.has(name) ? (this.children.get(name) as ShortVal).getValue() : defaultValue;
+    }
+
+    public getNumber(name: string, defaultValue: number): number {
+        return this.children.has(name) ? (this.children.get(name) as NumberVal).getValue() : defaultValue;
+    }
+
+    public getLong(name: string, defaultValue: bigint): bigint {
+        return this.children.has(name) ? (this.children.get(name) as LongVal).getValue() : defaultValue;
+    }
+
+    public getFloat(name: string, defaultValue: number): number {
+        return this.children.has(name) ? (this.children.get(name) as FloatVal).getValue() : defaultValue;
+    }
+
+    public getDouble(name: string, defaultValue: number): number {
+        return this.children.has(name) ? (this.children.get(name) as DoubleVal).getValue() : defaultValue;
+    }
+
+    public getString(name: string, defaultValue: string): string {
+        return this.children.has(name) ? (this.children.get(name) as StringVal).getValue() : defaultValue;
     }
 
     public remove(key: string): boolean {
