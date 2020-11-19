@@ -126,7 +126,9 @@ export default class NBTWriter {
 
     private writeListValue(value: Set<any>): void {
         if (value.size > 0) {
-            let listNbtType = this.getNBTTypeFromValue(value.entries().next().value);
+            let listNbtType = this.getNBTTypeFromValue(
+                value.entries().next().value
+            );
             this.writeByteValue(listNbtType);
             this.writeIntegerValue(value.size);
             for (let rawValue of value) {
