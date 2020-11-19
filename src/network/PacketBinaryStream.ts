@@ -87,7 +87,8 @@ export default class PacketBinaryStream extends BinaryStream {
                         data: this.readString()
                     }),
                     frames: this.readLFloat(),
-                    type: this.readLInt()
+                    type: this.readLInt(),
+                    expression: this.readLInt()
                 })
             );
         }
