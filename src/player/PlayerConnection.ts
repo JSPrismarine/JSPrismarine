@@ -430,7 +430,6 @@ export default class PlayerConnection {
         // Add just this entry for every players on the server
         this.server
             .getOnlinePlayers()
-            .filter((onlinePlayer) => !(onlinePlayer == this.player))
             .map((player) => player.getConnection().sendDataPacket(pk));
     }
 

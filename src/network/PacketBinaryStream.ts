@@ -161,6 +161,7 @@ export default class PacketBinaryStream extends BinaryStream {
             this.writeSkinImage(animation.image);
             this.writeLInt(animation.type);
             this.writeLFloat(animation.frames);
+            this.writeLInt(animation.expression);
         }
 
         // Cape image
