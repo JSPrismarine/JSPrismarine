@@ -33,7 +33,7 @@ export default class Skin {
      *
      * (loads the skin persona)
      */
-    static fromJWT(jwt: any) {
+    static fromJWT(jwt: any): Skin {
         let skin = new Skin();
 
         // Read skin
@@ -60,7 +60,8 @@ export default class Skin {
                         data: animation.Image
                     }),
                     frames: animation.Frames,
-                    type: animation.Type
+                    type: animation.Type,
+                    expression: animation.AnimationExpression
                 })
             );
         }
