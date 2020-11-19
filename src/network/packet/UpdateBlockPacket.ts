@@ -16,18 +16,18 @@ export default class UpdateBlockPacket extends DataPacket {
     public x!: number;
     public y!: number;
     public z!: number;
-    public BlockRuntimeId!: number;
-    public Flags!: UpdateBlockFlagsType;
-    public Layer!: UpdateBlockLayerType;
+    public blockRuntimeId!: number;
+    public flags!: UpdateBlockFlagsType;
+    public layer!: UpdateBlockLayerType;
 
     public decodePayload() {
         this.x = this.readVarInt();
         this.y = this.readUnsignedVarInt();
         this.z = this.readVarInt();
 
-        this.BlockRuntimeId = this.readUnsignedVarInt();
-        this.Flags = this.readUnsignedVarInt();
-        this.Layer = this.readUnsignedVarInt();
+        this.blockRuntimeId = this.readUnsignedVarInt();
+        this.flags = this.readUnsignedVarInt();
+        this.layer = this.readUnsignedVarInt();
     }
 
     public encodePayload() {
@@ -35,8 +35,8 @@ export default class UpdateBlockPacket extends DataPacket {
         this.writeUnsignedVarInt(this.y);
         this.writeVarInt(this.z);
 
-        this.writeUnsignedVarInt(this.BlockRuntimeId);
-        this.writeUnsignedVarInt(this.Flags || UpdateBlockFlagsType.None);
-        this.writeUnsignedVarInt(this.Layer || UpdateBlockLayerType.Normal);
+        this.writeUnsignedVarInt(this.blockRuntimeId);
+        this.writeUnsignedVarInt(this.flags ?? UpdateBlockFlagsType.None);
+        this.writeUnsignedVarInt(this.layer ?? UpdateBlockLayerType.Normal);
     }
 }
