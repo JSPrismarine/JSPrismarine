@@ -54,11 +54,13 @@ export default class AddPlayerPacket extends DataPacket {
         }
 
         // userId
-        if (this.uniqueEntityId & 1n) {
-            this.writeLLong(-1n * ((this.uniqueEntityId + 1n) >> 1n));
-        } else {
-            this.writeLLong(this.uniqueEntityId >> 1n);
-        }
+        // if (this.uniqueEntityId & 1n) {
+        //    this.writeLLong(-1n * ((this.uniqueEntityId + 1n) >> 1n));
+        // } else {
+        //     this.writeLLong(this.uniqueEntityId >> 1n);
+        // }
+
+        this.writeLLong(BigInt(0)); // TODO: fix userid
 
         this.writeUnsignedVarInt(0); // TODO: Entity links
         this.writeString(this.deviceId);
