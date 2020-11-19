@@ -44,9 +44,14 @@ export default class PlayerActionHandler {
                 pk.y = packet.y;
                 pk.z = packet.z;
                 pk.data = 65535 / breakTime;
-                for (let onlinePlayer of server.getOnlinePlayers()) {
-                    onlinePlayer.getConnection().sendDataPacket(pk);
-                }
+
+                await Promise.all(
+                    player
+                        .getPlayersInChunk()
+                        .map((nearbyPlayer) =>
+                            nearbyPlayer.getConnection().sendDataPacket(pk)
+                        )
+                );
                 break;
             }
             case PlayerAction.AbortBreak: {
@@ -58,9 +63,13 @@ export default class PlayerActionHandler {
                 pk.y = packet.y;
                 pk.z = packet.z;
                 pk.data = 0;
-                for (let onlinePlayer of server.getOnlinePlayers()) {
-                    onlinePlayer.getConnection().sendDataPacket(pk);
-                }
+                await Promise.all(
+                    player
+                        .getPlayersInChunk()
+                        .map((nearbyPlayer) =>
+                            nearbyPlayer.getConnection().sendDataPacket(pk)
+                        )
+                );
                 break;
             }
             case PlayerAction.StopBreak: {
@@ -70,16 +79,38 @@ export default class PlayerActionHandler {
             case PlayerAction.ContinueBreak: {
                 // This fires twice in creative.. wtf Mojang?
 
+                const chunk = await player
+                    .getWorld()
+                    .getChunkAt(packet.x as number, packet.z as number);
+
+                const blockId = chunk.getBlockId(
+                    (packet.x as number) % 16,
+                    packet.y as number,
+                    (packet.z as number) % 16
+                );
+
+                const blockMeta = chunk.getBlockMetadata(
+                    (packet.x as number) % 16,
+                    packet.y as number,
+                    (packet.z as number) % 16
+                );
+
                 let pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.ParticlePunchBlock;
                 pk.x = packet.x;
                 pk.y = packet.y;
                 pk.z = packet.z;
-                pk.data = 7; // TODO: runtime ID
+                pk.data = server
+                    .getBlockManager()
+                    .getRuntimeWithMeta(blockId, blockMeta);
 
-                for (let onlinePlayer of server.getOnlinePlayers()) {
-                    onlinePlayer.getConnection().sendDataPacket(pk);
-                }
+                await Promise.all(
+                    player
+                        .getPlayersInChunk()
+                        .map((nearbyPlayer) =>
+                            nearbyPlayer.getConnection().sendDataPacket(pk)
+                        )
+                );
                 break;
             }
             default: {

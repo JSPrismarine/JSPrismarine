@@ -386,7 +386,7 @@ export default class PacketBinaryStream extends BinaryStream {
             return this.writeVarInt(0);
         }
 
-        this.writeVarInt(itemstack.getRuntimeId());
+        this.writeVarInt(itemstack.getId());
         this.writeVarInt(((itemstack.meta & 0x7fff) << 8) | itemstack.count);
 
         if (itemstack.nbt !== null) {
