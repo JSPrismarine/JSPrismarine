@@ -11,8 +11,6 @@ import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';
 
 export default class NBTWriter {
-    private readonly MAX_SIZE = 10 * 1024 * 1024;
-
     private order: ByteOrder;
     private buf: BinaryStream;
 
@@ -45,15 +43,23 @@ export default class NBTWriter {
         this.writeStringValue(name);
     }
 
-    private writeStringValue(value: string): void {
-        let bytes = Buffer.from(value, 'utf8');
-        if (this.useVarint) {
-            this.buf.writeUnsignedVarInt(bytes.length);
-        } else {
-            this.writeShortValue(bytes.length);
-        }
+    private writeStringValue(value: string | null): void {
+        if (value != null) {
+            let bytes = Buffer.from(value, 'utf8');
+            if (this.useVarint) {
+                this.buf.writeUnsignedVarInt(Buffer.byteLength(value));
+            } else {
+                this.writeShortValue(Buffer.byteLength(value));
+            }
 
-        this.buf.append(bytes);
+            this.buf.append(bytes);
+        } else {
+            if (this.useVarint) {
+                this.writeByteValue(0);
+            } else {
+                this.writeShortValue(0);
+            }
+        }
     }
 
     public writeByteValue(value: number): void {
@@ -70,7 +76,7 @@ export default class NBTWriter {
 
     private writeIntegerValue(value: number): void {
         if (this.useVarint) {
-            this.buf.writeUnsignedVarInt(value);
+            this.buf.writeVarInt(value);
         } else {
             if (this.order == ByteOrder.LITTLE_ENDIAN) {
                 this.buf.writeLInt(value);
@@ -120,7 +126,7 @@ export default class NBTWriter {
 
     private writeListValue(value: Set<any>): void {
         if (value.size > 0) {
-            let listNbtType = this.getNBTTypeFromValue(Array.from(value)[0]);
+            let listNbtType = this.getNBTTypeFromValue(value.entries().next().value);
             this.writeByteValue(listNbtType);
             this.writeIntegerValue(value.size);
             for (let rawValue of value) {
@@ -239,10 +245,4 @@ export default class NBTWriter {
             );
         }
     }
-
-    // Our buffer auto increments its capacity
-    // private ensureCapacity(capacity: number): void {
-    // let targetCapacity: number = this.buf.getOffset() + capacity;
-    // if (targetCapacity <= this.buf)
-    // }
 }
