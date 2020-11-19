@@ -272,7 +272,7 @@ export default class World {
             blockUpdate.x = placedPosition.getX();
             blockUpdate.y = placedPosition.getY();
             blockUpdate.z = placedPosition.getZ();
-            blockUpdate.BlockRuntimeId = 0; // TODO: get previous block
+            blockUpdate.blockRuntimeId = 0; // TODO: get previous block
             return;
         }
 
@@ -280,10 +280,17 @@ export default class World {
         blockUpdate.x = placedPosition.getX();
         blockUpdate.y = placedPosition.getY();
         blockUpdate.z = placedPosition.getZ();
-        blockUpdate.BlockRuntimeId = block.getRuntimeId();
-        for (let p of this.server.getOnlinePlayers()) {
-            p.getConnection().sendDataPacket(blockUpdate);
-        }
+        blockUpdate.blockRuntimeId = this.server
+            .getBlockManager()
+            .getRuntimeWithMeta(block.getId(), block.getMeta());
+
+        await Promise.all(
+            this.server
+                .getOnlinePlayers()
+                .map((onlinePlayer) =>
+                    onlinePlayer.getConnection().sendDataPacket(blockUpdate)
+                )
+        );
 
         const pk = new LevelSoundEventPacket();
         pk.sound = 6; // TODO: enum
@@ -297,9 +304,13 @@ export default class World {
         pk.isBabyMob = false;
         pk.disableRelativeVolume = false;
 
-        for (let p of player.getPlayersInChunk()) {
-            p.getConnection().sendDataPacket(pk);
-        }
+        await Promise.all(
+            player
+                .getPlayersInChunk()
+                .map((narbyPlayer) =>
+                    narbyPlayer.getConnection().sendDataPacket(pk)
+                )
+        );
     }
 
     /**

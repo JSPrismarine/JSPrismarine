@@ -7,7 +7,6 @@ import InventoryTransactionPacket, {
     InventoryTransactionType
 } from '../packet/InventoryTransactionPacket';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
-import type Block from '../../block/Block';
 import Gamemode from '../../world/Gamemode';
 
 export default class InventoryTransactionHandler {
@@ -79,14 +78,19 @@ export default class InventoryTransactionHandler {
                             pk.x = packet.blockPosition.getX();
                             pk.y = packet.blockPosition.getY();
                             pk.z = packet.blockPosition.getZ();
-                            pk.BlockRuntimeId = (server
+                            pk.blockRuntimeId = server
                                 .getBlockManager()
-                                .getBlock(
-                                    'minecraft:air'
-                                ) as Block).getRuntimeId();
-                            for (let onlinePlayer of server.getOnlinePlayers()) {
-                                onlinePlayer.getConnection().sendDataPacket(pk);
-                            }
+                                .getRuntimeWithId(0); // Air
+
+                            await Promise.all(
+                                server
+                                    .getOnlinePlayers()
+                                    .map((player) =>
+                                        player
+                                            .getConnection()
+                                            .sendDataPacket(pk)
+                                    )
+                            );
 
                             chunk.setBlock(
                                 chunkPos.getX(),
