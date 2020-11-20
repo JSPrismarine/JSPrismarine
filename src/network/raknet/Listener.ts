@@ -3,6 +3,7 @@ import Identifiers from './protocol/Identifiers';
 import Connection from './connection';
 import ServerName from './utils/ServerName';
 import InetAddress from './utils/InetAddress';
+import { Socket } from 'dgram';
 
 const Dgram = require('dgram');
 const Crypto = require('crypto');
@@ -31,8 +32,7 @@ export default class Listener extends EventEmitter {
     private id = Crypto.randomBytes(8).readBigInt64BE(); // Generate a signed random 64 bit GUID
     /** @type {ServerName} */
     private name: ServerName;
-    /** @type {Dgram.Socket} */
-    private socket: any;
+    private socket!: Socket;
     /** @type {Map<string, Connection>} */
     private connections: Map<string, Connection> = new Map();
     /** @type {boolean} */
@@ -47,7 +47,7 @@ export default class Listener extends EventEmitter {
     /**
      * Creates a packet listener on given address and port.
      */
-    async listen(address: string, port: number) {
+    public async listen(address: string, port: number): Promise<Listener> {
         this.socket = Dgram.createSocket({ type: 'udp4' });
         this.name.setServerId(this.id);
 
@@ -55,21 +55,20 @@ export default class Listener extends EventEmitter {
             this.handle(buffer, rinfo);
         });
 
-        await new Promise((resolve, reject) => {
+        return await new Promise((resolve, reject) => {
             const failFn = (e: Error) => reject(e);
 
             this.socket.once('error', failFn);
             this.socket.bind(port, address, () => {
                 this.socket.removeListener('error', failFn);
-                resolve();
+                this.tick(); 
+                resolve(this);
             });
         });
 
-        this.tick(); // tick sessions
-        return this;
     }
 
-    handle(buffer: Buffer, rinfo: any) {
+    public handle(buffer: Buffer, rinfo: any) {
         let header = buffer.readUInt8(); // Read packet header to recognize packet type
 
         if (header === Identifiers.Query) {
@@ -219,7 +218,7 @@ export default class Listener extends EventEmitter {
         return packet.buffer;
     }
 
-    tick() {
+    public tick() {
         let int = setInterval(() => {
             if (!this.shutdown) {
                 for (let [_, connection] of this.connections) {
