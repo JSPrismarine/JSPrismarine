@@ -1,27 +1,47 @@
 export default class SkinPersonaPiece {
-    public isDefault: boolean;
-    public packId: string;
-    public pieceId: string;
-    public pieceType: string;
-    public productId: string;
+    private def: boolean;
+    private packId: string;
+    private pieceId: string;
+    private pieceType: string;
+    private productId: string;
 
     constructor({
-        isDefault,
+        def,
         packId,
         pieceId,
         pieceType,
         productId
     }: {
-        isDefault: boolean;
+        def: boolean;
         packId: string;
         pieceId: string;
         pieceType: string;
         productId: string;
     }) {
-        this.isDefault = isDefault;
+        this.def = def; // "default" is not allowed keyword :(
         this.packId = packId;
         this.pieceId = pieceId;
         this.pieceType = pieceType;
         this.productId = productId;
+    }
+
+    public isDefault(): boolean {
+        return this.def;
+    }
+
+    public getPackId(): string {
+        return this.packId;
+    }
+
+    public getPieceType(): string {
+        return this.pieceType;
+    }
+
+    public getProductId(): string {
+        return this.productId;
+    }
+
+    public getPieceId(): string {
+        return this.pieceId;
     }
 }

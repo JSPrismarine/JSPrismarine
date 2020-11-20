@@ -28,10 +28,9 @@ import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import CoordinateUtils from '../world/CoordinateUtils';
 import PlayerListEntry from '../network/type/PlayerListEntry';
 import Skin from '../utils/skin/Skin';
-import { send } from 'process';
+import UUID from '../utils/uuid';
 
 const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
-const UUID = require('../utils/uuid').default;
 const PlayerListAction = require('../network/type/player-list-action');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
@@ -56,16 +55,21 @@ export default class PlayerConnection {
         _needACK = false,
         _immediate = false
     ) {
-        let batch = new BatchPacket();
-        batch.addPacket(packet);
-        batch.encode();
+        let encapsulated: typeof EncapsulatedPacket = await new Promise(
+            (resolve) => {
+                let batch = new BatchPacket();
+                batch.addPacket(packet);
+                batch.encode();
 
-        // Add this in raknet
-        let sendPacket = new EncapsulatedPacket();
-        sendPacket.reliability = 0;
-        sendPacket.buffer = batch.getBuffer();
+                // Add this in raknet
+                let sendPacket = new EncapsulatedPacket();
+                sendPacket.reliability = 0;
+                sendPacket.buffer = batch.getBuffer();
 
-        this.connection.addEncapsulatedToQueue(sendPacket);
+                resolve(sendPacket);
+            }
+        );
+        this.connection.addEncapsulatedToQueue(encapsulated);
     }
 
     public async update(_tick: number) {
@@ -212,12 +216,7 @@ export default class PlayerConnection {
     }
 
     public async requestChunk(x: number, z: number) {
-        await this.player
-            .getWorld()
-            .getChunk(x, z)
-            .then((chunk: any) => {
-                this.chunkSendQueue.add(chunk);
-            });
+        this.chunkSendQueue.add(await this.player.getWorld().getChunk(x, z));
     }
 
     public sendInventory() {
@@ -437,6 +436,8 @@ export default class PlayerConnection {
      * Removes a player from other players list
      */
     public removeFromPlayerList() {
+        if (!this.player.uuid) return;
+
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Remove;
 

@@ -75,7 +75,7 @@ export default class PacketRegistry {
     private packets: Map<number, any> = new Map();
     private handlers: Map<number, any> = new Map();
 
-    constructor(server: Prismarine) {
+    public constructor(server: Prismarine) {
         this.loadPackets(server);
         this.loadHandlers(server);
     }
@@ -190,11 +190,11 @@ export default class PacketRegistry {
             );
     }
 
-    public getPackets() {
+    public getPackets(): Map<number, any> {
         return this.packets;
     }
 
-    public getHandlers() {
+    public getHandlers(): Map<number, any> {
         return this.handlers;
     }
 }

@@ -1,7 +1,7 @@
 export default class SkinImage {
     public width: number;
     public height: number;
-    public data: string;
+    public data: Buffer;
 
     constructor({
         width,
@@ -10,7 +10,7 @@ export default class SkinImage {
     }: {
         width: number;
         height: number;
-        data: string;
+        data: Buffer;
     }) {
         this.width = width;
         this.height = height;

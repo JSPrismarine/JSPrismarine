@@ -1,6 +1,6 @@
 import Prismarine from '../Prismarine';
 
-export const Rules = {
+export const GameRules = {
     CommandBlockOutput: 'commandblockoutput',
     DoDayLightCycle: 'dodaylightcycle',
     DoEntityDrops: 'doentitydrops',
@@ -22,7 +22,7 @@ export const Rules = {
     TNTExplodes: 'tntexplodes'
 };
 
-export class GameruleManager {
+export default class GameruleManager {
     private server: Prismarine;
     private rules: Map<string, any> = new Map();
 
@@ -46,7 +46,7 @@ export class GameruleManager {
      * @param name
      */
     public getGamerule(name: string): any {
-        if (!Object.values(Rules).includes(name)) {
+        if (!Object.values(GameRules).includes(name)) {
             this.server.getLogger().error(`Unknown Gamerule with name ${name}`);
         }
         this.rules.get(name);

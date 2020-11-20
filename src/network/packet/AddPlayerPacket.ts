@@ -1,10 +1,11 @@
+import UUID from '../../utils/uuid';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 export default class AddPlayerPacket extends DataPacket {
     static NetID = Identifiers.AddPlayerPacket;
 
-    public uuid!: string;
+    public uuid!: UUID;
     public name!: string;
     public uniqueEntityId!: bigint;
     public runtimeEntityId!: bigint;

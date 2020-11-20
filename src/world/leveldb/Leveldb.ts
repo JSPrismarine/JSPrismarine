@@ -36,14 +36,14 @@ export default class LevelDB extends Provider {
      * Decodes a serialized chunk from
      * the database asynchronously.
      */
-    readChunk({
+    public async readChunk({
         x,
         z,
         generator,
         seed,
         server
     }: readChunk): Promise<Chunk | null> {
-        return new Promise(async (resolve, reject) => {
+        return await new Promise(async (resolve, reject) => {
             let index = LevelDB.chunkIndex(x, z);
             let subChunks = new Map();
 
