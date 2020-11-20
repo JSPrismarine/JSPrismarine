@@ -92,11 +92,15 @@ export default class Player extends Entity {
 
     public async update(tick: number) {
         // Update movement for every player
-        for (const player of this.server.getOnlinePlayers()) {
-            if (player === this) continue;
-            player.getConnection().broadcastMove(this);
-            this.playerConnection.broadcastMove(player);
-        }
+        await Promise.all(
+            this.server
+                .getOnlinePlayers()
+                .filter((onlinePlayer) => !(onlinePlayer == this))
+                .map((player) => {
+                    player.getConnection().broadcastMove(this);
+                    this.playerConnection.broadcastMove(player);
+                })
+        );
 
         await this.playerConnection.update(tick);
     }

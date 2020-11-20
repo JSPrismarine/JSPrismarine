@@ -1,37 +1,31 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class UUID {
-    /** @type {any} */
-    #parts: any;
-    /** @type {number} */
-    #version: number;
+    private parts: Array<number> = [];
+    private version: number;
 
-    constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version: number) {
-        this.#parts = [part1, part2, part3, part4];
-        this.#version = version || (this.#parts[1] & 0xf000) >> 12;
+    public constructor(
+        part1 = 0,
+        part2 = 0,
+        part3 = 0,
+        part4 = 0,
+        version = 4
+    ) {
+        this.parts = [part1, part2, part3, part4];
+        this.version = version ?? (this.parts[1] & 0xf000) >> 12;
     }
 
-    get parts() {
-        return this.#parts;
-    }
-
-    get version() {
-        return this.#version;
-    }
-
-    /**
-     * @param {UUID} uuid
-     */
-    equals(uuid: UUID) {
-        return this.#parts === uuid.parts;
+    public equals(uuid: UUID): boolean {
+        return (
+            this.parts.length === uuid.parts.length &&
+            this.parts.every((value, index) => value === uuid.parts[index])
+        );
     }
 
     /**
      * Creates an UUID from a string hex representation
-     * @param {string} uuid
-     * @param {number} version
      */
-    static fromString(uuid: string, version: number) {
+    public static fromString(uuid: string, version = 4): UUID {
         if (!uuid) throw new Error('uuid is null or undefined');
 
         return UUID.fromBinary(
@@ -42,16 +36,13 @@ export default class UUID {
 
     /**
      * Creates an UUID from a binary representation
-     * @param {Buffer} uuid
-     * @param {number} version
      */
-    static fromBinary(uuid: Buffer, version: number) {
+    public static fromBinary(uuid: Buffer, version: number): UUID {
         if (Buffer.byteLength(uuid) !== 16) {
             throw new Error('UUID must have 16 bytes');
         }
 
-        let stream = new BinaryStream();
-        (stream as any).buffer = uuid;
+        let stream = new BinaryStream(uuid);
         return new UUID(
             stream.readInt(),
             stream.readInt(),
@@ -64,7 +55,7 @@ export default class UUID {
     /**
      * Generates a random UUIDv4 (string)
      */
-    static randomString() {
+    public static randomString(): string {
         let dt = new Date().getTime();
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
             /[xy]/g,
@@ -79,21 +70,21 @@ export default class UUID {
     /**
      * Generates a random UUIDv4
      */
-    static fromRandom() {
-        let strUUID = (this as any).stringFromRandom();
+    public static fromRandom(): UUID {
+        let strUUID = UUID.randomString();
         return UUID.fromString(strUUID, 3);
     }
 
-    toBinary() {
+    public toBinary(): Buffer {
         let stream = new BinaryStream();
         stream.writeInt(this.parts[0]);
         stream.writeInt(this.parts[1]);
         stream.writeInt(this.parts[2]);
         stream.writeInt(this.parts[3]);
-        return (stream as any).buffer;
+        return stream.getBuffer();
     }
 
-    toString() {
+    public toString(): string {
         let hex = this.toBinary().toString('hex');
 
         //xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx 8-4-4-4-12
@@ -104,5 +95,13 @@ export default class UUID {
         parts.push(hex.slice(16, 16 + 4));
         parts.push(hex.slice(20, 20 + 12));
         return parts.join('-');
+    }
+
+    public getVersion(): number {
+        return this.version;
+    }
+
+    public getParts(): Array<number> {
+        return this.parts;
     }
 }

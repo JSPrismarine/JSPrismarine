@@ -14,9 +14,10 @@ export default class PlayerSkinPacket extends DataPacket {
 
     public decodePayload() {
         this.uuid = this.readUUID();
-        this.skin = this.readSkin();
-        this.newSkinName = this.readString();
-        this.oldSkinName = this.readString();
-        this.trusted = this.readBool();
+        this.readRemaining();
+        // TODO this.skin = this.readSkin();
+        // this.newSkinName = this.readString();
+        // this.oldSkinName = this.readString();
+        // this.trusted = this.readBool();
     }
 }

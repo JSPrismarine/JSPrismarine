@@ -5,7 +5,7 @@ import type Prismarine from '../Prismarine';
 export default class GeneratorManager {
     private generators: Map<string, any> = new Map();
 
-    constructor(server: Prismarine) {
+    public constructor(server: Prismarine) {
         const generators = fs.readdirSync(__dirname + '/generators');
         generators.forEach((generator) => {
             if (generator.includes('.test.') || generator.includes('.d.ts'))
@@ -17,7 +17,7 @@ export default class GeneratorManager {
             .debug(`Registered §b${generators.length}§r generator(s)!`);
     }
 
-    registerClassGenerator(id: string, server: Prismarine) {
+    public registerClassGenerator(id: string, server: Prismarine): void {
         const generator = require(path.resolve(__dirname + '/generators', id));
         this.generators.set(
             id.toLowerCase(),
@@ -26,7 +26,7 @@ export default class GeneratorManager {
         server.getLogger().silly(`Generator with id §b${id}§r registered`);
     }
 
-    getGenerator(id: string) {
+    public getGenerator(id: string): any {
         return this.generators.get(id);
     }
 }

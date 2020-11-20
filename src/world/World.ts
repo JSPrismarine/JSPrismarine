@@ -9,10 +9,9 @@ import Player from '../player/Player';
 import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
-import { GameruleManager, Rules } from '../world/GameruleManager';
 import SharedSeedRandom from './util/SharedSeedRandom';
-
-const UUID = require('../utils/uuid').default;
+import UUID from '../utils/uuid';
+import GameruleManager, { GameRules } from './GameruleManager';
 
 interface WorldData {
     name: string;
@@ -28,7 +27,7 @@ export default class World {
     private players: Map<bigint, Player> = new Map();
     private entities: Map<bigint, Entity> = new Map();
     private chunks: Map<string, any> = new Map();
-    private gameruleManager: any;
+    private gameruleManager: GameruleManager;
     private currentTick: number = 0;
     private provider: any; // TODO: interface
     private server: Prismarine;
@@ -50,11 +49,12 @@ export default class World {
         this.generator = generator;
 
         // TODO: Load default gamrules
-        this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true);
-        this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true);
+        // TODO: getGameruleManager().showCoordinates(true ?? false);
+        this.getGameruleManager().setGamerule(GameRules.DoDayLightCycle, true);
+        this.getGameruleManager().setGamerule(GameRules.ShowCoordinates, true);
     }
 
-    public async onEnable() {
+    public async onEnable(): Promise<void> {
         this.server
             .getLogger()
             .info(
@@ -83,12 +83,13 @@ export default class World {
         this.currentTick += 1;
 
         // Tick players
-        for (let player of this.players.values()) {
-            player.update(timestamp);
-
-            if (this.currentTick % 5)
-                player.getConnection().sendTime(this.currentTick);
-        }
+        await Promise.all(
+            Array.from(this.players.values()).map(async (player) => {
+                await player.update(timestamp);
+                if (this.currentTick % 5)
+                    player.getConnection().sendTime(this.currentTick);
+            })
+        );
 
         // TODO: tick chunks
     }
@@ -287,8 +288,11 @@ export default class World {
         await Promise.all(
             this.server
                 .getOnlinePlayers()
-                .map((onlinePlayer) =>
-                    onlinePlayer.getConnection().sendDataPacket(blockUpdate)
+                .map(
+                    async (onlinePlayer) =>
+                        await onlinePlayer
+                            .getConnection()
+                            .sendDataPacket(blockUpdate)
                 )
         );
 
@@ -363,14 +367,15 @@ export default class World {
         // TODO
     }
 
-    public getGameruleManager(): any {
+    public getGameruleManager(): GameruleManager {
         return this.gameruleManager;
     }
 
     public getTicks(): number {
         return this.currentTick;
     }
-    public setTicks(tick: number) {
+
+    public setTicks(tick: number): void {
         this.currentTick = tick;
     }
 

@@ -13,20 +13,20 @@ export default class PermissionManager {
     private ops: Set<string> = new Set();
     private permissions: Map<string, string> = new Map();
 
-    constructor(server: Prismarine) {
+    public constructor(server: Prismarine) {
         this.server = server;
     }
 
-    public async onEnable() {
+    public async onEnable(): Promise<void> {
         await this.parseOps();
     }
 
-    public async onDisable() {
+    public async onDisable(): Promise<void> {
         this.ops.clear();
         this.permissions.clear();
     }
 
-    private async parseOps() {
+    private async parseOps(): Promise<void> {
         try {
             if (!fs.existsSync(path.join(process.cwd(), '/ops.json')))
                 fs.writeFileSync(path.join(process.cwd(), '/ops.json'), '[]');
@@ -38,14 +38,14 @@ export default class PermissionManager {
                 ).toString()
             );
 
-            for (const op of ops) this.ops.add(op.name);
+            ops.map((op) => this.ops.add(op.name));
         } catch (err) {
             this.server.getLogger().error(err);
             throw new Error(`Invalid ops.json file.`);
         }
     }
 
-    public async setOp(username: string, op: boolean) {
+    public async setOp(username: string, op: boolean): Promise<boolean> {
         if (!op) this.ops.delete(username);
         else this.ops.add(username);
 
@@ -63,16 +63,17 @@ export default class PermissionManager {
                     4
                 )
             );
+            return true;
         } catch {
             return false;
         }
     }
 
-    public isOp(player: Player) {
-        return !player.isPlayer() || this.ops.has(player.getUsername());
+    public isOp(player: Player): boolean {
+        return !player.isPlayer() ?? this.ops.has(player.getUsername());
     }
 
-    public can(player: Player) {
+    public can(player: Player): any {
         return {
             execute: async (permission?: string) => {
                 if (!player.isPlayer()) return true; // We're the console or a plugin

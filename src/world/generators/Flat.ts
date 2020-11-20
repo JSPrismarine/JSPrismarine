@@ -3,7 +3,7 @@ import type Prismarine from '../../Prismarine';
 import Chunk from '../chunk/Chunk';
 
 export default class Flat {
-    getChunk({
+    public getChunk({
         pos,
         seed,
         server
