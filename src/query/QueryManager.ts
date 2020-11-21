@@ -24,121 +24,122 @@ export default class QueryManager {
         }
     }
 
-    public async onRaw(buffer: Buffer, rinfo: RemoteInfo) {
-        const stream = new BinaryStream(buffer);
-        const magic = stream.readShort();
-        const type: QueryType = stream.readByte();
-        const sessionId = stream.readInt() & 0x0f0f0f0f;
+    public async onRaw(buffer: Buffer, rinfo: RemoteInfo): Promise<Buffer> {
+        return await new Promise((resolve, reject) => {
+            const stream = new BinaryStream(buffer);
+            const magic = stream.readShort();
+            const type: QueryType = stream.readByte();
+            const sessionId = stream.readInt() & 0x0f0f0f0f;
 
-        if (magic !== 65277) return;
+            if (magic !== 65277) return reject();
 
-        switch (type) {
-            case QueryType.Handshake: {
-                // Handshake
-                const res = new BinaryStream();
-                res.writeByte(9);
-                res.writeInt(sessionId);
-                res.append(Buffer.from(`9513307\0`, 'binary'));
-                this.server
-                    .getRaknet()
-                    .sendBuffer(res.getBuffer(), rinfo.address, rinfo.port);
-                return res.getBuffer();
-            }
-            case QueryType.Stats: {
-                const res = new BinaryStream();
-                res.writeByte(0);
-                // padding
-                res.writeByte(115);
-                res.writeByte(112);
-                res.writeByte(108);
-                res.writeByte(105);
-                res.writeByte(116);
-                res.writeByte(110);
-                res.writeByte(117);
-                res.writeByte(109);
-                res.writeByte(0);
-                res.writeByte(128);
-                res.writeByte(0);
-                // End padding
+            switch (type) {
+                case QueryType.Handshake: {
+                    // Handshake
+                    const res = new BinaryStream();
+                    res.writeByte(9);
+                    res.writeInt(sessionId);
+                    res.append(Buffer.from(`9513307\0`, 'binary'));
+                    this.server
+                        .getRaknet()
+                        .sendBuffer(res.getBuffer(), rinfo.address, rinfo.port);
+                    return res.getBuffer();
+                }
+                case QueryType.Stats: {
+                    const res = new BinaryStream();
+                    res.writeByte(0);
+                    // padding
+                    res.writeByte(115);
+                    res.writeByte(112);
+                    res.writeByte(108);
+                    res.writeByte(105);
+                    res.writeByte(116);
+                    res.writeByte(110);
+                    res.writeByte(117);
+                    res.writeByte(109);
+                    res.writeByte(0);
+                    res.writeByte(128);
+                    res.writeByte(0);
+                    // End padding
 
-                const plugins = this.server
-                    .getPluginManager()
-                    .getPlugins()
-                    .map(
-                        (plugin: PluginFile) =>
-                            `${plugin.getDisplayName()} ${plugin.getVersion()}`
+                    const plugins = this.server
+                        .getPluginManager()
+                        .getPlugins()
+                        .map(
+                            (plugin: PluginFile) =>
+                                `${plugin.getDisplayName()} ${plugin.getVersion()}`
+                        );
+                    res.append(
+                        Buffer.from(
+                            `\0${[
+                                'hostname',
+                                this.server.getRaknet().getName().getMotd(),
+                                'gametype',
+                                'SMP',
+                                'game_id',
+                                'MINECRAFTPE',
+                                'version',
+                                this.server.getRaknet().getName().getVersion(),
+                                'plugins',
+                                `JSPrismarine on Prismarine ${this.server
+                                    .getConfig()
+                                    .getVersion()}-${this.git_rev}${
+                                    (plugins.length && ': ') || ''
+                                }${plugins.join('; ')}`, // TODO
+                                'map',
+                                this.server
+                                    .getWorldManager()
+                                    .getDefaultWorld()
+                                    ?.getName(),
+                                'numplayers',
+                                this.server
+                                    .getRaknet()
+                                    .getName()
+                                    .getOnlinePlayerCount(),
+                                'maxplayers',
+                                this.server
+                                    .getRaknet()
+                                    .getName()
+                                    .getMaxPlayerCount(),
+                                'hostport',
+                                this.server.getConfig().getPort(),
+                                'hostip',
+                                this.server.getConfig().getServerIp()
+                            ].join('\0')}\0\0`,
+                            'binary'
+                        )
                     );
-                res.append(
-                    Buffer.from(
-                        `\0${[
-                            'hostname',
-                            this.server.getRaknet().getName().getMotd(),
-                            'gametype',
-                            'SMP',
-                            'game_id',
-                            'MINECRAFTPE',
-                            'version',
-                            this.server.getRaknet().getName().getVersion(),
-                            'plugins',
-                            `JSPrismarine on Prismarine ${this.server
-                                .getConfig()
-                                .getVersion()}-${this.git_rev}${
-                                (plugins.length && ': ') || ''
-                            }${plugins.join('; ')}`, // TODO
-                            'map',
-                            this.server
-                                .getWorldManager()
-                                .getDefaultWorld()
-                                ?.getName(),
-                            'numplayers',
-                            this.server
-                                .getRaknet()
-                                .getName()
-                                .getOnlinePlayerCount(),
-                            'maxplayers',
-                            this.server
-                                .getRaknet()
-                                .getName()
-                                .getMaxPlayerCount(),
-                            'hostport',
-                            this.server.getConfig().getPort(),
-                            'hostip',
-                            this.server.getConfig().getServerIp()
-                        ].join('\0')}\0\0`,
-                        'binary'
-                    )
-                );
 
-                // padding
-                res.writeByte(1);
-                res.writeByte(112);
-                res.writeByte(108);
-                res.writeByte(97);
-                res.writeByte(121);
-                res.writeByte(101);
-                res.writeByte(114);
-                res.writeByte(95);
-                res.writeByte(0);
-                res.writeByte(0);
-                // End padding
+                    // padding
+                    res.writeByte(1);
+                    res.writeByte(112);
+                    res.writeByte(108);
+                    res.writeByte(97);
+                    res.writeByte(121);
+                    res.writeByte(101);
+                    res.writeByte(114);
+                    res.writeByte(95);
+                    res.writeByte(0);
+                    res.writeByte(0);
+                    // End padding
 
-                res.append(
-                    Buffer.from(
-                        `${this.server
-                            .getOnlinePlayers()
-                            .map((player) => `${player.getUsername()}\0`)}\0`,
-                        'binary'
-                    )
-                );
-                this.server
-                    .getRaknet()
-                    .sendBuffer(
-                        res.getBuffer(),
-                        inetAddr.address,
-                        inetAddr.port
+                    res.append(
+                        Buffer.from(
+                            `${this.server
+                                .getOnlinePlayers()
+                                .map(
+                                    (player) => `${player.getUsername()}\0`
+                                )}\0`,
+                            'binary'
+                        )
                     );
-                return res.getBuffer();
+                    this.server
+                        .getRaknet()
+                        .sendBuffer(res.getBuffer(), rinfo.address, rinfo.port);
+
+                    resolve(res.getBuffer());
+                }
             }
-        }
+        });
     }
 }
