@@ -14,8 +14,6 @@ jest.mock('../Prismarine', () => {
     };
 });
 
-jest.setTimeout(30000);
-
 describe('QueryManager', () => {
     it('handshake', async (done) => {
         const prismarine = new Prismarine({
