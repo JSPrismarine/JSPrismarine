@@ -9,6 +9,20 @@ export default class LoginHandler {
     static NetID = Identifiers.LoginPacket;
 
     static handle(packet: LoginPacket, server: Prismarine, player: Player) {
+        // Kick client if has newer / older client version
+        if (packet.protocol !== Identifiers.Protocol) {
+            if (packet.protocol < Identifiers.Protocol) {
+                player
+                    .getConnection()
+                    .sendPlayStatus(PlayStatus.LoginFailedClient);
+            } else {
+                player
+                    .getConnection()
+                    .sendPlayStatus(PlayStatus.LoginFailedServer);
+            }
+            return;
+        }
+
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;
         player.randomId = packet.clientRandomId;
