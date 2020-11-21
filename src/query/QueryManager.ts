@@ -3,6 +3,7 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import git from 'git-rev-sync';
 import PluginFile from '../plugin/PluginFile';
 import type InetAddress from '../network/raknet/utils/InetAddress';
+import { RemoteInfo } from 'dgram';
 
 export enum QueryType {
     Handshake = 0,
@@ -23,10 +24,11 @@ export default class QueryManager {
         }
     }
 
-    public onRaw(buffer: BinaryStream, inetAddr: InetAddress) {
-        const magic = buffer.readShort();
-        const type: QueryType = buffer.readByte();
-        const sessionId = buffer.readInt() & 0x0f0f0f0f;
+    public async onRaw(buffer: Buffer, rinfo: RemoteInfo) {
+        const stream = new BinaryStream(buffer);
+        const magic = stream.readShort();
+        const type: QueryType = stream.readByte();
+        const sessionId = stream.readInt() & 0x0f0f0f0f;
 
         if (magic !== 65277) return;
 
@@ -39,11 +41,7 @@ export default class QueryManager {
                 res.append(Buffer.from(`9513307\0`, 'binary'));
                 this.server
                     .getRaknet()
-                    .sendBuffer(
-                        res.getBuffer(),
-                        inetAddr.address,
-                        inetAddr.port
-                    );
+                    .sendBuffer(res.getBuffer(), rinfo.address, rinfo.port);
                 return res.getBuffer();
             }
             case QueryType.Stats: {
