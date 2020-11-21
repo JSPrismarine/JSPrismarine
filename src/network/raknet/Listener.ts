@@ -1,6 +1,6 @@
 import type Prismarine from '../../Prismarine';
 import Identifiers from './protocol/Identifiers';
-import Connection from './connection';
+import Connection from './Connection';
 import ServerName from './utils/ServerName';
 import InetAddress from './utils/InetAddress';
 import { RemoteInfo, Socket } from 'dgram';
@@ -103,7 +103,10 @@ export default class Listener extends EventEmitter {
             case Identifiers.Query:
                 return (await this.server
                     .getQueryManager()
-                    .onRaw(buffer, rinfo)) as Buffer;
+                    .onRaw(
+                        buffer,
+                        new InetAddress(rinfo.address, rinfo.port)
+                    )) as Buffer;
             case Identifiers.UnconnectedPing:
                 return await this.handleUnconnectedPing(buffer);
             case Identifiers.OpenConnectionRequest1:

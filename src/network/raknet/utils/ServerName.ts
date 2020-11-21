@@ -70,7 +70,7 @@ export default class ServerName {
         this.gamemode = gamemode;
     }
 
-    public getServerId(): number {
+    public getServerId(): bigint {
         return this.serverId;
     }
 

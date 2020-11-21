@@ -129,7 +129,7 @@ export default class Prismarine {
             this.getEventManager().emit('raknetEncapsulatedPacket', event);
         });
         this.raknet.on('raw', (buffer: Buffer, inetAddr: InetAddress) => {
-            this.getQueryManager().onRaw(new BinaryStream(buffer), inetAddr);
+            this.getQueryManager().onRaw(buffer, inetAddr);
         });
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
@@ -187,7 +187,7 @@ export default class Prismarine {
 
                 let time = Date.now();
                 {
-                    let token = `${inetAddr.address}:${inetAddr.port}`;
+                    let token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
                     if (this.players.has(token)) {
                         let player = this.players.get(token);
                         if (!player) {
@@ -216,7 +216,7 @@ export default class Prismarine {
                         this.getEventManager().emit('chat', event);
                     }
                     this.logger.info(
-                        `${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`
+                        `${inetAddr.getAddress()}:${inetAddr.getPort()} disconnected due to ${reason}`
                     );
                 }
                 this.logger.silly(
@@ -229,7 +229,7 @@ export default class Prismarine {
             const raknetPacket = event.getPacket();
             const inetAddr = event.getInetAddr();
 
-            let token = `${inetAddr.address}:${inetAddr.port}`;
+            let token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
             if (!this.players.has(token)) return;
             let player = this.players.get(token);
 
