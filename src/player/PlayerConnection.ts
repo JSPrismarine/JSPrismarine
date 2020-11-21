@@ -6,7 +6,7 @@ import Block from '../block/Block';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
 import Item from '../item/Item';
 import Chunk from '../world/chunk/Chunk';
-import type Connection from '../network/raknet/connection';
+import type Connection from '../network/raknet/Connection';
 import type Player from './Player';
 import BatchPacket from '../network/packet/BatchPacket';
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
