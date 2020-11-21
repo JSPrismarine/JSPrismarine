@@ -1,36 +1,33 @@
-const BitFlags = require('./bitflags');
-const Reliability = require('./reliability');
-const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BitFlags from './BitFlags';
+import Reliability from './Reliability';
 
-('use strict');
-
-class EncapsulatedPacket {
+export default class EncapsulatedPacket {
     // Decoded Encapsulated content
-    buffer;
+    public buffer!: Buffer;
 
     // Encapsulation decoded fields
-    reliability;
+    public reliability!: number;
 
-    messageIndex;
-    sequenceIndex;
-    orderIndex;
-    orderChannel;
+    public messageIndex!: number;
+    public sequenceIndex!: number;
+    public orderIndex!: number;
+    public orderChannel!: number;
 
-    split;
+    public split!: boolean;
     // If packet is not splitted all those
     // fields remains undefined
-    splitCount;
-    splitIndex;
-    splitID;
+    public splitCount!: number;
+    public splitIndex!: number;
+    public splitID!: number;
 
-    needACK = false;
-    identifierACK;
+    public needACK = false;
 
-    static fromBinary(stream) {
+    public static fromBinary(stream: BinaryStream): EncapsulatedPacket {
         let packet = new EncapsulatedPacket();
         let header = stream.readByte();
         packet.reliability = (header & 224) >> 5;
-        packet.split = (header & BitFlags.Split) > 0;
+        packet.split = (header & BitFlags.SPLIT) > 0;
 
         let length = stream.readShort();
         length >>= 3;
@@ -38,15 +35,15 @@ class EncapsulatedPacket {
             throw new Error('Got an empty encapsulated packet');
         }
 
-        if (Reliability.reliable(packet.reliability)) {
+        if (Reliability.isReliable(packet.reliability)) {
             packet.messageIndex = stream.readLTriad();
         }
 
-        if (Reliability.sequenced(packet.reliability)) {
+        if (Reliability.isSequenced(packet.reliability)) {
             packet.sequenceIndex = stream.readLTriad();
         }
 
-        if (Reliability.sequencedOrOrdered(packet.reliability)) {
+        if (Reliability.isSequencedOrOrdered(packet.reliability)) {
             packet.orderIndex = stream.readLTriad();
             packet.orderChannel = stream.readByte();
         }
@@ -57,30 +54,30 @@ class EncapsulatedPacket {
             packet.splitIndex = stream.readInt();
         }
 
-        packet.buffer = stream.buffer.slice(stream.offset);
-        stream.offset += length;
+        packet.buffer = stream.getBuffer().slice(stream.getOffset());
+        stream.addOffset(length, true);
 
         return packet;
     }
 
-    toBinary() {
+    public toBinary(): BinaryStream {
         let stream = new BinaryStream();
         let header = this.reliability << 5;
         if (this.split) {
-            header |= BitFlags.Split;
+            header |= BitFlags.SPLIT;
         }
         stream.writeByte(header);
         stream.writeShort(this.buffer.length << 3);
 
-        if (Reliability.reliable(this.reliability)) {
+        if (Reliability.isReliable(this.reliability)) {
             stream.writeLTriad(this.messageIndex);
         }
 
-        if (Reliability.sequenced(this.reliability)) {
+        if (Reliability.isSequenced(this.reliability)) {
             stream.writeLTriad(this.sequenceIndex);
         }
 
-        if (Reliability.sequencedOrOrdered(this.reliability)) {
+        if (Reliability.isSequencedOrOrdered(this.reliability)) {
             stream.writeLTriad(this.orderIndex);
             stream.writeByte(this.orderChannel);
         }
@@ -95,7 +92,7 @@ class EncapsulatedPacket {
         return stream;
     }
 
-    getTotalLength() {
+    public getTotalLength(): number {
         return (
             3 +
             this.buffer.length +

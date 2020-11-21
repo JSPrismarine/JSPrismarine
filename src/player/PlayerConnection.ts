@@ -29,8 +29,8 @@ import CoordinateUtils from '../world/CoordinateUtils';
 import PlayerListEntry from '../network/type/PlayerListEntry';
 import Skin from '../utils/skin/Skin';
 import UUID from '../utils/uuid';
+import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 
-const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
 const PlayerListAction = require('../network/type/player-list-action');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
@@ -55,7 +55,7 @@ export default class PlayerConnection {
         _needACK = false,
         _immediate = false
     ) {
-        let encapsulated: typeof EncapsulatedPacket = await new Promise(
+        const encapsulated: EncapsulatedPacket = await new Promise(
             (resolve) => {
                 let batch = new BatchPacket();
                 batch.addPacket(packet);
