@@ -7,96 +7,89 @@ export default class ServerName {
     private name = 'JSRakNet';
     private protocol = Identifiers.Protocol;
     private version = Identifiers.MinecraftVersion;
-    private players = {
-        online: 0,
-        max: 20
-    };
+    private maxPlayers: number;
     private gamemode: string;
-    private serverId = 0;
+    private serverId = 0n;
 
-    constructor(server: Prismarine) {
+    public constructor(server: Prismarine) {
         this.server = server;
         this.motd = server.getConfig().getMotd();
         this.gamemode = server.getConfig().getGamemode();
-        this.players.max = server.getConfig().getMaxPlayers();
+        this.maxPlayers = server.getConfig().getMaxPlayers();
     }
 
-    public getMotd() {
+    public getMotd(): string {
         return this.motd;
     }
 
-    public setMotd(motd: string) {
+    public setMotd(motd: string): void {
         this.motd = motd;
     }
 
-    public getName() {
+    public getName(): string {
         return this.name;
     }
 
-    public setName(name: string) {
+    public setName(name: string): void {
         this.name = name;
     }
 
-    public getProtocol() {
+    public getProtocol(): number {
         return this.protocol;
     }
 
-    public setProtocol(protocol: number) {
+    public setProtocol(protocol: number): void {
         this.protocol = protocol;
     }
 
-    public getVersion() {
+    public getVersion(): string {
         return this.version;
     }
 
-    public setVersion(version: string) {
+    public setVersion(version: string): void {
         this.version = version;
     }
 
-    public getOnlinePlayerCount() {
-        return this.players.online;
+    public getOnlinePlayerCount(): number {
+        return this.server.getOnlinePlayers().length;
     }
 
-    public setOnlinePlayerCount(count: number) {
-        this.players.online = count;
+    public getMaxPlayerCount(): number {
+        return this.maxPlayers;
     }
 
-    public getMaxPlayerCount() {
-        return this.players.max;
+    public setMaxPlayerCount(count: number): void {
+        this.maxPlayers = count;
     }
 
-    public setMaxPlayerCount(count: number) {
-        this.players.max = count;
-    }
-
-    public getGamemode() {
+    public getGamemode(): string {
         return this.gamemode;
     }
 
-    public setGamemode(gamemode: string) {
+    public setGamemode(gamemode: string): void {
         this.gamemode = gamemode;
     }
 
-    public getServerId() {
+    public getServerId(): number {
         return this.serverId;
     }
 
-    public setServerId(id: number) {
+    public setServerId(id: bigint): void {
         this.serverId = id;
     }
 
-    public toString() {
+    public toString(): string {
         return (
             [
                 'MCPE',
-                this.motd,
-                this.protocol,
-                this.version,
-                this.players.online,
-                this.players.max,
-                this.serverId,
-                this.name,
-                this.gamemode
+                this.getMotd() ?? 'Example motd',
+                this.getProtocol(),
+                this.getVersion(),
+                this.getOnlinePlayerCount(),
+                this.getMaxPlayerCount(),
+                this.getServerId(),
+                this.getName(),
+                this.getGamemode()
             ].join(';') + ';'
         );
     }

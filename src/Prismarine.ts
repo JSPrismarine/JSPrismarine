@@ -51,7 +51,7 @@ export default class Prismarine {
     private permissionManager: PermissionManager;
     private banManager: BanManager;
 
-    static instance: Prismarine;
+    public static instance: Prismarine;
 
     public constructor({
         logger,
@@ -113,7 +113,6 @@ export default class Prismarine {
         await this.worldManager.onEnable();
 
         this.raknet = await new Listener(this).listen(serverIp, port);
-        this.raknet.getName().setOnlinePlayerCount(this.players.size);
         this.raknet.on('openConnection', (connection: any) => {
             const event = new RaknetConnectEvent(connection);
             this.getEventManager().emit('raknetConnect', event);
@@ -174,9 +173,6 @@ export default class Prismarine {
 
                 // Add the player into the world
                 world?.addPlayer(player);
-                this.getRaknet()
-                    .getName()
-                    .setOnlinePlayerCount(this.players.size);
                 this.logger.silly(
                     `Player creation took about ${Date.now() - time} ms`
                 );
@@ -222,9 +218,6 @@ export default class Prismarine {
                     this.logger.info(
                         `${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`
                     );
-                    this.raknet
-                        .getName()
-                        .setOnlinePlayerCount(this.players.size);
                 }
                 this.logger.silly(
                     `Player destruction took about ${Date.now() - time} ms`
@@ -303,7 +296,7 @@ export default class Prismarine {
             await Promise.all(
                 this.getWorldManager()
                     .getWorlds()
-                    .map((world) => world.update(tpsTimer))
+                    .map(async (world) => await world.update(tpsTimer))
             );
 
             // Calculate current tps

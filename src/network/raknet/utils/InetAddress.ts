@@ -1,23 +1,23 @@
 export default class InetAddress {
-    #address: string;
-    #port: number;
-    #version: number;
+    private address: string;
+    private port: number;
+    private version: number;
 
-    constructor(address: string, port: number, version = 4) {
-        this.#address = address;
-        this.#port = port;
-        this.#version = version;
+    public constructor(address: string, port: number, version = 4) {
+        this.address = address;
+        this.port = port;
+        this.version = version;
     }
 
-    get address() {
-        return this.#address;
+    public getAddress(): string {
+        return this.address;
     }
 
-    get port() {
-        return this.#port;
+    public getPort(): number {
+        return this.port;
     }
 
-    get version() {
-        return this.#version;
+    public getVersion(): number {
+        return this.version;
     }
 }
