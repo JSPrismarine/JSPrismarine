@@ -1,6 +1,7 @@
 import QueryManager from './QueryManager';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Prismarine from '../Prismarine';
+import InetAddress from '../network/raknet/utils/InetAddress';
 
 jest.mock('../Prismarine', () => {
     return class Prismarine {
@@ -28,7 +29,7 @@ describe('QueryManager', () => {
         stream.writeInt(0);
         (stream as any).offset = 0;
 
-        const buffer = await queryManager.onRaw(stream.getBuffer(), {} as any);
+        const buffer = await queryManager.onRaw(stream.getBuffer(), new InetAddress('0.0.0.0', 19132));
         expect(buffer.toString()).toBe(
             Buffer.from(
                 '\x09\x00\x00\x00\x00\x39\x35\x31\x33\x33\x30\x37\x00',
