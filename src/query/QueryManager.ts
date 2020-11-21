@@ -43,7 +43,7 @@ export default class QueryManager {
                     this.server
                         .getRaknet()
                         .sendBuffer(res.getBuffer(), rinfo.address, rinfo.port);
-                    return res.getBuffer();
+                    return resolve(res.getBuffer());
                 }
                 case QueryType.Stats: {
                     const res = new BinaryStream();
