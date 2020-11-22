@@ -12,6 +12,7 @@ import CoordinateUtils from './CoordinateUtils';
 import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/uuid';
 import GameruleManager, { GameRules } from './GameruleManager';
+import { time } from 'console';
 
 interface WorldData {
     name: string;
@@ -26,7 +27,7 @@ export default class World {
     private name: string = 'Unknown';
     private players: Map<bigint, Player> = new Map();
     private entities: Map<bigint, Entity> = new Map();
-    private chunks: Map<string, any> = new Map();
+    private chunks: Map<string, Chunk> = new Map();
     private gameruleManager: GameruleManager;
     private currentTick: number = 0;
     private provider: any; // TODO: interface
@@ -60,7 +61,7 @@ export default class World {
             .info(
                 `Preparing start region for dimension §b'${this.name}'/${this.generator}§r`
             );
-        const chunksToLoad: Array<Promise<void>> = [];
+        const chunksToLoad: Array<Promise<Chunk>> = [];
         const time = Date.now();
 
         for (let x = 0; x < 32; x++) {
@@ -83,13 +84,11 @@ export default class World {
         this.currentTick += 1;
 
         // Tick players
-        await Promise.all(
-            Array.from(this.players.values()).map(async (player) => {
-                await player.update(timestamp);
-                if (this.currentTick % 5)
-                    player.getConnection().sendTime(this.currentTick);
-            })
-        );
+        for (const player of this.players.values()) {
+            player.update(timestamp);
+            if (this.currentTick % 5)
+                player.getConnection().sendTime(this.currentTick);
+        }
 
         // TODO: tick chunks
     }
@@ -98,7 +97,7 @@ export default class World {
      * Returns the chunk in the specifies x and z, if the chunk doesn't exists
      * it is generated.
      */
-    public async getChunk(x: number, z: number, generate = true): Promise<any> {
+    public async getChunk(x: number, z: number, generate = true): Promise<Chunk> {
         return await this.loadChunk(x, z, generate);
     }
 
@@ -112,7 +111,7 @@ export default class World {
         x: number,
         z: number,
         _generate: boolean
-    ): Promise<any> {
+    ): Promise<Chunk> {
         let index = CoordinateUtils.encodePos(x, z);
         if (!this.chunks.has(index)) {
             const generator = this.server
@@ -127,7 +126,7 @@ export default class World {
             }
 
             // try - catch for provider errors
-            let chunk = await this.provider.readChunk({
+            const chunk = await this.provider.readChunk({
                 x,
                 z,
                 generator,
@@ -136,7 +135,7 @@ export default class World {
             });
             this.chunks.set(index, chunk);
         }
-        return this.chunks.get(index);
+        return this.chunks.get(index) as Chunk;
     }
 
     /**
@@ -285,12 +284,11 @@ export default class World {
             .getBlockManager()
             .getRuntimeWithMeta(block.getId(), block.getMeta());
 
-        await Promise.all(
+        Promise.all(
             this.server
                 .getOnlinePlayers()
-                .map(
-                    async (onlinePlayer) =>
-                        await onlinePlayer
+                .map((onlinePlayer) =>
+                        onlinePlayer
                             .getConnection()
                             .sendDataPacket(blockUpdate)
                 )
@@ -308,7 +306,7 @@ export default class World {
         pk.isBabyMob = false;
         pk.disableRelativeVolume = false;
 
-        await Promise.all(
+        Promise.all(
             player
                 .getPlayersInChunk()
                 .map((narbyPlayer) =>
@@ -347,12 +345,11 @@ export default class World {
     public async saveChunks(): Promise<void> {
         let time = Date.now();
         this.server.getLogger().debug('[World save] saving chunks...');
-        for (let chunk of this.chunks.values()) {
-            if (chunk.hasChanged()) {
-                await this.provider.writeChunk(chunk);
-                chunk.setChanged(false);
-            }
+        const promises: Array<Promise<void>> = [];
+        for (const chunk of this.chunks.values()) {
+            chunk.hasChanged() && chunk.setChanged(false) && promises.push(this.provider.writeChunk(chunk));
         }
+        Promise.all(promises);
         this.server
             .getLogger()
             .debug('[World save] took ' + (Date.now() - time) + 'ms');

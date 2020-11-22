@@ -82,7 +82,7 @@ export default class InventoryTransactionHandler {
                                 .getBlockManager()
                                 .getRuntimeWithId(0); // Air
 
-                            await Promise.all(
+                            Promise.all(
                                 server
                                     .getOnlinePlayers()
                                     .map((player) =>

@@ -92,7 +92,7 @@ export default class Player extends Entity {
 
     public async update(tick: number) {
         // Update movement for every player
-        await Promise.all(
+        Promise.all(
             this.server
                 .getOnlinePlayers()
                 .filter((onlinePlayer) => !(onlinePlayer == this))
