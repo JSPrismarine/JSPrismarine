@@ -65,6 +65,8 @@ export default class LevelDB extends Provider {
                             const subChunkVersion = stream.readByte();
                             if (subChunkVersion == 0) {
                                 let blocks = stream.read(4096);
+
+                                // TODO: This should be read as halfbytes instead of bytes
                                 let blockData = stream.read(2048);
 
                                 let subChunk = new SubChunk();
