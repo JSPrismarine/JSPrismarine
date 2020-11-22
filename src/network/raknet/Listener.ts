@@ -15,7 +15,7 @@ import IncompatibleProtocolVersion from './protocol/IncompatibleProtocolVersion'
 import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
 import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
-import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async/fixed';
+import { setIntervalAsync, clearIntervalAsync } from 'set-interval-async/dynamic';
 
 // Minecraft related protocol
 const PROTOCOL = 10;
@@ -78,11 +78,9 @@ export default class Listener extends EventEmitter {
 
                 const timer = setIntervalAsync(async () => {
                     if (!this.shutdown) {
-                        await Promise.all(
-                            Array.from(
-                                this.connections.values()
-                            ).map((connection) => connection.update(Date.now()))
-                        );
+                        for await (const conn of this.connections.values()) {
+                            conn.update(Date.now());
+                        }
                     } else {
                         clearIntervalAsync(timer);
                     }

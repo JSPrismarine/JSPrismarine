@@ -45,7 +45,7 @@ export default class PlayerActionHandler {
                 pk.z = packet.z;
                 pk.data = 65535 / breakTime;
 
-                await Promise.all(
+                Promise.all(
                     player
                         .getPlayersInChunk()
                         .map((nearbyPlayer) =>
@@ -104,7 +104,7 @@ export default class PlayerActionHandler {
                     .getBlockManager()
                     .getRuntimeWithMeta(blockId, blockMeta);
 
-                await Promise.all(
+                Promise.all(
                     player
                         .getPlayersInChunk()
                         .map((nearbyPlayer) =>

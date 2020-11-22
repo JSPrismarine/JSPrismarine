@@ -86,7 +86,7 @@ export default class Connection {
     }
 
     public async update(timestamp: number): Promise<void> {
-        await new Promise(async (resolve) => {
+        return await new Promise((resolve) => {
             if (!this.isActive() && this.lastUpdate + 10000 < timestamp) {
                 this.disconnect('timeout');
                 return;
@@ -109,7 +109,7 @@ export default class Connection {
 
             if (this.packetToSend.size > 0) {
                 let limit = 16;
-                await Promise.all(
+                Promise.all(
                     Array.from(this.packetToSend).map((pk) => {
                         pk.sendTime = timestamp;
                         pk.encode();
@@ -129,7 +129,7 @@ export default class Connection {
                 }
             }
 
-            await Promise.all(
+            Promise.all(
                 Array.from(this.recoveryQueue.entries()).map(([seq, pk]) => {
                     if (pk.sendTime < Date.now() - 8000) {
                         this.packetToSend.add(pk);
@@ -138,7 +138,7 @@ export default class Connection {
                 })
             );
 
-            await Promise.all(
+            Promise.all(
                 Array.from(this.receivedWindow).map((seq) => {
                     if (seq < this.windowStart) {
                         this.receivedWindow.delete(seq);
@@ -150,7 +150,7 @@ export default class Connection {
 
             this.sendPacketQueue();
 
-            resolve(Date.now());
+            resolve();
         });
 
         // console.log(`Update took ${resolveTime - startTime}ms to complete`);
@@ -243,11 +243,9 @@ export default class Connection {
             // This is an array but soon
             // will be converted to a porperty
             // because there is alway one packet
-            await Promise.all(
-                dataPacket.packets.map(
-                    async (packet) => await this.receivePacket(packet)
-                )
-            );
+            for (const packet of dataPacket.packets) {
+                this.receivePacket(packet);
+            }
 
             resolve();
         });

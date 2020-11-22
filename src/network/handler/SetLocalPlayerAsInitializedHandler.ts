@@ -11,7 +11,7 @@ export default class SetLocalPlayerAsInitializedHandler {
         server: Prismarine,
         player: Player
     ) {
-        await Promise.all(
+        Promise.all(
             server
                 .getOnlinePlayers()
                 .filter((onlinePlayer) => !(onlinePlayer == player))
