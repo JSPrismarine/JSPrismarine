@@ -50,24 +50,23 @@ export default class PlayerConnection {
     }
 
     // To refactor
-    public sendDataPacket(
-        packet: any,
-        _needACK = false,
-        _immediate = false
-    ) {
+    public sendDataPacket(packet: any, _needACK = false, _immediate = false) {
         new Promise((resolve) => {
-                const batch = new BatchPacket();
-                batch.addPacket(packet);
-                batch.encode();
+            const batch = new BatchPacket();
+            batch.addPacket(packet);
+            batch.encode();
 
-                // Add this in raknet
-                const sendPacket = new EncapsulatedPacket();
-                sendPacket.reliability = 0;
-                sendPacket.buffer = batch.getBuffer();
+            // Add this in raknet
+            const sendPacket = new EncapsulatedPacket();
+            sendPacket.reliability = 0;
+            sendPacket.buffer = batch.getBuffer();
 
-                resolve(sendPacket);
-            }
-        ).then((encapsulated) => this.connection.addEncapsulatedToQueue(encapsulated as EncapsulatedPacket));
+            resolve(sendPacket);
+        }).then((encapsulated) =>
+            this.connection.addEncapsulatedToQueue(
+                encapsulated as EncapsulatedPacket
+            )
+        );
     }
 
     public async update(_tick: number) {
@@ -214,7 +213,10 @@ export default class PlayerConnection {
     }
 
     public requestChunk(x: number, z: number) {
-        this.player.getWorld().getChunk(x, z).then((chunk) => this.chunkSendQueue.add(chunk));
+        this.player
+            .getWorld()
+            .getChunk(x, z)
+            .then((chunk) => this.chunkSendQueue.add(chunk));
     }
 
     public sendInventory() {

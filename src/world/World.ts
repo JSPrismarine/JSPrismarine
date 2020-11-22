@@ -97,7 +97,11 @@ export default class World {
      * Returns the chunk in the specifies x and z, if the chunk doesn't exists
      * it is generated.
      */
-    public async getChunk(x: number, z: number, generate = true): Promise<Chunk> {
+    public async getChunk(
+        x: number,
+        z: number,
+        generate = true
+    ): Promise<Chunk> {
         return await this.loadChunk(x, z, generate);
     }
 
@@ -288,9 +292,7 @@ export default class World {
             this.server
                 .getOnlinePlayers()
                 .map((onlinePlayer) =>
-                        onlinePlayer
-                            .getConnection()
-                            .sendDataPacket(blockUpdate)
+                    onlinePlayer.getConnection().sendDataPacket(blockUpdate)
                 )
         );
 
@@ -347,7 +349,9 @@ export default class World {
         this.server.getLogger().debug('[World save] saving chunks...');
         const promises: Array<Promise<void>> = [];
         for (const chunk of this.chunks.values()) {
-            chunk.hasChanged() && chunk.setChanged(false) && promises.push(this.provider.writeChunk(chunk));
+            chunk.hasChanged() &&
+                chunk.setChanged(false) &&
+                promises.push(this.provider.writeChunk(chunk));
         }
         Promise.all(promises);
         this.server
