@@ -38,7 +38,10 @@ export default class OpCommand extends Command {
             return;
         } else {
             const target = sender.getServer().getPlayerByName(args[0]);
-            sender.getServer().getPermissionManager().setOp(args[0], true);
+            sender
+                .getServer()
+                .getPermissionManager()
+                .setOp(target?.getUsername() || args[0], true);
 
             if (target) {
                 const event = new ChatEvent(

@@ -256,6 +256,8 @@ export default class World {
                     break;
             }
 
+        if (blockPosition.getY() < 0) return;
+
         const success: boolean = await new Promise(async (resolve) => {
             const chunk = await this.getChunkAt(
                 placedPosition.getX(),
