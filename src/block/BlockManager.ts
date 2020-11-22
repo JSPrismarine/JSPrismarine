@@ -57,7 +57,7 @@ export default class BlockManager {
         return (
             this.getBlocks().filter(
                 (a) => a.getId() === id && a.meta === 0
-            )[0] || null
+            )[0] ?? null
         );
     }
 

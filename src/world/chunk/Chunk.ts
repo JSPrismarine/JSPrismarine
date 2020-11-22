@@ -82,51 +82,57 @@ export default class Chunk {
         }
     }
 
-    getX() {
+    public getX() {
         return this.#x;
     }
 
-    getZ() {
+    public getZ() {
         return this.#z;
     }
 
-    static getIdIndex(x: number, y: number, z: number) {
+    public static getIdIndex(x: number, y: number, z: number) {
         return (x << 12) | (z << 8) | y;
     }
 
-    static getBiomeIndex(x: number, z: number) {
+    public static getBiomeIndex(x: number, z: number) {
         return z % 16 | x;
     }
 
-    static getHeightMapIndex(x: number, z: number) {
+    public static getHeightMapIndex(x: number, z: number) {
         return z % 16 | x;
     }
 
-    setBiomeId(x: number, z: number, biomeId: any) {
+    public setBiomeId(x: number, z: number, biomeId: any) {
         this.#biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff;
         this.#hasChanged = true;
     }
 
-    getBlockId(x: number, y: number, z: number) {
+    public getFullBlock(x: number, y: number, z: number) {
+        return this.getSubChunk(y >> 4, true).getFullBlock(x, y & 0x0f, z);
+    }
+
+    public getBlockId(x: number, y: number, z: number) {
         return this.getSubChunk(y >> 4, true).getBlockId(x, y & 0x0f, z);
     }
-    getBlockMetadata(x: number, y: number, z: number) {
+
+    public getBlockMetadata(x: number, y: number, z: number) {
         return this.getSubChunk(y >> 4, true).getBlockMetadata(x, y & 0x0f, z);
     }
-    setBlockId(x: number, y: number, z: number, id: number) {
+
+    public setBlockId(x: number, y: number, z: number, id: number) {
         this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id);
         this.#hasChanged = true;
     }
 
-    setBlock(x: number, y: number, z: number, block: Block | null) {
+    public setBlock(x: number, y: number, z: number, block: Block | null) {
         if (!block) return;
 
         this.getSubChunk(y >> 4, true).setBlock(x, y & 0x0f, z, block);
         this.#hasChanged = true;
     }
 
-    getSubChunk(y: number, generateNew = false) {
-        if (y < 0 || y >= this.#height) {
+    public getSubChunk(y: number, generateNew = false) {
+        if (y < 0 ?? y >= this.#height) {
             return new EmptySubChunk();
         } else if (
             generateNew &&
@@ -138,15 +144,15 @@ export default class Chunk {
         return this.#subChunks.get(y);
     }
 
-    getSubChunks() {
+    public getSubChunks() {
         return this.#subChunks;
     }
 
-    setHeightMap(x: number, z: number, value: number) {
+    public setHeightMap(x: number, z: number, value: number) {
         this.#heightMap[Chunk.getHeightMapIndex(x, z)] = value;
     }
 
-    getHighestSubChunkIndex() {
+    public getHighestSubChunkIndex() {
         for (let y = this.#subChunks.size - 1; y >= 0; --y) {
             if (this.#subChunks.get(y) instanceof EmptySubChunk) {
                 continue;
@@ -157,7 +163,7 @@ export default class Chunk {
         return -1;
     }
 
-    getHighestBlock(x: number, z: number) {
+    public getHighestBlock(x: number, z: number) {
         let index = this.getHighestSubChunkIndex();
         if (index === -1) {
             return -1;
@@ -173,11 +179,11 @@ export default class Chunk {
         return -1;
     }
 
-    getSubChunkSendCount() {
+    public getSubChunkSendCount() {
         return this.getHighestSubChunkIndex() + 1;
     }
 
-    recalculateHeightMap() {
+    public recalculateHeightMap() {
         for (let x = 0; x < 16; x++) {
             for (let z = 0; z < 16; z++) {
                 this.setHeightMap(x, z, this.getHighestBlock(x, z) + 1);
@@ -187,14 +193,12 @@ export default class Chunk {
 
     /**
      * Returns true if the chunk has been modified.
-     *
-     * @returns {boolean}
      */
-    hasChanged() {
+    public hasChanged(): boolean {
         return this.#hasChanged;
     }
 
-    setChanged(bool = true) {
+    public setChanged(bool = true) {
         this.#hasChanged = bool;
     }
 
@@ -203,19 +207,19 @@ export default class Chunk {
      *
      * @param {Entity} entity
      */
-    addEntity(entity: any) {
+    public addEntity(entity: any) {
         this.#entities.push(entity);
     }
 
-    getHeightMap() {
+    public getHeightMap() {
         return this.#heightMap;
     }
 
-    getBiomes() {
+    public getBiomes() {
         return this.#biomes;
     }
 
-    toBinary() {
+    public toBinary() {
         let stream = new BinaryStream();
         let subChunkCount = this.getSubChunkSendCount();
         for (let y = 0; y < subChunkCount; ++y) {
