@@ -265,7 +265,9 @@ export default class Prismarine {
                         }
 
                         if (
-                            !this.packetRegistry.getHandlers().has(packet?.getId())
+                            !this.packetRegistry
+                                .getHandlers()
+                                .has(packet?.getId())
                         ) {
                             this.logger.error(
                                 `Packet ${packet.constructor.name} doesn't have a handler`
@@ -288,7 +290,7 @@ export default class Prismarine {
                         }
                     })
                 );
-                });
+            });
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
