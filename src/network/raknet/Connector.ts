@@ -34,7 +34,7 @@ const getRandomInt = (min: number, max: number) => {
 };
 
 // Listen to packets and then process them
-export default class Listener extends EventEmitter {
+export default class Connector extends EventEmitter {
     private clientGUID: bigint = Crypto.randomBytes(8).readBigInt64BE();
     private address!: string;
     private port!: number;
