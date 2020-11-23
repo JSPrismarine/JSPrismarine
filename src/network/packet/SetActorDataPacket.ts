@@ -7,8 +7,11 @@ export default class SetActorDataPacket extends DataPacket {
     public runtimeEntityId!: bigint;
     public metadata: any;
 
+    public tick!: bigint;
+
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeEntityMetadata(this.metadata);
+        this.writeUnsignedVarLong(this.tick);
     }
 }

@@ -5,20 +5,67 @@ import SkinPersona from './skin-persona/SkinPersona';
 import SkinPersonaPiece from './skin-persona/SkinPersonaPiece';
 import SkinPersonaPieceTintColor from './skin-persona/SkinPersonaPieceTintColor';
 
+interface Image {
+    ImageWidth: number;
+    ImageHeight: number;
+    Image: string;
+}
+
+interface AnimatedImageData extends Image {
+    Frames: number;
+    Type: number;
+    AnimationExpression: number;
+}
+
+interface PersonaPiece {
+    IsDefault: boolean;
+    PackId: string;
+    PieceId: string;
+    PieceType: string;
+    ProductId: string;
+}
+
+interface PieceTintColor {
+    Colors: Array<string>;
+    PieceType: string;
+}
+
+interface JWT {
+    SkinId: string;
+    CapeId: string;
+    SkinResourcePatch: string;
+    SkinImageHeight: number;
+    SkinImageWidth: number;
+    SkinGeometryData: string;
+    SkinAnimationData: string;
+    CapeImageHeight: number;
+    CapeImageWidth: number;
+    CapeOnClassicSkin: boolean;
+    SkinData: string;
+    CapeData: string;
+    PremiumSkin: boolean;
+    PersonaSkin: boolean;
+    SkinColor: string;
+    ArmSize: string;
+    AnimatedImageData: Array<AnimatedImageData>;
+    PersonaPieces: Array<PersonaPiece>;
+    PieceTintColors: Array<PieceTintColor>;
+}
+
 export default class Skin {
-    public id!: string;
-    public resourcePatch!: string;
-    public image!: SkinImage;
-    public animations: Set<SkinAnimation> = new Set();
-    public cape!: SkinCape;
-    public geometry!: string;
-    public animationData!: string;
-    public isPremium!: boolean;
-    public isPersona!: boolean;
-    public isCapeOnClassicSkin!: boolean;
-    public color!: string;
-    public armSize!: string;
-    public persona!: SkinPersona;
+    private id!: string;
+    private resourcePatch!: string;
+    private image!: SkinImage;
+    private animations: Set<SkinAnimation> = new Set();
+    private cape!: SkinCape;
+    private geometry!: string;
+    private animationData!: string;
+    private premium!: boolean;
+    private persona!: boolean;
+    private capeOnClassicSkin!: boolean;
+    private color: string = '#0';
+    private armSize: string = 'wide';
+    private personaData!: SkinPersona;
 
     /**
      * Full skin ID, computed because
@@ -33,7 +80,7 @@ export default class Skin {
      *
      * (loads the skin persona)
      */
-    static fromJWT(jwt: any) {
+    public static fromJWT(jwt: JWT): Skin {
         let skin = new Skin();
 
         // Read skin
@@ -45,7 +92,7 @@ export default class Skin {
         skin.image = new SkinImage({
             width: jwt.SkinImageWidth,
             height: jwt.SkinImageHeight,
-            data: Buffer.from(jwt.SkinData, 'base64').toString()
+            data: Buffer.from(jwt.SkinData, 'base64')
         });
         skin.color = jwt.SkinColor;
         skin.armSize = jwt.ArmSize;
@@ -57,21 +104,23 @@ export default class Skin {
                     image: new SkinImage({
                         width: animation.ImageWidth,
                         height: animation.ImageHeight,
-                        data: animation.Image
+                        data: Buffer.from(animation.Image, 'base64')
                     }),
                     frames: animation.Frames,
-                    type: animation.Type
+                    type: animation.Type,
+                    expression: animation.AnimationExpression
                 })
             );
         }
 
         // Read cape
-        skin.cape = new SkinCape();
-        skin.cape.id = jwt.CapeId;
-        skin.cape.image = new SkinImage({
-            width: jwt.CapeImageWidth,
-            height: jwt.CapeImageHeight,
-            data: Buffer.from(jwt.CapeData, 'base64').toString()
+        skin.cape = new SkinCape({
+            id: jwt.CapeId,
+            image: new SkinImage({
+                width: jwt.CapeImageWidth,
+                height: jwt.CapeImageHeight,
+                data: Buffer.from(jwt.CapeData, 'base64')
+            })
         });
 
         // TODO: make a class to manage geometry
@@ -84,19 +133,19 @@ export default class Skin {
         ).toString();
 
         // Read skin boolean properties
-        skin.isPremium = jwt.PremiumSkin;
-        skin.isPersona = jwt.PersonaSkin;
-        skin.isCapeOnClassicSkin = jwt.CapeOnClassicSkin;
+        skin.premium = jwt.PremiumSkin;
+        skin.persona = jwt.PersonaSkin;
+        skin.capeOnClassicSkin = jwt.CapeOnClassicSkin;
 
         // Avoid reading when skin is not persona type
-        if (skin.isPersona) {
-            skin.persona = new SkinPersona();
+        if (skin.persona) {
+            skin.personaData = new SkinPersona();
 
             // Read persona pieces
             for (let personaPiece of jwt.PersonaPieces) {
-                skin.persona.pieces.add(
+                skin.personaData.getPieces().add(
                     new SkinPersonaPiece({
-                        isDefault: personaPiece.IsDefault,
+                        def: personaPiece.IsDefault,
                         packId: personaPiece.PackId,
                         pieceId: personaPiece.PieceId,
                         pieceType: personaPiece.PieceType,
@@ -108,14 +157,70 @@ export default class Skin {
             // Read piece tint colors
             for (let pieceTintColor of jwt.PieceTintColors) {
                 let tintColor = new SkinPersonaPieceTintColor();
-                tintColor.colors.push(...pieceTintColor.Colors);
-                tintColor.pieceType = pieceTintColor.PieceType;
-                skin.persona.tintColors.add(tintColor);
+                tintColor.getColors().push(...pieceTintColor.Colors);
+                tintColor.setPieceType(pieceTintColor.PieceType);
+                skin.personaData.getTintColors().add(tintColor);
             }
         }
 
         // Compute a full id
-        skin.fullId = skin.cape.id + skin.id;
+        skin.fullId = skin.getCape().getId() + skin.id;
         return skin;
+    }
+
+    public getId(): string {
+        return this.id;
+    }
+
+    public getFullId(): string {
+        return this.fullId ?? this.getCape().getId() + this.getId();
+    }
+
+    public getResourcePatch(): string {
+        return this.resourcePatch;
+    }
+
+    public getImage(): SkinImage {
+        return this.image;
+    }
+
+    public getAnimations(): Set<SkinAnimation> {
+        return this.animations;
+    }
+
+    public getAnimationData(): string {
+        return this.animationData;
+    }
+
+    public isPersona(): boolean {
+        return this.persona;
+    }
+
+    public isPremium(): boolean {
+        return this.premium;
+    }
+
+    public isCapeOnClassicSkin(): boolean {
+        return this.capeOnClassicSkin;
+    }
+
+    public getColor(): string {
+        return this.color;
+    }
+
+    public getArmSize(): string {
+        return this.armSize;
+    }
+
+    public getPersonaData(): SkinPersona {
+        return this.personaData;
+    }
+
+    public getGeometry(): string {
+        return this.geometry;
+    }
+
+    public getCape(): SkinCape {
+        return this.cape;
     }
 }

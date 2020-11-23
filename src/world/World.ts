@@ -9,10 +9,10 @@ import Player from '../player/Player';
 import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
-import { GameruleManager, Rules } from '../world/GameruleManager';
 import SharedSeedRandom from './util/SharedSeedRandom';
-
-const UUID = require('../utils/uuid').default;
+import UUID from '../utils/uuid';
+import GameruleManager, { GameRules } from './GameruleManager';
+import { time } from 'console';
 
 interface WorldData {
     name: string;
@@ -27,8 +27,8 @@ export default class World {
     private name: string = 'Unknown';
     private players: Map<bigint, Player> = new Map();
     private entities: Map<bigint, Entity> = new Map();
-    private chunks: Map<string, any> = new Map();
-    private gameruleManager: any;
+    private chunks: Map<string, Chunk> = new Map();
+    private gameruleManager: GameruleManager;
     private currentTick: number = 0;
     private provider: any; // TODO: interface
     private server: Prismarine;
@@ -50,17 +50,18 @@ export default class World {
         this.generator = generator;
 
         // TODO: Load default gamrules
-        this.getGameruleManager().setGamerule(Rules.DoDayLightCycle, true);
-        this.getGameruleManager().setGamerule(Rules.ShowCoordinates, true);
+        // TODO: getGameruleManager().showCoordinates(true ?? false);
+        this.getGameruleManager().setGamerule(GameRules.DoDayLightCycle, true);
+        this.getGameruleManager().setGamerule(GameRules.ShowCoordinates, true);
     }
 
-    public async onEnable() {
+    public async onEnable(): Promise<void> {
         this.server
             .getLogger()
             .info(
                 `Preparing start region for dimension §b'${this.name}'/${this.generator}§r`
             );
-        const chunksToLoad: Array<Promise<void>> = [];
+        const chunksToLoad: Array<Promise<Chunk>> = [];
         const time = Date.now();
 
         for (let x = 0; x < 32; x++) {
@@ -83,9 +84,8 @@ export default class World {
         this.currentTick += 1;
 
         // Tick players
-        for (let player of this.players.values()) {
+        for (const player of this.players.values()) {
             player.update(timestamp);
-
             if (this.currentTick % 5)
                 player.getConnection().sendTime(this.currentTick);
         }
@@ -97,7 +97,11 @@ export default class World {
      * Returns the chunk in the specifies x and z, if the chunk doesn't exists
      * it is generated.
      */
-    public async getChunk(x: number, z: number, generate = true): Promise<any> {
+    public async getChunk(
+        x: number,
+        z: number,
+        generate = true
+    ): Promise<Chunk> {
         return await this.loadChunk(x, z, generate);
     }
 
@@ -111,7 +115,7 @@ export default class World {
         x: number,
         z: number,
         _generate: boolean
-    ): Promise<any> {
+    ): Promise<Chunk> {
         let index = CoordinateUtils.encodePos(x, z);
         if (!this.chunks.has(index)) {
             const generator = this.server
@@ -126,7 +130,7 @@ export default class World {
             }
 
             // try - catch for provider errors
-            let chunk = await this.provider.readChunk({
+            const chunk = await this.provider.readChunk({
                 x,
                 z,
                 generator,
@@ -135,7 +139,7 @@ export default class World {
             });
             this.chunks.set(index, chunk);
         }
-        return this.chunks.get(index);
+        return this.chunks.get(index) as Chunk;
     }
 
     /**
@@ -252,6 +256,8 @@ export default class World {
                     break;
             }
 
+        if (blockPosition.getY() < 0) return;
+
         const success: boolean = await new Promise(async (resolve) => {
             const chunk = await this.getChunkAt(
                 placedPosition.getX(),
@@ -272,7 +278,7 @@ export default class World {
             blockUpdate.x = placedPosition.getX();
             blockUpdate.y = placedPosition.getY();
             blockUpdate.z = placedPosition.getZ();
-            blockUpdate.BlockRuntimeId = 0; // TODO: get previous block
+            blockUpdate.blockRuntimeId = 0; // TODO: get previous block
             return;
         }
 
@@ -280,10 +286,17 @@ export default class World {
         blockUpdate.x = placedPosition.getX();
         blockUpdate.y = placedPosition.getY();
         blockUpdate.z = placedPosition.getZ();
-        blockUpdate.BlockRuntimeId = block.getRuntimeId();
-        for (let p of this.server.getOnlinePlayers()) {
-            p.getConnection().sendDataPacket(blockUpdate);
-        }
+        blockUpdate.blockRuntimeId = this.server
+            .getBlockManager()
+            .getRuntimeWithMeta(block.getId(), block.getMeta());
+
+        Promise.all(
+            this.server
+                .getOnlinePlayers()
+                .map((onlinePlayer) =>
+                    onlinePlayer.getConnection().sendDataPacket(blockUpdate)
+                )
+        );
 
         const pk = new LevelSoundEventPacket();
         pk.sound = 6; // TODO: enum
@@ -297,9 +310,13 @@ export default class World {
         pk.isBabyMob = false;
         pk.disableRelativeVolume = false;
 
-        for (let p of player.getPlayersInChunk()) {
-            p.getConnection().sendDataPacket(pk);
-        }
+        Promise.all(
+            player
+                .getPlayersInChunk()
+                .map((narbyPlayer) =>
+                    narbyPlayer.getConnection().sendDataPacket(pk)
+                )
+        );
     }
 
     /**
@@ -332,12 +349,13 @@ export default class World {
     public async saveChunks(): Promise<void> {
         let time = Date.now();
         this.server.getLogger().debug('[World save] saving chunks...');
-        for (let chunk of this.chunks.values()) {
-            if (chunk.hasChanged()) {
-                await this.provider.writeChunk(chunk);
-                chunk.setChanged(false);
-            }
+        const promises: Array<Promise<void>> = [];
+        for (const chunk of this.chunks.values()) {
+            chunk.hasChanged() &&
+                chunk.setChanged(false) &&
+                promises.push(this.provider.writeChunk(chunk));
         }
+        Promise.all(promises);
         this.server
             .getLogger()
             .debug('[World save] took ' + (Date.now() - time) + 'ms');
@@ -352,14 +370,15 @@ export default class World {
         // TODO
     }
 
-    public getGameruleManager(): any {
+    public getGameruleManager(): GameruleManager {
         return this.gameruleManager;
     }
 
     public getTicks(): number {
         return this.currentTick;
     }
-    public setTicks(tick: number) {
+
+    public setTicks(tick: number): void {
         this.currentTick = tick;
     }
 

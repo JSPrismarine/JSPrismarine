@@ -1,3 +1,4 @@
+import Identifiers from '../Identifiers';
 import LoginPacket from '../packet/LoginPacket';
 import LoginHandler from './LoginHandler';
 
@@ -7,6 +8,7 @@ describe('network', () => {
             it('handle with non-banned', (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
+                pk.protocol = Identifiers.Protocol;
 
                 const player = {
                     username: {},
@@ -39,6 +41,7 @@ describe('network', () => {
             it('handle with banned without reason', (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
+                pk.protocol = Identifiers.Protocol;
 
                 const player = {
                     username: {},
@@ -69,6 +72,7 @@ describe('network', () => {
             it('handle with banned with reason', (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
+                pk.protocol = Identifiers.Protocol;
 
                 const player = {
                     username: {},

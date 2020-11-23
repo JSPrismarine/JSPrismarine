@@ -10,7 +10,7 @@ export default class WorldManager {
     private genManager: GeneratorManager;
     private server: Prismarine;
 
-    constructor(server: Prismarine) {
+    public constructor(server: Prismarine) {
         this.server = server;
         this.genManager = new GeneratorManager(server);
 
@@ -20,7 +20,7 @@ export default class WorldManager {
         }
     }
 
-    public async onEnable() {
+    public async onEnable(): Promise<void> {
         const defaultWorld = this.server.getConfig().getLevelName();
         const world = await this.loadWorld(
             this.server.getConfig().getWorlds()[defaultWorld],
@@ -28,9 +28,12 @@ export default class WorldManager {
         );
         await world.onEnable();
     }
-    public async onDisable() {
+
+    public async onDisable(): Promise<void> {
         await Promise.all(
-            this.getWorlds().map((world) => this.unloadWorld(world.getName()))
+            this.getWorlds().map(
+                async (world) => await this.unloadWorld(world.getName())
+            )
         );
     }
 
@@ -75,7 +78,7 @@ export default class WorldManager {
     /**
      * Unloads a level by its folder name.
      */
-    public async unloadWorld(folderName: string) {
+    public async unloadWorld(folderName: string): Promise<void> {
         if (!this.isWorldLoaded(folderName)) {
             return this.server
                 .getLogger()
@@ -116,12 +119,12 @@ export default class WorldManager {
      * Returns a world by its folder name.
      */
     public getWorldByName(folderName: string): World | null {
-        for (let world of this.worlds.values()) {
-            if (world.getName().toLowerCase() == folderName.toLowerCase()) {
-                return world;
-            }
-        }
-        return null;
+        return (
+            this.getWorlds().find(
+                (world) =>
+                    world.getName().toLowerCase() === folderName.toLowerCase()
+            ) ?? null
+        );
     }
 
     /**

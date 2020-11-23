@@ -36,33 +36,33 @@ export default class LevelDB extends Provider {
      * Decodes a serialized chunk from
      * the database asynchronously.
      */
-    readChunk({
+    public async readChunk({
         x,
         z,
         generator,
         seed,
         server
     }: readChunk): Promise<Chunk | null> {
-        return new Promise(async (resolve, reject) => {
-            let index = LevelDB.chunkIndex(x, z);
-            let subChunks = new Map();
+        return await new Promise(async (resolve, reject) => {
+            const index = LevelDB.chunkIndex(x, z);
+            const subChunks: Map<number, SubChunk> = new Map();
 
             // Check if the chunks exists
             try {
                 // Chunk exists
-                let version = await this.db.get(index + Tags.Version);
+                const version = await this.db.get(index + Tags.Version);
                 // Needed for future versions
                 if (Number(version) === 7) {
                     // Read all sub chunks
                     for (let y = 0; y < 16; y++) {
                         try {
-                            let subChunkBuffer = await this.db.get(
+                            const subChunkBuffer = await this.db.get(
                                 index + Tags.SubChunkPrefix + y
                             );
-                            let stream = new BinaryStream(
+                            const stream = new BinaryStream(
                                 Buffer.from(subChunkBuffer)
                             );
-                            let subChunkVersion = stream.readByte();
+                            const subChunkVersion = stream.readByte();
                             if (subChunkVersion == 0) {
                                 let blocks = stream.read(4096);
                                 let blockData = stream.read(2048);
@@ -81,7 +81,7 @@ export default class LevelDB extends Provider {
                             // NO-OP
                         }
                     }
-                    await this.db.get(index + '\x2d');
+                    // await this.db.get(index + '\x2d');
                     return resolve(new Chunk(x, z, subChunks));
                 }
             } catch (err) {

@@ -7,6 +7,7 @@ import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
+import ItemComponentPacket from '../packet/ItemComponentPacket';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
@@ -25,6 +26,7 @@ export default class ResourcePackResponseHandler {
         let pk;
         if (packet.status === ResourcePackStatus.HaveAllPacks) {
             pk = new ResourcePackStackPacket();
+            pk.experimentsAlreadyEnabled = false;
             player.getConnection().sendDataPacket(pk);
         } else if (packet.status === ResourcePackStatus.Completed) {
             // Emit playerSpawn event
@@ -54,6 +56,7 @@ export default class ResourcePackResponseHandler {
             player
                 .getConnection()
                 .sendDataPacket(new AvailableActorIdentifiersPacket());
+
             player
                 .getConnection()
                 .sendDataPacket(new BiomeDefinitionListPacket());
@@ -78,8 +81,11 @@ export default class ResourcePackResponseHandler {
             player.getConnection().sendAvailableCommands();
             player.getConnection().sendInventory();
 
-            if (player.gamemode === Gamemode.Creative)
+            if (player.gamemode == Gamemode.Creative) {
                 player.getConnection().sendCreativeContents();
+            } else {
+                player.getConnection().sendCreativeContents(true);
+            }
 
             // First add
             player.getConnection().addToPlayerList();

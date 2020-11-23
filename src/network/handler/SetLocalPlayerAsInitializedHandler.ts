@@ -7,14 +7,18 @@ export default class SetLocalPlayerAsInitializedHandler {
     static NetID = Identifiers.SetLocalPlayerAsInitializedPacket;
 
     static async handle(
-        packet: SetLocalPlayerAsInitializedPacket,
+        _packet: SetLocalPlayerAsInitializedPacket,
         server: Prismarine,
         player: Player
     ) {
-        for (let onlinePlayer of server.getOnlinePlayers()) {
-            if (onlinePlayer === player) continue;
-            onlinePlayer.getConnection().sendSpawn(player);
-            player.getConnection().sendSpawn(onlinePlayer);
-        }
+        Promise.all(
+            server
+                .getOnlinePlayers()
+                .filter((onlinePlayer) => !(onlinePlayer == player))
+                .map((otherOnlinePlayer) => {
+                    otherOnlinePlayer.getConnection().sendSpawn(player);
+                    player.getConnection().sendSpawn(otherOnlinePlayer);
+                })
+        );
     }
 }

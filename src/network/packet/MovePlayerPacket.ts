@@ -24,6 +24,8 @@ export default class MovePlayerPacket extends DataPacket {
     public teleportCause!: number;
     public teleportItemId!: number;
 
+    public tick!: bigint;
+
     public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
 
@@ -43,6 +45,8 @@ export default class MovePlayerPacket extends DataPacket {
             this.teleportCause = this.readLInt();
             this.teleportItemId = this.readLInt();
         }
+
+        this.tick = this.readUnsignedVarLong();
     }
 
     public encodePayload() {
@@ -64,5 +68,7 @@ export default class MovePlayerPacket extends DataPacket {
             this.writeLInt(this.teleportCause);
             this.writeLInt(this.teleportItemId);
         }
+
+        this.writeUnsignedVarLong(this.tick);
     }
 }

@@ -6,7 +6,7 @@ import Block from '../block/Block';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
 import Item from '../item/Item';
 import Chunk from '../world/chunk/Chunk';
-import type Connection from '../network/raknet/connection';
+import type Connection from '../network/raknet/Connection';
 import type Player from './Player';
 import BatchPacket from '../network/packet/BatchPacket';
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
@@ -28,9 +28,9 @@ import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import CoordinateUtils from '../world/CoordinateUtils';
 import PlayerListEntry from '../network/type/PlayerListEntry';
 import Skin from '../utils/skin/Skin';
+import UUID from '../utils/uuid';
+import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 
-const EncapsulatedPacket = require('../network/raknet/protocol/encapsulated_packet');
-const UUID = require('../utils/uuid').default;
 const PlayerListAction = require('../network/type/player-list-action');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
@@ -50,27 +50,29 @@ export default class PlayerConnection {
     }
 
     // To refactor
-    public async sendDataPacket(
-        packet: any,
-        _needACK = false,
-        _immediate = false
-    ) {
-        let batch = new BatchPacket();
-        batch.addPacket(packet);
-        batch.encode();
+    public sendDataPacket(packet: any, _needACK = false, _immediate = false) {
+        new Promise((resolve) => {
+            const batch = new BatchPacket();
+            batch.addPacket(packet);
+            batch.encode();
 
-        // Add this in raknet
-        let sendPacket = new EncapsulatedPacket();
-        sendPacket.reliability = 0;
-        sendPacket.buffer = batch.getBuffer();
+            // Add this in raknet
+            const sendPacket = new EncapsulatedPacket();
+            sendPacket.reliability = 0;
+            sendPacket.buffer = batch.getBuffer();
 
-        this.connection.addEncapsulatedToQueue(sendPacket);
+            resolve(sendPacket);
+        }).then((encapsulated) =>
+            this.connection.addEncapsulatedToQueue(
+                encapsulated as EncapsulatedPacket
+            )
+        );
     }
 
     public async update(_tick: number) {
         if (this.chunkSendQueue.size > 0) {
-            this.chunkSendQueue.forEach((chunk: any) => {
-                let encodedPos = CoordinateUtils.encodePos(
+            for (const chunk of this.chunkSendQueue) {
+                const encodedPos = CoordinateUtils.encodePos(
                     chunk.getX(),
                     chunk.getZ()
                 );
@@ -80,7 +82,7 @@ export default class PlayerConnection {
 
                 this.sendChunk(chunk);
                 this.chunkSendQueue.delete(chunk);
-            });
+            }
         }
 
         await this.needNewChunks();
@@ -157,7 +159,7 @@ export default class PlayerConnection {
             return 0;
         });
 
-        await Promise.all(
+        Promise.all(
             chunksToSend.map(async (chunk) => {
                 let hash = CoordinateUtils.encodePos(chunk[0], chunk[1]);
                 if (forceResend) {
@@ -166,7 +168,7 @@ export default class PlayerConnection {
                         !this.loadingChunks.has(hash)
                     ) {
                         this.loadingChunks.add(hash);
-                        await this.requestChunk(chunk[0], chunk[1]);
+                        this.requestChunk(chunk[0], chunk[1]);
                     } else {
                         let loadedChunk = await this.player
                             .getWorld()
@@ -175,7 +177,7 @@ export default class PlayerConnection {
                     }
                 } else {
                     this.loadingChunks.add(hash);
-                    await this.requestChunk(chunk[0], chunk[1]);
+                    this.requestChunk(chunk[0], chunk[1]);
                 }
             })
         );
@@ -210,13 +212,11 @@ export default class PlayerConnection {
         }
     }
 
-    public async requestChunk(x: number, z: number) {
-        await this.player
+    public requestChunk(x: number, z: number) {
+        this.player
             .getWorld()
             .getChunk(x, z)
-            .then((chunk: any) => {
-                this.chunkSendQueue.add(chunk);
-            });
+            .then((chunk) => this.chunkSendQueue.add(chunk));
     }
 
     public sendInventory() {
@@ -239,8 +239,12 @@ export default class PlayerConnection {
         this.sendHandItem(this.player.inventory.getItemInHand()); // TODO: not working
     }
 
-    public sendCreativeContents() {
+    public sendCreativeContents(empty: boolean = false) {
         let pk = new CreativeContentPacket();
+        if (empty) {
+            this.sendDataPacket(pk);
+            return;
+        }
 
         const entries = [
             ...this.player.getServer().getBlockManager().getBlocks(),
@@ -337,6 +341,7 @@ export default class PlayerConnection {
         let pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.attributes = attributes || this.player.attributes.getAttributes();
+        pk.tick = BigInt(0); // TODO
         this.sendDataPacket(pk);
     }
 
@@ -344,6 +349,7 @@ export default class PlayerConnection {
         let pk = new SetActorDataPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.metadata = this.player.metadata.getMetadata();
+        pk.tick = BigInt(0); // TODO
         this.sendDataPacket(pk);
     }
 
@@ -395,6 +401,7 @@ export default class PlayerConnection {
         pk.onGround = player.onGround;
 
         pk.ridingEntityRuntimeId = BigInt(0);
+        pk.tick = BigInt(0); // TODO
         this.sendDataPacket(pk);
     }
 
@@ -429,6 +436,8 @@ export default class PlayerConnection {
      * Removes a player from other players list
      */
     public removeFromPlayerList() {
+        if (!this.player.uuid) return;
+
         let pk = new PlayerListPacket();
         pk.type = PlayerListAction.Remove;
 

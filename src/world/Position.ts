@@ -11,12 +11,12 @@ interface PositionData {
 export default class Position extends Vector3 {
     private world: World;
 
-    constructor({ x, y, z, world }: PositionData) {
+    public constructor({ x, y, z, world }: PositionData) {
         super(x, y, z);
         this.world = world;
     }
 
-    public getWorld() {
+    public getWorld(): World {
         return this.world;
     }
 }
