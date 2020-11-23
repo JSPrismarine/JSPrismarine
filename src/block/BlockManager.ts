@@ -5,15 +5,21 @@ import Block from './Block';
 import Prismarine from '../Prismarine';
 import { BlockIdsType } from './BlockIdsType';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import NBTWriter from '../nbt/NBTWriter';
 import { ByteOrder } from '../nbt/ByteOrder';
 import NBTTagCompound from '../nbt/NBTTagCompound';
+import NBTReader from '../nbt/NBTReader';
+
+const BedrockData = require('@jsprismarine/bedrock-data'); // TODO: convert to import
 
 export default class BlockManager {
     private server: Prismarine;
     private blocks = new Map();
     private runtimeIds: Array<number> = [];
     private blockPalette: Buffer = Buffer.alloc(0);
+
+    private legacyToRuntimeId: Map<number, number> = new Map();
+    private runtimeIdToLegacy: Map<number, number> = new Map();
+    private runtimeIdAllocator: number = 0;
 
     constructor(server: Prismarine) {
         this.server = server;
@@ -51,7 +57,7 @@ export default class BlockManager {
         return (
             this.getBlocks().filter(
                 (a) => a.getId() === id && a.meta === 0
-            )[0] || null
+            )[0] ?? null
         );
     }
 
@@ -82,29 +88,68 @@ export default class BlockManager {
     }
 
     private async generateBlockPalette() {
-        let palette: BinaryStream = await new Promise((resolve) => {
-            let data: BinaryStream = new BinaryStream();
-            let writer: NBTWriter = new NBTWriter(
+        let compound: Set<NBTTagCompound> = await new Promise((resolve) => {
+            let data: BinaryStream = new BinaryStream(
+                BedrockData.block_states // Vanilla states
+            );
+
+            let reader: NBTReader = new NBTReader(
                 data,
                 ByteOrder.LITTLE_ENDIAN
             );
-            writer.setUseVarint(true);
-
-            this.getBlocks()
-                .filter((b) => b.meta === 0)
-                .map((block) => () => {
-                    let tag: NBTTagCompound = new NBTTagCompound('');
-                    let nbtBlock: NBTTagCompound = new NBTTagCompound('block');
-
-                    nbtBlock.addValue('name', block.getName());
-                    // nbtBlock.addValue('states', block.getNBT());
-                    // TODO: finish palette
-                });
-
-            resolve(data);
+            resolve(reader.parseList());
         });
 
-        this.blockPalette = palette.getBuffer();
+        await Promise.all(
+            Array.from(compound).map(async (state) => {
+                let runtimeId: number = this.runtimeIdAllocator++;
+                if (!state.has('LegacyStates')) return false;
+
+                let legacyStates: Set<NBTTagCompound> = state.getList(
+                    'LegacyStates',
+                    false
+                ) as Set<NBTTagCompound>;
+
+                let firstState: NBTTagCompound = legacyStates.values().next()
+                    .value;
+                let legacyId: number =
+                    (firstState.getNumber('id', 0) << 6) |
+                    firstState.getShort('val', 0);
+                this.runtimeIdToLegacy.set(runtimeId, legacyId);
+
+                await Promise.all(
+                    Array.from(legacyStates).map((legacyState) => {
+                        let legacyId: number =
+                            (legacyState.getNumber('id', 0) << 6) |
+                            legacyState.getShort('val', 0);
+                        this.legacyToRuntimeId.set(legacyId, runtimeId);
+                    })
+                );
+            })
+        );
+    }
+
+    // TODO: to clean up
+    // Also, block.getRuntimeId() should call this and return the value
+    public getRuntimeWithMeta(id: number, meta: number): number {
+        let legacyId = (id << 6) | meta;
+        let runtimeId = this.legacyToRuntimeId.get(legacyId);
+        if (!this.legacyToRuntimeId.has(legacyId)) {
+            runtimeId = this.legacyToRuntimeId.get(id << 6);
+            if (!this.legacyToRuntimeId.has(id << 6)) {
+                runtimeId = this.runtimeIdAllocator++;
+                this.legacyToRuntimeId.set(id << 6, runtimeId);
+                this.runtimeIdToLegacy.set(runtimeId, id << 6);
+            }
+        }
+
+        if (typeof runtimeId === 'undefined') return 0;
+
+        return runtimeId;
+    }
+
+    public getRuntimeWithId(legacyId: number): number {
+        return this.getRuntimeWithMeta(legacyId >> 4, legacyId & 0xf);
     }
 
     public getBlockPalette(): Buffer {

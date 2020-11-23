@@ -5,17 +5,17 @@ class Grad {
     public y: number;
     public z: number;
 
-    constructor(x: number, y: number, z: number) {
+    public constructor(x: number, y: number, z: number) {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    dot2(x: number, y: number) {
+    public dot2(x: number, y: number): number {
         return this.x * x + this.y * y;
     }
 
-    dot3(x: number, y: number, z: number) {
+    public dot3(x: number, y: number, z: number): number {
         return this.x * x + this.y * y + this.z * z;
     }
 }
@@ -301,16 +301,17 @@ let perm = new Array(512),
 const F2 = 0.5 * (Math.sqrt(3) - 1);
 const G2 = (3 - Math.sqrt(3)) / 6;
 
+// TODO: not used, check those
 const F3 = 1 / 3;
 const G3 = 1 / 6;
 
 export default class Noise {
-    seed;
+    public seed;
 
     /**
      * A modified version of josephg's noise.js module for modern JS and with more seeds :P
      */
-    constructor(seed: Random) {
+    public constructor(seed: Random) {
         this.seed = seed;
 
         for (let l = 0; l < 256; ++l) {
@@ -327,7 +328,7 @@ export default class Noise {
     /**
      * 2D Simplex Noise
      */
-    simplex2(x: number, y: number): number {
+    public simplex2(x: number, y: number): number {
         let n0, n1, n2; // Noise contributions from the three corners
 
         // Skew the input space to determine which simplex cell we're in
@@ -400,7 +401,7 @@ export default class Noise {
     /**
      * 2D Perlin Noise
      */
-    perlin2(x: number, y: number): number {
+    public perlin2(x: number, y: number): number {
         // Find unit grid cell containing point
         let X = Math.floor(x),
             Y = Math.floor(y);
@@ -427,10 +428,10 @@ export default class Noise {
     }
 }
 
-function fade(t: number) {
+function fade(t: number): number {
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
-function lerp(a: number, b: number, t: number) {
+function lerp(a: number, b: number, t: number): number {
     return (1 - t) * a + t * b;
 }

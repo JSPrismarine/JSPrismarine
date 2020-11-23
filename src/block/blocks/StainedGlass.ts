@@ -23,7 +23,7 @@ export enum StainedGlassType {
 export default class StainedGlass extends Glass {
     constructor(
         name: string = 'minecraft:stained_glass',
-        type: StainedGlassType
+        type: StainedGlassType = StainedGlassType.White
     ) {
         super(name, BlockIdsType.StainedGlass);
         this.meta = type;

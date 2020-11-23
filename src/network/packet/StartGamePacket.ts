@@ -1,11 +1,7 @@
 import Vector3 from '../../math/Vector3';
 import Identifiers from '../Identifiers';
-import PacketBinaryStream from '../PacketBinaryStream';
+// import PacketBinaryStream from '../PacketBinaryStream';
 import DataPacket from './DataPacket';
-
-const ItemTable = require('@jsprismarine/bedrock-data').item_id_map;
-const RequiredBlockStates = require('@jsprismarine/bedrock-data')
-    .required_block_states;
 
 export default class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket;
@@ -23,7 +19,7 @@ export default class StartGamePacket extends DataPacket {
 
     public gamerules: Map<string, any> = new Map();
 
-    private cachedItemPalette!: Buffer;
+    //    private cachedItemPalette!: Buffer;
 
     public encodePayload() {
         this.writeVarLong(this.entityId);
@@ -41,12 +37,13 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(0); //  seed
 
-        this.writeLShort(0); // default biome type
-        this.writeString(''); // biome name
+        this.writeLShort(0x00); // default spawn biome type
+        this.writeString('plains'); // user defined biome name
+
         this.writeVarInt(0); // dimension
 
         this.writeVarInt(1); // generator
-        this.writeVarInt(0);
+        this.writeVarInt(0); // gamemode
         this.writeVarInt(0); // difficulty
 
         // world spawn vector 3
@@ -76,22 +73,28 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeGamerules(this.gamerules);
 
+        this.writeLInt(0); // experiment count
+        this.writeBool(false); // experiments previously toggled?
+
         this.writeByte(0); // bonus chest
-        this.writeByte(0); // start with chest
+        this.writeByte(0); // start with map
 
         this.writeVarInt(1); // player perms
 
-        this.writeInt(32); // chunk tick range
+        this.writeLInt(0); // chunk tick range
+
         this.writeByte(0); // locked behavior
         this.writeByte(0); // locked texture
         this.writeByte(0); // from locked template
         this.writeByte(0); // msa gamer tags only
         this.writeByte(0); // from world template
         this.writeByte(0); // world template option locked
-        this.writeByte(1); // only spawn v1 villagers
+        this.writeByte(0); // only spawn v1 villagers
         this.writeString(Identifiers.MinecraftVersion);
+
         this.writeLInt(0); // limited world height
         this.writeLInt(0); // limited world length
+
         this.writeBool(false); // has new nether
         this.writeBool(false); // experimental gameplay
 
@@ -100,31 +103,36 @@ export default class StartGamePacket extends DataPacket {
         this.writeString(''); // template content identity
 
         this.writeByte(0); // is trial
-        this.writeByte(0); // server auth movement
-        this.writeLLong(BigInt(0)); // world time
+        this.writeUnsignedVarInt(0); // server auth movement
+
+        this.writeLLong(BigInt(0)); // world ticks (for time)
 
         this.writeVarInt(0); // enchantment seed
 
-        // PMMP states
-        this.append(RequiredBlockStates);
+        this.writeUnsignedVarInt(0); // custom blocks
 
-        this.append(this.serializeItemTable(ItemTable));
+        this.writeUnsignedVarInt(0); // item palette
 
         this.writeString('');
         this.writeBool(false); // new inventory system
     }
 
-    serializeItemTable(table: any): Buffer {
+    /* 
+    TODO
+    public serializeItemTable(table: object): Buffer {
         if (this.cachedItemPalette == null) {
             let stream = new PacketBinaryStream();
-            stream.writeUnsignedVarInt(Object.entries(table).length);
-            for (const [name, legacyId] of Object.entries(table)) {
+            let entries = Object.entries(table);
+            stream.writeUnsignedVarInt(entries.length);
+            entries.map(([name, id]) => {
                 stream.writeString(name);
-                stream.writeLShort(legacyId as number);
-            }
+                stream.writeLShort(id);
+                stream.writeByte(0);
+            });
             this.cachedItemPalette = stream.getBuffer();
         }
 
         return this.cachedItemPalette as Buffer;
-    }
+    } 
+    */
 }

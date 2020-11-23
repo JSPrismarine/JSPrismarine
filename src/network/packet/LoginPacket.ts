@@ -22,7 +22,7 @@ export default class LoginPacket extends DataPacket {
     public device!: Device;
     public skin!: Skin;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.protocol = this.readInt();
 
         let stream = new BinaryStream(this.read(this.readUnsignedVarInt()));

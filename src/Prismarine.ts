@@ -51,9 +51,15 @@ export default class Prismarine {
     private permissionManager: PermissionManager;
     private banManager: BanManager;
 
-    static instance: Prismarine;
+    public static instance: Prismarine;
 
-    constructor({ logger, config }: { logger: LoggerBuilder; config: Config }) {
+    public constructor({
+        logger,
+        config
+    }: {
+        logger: LoggerBuilder;
+        config: Config;
+    }) {
         logger.info(
             `Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`
         );
@@ -75,7 +81,7 @@ export default class Prismarine {
         Prismarine.instance = this;
     }
 
-    private async onEnable() {
+    private async onEnable(): Promise<void> {
         await this.permissionManager.onEnable();
         await this.banManager.onEnable();
         await this.itemManager.onEnable();
@@ -85,7 +91,7 @@ export default class Prismarine {
         await this.telemetryManager.onEnable();
         // TODO: rework managers to this format
     }
-    private async onDisable() {
+    private async onDisable(): Promise<void> {
         await this.telemetryManager.onDisable();
         await this.pluginManager.onDisable();
         await this.commandManager.onDisable();
@@ -96,18 +102,17 @@ export default class Prismarine {
         // TODO: rework managers to this format
     }
 
-    public async reload() {
+    public async reload(): Promise<void> {
         this.packetRegistry = new PacketRegistry(this);
         await this.onDisable();
         await this.onEnable();
     }
 
-    public async listen(serverIp = '0.0.0.0', port = 19132) {
+    public async listen(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.onEnable();
         await this.worldManager.onEnable();
 
         this.raknet = await new Listener(this).listen(serverIp, port);
-        this.raknet.getName().setOnlinePlayerCount(this.players.size);
         this.raknet.on('openConnection', (connection: any) => {
             const event = new RaknetConnectEvent(connection);
             this.getEventManager().emit('raknetConnect', event);
@@ -124,7 +129,7 @@ export default class Prismarine {
             this.getEventManager().emit('raknetEncapsulatedPacket', event);
         });
         this.raknet.on('raw', (buffer: Buffer, inetAddr: InetAddress) => {
-            this.getQueryManager().onRaw(new BinaryStream(buffer), inetAddr);
+            this.getQueryManager().onRaw(buffer, inetAddr);
         });
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
@@ -168,9 +173,6 @@ export default class Prismarine {
 
                 // Add the player into the world
                 world?.addPlayer(player);
-                this.getRaknet()
-                    .getName()
-                    .setOnlinePlayerCount(this.players.size);
                 this.logger.silly(
                     `Player creation took about ${Date.now() - time} ms`
                 );
@@ -185,7 +187,7 @@ export default class Prismarine {
 
                 let time = Date.now();
                 {
-                    let token = `${inetAddr.address}:${inetAddr.port}`;
+                    let token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
                     if (this.players.has(token)) {
                         let player = this.players.get(token);
                         if (!player) {
@@ -214,11 +216,8 @@ export default class Prismarine {
                         this.getEventManager().emit('chat', event);
                     }
                     this.logger.info(
-                        `${inetAddr.address}:${inetAddr.port} disconnected due to ${reason}`
+                        `${inetAddr.getAddress()}:${inetAddr.getPort()} disconnected due to ${reason}`
                     );
-                    this.raknet
-                        .getName()
-                        .setOnlinePlayerCount(this.players.size);
                 }
                 this.logger.silly(
                     `Player destruction took about ${Date.now() - time} ms`
@@ -230,68 +229,68 @@ export default class Prismarine {
             const raknetPacket = event.getPacket();
             const inetAddr = event.getInetAddr();
 
-            let token = `${inetAddr.address}:${inetAddr.port}`;
+            let token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
             if (!this.players.has(token)) return;
             let player = this.players.get(token);
 
-            // TODO: log incoming and outcoming buffers (maybe an option in config)
-            // packet dump format example: https://www.npmjs.com/package/hexdump-nodejs
+            new Promise((resolve) => {
+                // Read batch content and handle them
+                const pk = new BatchPacket(raknetPacket.buffer);
 
-            // Read batch content and handle them
-            let pk = new BatchPacket();
-            (pk as any).buffer = raknetPacket.buffer;
-
-            try {
                 pk.decode();
-            } catch {
-                this.logger.error(`Error while decoding batch`);
-                return;
-            }
+                resolve(pk);
+            }).then((batched) => {
+                // Read all packets inside batch and handle them
+                Promise.all(
+                    (batched as BatchPacket).getPackets().map((buf) => {
+                        if (!this.packetRegistry.getPackets().has(buf[0])) {
+                            this.logger.error(
+                                `Packet ${raknetPacket.id} doesn't have a handler`
+                            );
+                            return false;
+                        }
 
-            // Read all packets inside batch and handle them
-            for (let buf of pk.getPackets()) {
-                if (!this.packetRegistry.getPackets().has(buf[0])) {
-                    this.logger.error(
-                        `Packet ${raknetPacket.id} doesn't have a handler`
-                    );
-                    return;
-                }
+                        let packet = new (this.packetRegistry
+                            .getPackets()
+                            .get(buf[0]))(); // Get packet from registry
+                        packet.buffer = buf;
 
-                let packet = new (this.packetRegistry
-                    .getPackets()
-                    .get(buf[0]))(); // Get packet from registry
-                packet.buffer = buf;
+                        try {
+                            packet.decode(this);
+                        } catch (err) {
+                            this.logger.error(
+                                `Error while decoding packet: ${packet.constructor.name}: ${err}`
+                            );
+                            return false;
+                        }
 
-                try {
-                    packet.decode(this);
-                } catch (err) {
-                    this.logger.error(
-                        `Error while decoding packet: ${packet.constructor.name}: ${err}`
-                    );
-                    return;
-                }
+                        if (
+                            !this.packetRegistry
+                                .getHandlers()
+                                .has(packet?.getId())
+                        ) {
+                            this.logger.error(
+                                `Packet ${packet.constructor.name} doesn't have a handler`
+                            );
+                            return false;
+                        }
 
-                if (!this.packetRegistry.getHandlers().has(packet?.getId())) {
-                    this.logger.error(
-                        `Packet ${packet.constructor.name} doesn't have a handler`
-                    );
-                    return;
-                }
+                        let handler = this.packetRegistry
+                            .getHandlers()
+                            .get(packet?.getId());
 
-                let handler = this.packetRegistry
-                    .getHandlers()
-                    .get(packet?.getId());
-
-                (async () => {
-                    try {
-                        await handler.handle(packet, this, player);
-                    } catch (err) {
-                        this.logger.error(
-                            `Handler error ${packet.constructor.name}-handler: (${err})`
-                        );
-                    }
-                })();
-            }
+                        try {
+                            (async () => {
+                                await handler.handle(packet, this, player);
+                            })();
+                        } catch (err) {
+                            this.logger.error(
+                                `Handler error ${packet.constructor.name}-handler: (${err})`
+                            );
+                        }
+                    })
+                );
+            });
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
@@ -310,30 +309,31 @@ export default class Prismarine {
 
         // Auto save (default: 5 minutes)
         // TODO: level.ticks % 6000 == 0 and save
-        setInterval(async () => {
-            for (let world of this.getWorldManager().getWorlds()) {
-                await world.save();
-            }
-        }, 1000 * 60 * 5);
+        setInterval(
+            () =>
+                this.getWorldManager()
+                    .getWorlds()
+                    .map(async (world) => await world.save()),
+            1000 * 60 * 5
+        );
     }
 
     /**
      * Returns an array containing all online players.
      */
-    getOnlinePlayers() {
-        return Array.from(this.players.values()) || [];
+    public getOnlinePlayers(): Array<Player> {
+        return Array.from(this.players.values());
     }
 
     /**
      * Returns an online player by its runtime ID,
      * if it is not found, null is returned.
      */
-    getPlayerById(id: bigint): Player | null {
-        for (let player of this.players.values()) {
-            if (player.runtimeId === id) return player;
-        }
-
-        return null;
+    public getPlayerById(id: bigint): Player | null {
+        return (
+            this.getOnlinePlayers().find((player) => player.runtimeId == id) ??
+            null
+        );
     }
 
     /**
@@ -345,7 +345,7 @@ export default class Prismarine {
      * Example getPlayerByName("John") may return
      * an user with username "John Doe"
      */
-    getPlayerByName(name: string): Player | null {
+    public getPlayerByName(name: string): Player | null {
         return (
             Array.from(this.players.values()).find((player) =>
                 player
@@ -362,7 +362,7 @@ export default class Prismarine {
      *
      * CASE SENSITIVE.
      */
-    getPlayerByExactName(name: string): Player | null {
+    public getPlayerByExactName(name: string): Player | null {
         return (
             Array.from(this.players.values()).find(
                 (player) => player.getUsername() === name
@@ -373,7 +373,7 @@ export default class Prismarine {
     /**
      * Kills the server asynchronously.
      */
-    async kill() {
+    async kill(): Promise<void> {
         try {
             // Kick all online players
             for (let player of this.getOnlinePlayers()) {
@@ -396,126 +396,126 @@ export default class Prismarine {
     /**
      * Returns the query manager
      */
-    getQueryManager(): QueryManager {
+    public getQueryManager(): QueryManager {
         return this.queryManager;
     }
 
     /**
      * Returns the command manager
      */
-    getCommandManager(): CommandManager {
+    public getCommandManager(): CommandManager {
         return this.commandManager;
     }
 
     /**
      * Returns the world manager
      */
-    getWorldManager(): WorldManager {
+    public getWorldManager(): WorldManager {
         return this.worldManager;
     }
 
     /**
      * Returns the item manager
      */
-    getItemManager(): ItemManager {
+    public getItemManager(): ItemManager {
         return this.itemManager;
     }
 
     /**
      * Returns the block manager
      */
-    getBlockManager(): BlockManager {
+    public getBlockManager(): BlockManager {
         return this.blockManager;
     }
 
     /**
      * Returns the logger
      */
-    getLogger(): LoggerBuilder {
+    public getLogger(): LoggerBuilder {
         return this.logger;
     }
 
     /**
      * Returns the packet registry
      */
-    getPacketRegistry() {
+    public getPacketRegistry(): PacketRegistry {
         return this.packetRegistry;
     }
 
     /**
      * Returns the raknet instance
      */
-    getRaknet() {
+    public getRaknet() {
         return this.raknet;
     }
 
     /**
      * Returns the plugin manager
      */
-    getPluginManager(): PluginManager {
+    public getPluginManager(): PluginManager {
         return this.pluginManager;
     }
 
     /**
      * Returns the event manager
      */
-    getEventManager(): EventManager {
+    public getEventManager(): EventManager {
         return this.eventManager;
     }
 
     /**
      * Returns the chat manager
      */
-    getChatManager(): ChatManager {
+    public getChatManager(): ChatManager {
         return this.chatManager;
     }
 
     /**
      * Returns the config
      */
-    getConfig(): Config {
+    public getConfig(): Config {
         return this.config;
     }
 
     /**
      * Returns the console instance
      */
-    getConsole() {
+    public getConsole(): Console {
         return this.console;
     }
 
     /**
      * Returns the permission manager
      */
-    getPermissionManager() {
+    public getPermissionManager(): PermissionManager {
         return this.permissionManager;
     }
 
     /**
      * Returns the player list
      */
-    getPlayerList() {
+    public getPlayerList(): Map<string, PlayerListEntry> {
         return this.playerList;
     }
 
     /**
      * Returns the ban manager
      */
-    getBanManager() {
+    public getBanManager(): BanManager {
         return this.banManager;
     }
 
     /**
      * Returns this Prismarine instance
      */
-    getServer() {
+    public getServer(): Prismarine {
         return this;
     }
 
     /**
      * Returns the current TPS
      */
-    getTPS() {
+    public getTPS(): number {
         return this.tps;
     }
 }

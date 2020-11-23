@@ -6,10 +6,10 @@ import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/SkinPersonaPie
 import SkinAnimation from '../utils/skin/SkinAnimation';
 import SkinCape from '../utils/skin/SkinCape';
 import SkinImage from '../utils/skin/SkinImage';
+import UUID from '../utils/uuid';
 import CreativeContentEntry from './type/creative-content-entry';
 import PlayerListEntry from './type/PlayerListEntry';
 
-const UUID = require('../utils/uuid').default;
 const { FlagType } = require('../entity/metadata');
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
@@ -27,22 +27,19 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Returns a string encoded into the buffer.
      */
-    readString(): string {
+    public readString(): string {
         return this.read(this.readUnsignedVarInt()).toString();
     }
 
     /**
      * Encodes a string into the buffer.
      */
-    writeString(v: string) {
+    public writeString(v: string): void {
         this.writeUnsignedVarInt(Buffer.byteLength(v));
         this.append(Buffer.from(v, 'utf8'));
     }
 
-    /**
-     * @returns {UUID}
-     */
-    readUUID() {
+    public readUUID(): UUID {
         let part1 = this.readLInt();
         let part0 = this.readLInt();
         let part3 = this.readLInt();
@@ -54,16 +51,18 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Encodes an UUID into the buffer.
      */
-    writeUUID(uuid: any) {
-        this.writeLInt(uuid.parts[1]);
-        this.writeLInt(uuid.parts[0]);
-        this.writeLInt(uuid.parts[3]);
-        this.writeLInt(uuid.parts[2]);
+    public writeUUID(uuid: UUID): void {
+        let parts = uuid.getParts();
+        this.writeLInt(parts[1]);
+        this.writeLInt(parts[0]);
+        this.writeLInt(parts[3]);
+        this.writeLInt(parts[2]);
     }
 
     /**
+     * TODO: api from data
      * Retrurns a skin encoded into the buffer.
-     */
+     *
     readSkin(): Skin {
         let skin = new Skin();
         skin.id = this.readString();
@@ -73,7 +72,7 @@ export default class PacketBinaryStream extends BinaryStream {
         skin.image = new SkinImage({
             width: this.readLInt(),
             height: this.readLInt(),
-            data: this.readString()
+            data: this.read(this.readUnsignedVarInt())
         });
 
         // Read animations
@@ -84,10 +83,11 @@ export default class PacketBinaryStream extends BinaryStream {
                     image: new SkinImage({
                         width: this.readLInt(),
                         height: this.readLInt(),
-                        data: this.readString()
+                        data: this.read(this.readUnsignedVarInt())
                     }),
                     frames: this.readLFloat(),
-                    type: this.readLInt()
+                    type: this.readLInt(),
+                    expression: this.readLInt()
                 })
             );
         }
@@ -97,7 +97,7 @@ export default class PacketBinaryStream extends BinaryStream {
         skin.cape.image = new SkinImage({
             width: this.readLInt(),
             height: this.readLInt(),
-            data: this.readString()
+            data: this.read(this.readUnsignedVarInt())
         });
 
         // Miscellaneus
@@ -143,55 +143,56 @@ export default class PacketBinaryStream extends BinaryStream {
         }
 
         return skin;
-    }
+    } */
 
     /**
      * Encodes a skin into the buffer
      */
-    writeSkin(skin: Skin) {
-        this.writeString(skin.id);
-        this.writeString(skin.resourcePatch);
+    public writeSkin(skin: Skin): void {
+        this.writeString(skin.getId());
+        this.writeString(skin.getResourcePatch());
 
         // Skin image
-        this.writeSkinImage(skin.image);
+        this.writeSkinImage(skin.getImage());
 
         // Animations
-        this.writeLInt(skin.animations.size);
-        for (let animation of skin.animations) {
-            this.writeSkinImage(animation.image);
-            this.writeLInt(animation.type);
-            this.writeLFloat(animation.frames);
+        this.writeLInt(skin.getAnimations().size);
+        for (let animation of skin.getAnimations()) {
+            this.writeSkinImage(animation.getImage());
+            this.writeLInt(animation.getType());
+            this.writeLFloat(animation.getFrames());
+            this.writeLInt(animation.getExpression());
         }
 
         // Cape image
-        this.writeSkinImage(skin.cape.image);
+        this.writeSkinImage(skin.getCape().getImage());
 
         // Miscellaneus
-        this.writeString(skin.geometry);
-        this.writeString(skin.animationData);
-        this.writeBool(skin.isPremium);
-        this.writeBool(skin.isPersona);
-        this.writeBool(skin.isCapeOnClassicSkin);
-        this.writeString(skin.cape.id);
-        this.writeString(skin.fullId);
-        this.writeString(skin.armSize);
-        this.writeString(skin.color);
+        this.writeString(skin.getGeometry());
+        this.writeString(skin.getAnimationData());
+        this.writeBool(skin.isPremium());
+        this.writeBool(skin.isPersona());
+        this.writeBool(skin.isCapeOnClassicSkin());
+        this.writeString(skin.getCape().getId());
+        this.writeString(skin.getFullId());
+        this.writeString(skin.getArmSize());
+        this.writeString(skin.getColor());
 
         // Hack to keep less useless data in software
-        if (skin.isPersona) {
-            this.writeLInt(skin.persona.pieces.size);
-            for (let personaPiece of skin.persona.pieces) {
-                this.writeString(personaPiece.pieceId);
-                this.writeString(personaPiece.pieceType);
-                this.writeString(personaPiece.packId);
-                this.writeBool(personaPiece.isDefault);
-                this.writeString(personaPiece.productId);
+        if (skin.isPersona()) {
+            this.writeLInt(skin.getPersonaData().getPieces().size);
+            for (let personaPiece of skin.getPersonaData().getPieces()) {
+                this.writeString(personaPiece.getPieceId());
+                this.writeString(personaPiece.getPieceType());
+                this.writeString(personaPiece.getPackId());
+                this.writeBool(personaPiece.isDefault());
+                this.writeString(personaPiece.getProductId());
             }
-            this.writeLInt(skin.persona.tintColors.size);
-            for (let tint of skin.persona.tintColors) {
-                this.writeString(tint.pieceType);
-                this.writeLInt(tint.colors.length);
-                for (let color of tint.colors) {
+            this.writeLInt(skin.getPersonaData().getTintColors().size);
+            for (let tint of skin.getPersonaData().getTintColors()) {
+                this.writeString(tint.getPieceType());
+                this.writeLInt(tint.getColors().length);
+                for (let color of tint.getColors()) {
                     this.writeString(color);
                 }
             }
@@ -207,7 +208,8 @@ export default class PacketBinaryStream extends BinaryStream {
     private writeSkinImage(image: SkinImage) {
         this.writeLInt(image.width);
         this.writeLInt(image.height);
-        this.writeString(image.data);
+        this.writeUnsignedVarInt(image.data.length);
+        this.append(image.data);
     }
 
     /**
@@ -217,7 +219,7 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeUUID(entry.uuid);
         this.writeVarLong(entry.uniqueEntityId);
         this.writeString(entry.name);
-        this.writeString(entry.xuid || '');
+        this.writeString(entry.xuid ?? '');
         this.writeString(entry.platformChatId);
         this.writeLInt(entry.buildPlatform);
         this.writeSkin(entry.skin);
@@ -386,7 +388,7 @@ export default class PacketBinaryStream extends BinaryStream {
             return this.writeVarInt(0);
         }
 
-        this.writeVarInt(itemstack.getRuntimeId());
+        this.writeVarInt(itemstack.getId());
         this.writeVarInt(((itemstack.meta & 0x7fff) << 8) | itemstack.count);
 
         if (itemstack.nbt !== null) {

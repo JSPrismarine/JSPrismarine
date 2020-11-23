@@ -1,17 +1,13 @@
-const Packet = require('./packet');
-const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
-
-('use strict');
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Packet from './Packet';
 
 const MaxAcknowledgePackets = 4096;
-class AcknowledgePacket extends Packet {
+export default class AcknowledgePacket extends Packet {
     // Array containing all sequence numbers of received (ACK)
     // or lost (NACK) packets
-    packets = [];
+    private packets: Array<number> = [];
 
-    read() {
-        super.read();
-
+    public decodePayload(): void {
         // Clear old cached decoded packets
         this.packets = [];
         let recordCount = this.readShort();
@@ -34,14 +30,12 @@ class AcknowledgePacket extends Packet {
                 }
             } else {
                 // Single
-                let packet = this.readLTriad();
-                this.packets.push(packet);
+                this.packets.push(this.readLTriad());
             }
         }
     }
 
-    write() {
-        super.write();
+    public encodePayload(): void {
         let records = 0;
         // We have to create a stream because the encoding is records + buffer
         // but we need to send records first and to compute them we have to decode the packet
@@ -49,9 +43,7 @@ class AcknowledgePacket extends Packet {
         // we keep them in a temporary stream that will be appended later on
         let stream = new BinaryStream();
         // Sort packets to ensure a correct encoding
-        this.packets.sort((a, b) => {
-            a > b;
-        });
+        this.packets.sort((a, b) => a - b);
         let count = this.packets.length;
 
         if (count > 0) {
@@ -93,5 +85,12 @@ class AcknowledgePacket extends Packet {
         this.writeShort(records);
         this.append(stream.getBuffer());
     }
+
+    public setPackets(packets: Array<number>): void {
+        this.packets = packets;
+    }
+
+    public getPackets(): Array<number> {
+        return this.packets;
+    }
 }
-module.exports = AcknowledgePacket;

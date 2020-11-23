@@ -1,4 +1,16 @@
 export default class SkinPersonaPieceTintColor {
-    public colors: Array<string> = [];
-    public pieceType!: string;
+    private colors: Array<string> = [];
+    private pieceType!: string;
+
+    public getColors(): Array<string> {
+        return this.colors;
+    }
+
+    public getPieceType(): string {
+        return this.pieceType;
+    }
+
+    public setPieceType(pieceType: string): void {
+        this.pieceType = pieceType;
+    }
 }
