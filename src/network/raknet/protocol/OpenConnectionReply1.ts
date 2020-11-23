@@ -2,8 +2,8 @@ import Identifiers from './Identifiers';
 import OfflinePacket from './OfflinePacket';
 
 export default class OpenConnectionReply1 extends OfflinePacket {
-    public constructor() {
-        super(Identifiers.OpenConnectionReply1);
+    public constructor(buffer?: Buffer) {
+        super(Identifiers.OpenConnectionReply1, buffer);
     }
 
     public serverGUID!: bigint;

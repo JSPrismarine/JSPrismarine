@@ -3,7 +3,7 @@ import Identifiers from './Identifiers';
 import OfflinePacket from './OfflinePacket';
 
 export default class OpenConnectionRequest2 extends OfflinePacket {
-    public constructor(buffer: Buffer) {
+    public constructor(buffer?: Buffer) {
         super(Identifiers.OpenConnectionRequest2, buffer);
     }
 

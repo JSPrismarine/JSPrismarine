@@ -1,18 +1,16 @@
 import Dgram from 'dgram';
 import Identifiers from './protocol/Identifiers';
 import ProtocolIdentifiers from '../Identifiers';
-import Connection from './connection';
+import Connection from './Connection';
 import LoggerBuilder from '../../utils/Logger';
 import { EventEmitter } from 'events';
 import Crypto from 'crypto';
-import UnconnectedPong from './protocol/unconnected_pong';
-import OpenConnectionRequest1 from './protocol/open_connection_request_1';
-import OpenConnectionReply1 from './protocol/open_connection_reply_1';
-import OpenConnectionRequest2 from './protocol/open_connection_request_2';
 import InetAddress from './utils/InetAddress';
-import UnconnectedPing from './protocol/unconnected_ping';
-import ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
-import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
+import UnconnectedPong from './protocol/UnconnectedPong';
+import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
+import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
+import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
+import UnconnectedPing from './protocol/UnconnectedPing';
 
 // Minecraft related protocol
 const PROTOCOL = 10;
@@ -83,7 +81,11 @@ export default class Listener extends EventEmitter {
 
         if (this.status === ConnectionStatus.Connected) {
             if (!this.connection) {
-                this.connection = new Connection(this, DEF_MTU_SIZE, '0.0.0.0');
+                this.connection = new Connection(
+                    this as any,
+                    DEF_MTU_SIZE,
+                    new InetAddress(this.address, this.port, 4)
+                );
             }
             return this.connection.receive(buffer);
         } else {
@@ -118,13 +120,12 @@ export default class Listener extends EventEmitter {
         let decodedPacket, packet;
 
         // Decode server packet
-        decodedPacket = new UnconnectedPong();
-        (decodedPacket as any).buffer = buffer;
-        decodedPacket.read();
+        decodedPacket = new UnconnectedPong(buffer);
+        decodedPacket.decode();
 
         // Check packet validity
         // To refactor
-        if (!decodedPacket.valid) {
+        if (!decodedPacket.isValid()) {
             throw new Error('Received an invalid offline message');
         }
 
@@ -132,7 +133,7 @@ export default class Listener extends EventEmitter {
         packet = new OpenConnectionRequest1();
         packet.protocol = PROTOCOL;
         packet.mtuSize = DEF_MTU_SIZE;
-        packet.write();
+        packet.encode();
 
         // Update session status
         this.status = ConnectionStatus.Targetted;
@@ -144,13 +145,12 @@ export default class Listener extends EventEmitter {
         let decodedPacket, packet;
 
         // Decode server packet
-        decodedPacket = new OpenConnectionReply1();
-        (decodedPacket as any).buffer = buffer;
-        decodedPacket.read();
+        decodedPacket = new OpenConnectionReply1(buffer);
+        decodedPacket.decode();
 
         // Check packet validity
         // To refactor
-        if (!decodedPacket.valid) {
+        if (!decodedPacket.isValid()) {
             throw new Error('Received an invalid offline message');
         }
 
@@ -158,8 +158,8 @@ export default class Listener extends EventEmitter {
         packet = new OpenConnectionRequest2();
         packet.serverAddress = new InetAddress(this.address, this.port, 4);
         packet.mtuSize = DEF_MTU_SIZE;
-        (packet as any).clientGUID = this.clientGUID;
-        packet.write();
+        packet.clientGUID = this.clientGUID;
+        packet.encode();
 
         // Update session status
         this.status = ConnectionStatus.Connected;
@@ -176,9 +176,9 @@ export default class Listener extends EventEmitter {
             // and the login process starts
             if (this.status == ConnectionStatus.Unconnected) {
                 let pk = new UnconnectedPing();
-                (pk as any).sendTimeStamp = BigInt(Date.now());
-                (pk as any).clientGUID = this.clientGUID;
-                pk.write();
+                pk.sendTimestamp = BigInt(Date.now());
+                pk.clientGUID = this.clientGUID;
+                pk.encode();
                 this.socket.send(
                     pk.getBuffer(),
                     0,
