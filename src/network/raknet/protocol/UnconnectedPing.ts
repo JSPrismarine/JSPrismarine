@@ -2,7 +2,7 @@ import Identifiers from './Identifiers';
 import OfflinePacket from './OfflinePacket';
 
 export default class UnconnectedPing extends OfflinePacket {
-    public constructor(buffer: Buffer) {
+    public constructor(buffer?: Buffer) {
         super(Identifiers.UnconnectedPing, buffer);
     }
 

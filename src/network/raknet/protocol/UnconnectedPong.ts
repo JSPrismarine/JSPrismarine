@@ -2,8 +2,8 @@ import Identifiers from './Identifiers';
 import OfflinePacket from './OfflinePacket';
 
 export default class UnconnectedPong extends OfflinePacket {
-    public constructor() {
-        super(Identifiers.UnconnectedPong);
+    public constructor(buffer?: Buffer) {
+        super(Identifiers.UnconnectedPong, buffer);
     }
 
     public sendTimestamp!: bigint;
