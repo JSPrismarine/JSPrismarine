@@ -12,7 +12,6 @@ import CoordinateUtils from './CoordinateUtils';
 import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/uuid';
 import GameruleManager, { GameRules } from './GameruleManager';
-import { time } from 'console';
 
 interface WorldData {
     name: string;
@@ -351,9 +350,10 @@ export default class World {
         this.server.getLogger().debug('[World save] saving chunks...');
         const promises: Array<Promise<void>> = [];
         for (const chunk of this.chunks.values()) {
-            chunk.hasChanged() &&
-                chunk.setChanged(false) &&
+            if (chunk.hasChanged()) {
                 promises.push(this.provider.writeChunk(chunk));
+                chunk.setChanged(false);
+            }
         }
         Promise.all(promises);
         this.server

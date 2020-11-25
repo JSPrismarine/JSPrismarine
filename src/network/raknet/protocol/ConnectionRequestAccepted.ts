@@ -3,8 +3,8 @@ import InetAddress from '../utils/InetAddress';
 import Packet from './Packet';
 
 export default class ConnectionRequestAccepted extends Packet {
-    public constructor() {
-        super(Identifiers.ConnectionRequestAccepted);
+    public constructor(buffer?: Buffer) {
+        super(Identifiers.ConnectionRequestAccepted, buffer);
     }
 
     public clientAddress!: InetAddress;

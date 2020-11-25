@@ -19,6 +19,7 @@ import {
     setIntervalAsync,
     clearIntervalAsync
 } from 'set-interval-async/dynamic';
+import RakNetListener from './RakNetListener';
 
 // Minecraft related protocol
 const PROTOCOL = 10;
@@ -28,7 +29,7 @@ const RAKNET_TPS = 100;
 const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
 // Listen to packets and then process them
-export default class Listener extends EventEmitter {
+export default class Listener extends EventEmitter implements RakNetListener {
     private id: bigint;
     private name: ServerName;
     private socket!: Socket;
