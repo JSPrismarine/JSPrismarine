@@ -23,9 +23,8 @@ export default class ResourcePackResponseHandler {
         server: Prismarine,
         player: Player
     ) {
-        let pk;
         if (packet.status === ResourcePackStatus.HaveAllPacks) {
-            pk = new ResourcePackStackPacket();
+            const pk = new ResourcePackStackPacket();
             pk.experimentsAlreadyEnabled = false;
             player.getConnection().sendDataPacket(pk);
         } else if (packet.status === ResourcePackStatus.Completed) {
@@ -34,7 +33,7 @@ export default class ResourcePackResponseHandler {
             await server.getEventManager().post(['playerSpawn', spawnEvent]);
             if (spawnEvent.cancelled) return;
 
-            pk = new StartGamePacket();
+            const pk = new StartGamePacket();
             pk.entityId = player.runtimeId;
             pk.runtimeEntityId = player.runtimeId;
             pk.gamemode = player.gamemode;

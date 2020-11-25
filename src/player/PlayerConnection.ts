@@ -85,10 +85,10 @@ export default class PlayerConnection {
             }
         }
 
-        await this.needNewChunks();
+        this.needNewChunks();
     }
 
-    public async needNewChunks(forceResend = false) {
+    public needNewChunks(forceResend = false) {
         let currentXChunk = CoordinateUtils.fromBlockToChunk(
             this.player.getX()
         );
@@ -159,28 +159,26 @@ export default class PlayerConnection {
             return 0;
         });
 
-        Promise.all(
-            chunksToSend.map(async (chunk) => {
-                let hash = CoordinateUtils.encodePos(chunk[0], chunk[1]);
-                if (forceResend) {
-                    if (
-                        !this.loadedChunks.has(hash) &&
-                        !this.loadingChunks.has(hash)
-                    ) {
-                        this.loadingChunks.add(hash);
-                        this.requestChunk(chunk[0], chunk[1]);
-                    } else {
-                        let loadedChunk = await this.player
-                            .getWorld()
-                            .getChunk(chunk[0], chunk[1]);
-                        this.sendChunk(loadedChunk);
-                    }
-                } else {
+        for (const chunk of chunksToSend) {
+            let hash = CoordinateUtils.encodePos(chunk[0], chunk[1]);
+            if (forceResend) {
+                if (
+                    !this.loadedChunks.has(hash) &&
+                    !this.loadingChunks.has(hash)
+                ) {
                     this.loadingChunks.add(hash);
                     this.requestChunk(chunk[0], chunk[1]);
+                } else {
+                    this.player
+                        .getWorld()
+                        .getChunk(chunk[0], chunk[1])
+                        .then((loadedChunk) => this.sendChunk(loadedChunk));
                 }
-            })
-        );
+            } else {
+                this.loadingChunks.add(hash);
+                this.requestChunk(chunk[0], chunk[1]);
+            }
+        }
 
         let unloaded = false;
 

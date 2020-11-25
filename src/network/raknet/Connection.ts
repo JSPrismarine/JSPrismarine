@@ -13,13 +13,14 @@ import NewIncomingConnection from './protocol/NewIncomingConnection';
 import InetAddress from './utils/InetAddress';
 import Identifiers from './protocol/Identifiers';
 import Packet from './protocol/Packet';
+import RakNetListener from './RakNetListener';
 
-enum Priority {
+export enum Priority {
     NORMAL,
     IMMEDIATE
 }
 
-enum Status {
+export enum Status {
     CONNECTING,
     CONNECTED,
     DISCONNECTING,
@@ -27,9 +28,9 @@ enum Status {
 }
 
 export default class Connection {
-    private listener: Listener;
+    private listener: RakNetListener;
     private mtuSize: number;
-    private address: InetAddress;
+    protected address: InetAddress;
 
     // Client connection state
     private state = Status.CONNECTING;
@@ -73,7 +74,11 @@ export default class Connection {
     private lastUpdate: number = Date.now();
     private active = false;
 
-    constructor(listener: Listener, mtuSize: number, address: InetAddress) {
+    constructor(
+        listener: RakNetListener,
+        mtuSize: number,
+        address: InetAddress
+    ) {
         this.listener = listener;
         this.mtuSize = mtuSize;
         this.address = address;
@@ -436,7 +441,22 @@ export default class Connection {
 
             if (id < 0x80) {
                 if (this.state === Status.CONNECTING) {
-                    if (id === Identifiers.ConnectionRequest) {
+                    if (id === Identifiers.ConnectionRequestAccepted) {
+                        const dataPacket = new ConnectionRequestAccepted(packet.buffer);
+                        dataPacket.decode();
+
+                        const pk = new NewIncomingConnection();
+                        pk.requestTimestamp = BigInt(Date.now());
+                        pk.acceptedTimestamp = BigInt(Date.now());
+                        pk.address = dataPacket.clientAddress;
+                        pk.encode();
+
+                        const sendPk = new EncapsulatedPacket();
+                        sendPk.reliability = 0;
+                        sendPk.buffer = pk.getBuffer();
+                        
+                        this.addToQueue(sendPk, Priority.IMMEDIATE);
+                    } else if (id === Identifiers.ConnectionRequest) {
                         this.handleConnectionRequest(packet.buffer).then(
                             (encapsulated) => {
                                 this.addToQueue(
@@ -451,9 +471,12 @@ export default class Connection {
                         );
                         dataPacket.decode();
 
+                        // Client bots will work just in offline mode
+                        const offlineMode = false;  // TODO: from config
+
                         let serverPort = this.listener.getSocket().address()
                             .port;
-                        if (dataPacket.address.getPort() === serverPort) {
+                        if (!offlineMode ?? dataPacket.address.getPort() === serverPort) {
                             this.state = Status.CONNECTED;
                             this.listener.emit('openConnection', this);
                         }
@@ -586,11 +609,15 @@ export default class Connection {
         ); // Client discconect packet 0x15
     }
 
+    public getState(): number {
+        return this.state;
+    }
+
     public isActive(): boolean {
         return this.active;
     }
 
-    public getListener(): Listener {
+    public getListener(): RakNetListener {
         return this.listener;
     }
 

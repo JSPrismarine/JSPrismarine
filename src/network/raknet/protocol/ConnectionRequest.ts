@@ -2,7 +2,7 @@ import Identifiers from './Identifiers';
 import Packet from './Packet';
 
 export default class ConnectionRequest extends Packet {
-    public constructor(buffer: Buffer) {
+    public constructor(buffer?: Buffer) {
         super(Identifiers.ConnectionRequest, buffer);
     }
 
