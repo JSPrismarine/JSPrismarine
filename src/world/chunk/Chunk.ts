@@ -221,7 +221,6 @@ export default class Chunk {
 
     public toBinary() {
         let stream = new BinaryStream();
-        console.time('cc');
         let subChunkCount = this.getSubChunkSendCount();
         for (let y = 0; y < subChunkCount; ++y) {
             stream.append(this.#subChunks.get(y).toBinary());
@@ -230,7 +229,6 @@ export default class Chunk {
             stream.writeByte(biome);
         }
         stream.writeByte(0);
-        console.timeEnd('cc');
         return stream.buffer;
     }
 }
