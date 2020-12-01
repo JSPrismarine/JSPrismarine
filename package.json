@@ -86,7 +86,7 @@
   "devDependencies": {
     "@babel/plugin-proposal-decorators": "7.12.1",
     "@types/git-rev-sync": "2.0.0",
-    "@types/jest": "26.0.15",
+    "@types/jest": "26.0.16",
     "@types/jwt-decode": "3.1.0",
     "@types/node": "14.14.10",
     "@types/node-fetch": "2.5.7",
