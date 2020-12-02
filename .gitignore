@@ -1,13 +1,19 @@
 # Node.js things
 node_modules
-yarn.lock
 /coverage/
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
 
 # JSPRismarine things
 /dist/
 /packages/
 /plugins/
 /worlds/
+/cache/
 /src/resources/
 /docs/
 config.yaml

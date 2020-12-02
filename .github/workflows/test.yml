@@ -9,12 +9,11 @@ jobs:
             - uses: actions/setup-node@v1
               with:
                   node-version: 14
-            - run: npm install
-            - run: npm run test
-            - run: npm build
-            - run: npm run eslint
-            - run: npm run prettier
-            - run: npm run coveralls
+            - run: yarn
+            - run: yarn test
+            - run: yarn build
+            - run: yarn eslint
+            - run: yarn prettier
             - name: Coveralls
               uses: coverallsapp/github-action@master
               with:
@@ -26,11 +25,11 @@ jobs:
             - uses: actions/setup-node@v1
               with:
                   node-version: 14
-            - run: npm install
-            - run: npm run test
-            - run: npm build
-            - run: npm run eslint
-            - run: npm run prettier
+            - run: yarn
+            - run: yarn test
+            - run: yarn build
+            - run: yarn eslint
+            - run: yarn prettier
     windows-test:
         runs-on: windows-latest
         steps:
@@ -38,7 +37,7 @@ jobs:
             - uses: actions/setup-node@v1
               with:
                   node-version: 14
-            - run: npm install
-            - run: npm run test
-            - run: npm build
-            - run: npm run eslint
+            - run: yarn
+            - run: yarn test
+            - run: yarn build
+            - run: yarn eslint

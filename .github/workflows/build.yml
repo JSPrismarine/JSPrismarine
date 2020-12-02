@@ -12,9 +12,9 @@ jobs:
             - uses: actions/setup-node@v1
               with:
                   node-version: 14
-            - run: npm install
-            - run: npm run build
-            - run: npm run package
+            - run: yarn
+            - run: yarn build
+            - run: yarn package
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-linux
@@ -34,8 +34,8 @@ jobs:
             - uses: actions/setup-node@v1
               with:
                   node-version: 14
-            - run: npm install
-            - run: npm run docs
+            - run: yarn
+            - run: yarn docs
             - uses: peaceiris/actions-gh-pages@v3
               with:
                 github_token: ${{ secrets.GITHUB_TOKEN }}
