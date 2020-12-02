@@ -97,13 +97,13 @@
         "coveralls": "3.1.0",
         "cross-env": "7.0.2",
         "eslint": "7.14.0",
-        "husky": "^4.3.0",
+        "husky": "4.3.1",
         "node-fetch": "2.6.1",
         "nodemon": "2.0.6",
         "prettier": "2.2.0",
         "typedoc": "0.19.2",
         "typescript": "4.1.2",
-        "yarnhook": "^0.5.1"
+        "yarnhook": "0.5.1"
     },
     "optionalDependencies": {
         "pkg": "git+https://github.com/geekuillaume/pkg.git"
