@@ -40,7 +40,7 @@
             "post-checkout": "yarnhook",
             "post-merge": "yarnhook",
             "post-rewrite": "yarnhook",
-            "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test"
+            "pre-commit": "yarn build && yarn eslint && yarn prettier && yarn test"
         }
     },
     "pkg": {
