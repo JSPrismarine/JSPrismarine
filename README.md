@@ -25,13 +25,13 @@
   <img alt="Patreon" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dprismarine%26type%3Dpatrons&style=flat-square">
 </a>
 
-### Why use JSPrismarine?
+## Why use JSPrismarine?
 
 -   Written in TypeScript which means that it's easy to use and develop plugins for. You can in theory develop plugins in any language that transpile into JavaScript (such as TypeScript, Kotlin, CoffeeScript, asm.js and many more).
 -   Open source with the permissive [MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) license.
 -   Under active development.
 
-### Getting started
+## Getting started
 
 Prebuilt binaries will be provided once a stable release is out, these will not require a node environment. For now however, you can either follow the steps bellow or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22) (which may or may not work).
 
@@ -42,7 +42,7 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
     -   Before running production build you have to build it `yarn build`
     -   You're done, you can run it using `yarn start` (or `yarn dev` for development)
 
-### FAQ
+## FAQ
 
 -   Can I contribute?
     -   Sure, make sure to read the [CONTRIBUTE.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTE.md) file first.
@@ -62,7 +62,7 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
         -   Run this command: `CheckNetIsolation LoopbackExempt -a -n="Microsoft.MinecraftUWP_8wekyb3d8bbwe"`
         -   Open Minecraft and add a server with the ip `127.0.0.1`
 
-### Remarks
+## Remarks
 
 -   JSPrismarine still in active development, currently no stable version is released.
 -   The plugin API isn't stable.
