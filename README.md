@@ -1,15 +1,15 @@
 # JSPrismarine
 
-<a href="https://github.com/HerryYT/JSPrismarine/blob/master/LICENSE">
+<a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">
   <img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine?style=flat-square">
 </a>
-<a href="https://github.com/HerryYT/JSPrismarine/graphs/contributors">
+<a href="https://github.com/JSPrismarine/JSPrismarine/graphs/contributors">
   <img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D&style=flat-square">
 </a>
-<a href="https://github.com/HerryYT/JSPrismarine/commits/master">
+<a href="https://github.com/JSPrismarine/JSPrismarine/commits/master">
   <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC&style=flat-square">
 </a>
-<a href="https://github.com/HerryYT/JSPrismarine/commits/master">
+<a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=workflow%3A%22Unit+%26+Integration+Testing%22">
   <img alt="Build" src="https://img.shields.io/github/workflow/status/JSPrismarine/JSPrismarine/Unit%20&%20Integration%20Testing?style=flat-square">
 </a>
 <a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
