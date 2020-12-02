@@ -45,7 +45,7 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
 ## FAQ
 
 -   Can I contribute?
-    -   Sure, make sure to read the [CONTRIBUTE.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTE.md) file first.
+    -   Sure, make sure to read the [CONTRIBUTING.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTING.md) file first.
 -   Is JSPrismarine for `Minecraft: Bedrock Edition` or `Minecraft: Java Edition`?
     -   JSPrismarine is made for `Minecraft: Bedrock Edition`, there may however be plugin(s) available to provide a `Minecraft: Java Edition` implementation..
 -   What devices devices can a player join JSPrismarine with?
