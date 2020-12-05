@@ -53,27 +53,30 @@ export default class MetadataManager {
         key: number,
         type: number,
         value: bigint | number | boolean | string
-    ) {
+    ): void {
         this.metadata.set(key, [type, value]);
     }
 
-    public setLong(key: number, value: bigint) {
+    public setLong(key: number, value: bigint): void {
         this.setPropertyValue(key, FlagType.LONG, value);
     }
 
-    public setShort(key: number, value: number) {
+    public setShort(key: number, value: number): void {
         this.setPropertyValue(key, FlagType.SHORT, value);
     }
 
-    public setString(key: number, value: string) {
+    public setString(key: number, value: string): void {
         this.setPropertyValue(key, FlagType.STRING, value);
     }
 
-    public setFloat(key: number, value: number) {
+    public setFloat(key: number, value: number): void {
         this.setPropertyValue(key, FlagType.FLOAT, value);
     }
 
-    public getMetadata() {
+    public getMetadata(): Map<
+        number,
+        [number, bigint | number | boolean | string]
+    > {
         return this.metadata;
     }
 }
