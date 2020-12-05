@@ -21,7 +21,7 @@ export default class AddActorPacket extends DataPacket {
     public metadata = [];
     public links = [];
 
-    encodePayload() {
+    public encodePayload() {
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 

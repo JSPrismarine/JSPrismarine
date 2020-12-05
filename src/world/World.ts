@@ -12,6 +12,7 @@ import CoordinateUtils from './CoordinateUtils';
 import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/uuid';
 import GameruleManager, { GameRules } from './GameruleManager';
+import DataPacket from '../network/packet/DataPacket';
 
 interface WorldData {
     name: string;
@@ -189,6 +190,8 @@ export default class World {
         let y = chunk.getHighestBlock(x, z) + 1;
         return new Vector3(z, y + 2, z);
     }
+
+    public broadcastPacket(packet: DataPacket, targets?: Player[]): void {}
 
     public async useItemOn(
         itemInHand: Item | Block | null,

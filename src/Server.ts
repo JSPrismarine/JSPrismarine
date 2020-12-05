@@ -1,16 +1,14 @@
 import Prismarine from './Prismarine';
-import ConfigBuilder from './config/Config';
-import LoggerBuilder from './utils/Logger';
+import Config from './config/Config';
+import Logger from './utils/Logger';
 
+const config = new Config();
 const Server = new Prismarine({
-    config: new ConfigBuilder(),
-    logger: new LoggerBuilder()
+    config: config,
+    logger: new Logger()
 });
 
-Server.listen(
-    Server.getConfig().getServerIp(),
-    Server.getConfig().getPort()
-).catch((err) => {
+Server.listen(config.getServerIp(), config.getPort()).catch((err) => {
     Server.getLogger().error(
         `Cannot start the server, is it already running on the same port?`
     );

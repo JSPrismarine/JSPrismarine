@@ -28,7 +28,6 @@ import PermissionManager from './permission/PermissionManager';
 import BanManager from './ban/BanManager';
 import PlayerListEntry from './network/type/PlayerListEntry';
 import Connection from './network/raknet/Connection';
-import Client from './Client';
 
 export default class Prismarine {
     private raknet!: Listener;
@@ -231,60 +230,54 @@ export default class Prismarine {
             if (!this.players.has(token)) return;
             const player = this.players.get(token);
 
-            new Promise((resolve) => {
-                // Read batch content and handle them
-                const pk = new BatchPacket(raknetPacket.buffer);
+            // Read batch content and handle them
+            const batched = new BatchPacket(raknetPacket.buffer);
+            batched.decode();
 
-                pk.decode();
-                resolve(pk);
-            }).then((batched) => {
-                // Read all packets inside batch and handle them
-                for (const buf of (batched as BatchPacket).getPackets()) {
-                    if (!this.packetRegistry.getPackets().has(buf[0])) {
-                        this.logger.error(
-                            `Packet ${raknetPacket.id} doesn't have a handler`
-                        );
-                        continue;
-                    }
-
-                    // Get packet from registry
-                    const packet = new (this.packetRegistry
-                        .getPackets()
-                        .get(buf[0]))(buf);
-
-                    try {
-                        packet.decode();
-                    } catch (err) {
-                        this.logger.error(
-                            `Error while decoding packet: ${packet.constructor.name}: ${err}`
-                        );
-                        continue;
-                    }
-
-                    if (
-                        !this.packetRegistry.getHandlers().has(packet?.getId())
-                    ) {
-                        this.logger.error(
-                            `Packet ${packet.constructor.name} doesn't have a handler`
-                        );
-                        continue;
-                    }
-
-                    const handler = this.packetRegistry
-                        .getHandlers()
-                        .get(packet.getId());
-
-                    try {
-                        (async () => {
-                            await handler.handle(packet, this, player);
-                        })();
-                    } catch (err) {
-                        this.logger.error(
-                            `Handler error ${packet.constructor.name}-handler: (${err})`
-                        );
-                    }
+            // Read all packets inside batch and handle them
+            for (const buf of (batched as BatchPacket).getPackets()) {
+                if (!this.packetRegistry.getPackets().has(buf[0])) {
+                    this.logger.error(
+                        `Packet ${raknetPacket.id} doesn't have a handler`
+                    );
+                    continue;
                 }
-            });
+
+                // Get packet from registry
+                const packet = new (this.packetRegistry
+                    .getPackets()
+                    .get(buf[0]))(buf);
+
+                try {
+                    packet.decode();
+                } catch (err) {
+                    this.logger.error(
+                        `Error while decoding packet: ${packet.constructor.name}: ${err}`
+                    );
+                    continue;
+                }
+
+                if (!this.packetRegistry.getHandlers().has(packet?.getId())) {
+                    this.logger.error(
+                        `Packet ${packet.constructor.name} doesn't have a handler`
+                    );
+                    continue;
+                }
+
+                const handler = this.packetRegistry
+                    .getHandlers()
+                    .get(packet.getId());
+
+                try {
+                    (async () => {
+                        await handler.handle(packet, this, player);
+                    })();
+                } catch (err) {
+                    this.logger.error(
+                        `Handler error ${packet.constructor.name}-handler: (${err})`
+                    );
+                }
+            }
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
@@ -312,9 +305,6 @@ export default class Prismarine {
         //            .map(async (world) => await world.save()),
         //    1000 * 60 * 5
         // );
-
-        const client = new Client();
-        client.connect('0.0.0.0', 19132);
     }
 
     /**

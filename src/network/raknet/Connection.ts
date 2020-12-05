@@ -442,7 +442,9 @@ export default class Connection {
             if (id < 0x80) {
                 if (this.state === Status.CONNECTING) {
                     if (id === Identifiers.ConnectionRequestAccepted) {
-                        const dataPacket = new ConnectionRequestAccepted(packet.buffer);
+                        const dataPacket = new ConnectionRequestAccepted(
+                            packet.buffer
+                        );
                         dataPacket.decode();
 
                         const pk = new NewIncomingConnection();
@@ -454,7 +456,7 @@ export default class Connection {
                         const sendPk = new EncapsulatedPacket();
                         sendPk.reliability = 0;
                         sendPk.buffer = pk.getBuffer();
-                        
+
                         this.addToQueue(sendPk, Priority.IMMEDIATE);
                     } else if (id === Identifiers.ConnectionRequest) {
                         this.handleConnectionRequest(packet.buffer).then(
@@ -472,11 +474,14 @@ export default class Connection {
                         dataPacket.decode();
 
                         // Client bots will work just in offline mode
-                        const offlineMode = false;  // TODO: from config
+                        const offlineMode = false; // TODO: from config
 
                         let serverPort = this.listener.getSocket().address()
                             .port;
-                        if (!offlineMode ?? dataPacket.address.getPort() === serverPort) {
+                        if (
+                            !offlineMode ??
+                            dataPacket.address.getPort() === serverPort
+                        ) {
                             this.state = Status.CONNECTED;
                             this.listener.emit('openConnection', this);
                         }
