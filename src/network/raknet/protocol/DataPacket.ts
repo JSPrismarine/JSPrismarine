@@ -23,14 +23,16 @@ export default class DataPacket extends Packet {
 
     public encodePayload(): void {
         this.writeLTriad(this.sequenceNumber);
-        this.packets.map((packet) =>
-            this.append(packet.toBinary().getBuffer())
-        );
+        for (const packet of this.packets) {
+            this.append(packet.toBinary().getBuffer());
+        }
     }
 
     public getLength(): number {
         let length = 4;
-        this.packets.map((packet) => (length += packet.getTotalLength()));
+        for (const packet of this.packets) {
+            length += packet.getTotalLength();
+        }
         return length;
     }
 }

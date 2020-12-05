@@ -378,8 +378,7 @@ export default class Connection {
             let splitID = ++this.splitId % 65536;
             for (let [count, buffer] of buffers) {
                 let pk = new EncapsulatedPacket();
-                pk.splitID = splitID;
-                pk.split = true;
+                pk.splitId = splitID;
                 pk.splitCount = buffers.length;
                 pk.reliability = packet.reliability;
                 pk.splitIndex = count as number;
@@ -427,7 +426,7 @@ export default class Connection {
      */
     public async handlePacket(packet: EncapsulatedPacket): Promise<void> {
         return await new Promise((resolve) => {
-            if (packet.split) {
+            if (packet.splitCount > 0) {
                 this.handleSplit(packet);
                 return resolve();
             }
@@ -522,22 +521,22 @@ export default class Connection {
      * Handles a splitted packet.
      */
     public handleSplit(packet: EncapsulatedPacket): void {
-        if (this.splitPackets.has(packet.splitID)) {
-            const value = this.splitPackets.get(packet.splitID) as Map<
+        if (this.splitPackets.has(packet.splitId)) {
+            const value = this.splitPackets.get(packet.splitId) as Map<
                 number,
                 EncapsulatedPacket
             >;
             value.set(packet.splitIndex, packet);
-            this.splitPackets.set(packet.splitID, value);
+            this.splitPackets.set(packet.splitId, value);
         } else {
             this.splitPackets.set(
-                packet.splitID,
+                packet.splitId,
                 new Map([[packet.splitIndex, packet]])
             );
         }
 
         // If we have all pieces, put them together
-        const localSplits = this.splitPackets.get(packet.splitID) as Map<
+        const localSplits = this.splitPackets.get(packet.splitId) as Map<
             number,
             EncapsulatedPacket
         >;
@@ -547,7 +546,7 @@ export default class Connection {
             Array.from(localSplits.values()).map((packet) =>
                 stream.append(packet.buffer)
             );
-            this.splitPackets.delete(packet.splitID);
+            this.splitPackets.delete(packet.splitId);
 
             pk.buffer = stream.getBuffer();
             this.receivePacket(pk);
