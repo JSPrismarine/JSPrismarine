@@ -15,10 +15,6 @@ import IncompatibleProtocolVersion from './protocol/IncompatibleProtocolVersion'
 import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
 import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
-import {
-    setIntervalAsync,
-    clearIntervalAsync
-} from 'set-interval-async/dynamic';
 
 // Minecraft related protocol
 const PROTOCOL = 10;
