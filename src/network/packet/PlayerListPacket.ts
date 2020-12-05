@@ -17,12 +17,12 @@ interface PlayerListData {
 
 export class PlayerListEntry {
     private uuid: UUID;
-    private uniqueEntityId?: bigint | null;
-    private name?: string | null;
-    private xuid?: string;
-    private platformChatId?: string | null;
-    private buildPlatform?: number | null;
-    private skin?: Skin | null;
+    private uniqueEntityId: bigint | null;
+    private name: string | null;
+    private xuid: string;
+    private platformChatId: string | null;
+    private buildPlatform: number | null;
+    private skin: Skin | null;
     private teacher: boolean;
     private host: boolean;
 
