@@ -1,103 +1,68 @@
-<p id="app-name" align="center">
-	<img width="300" height="300" src="https://user-images.githubusercontent.com/34418030/88539249-3165d480-d011-11ea-82d3-ecfebfffa3bd.png" alt="JSPrismarine logo"/>
-</p>
-<h1 align="center">
-	<a href="https://github.com/JSPrismarine/JSPrismarine">JSPrismarine</a>
-</h1>
+# JSPrismarine
 
-<p align="center">
-  <a href="https://github.com/HerryYT/JSPrismarine/blob/master/LICENSE">
-  	<img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine?style=for-the-badge">
-  </a>
-  <a href="https://github.com/HerryYT/JSPrismarine/graphs/contributors">
-  	<img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D&style=for-the-badge">
-  </a>
-  <a href="https://github.com/HerryYT/JSPrismarine/commits/master">
-    <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC&style=for-the-badge">
-  </a>
-  <a href="https://github.com/HerryYT/JSPrismarine/commits/master">
-    <img alt="Build" src="https://img.shields.io/github/workflow/status/JSPrismarine/JSPrismarine/Unit%20&%20Integration%20Testing?style=for-the-badge">
-  </a>
-  <a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
-    <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/JSPrismarine/JSPrismarine?style=for-the-badge">
-  </a>
-  <a href="https://discord.gg/6w8JWhy">
-    <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=for-the-badge">
-  </a>
-  <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
-    <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=for-the-badge">
-  </a>
-  <a href="https://www.patreon.com/prismarine">
-    <img alt="Patreon" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dprismarine%26type%3Dpledges&style=for-the-badge">
-  </a>
-</p>
+<a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">
+  <img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine?style=flat-square">
+</a>
+<a href="https://github.com/JSPrismarine/JSPrismarine/graphs/contributors">
+  <img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D&style=flat-square">
+</a>
+<a href="https://github.com/JSPrismarine/JSPrismarine/commits/master">
+  <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC&style=flat-square">
+</a>
+<a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=workflow%3A%22Unit+%26+Integration+Testing%22">
+  <img alt="Build" src="https://img.shields.io/github/workflow/status/JSPrismarine/JSPrismarine/Unit%20&%20Integration%20Testing?style=flat-square">
+</a>
+<a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
+  <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/JSPrismarine/JSPrismarine?style=flat-square">
+</a>
+<a href="https://discord.gg/6w8JWhy">
+  <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
+</a>
+<a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
+  <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=flat-square">
+</a>
+<a href="https://www.patreon.com/prismarine">
+  <img alt="Patreon" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dprismarine%26type%3Dpatrons&style=flat-square">
+</a>
 
+## Why use JSPrismarine?
 
-> ### Why JSPrismarine?
-  - Written in JavaScript, that means it's easy to use and create plugins for, you can also make plugins in other languages that transpile into JavaScript (such as TypeScript, Kotlin, CoffeeScript, asm.js and more).
-  - Open source with the permissive [MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) license.
-  - Active development.
+-   Written in TypeScript which means that it's easy to use and develop plugins for. You can in theory develop plugins in any language that transpile into JavaScript (such as TypeScript, Kotlin, CoffeeScript, asm.js and many more).
+-   Open source with the permissive [MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) license.
+-   Under active development.
 
----
+## Getting started
 
+Prebuilt binaries will be provided once a stable release is out, these will not require a node environment. For now however, you can either follow the steps bellow or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22) (which may or may not work).
 
-> ### How to use?
-  Prebuilt binaries will be provided once a stable release is out, for now you can either follow the steps bellow or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22).
-  - Linux/MacOS/Unix based OS
-    - You need [Node.js](https://nodejs.org) 14.x and [NPM](https://www.npmjs.com/) (NPM is included with Node.js).
-    - Clone the repository `git clone https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/HerryYT/JSPrismarine/archive/master.zip)).
-    - Go in the cloned repository `cd JSPrismarine`
-    - Before running it you have to build it `npm run build`
-    - You're done, you can run it using `npm start` (or `npm run dev` for development)
-    
-  - Windows (requires WSL)
-    - You need [Node.js](https://nodejs.org) v14.x or later, and [NPM](https://www.npmjs.com/) (NPM is included with Node.js).
-    - Clone the repository `git clone https://github.com/HerryYT/JSPrismarine.git` (if it doesn't work you can download it [here](https://github.com/HerryYT/JSPrismarine/archive/master.zip)).
-    - Go in the cloned repository using `cd JSPrismarine`
-    - Before running it you have to build it `npm run build`
-    - You're done, you can now run it using `npm start` (or `npm run dev` for development)
+-   Linux/MacOS/Unix based OS or Windows (which may require WSL)
+    -   You need [Node.js](https://nodejs.org) v14.x and [npm](https://www.npmjs.com).
+    -   Clone the repository `git clone https://github.com/JSPrismarine/JSPrismarine.git`.
+    -   Go in the cloned repository `cd JSPrismarine`
+    -   Before running production build you have to build it `yarn build`
+    -   You're done, you can run it using `yarn start` (or `yarn dev` for development)
 
----
-  
-> ### FAQ:
-  - How do I uninstall it? 
-    - Simply delete the directory (JSPrismarine).
-    
-  - Can I contribute?
-    - Sure.
-    
-  - Is it for Minecraft Bedrock Edition or Java Edition?
-  	 - It's only for Bedrock Edition.
-  	 
-  - With which devices devices can I join?
-  	 - PC/Windows, Android, iOS and with some tricks you can join with Xbox One, Switch and PS4.
-  	 
-  - Which OS can run JSPrismarine?
-    - Linux, Windows, MacOS.
-    
-  - Does it support plugins?
-  	 - Yes but JSPrismarine is in fast development-mode. That means that currently SEMVER isn't strictly followed. We do however try to provide a deprecation warning one week ahead.
-  	 
-  - If my question isn't here what should I do?
-   	- You can join the [Discord server](https://discord.gg/fGkHZhu) or open an [issue](https://github.com/HerryYT/JSPrismarine/issues/new).
-   	
-  - I cannot join the server when hosting it on my pc.
-    - Open Windows PowerShell as administrator
-    - Run this command: `CheckNetIsolation LoopbackExempt -a -n="Microsoft.MinecraftUWP_8wekyb3d8bbwe"` 
-    - Open Minecraft and add a server with the ip `127.0.0.1`
+## FAQ
 
----
+-   Can I contribute?
+    -   Sure, make sure to read the [CONTRIBUTING.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTING.md) file first.
+-   Is JSPrismarine for `Minecraft: Bedrock Edition` or `Minecraft: Java Edition`?
+    -   JSPrismarine is made for `Minecraft: Bedrock Edition`, there may however be plugin(s) available to provide a `Minecraft: Java Edition` implementation..
+-   What devices devices can a player join JSPrismarine with?
+    -   By default PC/Windows, Android, iOS. However with some tricks you can also join with Xbox One, Switch and the PS4.
+-   Which OSes can run JSPrismarine?
+    -   Any platform supporting Node.js v14 or later.
+-   Does it support plugins?
+    -   Yes but JSPrismarine is in fast development-mode which means that currently SEMVER isn't strictly followed. We do however try to provide a deprecation warning one week ahead of removing an API function.
+-   If my question isn't listed here where should I sak?
+    -   You can join the [Discord server](https://discord.gg/fGkHZhu), ask on the [forums](https://prismarine.dev) or in case of a development-related question issue an open a [GitHub issue](https://github.com/HerryYT/JSPrismarine/issues/new).
+-   Why can't I join a JSPrismarine instance hosted on my Windows PC?
+    -   To join an instance of JSPrismarine hosted on the same Windows machine you need to enable Loopback by doing the following:
+        -   Open Windows PowerShell as administrator
+        -   Run this command: `CheckNetIsolation LoopbackExempt -a -n="Microsoft.MinecraftUWP_8wekyb3d8bbwe"`
+        -   Open Minecraft and add a server with the ip `127.0.0.1`
 
-> ### Remarks:
-  - JSPrismarine still in active development, no stable version is out yet.
-  - Plugin API isn't stable.
+## Remarks
 
----
-
-> ### Screenshots:
-
- <img width="250" src="https://user-images.githubusercontent.com/34418030/88540607-8d315d00-d013-11ea-8be3-f10216bb699e.png"/>
-
----
-
-🔺 <a href="#app-name">Go to top</a>
+-   JSPrismarine still in active development, currently no stable version is released.
+-   The plugin API isn't stable.
