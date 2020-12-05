@@ -79,13 +79,15 @@ export default class Listener extends EventEmitter {
             this.socket.bind(port, address, () => {
                 this.socket.removeListener('error', failFn);
 
-                const timer = setIntervalAsync(async () => {
+                const timer = setInterval(() => {
                     if (!this.shutdown) {
-                        for await (const conn of this.connections.values()) {
-                            conn.update(Date.now());
-                        }
+                        Promise.all(
+                            Array.from(this.connections.values()).map((conn) =>
+                                conn.update(Date.now())
+                            )
+                        );
                     } else {
-                        clearIntervalAsync(timer);
+                        clearInterval(timer);
                     }
                 }, RAKNET_TICK_LENGTH * 1000);
 
