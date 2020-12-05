@@ -49,7 +49,7 @@ class Attribute {
     }
 }
 
-const MAX_FLOAT32 = 3.4028234663852886e+38;
+const MAX_FLOAT32 = 3.4028234663852886e38;
 export default class AttributeManager {
     private attributes: Array<Attribute> = [];
 
