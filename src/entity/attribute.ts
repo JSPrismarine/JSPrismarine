@@ -18,7 +18,7 @@ export const AttributeIds = {
     LavaMovement: 'minecraft:lava_movement'
 };
 
-class Attribute {
+export class Attribute {
     private name: string;
     private min: number;
     private max: number;
@@ -46,6 +46,26 @@ class Attribute {
         this.max = max;
         this.default = def;
         this.value = value;
+    }
+
+    public getName(): string {
+        return this.name;
+    }
+
+    public getMin(): number {
+        return this.min;
+    }
+
+    public getMax(): number {
+        return this.max;
+    }
+
+    public getDefault(): number {
+        return this.default;
+    }
+
+    public getValue(): number {
+        return this.value;
     }
 }
 

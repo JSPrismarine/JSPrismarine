@@ -20,18 +20,20 @@ import InventoryContentPacket from '../network/packet/InventoryContentPacket';
 import CreativeContentPacket from '../network/packet/CreativeContentPacket';
 import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
-import PlayerListPacket from '../network/packet/PlayerListPacket';
+import PlayerListPacket, {
+    PlayerListAction,
+    PlayerListEntry
+} from '../network/packet/PlayerListPacket';
 import MovePlayerPacket from '../network/packet/MovePlayerPacket';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
 import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import CoordinateUtils from '../world/CoordinateUtils';
-import PlayerListEntry from '../network/type/PlayerListEntry';
 import Skin from '../utils/skin/Skin';
 import UUID from '../utils/uuid';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
+import { Attribute } from '../entity/attribute';
 
-const PlayerListAction = require('../network/type/player-list-action');
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
@@ -337,18 +339,19 @@ export default class PlayerConnection {
         this.sendDataPacket(pk);
     }
 
-    public sendAttributes(attributes: any) {
+    public sendAttributes(attributes: Array<Attribute>): void {
         let pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.player.runtimeId;
-        pk.attributes = attributes || this.player.attributes.getAttributes();
+        pk.attributes =
+            attributes ?? this.player.getAttributeManager().getAttributes();
         pk.tick = BigInt(0); // TODO
         this.sendDataPacket(pk);
     }
 
-    public sendMetadata() {
+    public sendMetadata(): void {
         let pk = new SetActorDataPacket();
         pk.runtimeEntityId = this.player.runtimeId;
-        pk.metadata = this.player.metadata.getMetadata();
+        pk.metadata = this.player.getMetadataManager().getMetadata();
         pk.tick = BigInt(0); // TODO
         this.sendDataPacket(pk);
     }
@@ -409,21 +412,23 @@ export default class PlayerConnection {
      * Add the player to the client player list
      */
     public addToPlayerList() {
-        let pk = new PlayerListPacket();
-        pk.type = PlayerListAction.Add;
+        const pk = new PlayerListPacket();
+        pk.type = PlayerListAction.TYPE_ADD;
 
-        let entry = new PlayerListEntry();
-        entry.uuid = UUID.fromString(this.player.uuid);
-        entry.uniqueEntityId = this.player.runtimeId;
-        entry.name = this.player.getUsername();
-        entry.xuid = this.player.xuid;
-        entry.platformChatId = ''; // TODO: read this value from Login
-        entry.buildPlatform = -1; // TODO: read also this
-        entry.skin = this.player.skin as Skin;
-        entry.isTeacher = false; // TODO: figure out where to read teacher and host
-        entry.isHost = false;
+        const entry = new PlayerListEntry({
+            uuid: UUID.fromString(this.player.uuid),
+            uniqueEntityid: this.player.runtimeId,
+            name: this.player.getUsername(),
+            xuid: this.player.xuid,
+            platformChatId: '', // TODO: read this value from Login
+            buildPlatform: -1,
+            skin: this.player.skin as Skin,
+            isTeacher: false, // TODO: figure out where to read teacher and host
+            isHost: false
+        });
         pk.entries.push(entry);
 
+        // Add to cached player list
         this.server.getPlayerList().set(this.player.uuid, entry);
 
         // Add just this entry for every players on the server
@@ -439,10 +444,11 @@ export default class PlayerConnection {
         if (!this.player.uuid) return;
 
         let pk = new PlayerListPacket();
-        pk.type = PlayerListAction.Remove;
+        pk.type = PlayerListAction.TYPE_REMOVE;
 
-        let entry = new PlayerListEntry();
-        entry.uuid = UUID.fromString(this.player.uuid);
+        const entry = new PlayerListEntry({
+            uuid: UUID.fromString(this.player.getUUID())
+        });
         pk.entries.push(entry);
 
         this.server.getPlayerList().delete(this.player.uuid);
@@ -458,7 +464,7 @@ export default class PlayerConnection {
      */
     public sendPlayerList() {
         let pk = new PlayerListPacket();
-        pk.type = PlayerListAction.Add;
+        pk.type = PlayerListAction.TYPE_ADD;
 
         // Hack to not compute every time entries
         Array.from(this.server.getPlayerList()).map(([uuid, entry]) => {
@@ -493,7 +499,7 @@ export default class PlayerConnection {
         pk.headYaw = this.player.headYaw;
 
         pk.deviceId = this.player.device?.id || '';
-        pk.metadata = this.player.metadata.getMetadata();
+        pk.metadata = this.player.getMetadataManager().getMetadata();
         player.getConnection().sendDataPacket(pk);
     }
 

@@ -12,8 +12,8 @@ export default class Entity extends Position {
     public runtimeId: bigint;
 
     // TODO: do not expose and make API instead
-    public metadata: MetadataManager = new MetadataManager();
-    public attributes: AttributeManager = new AttributeManager();
+    private metadata: MetadataManager = new MetadataManager();
+    private attributes: AttributeManager = new AttributeManager();
 
     /**
      * Entity constructor.
@@ -75,6 +75,14 @@ export default class Entity extends Position {
             value,
             FlagType.LONG
         );
+    }
+
+    public getAttributeManager(): AttributeManager {
+        return this.attributes;
+    }
+
+    public getMetadataManager(): MetadataManager {
+        return this.metadata;
     }
 
     public sendSpawn(player: any) {
