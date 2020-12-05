@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { FlagType } from '../entity/metadata';
 import Skin from '../utils/skin/Skin';
 import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
 import SkinPersonaPiece from '../utils/skin/skin-persona/SkinPersonaPiece';
@@ -10,7 +11,6 @@ import UUID from '../utils/uuid';
 import CreativeContentEntry from './type/creative-content-entry';
 import PlayerListEntry from './type/PlayerListEntry';
 
-const { FlagType } = require('../entity/metadata');
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
 
@@ -292,25 +292,25 @@ export default class PacketBinaryStream extends BinaryStream {
         return n % 1 !== 0;
     }
 
-    writeEntityMetadata(metadata: any) {
+    public writeEntityMetadata(metadata: any) {
         this.writeUnsignedVarInt(metadata.size);
         for (const [index, value] of metadata) {
             this.writeUnsignedVarInt(index);
             this.writeUnsignedVarInt(value[0]);
             switch (value[0]) {
-                case FlagType.Byte:
+                case FlagType.BYTE:
                     this.writeByte(value[1]);
                     break;
-                case FlagType.Float:
+                case FlagType.FLOAT:
                     this.writeLFloat(value[1]);
                     break;
-                case FlagType.Long:
+                case FlagType.LONG:
                     this.writeVarLong(value[1]);
                     break;
-                case FlagType.String:
+                case FlagType.STRING:
                     this.writeString(value[1]);
                     break;
-                case FlagType.Short:
+                case FlagType.SHORT:
                     this.writeLShort(value[1]);
                     break;
                 default:

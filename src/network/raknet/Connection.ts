@@ -152,8 +152,6 @@ export default class Connection {
 
             resolve();
         });
-
-        // console.log(`Update took ${resolveTime - startTime}ms to complete`);
     }
 
     public disconnect(reason = 'unknown'): void {
