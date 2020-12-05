@@ -18,26 +18,21 @@ export const AttributeIds = {
     LavaMovement: 'minecraft:lava_movement'
 };
 
-export class Attribute {
-    /** @type {string} */
-    name;
-    /** @type {number} */
-    min;
-    /** @type {number} */
-    max;
-    /** @type {number} */
-    default;
-    /** @type {number} */
-    value;
+class Attribute {
+    private name: string;
+    private min: number;
+    private max: number;
+    private default: number;
+    private value: number;
 
     /**
      * Class used to store Attribute data.
      *
-     * @param {string} name - Attribute identifier
-     * @param {number} min - Attribute minimum value
-     * @param {number} max - Attribute maximum value
-     * @param {number} def - Attribute default value
-     * @param {number} value - Attribute current value
+     * @param name - Attribute identifier
+     * @param min - Attribute minimum value
+     * @param max - Attribute maximum value
+     * @param def - Attribute default value
+     * @param value - Attribute current value
      */
     constructor(
         name: string,
@@ -53,15 +48,15 @@ export class Attribute {
         this.value = value;
     }
 }
-const MAX_FLOAT32 = 3.4028234663852886e38;
-export class AttributeManager {
-    /** @type {Attribute[]} */
-    #attributes = [];
+
+const MAX_FLOAT32 = 3.4028234663852886e+38;
+export default class AttributeManager {
+    private attributes: Array<Attribute> = [];
 
     /**
      * Returns a list of default attributes to send the first time a player spawns.
      */
-    getDefaults() {
+    public getDefaults() {
         return [
             new Attribute(AttributeIds.Absorption, 0.0, MAX_FLOAT32, 0.0, 0.0),
             new Attribute(AttributeIds.PlayerSaturation, 0.0, 20.0, 20.0, 20.0),
@@ -107,7 +102,7 @@ export class AttributeManager {
         ];
     }
 
-    getAttributes() {
-        return this.#attributes;
+    public getAttributes(): Array<Attribute> {
+        return this.attributes;
     }
 }

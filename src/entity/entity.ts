@@ -2,8 +2,7 @@ import Position from '../world/Position';
 import World from '../world/World';
 import AddActorPacket from '../network/packet/AddActorPacket';
 import MetadataManager, { FlagType, MetadataFlag } from './metadata';
-
-const { AttributeManager } = require('./attribute');
+import AttributeManager from './attribute';
 
 // All entities will extend this base class
 export default class Entity extends Position {
@@ -12,10 +11,9 @@ export default class Entity extends Position {
 
     public runtimeId: bigint;
 
+    // TODO: do not expose and make API instead
     public metadata: MetadataManager = new MetadataManager();
-    public attributes: any = new AttributeManager();
-
-    public chunk: any; // TODO
+    public attributes: AttributeManager = new AttributeManager();
 
     /**
      * Entity constructor.
