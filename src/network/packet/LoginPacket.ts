@@ -3,7 +3,7 @@ import Device from '../../utils/Device';
 import Skin from '../../utils/skin/Skin';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
-import fs from 'fs';
+
 import jwt_decode from 'jwt-decode';
 
 export default class LoginPacket extends DataPacket {
@@ -40,7 +40,9 @@ export default class LoginPacket extends DataPacket {
             this.identityPublicKey = decodedChain.identityPublicKey;
         }
 
-        let decodedJWT = jwt_decode(stream.read(stream.readLInt()).toString())  as any;
+        let decodedJWT = jwt_decode(
+            stream.read(stream.readLInt()).toString()
+        ) as any;
         this.skin = Skin.fromJWT(decodedJWT);
         this.device = new Device({
             id: decodedJWT.DeviceId,
@@ -56,10 +58,6 @@ export default class LoginPacket extends DataPacket {
     }
 
     public encodePayload(): void {
-        this.writeInt(Identifiers.Protocol);
-        let file = fs.readFileSync(__dirname + '/file.bin');
-        this.append(file);
-
         /* 
         TODO
         this.writeInt(Identifiers.Protocol);
@@ -77,6 +75,6 @@ export default class LoginPacket extends DataPacket {
 
         stream.writeLInt(Buffer.byteLength(data));
         stream.append(Buffer.from(data, 'utf8'));
-        */ 
+        */
     }
 }

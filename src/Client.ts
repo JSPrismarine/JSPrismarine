@@ -94,14 +94,17 @@ export default class Client extends EventEmitter implements RakNetListener {
                 if (this.connected && !this.loginHandled) {
                     const pk = new LoginPacket();
                     pk.encode();
-                    
+
                     const sendPk = new EncapsulatedPacket();
                     sendPk.reliability = 0;
                     sendPk.buffer = pk.getBuffer();
 
-                    this.connection!.addEncapsulatedToQueue(sendPk, Priority.NORMAL);  // packet needs to be splitted
+                    this.connection!.addEncapsulatedToQueue(
+                        sendPk,
+                        Priority.NORMAL
+                    ); // packet needs to be splitted
                     this.loginHandled = true;
-                } 
+                }
 
                 this.connection?.update(Date.now());
             } else {
@@ -175,9 +178,9 @@ export default class Client extends EventEmitter implements RakNetListener {
             throw new Error('Received an invalid offline message');
         }
 
-        console.log('[MTU SIZE] ' + decodedPacket.mtuSize)
-        console.log('[SERVER ID] ' + decodedPacket.serverGUID)
-        console.log('-'.repeat(40))
+        console.log('[MTU SIZE] ' + decodedPacket.mtuSize);
+        console.log('[SERVER ID] ' + decodedPacket.serverGUID);
+        console.log('-'.repeat(40));
 
         // Encode response
         packet = new OpenConnectionRequest2();
@@ -211,11 +214,13 @@ export default class Client extends EventEmitter implements RakNetListener {
             throw new Error('Received an invalid offline message');
         }
 
-        const inetAddr = decodedPacket.clientAddress
-        console.log('[SERVER ID] ' + decodedPacket.serverGUID)
-        console.log(`[CLIENT ADDRESS] ${inetAddr.getAddress()}:${inetAddr.getPort()}`)
-        console.log('[MTU SIZE] ' + decodedPacket.mtuSize)
-        console.log('-'.repeat(40))
+        const inetAddr = decodedPacket.clientAddress;
+        console.log('[SERVER ID] ' + decodedPacket.serverGUID);
+        console.log(
+            `[CLIENT ADDRESS] ${inetAddr.getAddress()}:${inetAddr.getPort()}`
+        );
+        console.log('[MTU SIZE] ' + decodedPacket.mtuSize);
+        console.log('-'.repeat(40));
 
         // Encode response (encapsulated)
         packet = new ConnectionRequest();
@@ -227,7 +232,7 @@ export default class Client extends EventEmitter implements RakNetListener {
         sendPacket.reliability = 0;
         sendPacket.buffer = packet.getBuffer();
 
-        this.connection?.addToQueue(sendPacket, 1)
+        this.connection?.addToQueue(sendPacket, 1);
 
         this.offlineHandled = true;
         this.connected = true; // should be... we can't rely on it

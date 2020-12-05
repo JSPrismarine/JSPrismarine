@@ -91,17 +91,6 @@ export default class Player extends Entity {
     }
 
     public async update(tick: number) {
-        // Update movement for every player
-        Promise.all(
-            this.server
-                .getOnlinePlayers()
-                .filter((onlinePlayer) => !(onlinePlayer == this))
-                .map((player) => {
-                    player.getConnection().broadcastMove(this);
-                    this.playerConnection.broadcastMove(player);
-                })
-        );
-
         await this.playerConnection.update(tick);
     }
 
@@ -155,6 +144,6 @@ export default class Player extends Entity {
     }
 
     public getUUID(): string {
-        return this.uuid || '';
+        return this.uuid ?? '';
     }
 }
