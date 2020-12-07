@@ -14,7 +14,7 @@ export default class EncapsulatedPacket {
     public reliability!: number;
 
     // reliable message number
-    public messageIndex!: number;
+    public messageIndex: number | null = null;
     public sequenceIndex!: number;
     public orderIndex!: number;
     public orderChannel!: number;
