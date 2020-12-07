@@ -81,13 +81,17 @@ export default class World {
      */
     public async update(timestamp: number): Promise<void> {
         // Continue world time ticks
-        this.currentTick += 1;
+        ++this.currentTick;
 
         // Tick players
         for (const player of this.players.values()) {
             player.update(timestamp);
-            if (this.currentTick % 5)
+            // TODO: get documentation about timings from vanilla
+            // 1 second / 20 = 1 tick, 20 * 5 = 1 second
+            // 1 second * 60 = 1 minute
+            if (this.currentTick % (20 * 5 * 60 * 1) == 0) {
                 player.getConnection().sendTime(this.currentTick);
+            }
         }
 
         // TODO: tick chunks

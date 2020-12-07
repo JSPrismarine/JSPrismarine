@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import BitFlags from './BitFlags';
-import ReliabilityLayer, {
+import {
     isReliable,
     isSequenced,
     isSequencedOrOrdered
@@ -13,17 +13,22 @@ export default class EncapsulatedPacket {
     // Encapsulation decoded fields
     public reliability!: number;
 
-    // reliable message number
-    public messageIndex: number | null = null;
-    public sequenceIndex!: number;
-    public orderIndex!: number;
-    public orderChannel!: number;
+    // Reliable message number, used to identify reliable messages on the network
+    public messageIndex: number = 0;
 
-    // If packet is not splitted all those
-    // fields remains undefined
-    public splitCount!: number;
-    public splitIndex!: number;
-    public splitId!: number;
+    // Identifier used with sequenced messages
+    public sequenceIndex: number = 0;
+    // Identifier used for ordering packets, included in sequenced messages
+    public orderIndex: number = 0;
+    // The order channel the packet is on, used just if the reliability type has it
+    public orderChannel: number = 0;
+
+    // If the packet is splitted, this is the count of splits
+    public splitCount: number = 0;
+    // If the packet is splitted, this ID refers to the index in the splits array
+    public splitIndex: number = 0;
+    // The ID of the split packet (if the packet is splitted)
+    public splitId: number = 0;
 
     public static fromBinary(stream: BinaryStream): EncapsulatedPacket {
         const packet = new EncapsulatedPacket();
@@ -94,14 +99,14 @@ export default class EncapsulatedPacket {
         return stream;
     }
 
-    public getTotalLength(): number {
+    public getByteLength(): number {
         return (
             3 +
             this.buffer.byteLength +
-            (typeof this.messageIndex !== 'undefined' ? 3 : 0) +
-            (typeof this.orderIndex !== 'undefined' ? 4 : 0) +
-            (this.splitCount ? 10 : 0)
+            (isReliable(this.reliability) ? 3 : 0) +
+            (isSequenced(this.reliability) ? 3 : 0) +
+            (isSequencedOrOrdered(this.reliability) ? 4 : 0) +
+            (this.splitCount > 0 ? 10 : 0)
         );
     }
 }
-module.exports = EncapsulatedPacket;
