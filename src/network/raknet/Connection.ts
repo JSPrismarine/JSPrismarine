@@ -68,6 +68,7 @@ export default class Connection {
     private messageIndex = 0;
     private channelIndex: Array<number> = [];
 
+    // Internal split Id
     private splitId = 0;
 
     // Last timestamp of packet received, helpful for timeout
@@ -293,7 +294,7 @@ export default class Connection {
 
     public async receivePacket(packet: EncapsulatedPacket): Promise<void> {
         return await new Promise(async (resolve) => {
-            if (packet.messageIndex == null) {
+            if (!isReliable(packet.reliability)) {
                 // Handle the packet directly if it doesn't have a message index
                 this.handlePacket(packet);
             } else {
@@ -323,7 +324,7 @@ export default class Connection {
 
                         this.reliableWindow = reliableWindow;
 
-                        for (let [seqIndex, pk] of this.reliableWindow) {
+                        for (const [seqIndex, pk] of this.reliableWindow) {
                             if (seqIndex - this.lastReliableIndex !== 1) {
                                 break;
                             }
@@ -348,9 +349,7 @@ export default class Connection {
         packet: EncapsulatedPacket,
         flags = Priority.NORMAL
     ) {
-        if (
-            isReliable(packet.reliability)
-        ) {
+        if (isReliable(packet.reliability)) {
             packet.messageIndex = this.messageIndex++;
 
             if (packet.reliability == PacketReliability.RELIABLE_ORDERED) {
@@ -358,37 +357,47 @@ export default class Connection {
             }
         }
 
-        if (packet.getTotalLength() + 4 > this.mtuSize) {
+        // Split packet if bigger than MTU size
+        if (packet.getByteLength() > this.mtuSize) {
             // Split the buffer into chunks
-            let buffers = [],
-                i = 0,
-                splitIndex = 0;
-            while (i < packet.buffer.length) {
+            let buffers: Map<number, Buffer> = new Map(),
+                index: number = 0,
+                splitIndex: number = 0;
+
+            while (index < packet.buffer.length) {
                 // Push format: [chunk index: int, chunk: buffer]
-                buffers.push([
-                    (splitIndex += 1) - 1,
-                    packet.buffer.slice(i, (i += this.mtuSize - 60))
-                ]);
+                buffers.set(
+                    splitIndex++,
+                    packet.buffer.slice(index, (index += this.mtuSize))
+                );
             }
-            let splitID = ++this.splitId % 65536;
-            for (let [count, buffer] of buffers) {
-                let pk = new EncapsulatedPacket();
-                pk.splitId = splitID;
-                pk.splitCount = buffers.length;
+
+            for (const [index, buffer] of buffers) {
+                const pk = new EncapsulatedPacket();
+                pk.splitId = this.splitId;
+                pk.splitCount = buffers.size;
                 pk.reliability = packet.reliability;
-                pk.splitIndex = count as number;
-                pk.buffer = buffer as Buffer;
-                if (count > 0) {
+                pk.splitIndex = index;
+                pk.buffer = buffer;
+
+                if (index != 0) {
                     pk.messageIndex = this.messageIndex++;
-                } else {
-                    pk.messageIndex = packet.messageIndex;
                 }
-                if (pk.reliability === 3) {
+
+                // Figure out if the message index differs
+                // from 0 with reliable as reliability
+                // pk.messageIndex = packet.messageIndex
+
+                if (pk.reliability == PacketReliability.RELIABLE_ORDERED) {
                     pk.orderChannel = packet.orderChannel;
                     pk.orderIndex = packet.orderIndex;
                 }
-                this.addToQueue(pk, flags | Priority.IMMEDIATE);
+
+                this.addToQueue(pk, flags);
             }
+
+            // Increase the internal split Id
+            this.splitId++;
         } else {
             this.addToQueue(packet, flags);
         }
@@ -409,7 +418,7 @@ export default class Connection {
             return;
         }
         let length = this.sendQueue.getLength();
-        if (length + pk.getTotalLength() > this.mtuSize) {
+        if (length + pk.getByteLength() > this.mtuSize) {
             this.sendPacketQueue();
         }
 
@@ -535,7 +544,7 @@ export default class Connection {
             number,
             EncapsulatedPacket
         >;
-        if (localSplits.size === packet.splitCount) {
+        if (localSplits.size == packet.splitCount) {
             const pk = new EncapsulatedPacket();
             const stream = new BinaryStream();
             Array.from(localSplits.values()).map((packet) =>

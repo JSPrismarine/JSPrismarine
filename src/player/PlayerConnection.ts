@@ -33,6 +33,7 @@ import Skin from '../utils/skin/Skin';
 import UUID from '../utils/uuid';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import { Attribute } from '../entity/attribute';
+import DataPacket from '../network/packet/DataPacket';
 
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
@@ -52,23 +53,21 @@ export default class PlayerConnection {
     }
 
     // To refactor
-    public sendDataPacket(packet: any, _needACK = false, _immediate = false) {
-        new Promise((resolve) => {
-            const batch = new BatchPacket();
-            batch.addPacket(packet);
-            batch.encode();
+    public sendDataPacket(
+        packet: DataPacket,
+        _needACK = false,
+        _immediate = false
+    ) {
+        const batch = new BatchPacket();
+        batch.addPacket(packet);
+        batch.encode();
 
-            // Add this in raknet
-            const sendPacket = new EncapsulatedPacket();
-            sendPacket.reliability = 0;
-            sendPacket.buffer = batch.getBuffer();
+        // Add this in raknet
+        const sendPacket = new EncapsulatedPacket();
+        sendPacket.reliability = 0;
+        sendPacket.buffer = batch.getBuffer();
 
-            resolve(sendPacket);
-        }).then((encapsulated) =>
-            this.connection.addEncapsulatedToQueue(
-                encapsulated as EncapsulatedPacket
-            )
-        );
+        this.connection.addEncapsulatedToQueue(sendPacket);
     }
 
     public async update(_tick: number) {
@@ -209,7 +208,7 @@ export default class PlayerConnection {
             }
         }
 
-        if (!unloaded || !(this.chunkSendQueue.size == 0)) {
+        if (unloaded ?? !(this.chunkSendQueue.size == 0)) {
             this.sendNetworkChunkPublisher();
         }
     }
