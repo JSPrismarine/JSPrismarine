@@ -13,6 +13,7 @@ import NewIncomingConnection from './protocol/NewIncomingConnection';
 import InetAddress from './utils/InetAddress';
 import Identifiers from './protocol/Identifiers';
 import Packet from './protocol/Packet';
+import PacketReliability, { isReliable } from './protocol/ReliabilityLayer';
 
 enum Priority {
     NORMAL,
@@ -292,7 +293,7 @@ export default class Connection {
 
     public async receivePacket(packet: EncapsulatedPacket): Promise<void> {
         return await new Promise(async (resolve) => {
-            if (typeof packet.messageIndex === 'undefined') {
+            if (packet.messageIndex == null) {
                 // Handle the packet directly if it doesn't have a message index
                 this.handlePacket(packet);
             } else {
@@ -348,15 +349,11 @@ export default class Connection {
         flags = Priority.NORMAL
     ) {
         if (
-            packet.reliability === 2 ||
-            packet.reliability === 3 ||
-            packet.reliability === 4 ||
-            packet.reliability === 6 ||
-            packet.reliability === 7
+            isReliable(packet.reliability)
         ) {
             packet.messageIndex = this.messageIndex++;
 
-            if (packet.reliability === 3) {
+            if (packet.reliability == PacketReliability.RELIABLE_ORDERED) {
                 packet.orderIndex = this.channelIndex[packet.orderChannel]++;
             }
         }
@@ -573,7 +570,7 @@ export default class Connection {
         );
     }
 
-    close() {
+    public close() {
         let stream = new BinaryStream(
             Buffer.from('\x00\x00\x08\x15', 'binary')
         );

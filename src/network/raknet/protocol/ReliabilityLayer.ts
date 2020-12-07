@@ -1,6 +1,6 @@
 // http://www.jenkinssoftware.com/raknet/manual/reliabilitytypes.html
 // Used to recognize packet reliability and know what to write in buffer
-enum PacketReliability {
+export enum PacketReliability {
     UNRELIABLE,
     UNRELIABLE_SEQUENCED,
     RELIABLE,
