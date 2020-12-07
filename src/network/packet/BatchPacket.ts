@@ -1,14 +1,14 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Zlib from 'zlib';
+import Prismarine from '../../Prismarine';
 
 export default class BatchPacket extends DataPacket {
     static NetID = 0xfe;
 
     private payload = Buffer.alloc(0);
-    // TODO: from config, bigger compression leads to
-    // more CPU usage and less network, and vice versa
-    private compressionLevel: number = 7;
+    // Bigger compression level leads to more CPU usage and less network, and vice versa
+    private compressionLevel: number = Prismarine.instance.getConfig().getPacketCompressionLevel();
 
     public decodeHeader(): void {
         const pid = this.readByte();

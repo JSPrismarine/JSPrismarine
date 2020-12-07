@@ -18,6 +18,7 @@ export default class Config {
     private enableEval: boolean;
     private enableTelemetry: boolean;
     private telemetryUrls: Array<string>;
+    private packetCompressionLevel: number;
 
     constructor() {
         this.version = pkg.version;
@@ -49,6 +50,7 @@ export default class Config {
         this.telemetryUrls = this.configBuilder.get('telemetry-urls', [
             'https://telemetry.prismarine.dev'
         ]);
+        this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7);
     }
 
     public getVersion() {
@@ -89,5 +91,8 @@ export default class Config {
             enabled: this.enableTelemetry,
             urls: this.telemetryUrls
         };
+    }
+    public getPacketCompressionLevel() {
+        return this.packetCompressionLevel;
     }
 }
