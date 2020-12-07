@@ -72,7 +72,7 @@ export default class EncapsulatedPacket {
         stream.writeShort(this.buffer.length << 3);
 
         if (isReliable(this.reliability)) {
-            stream.writeLTriad(this.messageIndex);
+            stream.writeLTriad(this.messageIndex || 0);
         }
 
         if (isSequenced(this.reliability)) {
