@@ -46,18 +46,17 @@ export default class Connection {
     // Queue holding packets to send
     private sendQueue = new DataPacket();
 
+    // Map holding splits of split packets
     private splitPackets: Map<
         number,
         Map<number, EncapsulatedPacket>
     > = new Map();
 
-    // Need documentation
-    private windowStart = -1;
-    private windowEnd = 2048;
-    private reliableWindowStart = 0;
-    private reliableWindowEnd = 2048;
-    private reliableWindow = new Map();
-    private lastReliableIndex = -1;
+    // Map holding out of order reliable packets
+    // private reliableMissing: Map<number, EncapsulatedPacket> = new Map();
+    // Equivalent to recivedPacketBaseIndex in official RakNet
+    // used to check if a reliable packet is out of order
+    private lastReliableIndex = 0;
 
     // Array containing received sequence numbers
     private receivedWindow: Set<number> = new Set();
@@ -140,16 +139,6 @@ export default class Connection {
                 })
             );
 
-            Promise.all(
-                Array.from(this.receivedWindow).map((seq) => {
-                    if (seq < this.windowStart) {
-                        this.receivedWindow.delete(seq);
-                    } else {
-                        return false;
-                    }
-                })
-            );
-
             this.sendPacketQueue();
 
             resolve();
@@ -187,11 +176,7 @@ export default class Connection {
 
             // Check if we already received packet and so we don't handle them
             // i still need to understand what are those window stuff
-            if (
-                dataPacket.sequenceNumber < this.windowStart ||
-                dataPacket.sequenceNumber > this.windowEnd ||
-                this.receivedWindow.has(dataPacket.sequenceNumber)
-            ) {
+            if (this.receivedWindow.has(dataPacket.sequenceNumber)) {
                 return resolve();
             }
 
@@ -232,11 +217,8 @@ export default class Connection {
             }
 
             // If we received a lost packet we sent in NACK or a normal sequenced one
-            // needs more documentation for window start and end
             if (diff >= 1) {
                 this.lastSequenceNumber = dataPacket.sequenceNumber;
-                this.windowStart += diff;
-                this.windowEnd += diff;
             }
 
             // Handle encapsulated
@@ -292,57 +274,21 @@ export default class Connection {
         });
     }
 
-    public async receivePacket(packet: EncapsulatedPacket): Promise<void> {
-        return await new Promise(async (resolve) => {
-            if (!isReliable(packet.reliability)) {
-                // Handle the packet directly if it doesn't have a message index
+    public receivePacket(packet: EncapsulatedPacket): void {
+        if (!isReliable(packet.reliability)) {
+            // Handle the packet directly if it doesn't have a message index
+            this.handlePacket(packet);
+        } else {
+            // TODO: Restore out of order packets first
+            const holeCount = this.lastReliableIndex - packet.messageIndex;
+            // console.log('[RAKNET] Waiting on reliableMessageIndex=%d missingDiff=%d datagramNumber=%d', packet.messageIndex, holeCount, this.lastSequenceNumber);
+
+            if (holeCount == 0) {
                 this.handlePacket(packet);
-            } else {
-                // Seems like we are checking the same stuff like before
-                // but just with reliable packets
-                if (
-                    packet.messageIndex < this.reliableWindowStart ||
-                    packet.messageIndex > this.reliableWindowEnd
-                ) {
-                    return resolve();
-                }
-
-                if (packet.messageIndex - this.lastReliableIndex === 1) {
-                    this.lastReliableIndex++;
-                    this.reliableWindowStart++;
-                    this.reliableWindowEnd++;
-                    await this.handlePacket(packet);
-
-                    if (this.reliableWindow.size > 0) {
-                        let windows = [...this.reliableWindow.entries()];
-                        let reliableWindow = new Map();
-                        windows.sort((a, b) => a[0] - b[0]);
-
-                        for (const [k, v] of windows) {
-                            reliableWindow.set(k, v);
-                        }
-
-                        this.reliableWindow = reliableWindow;
-
-                        for (const [seqIndex, pk] of this.reliableWindow) {
-                            if (seqIndex - this.lastReliableIndex !== 1) {
-                                break;
-                            }
-                            this.lastReliableIndex++;
-                            this.reliableWindowStart++;
-                            this.reliableWindowEnd++;
-                            this.handlePacket(pk);
-
-                            this.reliableWindow.delete(seqIndex);
-                        }
-                    }
-                } else {
-                    this.reliableWindow.set(packet.messageIndex, packet);
-                }
+                this.lastReliableIndex++;
+                return;
             }
-
-            resolve();
-        });
+        }
     }
 
     public addEncapsulatedToQueue(

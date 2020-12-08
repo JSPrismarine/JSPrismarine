@@ -8,7 +8,9 @@ export default class BatchPacket extends DataPacket {
 
     private payload = Buffer.alloc(0);
     // Bigger compression level leads to more CPU usage and less network, and vice versa
-    private compressionLevel: number = Prismarine.instance.getConfig().getPacketCompressionLevel();
+    private compressionLevel: number = Prismarine.instance
+        .getConfig()
+        .getPacketCompressionLevel();
 
     public decodeHeader(): void {
         const pid = this.readByte();

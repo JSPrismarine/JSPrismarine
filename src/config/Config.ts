@@ -50,7 +50,10 @@ export default class Config {
         this.telemetryUrls = this.configBuilder.get('telemetry-urls', [
             'https://telemetry.prismarine.dev'
         ]);
-        this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7);
+        this.packetCompressionLevel = this.configBuilder.get(
+            'packet-compression-level',
+            7
+        );
     }
 
     public getVersion() {
