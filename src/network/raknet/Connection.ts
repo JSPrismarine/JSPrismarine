@@ -14,6 +14,7 @@ import InetAddress from './utils/InetAddress';
 import Identifiers from './protocol/Identifiers';
 import Packet from './protocol/Packet';
 import PacketReliability, { isReliable } from './protocol/ReliabilityLayer';
+import RakNetListener from './RakNetListener';
 
 export enum Priority {
     NORMAL,
