@@ -9,6 +9,7 @@ import SkinAnimation from '../utils/skin/SkinAnimation';
 import SkinCape from '../utils/skin/SkinCape';
 import SkinImage from '../utils/skin/SkinImage';
 import UUID from '../utils/uuid';
+import BlockPosition from '../world/BlockPosition';
 import { PlayerListEntry } from './packet/PlayerListPacket';
 import CreativeContentEntry from './type/creative-content-entry';
 
@@ -47,6 +48,20 @@ export default class PacketBinaryStream extends BinaryStream {
         let part2 = this.readLInt();
 
         return new UUID(part0, part1, part2, part3);
+    }
+
+    public readBlockPosition(): BlockPosition {
+        return new BlockPosition(
+            this.readVarInt(),
+            this.readUnsignedVarInt(),
+            this.readVarInt()
+        );
+    }
+
+    public writeBlockPosition(position: BlockPosition): void {
+        this.writeVarInt(position.getX());
+        this.writeUnsignedVarInt(position.getY());
+        this.writeVarInt(position.getZ());
     }
 
     /**

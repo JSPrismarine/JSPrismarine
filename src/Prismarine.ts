@@ -308,13 +308,13 @@ export default class Prismarine {
 
         // Auto save (default: 5 minutes)
         // TODO: level.ticks % 6000 == 0 and save
-        setInterval(
-            () =>
-                this.getWorldManager()
-                    .getWorlds()
-                    .map(async (world) => await world.save()),
-            1000 * 60 * 5
-        );
+        // setInterval(
+        //    () =>
+        //        this.getWorldManager()
+        //            .getWorlds()
+        //            .map(async (world) => await world.save()),
+        //    1000 * 60 * 5
+        // );
     }
 
     /**
