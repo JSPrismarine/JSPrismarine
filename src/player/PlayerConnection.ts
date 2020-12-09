@@ -473,7 +473,7 @@ export default class PlayerConnection {
      * Spawn the player to another player
      */
     public sendSpawn(player: Player) {
-        let pk = new AddPlayerPacket();
+        const pk = new AddPlayerPacket();
         pk.uuid = UUID.fromString(this.player.uuid);
         pk.runtimeEntityId = BigInt(this.player.runtimeId);
         pk.name = this.player.getUsername();

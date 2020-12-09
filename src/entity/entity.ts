@@ -3,10 +3,11 @@ import World from '../world/World';
 import AddActorPacket from '../network/packet/AddActorPacket';
 import MetadataManager, { FlagType, MetadataFlag } from './metadata';
 import AttributeManager from './attribute';
+import Player from '../player/Player';
 
 // All entities will extend this base class
 export default class Entity extends Position {
-    public static MOB_ID: number;
+    protected static MOB_ID: string;
     public static runtimeIdCount: bigint = -1n;
 
     public runtimeId: bigint;
@@ -85,15 +86,14 @@ export default class Entity extends Position {
         return this.metadata;
     }
 
-    public sendSpawn(player: any) {
+    public sendSpawn(player: Player) {
         // Recursive import, find another way
-        let pk = new AddActorPacket();
-        pk.runtimeEntityId = Entity.runtimeIdCount += 1n;
-        // @ts-ignore
-        pk.type = this.constructor.MOB_ID; // TODO
-        pk.x = player.x;
-        pk.y = player.y;
-        pk.z = player.z;
+        const pk = new AddActorPacket();
+        pk.runtimeEntityId = ++Entity.runtimeIdCount;
+        pk.type = (this.constructor as any).MOB_ID; // TODO
+        pk.x = player.getX();
+        pk.y = player.getY();
+        pk.z = player.getZ();
         // TODO: motion
         pk.motionX = 0;
         pk.motionY = 0;
