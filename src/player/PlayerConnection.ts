@@ -34,7 +34,6 @@ import UUID from '../utils/uuid';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import { Attribute } from '../entity/attribute';
 import DataPacket from '../network/packet/DataPacket';
-import { RSA_PKCS1_PSS_PADDING } from 'constants';
 
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
