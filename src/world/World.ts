@@ -80,8 +80,10 @@ export default class World {
      * @param timestamp
      */
     public async update(timestamp: number): Promise<void> {
-        // Continue world time ticks
-        ++this.currentTick;
+        // Auto save every 2 minutes
+        if (this.currentTick / 20 == 2 * 60) {
+            this.save();
+        }
 
         // Tick players
         for (const player of this.players.values()) {
@@ -95,6 +97,9 @@ export default class World {
         }
 
         // TODO: tick chunks
+
+        // Continue world time ticks
+        this.currentTick++;
     }
 
     /**
@@ -168,6 +173,8 @@ export default class World {
             // to all players
         }
     }
+
+    // public playSound()
 
     /**
      * Returns a chunk from minecraft block positions x and z.
@@ -286,13 +293,15 @@ export default class World {
             return;
         }
 
+        const runtimeId = this.server
+            .getBlockManager()
+            .getRuntimeWithMeta(block.getId(), block.getMeta());
+
         const blockUpdate = new UpdateBlockPacket();
         blockUpdate.x = placedPosition.getX();
         blockUpdate.y = placedPosition.getY();
         blockUpdate.z = placedPosition.getZ();
-        blockUpdate.blockRuntimeId = this.server
-            .getBlockManager()
-            .getRuntimeWithMeta(block.getId(), block.getMeta());
+        blockUpdate.blockRuntimeId = runtimeId;
 
         Promise.all(
             this.server
@@ -309,7 +318,7 @@ export default class World {
         pk.positionY = player.getY();
         pk.positionZ = player.getZ();
 
-        pk.extraData = -1;
+        pk.extraData = runtimeId; // in this case refers to block runtime Id
         pk.entityType = ':';
         pk.isBabyMob = false;
         pk.disableRelativeVolume = false;
@@ -355,11 +364,12 @@ export default class World {
         this.server.getLogger().debug('[World save] saving chunks...');
         const promises: Array<Promise<void>> = [];
         for (const chunk of this.chunks.values()) {
-            chunk.hasChanged() &&
-                chunk.setChanged(false) &&
+            if (chunk.hasChanged()) {
+                chunk.setChanged(false);
                 promises.push(this.provider.writeChunk(chunk));
+            }
         }
-        Promise.all(promises);
+        await Promise.all(promises);
         this.server
             .getLogger()
             .debug('[World save] took ' + (Date.now() - time) + 'ms');
