@@ -12,7 +12,7 @@ import CoordinateUtils from './CoordinateUtils';
 import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/uuid';
 import GameruleManager, { GameRules } from './GameruleManager';
-import { time } from 'console';
+import DataPacket from '../network/packet/DataPacket';
 
 interface WorldData {
     name: string;
@@ -202,6 +202,8 @@ export default class World {
         return new Vector3(z, y + 2, z);
     }
 
+    public broadcastPacket(packet: DataPacket, targets?: Player[]): void {}
+
     public async useItemOn(
         itemInHand: Item | Block | null,
         blockPosition: Vector3,
@@ -365,8 +367,8 @@ export default class World {
         const promises: Array<Promise<void>> = [];
         for (const chunk of this.chunks.values()) {
             if (chunk.hasChanged()) {
-                chunk.setChanged(false);
                 promises.push(this.provider.writeChunk(chunk));
+                chunk.setChanged(false);
             }
         }
         await Promise.all(promises);

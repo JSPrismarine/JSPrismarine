@@ -1,3 +1,4 @@
+import { config } from 'winston';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import Vector3 from '../../math/Vector3';
 import type Player from '../../player/Player';
@@ -5,6 +6,8 @@ import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
+
+const d3 = require('d3-interpolate');
 
 export default class MovePlayerHandler {
     static NetID = Identifiers.MovePlayerPacket;
@@ -19,14 +22,20 @@ export default class MovePlayerHandler {
         server: Prismarine,
         player: Player
     ) {
-        const to = new Vector3(
-            packet.positionX,
+        // Update movement for every player & interpolate position to smooth it
+        const interpolatedVector = d3.interpolateObject(
+            { x: player.getX(), z: player.getZ() },
+            { x: packet.positionX, z: packet.positionZ }
+        )(0.5);
+        const resultantVector = new Vector3(
+            interpolatedVector.x,
             packet.positionY,
-            packet.positionZ
+            interpolatedVector.z
         );
+        const immutableFrom = Object.freeze(resultantVector);
 
         // Emit move event
-        const event = new PlayerMoveEvent(player, to, packet.mode);
+        const event = new PlayerMoveEvent(player, resultantVector, packet.mode);
         await server.getEventManager().post(['playerMove', event]);
         if (event.cancelled) {
             // Reset the player position
@@ -36,17 +45,19 @@ export default class MovePlayerHandler {
 
         // Check if the position has been changed through an event listener
         // if so, reset the player position
+        // TODO: vector.equals(vec)
         if (
-            packet.positionX !== to.getX() ||
-            packet.positionY !== to.getY() ||
-            packet.positionZ !== to.getZ()
-        )
+            immutableFrom.getX() !== resultantVector.getX() ||
+            immutableFrom.getY() !== resultantVector.getY() ||
+            immutableFrom.getZ() !== resultantVector.getZ()
+        ) {
             player.getConnection().broadcastMove(player, MovementType.Reset);
+        }
 
         // Position
-        player.setX(to.getX());
-        player.setY(to.getY());
-        player.setZ(to.getZ());
+        player.setX(resultantVector.getX());
+        player.setY(resultantVector.getY());
+        player.setZ(resultantVector.getZ());
 
         // Rotation
         player.pitch = packet.pitch;
@@ -58,9 +69,17 @@ export default class MovePlayerHandler {
         // We still have some fields
         // at the moment we don't need them
 
+        for (const onlinePlayer of server.getOnlinePlayers()) {
+            if (onlinePlayer == player) continue;
+            onlinePlayer
+                .getConnection()
+                .broadcastMove(player, MovementType.Normal);
+        }
+
+        // TODO: hash
         let chunk = await player
             .getWorld()
             .getChunkAt(player.getX(), player.getZ());
-        if (player.currentChunk !== chunk) player.currentChunk = chunk as any;
+        if (player.currentChunk !== chunk) player.currentChunk = chunk;
     }
 }

@@ -11,14 +11,12 @@ export default class SetLocalPlayerAsInitializedHandler {
         server: Prismarine,
         player: Player
     ) {
-        Promise.all(
-            server
-                .getOnlinePlayers()
-                .filter((onlinePlayer) => !(onlinePlayer == player))
-                .map((otherOnlinePlayer) => {
-                    otherOnlinePlayer.getConnection().sendSpawn(player);
-                    player.getConnection().sendSpawn(otherOnlinePlayer);
-                })
-        );
+        for (const onlinePlayer of server
+            .getOnlinePlayers()
+            .filter((p) => !(p == player))) {
+            console.log(onlinePlayer);
+            onlinePlayer.sendSpawn(player);
+            player.sendSpawn(onlinePlayer);
+        }
     }
 }

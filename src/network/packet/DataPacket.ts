@@ -64,7 +64,7 @@ export default class DataPacket extends PacketBinaryStream {
         );
     }
 
-    public encodePayload(server?: Prismarine) {}
+    public encodePayload() {}
 
     public getAllowBatching() {
         return (this as any).allowBatching;
