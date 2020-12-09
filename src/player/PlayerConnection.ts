@@ -474,7 +474,7 @@ export default class PlayerConnection {
      */
     public sendSpawn(player: Player) {
         const pk = new AddPlayerPacket();
-        pk.uuid = UUID.fromString(this.player.uuid);
+        pk.uuid = UUID.fromString(this.player.uuid) ?? UUID.fromRandom();  // TODO: temp solution
         pk.runtimeEntityId = BigInt(this.player.runtimeId);
         pk.name = this.player.getUsername();
 
