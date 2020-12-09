@@ -15,10 +15,6 @@ import IncompatibleProtocolVersion from './protocol/IncompatibleProtocolVersion'
 import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
 import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
-import {
-    setIntervalAsync,
-    clearIntervalAsync
-} from 'set-interval-async/dynamic';
 import RakNetListener from './RakNetListener';
 
 // Minecraft related protocol
@@ -80,13 +76,15 @@ export default class Listener extends EventEmitter implements RakNetListener {
             this.socket.bind(port, address, () => {
                 this.socket.removeListener('error', failFn);
 
-                const timer = setIntervalAsync(async () => {
+                const timer = setInterval(() => {
                     if (!this.shutdown) {
-                        for await (const conn of this.connections.values()) {
-                            conn.update(Date.now());
-                        }
+                        Promise.all(
+                            Array.from(this.connections.values()).map((conn) =>
+                                conn.update(Date.now())
+                            )
+                        );
                     } else {
-                        clearIntervalAsync(timer);
+                        clearInterval(timer);
                     }
                 }, RAKNET_TICK_LENGTH * 1000);
 

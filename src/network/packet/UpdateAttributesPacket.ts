@@ -1,3 +1,4 @@
+import { Attribute } from '../../entity/attribute';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
@@ -5,7 +6,7 @@ export default class UpdateAttributesPacket extends DataPacket {
     static NetID = Identifiers.UpdateAttributesPacket;
 
     public runtimeEntityId!: bigint;
-    public attributes = [];
+    public attributes: Array<Attribute> = [];
 
     public tick!: bigint;
 

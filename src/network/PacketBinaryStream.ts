@@ -1,4 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { Attribute } from '../entity/attribute';
+import { FlagType } from '../entity/metadata';
 import Skin from '../utils/skin/Skin';
 import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
 import SkinPersonaPiece from '../utils/skin/skin-persona/SkinPersonaPiece';
@@ -7,10 +9,10 @@ import SkinAnimation from '../utils/skin/SkinAnimation';
 import SkinCape from '../utils/skin/SkinCape';
 import SkinImage from '../utils/skin/SkinImage';
 import UUID from '../utils/uuid';
+import BlockPosition from '../world/BlockPosition';
+import { PlayerListEntry } from './packet/PlayerListPacket';
 import CreativeContentEntry from './type/creative-content-entry';
-import PlayerListEntry from './type/PlayerListEntry';
 
-const { FlagType } = require('../entity/metadata');
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
 
@@ -46,6 +48,20 @@ export default class PacketBinaryStream extends BinaryStream {
         let part2 = this.readLInt();
 
         return new UUID(part0, part1, part2, part3);
+    }
+
+    public readBlockPosition(): BlockPosition {
+        return new BlockPosition(
+            this.readVarInt(),
+            this.readUnsignedVarInt(),
+            this.readVarInt()
+        );
+    }
+
+    public writeBlockPosition(position: BlockPosition): void {
+        this.writeVarInt(position.getX());
+        this.writeUnsignedVarInt(position.getY());
+        this.writeVarInt(position.getZ());
     }
 
     /**
@@ -215,33 +231,25 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Encodes a player list entry into the buffer.
      */
-    writePlayerListAddEntry(entry: PlayerListEntry) {
-        this.writeUUID(entry.uuid);
-        this.writeVarLong(entry.uniqueEntityId);
-        this.writeString(entry.name);
-        this.writeString(entry.xuid ?? '');
-        this.writeString(entry.platformChatId);
-        this.writeLInt(entry.buildPlatform);
-        this.writeSkin(entry.skin);
-        this.writeBool(entry.isTeacher);
-        this.writeBool(entry.isHost);
+    public writePlayerListAddEntry(entry: PlayerListEntry): void {
+        this.writeVarLong(entry.getUniqueEntityId() as bigint);
+        this.writeString(entry.getName() as string);
+        this.writeString(entry.getXUID());
+        this.writeString(entry.getPlatformChatId() as string);
+        this.writeLInt(entry.getBuildPlatform() as number);
+        this.writeSkin(entry.getSkin() as Skin);
+        this.writeBool(entry.isTeacher());
+        this.writeBool(entry.isHost());
     }
 
-    /**
-     * Removes a player list entry by UUID.
-     */
-    writePlayerListRemoveEntry(entry: PlayerListEntry) {
-        this.writeUUID(entry.uuid);
-    }
-
-    writeAttributes(attributes: any) {
+    public writeAttributes(attributes: Array<Attribute>): void {
         this.writeUnsignedVarInt(attributes.length);
-        for (let attribute of attributes) {
-            this.writeLFloat(attribute.min);
-            this.writeLFloat(attribute.max);
-            this.writeLFloat(attribute.value);
-            this.writeLFloat(attribute.default);
-            this.writeString(attribute.name);
+        for (const attribute of attributes) {
+            this.writeLFloat(attribute.getMin());
+            this.writeLFloat(attribute.getMax());
+            this.writeLFloat(attribute.getValue());
+            this.writeLFloat(attribute.getDefault());
+            this.writeString(attribute.getName());
         }
     }
 
@@ -292,25 +300,25 @@ export default class PacketBinaryStream extends BinaryStream {
         return n % 1 !== 0;
     }
 
-    writeEntityMetadata(metadata: any) {
+    public writeEntityMetadata(metadata: any) {
         this.writeUnsignedVarInt(metadata.size);
         for (const [index, value] of metadata) {
             this.writeUnsignedVarInt(index);
             this.writeUnsignedVarInt(value[0]);
             switch (value[0]) {
-                case FlagType.Byte:
+                case FlagType.BYTE:
                     this.writeByte(value[1]);
                     break;
-                case FlagType.Float:
+                case FlagType.FLOAT:
                     this.writeLFloat(value[1]);
                     break;
-                case FlagType.Long:
+                case FlagType.LONG:
                     this.writeVarLong(value[1]);
                     break;
-                case FlagType.String:
+                case FlagType.STRING:
                     this.writeString(value[1]);
                     break;
-                case FlagType.Short:
+                case FlagType.SHORT:
                     this.writeLShort(value[1]);
                     break;
                 default:
