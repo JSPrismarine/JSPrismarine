@@ -515,6 +515,6 @@ export default class PlayerConnection {
         let pk = new DisconnectPacket();
         pk.hideDisconnectionWindow = false;
         pk.message = reason;
-        this.sendDataPacket(pk, false, true);
+        this.sendDataPacket(pk);
     }
 }

@@ -27,6 +27,7 @@ import Chat from './chat/Chat';
 import PermissionManager from './permission/PermissionManager';
 import BanManager from './ban/BanManager';
 import { PlayerListEntry } from './network/packet/PlayerListPacket';
+import Connection from './network/raknet/Connection';
 
 export default class Prismarine {
     private raknet!: Listener;
