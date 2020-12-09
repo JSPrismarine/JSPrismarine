@@ -15,6 +15,7 @@ import IncompatibleProtocolVersion from './protocol/IncompatibleProtocolVersion'
 import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
 import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
+import RakNetListener from './RakNetListener';
 
 // Minecraft related protocol
 const PROTOCOL = 10;
@@ -24,7 +25,7 @@ const RAKNET_TPS = 100;
 const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
 // Listen to packets and then process them
-export default class Listener extends EventEmitter {
+export default class Listener extends EventEmitter implements RakNetListener {
     private id: bigint;
     private name: ServerName;
     private socket!: Socket;

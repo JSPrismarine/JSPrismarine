@@ -112,7 +112,7 @@ export default class Prismarine {
         await this.worldManager.onEnable();
 
         this.raknet = await new Listener(this).listen(serverIp, port);
-        this.raknet.on('openConnection', (connection: any) => {
+        this.raknet.on('openConnection', (connection: Connection) => {
             const event = new RaknetConnectEvent(connection);
             this.getEventManager().emit('raknetConnect', event);
         });
@@ -138,7 +138,7 @@ export default class Prismarine {
             async (raknetConnectEvent: RaknetConnectEvent) => {
                 const connection = raknetConnectEvent.getConnection();
 
-                let inetAddr = connection.address;
+                let inetAddr = connection.getAddress();
 
                 // TODO: Get last world by player data
                 // and if it doesn't exists, return the default one
@@ -148,7 +148,7 @@ export default class Prismarine {
 
                 let player = new Player(
                     connection,
-                    connection.address,
+                    connection.getAddress(),
                     world,
                     this
                 );
@@ -166,12 +166,13 @@ export default class Prismarine {
                     throw new Error('Event canceled');
 
                 this.players.set(
-                    `${inetAddr.address}:${inetAddr.port}`,
+                    `${inetAddr.getAddress()}:${inetAddr.getPort()}`,
                     player
                 );
 
                 // Add the player into the world
-                world?.addPlayer(player);
+                world.addPlayer(player);
+
                 this.logger.silly(
                     `Player creation took about ${Date.now() - time} ms`
                 );
@@ -184,40 +185,36 @@ export default class Prismarine {
                 const inetAddr = event.getInetAddr();
                 const reason = event.getReason();
 
-                let time = Date.now();
-                {
-                    let token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
-                    if (this.players.has(token)) {
-                        let player = this.players.get(token);
-                        if (!player) {
-                            const message = `Could not find player: ${token}`;
-                            this.logger.error(
-                                `Could not find player: ${token}`
-                            );
-                            throw new Error(message);
-                        }
+                const time = Date.now();
+                const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
+                if (this.players.has(token)) {
+                    const player = this.players.get(token) as Player;
 
-                        // Despawn the player to all online players
-                        player.getConnection().removeFromPlayerList();
-                        this.players.delete(token);
-                        for (let onlinePlayer of this.players.values()) {
-                            player.getConnection().sendDespawn(onlinePlayer);
-                        }
-                        player.getWorld().removePlayer(player);
-
-                        // Announce disconnection
-                        const event = new ChatEvent(
-                            new Chat(
-                                this.getConsole(),
-                                `§e${player.getUsername()} left the game`
-                            )
-                        );
-                        this.getEventManager().emit('chat', event);
+                    // Despawn the player to all online players
+                    player.getConnection().removeFromPlayerList();
+                    for (let onlinePlayer of this.players.values()) {
+                        player.getConnection().sendDespawn(onlinePlayer);
                     }
-                    this.logger.info(
-                        `${inetAddr.getAddress()}:${inetAddr.getPort()} disconnected due to ${reason}`
+
+                    // Announce disconnection
+                    const event = new ChatEvent(
+                        new Chat(
+                            this.getConsole(),
+                            `§e${player.getUsername()} left the game`
+                        )
+                    );
+                    this.getEventManager().emit('chat', event);
+
+                    player.getWorld().removePlayer(player); // TODO: player.close();
+                    this.players.delete(token);
+                } else {
+                    this.logger.debug(
+                        `Cannot remove connection from unexisting player (${token})`
                     );
                 }
+
+                this.logger.info(`${token} disconnected due to ${reason}`);
+
                 this.logger.silly(
                     `Player destruction took about ${Date.now() - time} ms`
                 );
@@ -228,83 +225,75 @@ export default class Prismarine {
             const raknetPacket = event.getPacket();
             const inetAddr = event.getInetAddr();
 
-            let token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
+            const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
             if (!this.players.has(token)) return;
-            let player = this.players.get(token);
+            const player = this.players.get(token);
 
-            new Promise((resolve) => {
-                // Read batch content and handle them
-                const pk = new BatchPacket(raknetPacket.buffer);
+            // Read batch content and handle them
+            const batched = new BatchPacket(raknetPacket.buffer);
+            batched.decode();
 
-                pk.decode();
-                resolve(pk);
-            }).then((batched) => {
-                // Read all packets inside batch and handle them
-                Promise.all(
-                    (batched as BatchPacket).getPackets().map((buf) => {
-                        if (!this.packetRegistry.getPackets().has(buf[0])) {
-                            this.logger.error(
-                                `Packet ${raknetPacket.id} doesn't have a handler`
-                            );
-                            return false;
-                        }
+            // Read all packets inside batch and handle them
+            for (const buf of (batched as BatchPacket).getPackets()) {
+                if (!this.packetRegistry.getPackets().has(buf[0])) {
+                    this.logger.error(
+                        `Packet ${raknetPacket.id} doesn't have a handler`
+                    );
+                    continue;
+                }
 
-                        let packet = new (this.packetRegistry
-                            .getPackets()
-                            .get(buf[0]))(); // Get packet from registry
-                        packet.buffer = buf;
+                // Get packet from registry
+                const packet = new (this.packetRegistry
+                    .getPackets()
+                    .get(buf[0]))(buf);
 
-                        try {
-                            packet.decode(this);
-                        } catch (err) {
-                            this.logger.error(
-                                `Error while decoding packet: ${packet.constructor.name}: ${err}`
-                            );
-                            return false;
-                        }
+                try {
+                    packet.decode();
+                } catch (err) {
+                    this.logger.error(
+                        `Error while decoding packet: ${packet.constructor.name}: ${err}`
+                    );
+                    continue;
+                }
 
-                        if (
-                            !this.packetRegistry
-                                .getHandlers()
-                                .has(packet?.getId())
-                        ) {
-                            this.logger.error(
-                                `Packet ${packet.constructor.name} doesn't have a handler`
-                            );
-                            return false;
-                        }
+                if (!this.packetRegistry.getHandlers().has(packet?.getId())) {
+                    this.logger.error(
+                        `Packet ${packet.constructor.name} doesn't have a handler`
+                    );
+                    continue;
+                }
 
-                        let handler = this.packetRegistry
-                            .getHandlers()
-                            .get(packet?.getId());
+                const handler = this.packetRegistry
+                    .getHandlers()
+                    .get(packet.getId());
 
-                        try {
-                            (async () => {
-                                await handler.handle(packet, this, player);
-                            })();
-                        } catch (err) {
-                            this.logger.error(
-                                `Handler error ${packet.constructor.name}-handler: (${err})`
-                            );
-                        }
-                    })
-                );
-            });
+                try {
+                    (async () => {
+                        await handler.handle(packet, this, player);
+                    })();
+                } catch (err) {
+                    this.logger.error(
+                        `Handler error ${packet.constructor.name}-handler: (${err})`
+                    );
+                }
+            }
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
-        let tpsTimer = Date.now();
+        let startTime = Date.now();
         setIntervalAsync(async () => {
-            Promise.all(
-                this.getWorldManager()
-                    .getWorlds()
-                    .map((world) => world.update(tpsTimer))
-            );
+            const promises: Array<Promise<void>> = [];
+            for (const world of this.getWorldManager().getWorlds()) {
+                promises.push(world.update(startTime));
+            }
+            await Promise.all(promises);
 
             // Calculate current tps
-            this.tps = Math.round((1000 / (Date.now() - tpsTimer)) * 100) / 100;
-            tpsTimer = Date.now();
-        }, 1000 / 20);
+            const finishTime = Date.now();
+            this.tps =
+                Math.round((1000 / (finishTime - startTime)) * 100) / 100;
+            startTime = finishTime;
+        }, 50);
 
         // Auto save (default: 5 minutes)
         // TODO: level.ticks % 6000 == 0 and save
@@ -363,7 +352,7 @@ export default class Prismarine {
      */
     public getPlayerByExactName(name: string): Player | null {
         return (
-            Array.from(this.players.values()).find(
+            this.getOnlinePlayers().find(
                 (player) => player.getUsername() === name
             ) ?? null
         );
@@ -372,7 +361,7 @@ export default class Prismarine {
     /**
      * Kills the server asynchronously.
      */
-    async kill(): Promise<void> {
+    public async kill(): Promise<void> {
         try {
             // Kick all online players
             for (let player of this.getOnlinePlayers()) {
