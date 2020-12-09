@@ -34,6 +34,7 @@ import UUID from '../utils/uuid';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import { Attribute } from '../entity/attribute';
 import DataPacket from '../network/packet/DataPacket';
+import { RSA_PKCS1_PSS_PADDING } from 'constants';
 
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
@@ -473,9 +474,15 @@ export default class PlayerConnection {
      * Spawn the player to another player
      */
     public sendSpawn(player: Player) {
+        if (!player.getUUID()) {
+            return this.server
+                .getLogger()
+                .error(`UUID for player=${player.getUsername()} is undefined`);
+        }
+
         const pk = new AddPlayerPacket();
-        pk.uuid = UUID.fromString(this.player.uuid) ?? UUID.fromRandom(); // TODO: temp solution
-        pk.runtimeEntityId = BigInt(this.player.runtimeId);
+        pk.uuid = UUID.fromString(player.getUUID()); // TODO: temp solution
+        pk.runtimeEntityId = BigInt(player.runtimeId);
         pk.name = this.player.getUsername();
 
         pk.positionX = this.player.getX();
