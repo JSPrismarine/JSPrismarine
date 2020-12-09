@@ -80,17 +80,26 @@ export default class World {
      * @param timestamp
      */
     public async update(timestamp: number): Promise<void> {
-        // Continue world time ticks
-        this.currentTick += 1;
+        // Auto save every 2 minutes
+        if (this.currentTick / 20 == 2 * 60) {
+            this.save();
+        }
 
         // Tick players
         for (const player of this.players.values()) {
             player.update(timestamp);
-            if (this.currentTick % 5)
+            // TODO: get documentation about timings from vanilla
+            // 1 second / 20 = 1 tick, 20 * 5 = 1 second
+            // 1 second * 60 = 1 minute
+            if (this.currentTick % (20 * 5 * 60 * 1) == 0) {
                 player.getConnection().sendTime(this.currentTick);
+            }
         }
 
         // TODO: tick chunks
+
+        // Continue world time ticks
+        this.currentTick++;
     }
 
     /**
@@ -164,6 +173,8 @@ export default class World {
             // to all players
         }
     }
+
+    // public playSound()
 
     /**
      * Returns a chunk from minecraft block positions x and z.
@@ -284,13 +295,15 @@ export default class World {
             return;
         }
 
+        const runtimeId = this.server
+            .getBlockManager()
+            .getRuntimeWithMeta(block.getId(), block.getMeta());
+
         const blockUpdate = new UpdateBlockPacket();
         blockUpdate.x = placedPosition.getX();
         blockUpdate.y = placedPosition.getY();
         blockUpdate.z = placedPosition.getZ();
-        blockUpdate.blockRuntimeId = this.server
-            .getBlockManager()
-            .getRuntimeWithMeta(block.getId(), block.getMeta());
+        blockUpdate.blockRuntimeId = runtimeId;
 
         Promise.all(
             this.server
@@ -307,7 +320,7 @@ export default class World {
         pk.positionY = player.getY();
         pk.positionZ = player.getZ();
 
-        pk.extraData = -1;
+        pk.extraData = runtimeId; // in this case refers to block runtime Id
         pk.entityType = ':';
         pk.isBabyMob = false;
         pk.disableRelativeVolume = false;
@@ -358,7 +371,7 @@ export default class World {
                 chunk.setChanged(false);
             }
         }
-        Promise.all(promises);
+        await Promise.all(promises);
         this.server
             .getLogger()
             .debug('[World save] took ' + (Date.now() - time) + 'ms');

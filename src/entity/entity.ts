@@ -1,21 +1,19 @@
 import Position from '../world/Position';
 import World from '../world/World';
 import AddActorPacket from '../network/packet/AddActorPacket';
-
-const { MetadataManager, MetadataFlag, FlagType } = require('./metadata');
-const { AttributeManager } = require('./attribute');
+import MetadataManager, { FlagType, MetadataFlag } from './metadata';
+import AttributeManager from './attribute';
 
 // All entities will extend this base class
 export default class Entity extends Position {
     public static MOB_ID: number;
-    public static runtimeIdCount = -1;
+    public static runtimeIdCount: bigint = -1n;
 
     public runtimeId: bigint;
 
-    public metadata: any = new MetadataManager();
-    public attributes: any = new AttributeManager();
-
-    public chunk: any; // TODO
+    // TODO: do not expose and make API instead
+    private metadata: MetadataManager = new MetadataManager();
+    private attributes: AttributeManager = new AttributeManager();
 
     /**
      * Entity constructor.
@@ -23,69 +21,74 @@ export default class Entity extends Position {
      */
     constructor(world: World) {
         super({ world: world }); // TODO
-        this.runtimeId = BigInt((Entity.runtimeIdCount += 1));
+        this.runtimeId = Entity.runtimeIdCount += 1n;
 
-        this.metadata.setLong(MetadataFlag.Index, 0);
-        this.metadata.setShort(MetadataFlag.MaxAir, 400);
-        this.metadata.setLong(MetadataFlag.EntityLeadHolderId, -1);
-        this.metadata.setFloat(MetadataFlag.Scale, 1);
-        this.metadata.setFloat(MetadataFlag.BoundingBoxWidth, 0.6);
-        this.metadata.setFloat(MetadataFlag.BoundingBoxHeight, 1.8);
-        this.metadata.setShort(MetadataFlag.Air, 0);
+        this.metadata.setLong(MetadataFlag.INDEX, 0n);
+        this.metadata.setShort(MetadataFlag.MAX_AIR, 400);
+        this.metadata.setLong(MetadataFlag.ENTITY_LEAD_HOLDER_ID, -1n);
+        this.metadata.setFloat(MetadataFlag.SCALE, 1);
+        this.metadata.setFloat(MetadataFlag.BOUNDINGBOX_WIDTH, 0.6);
+        this.metadata.setFloat(MetadataFlag.BOUNDINGBOX_HEIGHT, 1.8);
+        this.metadata.setShort(MetadataFlag.AIR, 0);
 
-        this.setGenericFlag(MetadataFlag.AffectedByGravity, true);
-        this.setGenericFlag(MetadataFlag.HasCollision, true);
+        this.setGenericFlag(MetadataFlag.AFFECTED_BY_GRAVITY, true);
+        this.setGenericFlag(MetadataFlag.HAS_COLLISION, true);
 
         // TODO: level.addEntity(this)
     }
 
     public setNameTag(name: string) {
-        this.metadata.setString(MetadataFlag.Nametag, name);
+        this.metadata.setString(MetadataFlag.NAMETAG, name);
     }
 
     public setDataFlag(
         propertyId: number,
         flagId: number,
         value = true,
-        propertyType = FlagType.Long
+        propertyType = FlagType.LONG
     ) {
-        if (this.getDataFlag(propertyId, flagId) !== value) {
-            let flags = this.metadata.getPropertyValue(
+        // All generic flags are written as Longs (bigints) 64bit
+        const flagId64 = BigInt(flagId);
+        // Check if the same value is already set
+        if (this.getDataFlag(propertyId, flagId64) !== value) {
+            const flags = this.metadata.getPropertyValue(propertyId) as bigint;
+            this.metadata.setPropertyValue(
                 propertyId,
-                propertyType
+                propertyType,
+                flags ^ (1n << flagId64)
             );
-            let biFlags = BigInt(flags);
-            biFlags ^= 1n << BigInt(flagId);
-            this.metadata.setPropertyValue(propertyId, propertyType, biFlags);
         }
     }
 
-    public getDataFlag(propertyId: number, flagId: number) {
-        // After appending the first flag, it is now a bigint and for further flags
-        // we need to handle it like that
-        if (typeof this.metadata.getPropertyValue(propertyId) === 'bigint') {
-            return (
-                (this.metadata.getPropertyValue(propertyId) &
-                    (1n << BigInt(flagId))) >
-                0
-            );
-        }
-        return (this.metadata.getPropertyValue(propertyId) & (1 << flagId)) > 0;
+    public getDataFlag(propertyId: number, flagId: bigint) {
+        return (
+            ((this.metadata.getPropertyValue(propertyId) as bigint) &
+                (1n << flagId)) >
+            0
+        );
     }
 
     public setGenericFlag(flagId: number, value = true) {
         this.setDataFlag(
-            flagId >= 64 ? 94 : MetadataFlag.Index,
+            flagId >= 64 ? 94 : MetadataFlag.INDEX,
             flagId % 64,
             value,
-            FlagType.Long
+            FlagType.LONG
         );
+    }
+
+    public getAttributeManager(): AttributeManager {
+        return this.attributes;
+    }
+
+    public getMetadataManager(): MetadataManager {
+        return this.metadata;
     }
 
     public sendSpawn(player: any) {
         // Recursive import, find another way
         let pk = new AddActorPacket();
-        pk.runtimeEntityId = BigInt((Entity.runtimeIdCount += 1));
+        pk.runtimeEntityId = Entity.runtimeIdCount += 1n;
         // @ts-ignore
         pk.type = this.constructor.MOB_ID; // TODO
         pk.x = player.x;

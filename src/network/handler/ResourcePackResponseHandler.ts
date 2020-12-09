@@ -62,7 +62,7 @@ export default class ResourcePackResponseHandler {
 
             player
                 .getConnection()
-                .sendAttributes(player.attributes.getDefaults());
+                .sendAttributes(player.getAttributeManager().getDefaults());
 
             server
                 .getLogger()

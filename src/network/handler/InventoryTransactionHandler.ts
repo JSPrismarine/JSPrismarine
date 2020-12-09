@@ -8,6 +8,7 @@ import InventoryTransactionPacket, {
 } from '../packet/InventoryTransactionPacket';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import Gamemode from '../../world/Gamemode';
+import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 
 export default class InventoryTransactionHandler {
     static NetID = Identifiers.InventoryTransactionPacket;
@@ -99,6 +100,30 @@ export default class InventoryTransactionHandler {
                                 server
                                     .getBlockManager()
                                     .getBlock('minecraft:air')
+                            );
+
+                            const soundPk = new LevelSoundEventPacket();
+                            soundPk.sound = 5; // TODO: enum
+
+                            soundPk.positionX = player.getX();
+                            soundPk.positionY = player.getY();
+                            soundPk.positionZ = player.getZ();
+
+                            soundPk.extraData = server
+                                .getBlockManager()
+                                .getRuntimeWithMeta(blockId, blockMeta); // in this case refers to block runtime Id
+                            soundPk.entityType = ':';
+                            soundPk.isBabyMob = false;
+                            soundPk.disableRelativeVolume = false;
+
+                            Promise.all(
+                                player
+                                    .getPlayersInChunk()
+                                    .map((narbyPlayer) =>
+                                        narbyPlayer
+                                            .getConnection()
+                                            .sendDataPacket(soundPk)
+                                    )
                             );
                             break;
                         default:
