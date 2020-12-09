@@ -14,9 +14,8 @@ export default class SetLocalPlayerAsInitializedHandler {
         for (const onlinePlayer of server
             .getOnlinePlayers()
             .filter((p) => !(p == player))) {
-            console.log(onlinePlayer);
-            onlinePlayer.sendSpawn(player);
-            player.sendSpawn(onlinePlayer);
+            onlinePlayer.getConnection().sendSpawn(player);
+            player.getConnection().sendSpawn(onlinePlayer);
         }
     }
 }
