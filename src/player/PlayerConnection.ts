@@ -480,8 +480,8 @@ export default class PlayerConnection {
         }
 
         const pk = new AddPlayerPacket();
-        pk.uuid = UUID.fromString(player.getUUID()); // TODO: temp solution
-        pk.runtimeEntityId = BigInt(player.runtimeId);
+        pk.uuid = UUID.fromString(this.player.getUUID()); // TODO: temp solution
+        pk.runtimeEntityId = BigInt(this.player.runtimeId);
         pk.name = this.player.getUsername();
 
         pk.positionX = this.player.getX();
