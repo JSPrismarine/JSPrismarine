@@ -4,11 +4,16 @@ import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import PlayStatus from '../type/play-status';
+import PacketHandler from './PacketHandler';
 
-export default class LoginHandler {
-    static NetID = Identifiers.LoginPacket;
+export default class LoginHandler implements PacketHandler<LoginPacket> {
+    public handle(
+        packet: LoginPacket,
+        server: Prismarine,
+        player: Player
+    ): void {
+        // check if player count >= max players
 
-    static handle(packet: LoginPacket, server: Prismarine, player: Player) {
         // Kick client if has newer / older client version
         if (packet.protocol !== Identifiers.Protocol) {
             if (packet.protocol < Identifiers.Protocol) {
@@ -21,6 +26,15 @@ export default class LoginHandler {
                     .sendPlayStatus(PlayStatus.LoginFailedServer);
             }
             return;
+        }
+
+        // Player with same name is already online
+        let maybePlayer = null;
+        if (
+            (maybePlayer = server.getPlayerByExactName(packet.displayName)) !==
+            null
+        ) {
+            maybePlayer.kick('Logged in from another location');
         }
 
         player.username.name = packet.displayName;

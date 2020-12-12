@@ -4,18 +4,21 @@ import Identifiers from '../Identifiers';
 import InteractPacket, { InteractAction } from '../packet/InteractPacket';
 import ContainerOpenPacket from '../packet/ContainerOpenPacket';
 import Vector3 from '../../math/Vector3';
+import PacketHandler from './PacketHandler';
 
-export default class InteractHandler {
-    static NetID = Identifiers.InteractPacket;
-
-    static handle(packet: InteractPacket, server: Prismarine, player: Player) {
+export default class InteractHandler implements PacketHandler<InteractPacket> {
+    public handle(
+        packet: InteractPacket,
+        server: Prismarine,
+        player: Player
+    ): void {
         switch (packet.action) {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:
                 break;
             case InteractAction.OpenInventory:
                 let pk = new ContainerOpenPacket();
-                pk.windowId = 92; // TODO
+                pk.windowId = 0; // TODO
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerPos = new Vector3(
                     player.getX(),
@@ -28,7 +31,7 @@ export default class InteractHandler {
             default:
                 server
                     .getLogger()
-                    .debug('Unknown interact action id: ' + packet.action);
+                    .debug('Unknown interact action id=%d', packet.action);
         }
     }
 }

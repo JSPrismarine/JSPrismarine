@@ -1,21 +1,19 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import AnimatePacket from '../packet/AnimatePacket';
-import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
 
-export default class AnimateHandler {
-    static NetID = Identifiers.AnimatePacket;
-
-    static async handle(
+export default class AnimateHandler implements PacketHandler<AnimatePacket> {
+    public handle(
         packet: AnimatePacket,
         server: Prismarine,
         player: Player
-    ) {
-        let pk = new AnimatePacket();
+    ): void {
+        const pk = new AnimatePacket();
         pk.runtimeEntityId = player.runtimeId;
         pk.action = packet.action;
 
-        await Promise.all(
+        Promise.all(
             server
                 .getOnlinePlayers()
                 .filter((onlinePlayer) => !(onlinePlayer == player))

@@ -1,18 +1,17 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
 import type LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
+import PacketHandler from './PacketHandler';
 
-export default class LevelSoundEventHandler {
-    static NetID = Identifiers.LevelSoundEventPacket;
-
-    static handle(
+export default class LevelSoundEventHandler
+    implements PacketHandler<LevelSoundEventPacket> {
+    public handle(
         packet: LevelSoundEventPacket,
         server: Prismarine,
         player: Player
-    ) {
+    ): void {
         // TODO: broadcast to viewers
-        for (let chunkPlayer of player.getPlayersInChunk()) {
+        for (const chunkPlayer of player.getPlayersInChunk()) {
             chunkPlayer.getConnection().sendDataPacket(packet);
         }
     }

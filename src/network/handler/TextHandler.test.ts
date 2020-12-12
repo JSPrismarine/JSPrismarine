@@ -8,7 +8,8 @@ describe('network', () => {
                 const pk = new TextPacket();
                 pk.message = 'hello world';
 
-                TextHandler.handle(
+                const handler = new TextHandler();
+                handler.handle(
                     pk,
                     {
                         getChatManager: () => ({

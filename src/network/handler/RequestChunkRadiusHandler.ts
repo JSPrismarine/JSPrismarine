@@ -2,16 +2,15 @@ import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
 import PlayStatus from '../type/play-status';
-import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
 
-export default class RequestChunkRadiusHandler {
-    static NetID = Identifiers.RequestChunkRadiusPacket;
-
-    static async handle(
+export default class RequestChunkRadiusHandler
+    implements PacketHandler<RequestChunkRadiusPacket> {
+    public handle(
         packet: RequestChunkRadiusPacket,
         server: Prismarine,
         player: Player
-    ) {
+    ): void {
         const maxViewDistance = server.getConfig().getViewDistance();
         const viewDistance =
             packet.radius >= maxViewDistance ? maxViewDistance : packet.radius;

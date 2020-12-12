@@ -1,11 +1,15 @@
 import Player from '../../player/Player';
 import Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
+import MobEquipmentPacket from '../packet/MobEquipmentPacket';
+import PacketHandler from './PacketHandler';
 
-export default class MobEquipmentHandler {
-    static NetID = Identifiers.MobEquipmentPacket;
-
-    static handle(packet: any, server: Prismarine, player: Player): void {
+export default class MobEquipmentHandler
+    implements PacketHandler<MobEquipmentPacket> {
+    public handle(
+        packet: MobEquipmentPacket,
+        server: Prismarine,
+        player: Player
+    ): void {
         // TODO
     }
 }

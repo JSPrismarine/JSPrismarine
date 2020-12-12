@@ -1,8 +1,45 @@
 import Provider from '../Provider';
+import NBTReader from '../../nbt/NBTReader';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { ByteOrder } from '../../nbt/ByteOrder';
+
+import util from 'util';
+import fs from 'fs';
+import path from 'path';
+import Zlib from 'zlib';
+
+const ANVIL_FORMAT = 'mca';
 
 export default class Anvil extends Provider {
-    async readChunk(x: number, z: number) {
-        let regionX = x >> 5;
-        let regionZ = z >> 5;
+    private regionPath: string;
+    private regions: Map<string, Buffer> = new Map();
+
+    public constructor(folderPath: string) {
+        super(folderPath);
+        this.regionPath = path.join(this.getPath(), 'region');
+    }
+
+    public async readChunk({ x, z }: { x: number; z: number }) {
+        // const regionX = x >> 5, regionZ = z >> 5;
+
+        try {
+            // const regionFile = await fs.promises.readFile(this.getRegionPath(regionX, regionZ));
+            // const str = new BinaryStream(regionFile)
+            // console.log(str.readInt())
+            // console.log(str.readByte())
+            // const decodedFile = await util.promisify(Zlib.def)(regionFile);
+            // console.log(decodedFile)
+            // const NBT = new NBTReader(str, ByteOrder.BIG_ENDIAN);
+            // console.log(NBT.parse())
+        } catch (e) {
+            // console.log("Region x=%d z=%d not found", x, z);
+        }
+    }
+
+    private getRegionPath(regionX: number, regionZ: number): string {
+        return path.join(
+            this.regionPath,
+            `r.${regionX}.${regionZ}.${ANVIL_FORMAT}`
+        );
     }
 }
