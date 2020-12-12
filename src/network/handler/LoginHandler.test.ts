@@ -22,7 +22,11 @@ describe('network', () => {
                             });
                             done();
                         }
-                    })
+                    }),
+                    kick: (message) => {
+                        expect(message).toBe('You have been banned!');
+                        done();
+                    }
                 };
 
                 const handler = new LoginHandler();
@@ -33,7 +37,10 @@ describe('network', () => {
                             isBanned: (player) => {
                                 return false;
                             }
-                        })
+                        }),
+                        getPlayerByExactName(name: string) {
+                            return null;
+                        }
                     } as any,
                     player as any
                 );
@@ -54,7 +61,7 @@ describe('network', () => {
                     kick: (message) => {
                         expect(message).toBe('You have been banned!');
                         done();
-                    }
+                    },
                 };
 
                 const handler = new LoginHandler();
@@ -65,7 +72,10 @@ describe('network', () => {
                             isBanned: (player) => {
                                 return '';
                             }
-                        })
+                        }),
+                        getPlayerByExactName(name: string) {
+                            return null;
+                        }
                     } as any,
                     player as any
                 );
@@ -99,7 +109,10 @@ describe('network', () => {
                             isBanned: (player) => {
                                 return 'a reason';
                             }
-                        })
+                        }),
+                        getPlayerByExactName(name: string) {
+                            return null;
+                        }
                     } as any,
                     player as any
                 );
