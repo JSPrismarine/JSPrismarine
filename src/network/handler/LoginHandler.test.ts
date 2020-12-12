@@ -61,7 +61,7 @@ describe('network', () => {
                     kick: (message) => {
                         expect(message).toBe('You have been banned!');
                         done();
-                    },
+                    }
                 };
 
                 const handler = new LoginHandler();
