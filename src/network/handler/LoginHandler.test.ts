@@ -25,7 +25,8 @@ describe('network', () => {
                     })
                 };
 
-                LoginHandler.handle(
+                const handler = new LoginHandler();
+                handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
@@ -56,7 +57,8 @@ describe('network', () => {
                     }
                 };
 
-                LoginHandler.handle(
+                const handler = new LoginHandler();
+                handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
@@ -89,7 +91,8 @@ describe('network', () => {
                     }
                 };
 
-                LoginHandler.handle(
+                const handler = new LoginHandler();
+                handler.handle(
                     pk,
                     {
                         getBanManager: () => ({

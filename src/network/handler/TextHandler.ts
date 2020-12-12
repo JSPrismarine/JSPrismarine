@@ -1,22 +1,20 @@
 import Chat from '../../chat/Chat';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
 import type TextPacket from '../packet/TextPacket';
+import PacketHandler from './PacketHandler';
 
-export default class TextHandler {
-    static NetID = Identifiers.TextPacket;
-
-    static async handle(
+export default class TextHandler implements PacketHandler<TextPacket> {
+    public handle(
         packet: TextPacket,
         server: Prismarine,
         player: Player
-    ) {
+    ): void {
         // Emit chat event
         const chat = new Chat(
             player,
             `${player.getFormattedUsername()} ${packet.message}`
         );
-        await server.getChatManager().send(chat);
+        server.getChatManager().send(chat);
     }
 }

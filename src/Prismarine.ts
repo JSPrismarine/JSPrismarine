@@ -28,6 +28,7 @@ import PermissionManager from './permission/PermissionManager';
 import BanManager from './ban/BanManager';
 import { PlayerListEntry } from './network/packet/PlayerListPacket';
 import Connection from './network/raknet/Connection';
+import PacketHandler from './network/handler/PacketHandler';
 
 export default class Prismarine {
     private raknet!: Listener;
@@ -257,21 +258,19 @@ export default class Prismarine {
                     continue;
                 }
 
-                if (!this.packetRegistry.getHandlers().has(packet?.getId())) {
-                    this.logger.error(
-                        `Packet ${packet.constructor.name} doesn't have a handler`
-                    );
+                const handler = this.packetRegistry.getPacketHandler(
+                    packet.getId()
+                );
+                if (handler == null) {
                     continue;
                 }
 
-                const handler = this.packetRegistry
-                    .getHandlers()
-                    .get(packet.getId());
-
                 try {
-                    (async () => {
-                        await handler.handle(packet, this, player);
-                    })();
+                    (handler as PacketHandler<any>).handle(
+                        packet,
+                        this,
+                        player as Player
+                    );
                 } catch (err) {
                     this.logger.error(
                         `Handler error ${packet.constructor.name}-handler: (${err})`

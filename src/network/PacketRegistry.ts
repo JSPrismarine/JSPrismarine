@@ -70,131 +70,181 @@ import ResourcePackResponseHandler from './handler/ResourcePackResponseHandler';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
 import TextHandler from './handler/TextHandler';
 import TickSyncHandler from './handler/TickSyncHandler';
+import LoggerBuilder from '../utils/Logger';
 
 export default class PacketRegistry {
+    private logger: LoggerBuilder;
     private packets: Map<number, any> = new Map();
     private handlers: Map<number, any> = new Map();
 
     public constructor(server: Prismarine) {
-        this.loadPackets(server);
-        this.loadHandlers(server);
+        this.logger = server.getLogger();
+        this.loadPackets();
+        this.loadHandlers();
     }
 
-    private registerPacket(packet: any, server: Prismarine): void {
+    private registerPacket(packet: any): void {
         this.packets.set(packet.NetID, packet);
-        server
-            .getLogger()
-            .silly(`Packet with id §b${packet.name}§r registered`);
+        this.logger.silly(`Packet with id §b${packet.name}§r registered`);
     }
 
-    private registerHandler(handler: any, server: Prismarine): void {
-        this.handlers.set(handler.NetID, handler);
-        server
-            .getLogger()
-            .silly(`Handler with id §b${handler.name}§r registered`);
+    private registerHandler(id: number, handler: object): void {
+        this.handlers.set(id, handler);
+        this.logger.silly(
+            `Handler with id §b${handler.constructor.name}§r registered`
+        );
     }
 
-    private loadPackets(server: Prismarine): void {
+    private loadPackets(): void {
         const time = Date.now();
 
-        this.registerPacket(ActorFallPacket, server);
-        this.registerPacket(AddActorPacket, server);
-        this.registerPacket(AddPlayerPacket, server);
-        this.registerPacket(AdventureSettingsPacket, server);
-        this.registerPacket(AnimatePacket, server);
-        this.registerPacket(AvailableActorIdentifiersPacket, server);
-        this.registerPacket(AvailableCommandsPacket, server);
-        this.registerPacket(BiomeDefinitionListPacket, server);
-        this.registerPacket(ChunkRadiusUpdatedPacket, server);
-        this.registerPacket(ClientCacheStatusPacket, server);
-        this.registerPacket(CommandRequestPacket, server);
-        this.registerPacket(ContainerClosePacket, server);
-        this.registerPacket(ContainerOpenPacket, server);
-        this.registerPacket(CreativeContentPacket, server);
-        this.registerPacket(DisconnectPacket, server);
-        this.registerPacket(EmoteListPacket, server);
-        this.registerPacket(InteractPacket, server);
-        this.registerPacket(InventoryContentPacket, server);
-        this.registerPacket(InventoryTransactionPacket, server);
-        this.registerPacket(ItemStackRequestPacket, server);
-        this.registerPacket(ItemStackResponsePacket, server);
-        this.registerPacket(LevelChunkPacket, server);
-        this.registerPacket(LevelSoundEventPacket, server);
-        this.registerPacket(LoginPacket, server);
-        this.registerPacket(MobEquipmentPacket, server);
-        this.registerPacket(MovePlayerPacket, server);
-        this.registerPacket(NetworkChunkPublisherUpdatePacket, server);
-        this.registerPacket(PacketViolationWarningPacket, server);
-        this.registerPacket(PlayerActionPacket, server);
-        this.registerPacket(PlayerListPacket, server);
-        this.registerPacket(PlayerSkinPacket, server);
-        this.registerPacket(PlayStatusPacket, server);
-        this.registerPacket(RemoveActorPacket, server);
-        this.registerPacket(RequestChunkRadiusPacket, server);
-        this.registerPacket(ResourcePackResponsePacket, server);
-        this.registerPacket(ResourcePacksInfoPacket, server);
-        this.registerPacket(ResourcePackStackPacket, server);
-        this.registerPacket(ServerSettingsRequestPacket, server);
-        this.registerPacket(SetActorDataPacket, server);
-        this.registerPacket(SetGamemodePacket, server);
-        this.registerPacket(SetLocalPlayerAsInitializedPacket, server);
-        this.registerPacket(SetTimePacket, server);
-        this.registerPacket(SetTitlePacket, server);
-        this.registerPacket(StartGamePacket, server);
-        this.registerPacket(TextPacket, server);
-        this.registerPacket(TickSyncPacket, server);
-        this.registerPacket(UpdateAttributesPacket, server);
-        this.registerPacket(UpdateBlockPacket, server);
-        this.registerPacket(WorldEventPacket, server);
+        this.registerPacket(ActorFallPacket);
+        this.registerPacket(AddActorPacket);
+        this.registerPacket(AddPlayerPacket);
+        this.registerPacket(AdventureSettingsPacket);
+        this.registerPacket(AnimatePacket);
+        this.registerPacket(AvailableActorIdentifiersPacket);
+        this.registerPacket(AvailableCommandsPacket);
+        this.registerPacket(BiomeDefinitionListPacket);
+        this.registerPacket(ChunkRadiusUpdatedPacket);
+        this.registerPacket(ClientCacheStatusPacket);
+        this.registerPacket(CommandRequestPacket);
+        this.registerPacket(ContainerClosePacket);
+        this.registerPacket(ContainerOpenPacket);
+        this.registerPacket(CreativeContentPacket);
+        this.registerPacket(DisconnectPacket);
+        this.registerPacket(EmoteListPacket);
+        this.registerPacket(InteractPacket);
+        this.registerPacket(InventoryContentPacket);
+        this.registerPacket(InventoryTransactionPacket);
+        this.registerPacket(ItemStackRequestPacket);
+        this.registerPacket(ItemStackResponsePacket);
+        this.registerPacket(LevelChunkPacket);
+        this.registerPacket(LevelSoundEventPacket);
+        this.registerPacket(LoginPacket);
+        this.registerPacket(MobEquipmentPacket);
+        this.registerPacket(MovePlayerPacket);
+        this.registerPacket(NetworkChunkPublisherUpdatePacket);
+        this.registerPacket(PacketViolationWarningPacket);
+        this.registerPacket(PlayerActionPacket);
+        this.registerPacket(PlayerListPacket);
+        this.registerPacket(PlayerSkinPacket);
+        this.registerPacket(PlayStatusPacket);
+        this.registerPacket(RemoveActorPacket);
+        this.registerPacket(RequestChunkRadiusPacket);
+        this.registerPacket(ResourcePackResponsePacket);
+        this.registerPacket(ResourcePacksInfoPacket);
+        this.registerPacket(ResourcePackStackPacket);
+        this.registerPacket(ServerSettingsRequestPacket);
+        this.registerPacket(SetActorDataPacket);
+        this.registerPacket(SetGamemodePacket);
+        this.registerPacket(SetLocalPlayerAsInitializedPacket);
+        this.registerPacket(SetTimePacket);
+        this.registerPacket(SetTitlePacket);
+        this.registerPacket(StartGamePacket);
+        this.registerPacket(TextPacket);
+        this.registerPacket(TickSyncPacket);
+        this.registerPacket(UpdateAttributesPacket);
+        this.registerPacket(UpdateBlockPacket);
+        this.registerPacket(WorldEventPacket);
 
-        server
-            .getLogger()
-            .debug(
-                `Registered §b${this.packets.size}§r of §b${
-                    Array.from(Object.keys(Identifiers)).length - 2
-                }§r packet(s) (took ${Date.now() - time} ms)!`
-            );
+        this.logger.debug(
+            `Registered §b${this.packets.size}§r of §b${
+                Array.from(Object.keys(Identifiers)).length - 2
+            }§r packet(s) (took ${Date.now() - time} ms)!`
+        );
     }
 
-    private loadHandlers(server: Prismarine): void {
+    private loadHandlers(): void {
         const time = Date.now();
 
-        this.registerHandler(ActorFallHandler, server);
-        this.registerHandler(AdventureSettingsHandler, server);
-        this.registerHandler(AnimateHandler, server);
-        this.registerHandler(ClientCacheStatusHandler, server);
-        this.registerHandler(ContainerCloseHandler, server);
-        this.registerHandler(CommandRequestHandler, server);
-        this.registerHandler(EmoteListHandler, server);
-        this.registerHandler(InteractHandler, server);
-        this.registerHandler(InventoryTransactionHandler, server);
-        this.registerHandler(ItemStackRequestHandler, server);
-        this.registerHandler(LevelSoundEventHandler, server);
-        this.registerHandler(LoginHandler, server);
-        this.registerHandler(MobEquipmentHandler, server);
-        this.registerHandler(MovePlayerHandler, server);
-        this.registerHandler(PacketViolationWarningHandler, server);
-        this.registerHandler(PlayerActionHandler, server);
-        this.registerHandler(RequestChunkRadiusHandler, server);
-        this.registerHandler(ResourcePackResponseHandler, server);
-        this.registerHandler(SetLocalPlayerAsInitializedHandler, server);
-        this.registerHandler(TextHandler, server);
-        this.registerHandler(TickSyncHandler, server);
+        this.registerHandler(
+            Identifiers.ActorFallPacket,
+            new ActorFallHandler()
+        );
+        this.registerHandler(
+            Identifiers.AdventureSettingsPacket,
+            new AdventureSettingsHandler()
+        );
+        this.registerHandler(Identifiers.AnimatePacket, new AnimateHandler());
+        this.registerHandler(
+            Identifiers.ClientCacheStatusPacket,
+            new ClientCacheStatusHandler()
+        );
+        this.registerHandler(
+            Identifiers.ContainerClosePacket,
+            new ContainerCloseHandler()
+        );
+        this.registerHandler(
+            Identifiers.CommandRequestPacket,
+            new CommandRequestHandler()
+        );
+        this.registerHandler(
+            Identifiers.EmoteListPacket,
+            new EmoteListHandler()
+        );
+        this.registerHandler(Identifiers.InteractPacket, new InteractHandler());
+        this.registerHandler(
+            Identifiers.InventoryTransactionPacket,
+            new InventoryTransactionHandler()
+        );
+        this.registerHandler(
+            Identifiers.ItemStackRequestPacket,
+            new ItemStackRequestHandler()
+        );
+        this.registerHandler(
+            Identifiers.LevelSoundEventPacket,
+            new LevelSoundEventHandler()
+        );
+        this.registerHandler(Identifiers.LoginPacket, new LoginHandler());
+        this.registerHandler(
+            Identifiers.MobEquipmentPacket,
+            new MobEquipmentHandler()
+        );
+        this.registerHandler(
+            Identifiers.MovePlayerPacket,
+            new MovePlayerHandler()
+        );
+        this.registerHandler(
+            Identifiers.PacketViolationWarningPacket,
+            new PacketViolationWarningHandler()
+        );
+        this.registerHandler(
+            Identifiers.PlayerActionPacket,
+            new PlayerActionHandler()
+        );
+        this.registerHandler(
+            Identifiers.RequestChunkRadiusPacket,
+            new RequestChunkRadiusHandler()
+        );
+        this.registerHandler(
+            Identifiers.ResourcePackResponsePacket,
+            new ResourcePackResponseHandler()
+        );
+        this.registerHandler(
+            Identifiers.SetLocalPlayerAsInitializedPacket,
+            new SetLocalPlayerAsInitializedHandler()
+        );
+        this.registerHandler(Identifiers.TextPacket, new TextHandler());
+        this.registerHandler(Identifiers.TickSyncPacket, new TickSyncHandler());
 
-        server
-            .getLogger()
-            .debug(
-                `Registered §b${this.handlers.size}§r packet handler(s) (took ${
-                    Date.now() - time
-                } ms)!`
-            );
+        this.logger.debug(
+            `Registered §b${this.handlers.size}§r packet handler(s) (took ${
+                Date.now() - time
+            } ms)!`
+        );
     }
 
     public getPackets(): Map<number, any> {
         return this.packets;
     }
 
-    public getHandlers(): Map<number, any> {
-        return this.handlers;
+    public getPacketHandler(id: number): object | null {
+        if (this.handlers.has(id)) {
+            return this.handlers.get(id);
+        } else {
+            this.logger.error(`Missing handler for packet id=%d`, id);
+            return null;
+        }
     }
 }

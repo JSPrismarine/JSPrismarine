@@ -1,5 +1,7 @@
 import { Logger } from 'winston';
 
+import util from 'util';
+
 const { createLogger, format, transports } = require('winston');
 const { combine, timestamp, printf } = format;
 const mcColors = require('mccolorstoconsole');
@@ -47,41 +49,56 @@ export default class LoggerBuilder {
 
     /**
      * Log information messages
-     * @param {string} message
+     * @param message
      */
-    public info = (message: string) => {
-        this.logger.log('info', message);
+    public info = (message: string, ...param: any[]) => {
+        this.logger.log(
+            'info',
+            param.length > 1 ? util.format(message, param) : message
+        );
     };
 
     /**
      * Log warning messages
-     * @param {string} message
+     * @param message
      */
-    public warn = (message: string) => {
-        this.logger.log('warn', message);
+    public warn = (message: string, ...param: any[]) => {
+        this.logger.log(
+            'warn',
+            param.length > 1 ? util.format(message, param) : message
+        );
     };
 
     /**
      * Log error messages
-     * @param {string} message
+     * @param message
      */
-    public error = (message: string) => {
-        this.logger.log('error', message);
+    public error = (message: string, ...param: any[]) => {
+        this.logger.log(
+            'error',
+            param.length > 1 ? util.format(message, param) : message
+        );
     };
 
     /**
      * Log debug messages
-     * @param {string} message
+     * @param message
      */
-    public debug = (message: string) => {
-        this.logger.log('debug', message);
+    public debug = (message: string, ...param: any[]) => {
+        this.logger.log(
+            'debug',
+            param.length > 1 ? util.format(message, param) : message
+        );
     };
 
     /**
      * Log silly messages
-     * @param {string} message
+     * @param message
      */
-    public silly = (message: string) => {
-        this.logger.log('silly', message);
+    public silly = (message: string, ...param: any[]) => {
+        this.logger.log(
+            'silly',
+            param.length > 1 ? util.format(message, param) : message
+        );
     };
 }

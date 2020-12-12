@@ -1,14 +1,13 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
 import type EmoteListPacket from '../packet/EmoteListPacket';
+import PacketHandler from './PacketHandler';
 
-export default class EmoteListHandler {
-    static NetID = Identifiers.EmoteListPacket;
-
-    static handle(
+export default class EmoteListHandler
+    implements PacketHandler<EmoteListPacket> {
+    public handle(
         packet: EmoteListPacket,
         server: Prismarine,
         player: Player
-    ) {}
+    ): void {}
 }

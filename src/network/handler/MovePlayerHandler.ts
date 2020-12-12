@@ -6,22 +6,17 @@ import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
+import PacketHandler from './PacketHandler';
 
 const d3 = require('d3-interpolate');
 
-export default class MovePlayerHandler {
-    static NetID = Identifiers.MovePlayerPacket;
-
-    /**
-     * @param {MovePlayerPacket} packet
-     * @param {Prismarine} _server
-     * @param {Player} player
-     */
-    static async handle(
+export default class MovePlayerHandler
+    implements PacketHandler<MovePlayerPacket> {
+    public handle(
         packet: MovePlayerPacket,
         server: Prismarine,
         player: Player
-    ) {
+    ): void {
         // Update movement for every player & interpolate position to smooth it
         const interpolatedVector = d3.interpolateObject(
             { x: player.getX(), z: player.getZ() },
@@ -36,7 +31,7 @@ export default class MovePlayerHandler {
 
         // Emit move event
         const event = new PlayerMoveEvent(player, resultantVector, packet.mode);
-        await server.getEventManager().post(['playerMove', event]);
+        server.getEventManager().post(['playerMove', event]);
         if (event.cancelled) {
             // Reset the player position
             player.getConnection().broadcastMove(player, MovementType.Reset);
@@ -77,9 +72,11 @@ export default class MovePlayerHandler {
         }
 
         // TODO: hash
-        let chunk = await player
-            .getWorld()
-            .getChunkAt(player.getX(), player.getZ());
-        if (player.currentChunk !== chunk) player.currentChunk = chunk;
+        (async () => {
+            const chunk = await player
+                .getWorld()
+                .getChunkAt(player.getX(), player.getZ());
+            if (player.currentChunk !== chunk) player.currentChunk = chunk;
+        })();
     }
 }
