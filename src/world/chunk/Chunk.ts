@@ -133,8 +133,8 @@ export default class Chunk {
     }
 
     public setBlock(x: number, y: number, z: number, block: Block | null) {
-        if (!block) throw new Error(`block can't be undefined or null`);
         if (y < 0) throw new Error(`y can't be less than 0`);
+        if (!block) throw new Error(`block can't be undefined or null`);
 
         this.getSubChunk(y >> 4, true).setBlock(x, y & 0x0f, z, block);
         this.#hasChanged = true;
