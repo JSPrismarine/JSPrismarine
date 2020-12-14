@@ -13,7 +13,8 @@ module.exports = {
         'js'
     ],
     reporters: [
-        'default'
+        'default',
+        'jest-github-reporter'
     ],
     testLocationInResults: true,
     testMatch: [
