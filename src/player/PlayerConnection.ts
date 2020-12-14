@@ -354,6 +354,8 @@ export default class PlayerConnection {
         xuid = '',
         needsTranslation: boolean = false
     ) {
+        if (!message) return; // FIXME: throw error here
+
         let pk = new TextPacket();
         pk.type = TextType.Raw;
         pk.message = message;

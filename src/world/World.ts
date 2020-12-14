@@ -269,24 +269,38 @@ export default class World {
                     break;
             }
 
-        if (blockPosition.getY() < 0) return;
+        if (blockPosition.getY() < 0) return; // TODO: broadcast to player
 
         const success: boolean = await new Promise(async (resolve) => {
-            const chunk = await this.getChunkAt(
-                placedPosition.getX(),
-                placedPosition.getZ()
-            );
+            try {
+                const chunk = await this.getChunkAt(
+                    placedPosition.getX(),
+                    placedPosition.getZ()
+                );
 
-            chunk.setBlock(
-                placedPosition.getX() % 16,
-                placedPosition.getY(),
-                placedPosition.getZ() % 16,
-                block
-            );
-            return resolve(true);
+                chunk.setBlock(
+                    placedPosition.getX() % 16,
+                    placedPosition.getY(),
+                    placedPosition.getZ() % 16,
+                    block
+                );
+                return resolve(true);
+            } catch (err) {
+                player
+                    .getServer()
+                    .getLogger()
+                    .warn(
+                        `${player.getUsername()} failed to place block due to ${err}`
+                    );
+                player.sendMessage(err?.message);
+
+                return resolve(false);
+            }
         });
 
         if (!success) {
+            if (placedPosition.getY() < 0) return;
+
             const blockUpdate = new UpdateBlockPacket();
             blockUpdate.x = placedPosition.getX();
             blockUpdate.y = placedPosition.getY();
