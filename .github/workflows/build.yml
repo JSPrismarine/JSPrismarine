@@ -27,18 +27,3 @@ jobs:
               with:
                   name: prismarine-x64-win32.exe
                   path: packages/prismarine-win.exe
-    docs:
-        runs-on: macos-latest
-        steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v1
-              with:
-                  node-version: 14
-            - run: npm install
-            - run: npm run docs
-            - uses: peaceiris/actions-gh-pages@v3
-              with:
-                github_token: ${{ secrets.GITHUB_TOKEN }}
-                publish_dir: ./docs
-                enable_jekyll: false
-                cname: docs.prismarine.dev

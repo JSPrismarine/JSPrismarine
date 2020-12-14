@@ -1,18 +1,8 @@
-name: Unit & Integration Tests
+name: Lintings
 on: [push, pull_request]
 
 jobs:
-    macos-test:
-        runs-on: macos-latest
-        steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v1
-              with:
-                  node-version: 14
-            - run: npm install
-            - run: npm run test
-            - run: npm build
-    linux-test:
+    lint-eslint:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
@@ -20,15 +10,26 @@ jobs:
               with:
                   node-version: 14
             - run: npm install
-            - run: npm run test
-            - run: npm build
-    windows-test:
-        runs-on: windows-latest
+            - run: npm run eslint
+    lint-prettier:
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
             - uses: actions/setup-node@v1
               with:
                   node-version: 14
             - run: npm install
-            - run: npm run test
-            - run: npm build
+            - run: npm run prettier
+    lint-coveralls:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v1
+              with:
+                  node-version: 14
+            - run: npm install
+            - run: npm run coveralls
+            - name: Coveralls
+              uses: coverallsapp/github-action@master
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
