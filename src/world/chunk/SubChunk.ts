@@ -20,6 +20,8 @@ export default class SubChunk {
      * Sets a block in the subchunk block ids
      */
     public setBlockId(x: number, y: number, z: number, id: number): boolean {
+        if (y < 0) return false;
+
         this.ids[SubChunk.getIndex(x, y, z)] = id;
         return true;
     }
@@ -42,6 +44,8 @@ export default class SubChunk {
     }
 
     public setBlock(x: number, y: number, z: number, block: Block): boolean {
+        if (!block) return false;
+
         this.setBlockId(x, y, z, block.getId());
         this.setBlockMetadata(x, y, z, block.getMeta());
         return true;
