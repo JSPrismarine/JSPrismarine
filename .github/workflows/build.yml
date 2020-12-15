@@ -5,8 +5,8 @@ on:
             - master
 
 jobs:
-    build:
-        runs-on: macos-latest
+    prismarine-x64-linux:
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
             - uses: actions/setup-node@v1
@@ -19,10 +19,31 @@ jobs:
               with:
                   name: prismarine-x64-linux
                   path: packages/prismarine-linux
+    prismarine-x64-macos:
+        runs-on: macos-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v1
+              with:
+                  node-version: 14
+            - run: npm install
+            - run: npm run build
+            - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-macos
                   path: packages/prismarine-macos
+                  
+    prismarine-x64-win32:
+        runs-on: windows-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions/setup-node@v1
+              with:
+                  node-version: 14
+            - run: npm install
+            - run: npm run build
+            - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-win32.exe
