@@ -1,4 +1,4 @@
-import UUID from '../../utils/uuid';
+import UUID from '../../utils/UUID';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 

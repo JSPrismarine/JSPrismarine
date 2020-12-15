@@ -10,7 +10,7 @@ import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
 import SharedSeedRandom from './util/SharedSeedRandom';
-import UUID from '../utils/uuid';
+import UUID from '../utils/UUID';
 import GameruleManager, { GameRules } from './GameruleManager';
 import DataPacket from '../network/packet/DataPacket';
 

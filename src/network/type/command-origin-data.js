@@ -1,4 +1,4 @@
-const UUID = require('../../utils/uuid');
+const UUID = require('../../utils/UUID');
 
 class CommandOriginData {
     /** @type {number} */
