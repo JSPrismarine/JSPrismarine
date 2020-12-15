@@ -66,7 +66,7 @@ export default class Chunk {
         } else {
             if (heightMap.length !== 0)
                 throw new Error(
-                    `Wrong HrightMap value count, expected 256, got ${heightMap.length}`
+                    `Wrong HeightMap value count, expected 256, got ${heightMap.length}`
                 );
             this.#heightMap = new Array(256).fill(this.#height * 16);
         }
