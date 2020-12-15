@@ -1,5 +1,5 @@
 import type Skin from '../../utils/skin/Skin';
-import type UUID from '../../utils/uuid';
+import type UUID from '../../utils/UUID';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 

@@ -8,7 +8,7 @@ import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/SkinPersonaPie
 import SkinAnimation from '../utils/skin/SkinAnimation';
 import SkinCape from '../utils/skin/SkinCape';
 import SkinImage from '../utils/skin/SkinImage';
-import UUID from '../utils/uuid';
+import UUID from '../utils/UUID';
 import BlockPosition from '../world/BlockPosition';
 import { PlayerListEntry } from './packet/PlayerListPacket';
 import CreativeContentEntry from './type/creative-content-entry';

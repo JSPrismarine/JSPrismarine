@@ -30,7 +30,7 @@ import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import CoordinateUtils from '../world/CoordinateUtils';
 import Skin from '../utils/skin/Skin';
-import UUID from '../utils/uuid';
+import UUID from '../utils/UUID';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import { Attribute } from '../entity/attribute';
 import DataPacket from '../network/packet/DataPacket';
