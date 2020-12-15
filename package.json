@@ -48,7 +48,7 @@
             "node_modules/leveldown/**/*.js"
         ],
         "assets": [
-            "./node_modules/@jsprismarine/**/*",
+            "./node_modules/**/*",
             "./node_modules/leveldown/prebuilds/linux-x64/node.napi.glibc.node",
             "./node_modules/leveldown/prebuilds/darwin-x64/node.napi.node",
             "./node_modules/leveldown/prebuilds/win32-x64/node.napi.node"
@@ -76,7 +76,6 @@
         "lodash": "^4.17.20",
         "mccolorstoconsole": "^1.1.0",
         "node-machine-id": "^1.1.12",
-        "pkg": "git+https://github.com/geekuillaume/pkg.git",
         "rimraf": "^3.0.2",
         "set-interval-async": "^1.0.33",
         "silent": "^0.1.2",
@@ -102,11 +101,10 @@
         "jest-github-reporter": "1.0.1",
         "node-fetch": "2.6.1",
         "nodemon": "2.0.6",
+        "pkg": "github:kkoomen/pkg",
         "prettier": "2.2.1",
         "typedoc": "0.19.2",
         "typescript": "4.1.3"
     },
-    "optionalDependencies": {
-        "pkg": "git+https://github.com/geekuillaume/pkg.git"
-    }
+    "optionalDependencies": {}
 }
