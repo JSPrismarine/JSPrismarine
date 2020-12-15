@@ -1,5 +1,4 @@
 const Gamemode = {
-    Unknown: -1,
     Survival: 0,
     Creative: 1,
     Adventure: 2,
@@ -16,7 +15,7 @@ const Gamemode = {
             case Gamemode.Spectator:
                 return 'Spectator';
             default:
-                return 'Unknown';
+                throw new Error('Unknown gamemode');
         }
     },
     getGamemodeId: (mode: string) => {
@@ -34,7 +33,7 @@ const Gamemode = {
             case '3':
                 return Gamemode.Spectator;
             default:
-                return Gamemode.Unknown;
+                throw new Error('Unknown gamemode');
         }
     }
 };
