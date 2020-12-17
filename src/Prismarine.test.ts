@@ -1,8 +1,37 @@
 import Prismarine from './Prismarine';
 import LoggerBuilder from './utils/Logger';
 
+jest.mock('winston', () => ({
+    format: {
+        colorize: jest.fn(),
+        combine: jest.fn(),
+        label: jest.fn(),
+        timestamp: jest.fn(),
+        simple: jest.fn(),
+        printf: jest.fn()
+    },
+    createLogger: jest.fn().mockReturnValue({
+        silly: jest.fn(),
+        debug: jest.fn(),
+        log: jest.fn(),
+        info: jest.fn()
+    }),
+    transports: {
+        Console: jest.fn(),
+        File: jest.fn()
+    }
+}));
+
 describe('Prismarine', () => {
-    it.skip('server to start up properly', async (done) => {
+    it('server to start & exit properly', async (done) => {
+        jest.setTimeout(30000);
+
+        const getRandomInt = (min: number, max: number) => {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        };
+
         const logger = new LoggerBuilder();
         const prismarine = new Prismarine({
             logger,
@@ -14,15 +43,10 @@ describe('Prismarine', () => {
                     return '0.0.0.0';
                 }
                 public getLevelName() {
-                    return 'ci';
+                    return '';
                 }
                 public getWorlds() {
-                    return {
-                        ci: {
-                            generator: 'flat',
-                            seed: 1234
-                        }
-                    };
+                    return {};
                 }
                 public getMaxPlayers() {
                     return 1;
@@ -58,7 +82,7 @@ describe('Prismarine', () => {
             .spyOn(process, 'exit')
             .mockImplementation((() => {}) as any);
 
-        await prismarine.listen('0.0.0.0', 19199);
+        await prismarine.listen('0.0.0.0', getRandomInt(46000, 49999));
         await prismarine.kill();
         expect(mockExit).toHaveBeenCalledWith(0);
         done();

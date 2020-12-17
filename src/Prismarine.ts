@@ -376,7 +376,8 @@ export default class Prismarine {
             await this.worldManager.onDisable();
             await this.onDisable();
             process.exit(0);
-        } catch {
+        } catch (err) {
+            this.getLogger().error(err);
             process.exit(1);
         }
     }
