@@ -22,6 +22,9 @@ export default class WorldManager {
 
     public async onEnable(): Promise<void> {
         const defaultWorld = this.server.getConfig().getLevelName();
+        if (!defaultWorld)
+            return this.server.getLogger().warn(`Invalid world!`);
+
         const world = await this.loadWorld(
             this.server.getConfig().getWorlds()[defaultWorld],
             defaultWorld
