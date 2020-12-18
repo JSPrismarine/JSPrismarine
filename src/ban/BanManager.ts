@@ -29,11 +29,13 @@ export default class BanManager {
         try {
             if (
                 !fs.existsSync(path.join(process.cwd(), '/banned-players.json'))
-            )
+            ) {
+                this.server.getLogger().warn(`Failed to load ban list!`);
                 fs.writeFileSync(
                     path.join(process.cwd(), '/banned-players.json'),
                     '[]'
                 );
+            }
 
             const readFile = util.promisify(fs.readFile);
             const banned: Array<any> = JSON.parse(
