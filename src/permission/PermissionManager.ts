@@ -28,8 +28,10 @@ export default class PermissionManager {
 
     private async parseOps(): Promise<void> {
         try {
-            if (!fs.existsSync(path.join(process.cwd(), '/ops.json')))
+            if (!fs.existsSync(path.join(process.cwd(), '/ops.json'))) {
+                this.server.getLogger().warn(`Failed to load operators list!`);
                 fs.writeFileSync(path.join(process.cwd(), '/ops.json'), '[]');
+            }
 
             const readFile = util.promisify(fs.readFile);
             const ops: Array<OpType> = JSON.parse(
