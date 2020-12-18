@@ -18,7 +18,7 @@
         "eslint": "eslint -c .eslintrc ./src/",
         "prettier": "prettier --config .prettierrc src/**/*.* --check",
         "prettier-format": "prettier --config .prettierrc src/**/*.* --write",
-        "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls"
+        "coveralls": "jest --coverage --forceExit --testLocationInResults --silent && cat ./coverage/lcov.info | coveralls"
     },
     "repository": {
         "type": "git",
