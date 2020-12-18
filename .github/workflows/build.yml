@@ -46,5 +46,5 @@ jobs:
             - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
-                  name: prismarine-x64-win32.exe
+                  name: prismarine-x64-win32
                   path: packages/prismarine-win.exe
