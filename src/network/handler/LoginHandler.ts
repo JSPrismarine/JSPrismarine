@@ -3,7 +3,7 @@ import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
-import PlayStatus from '../type/play-status';
+import PlayStatusType from '../type/PlayStatusType';
 import PacketHandler from './PacketHandler';
 
 export default class LoginHandler implements PacketHandler<LoginPacket> {
@@ -19,11 +19,11 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
             if (packet.protocol < Identifiers.Protocol) {
                 player
                     .getConnection()
-                    .sendPlayStatus(PlayStatus.LoginFailedClient);
+                    .sendPlayStatus(PlayStatusType.LoginFailedClient);
             } else {
                 player
                     .getConnection()
-                    .sendPlayStatus(PlayStatus.LoginFailedServer);
+                    .sendPlayStatus(PlayStatusType.LoginFailedServer);
             }
             return;
         }
@@ -46,7 +46,7 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
         player.skin = packet.skin;
         player.device = packet.device;
 
-        player.getConnection().sendPlayStatus(PlayStatus.LoginSuccess);
+        player.getConnection().sendPlayStatus(PlayStatusType.LoginSuccess);
 
         const reason = server.getBanManager().isBanned(player);
         if (reason !== false) {

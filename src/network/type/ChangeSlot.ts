@@ -1,13 +1,10 @@
-const PacketBinaryStream = require('../PacketBinaryStream').default;
+import PacketBinaryStream from '../PacketBinaryStream';
 
 class ChangeSlot {
-    /** @type {number} */
-    containerId;
-    /** @type {number[]} */
-    changedSlots;
+    public containerId!: number;
+    public changedSlots!: Buffer;
 
-    /** @param {PacketBinaryStream} buffer */
-    decode(buffer) {
+    decode(buffer: PacketBinaryStream) {
         this.containerId = buffer.readByte();
 
         let count = buffer.readUnsignedVarInt();
@@ -20,7 +17,7 @@ class ChangeSlot {
         return this.containerId;
     }
 
-    setContainerId(id) {
+    setContainerId(id: number) {
         this.containerId = id;
     }
 
@@ -28,8 +25,9 @@ class ChangeSlot {
         return this.changedSlots;
     }
 
-    setChangedSlots(changedSlots) {
+    setChangedSlots(changedSlots: Buffer) {
         this.changedSlots = changedSlots;
     }
 }
-module.exports = ChangeSlot;
+
+export default ChangeSlot;

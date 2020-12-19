@@ -1,6 +1,6 @@
 import Identifiers from '../Identifiers';
-import CommandData from '../type/command-data';
-import CommandEnum from '../type/command-enum';
+import CommandData from '../type/CommandData';
+import CommandEnum from '../type/CommandEnum';
 import DataPacket from './DataPacket';
 
 export default class AvailableCommandsPacket extends DataPacket {
@@ -45,7 +45,7 @@ export default class AvailableCommandsPacket extends DataPacket {
 
             // Flags
             this.writeByte(data.flags);
-            this.writeByte(data.permission);
+            this.writeByte(data.permission as any);
 
             // Alias enum indexes
             this.writeLInt(-1); // TODO

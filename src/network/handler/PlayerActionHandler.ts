@@ -1,9 +1,9 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import type PlayerActionPacket from '../packet/PlayerActionPacket';
-import PlayerAction from '../type/player-action';
+import PlayerActionType from '../type/PlayerActionType';
 import WorldEventPacket from '../packet/WorldEventPacket';
-import LevelEventType from '../type/level-event-type';
+import LevelEventType from '../type/LevelEventType';
 import PacketHandler from './PacketHandler';
 
 export default class PlayerActionHandler
@@ -14,7 +14,7 @@ export default class PlayerActionHandler
         player: Player
     ): void {
         switch (packet.action) {
-            case PlayerAction.StartBreak: {
+            case PlayerActionType.StartBreak: {
                 (async () => {
                     const chunk = await player
                         .getWorld()
@@ -58,7 +58,7 @@ export default class PlayerActionHandler
 
                 break;
             }
-            case PlayerAction.AbortBreak: {
+            case PlayerActionType.AbortBreak: {
                 // Gets called when player didn't finished
                 // to break the block
                 const pk = new WorldEventPacket();
@@ -77,11 +77,11 @@ export default class PlayerActionHandler
                 );
                 break;
             }
-            case PlayerAction.StopBreak: {
+            case PlayerActionType.StopBreak: {
                 // Handled in InventoryTransactionHandler
                 break;
             }
-            case PlayerAction.ContinueBreak: {
+            case PlayerActionType.ContinueBreak: {
                 // This fires twice in creative.. wtf Mojang?
                 (async () => {
                     const chunk = await player

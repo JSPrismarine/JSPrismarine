@@ -10,9 +10,8 @@ import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
+import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import PacketHandler from './PacketHandler';
-
-const ResourcePackStatus = require('../type/resource-pack-status');
 
 export default class ResourcePackResponseHandler
     implements PacketHandler<ResourcePackResponsePacket> {
@@ -21,11 +20,11 @@ export default class ResourcePackResponseHandler
         server: Prismarine,
         player: Player
     ): void {
-        if (packet.status === ResourcePackStatus.HaveAllPacks) {
+        if (packet.status === ResourcePackStatusType.HaveAllPacks) {
             const pk = new ResourcePackStackPacket();
             pk.experimentsAlreadyEnabled = false;
             player.getConnection().sendDataPacket(pk);
-        } else if (packet.status === ResourcePackStatus.Completed) {
+        } else if (packet.status === ResourcePackStatusType.Completed) {
             // Emit playerSpawn event
             const spawnEvent = new PlayerSpawnEvent(player);
             server.getEventManager().post(['playerSpawn', spawnEvent]);

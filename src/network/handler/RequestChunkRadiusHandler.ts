@@ -1,7 +1,7 @@
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
-import PlayStatus from '../type/play-status';
+import PlayStatusType from '../type/PlayStatusType';
 import PacketHandler from './PacketHandler';
 
 export default class RequestChunkRadiusHandler
@@ -18,6 +18,6 @@ export default class RequestChunkRadiusHandler
 
         player.getConnection().sendNetworkChunkPublisher();
 
-        player.getConnection().sendPlayStatus(PlayStatus.PlayerSpawn);
+        player.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
     }
 }
