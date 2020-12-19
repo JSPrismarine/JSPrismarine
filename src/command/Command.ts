@@ -1,6 +1,6 @@
 import CommandParameter from '../network/type/CommandParameter';
 import Player from '../player/Player';
-const CommandData = require('../network/type/command-data');
+import CommandData from '../network/type/CommandData';
 
 interface CommandProps {
     id: string;
@@ -11,13 +11,15 @@ interface CommandProps {
     parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
 }
 
-export default class Command extends CommandData {
-    id: string;
-    description?: string;
-    aliases?: Array<string>;
-    flags?: number;
-    permission?: string;
-    parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
+export default class Command {
+    id: string = '';
+    description?: string = '';
+    aliases?: Array<string> = [];
+    flags?: number = 0;
+    permission?: string = '';
+    parameters?:
+        | Array<Set<CommandParameter>>
+        | Set<CommandParameter> = new Set();
 
     constructor({
         id = '',
@@ -27,7 +29,6 @@ export default class Command extends CommandData {
         aliases = [],
         parameters
     }: CommandProps) {
-        super();
         this.id = id;
         this.description = description;
         this.flags = flags;

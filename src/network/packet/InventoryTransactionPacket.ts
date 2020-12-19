@@ -1,9 +1,8 @@
 import Vector3 from '../../math/Vector3';
 import Identifiers from '../Identifiers';
+import ChangeSlot from '../type/ChangeSlot';
+import NetworkTransaction from '../type/NetworkTransaction';
 import DataPacket from './DataPacket';
-
-const ChangeSlot = require('../type/change-slot');
-const NetworkTransaction = require('../type/network-transaction');
 
 export enum InventoryTransactionUseItemActionType {
     ClickBlock = 0,

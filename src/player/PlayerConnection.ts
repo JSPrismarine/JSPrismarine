@@ -34,8 +34,7 @@ import UUID from '../utils/UUID';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import { Attribute } from '../entity/attribute';
 import DataPacket from '../network/packet/DataPacket';
-
-const CreativeContentEntry = require('../network/type/creative-content-entry');
+import CreativeContentEntry from '../network/type/CreativeContentEntry';
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
 export default class PlayerConnection {
