@@ -1,6 +1,7 @@
 import path from 'path';
 import ConfigBuilder from './ConfigBuilder';
 import pkg from '../../package.json';
+import { SeedGenerator } from '../utils/Seed';
 
 export default class Config {
     private configBuilder: ConfigBuilder;
@@ -34,7 +35,7 @@ export default class Config {
         this.worlds = this.configBuilder.get('worlds', {
             world: {
                 generator: 'overworld',
-                seed: 1234 // TODO: generate random seed
+                seed: SeedGenerator()
             }
         });
         this.maxPlayers = this.configBuilder.get('max-players', 20);
