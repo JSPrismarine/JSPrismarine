@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import rimraf from 'rimraf';
 import unzipper from 'unzipper';
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
 import Prismarine from '../Prismarine';

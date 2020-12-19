@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0",
+    "version": "0.1.0-rc.2",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
@@ -76,7 +76,6 @@
         "lodash": "^4.17.20",
         "mccolorstoconsole": "^1.1.0",
         "node-machine-id": "^1.1.12",
-        "rimraf": "^3.0.2",
         "set-interval-async": "^1.0.33",
         "silent": "^0.1.2",
         "unzipper": "^0.10.11",
@@ -98,7 +97,6 @@
         "cross-env": "7.0.3",
         "eslint": "7.15.0",
         "husky": "4.3.6",
-        "jest-github-reporter": "1.0.1",
         "mock-fs": "4.13.0",
         "node-fetch": "2.6.1",
         "nodemon": "2.0.6",
