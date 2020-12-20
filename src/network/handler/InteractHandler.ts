@@ -1,10 +1,10 @@
+import InteractPacket, { InteractAction } from '../packet/InteractPacket';
+
+import ContainerOpenPacket from '../packet/ContainerOpenPacket';
+import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
-import InteractPacket, { InteractAction } from '../packet/InteractPacket';
-import ContainerOpenPacket from '../packet/ContainerOpenPacket';
 import Vector3 from '../../math/Vector3';
-import PacketHandler from './PacketHandler';
 
 export default class InteractHandler implements PacketHandler<InteractPacket> {
     public handle(

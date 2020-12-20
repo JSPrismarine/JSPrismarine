@@ -1,8 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-
 import Item from './Item';
 import Prismarine from '../Prismarine';
+import fs from 'fs';
+import path from 'path';
 
 export default class ItemManager {
     private server: Prismarine;

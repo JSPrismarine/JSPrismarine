@@ -1,5 +1,5 @@
+import CommandExecuter from './CommandExecuter';
 import CommandParameter from '../network/type/CommandParameter';
-import Player from '../player/Player';
 const CommandData = require('../network/type/command-data');
 
 interface CommandProps {
@@ -40,7 +40,7 @@ export default class Command extends CommandData {
      * Called when the command is executed.
      */
     public execute(
-        sender: Player,
+        sender: CommandExecuter,
         args: Array<string> = []
     ): string | void | Promise<string | void> {}
 }

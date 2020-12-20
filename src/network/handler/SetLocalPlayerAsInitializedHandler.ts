@@ -1,8 +1,7 @@
+import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
 import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
-import PacketHandler from './PacketHandler';
 
 export default class SetLocalPlayerAsInitializedHandler
     implements PacketHandler<SetLocalPlayerAsInitializedPacket> {

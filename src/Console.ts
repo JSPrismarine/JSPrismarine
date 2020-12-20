@@ -1,18 +1,14 @@
+import Chat from './chat/Chat';
+import ChatEvent from './events/chat/ChatEvent';
+import CommandExecuter from './command/CommandExecuter';
+import type Prismarine from './Prismarine';
 import readline from 'readline';
-import Player from './Player';
-import Chat from '../chat/Chat';
-import ChatEvent from '../events/chat/ChatEvent';
-import type Prismarine from '../Prismarine';
-import type World from '../world/World';
 
-export default class Console extends Player {
-    constructor(server: Prismarine) {
-        super(null, null, (null as unknown) as World, server);
-        this.username = {
-            prefix: '[',
-            suffix: ']',
-            name: 'CONSOLE'
-        };
+export default class Console implements CommandExecuter {
+    private server: Prismarine;
+
+    public constructor(server: Prismarine) {
+        this.server = server;
 
         // Console command reader
         readline.emitKeypressEvents(process.stdin);
@@ -61,11 +57,19 @@ export default class Console extends Player {
         });
     }
 
-    public sendMessage(message: string, xuid = '', needsTranslation = false) {
+    public getUsername(): string {
+        return 'CONSOLE';
+    }
+
+    public getFormattedUsername(): string {
+        return '[CONSOLE]';
+    }
+
+    public sendMessage(message: string): void {
         this.getServer().getLogger().info(message);
     }
 
-    public isPlayer() {
-        return false;
+    public getServer(): Prismarine {
+        return this.server;
     }
 }

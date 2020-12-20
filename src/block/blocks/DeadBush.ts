@@ -1,4 +1,3 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import Flowable from '../Flowable';
 

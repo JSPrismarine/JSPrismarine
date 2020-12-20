@@ -1,6 +1,6 @@
-import Prismarine from './Prismarine';
 import Config from './config/Config';
 import Logger from './utils/Logger';
+import Prismarine from './Prismarine';
 
 const config = new Config();
 const Server = new Prismarine({

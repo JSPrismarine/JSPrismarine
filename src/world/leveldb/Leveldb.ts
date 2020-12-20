@@ -1,13 +1,12 @@
-import path from 'path';
-
-import Provider from '../Provider';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../chunk/Chunk';
 import EmptySubChunk from '../chunk/EmptySubChunk';
+import Level from 'level';
+import type Prismarine from '../../Prismarine';
+import Provider from '../Provider';
 import SubChunk from '../chunk/SubChunk';
 import Vector3 from '../../math/Vector3';
-import type Prismarine from '../../Prismarine';
-import Level from 'level';
+import path from 'path';
 
 interface readChunk {
     x: number;

@@ -1,5 +1,5 @@
-import Block from '../block/Block';
 import Air from '../block/blocks/Air';
+import Block from '../block/Block';
 import Item from '../item/Item';
 
 // TODO: viewer logic

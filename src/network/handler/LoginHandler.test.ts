@@ -1,6 +1,6 @@
 import Identifiers from '../Identifiers';
-import LoginPacket from '../packet/LoginPacket';
 import LoginHandler from './LoginHandler';
+import LoginPacket from '../packet/LoginPacket';
 
 describe('network', () => {
     describe('handler', () => {

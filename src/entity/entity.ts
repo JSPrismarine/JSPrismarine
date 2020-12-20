@@ -1,14 +1,15 @@
-import Position from '../world/Position';
-import World from '../world/World';
-import AddActorPacket from '../network/packet/AddActorPacket';
 import MetadataManager, { FlagType, MetadataFlag } from './metadata';
+
+import AddActorPacket from '../network/packet/AddActorPacket';
 import AttributeManager from './attribute';
 import Player from '../player/Player';
+import Position from '../world/Position';
+import World from '../world/World';
 
 // All entities will extend this base class
 export default class Entity extends Position {
     protected static MOB_ID: string;
-    public static runtimeIdCount: bigint = -1n;
+    public static runtimeIdCount: bigint = 0n;
 
     public runtimeId: bigint;
 

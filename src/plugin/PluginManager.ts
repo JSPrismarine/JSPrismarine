@@ -1,10 +1,10 @@
+import { PluginManager as ModuleManager } from 'live-plugin-manager';
+import PluginApiVersion from './api/PluginApiVersion';
+import PluginFile from './PluginFile';
+import Prismarine from '../Prismarine';
 import fs from 'fs';
 import path from 'path';
 import unzipper from 'unzipper';
-import { PluginManager as ModuleManager } from 'live-plugin-manager';
-import Prismarine from '../Prismarine';
-import PluginFile from './PluginFile';
-import PluginApiVersion from './api/PluginApiVersion';
 
 export default class PluginManager {
     private server: Prismarine;

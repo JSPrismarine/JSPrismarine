@@ -1,6 +1,6 @@
 import Command from '../Command';
-import type Player from '../../player/Player';
 import CommandParameter from '../../network/type/CommandParameter';
+import type Player from '../../player/Player';
 
 export default class KickCommand extends Command {
     constructor() {

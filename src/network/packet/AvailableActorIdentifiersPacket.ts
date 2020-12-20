@@ -1,5 +1,5 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 const EntityIdentifiers = require('@jsprismarine/bedrock-data')
     .entity_identifiers;

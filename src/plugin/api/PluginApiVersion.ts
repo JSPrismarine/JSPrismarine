@@ -1,5 +1,3 @@
-import Prismarine from '../../Prismarine';
-
 export default class PluginApiVersion {
     private version: string;
 
