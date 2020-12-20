@@ -1,5 +1,4 @@
-import Prismarine from '../../Prismarine';
-import PacketBinaryStream from '../PacketBinaryStream';
+import type PacketBinaryStream from '../PacketBinaryStream';
 import NetworkTransactionSourceType from './NetworkTransactionSourceType';
 
 class NetworkTransaction {

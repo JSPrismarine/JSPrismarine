@@ -1,6 +1,5 @@
 import CommandParameter from '../network/type/CommandParameter';
 import Player from '../player/Player';
-import CommandData from '../network/type/CommandData';
 
 interface CommandProps {
     id: string;
@@ -12,14 +11,12 @@ interface CommandProps {
 }
 
 export default class Command {
-    id: string = '';
-    description?: string = '';
-    aliases?: Array<string> = [];
-    flags?: number = 0;
-    permission?: string = '';
-    parameters?:
-        | Array<Set<CommandParameter>>
-        | Set<CommandParameter> = new Set();
+    id: string;
+    description?: string;
+    aliases?: Array<string>;
+    flags?: number;
+    permission?: string;
+    parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
 
     constructor({
         id = '',

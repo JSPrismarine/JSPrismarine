@@ -1,4 +1,4 @@
-import ItemStackRequestSlotInfo from './ItemStackRequestSlotInfo';
+import type ItemStackRequestSlotInfo from './ItemStackRequestSlotInfo';
 
 class Take {
     public count: number;
