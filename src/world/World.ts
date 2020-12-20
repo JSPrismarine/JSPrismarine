@@ -410,6 +410,11 @@ export default class World {
 
     public setTicks(tick: number): void {
         this.currentTick = tick;
+
+        // Update time for all players in this world
+        Array.from(this.players.values()).forEach((player) =>
+            player.setTime(this.currentTick)
+        );
     }
 
     public getProvider(): any {

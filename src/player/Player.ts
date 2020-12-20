@@ -119,6 +119,10 @@ export default class Player extends Entity {
         this.playerConnection.sendGamemode(this.gamemode);
     }
 
+    public setTime(tick: number) {
+        this.getConnection().sendTime(tick);
+    }
+
     public getServer() {
         return this.server;
     }
