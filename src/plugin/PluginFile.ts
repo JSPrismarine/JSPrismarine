@@ -1,5 +1,5 @@
 import PluginApiVersion from './api/PluginApiVersion';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 import path from 'path';
 
 export class Plugin {
@@ -9,7 +9,7 @@ export class Plugin {
 }
 
 export default class PluginFile {
-    private server: Prismarine;
+    private server: Server;
     private path: string;
     private package;
     private plugin: Plugin;
@@ -19,7 +19,7 @@ export default class PluginFile {
     private version: string;
 
     constructor(
-        server: Prismarine,
+        server: Server,
         dir: string,
         pluginApiVersion: PluginApiVersion
     ) {

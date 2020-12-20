@@ -1,9 +1,9 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import InetAddress from '../network/raknet/utils/InetAddress';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 import QueryManager from './QueryManager';
 
-jest.mock('../Prismarine', () => {
+jest.mock('../Server', () => {
     return class Prismarine {
         constructor({ logger, config }) {}
 
@@ -17,7 +17,7 @@ jest.mock('../Prismarine', () => {
 
 describe('QueryManager', () => {
     it('handshake', async (done) => {
-        const prismarine = new Prismarine({
+        const prismarine = new Server({
             logger: null,
             config: null
         });

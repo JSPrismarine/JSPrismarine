@@ -1,6 +1,6 @@
 import DataPacket from '../packet/DataPacket';
 import Player from '../../player/Player';
-import Prismarine from '../../Prismarine';
+import Server from '../../Server';
 
 export default interface PacketHandler<T extends DataPacket> {
     /**
@@ -9,5 +9,5 @@ export default interface PacketHandler<T extends DataPacket> {
      * @param server The server instance
      * @param connection The playeer connection
      */
-    handle(packet: T, server: Prismarine, player: Player): void;
+    handle(packet: T, server: Server, player: Player): void;
 }

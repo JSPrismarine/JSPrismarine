@@ -6,7 +6,7 @@ import Gamemode from '../../world/Gamemode';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
-import type Prismarine from '../../Prismarine';
+import type Server from '../../Server';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
@@ -17,7 +17,7 @@ export default class ResourcePackResponseHandler
     implements PacketHandler<ResourcePackResponsePacket> {
     public handle(
         packet: ResourcePackResponsePacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         if (packet.status === ResourcePackStatus.HaveAllPacks) {

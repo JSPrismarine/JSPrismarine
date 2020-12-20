@@ -1,6 +1,6 @@
 import LoggerBuilder from '../utils/Logger';
 import PluginManager from './PluginManager';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 import mock from 'mock-fs';
 import path from 'path';
 
@@ -31,7 +31,7 @@ describe('plugin', () => {
         beforeAll(() => {
             const logger = new LoggerBuilder();
 
-            server = server = new Prismarine({
+            server = server = new Server({
                 logger,
                 config: new (class DebugConfig {
                     public getPort() {

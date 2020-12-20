@@ -3,14 +3,14 @@ import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import PlayerAction from '../type/player-action';
 import type PlayerActionPacket from '../packet/PlayerActionPacket';
-import type Prismarine from '../../Prismarine';
+import type Server from '../../Server';
 import WorldEventPacket from '../packet/WorldEventPacket';
 
 export default class PlayerActionHandler
     implements PacketHandler<PlayerActionPacket> {
     public handle(
         packet: PlayerActionPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         switch (packet.action) {

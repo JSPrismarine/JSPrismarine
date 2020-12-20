@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
-import Prismarine from '../../Prismarine';
+import Server from '../../Server';
 import Zlib from 'zlib';
 
 export default class BatchPacket extends DataPacket {
@@ -8,7 +8,7 @@ export default class BatchPacket extends DataPacket {
 
     private payload = Buffer.alloc(0);
     // Bigger compression level leads to more CPU usage and less network, and vice versa
-    private compressionLevel: number = Prismarine.instance
+    private compressionLevel: number = Server.instance
         .getConfig()
         .getPacketCompressionLevel();
 

@@ -1,16 +1,16 @@
 import Chat from '../chat/Chat';
 import Command from './Command';
 import CommandExecuter from './CommandExecuter';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 
 const path = require('path');
 const fs = require('fs');
 
 export default class CommandManager {
     private commands: Set<Command> = new Set();
-    private server: Prismarine;
+    private server: Server;
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 
@@ -71,7 +71,7 @@ export default class CommandManager {
     /**
      * Register a command into command manager by class.
      */
-    public registerClassCommand(command: Command, server: Prismarine) {
+    public registerClassCommand(command: Command, server: Server) {
         this.commands.add(command);
         server
             .getLogger()

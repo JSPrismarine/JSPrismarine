@@ -25,7 +25,7 @@ import MovementType from '../network/type/MovementType';
 import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
 import PlayStatusPacket from '../network/packet/PlayStatusPacket';
 import type Player from './Player';
-import type Prismarine from '../Prismarine';
+import type Server from '../Server';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
@@ -42,12 +42,12 @@ const { creativeitems } = require('@jsprismarine/bedrock-data');
 export default class PlayerConnection {
     private player: Player;
     private connection: Connection;
-    private server: Prismarine;
+    private server: Server;
     private chunkSendQueue: Set<Chunk> = new Set();
     private loadedChunks: Set<string> = new Set();
     private loadingChunks: Set<string> = new Set();
 
-    constructor(server: Prismarine, connection: Connection, player: Player) {
+    constructor(server: Server, connection: Connection, player: Player) {
         this.server = server;
         this.connection = connection;
         this.player = player;

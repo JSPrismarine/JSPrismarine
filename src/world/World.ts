@@ -8,7 +8,7 @@ import Entity from '../entity/entity';
 import Item from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import Player from '../player/Player';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/UUID';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
@@ -17,7 +17,7 @@ import WorldEventPacket from '../network/packet/WorldEventPacket';
 
 interface WorldData {
     name: string;
-    server: Prismarine;
+    server: Server;
     provider: any;
     seed: number;
     generator?: string;
@@ -32,7 +32,7 @@ export default class World {
     private gameruleManager: GameruleManager;
     private currentTick: number = 0;
     private provider: any; // TODO: interface
-    private server: Prismarine;
+    private server: Server;
     private seed: SharedSeedRandom;
     private generator: any; // TODO: interface
 

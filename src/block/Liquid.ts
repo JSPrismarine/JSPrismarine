@@ -1,6 +1,6 @@
 import Block from './Block';
 import Item from '../item/Item';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 
 /**
  * Liquid blocks (eg. Water, Still Water, Lava, Still Lava)
@@ -10,7 +10,7 @@ export default class Liquid extends Block {
         return 100;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Prismarine) {
+    getDropsForCompatibleTool(item: Item, server: Server) {
         return [];
     }
 

@@ -48,7 +48,7 @@ import PlayerActionHandler from './handler/PlayerActionHandler';
 import PlayerActionPacket from './packet/PlayerActionPacket';
 import PlayerListPacket from './packet/PlayerListPacket';
 import PlayerSkinPacket from './packet/PlayerSkinPacket';
-import type Prismarine from '../Prismarine';
+import type Server from '../Server';
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
@@ -77,7 +77,7 @@ export default class PacketRegistry {
     private packets: Map<number, any> = new Map();
     private handlers: Map<number, any> = new Map();
 
-    public constructor(server: Prismarine) {
+    public constructor(server: Server) {
         this.logger = server.getLogger();
         this.loadPackets();
         this.loadHandlers();

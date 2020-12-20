@@ -7,7 +7,7 @@ import Gamemode from '../world/Gamemode';
 import Inventory from '../inventory/Inventory';
 import PlayerConnection from './PlayerConnection';
 import PlayerInventory from '../inventory/PlayerInventory';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 import Skin from '../utils/skin/Skin';
 import World from '../world/World';
 import withDeprecated from '../hoc/withDeprecated';
@@ -20,7 +20,7 @@ export enum PlayerPermission {
 }
 
 export default class Player extends Entity implements CommandExecuter {
-    private server: Prismarine;
+    private server: Server;
     private address: any;
     private playerConnection: PlayerConnection;
 
@@ -59,12 +59,7 @@ export default class Player extends Entity implements CommandExecuter {
     /**
      * Player's constructor.
      */
-    constructor(
-        connection: any,
-        address: any,
-        world: World,
-        server: Prismarine
-    ) {
+    constructor(connection: any, address: any, world: World, server: Server) {
         super(world);
         this.address = address;
         this.server = server;
@@ -121,7 +116,7 @@ export default class Player extends Entity implements CommandExecuter {
         this.getConnection().sendTime(tick);
     }
 
-    public getServer(): Prismarine {
+    public getServer(): Server {
         return this.server;
     }
 
@@ -147,5 +142,9 @@ export default class Player extends Entity implements CommandExecuter {
 
     public getUUID(): string {
         return this.uuid ?? '';
+    }
+
+    public isPlayer(): boolean {
+        return true;
     }
 }
