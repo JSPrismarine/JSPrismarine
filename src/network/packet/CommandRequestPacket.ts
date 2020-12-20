@@ -1,6 +1,6 @@
-import Identifiers from '../Identifiers';
 import CommandOriginData from '../type/command-origin-data';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class CommandRequestPacket extends DataPacket {
     static NetID = Identifiers.CommandRequestPacket;

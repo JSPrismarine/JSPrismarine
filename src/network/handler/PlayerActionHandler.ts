@@ -1,10 +1,10 @@
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
-import type PlayerActionPacket from '../packet/PlayerActionPacket';
-import PlayerAction from '../type/player-action';
-import WorldEventPacket from '../packet/WorldEventPacket';
 import LevelEventType from '../type/level-event-type';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import PlayerAction from '../type/player-action';
+import type PlayerActionPacket from '../packet/PlayerActionPacket';
+import type Prismarine from '../../Prismarine';
+import WorldEventPacket from '../packet/WorldEventPacket';
 
 export default class PlayerActionHandler
     implements PacketHandler<PlayerActionPacket> {

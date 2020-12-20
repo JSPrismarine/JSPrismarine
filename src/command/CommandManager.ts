@@ -1,7 +1,7 @@
 import Chat from '../chat/Chat';
-import Player from '../player/Player';
-import Prismarine from '../Prismarine';
 import Command from './Command';
+import CommandExecuter from './CommandExecuter';
+import Prismarine from '../Prismarine';
 
 const path = require('path');
 const fs = require('fs');
@@ -81,7 +81,7 @@ export default class CommandManager {
     /**
      * Dispatches a command and executes them.
      */
-    public async dispatchCommand(sender: Player, commandInput = '') {
+    public async dispatchCommand(sender: CommandExecuter, commandInput = '') {
         if (!commandInput.startsWith('/')) {
             sender.sendMessage('Received an invalid command!');
         }
@@ -145,7 +145,7 @@ export default class CommandManager {
             const chat = new Chat(
                 this.server.getConsole(),
                 `§o§7[${sender.getUsername()}: ${
-                    res || `issued server command: ${commandInput}`
+                    res ?? `issued server command: ${commandInput}`
                 }]§r`,
                 '*.ops'
             );

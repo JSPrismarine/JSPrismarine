@@ -1,7 +1,7 @@
+import PacketHandler from './PacketHandler';
+import PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
 import Player from '../../player/Player';
 import Prismarine from '../../Prismarine';
-import PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
-import PacketHandler from './PacketHandler';
 
 export default class PacketViolationWarningHandler
     implements PacketHandler<PacketViolationWarningPacket> {

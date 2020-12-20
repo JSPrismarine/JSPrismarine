@@ -1,8 +1,8 @@
-import Item from '../item/Item';
-import Prismarine from '../Prismarine';
-import { ItemTieredToolType } from '../item/ItemTieredToolType';
 import { BlockToolType } from './BlockToolType';
+import Item from '../item/Item';
 import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
+import { ItemTieredToolType } from '../item/ItemTieredToolType';
+import Prismarine from '../Prismarine';
 
 export default class Block {
     id: number;

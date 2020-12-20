@@ -1,10 +1,10 @@
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
-import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
-import PlayStatus from '../type/play-status';
 import PacketHandler from './PacketHandler';
+import PlayStatus from '../type/play-status';
+import type Player from '../../player/Player';
+import type Prismarine from '../../Prismarine';
+import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 
 export default class LoginHandler implements PacketHandler<LoginPacket> {
     public handle(

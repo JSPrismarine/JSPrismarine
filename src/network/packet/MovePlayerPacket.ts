@@ -1,6 +1,6 @@
+import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import MovementType from '../type/MovementType';
-import DataPacket from './DataPacket';
 
 export default class MovePlayerPacket extends DataPacket {
     static NetID = Identifiers.MovePlayerPacket;

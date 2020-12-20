@@ -1,5 +1,5 @@
-import Prismarine from './Prismarine';
 import LoggerBuilder from './utils/Logger';
+import Prismarine from './Prismarine';
 
 jest.mock('winston', () => ({
     format: {

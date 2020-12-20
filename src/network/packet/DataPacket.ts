@@ -1,4 +1,3 @@
-import type Prismarine from '../../Prismarine';
 import PacketBinaryStream from '../PacketBinaryStream';
 
 const PID_MASK = 0x3ff;

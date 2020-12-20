@@ -7,7 +7,7 @@ const BYTE_SIZE = 8;
 
 // Hardcoded value because 0x1.0p-53 doesn't work in JavaScript.
 // If it does let me know
-const DOUBLE_UNIT = 1.1102230246251565e-16; // 1.0 / Number(1n << 53n)
+// const DOUBLE_UNIT = 1.1102230246251565e-16; 1.0 / Number(1n << 53n)
 
 /**
  * An almost-complete JavaScript implementation of java.util.Random.
@@ -25,11 +25,11 @@ export default class Random {
         this.setSeed(seed);
     }
 
-    private checkIsNumber(n: number | bigint) {
-        if (typeof n != 'number' && typeof n != 'bigint') {
-            throw new TypeError(`Seed "${n}" is not a number or BigInt!`);
-        }
-    }
+    // private checkIsNumber(n: number | bigint) {
+    //    if (typeof n != 'number' && typeof n != 'bigint') {
+    //        throw new TypeError(`Seed "${n}" is not a number or BigInt!`);
+    //    }
+    // }
 
     static seedUniquifier = 8682522807148012n;
 
@@ -250,11 +250,11 @@ export default class Random {
     }
 }
 
-function compareAndSet(oldVal: any, currentVal: any, newVal: any) {
+/* function compareAndSet(oldVal: any, currentVal: any, newVal: any) {
     if (oldVal == currentVal) {
         oldVal = newVal;
         return true;
     } else {
         return false;
     }
-}
+}*/ 

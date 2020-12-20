@@ -1,5 +1,5 @@
-import type Prismarine from '../../../Prismarine';
 import Identifiers from '../../Identifiers';
+import type Prismarine from '../../../Prismarine';
 
 export default class ServerName {
     private server: Prismarine;

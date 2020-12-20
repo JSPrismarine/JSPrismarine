@@ -1,6 +1,6 @@
+import ContainerClosePacket from '../packet/ContainerClosePacket';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
-import ContainerClosePacket from '../packet/ContainerClosePacket';
 
 export default class ContainerCloseHandler {
     public handle(

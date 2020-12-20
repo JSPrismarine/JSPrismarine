@@ -1,5 +1,3 @@
-import { hasMagic } from 'glob';
-
 export default class StringVal {
     private value: string;
 

@@ -1,5 +1,5 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class ResourcePackResponsePacket extends DataPacket {
     static NetID = Identifiers.ResourcePackResponsePacket;
