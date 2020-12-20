@@ -257,4 +257,4 @@ export default class Random {
     } else {
         return false;
     }
-}*/ 
+}*/
