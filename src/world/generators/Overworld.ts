@@ -1,6 +1,6 @@
 import Chunk from '../chunk/Chunk';
 import Noise from '../synth/Noise';
-import type Prismarine from '../../Prismarine';
+import type Server from '../../Server';
 import type Random from '../util/Random';
 import type Vector3 from '../../math/Vector3';
 
@@ -19,7 +19,7 @@ export default class Overworld {
     }: {
         pos: Vector3;
         seed: Random;
-        server: Prismarine;
+        server: Server;
     }) {
         if (!this.noise) this.noise = new Noise(seed);
 

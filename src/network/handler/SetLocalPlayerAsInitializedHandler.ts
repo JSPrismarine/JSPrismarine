@@ -1,6 +1,6 @@
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
+import type Server from '../../Server';
 import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
 
 export default class SetLocalPlayerAsInitializedHandler
@@ -9,7 +9,7 @@ export default class SetLocalPlayerAsInitializedHandler
     // uuid may result null here probably... (response to a issue)
     public handle(
         packet: SetLocalPlayerAsInitializedPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         for (const onlinePlayer of server

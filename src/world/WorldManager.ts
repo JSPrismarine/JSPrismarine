@@ -1,6 +1,6 @@
 import GeneratorManager from './GeneratorManager';
 import LevelDB from './leveldb/Leveldb';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 import World from './World';
 import fs from 'fs';
 
@@ -8,9 +8,9 @@ export default class WorldManager {
     private worlds: Map<string, World> = new Map();
     private defaultWorld: World | null = null;
     private genManager: GeneratorManager;
-    private server: Prismarine;
+    private server: Server;
 
-    public constructor(server: Prismarine) {
+    public constructor(server: Server) {
         this.server = server;
         this.genManager = new GeneratorManager(server);
 

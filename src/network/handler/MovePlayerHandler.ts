@@ -3,7 +3,7 @@ import MovementType from '../type/MovementType';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
-import type Prismarine from '../../Prismarine';
+import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 
 const d3 = require('d3-interpolate');
@@ -12,7 +12,7 @@ export default class MovePlayerHandler
     implements PacketHandler<MovePlayerPacket> {
     public handle(
         packet: MovePlayerPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         // Update movement for every player & interpolate position to smooth it

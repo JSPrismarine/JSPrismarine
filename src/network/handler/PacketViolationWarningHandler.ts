@@ -1,13 +1,13 @@
 import PacketHandler from './PacketHandler';
 import PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
 import Player from '../../player/Player';
-import Prismarine from '../../Prismarine';
+import Server from '../../Server';
 
 export default class PacketViolationWarningHandler
     implements PacketHandler<PacketViolationWarningPacket> {
     public handle(
         packet: PacketViolationWarningPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         server.getLogger().error(`Packet violation: ${JSON.stringify(packet)}`);

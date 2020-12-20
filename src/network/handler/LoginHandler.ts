@@ -3,15 +3,11 @@ import type LoginPacket from '../packet/LoginPacket';
 import PacketHandler from './PacketHandler';
 import PlayStatus from '../type/play-status';
 import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
+import type Server from '../../Server';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 
 export default class LoginHandler implements PacketHandler<LoginPacket> {
-    public handle(
-        packet: LoginPacket,
-        server: Prismarine,
-        player: Player
-    ): void {
+    public handle(packet: LoginPacket, server: Server, player: Player): void {
         // check if player count >= max players
 
         // Kick client if has newer / older client version

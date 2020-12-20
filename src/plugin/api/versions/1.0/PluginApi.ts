@@ -2,7 +2,7 @@ import ConfigBuilder from '../../../../config/ConfigBuilder';
 import EventManager from './EventManager';
 import LoggerBuilder from '../../../../utils/Logger';
 import PluginApiVersion from '../../PluginApiVersion';
-import Prismarine from '../../../../Prismarine';
+import Server from '../../../../Server';
 import path from 'path';
 
 export const PLUGIN_API_VERSION = '1.0';
@@ -10,7 +10,7 @@ export const PLUGIN_API_VERSION = '1.0';
 export default class PluginApi extends PluginApiVersion {
     private pkg;
 
-    constructor(private server: Prismarine, pkg: any) {
+    constructor(private server: Server, pkg: any) {
         super(PLUGIN_API_VERSION);
         this.pkg = pkg;
     }
@@ -49,7 +49,7 @@ export default class PluginApi extends PluginApiVersion {
     /**
      * returns an instance of the server class
      */
-    public getServer(): Prismarine {
+    public getServer(): Server {
         return this.server;
     }
 

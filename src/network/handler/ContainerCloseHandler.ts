@@ -1,11 +1,11 @@
 import ContainerClosePacket from '../packet/ContainerClosePacket';
 import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
+import type Server from '../../Server';
 
 export default class ContainerCloseHandler {
     public handle(
         packet: ContainerClosePacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         const pk = new ContainerClosePacket();

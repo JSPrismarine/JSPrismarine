@@ -1,17 +1,17 @@
 import fetch, { Headers } from 'node-fetch';
 
 import PluginFile from '../plugin/PluginFile';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 import { machineIdSync } from 'node-machine-id';
 
 export default class TelemetryManager {
     private id = this.generateAnonomizedId();
-    private server: Prismarine;
+    private server: Server;
     private ticker: any;
     private enabled: boolean;
     private urls: string[];
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
         const { enabled, urls } = server.getConfig().getTelemetry();
         this.enabled = enabled;

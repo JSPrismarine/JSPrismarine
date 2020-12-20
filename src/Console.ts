@@ -1,13 +1,13 @@
 import Chat from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
 import CommandExecuter from './command/CommandExecuter';
-import type Prismarine from './Prismarine';
+import type Server from './Server';
 import readline from 'readline';
 
 export default class Console implements CommandExecuter {
-    private server: Prismarine;
+    private server: Server;
 
-    public constructor(server: Prismarine) {
+    public constructor(server: Server) {
         this.server = server;
 
         // Console command reader
@@ -69,7 +69,11 @@ export default class Console implements CommandExecuter {
         this.getServer().getLogger().info(message);
     }
 
-    public getServer(): Prismarine {
+    public getServer(): Server {
         return this.server;
+    }
+
+    public isPlayer(): boolean {
+        return false;
     }
 }

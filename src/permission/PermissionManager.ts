@@ -1,5 +1,5 @@
 import CommandExecuter from '../command/CommandExecuter';
-import type Prismarine from '../Prismarine';
+import type Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
@@ -9,11 +9,11 @@ interface OpType {
 }
 
 export default class PermissionManager {
-    private server: Prismarine;
+    private server: Server;
     private ops: Set<string> = new Set();
     private permissions: Map<string, string> = new Map();
 
-    public constructor(server: Prismarine) {
+    public constructor(server: Server) {
         this.server = server;
     }
 
@@ -80,6 +80,7 @@ export default class PermissionManager {
             execute: async (permission?: string) => {
                 if (!permission) return true;
                 if (this.isOp(executer.getUsername())) return true;
+                if (!executer.isPlayer()) return true;
 
                 // TODO: handle permissions
             }

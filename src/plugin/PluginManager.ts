@@ -1,17 +1,17 @@
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
 import PluginApiVersion from './api/PluginApiVersion';
 import PluginFile from './PluginFile';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 import unzipper from 'unzipper';
 
 export default class PluginManager {
-    private server: Prismarine;
+    private server: Server;
     private pluginApiVersions = new Map();
     private plugins = new Map();
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 

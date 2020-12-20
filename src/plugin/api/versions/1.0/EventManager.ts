@@ -4,7 +4,7 @@ import type { EventTypes as CurrentVersionEventTypes } from '../../../../events/
 import type { EventEmitterish } from '../../../../events/EventEmitterishMixin';
 import { EventEmitterishMixin } from '../../../../events/EventEmitterishMixin';
 import type { Operator } from 'evt';
-import type Prismarine from '../../../../Prismarine';
+import type Server from '../../../../Server';
 
 /* README: https://gist.github.com/garronej/84dddc6dad77d9fd0ce5608148bc59c4 */
 
@@ -23,11 +23,11 @@ const targetApiToCurrentApi: Operator.fλ<
 class EventManagerWithoutEventEmitterishMethods<
     CustomEventTypes extends [string, any]
 > {
-    constructor(private server: Prismarine) {}
+    constructor(private server: Server) {}
 
     private static readonly CustomEventManager = EventEmitterishMixin(
         class {
-            constructor(_server: Prismarine) {}
+            constructor(_server: Server) {}
         },
         ({ constructorArgs: [server] }) =>
             Evt.asPostable(server.getEventManager().evtThirdParty)

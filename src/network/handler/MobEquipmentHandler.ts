@@ -1,13 +1,13 @@
 import MobEquipmentPacket from '../packet/MobEquipmentPacket';
 import PacketHandler from './PacketHandler';
 import Player from '../../player/Player';
-import Prismarine from '../../Prismarine';
+import Server from '../../Server';
 
 export default class MobEquipmentHandler
     implements PacketHandler<MobEquipmentPacket> {
     public handle(
         packet: MobEquipmentPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         // TODO

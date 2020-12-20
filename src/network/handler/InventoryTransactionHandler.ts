@@ -7,7 +7,7 @@ import Gamemode from '../../world/Gamemode';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
+import type Server from '../../Server';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import Vector3 from '../../math/Vector3';
 
@@ -15,7 +15,7 @@ export default class InventoryTransactionHandler
     implements PacketHandler<InventoryTransactionPacket> {
     public handle(
         packet: InventoryTransactionPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         switch (packet.type) {
