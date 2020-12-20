@@ -1,19 +1,19 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import DataPacket from './protocol/DataPacket';
-import Listener from './Listener';
+import PacketReliability, { isReliable } from './protocol/ReliabilityLayer';
+
 import ACK from './protocol/ACK';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import BitFlags from './protocol/BitFlags';
 import ConnectedPing from './protocol/ConnectedPing';
 import ConnectedPong from './protocol/ConnectedPong';
 import ConnectionRequest from './protocol/ConnectionRequest';
 import ConnectionRequestAccepted from './protocol/ConnectionRequestAccepted';
+import DataPacket from './protocol/DataPacket';
 import EncapsulatedPacket from './protocol/EncapsulatedPacket';
+import Identifiers from './protocol/Identifiers';
+import InetAddress from './utils/InetAddress';
 import NACK from './protocol/NACK';
 import NewIncomingConnection from './protocol/NewIncomingConnection';
-import InetAddress from './utils/InetAddress';
-import Identifiers from './protocol/Identifiers';
 import Packet from './protocol/Packet';
-import PacketReliability, { isReliable } from './protocol/ReliabilityLayer';
 import RakNetListener from './RakNetListener';
 
 export enum Priority {

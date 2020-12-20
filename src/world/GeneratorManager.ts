@@ -1,6 +1,6 @@
+import type Prismarine from '../Prismarine';
 import fs from 'fs';
 import path from 'path';
-import type Prismarine from '../Prismarine';
 
 export default class GeneratorManager {
     private generators: Map<string, any> = new Map();

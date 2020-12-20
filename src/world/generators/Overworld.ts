@@ -1,11 +1,11 @@
-import type Vector3 from '../../math/Vector3';
-import type Prismarine from '../../Prismarine';
 import Chunk from '../chunk/Chunk';
 import Noise from '../synth/Noise';
+import type Prismarine from '../../Prismarine';
 import type Random from '../util/Random';
+import type Vector3 from '../../math/Vector3';
 
 const CHUNK_WIDTH = 16;
-const CHUNK_HEIGHT = 256; // 1.17: 16?
+// const CHUNK_HEIGHT = 256; 1.17: 16?
 const CHUNK_LENGTH = 16;
 const SEA_LEVEL = 62;
 

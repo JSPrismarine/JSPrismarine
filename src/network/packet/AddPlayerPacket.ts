@@ -1,6 +1,6 @@
-import UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import UUID from '../../utils/UUID';
 
 export default class AddPlayerPacket extends DataPacket {
     static NetID = Identifiers.AddPlayerPacket;

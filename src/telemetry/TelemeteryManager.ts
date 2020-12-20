@@ -1,7 +1,8 @@
 import fetch, { Headers } from 'node-fetch';
-import { machineIdSync } from 'node-machine-id';
-import Prismarine from '../Prismarine';
+
 import PluginFile from '../plugin/PluginFile';
+import Prismarine from '../Prismarine';
+import { machineIdSync } from 'node-machine-id';
 
 export default class TelemetryManager {
     private id = this.generateAnonomizedId();

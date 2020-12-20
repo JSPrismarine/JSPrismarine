@@ -1,5 +1,5 @@
+import type Console from '../Console';
 import type Player from '../player/Player';
-import type Console from '../player/Console';
 
 export default class Chat {
     private channel: string;
@@ -19,9 +19,11 @@ export default class Chat {
     public getChannel() {
         return this.channel;
     }
+
     public getSender() {
         return this.sender;
     }
+
     public getMessage() {
         return this.message;
     }

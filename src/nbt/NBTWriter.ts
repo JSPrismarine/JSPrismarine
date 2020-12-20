@@ -1,11 +1,11 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { ByteOrder } from './ByteOrder';
-import { NBTDefinitions } from './NBTDefinitions';
-import NBTTagCompound from './NBTTagCompound';
 import ByteVal from './types/ByteVal';
 import DoubleVal from './types/DoubleVal';
 import FloatVal from './types/FloatVal';
 import LongVal from './types/LongVal';
+import { NBTDefinitions } from './NBTDefinitions';
+import NBTTagCompound from './NBTTagCompound';
 import NumberVal from './types/NumberVal';
 import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';

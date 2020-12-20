@@ -1,7 +1,7 @@
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
 import AnimatePacket from '../packet/AnimatePacket';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Prismarine from '../../Prismarine';
 
 export default class AnimateHandler implements PacketHandler<AnimatePacket> {
     public handle(

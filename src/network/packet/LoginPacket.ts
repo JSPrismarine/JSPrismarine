@@ -1,9 +1,8 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Device from '../../utils/Device';
-import Skin from '../../utils/skin/Skin';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
-
+import Device from '../../utils/Device';
+import Identifiers from '../Identifiers';
+import Skin from '../../utils/skin/Skin';
 import jwt_decode from 'jwt-decode';
 
 export default class LoginPacket extends DataPacket {

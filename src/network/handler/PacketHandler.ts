@@ -1,6 +1,6 @@
+import DataPacket from '../packet/DataPacket';
 import Player from '../../player/Player';
 import Prismarine from '../../Prismarine';
-import DataPacket from '../packet/DataPacket';
 
 export default interface PacketHandler<T extends DataPacket> {
     /**

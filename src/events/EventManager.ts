@@ -1,6 +1,6 @@
-import { Evt, to } from 'evt';
-import type Prismarine from '../Prismarine';
 import type ChatEvent from './chat/ChatEvent';
+import { EventEmitterishMixin } from './EventEmitterishMixin';
+import { Evt } from 'evt';
 import type PlayerConnectEvent from './player/PlayerConnectEvent';
 import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
@@ -9,7 +9,6 @@ import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
 import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
-import { EventEmitterishMixin } from './EventEmitterishMixin';
 
 export type EventTypes =
     | ['raknetConnect', RaknetConnectEvent]

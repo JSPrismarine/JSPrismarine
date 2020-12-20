@@ -1,5 +1,5 @@
-import Player from '../../player/Player';
 import Command from '../Command';
+import Player from '../../player/Player';
 
 export default class PluginsCommand extends Command {
     constructor() {

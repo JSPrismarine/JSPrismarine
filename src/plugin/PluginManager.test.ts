@@ -1,8 +1,8 @@
-import mock from 'mock-fs';
-import path from 'path';
-import Prismarine from '../Prismarine';
 import LoggerBuilder from '../utils/Logger';
 import PluginManager from './PluginManager';
+import Prismarine from '../Prismarine';
+import mock from 'mock-fs';
+import path from 'path';
 
 jest.mock('winston', () => ({
     format: {

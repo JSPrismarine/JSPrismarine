@@ -1,6 +1,6 @@
 import Block from '../block/Block';
-import Item from '../item/Item';
 import Inventory from './Inventory';
+import Item from '../item/Item';
 
 export default class PlayerInventory extends Inventory {
     private handSlot: number = 0;

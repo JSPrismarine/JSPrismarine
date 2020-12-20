@@ -1,6 +1,6 @@
-import type Vector3 from '../../math/Vector3';
-import type Prismarine from '../../Prismarine';
 import Chunk from '../chunk/Chunk';
+import type Prismarine from '../../Prismarine';
+import type Vector3 from '../../math/Vector3';
 
 export default class Flat {
     public getChunk({

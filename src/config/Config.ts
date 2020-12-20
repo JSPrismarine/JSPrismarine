@@ -1,7 +1,7 @@
-import path from 'path';
 import ConfigBuilder from './ConfigBuilder';
-import pkg from '../../package.json';
 import { SeedGenerator } from '../utils/Seed';
+import path from 'path';
+import pkg from '../../package.json';
 
 export default class Config {
     private configBuilder: ConfigBuilder;
