@@ -1,8 +1,8 @@
+import CommandExecuter from '../command/CommandExecuter';
+import type Prismarine from '../Prismarine';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
-import type Prismarine from '../Prismarine';
-import type Player from '../player/Player';
 
 interface OpType {
     name: string;
@@ -71,18 +71,15 @@ export default class PermissionManager {
         }
     }
 
-    public isOp(player: Player): boolean {
-        return !player.isPlayer() ?? this.ops.has(player.getUsername());
+    public isOp(username: string): boolean {
+        return this.ops.has(username);
     }
 
-    public can(player: Player): any {
+    public can(executer: CommandExecuter): any {
         return {
             execute: async (permission?: string) => {
-                if (!player.isPlayer()) return true; // We're the console or a plugin
-
                 if (!permission) return true;
-
-                if (this.ops.has(player.getUsername())) return true;
+                if (this.isOp(executer.getUsername())) return true;
 
                 // TODO: handle permissions
             }

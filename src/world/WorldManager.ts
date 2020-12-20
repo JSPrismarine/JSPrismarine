@@ -1,8 +1,8 @@
-import fs from 'fs';
-import Prismarine from '../Prismarine';
 import GeneratorManager from './GeneratorManager';
-import World from './World';
 import LevelDB from './leveldb/Leveldb';
+import Prismarine from '../Prismarine';
+import World from './World';
+import fs from 'fs';
 
 export default class WorldManager {
     private worlds: Map<string, World> = new Map();

@@ -1,17 +1,12 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { Attribute } from '../entity/attribute';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BlockPosition from '../world/BlockPosition';
+import CreativeContentEntry from './type/creative-content-entry';
 import { FlagType } from '../entity/metadata';
+import { PlayerListEntry } from './packet/PlayerListPacket';
 import Skin from '../utils/skin/Skin';
-import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
-import SkinPersonaPiece from '../utils/skin/skin-persona/SkinPersonaPiece';
-import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/SkinPersonaPieceTintColor';
-import SkinAnimation from '../utils/skin/SkinAnimation';
-import SkinCape from '../utils/skin/SkinCape';
 import SkinImage from '../utils/skin/SkinImage';
 import UUID from '../utils/UUID';
-import BlockPosition from '../world/BlockPosition';
-import { PlayerListEntry } from './packet/PlayerListPacket';
-import CreativeContentEntry from './type/creative-content-entry';
 
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
@@ -337,13 +332,10 @@ export default class PacketBinaryStream extends BinaryStream {
             };
         }
 
-        let name = null;
         let temp = this.readVarInt();
-        let amount = temp & 0xff;
         let meta = temp >> 8;
 
         let extraLen = this.readLShort();
-        let nbt = null;
         if (extraLen == 0xffff) {
             this.readByte(); // ? nbt version
             // As i cannot pass offset by reference, i keep it using this binary stream directly

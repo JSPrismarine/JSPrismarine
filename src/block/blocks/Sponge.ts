@@ -1,6 +1,5 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
-import { BlockToolType } from '../BlockToolType';
+import Solid from '../Solid';
 
 export enum SpongeType {
     Dry = 0,

@@ -1,5 +1,5 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class TickSyncPacket extends DataPacket {
     static NetID = Identifiers.TickSyncPacket;

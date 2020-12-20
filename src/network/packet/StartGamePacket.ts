@@ -1,7 +1,7 @@
-import Vector3 from '../../math/Vector3';
-import Identifiers from '../Identifiers';
 // import PacketBinaryStream from '../PacketBinaryStream';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import Vector3 from '../../math/Vector3';
 
 export default class StartGamePacket extends DataPacket {
     static NetID = Identifiers.StartGamePacket;

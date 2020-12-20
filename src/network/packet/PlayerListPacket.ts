@@ -1,7 +1,7 @@
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 import Skin from '../../utils/skin/Skin';
 import UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
-import DataPacket from './DataPacket';
 
 interface PlayerListData {
     uuid: UUID;

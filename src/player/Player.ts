@@ -1,16 +1,16 @@
-import Prismarine from '../Prismarine';
+import ChatEvent from '../events/chat/ChatEvent';
+import Chunk from '../world/chunk/Chunk';
+import CommandExecuter from '../command/CommandExecuter';
+import Device from '../utils/Device';
 import Entity from '../entity/entity';
-import World from '../world/World';
 import Gamemode from '../world/Gamemode';
+import Inventory from '../inventory/Inventory';
 import PlayerConnection from './PlayerConnection';
 import PlayerInventory from '../inventory/PlayerInventory';
-import Inventory from '../inventory/Inventory';
+import Prismarine from '../Prismarine';
 import Skin from '../utils/skin/Skin';
-import Device from '../utils/Device';
-import Chunk from '../world/chunk/Chunk';
-import ChatEvent from '../events/chat/ChatEvent';
+import World from '../world/World';
 import withDeprecated from '../hoc/withDeprecated';
-import LoggerBuilder from '../utils/Logger';
 
 export enum PlayerPermission {
     Visitor,
@@ -19,7 +19,7 @@ export enum PlayerPermission {
     Custom
 }
 
-export default class Player extends Entity {
+export default class Player extends Entity implements CommandExecuter {
     private server: Prismarine;
     private address: any;
     private playerConnection: PlayerConnection;
@@ -81,54 +81,56 @@ export default class Player extends Entity {
 
             // TODO: proper channel system
             if (
-                evt.getChat().getChannel() === '*.everyone' ||
+                evt.getChat().getChannel() === '*.everyone' ??
                 (evt.getChat().getChannel() === '*.ops' &&
-                    this.server.getPermissionManager().isOp(this)) ||
+                    this.server
+                        .getPermissionManager()
+                        .isOp(this.getUsername())) ??
                 evt.getChat().getChannel() === `*.player.${this.getUsername()}`
             )
                 this.sendMessage(evt.getChat().getMessage());
         });
     }
 
-    public async update(tick: number) {
+    public async update(tick: number): Promise<void> {
         await this.playerConnection.update(tick);
     }
 
-    public async kick(reason = 'unknown reason') {
+    public async kick(reason = 'unknown reason'): Promise<void> {
         this.playerConnection.kick(reason);
     }
 
     // Return all the players in the same chunk
     // TODO: move to world
-    public getPlayersInChunk() {
+    public getPlayersInChunk(): Array<Player> {
         return this.server
             .getOnlinePlayers()
             .filter((player) => player.currentChunk === this.currentChunk);
     }
 
-    public sendMessage(message: string) {
+    public sendMessage(message: string): void {
         this.playerConnection.sendMessage(message);
     }
 
-    public isPlayer() {
-        return true;
-    }
-
-    public setGamemode(mode: number) {
+    public setGamemode(mode: number): void {
         this.gamemode = mode;
         this.playerConnection.sendGamemode(this.gamemode);
     }
 
-    public getServer() {
+    public setTime(tick: number): void {
+        this.getConnection().sendTime(tick);
+    }
+
+    public getServer(): Prismarine {
         return this.server;
     }
 
-    public getConnection() {
+    public getConnection(): PlayerConnection {
         return this.playerConnection;
     }
 
     @withDeprecated(new Date('12/11/2020'), 'getConnection')
-    public getPlayerConnection() {
+    public getPlayerConnection(): PlayerConnection {
         return this.getConnection();
     }
 
@@ -136,10 +138,10 @@ export default class Player extends Entity {
         return this.address;
     }
 
-    public getUsername() {
+    public getUsername(): string {
         return this.username.name;
     }
-    public getFormattedUsername() {
+    public getFormattedUsername(): string {
         return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
     }
 

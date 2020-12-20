@@ -1,7 +1,7 @@
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
 import type ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Prismarine from '../../Prismarine';
 
 export default class ItemStackRequestHandler
     implements PacketHandler<ItemStackRequestPacket> {

@@ -1,14 +1,15 @@
-import Vector3 from '../../math/Vector3';
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
 import InventoryTransactionPacket, {
-    InventoryTransactionUseItemActionType,
-    InventoryTransactionType
+    InventoryTransactionType,
+    InventoryTransactionUseItemActionType
 } from '../packet/InventoryTransactionPacket';
-import UpdateBlockPacket from '../packet/UpdateBlockPacket';
+
 import Gamemode from '../../world/Gamemode';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Prismarine from '../../Prismarine';
+import UpdateBlockPacket from '../packet/UpdateBlockPacket';
+import Vector3 from '../../math/Vector3';
 
 export default class InventoryTransactionHandler
     implements PacketHandler<InventoryTransactionPacket> {

@@ -1,16 +1,15 @@
-import Chat from '../../chat/Chat';
-import ChatEvent from '../../events/chat/ChatEvent';
-import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
-import Gamemode from '../../world/Gamemode';
-import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
+import Gamemode from '../../world/Gamemode';
+import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
+import type Prismarine from '../../Prismarine';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
-import PacketHandler from './PacketHandler';
 
 const ResourcePackStatus = require('../type/resource-pack-status');
 

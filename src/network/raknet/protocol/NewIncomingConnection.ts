@@ -1,5 +1,5 @@
-import InetAddress from '../utils/InetAddress';
 import Identifiers from './Identifiers';
+import InetAddress from '../utils/InetAddress';
 import Packet from './Packet';
 
 export default class NewIncomingConnection extends Packet {

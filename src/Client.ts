@@ -1,25 +1,25 @@
-import LoggerBuilder from './utils/Logger';
-import RakNetListener from './network/raknet/RakNetListener';
+import Connection, { Priority } from './network/raknet/Connection';
 import Dgram, { Socket } from 'dgram';
-import Connection, { Priority, Status } from './network/raknet/Connection';
-import InetAddress from './network/raknet/utils/InetAddress';
-import { EventEmitter } from 'events';
-import Identifiers from './network/raknet/protocol/Identifiers';
 import {
     clearIntervalAsync,
     setIntervalAsync
 } from 'set-interval-async/dynamic';
-import UnconnectedPing from './network/raknet/protocol/UnconnectedPing';
-import Crypto from 'crypto';
-import UnconnectedPong from './network/raknet/protocol/UnconnectedPong';
-import OpenConnectionRequest1 from './network/raknet/protocol/OpenConnectionRequest1';
-import OpenConnectionReply1 from './network/raknet/protocol/OpenConnectionReply1';
-import OpenConnectionRequest2 from './network/raknet/protocol/OpenConnectionRequest2';
-import OpenConnectionReply2 from './network/raknet/protocol/OpenConnectionReply2';
+
 import ConnectionRequest from './network/raknet/protocol/ConnectionRequest';
+import Crypto from 'crypto';
 import EncapsulatedPacket from './network/raknet/protocol/EncapsulatedPacket';
+import { EventEmitter } from 'events';
+import Identifiers from './network/raknet/protocol/Identifiers';
+import InetAddress from './network/raknet/utils/InetAddress';
+import LoggerBuilder from './utils/Logger';
 import LoginPacket from './network/packet/LoginPacket';
-import { RSA_PKCS1_OAEP_PADDING } from 'constants';
+import OpenConnectionReply1 from './network/raknet/protocol/OpenConnectionReply1';
+import OpenConnectionReply2 from './network/raknet/protocol/OpenConnectionReply2';
+import OpenConnectionRequest1 from './network/raknet/protocol/OpenConnectionRequest1';
+import OpenConnectionRequest2 from './network/raknet/protocol/OpenConnectionRequest2';
+import RakNetListener from './network/raknet/RakNetListener';
+import UnconnectedPing from './network/raknet/protocol/UnconnectedPing';
+import UnconnectedPong from './network/raknet/protocol/UnconnectedPong';
 
 // https://stackoverflow.com/a/1527820/3142553
 const getRandomInt = (min: number, max: number) => {
@@ -257,6 +257,10 @@ export default class Client extends EventEmitter implements RakNetListener {
 
     public getSocket(): Socket {
         return this.socket;
+    }
+
+    public getAddress(): InetAddress {
+        return this.address;
     }
 
     public removeConnection(connection: Connection, reason: string): void {

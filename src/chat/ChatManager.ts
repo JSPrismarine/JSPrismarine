@@ -1,6 +1,6 @@
+import Chat from './Chat';
 import ChatEvent from '../events/chat/ChatEvent';
 import type Prismarine from '../Prismarine';
-import Chat from './Chat';
 
 export default class ChatManager {
     private server: Prismarine;

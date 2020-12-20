@@ -1,12 +1,10 @@
-import { config } from 'winston';
-import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
-import Vector3 from '../../math/Vector3';
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
+import type Prismarine from '../../Prismarine';
+import Vector3 from '../../math/Vector3';
 
 const d3 = require('d3-interpolate');
 

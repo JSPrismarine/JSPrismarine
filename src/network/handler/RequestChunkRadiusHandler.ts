@@ -1,8 +1,8 @@
+import PacketHandler from './PacketHandler';
+import PlayStatus from '../type/play-status';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
-import PlayStatus from '../type/play-status';
-import PacketHandler from './PacketHandler';
 
 export default class RequestChunkRadiusHandler
     implements PacketHandler<RequestChunkRadiusPacket> {

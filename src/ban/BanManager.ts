@@ -1,8 +1,8 @@
+import type Player from '../player/Player';
+import type Prismarine from '../Prismarine';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
-import type Prismarine from '../Prismarine';
-import type Player from '../player/Player';
 
 export default class BanManager {
     private server: Prismarine;

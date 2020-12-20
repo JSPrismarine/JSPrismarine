@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
-import Zlib from 'zlib';
 import Prismarine from '../../Prismarine';
+import Zlib from 'zlib';
 
 export default class BatchPacket extends DataPacket {
     static NetID = 0xfe;

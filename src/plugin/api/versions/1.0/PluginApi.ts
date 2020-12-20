@@ -1,9 +1,9 @@
-import path from 'path';
 import ConfigBuilder from '../../../../config/ConfigBuilder';
-import Prismarine from '../../../../Prismarine';
+import EventManager from './EventManager';
 import LoggerBuilder from '../../../../utils/Logger';
 import PluginApiVersion from '../../PluginApiVersion';
-import EventManager from './EventManager';
+import Prismarine from '../../../../Prismarine';
+import path from 'path';
 
 export const PLUGIN_API_VERSION = '1.0';
 

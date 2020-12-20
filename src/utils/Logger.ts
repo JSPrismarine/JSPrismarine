@@ -1,5 +1,4 @@
 import { Logger } from 'winston';
-
 import util from 'util';
 
 const { createLogger, format, transports } = require('winston');

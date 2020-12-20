@@ -1,10 +1,11 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BitFlags from './BitFlags';
 import {
     isReliable,
     isSequenced,
     isSequencedOrOrdered
 } from './ReliabilityLayer';
+
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BitFlags from './BitFlags';
 
 export default class EncapsulatedPacket {
     // Decoded Encapsulated content

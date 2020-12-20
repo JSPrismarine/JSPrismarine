@@ -1,8 +1,8 @@
 import Chat from '../../chat/Chat';
+import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import type Prismarine from '../../Prismarine';
 import type TextPacket from '../packet/TextPacket';
-import PacketHandler from './PacketHandler';
 
 export default class TextHandler implements PacketHandler<TextPacket> {
     public handle(

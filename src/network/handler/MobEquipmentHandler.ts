@@ -1,7 +1,7 @@
-import Player from '../../player/Player';
-import Prismarine from '../../Prismarine';
 import MobEquipmentPacket from '../packet/MobEquipmentPacket';
 import PacketHandler from './PacketHandler';
+import Player from '../../player/Player';
+import Prismarine from '../../Prismarine';
 
 export default class MobEquipmentHandler
     implements PacketHandler<MobEquipmentPacket> {

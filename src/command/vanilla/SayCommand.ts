@@ -1,5 +1,5 @@
-import Command from '../Command';
 import Chat from '../../chat/Chat';
+import Command from '../Command';
 import type Player from '../../player/Player';
 
 export default class SayCommand extends Command {
