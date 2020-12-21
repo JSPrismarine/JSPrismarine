@@ -6,9 +6,9 @@ import Gamemode from '../../world/Gamemode';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
-import type Server from '../../Server';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
+import type Server from '../../Server';
 import StartGamePacket from '../packet/StartGamePacket';
 
 const ResourcePackStatus = require('../type/resource-pack-status');
@@ -67,9 +67,9 @@ export default class ResourcePackResponseHandler
                     .info(
                         `§b${player.getUsername()}§f is attempting to join with id §b${
                             player.runtimeId
-                        }§f from ${player.getAddress().address}:${
-                            player.getAddress().port
-                        }`
+                        }§f from ${player
+                            .getAddress()
+                            .getAddress()}:${player.getAddress().getPort()}`
                     );
 
                 player.setNameTag(player.getUsername());

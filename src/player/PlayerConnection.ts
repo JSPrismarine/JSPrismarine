@@ -25,8 +25,8 @@ import MovementType from '../network/type/MovementType';
 import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
 import PlayStatusPacket from '../network/packet/PlayStatusPacket';
 import type Player from './Player';
-import type Server from '../Server';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
+import type Server from '../Server';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import SetTimePacket from '../network/packet/SetTimePacket';
@@ -35,6 +35,7 @@ import TextPacket from '../network/packet/TextPacket';
 import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
 import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
+import { WindowIds } from '../inventory/WindowManager';
 
 const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
@@ -218,21 +219,21 @@ export default class PlayerConnection {
     public sendInventory() {
         let pk;
         pk = new InventoryContentPacket();
-        pk.items = this.player.inventory.getItems(true);
-        pk.windowId = 0; // Inventory window
+        pk.items = this.player.getInventory().getItems(true);
+        pk.windowId = WindowIds.INVENTORY; // Inventory window
         this.sendDataPacket(pk);
 
-        pk = new InventoryContentPacket();
-        pk.items = []; // TODO
-        pk.windowId = 78; // ArmorInventory window
-        this.sendDataPacket(pk);
+        // pk = new InventoryContentPacket();
+        // pk.items = []; // TODO
+        // pk.windowId = 78; // ArmorInventory window
+        // this.sendDataPacket(pk);
 
         // https://github.com/NiclasOlofsson/MiNET/blob/master/src/MiNET/MiNET/Player.cs#L1736
         // TODO: documentate about
         // 0x7c (ui content)
         // 0x77 (off hand)
 
-        this.sendHandItem(this.player.inventory.getItemInHand()); // TODO: not working
+        this.sendHandItem(this.player.getInventory().getItemInHand()); // TODO: not working
     }
 
     public sendCreativeContents(empty: boolean = false) {
@@ -273,8 +274,8 @@ export default class PlayerConnection {
         let pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.item = item;
-        pk.inventorySlot = this.player.inventory.getHandSlotIndex();
-        pk.hotbarSlot = this.player.inventory.getHandSlotIndex();
+        pk.inventorySlot = this.player.getInventory().getHandSlotIndex();
+        pk.hotbarSlot = this.player.getInventory().getHandSlotIndex();
         pk.windowId = 0; // inventory ID
         this.sendDataPacket(pk);
     }

@@ -1,14 +1,15 @@
 import ChatEvent from '../events/chat/ChatEvent';
 import Chunk from '../world/chunk/Chunk';
 import CommandExecuter from '../command/CommandExecuter';
+import Connection from '../network/raknet/Connection';
 import Device from '../utils/Device';
-import Entity from '../entity/entity';
 import Gamemode from '../world/Gamemode';
-import Inventory from '../inventory/Inventory';
+import Human from '../entity/Human';
+import InetAddress from '../network/raknet/utils/InetAddress';
 import PlayerConnection from './PlayerConnection';
-import PlayerInventory from '../inventory/PlayerInventory';
 import Server from '../Server';
 import Skin from '../utils/skin/Skin';
+import WindowManager from '../inventory/WindowManager';
 import World from '../world/World';
 import withDeprecated from '../hoc/withDeprecated';
 
@@ -19,13 +20,13 @@ export enum PlayerPermission {
     Custom
 }
 
-export default class Player extends Entity implements CommandExecuter {
+export default class Player extends Human implements CommandExecuter {
     private server: Server;
-    private address: any;
+    private address: InetAddress;
     private playerConnection: PlayerConnection;
 
-    public inventory = new PlayerInventory();
-    public windows: Map<number, Inventory> = new Map();
+    // TODO: finish implementation
+    private windows = new WindowManager();
 
     public username = {
         prefix: '<',
@@ -59,9 +60,9 @@ export default class Player extends Entity implements CommandExecuter {
     /**
      * Player's constructor.
      */
-    constructor(connection: any, address: any, world: World, server: Server) {
+    constructor(connection: Connection, world: World, server: Server) {
         super(world);
-        this.address = address;
+        this.address = connection.getAddress();
         this.server = server;
         this.playerConnection = new PlayerConnection(server, connection, this);
 

@@ -8,6 +8,7 @@ import CommandManager from './command/CommandManager';
 import type Config from './config/Config';
 import Connection from './network/raknet/Connection';
 import Console from './Console';
+import EncapsulatedPacket from './network/raknet/protocol/EncapsulatedPacket';
 import { EventManager } from './events/EventManager';
 import Identifiers from './network/Identifiers';
 import type InetAddress from './network/raknet/utils/InetAddress';
@@ -26,6 +27,7 @@ import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import TelemetryManager from './telemetry/TelemeteryManager';
+import World from './world/World';
 import WorldManager from './world/WorldManager';
 import pkg from '../package.json';
 import { setIntervalAsync } from 'set-interval-async/dynamic';
@@ -92,6 +94,7 @@ export default class Server {
         await this.telemetryManager.onEnable();
         // TODO: rework managers to this format
     }
+
     private async onDisable(): Promise<void> {
         await this.telemetryManager.onDisable();
         await this.pluginManager.onDisable();
@@ -118,6 +121,7 @@ export default class Server {
             const event = new RaknetConnectEvent(connection);
             this.getEventManager().emit('raknetConnect', event);
         });
+
         this.raknet.on(
             'closeConnection',
             (inetAddr: InetAddress, reason: string) => {
@@ -125,10 +129,18 @@ export default class Server {
                 this.getEventManager().emit('raknetDisconnect', event);
             }
         );
-        this.raknet.on('encapsulated', (packet: any, inetAddr: InetAddress) => {
-            const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
-            this.getEventManager().emit('raknetEncapsulatedPacket', event);
-        });
+
+        this.raknet.on(
+            'encapsulated',
+            (packet: EncapsulatedPacket, inetAddr: InetAddress) => {
+                const event = new RaknetEncapsulatedPacketEvent(
+                    inetAddr,
+                    packet
+                );
+                this.getEventManager().emit('raknetEncapsulatedPacket', event);
+            }
+        );
+
         this.raknet.on('raw', (buffer: Buffer, inetAddr: InetAddress) => {
             this.getQueryManager().onRaw(buffer, inetAddr);
         });
@@ -140,35 +152,31 @@ export default class Server {
             async (raknetConnectEvent: RaknetConnectEvent) => {
                 const connection = raknetConnectEvent.getConnection();
 
-                let inetAddr = connection.getAddress();
-
                 // TODO: Get last world by player data
                 // and if it doesn't exists, return the default one
                 let time = Date.now();
-                let world = this.getWorldManager().getDefaultWorld();
-                if (!world) throw new Error('No world'); // Temp solution
+                const world = this.getWorldManager().getDefaultWorld() as World;
 
-                let player = new Player(
-                    connection,
-                    connection.getAddress(),
-                    world,
-                    this
-                );
+                const player = new Player(connection, world, this);
 
                 // Emit playerConnect event
                 const playerConnectEvent = new PlayerConnectEvent(
                     player,
-                    inetAddr
+                    player.getAddress()
                 );
+
                 await this.getEventManager().emit(
                     'playerConnect',
                     playerConnectEvent
                 );
+
                 if (playerConnectEvent.cancelled)
                     throw new Error('Event canceled');
 
                 this.players.set(
-                    `${inetAddr.getAddress()}:${inetAddr.getPort()}`,
+                    `${player
+                        .getAddress()
+                        .getAddress()}:${player.getAddress().getPort()}`,
                     player
                 );
 
@@ -236,10 +244,11 @@ export default class Server {
             batched.decode();
 
             // Read all packets inside batch and handle them
-            for (const buf of (batched as BatchPacket).getPackets()) {
-                if (!this.packetRegistry.getPackets().has(buf[0])) {
+            for (const buf of batched.getPackets()) {
+                const pid = buf[0];
+                if (!this.packetRegistry.getPackets().has(pid)) {
                     this.logger.error(
-                        `Packet ${raknetPacket.id} doesn't have a handler`
+                        `Packet ${pid.toString(16)} doesn't have a handler`
                     );
                     continue;
                 }
@@ -294,16 +303,6 @@ export default class Server {
                 Math.round((1000 / (finishTime - startTime)) * 100) / 100;
             startTime = finishTime;
         }, 50);
-
-        // Auto save (default: 5 minutes)
-        // TODO: level.ticks % 6000 == 0 and save
-        // setInterval(
-        //    () =>
-        //        this.getWorldManager()
-        //            .getWorlds()
-        //            .map(async (world) => await world.save()),
-        //    1000 * 60 * 5
-        // );
     }
 
     /**
