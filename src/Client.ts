@@ -84,11 +84,6 @@ export default class Client extends EventEmitter implements RakNetListener {
                     pk.clientGUID = this.clientGUID;
                     pk.encode();
                     this.sendBuffer(pk.getBuffer());
-
-                    console.log(
-                        `[PING] Sent ping to ${this.targetAddress.getAddress()}:${this.targetAddress.getPort()}`
-                    );
-                    console.log('-'.repeat(40));
                 }
 
                 if (this.connected && !this.loginHandled) {
@@ -125,7 +120,6 @@ export default class Client extends EventEmitter implements RakNetListener {
                 case Identifiers.UnconnectedPong:
                     buf = this.handleUnconnectedPong(buffer);
                     this.sendBuffer(buf);
-                    console.log('[Client] Got unconnected pong!');
                     break;
                 case Identifiers.OpenConnectionReply1:
                     buf = this.handleOpenConnectionReply1(buffer);
@@ -135,7 +129,7 @@ export default class Client extends EventEmitter implements RakNetListener {
                     this.handleOpenConnectionReply2(buffer);
                     break;
                 default:
-                    console.log(`Unhandled offline packet ID: ${header}`);
+                    this.logger.warn(`Unhandled offline packet ID: ${header}`);
             }
         }
     }
@@ -178,10 +172,6 @@ export default class Client extends EventEmitter implements RakNetListener {
             throw new Error('Received an invalid offline message');
         }
 
-        console.log('[MTU SIZE] ' + decodedPacket.mtuSize);
-        console.log('[SERVER ID] ' + decodedPacket.serverGUID);
-        console.log('-'.repeat(40));
-
         // Encode response
         packet = new OpenConnectionRequest2();
         packet.serverAddress = this.targetAddress;
@@ -213,14 +203,6 @@ export default class Client extends EventEmitter implements RakNetListener {
         if (!decodedPacket.isValid()) {
             throw new Error('Received an invalid offline message');
         }
-
-        const inetAddr = decodedPacket.clientAddress;
-        console.log('[SERVER ID] ' + decodedPacket.serverGUID);
-        console.log(
-            `[CLIENT ADDRESS] ${inetAddr.getAddress()}:${inetAddr.getPort()}`
-        );
-        console.log('[MTU SIZE] ' + decodedPacket.mtuSize);
-        console.log('-'.repeat(40));
 
         // Encode response (encapsulated)
         packet = new ConnectionRequest();
