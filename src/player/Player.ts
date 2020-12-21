@@ -26,7 +26,7 @@ export default class Player extends Human implements CommandExecuter {
     private playerConnection: PlayerConnection;
 
     // TODO: finish implementation
-    private windows = new WindowManager();
+    private windows: WindowManager;
 
     public username = {
         prefix: '<',
@@ -65,6 +65,7 @@ export default class Player extends Human implements CommandExecuter {
         this.address = connection.getAddress();
         this.server = server;
         this.playerConnection = new PlayerConnection(server, connection, this);
+        this.windows = new WindowManager();
 
         // TODO: only set to default gamemode if there doesn't exist any save data for the user
         this.gamemode = Gamemode.getGamemodeId(
@@ -143,6 +144,10 @@ export default class Player extends Human implements CommandExecuter {
 
     public getUUID(): string {
         return this.uuid ?? '';
+    }
+
+    public getWindows(): WindowManager {
+        return this.windows;
     }
 
     public isPlayer(): boolean {
