@@ -15,11 +15,11 @@ export default class PlayerConnectEvent extends Event {
         this.inetAddr = inetAddr;
     }
 
-    getPlayer(): Player {
+    public getPlayer(): Player {
         return this.player;
     }
 
-    getInetAddr() {
+    public getInetAddr() {
         return this.inetAddr;
     }
 }
