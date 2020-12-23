@@ -300,8 +300,11 @@ export default class Server {
             // Calculate current tps
             const finishTime = Date.now();
             this.tps =
-                Math.round((1000 / (finishTime - startTime)) * 100) / 100;
+                Math.floor((1000 / (finishTime - startTime)) * 100) / 100;
             startTime = finishTime;
+
+            if (this.tps > 20)
+                this.getLogger().debug(`TPS is ${this.tps} which is greater than 20!`);
         }, 50);
     }
 
