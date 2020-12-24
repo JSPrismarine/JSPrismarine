@@ -10,6 +10,12 @@ export default class PacketViolationWarningHandler
         server: Server,
         player: Player
     ): void {
-        server.getLogger().error(`Packet violation: ${JSON.stringify(packet)}`);
+        server
+            .getLogger()
+            .error(
+                `Packet violation 0x${packet.packetId.toString(16)}. ${
+                    packet.message
+                }`
+            );
     }
 }

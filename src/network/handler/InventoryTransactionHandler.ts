@@ -73,13 +73,12 @@ export default class InventoryTransactionHandler
                                     .getBlockManager()
                                     .getBlockByIdAndMeta(blockId, blockMeta);
 
-                                if (block == null) {
+                                if (!block)
                                     return server
                                         .getLogger()
                                         .warn(
                                             `Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`
                                         );
-                                }
 
                                 const pk = new UpdateBlockPacket();
                                 pk.x = packet.blockPosition.getX();
