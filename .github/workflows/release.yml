@@ -14,8 +14,6 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-              env:
-                  INPUT_TOKEN: ""
             - run: npm install
             - run: npm run build
 
@@ -27,6 +25,9 @@ jobs:
             - run: npm prune --production
             - run: npm install -g github:kkoomen/pkg
             - run: npm run package
+              env:
+                  NPM_TOKEN: ""
+                  INPUT_TOKEN: ""
 
             - name: Changelog
               uses: scottbrenner/generate-changelog-action@master
