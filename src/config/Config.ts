@@ -20,6 +20,8 @@ export default class Config {
     private enableTelemetry: boolean;
     private telemetryUrls: Array<string>;
     private packetCompressionLevel: number;
+    private updateRepo: string;
+    private updateChannel: string;
 
     constructor() {
         this.version = pkg.version;
@@ -54,6 +56,15 @@ export default class Config {
         this.packetCompressionLevel = this.configBuilder.get(
             'packet-compression-level',
             7
+        );
+
+        this.updateRepo = this.configBuilder.get(
+            'update-repo',
+            'JSPrismarine/JSPrismarine'
+        );
+        this.updateChannel = this.configBuilder.get(
+            'update-channel',
+            'release'
         );
     }
 
@@ -98,5 +109,12 @@ export default class Config {
     }
     public getPacketCompressionLevel() {
         return this.packetCompressionLevel;
+    }
+
+    public getUpdateRepo() {
+        return this.updateRepo;
+    }
+    public getUpdateChannel() {
+        return this.updateChannel;
     }
 }
