@@ -37,6 +37,7 @@ export default class Server {
     private logger: LoggerBuilder;
     private config: Config;
     private tps: number = 20;
+    private tpsHistory: Array<number>;
     private console: Console;
 
     private players: Map<string, Player> = new Map();
@@ -69,6 +70,7 @@ export default class Server {
 
         this.logger = logger;
         this.config = config;
+        this.tpsHistory = new Array(12000).fill(20);
         this.telemetryManager = new TelemetryManager(this);
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
@@ -300,6 +302,9 @@ export default class Server {
             this.tps =
                 Math.round((1000 / (finishTime - startTime)) * 100) / 100;
 
+            this.tpsHistory.push(this.tps);
+            if (this.tpsHistory.length > 12000) this.tpsHistory.shift();
+
             // Make sure we never execute more than once every 20th of a second
             if (finishTime - startTime < 50) return;
             else startTime = finishTime;
@@ -517,5 +522,31 @@ export default class Server {
      */
     public getTPS(): number {
         return this.tps;
+    }
+
+    /**
+     * Returns the current TPS
+     */
+    public getAverageTPS() {
+        let one = 0;
+        for (let i = 10800; i < this.tpsHistory.length; i++)
+            one += this.tpsHistory[i];
+        one = Math.round(one / 1200);
+
+        let five = 0;
+        for (let i = 6000; i < this.tpsHistory.length; i++)
+            five += this.tpsHistory[i];
+        five = Math.round(five / 6000);
+
+        let ten = 0;
+        for (let i = 0; i < this.tpsHistory.length; i++)
+            ten += this.tpsHistory[i];
+        ten = Math.round(ten / 12000);
+
+        return {
+            one,
+            five,
+            ten
+        };
     }
 }
