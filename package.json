@@ -1,16 +1,17 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.5",
+    "version": "0.1.0-rc.6",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
     "bin": {
-        "prismarine": "dist/src/Server.js"
+        "prismarine": "dist/src/Prismarine.js"
     },
     "scripts": {
         "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
         "dev": "cross-env NODE_ENV=development nodemon -I --watch src -e ts,js,json bootstrap.js",
         "build": "tsc --build src",
+        "clean": "rm -rf dist docs packages worlds plugins banned-players.json ops.json config.yaml jsprismarine.log",
         "docs": "typedoc --ignoreCompilerErrors --out ./docs --tsconfig ./src/tsconfig.json src  --exclude **/*.test.* --includeDeclarations --excludeExternals",
         "package": "pkg package.json --out-path ./packages/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
