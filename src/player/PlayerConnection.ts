@@ -2,9 +2,7 @@ import PlayerListPacket, {
     PlayerListAction,
     PlayerListEntry
 } from '../network/packet/PlayerListPacket';
-
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
-import { Attribute } from '../entity/attribute';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
 import BatchPacket from '../network/packet/BatchPacket';
 import Block from '../block/Block';
@@ -13,9 +11,7 @@ import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket
 import type Connection from '../network/raknet/Connection';
 import CoordinateUtils from '../world/CoordinateUtils';
 import CreativeContentPacket from '../network/packet/CreativeContentPacket';
-import DataPacket from '../network/packet/DataPacket';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
-import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import InventoryContentPacket from '../network/packet/InventoryContentPacket';
 import Item from '../item/Item';
 import LevelChunkPacket from '../network/packet/LevelChunkPacket';
@@ -34,10 +30,12 @@ import Skin from '../utils/skin/Skin';
 import TextPacket from '../network/packet/TextPacket';
 import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
+import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
+import { Attribute } from '../entity/attribute';
+import DataPacket from '../network/packet/DataPacket';
+import CreativeContentEntry from '../network/type/CreativeContentEntry';
 import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
 import { WindowIds } from '../inventory/WindowManager';
-
-const CreativeContentEntry = require('../network/type/creative-content-entry');
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
 export default class PlayerConnection {

@@ -3,15 +3,14 @@ import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Gamemode from '../../world/Gamemode';
-import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import type Server from '../../Server';
 import StartGamePacket from '../packet/StartGamePacket';
-
-const ResourcePackStatus = require('../type/resource-pack-status');
+import ResourcePackStatusType from '../type/ResourcePackStatusType';
+import PacketHandler from './PacketHandler';
 
 export default class ResourcePackResponseHandler
     implements PacketHandler<ResourcePackResponsePacket> {
@@ -20,11 +19,11 @@ export default class ResourcePackResponseHandler
         server: Server,
         player: Player
     ): void {
-        if (packet.status === ResourcePackStatus.HaveAllPacks) {
+        if (packet.status === ResourcePackStatusType.HaveAllPacks) {
             const pk = new ResourcePackStackPacket();
             pk.experimentsAlreadyEnabled = false;
             player.getConnection().sendDataPacket(pk);
-        } else if (packet.status === ResourcePackStatus.Completed) {
+        } else if (packet.status === ResourcePackStatusType.Completed) {
             // Emit playerSpawn event
             const spawnEvent = new PlayerSpawnEvent(player);
             server.getEventManager().post(['playerSpawn', spawnEvent]);

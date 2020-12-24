@@ -1,6 +1,5 @@
 import CommandExecuter from './CommandExecuter';
 import CommandParameter from '../network/type/CommandParameter';
-const CommandData = require('../network/type/command-data');
 
 interface CommandProps {
     id: string;
@@ -11,7 +10,7 @@ interface CommandProps {
     parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
 }
 
-export default class Command extends CommandData {
+export default class Command {
     id: string;
     description?: string;
     aliases?: Array<string>;
@@ -27,7 +26,6 @@ export default class Command extends CommandData {
         aliases = [],
         parameters
     }: CommandProps) {
-        super();
         this.id = id;
         this.description = description;
         this.flags = flags;
