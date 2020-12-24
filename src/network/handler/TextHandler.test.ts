@@ -1,5 +1,5 @@
-import TextPacket from '../packet/TextPacket';
 import TextHandler from './TextHandler';
+import TextPacket from '../packet/TextPacket';
 
 describe('network', () => {
     describe('handler', () => {

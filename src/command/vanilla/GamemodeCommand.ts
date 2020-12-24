@@ -1,10 +1,10 @@
-import Player from '../../player/Player';
-import Command from '../Command';
 import CommandParameter, {
     CommandParameterType
 } from '../../network/type/CommandParameter';
 
+import Command from '../Command';
 import Gamemode from '../../world/Gamemode';
+import Player from '../../player/Player';
 
 export default class GamemodeCommand extends Command {
     constructor() {

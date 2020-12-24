@@ -1,5 +1,5 @@
-import Prismarine from './Prismarine';
 import LoggerBuilder from './utils/Logger';
+import Server from './Server';
 
 jest.mock('winston', () => ({
     format: {
@@ -33,7 +33,7 @@ describe('Prismarine', () => {
         };
 
         const logger = new LoggerBuilder();
-        const prismarine = new Prismarine({
+        const prismarine = new Server({
             logger,
             config: new (class DebugConfig {
                 public getPort() {

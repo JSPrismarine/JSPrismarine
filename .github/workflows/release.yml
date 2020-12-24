@@ -1,0 +1,82 @@
+name: Release
+on:
+    create:
+        tags:
+            - v*
+
+jobs:
+    create-release:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                  fetch-depth: 0
+            - uses: actions/setup-node@v2
+              with:
+                  node-version: 14
+            - run: npm install
+            - run: npm run build
+
+            - uses: JS-DevTools/npm-publish@v1
+              with:
+                  token: ${{ secrets.NPM_TOKEN }}
+
+            - run: rm -f ./.npmrc
+            - run: rm -f .npmrc
+            - run: npm prune --production
+            - run: npm install -g github:kkoomen/pkg
+            - run: npm run package
+              env:
+                  NPM_TOKEN: ""
+                  INPUT_TOKEN: ""
+
+            - name: Changelog
+              uses: scottbrenner/generate-changelog-action@master
+              id: changelog
+              env:
+                  REPO: ${{ github.repository }}
+
+            - name: Create Release
+              id: create_release
+              uses: zendesk/action-create-release@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  tag_name: ${{ github.ref }}
+                  release_name: ${{ github.ref }}
+                  body: |
+                      ${{ steps.Changelog.outputs.changelog }}
+                  prerelease: true
+
+            - name: Upload Linux Release Asset
+              id: upload-linux-release-asset
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: ${{ steps.create_release.outputs.upload_url }}
+                  asset_path: packages/prismarine-linux
+                  asset_name: prismarine-linux
+                  asset_content_type: application/bin
+
+            - name: Upload MacOS Release Asset
+              id: upload-macos-release-asset
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: ${{ steps.create_release.outputs.upload_url }}
+                  asset_path: packages/prismarine-macos
+                  asset_name: prismarine-macos
+                  asset_content_type: application/bin
+
+            - name: Upload Win32 Release Asset
+              id: upload-win32-release-asset
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: ${{ steps.create_release.outputs.upload_url }}
+                  asset_path: packages/prismarine-win.exe
+                  asset_name: prismarine-win.exe
+                  asset_content_type: application/exe

@@ -1,21 +1,21 @@
-import type Prismarine from '../../Prismarine';
-import Identifiers from './protocol/Identifiers';
-import Connection from './Connection';
-import ServerName from './utils/ServerName';
-import InetAddress from './utils/InetAddress';
 import { RemoteInfo, Socket } from 'dgram';
-import { EventEmitter } from 'events';
+
+import Connection from './Connection';
 import Crypto from 'crypto';
 import Dgram from 'dgram';
-
-import UnconnectedPing from './protocol/UnconnectedPing';
-import UnconnectedPong from './protocol/UnconnectedPong';
-import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
+import { EventEmitter } from 'events';
+import Identifiers from './protocol/Identifiers';
 import IncompatibleProtocolVersion from './protocol/IncompatibleProtocolVersion';
+import InetAddress from './utils/InetAddress';
 import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
 import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
+import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
+import type Server from '../../Server';
 import RakNetListener from './RakNetListener';
+import ServerName from './utils/ServerName';
+import UnconnectedPing from './protocol/UnconnectedPing';
+import UnconnectedPong from './protocol/UnconnectedPong';
 
 // Minecraft related protocol
 const PROTOCOL = 10;
@@ -31,9 +31,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
     private socket!: Socket;
     private connections: Map<string, Connection> = new Map();
     private shutdown = false;
-    private server: Prismarine;
+    private server: Server;
 
-    public constructor(server: Prismarine) {
+    public constructor(server: Server) {
         super();
         this.server = server;
         this.name = new ServerName(server);

@@ -1,14 +1,13 @@
-import Chat from '../../chat/Chat';
-import ChatEvent from '../../events/chat/ChatEvent';
-import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
-import Gamemode from '../../world/Gamemode';
-import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
+import Gamemode from '../../world/Gamemode';
+import type Player from '../../player/Player';
+import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
+import type Server from '../../Server';
 import StartGamePacket from '../packet/StartGamePacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import PacketHandler from './PacketHandler';
@@ -17,7 +16,7 @@ export default class ResourcePackResponseHandler
     implements PacketHandler<ResourcePackResponsePacket> {
     public handle(
         packet: ResourcePackResponsePacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
@@ -67,9 +66,9 @@ export default class ResourcePackResponseHandler
                     .info(
                         `§b${player.getUsername()}§f is attempting to join with id §b${
                             player.runtimeId
-                        }§f from ${player.getAddress().address}:${
-                            player.getAddress().port
-                        }`
+                        }§f from ${player
+                            .getAddress()
+                            .getAddress()}:${player.getAddress().getPort()}`
                     );
 
                 player.setNameTag(player.getUsername());

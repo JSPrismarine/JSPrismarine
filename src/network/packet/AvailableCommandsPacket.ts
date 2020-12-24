@@ -1,7 +1,7 @@
-import Identifiers from '../Identifiers';
 import CommandData from '../type/CommandData';
 import CommandEnum from '../type/CommandEnum';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class AvailableCommandsPacket extends DataPacket {
     static NetID = Identifiers.AvailableCommandsPacket;
@@ -30,10 +30,10 @@ export default class AvailableCommandsPacket extends DataPacket {
             this.writeString(enumIndex.enumName);
 
             this.writeUnsignedVarInt(enumIndex.enumValues.length);
-            for (let enumValue of enumIndex.enumValues) {
-                // TODO: complete this WIP part
-                // console.log(enumValue) // eslint-disable-line
-            }
+            // for (let enumValue of enumIndex.enumValues) {
+            // TODO: complete this WIP part
+            // console.log(enumValue) // eslint-disable-line
+            // }
         }
 
         // Write command data

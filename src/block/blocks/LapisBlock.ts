@@ -3,7 +3,7 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import Item from '../../item/Item';
-import Prismarine from '../../Prismarine';
+import Server from '../../Server';
 
 export default class LapisBlock extends Solid {
     constructor() {
@@ -22,7 +22,7 @@ export default class LapisBlock extends Solid {
         return ItemTieredToolType.Stone;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Prismarine) {
+    getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:lapis_block')];
     }
 }

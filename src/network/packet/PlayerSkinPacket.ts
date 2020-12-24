@@ -1,7 +1,7 @@
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 import type Skin from '../../utils/skin/Skin';
 import type UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
-import DataPacket from './DataPacket';
 
 export default class PlayerSkinPacket extends DataPacket {
     static NetID = Identifiers.PlayerSkinPacket;

@@ -1,17 +1,13 @@
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
 import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import PlayStatusType from '../type/PlayStatusType';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Server from '../../Server';
 
 export default class LoginHandler implements PacketHandler<LoginPacket> {
-    public handle(
-        packet: LoginPacket,
-        server: Prismarine,
-        player: Player
-    ): void {
+    public handle(packet: LoginPacket, server: Server, player: Player): void {
         // check if player count >= max players
 
         // Kick client if has newer / older client version
@@ -28,14 +24,15 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
             return;
         }
 
+        if (!packet.displayName) {
+            player.kick('Invalid username!');
+            return;
+        }
+
         // Player with same name is already online
         let maybePlayer = null;
-        if (
-            (maybePlayer = server.getPlayerByExactName(packet.displayName)) !==
-            null
-        ) {
+        if ((maybePlayer = server.getPlayerByExactName(packet.displayName)))
             maybePlayer.kick('Logged in from another location');
-        }
 
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;

@@ -1,6 +1,6 @@
-import Vector3 from '../../math/Vector3';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import Vector3 from '../../math/Vector3';
 
 export default class ContainerOpenPacket extends DataPacket {
     static NetID = Identifiers.ContainerOpenPacket;

@@ -1,22 +1,15 @@
 import Provider from '../Provider';
-import NBTReader from '../../nbt/NBTReader';
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from '../../nbt/ByteOrder';
+// import path from 'path';
 
-import util from 'util';
-import fs from 'fs';
-import path from 'path';
-import Zlib from 'zlib';
-
-const ANVIL_FORMAT = 'mca';
+// const ANVIL_FORMAT = 'mca';
 
 export default class Anvil extends Provider {
-    private regionPath: string;
-    private regions: Map<string, Buffer> = new Map();
+    // private regionPath: string;
+    // private regions: Map<string, Buffer> = new Map();
 
     public constructor(folderPath: string) {
         super(folderPath);
-        this.regionPath = path.join(this.getPath(), 'region');
+        // this.regionPath = path.join(this.getPath(), 'region');
     }
 
     public async readChunk({ x, z }: { x: number; z: number }) {
@@ -36,10 +29,10 @@ export default class Anvil extends Provider {
         }
     }
 
-    private getRegionPath(regionX: number, regionZ: number): string {
-        return path.join(
-            this.regionPath,
-            `r.${regionX}.${regionZ}.${ANVIL_FORMAT}`
-        );
-    }
+    // private getRegionPath(regionX: number, regionZ: number): string {
+    //    return path.join(
+    //        this.regionPath,
+    //        `r.${regionX}.${regionZ}.${ANVIL_FORMAT}`
+    //    );
+    // }
 }

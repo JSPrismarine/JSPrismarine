@@ -1,6 +1,6 @@
 import BlockPosition from '../../world/BlockPosition';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export enum SoundName {
     // Ambient

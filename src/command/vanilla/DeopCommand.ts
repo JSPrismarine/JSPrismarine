@@ -1,10 +1,11 @@
-import Player from '../../player/Player';
-import Command from '../Command';
 import CommandParameter, {
     CommandParameterType
 } from '../../network/type/CommandParameter';
-import ChatEvent from '../../events/chat/ChatEvent';
+
 import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
+import Command from '../Command';
+import Player from '../../player/Player';
 
 export default class DeopCommand extends Command {
     constructor() {

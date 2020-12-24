@@ -1,11 +1,11 @@
+import type Player from '../player/Player';
+import type Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
-import type Prismarine from '../Prismarine';
-import type Player from '../player/Player';
 
 export default class BanManager {
-    private server: Prismarine;
+    private server: Server;
     private banned: Map<
         string,
         {
@@ -13,7 +13,7 @@ export default class BanManager {
         }
     > = new Map();
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 

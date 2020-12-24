@@ -1,6 +1,6 @@
 import Identifiers from '../Identifiers';
-import LoginPacket from '../packet/LoginPacket';
 import LoginHandler from './LoginHandler';
+import LoginPacket from '../packet/LoginPacket';
 
 describe('network', () => {
     describe('handler', () => {
@@ -116,6 +116,66 @@ describe('network', () => {
                     } as any,
                     player as any
                 );
+            });
+
+            it('handle invalid username', (done) => {
+                const pk = new LoginPacket();
+                pk.displayName = '';
+                pk.protocol = Identifiers.Protocol;
+
+                const player = {
+                    username: {},
+                    getConnection: () => ({
+                        sendPlayStatus: (status) => {
+                            expect(status).toBe(0);
+                        }
+                    }),
+                    kick: (message) => {
+                        expect(message).toBe('Invalid username!');
+                        done();
+                    }
+                };
+
+                const handler = new LoginHandler();
+                handler.handle(pk, {} as any, player as any);
+            });
+
+            it('handle outdated client', (done) => {
+                const pk = new LoginPacket();
+                pk.displayName = '';
+                pk.protocol = Identifiers.Protocol - 10;
+
+                const player = {
+                    username: {},
+                    getConnection: () => ({
+                        sendPlayStatus: (status) => {
+                            expect(status).toBe(1);
+                            done();
+                        }
+                    })
+                };
+
+                const handler = new LoginHandler();
+                handler.handle(pk, {} as any, player as any);
+            });
+
+            it('handle outdated server', (done) => {
+                const pk = new LoginPacket();
+                pk.displayName = '';
+                pk.protocol = Identifiers.Protocol + 10;
+
+                const player = {
+                    username: {},
+                    getConnection: () => ({
+                        sendPlayStatus: (status) => {
+                            expect(status).toBe(2);
+                            done();
+                        }
+                    })
+                };
+
+                const handler = new LoginHandler();
+                handler.handle(pk, {} as any, player as any);
             });
         });
     });

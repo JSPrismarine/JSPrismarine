@@ -1,8 +1,8 @@
-import PlayerInventory from './PlayerInventory';
+import HumanInventory from './HumanInventory';
 
 describe('inventory', () => {
     describe('PlayerInventory', () => {
-        const inventory = new PlayerInventory();
+        const inventory = new HumanInventory();
 
         it('inventory size should match expected size', () => {
             expect(inventory.getSlotCount()).toBe(36);

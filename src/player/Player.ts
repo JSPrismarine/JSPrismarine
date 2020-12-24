@@ -1,16 +1,17 @@
-import Prismarine from '../Prismarine';
-import Entity from '../entity/entity';
-import World from '../world/World';
-import Gamemode from '../world/Gamemode';
-import PlayerConnection from './PlayerConnection';
-import PlayerInventory from '../inventory/PlayerInventory';
-import Inventory from '../inventory/Inventory';
-import Skin from '../utils/skin/Skin';
-import Device from '../utils/Device';
-import Chunk from '../world/chunk/Chunk';
 import ChatEvent from '../events/chat/ChatEvent';
+import Chunk from '../world/chunk/Chunk';
+import CommandExecuter from '../command/CommandExecuter';
+import Connection from '../network/raknet/Connection';
+import Device from '../utils/Device';
+import Gamemode from '../world/Gamemode';
+import Human from '../entity/Human';
+import InetAddress from '../network/raknet/utils/InetAddress';
+import PlayerConnection from './PlayerConnection';
+import Server from '../Server';
+import Skin from '../utils/skin/Skin';
+import WindowManager from '../inventory/WindowManager';
+import World from '../world/World';
 import withDeprecated from '../hoc/withDeprecated';
-import LoggerBuilder from '../utils/Logger';
 
 export enum PlayerPermission {
     Visitor,
@@ -19,13 +20,13 @@ export enum PlayerPermission {
     Custom
 }
 
-export default class Player extends Entity {
-    private server: Prismarine;
-    private address: any;
+export default class Player extends Human implements CommandExecuter {
+    private server: Server;
+    private address: InetAddress;
     private playerConnection: PlayerConnection;
 
-    public inventory = new PlayerInventory();
-    public windows: Map<number, Inventory> = new Map();
+    // TODO: finish implementation
+    private windows: WindowManager;
 
     public username = {
         prefix: '<',
@@ -59,16 +60,12 @@ export default class Player extends Entity {
     /**
      * Player's constructor.
      */
-    constructor(
-        connection: any,
-        address: any,
-        world: World,
-        server: Prismarine
-    ) {
+    constructor(connection: Connection, world: World, server: Server) {
         super(world);
-        this.address = address;
+        this.address = connection.getAddress();
         this.server = server;
         this.playerConnection = new PlayerConnection(server, connection, this);
+        this.windows = new WindowManager();
 
         // TODO: only set to default gamemode if there doesn't exist any save data for the user
         this.gamemode = Gamemode.getGamemodeId(
@@ -81,54 +78,59 @@ export default class Player extends Entity {
 
             // TODO: proper channel system
             if (
-                evt.getChat().getChannel() === '*.everyone' ||
+                evt.getChat().getChannel() === '*.everyone' ??
                 (evt.getChat().getChannel() === '*.ops' &&
-                    this.server.getPermissionManager().isOp(this)) ||
+                    this.server
+                        .getPermissionManager()
+                        .isOp(this.getUsername())) ??
                 evt.getChat().getChannel() === `*.player.${this.getUsername()}`
             )
                 this.sendMessage(evt.getChat().getMessage());
         });
     }
 
-    public async update(tick: number) {
+    public async update(tick: number): Promise<void> {
         await this.playerConnection.update(tick);
     }
 
-    public async kick(reason = 'unknown reason') {
+    public kick(reason = 'unknown reason'): void {
+        this.getServer()
+            .getLogger()
+            .debug(`Player with id ${this.runtimeId} was kicked: ${reason}`);
         this.playerConnection.kick(reason);
     }
 
     // Return all the players in the same chunk
     // TODO: move to world
-    public getPlayersInChunk() {
+    public getPlayersInChunk(): Array<Player> {
         return this.server
             .getOnlinePlayers()
             .filter((player) => player.currentChunk === this.currentChunk);
     }
 
-    public sendMessage(message: string) {
+    public sendMessage(message: string): void {
         this.playerConnection.sendMessage(message);
     }
 
-    public isPlayer() {
-        return true;
-    }
-
-    public setGamemode(mode: number) {
+    public setGamemode(mode: number): void {
         this.gamemode = mode;
         this.playerConnection.sendGamemode(this.gamemode);
     }
 
-    public getServer() {
+    public setTime(tick: number): void {
+        this.getConnection().sendTime(tick);
+    }
+
+    public getServer(): Server {
         return this.server;
     }
 
-    public getConnection() {
+    public getConnection(): PlayerConnection {
         return this.playerConnection;
     }
 
     @withDeprecated(new Date('12/11/2020'), 'getConnection')
-    public getPlayerConnection() {
+    public getPlayerConnection(): PlayerConnection {
         return this.getConnection();
     }
 
@@ -136,14 +138,22 @@ export default class Player extends Entity {
         return this.address;
     }
 
-    public getUsername() {
+    public getUsername(): string {
         return this.username.name;
     }
-    public getFormattedUsername() {
+    public getFormattedUsername(): string {
         return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
     }
 
     public getUUID(): string {
         return this.uuid ?? '';
+    }
+
+    public getWindows(): WindowManager {
+        return this.windows;
+    }
+
+    public isPlayer(): boolean {
+        return true;
     }
 }

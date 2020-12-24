@@ -1,5 +1,5 @@
 import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
+import type Server from '../../Server';
 import type PlayerActionPacket from '../packet/PlayerActionPacket';
 import PlayerActionType from '../type/PlayerActionType';
 import WorldEventPacket from '../packet/WorldEventPacket';
@@ -10,7 +10,7 @@ export default class PlayerActionHandler
     implements PacketHandler<PlayerActionPacket> {
     public handle(
         packet: PlayerActionPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
     ): void {
         switch (packet.action) {
