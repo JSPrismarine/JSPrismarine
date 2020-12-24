@@ -31,6 +31,8 @@ export default class PluginFile {
             throw new Error('name is missing in package.json!');
         else if (!this.package.version)
             throw new Error('version is missing in package.json!');
+        else if (!this.package.main)
+            throw new Error('main is missing in package.json!');
         else if (!this.package.prismarine.displayName)
             this.server
                 .getLogger()

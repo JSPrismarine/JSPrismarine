@@ -137,7 +137,10 @@ export default class PluginManager {
         }
 
         const pkg = require(path.join(dir, 'package.json'));
-        if (!pkg) throw new Error(`package.json is invalid!`);
+        if (!pkg) throw new Error(`package.json is missing!`);
+
+        if (!pkg.name || !pkg.prismarine)
+            throw new Error(`package.json is invalid!`);
 
         if (!fs.existsSync(path.join(process.cwd(), '/plugins/', pkg.name))) {
             fs.mkdirSync(path.join(process.cwd(), '/plugins/', pkg.name));
