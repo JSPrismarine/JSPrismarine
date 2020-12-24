@@ -39,7 +39,7 @@ jobs:
                       ${{ steps.Changelog.outputs.changelog }}
 
             - name: Upload Linux Release Asset
-              id: upload-release-asset
+              id: upload-linux-release-asset
               uses: actions/upload-release-asset@v1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,7 +50,7 @@ jobs:
                   asset_content_type: application/bin
 
             - name: Upload MacOS Release Asset
-              id: upload-release-asset
+              id: upload-macos-release-asset
               uses: actions/upload-release-asset@v1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -61,7 +61,7 @@ jobs:
                   asset_content_type: application/bin
 
             - name: Upload Win32 Release Asset
-              id: upload-release-asset
+              id: upload-win32-release-asset
               uses: actions/upload-release-asset@v1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
