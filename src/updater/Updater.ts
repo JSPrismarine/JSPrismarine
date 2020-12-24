@@ -16,7 +16,7 @@ export default class Updater {
     public check(): Promise<void> {
         return new Promise(async (resolve) => {
             let release: {
-                url: string;
+                html_url: string;
                 tag_name: string;
             };
 
@@ -44,7 +44,7 @@ export default class Updater {
                 this.logger.info(
                     `§5There's a new version of JSPrismarine available, new version: §2${release.tag_name}`
                 );
-                this.logger.info(`§5Download: §e${release.url}`);
+                this.logger.info(`§5Download: §e${release.html_url}`);
             }
 
             resolve();
