@@ -1,21 +1,14 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Block from '../block/Block';
 import { Attribute } from '../entity/attribute';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BlockPosition from '../world/BlockPosition';
+import CreativeContentEntry from './type/CreativeContentEntry';
 import { FlagType } from '../entity/metadata';
-import Item from '../item/Item';
+import { PlayerListEntry } from './packet/PlayerListPacket';
 import Skin from '../utils/skin/Skin';
-import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
-import SkinPersonaPiece from '../utils/skin/skin-persona/SkinPersonaPiece';
-import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/SkinPersonaPieceTintColor';
-import SkinAnimation from '../utils/skin/SkinAnimation';
-import SkinCape from '../utils/skin/SkinCape';
 import SkinImage from '../utils/skin/SkinImage';
 import UUID from '../utils/UUID';
-import BlockPosition from '../world/BlockPosition';
-import { PlayerListEntry } from './packet/PlayerListPacket';
 import CommandOriginData from './type/CommandOriginData';
 import CommandOriginType from './type/CommandOriginType';
-import CreativeContentEntry from './type/CreativeContentEntry';
 import ItemStackRequestConsume from './type/itemStackRequest/ConsumeStack';
 import ItemStackRequestCreativeCreate from './type/itemStackRequest/CreativeCreate';
 import ItemStackRequestDestroy from './type/itemStackRequest/Destroy';
@@ -25,6 +18,8 @@ import ItemStackRequestSlotInfo from './type/itemStackRequest/ItemStackRequestSl
 import ItemStackRequestPlace from './type/itemStackRequest/Place';
 import ItemStackRequestSwap from './type/itemStackRequest/Swap';
 import ItemStackRequestTake from './type/itemStackRequest/Take';
+import Item from '../item/Item';
+import Block from '../block/Block';
 export default class PacketBinaryStream extends BinaryStream {
     /**
      * Returns a string encoded into the buffer.
@@ -339,13 +334,10 @@ export default class PacketBinaryStream extends BinaryStream {
             };
         }
 
-        let name = null;
         let temp = this.readVarInt();
-        let amount = temp & 0xff;
         let meta = temp >> 8;
 
         let extraLen = this.readLShort();
-        let nbt = null;
         if (extraLen == 0xffff) {
             this.readByte(); // ? nbt version
             // As i cannot pass offset by reference, i keep it using this binary stream directly

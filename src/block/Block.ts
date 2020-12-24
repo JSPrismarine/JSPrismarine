@@ -1,8 +1,8 @@
-import Item from '../item/Item';
-import Prismarine from '../Prismarine';
-import { ItemTieredToolType } from '../item/ItemTieredToolType';
 import { BlockToolType } from './BlockToolType';
+import Item from '../item/Item';
 import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
+import { ItemTieredToolType } from '../item/ItemTieredToolType';
+import Server from '../Server';
 
 export default class Block {
     id: number;
@@ -75,7 +75,7 @@ export default class Block {
     /**
      * Get the Block's break time
      */
-    public getBreakTime(item: Item | null, server: Prismarine) {
+    public getBreakTime(item: Item | null, server: Server) {
         return this.getHardness(); // TODO
 
         let base = this.getHardness();
@@ -128,7 +128,7 @@ export default class Block {
      */
     getDropsForCompatibleTool(
         item: Item,
-        server: Prismarine
+        server: Server
     ): Array<Block | Item | null> {
         return [this];
     }
@@ -136,7 +136,7 @@ export default class Block {
     /**
      * Get the Block's drop(s) from the current item
      */
-    getDrops(item: Item, server: Prismarine): Array<Block | Item | null> {
+    getDrops(item: Item, server: Server): Array<Block | Item | null> {
         if (this.isCompatibleWithTool(item)) {
             if (
                 this.isAffectedBySilkTouch() &&
@@ -153,7 +153,7 @@ export default class Block {
     /**
      * Get the Block's drop(s) if silk touch is used
      */
-    getSilkTouchDrops(item: Item, server: Prismarine) {
+    getSilkTouchDrops(item: Item, server: Server) {
         return [this];
     }
 

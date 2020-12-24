@@ -1,14 +1,13 @@
+import Item from './Item';
+import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 
-import Item from './Item';
-import Prismarine from '../Prismarine';
-
 export default class ItemManager {
-    private server: Prismarine;
+    private server: Server;
     private items = new Map();
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 

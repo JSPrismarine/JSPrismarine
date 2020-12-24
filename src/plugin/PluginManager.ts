@@ -1,17 +1,17 @@
+import { PluginManager as ModuleManager } from 'live-plugin-manager';
+import PluginApiVersion from './api/PluginApiVersion';
+import PluginFile from './PluginFile';
+import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 import unzipper from 'unzipper';
-import { PluginManager as ModuleManager } from 'live-plugin-manager';
-import Prismarine from '../Prismarine';
-import PluginFile from './PluginFile';
-import PluginApiVersion from './api/PluginApiVersion';
 
 export default class PluginManager {
-    private server: Prismarine;
+    private server: Server;
     private pluginApiVersions = new Map();
     private plugins = new Map();
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 
@@ -91,13 +91,17 @@ export default class PluginManager {
      * Register a pluginApiVersion
      */
     private async registerPluginApiVersion(id: string) {
-        let dir = path.join(__dirname, 'api/versions', id, 'PluginApi');
-        let PluginVersion = require(dir).default;
+        try {
+            let dir = path.join(__dirname, 'api/versions', id, 'PluginApi');
+            let PluginVersion = require(dir).default;
 
-        this.pluginApiVersions.set(id, PluginVersion);
-        this.server
-            .getLogger()
-            .silly(`PluginApiVersion with id §b${id}§r registered`);
+            this.pluginApiVersions.set(id, PluginVersion);
+            this.server
+                .getLogger()
+                .silly(`PluginApiVersion with id §b${id}§r registered`);
+        } catch (err) {
+            throw new Error('invalid PluginApiVersion');
+        }
     }
 
     /**
@@ -137,7 +141,10 @@ export default class PluginManager {
         }
 
         const pkg = require(path.join(dir, 'package.json'));
-        if (!pkg) throw new Error(`package.json is invalid!`);
+        if (!pkg) throw new Error(`package.json is missing!`);
+
+        if (!pkg.name || !pkg.prismarine)
+            throw new Error(`package.json is invalid!`);
 
         if (!fs.existsSync(path.join(process.cwd(), '/plugins/', pkg.name))) {
             fs.mkdirSync(path.join(process.cwd(), '/plugins/', pkg.name));

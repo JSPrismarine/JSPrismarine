@@ -1,5 +1,5 @@
+import CommandExecuter from './CommandExecuter';
 import CommandParameter from '../network/type/CommandParameter';
-import Player from '../player/Player';
 
 interface CommandProps {
     id: string;
@@ -38,7 +38,7 @@ export default class Command {
      * Called when the command is executed.
      */
     public execute(
-        sender: Player,
+        sender: CommandExecuter,
         args: Array<string> = []
     ): string | void | Promise<string | void> {}
 }

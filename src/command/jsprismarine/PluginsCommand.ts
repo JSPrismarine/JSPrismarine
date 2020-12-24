@@ -1,9 +1,10 @@
 import CommandParameter, {
     CommandParameterType
 } from '../../network/type/CommandParameter';
+
+import Command from '../Command';
 import Player from '../../player/Player';
 import PluginFile from '../../plugin/PluginFile';
-import Command from '../Command';
 
 export default class PluginsCommand extends Command {
     constructor() {

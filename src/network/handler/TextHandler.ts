@@ -1,15 +1,11 @@
 import Chat from '../../chat/Chat';
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
-import type TextPacket from '../packet/TextPacket';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Server from '../../Server';
+import type TextPacket from '../packet/TextPacket';
 
 export default class TextHandler implements PacketHandler<TextPacket> {
-    public handle(
-        packet: TextPacket,
-        server: Prismarine,
-        player: Player
-    ): void {
+    public handle(packet: TextPacket, server: Server, player: Player): void {
         // Emit chat event
         const chat = new Chat(
             player,

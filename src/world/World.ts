@@ -1,22 +1,23 @@
+import GameruleManager, { GameRules } from './GameruleManager';
+
 import Block from '../block/Block';
-import Entity from '../entity/entity';
-import Item from '../item/Item';
-import Vector3 from '../math/Vector3';
-import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
-import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
-import WorldEventPacket from '../network/packet/WorldEventPacket';
-import Player from '../player/Player';
-import Prismarine from '../Prismarine';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
+import DataPacket from '../network/packet/DataPacket';
+import Entity from '../entity/entity';
+import Item from '../item/Item';
+import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
+import Player from '../player/Player';
+import Server from '../Server';
 import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/UUID';
-import GameruleManager, { GameRules } from './GameruleManager';
-import DataPacket from '../network/packet/DataPacket';
+import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
+import Vector3 from '../math/Vector3';
+import WorldEventPacket from '../network/packet/WorldEventPacket';
 
 interface WorldData {
     name: string;
-    server: Prismarine;
+    server: Server;
     provider: any;
     seed: number;
     generator?: string;
@@ -31,7 +32,7 @@ export default class World {
     private gameruleManager: GameruleManager;
     private currentTick: number = 0;
     private provider: any; // TODO: interface
-    private server: Prismarine;
+    private server: Server;
     private seed: SharedSeedRandom;
     private generator: any; // TODO: interface
 
@@ -346,6 +347,12 @@ export default class World {
                     narbyPlayer.getConnection().sendDataPacket(pk)
                 )
         );
+    }
+
+    public sendTime(): void {
+        for (const player of this.players.values()) {
+            player.setTime(this.getTicks());
+        }
     }
 
     /**

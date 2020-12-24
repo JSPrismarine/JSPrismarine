@@ -1,20 +1,19 @@
-import path from 'path';
-
-import Provider from '../Provider';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../chunk/Chunk';
 import EmptySubChunk from '../chunk/EmptySubChunk';
+import Level from 'level';
+import type Server from '../../Server';
+import Provider from '../Provider';
 import SubChunk from '../chunk/SubChunk';
 import Vector3 from '../../math/Vector3';
-import type Prismarine from '../../Prismarine';
-import Level from 'level';
+import path from 'path';
 
 interface readChunk {
     x: number;
     z: number;
     generator: any;
     seed: number;
-    server: Prismarine;
+    server: Server;
 }
 
 const Tags = {
@@ -23,10 +22,10 @@ const Tags = {
 };
 
 export default class LevelDB extends Provider {
-    private server: Prismarine;
+    private server: Server;
     private db: Level;
 
-    constructor(levelPath: string, server: Prismarine) {
+    constructor(levelPath: string, server: Server) {
         super(levelPath);
         this.db = new Level(path.join(levelPath, 'db'));
         this.server = server;

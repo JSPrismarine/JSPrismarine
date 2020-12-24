@@ -1,18 +1,17 @@
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Block from './Block';
+import { BlockIdsType } from './BlockIdsType';
+import { ByteOrder } from '../nbt/ByteOrder';
+import NBTReader from '../nbt/NBTReader';
+import NBTTagCompound from '../nbt/NBTTagCompound';
+import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
-
-import Block from './Block';
-import Prismarine from '../Prismarine';
-import { BlockIdsType } from './BlockIdsType';
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from '../nbt/ByteOrder';
-import NBTTagCompound from '../nbt/NBTTagCompound';
-import NBTReader from '../nbt/NBTReader';
 
 const BedrockData = require('@jsprismarine/bedrock-data'); // TODO: convert to import
 
 export default class BlockManager {
-    private server: Prismarine;
+    private server: Server;
     private blocks = new Map();
     private runtimeIds: Array<number> = [];
     private blockPalette: Buffer = Buffer.alloc(0);
@@ -21,7 +20,7 @@ export default class BlockManager {
     private runtimeIdToLegacy: Map<number, number> = new Map();
     private runtimeIdAllocator: number = 0;
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 

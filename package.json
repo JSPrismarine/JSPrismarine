@@ -1,16 +1,17 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.3",
+    "version": "0.1.0-rc.15",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
     "bin": {
-        "prismarine": "dist/src/Server.js"
+        "prismarine": "dist/src/Prismarine.js"
     },
     "scripts": {
-        "start": "cross-env NODE_ENV=production node ./dist/src/Server.js --unhandled-rejections=strict",
+        "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
         "dev": "cross-env NODE_ENV=development nodemon -I --watch src -e ts,js,json bootstrap.js",
         "build": "tsc --build src",
+        "clean": "rm -rf dist docs packages worlds plugins banned-players.json ops.json config.yaml jsprismarine.log",
         "docs": "typedoc --ignoreCompilerErrors --out ./docs --tsconfig ./src/tsconfig.json src  --exclude **/*.test.* --includeDeclarations --excludeExternals",
         "package": "pkg package.json --out-path ./packages/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
@@ -78,7 +79,7 @@
         "lodash": "^4.17.20",
         "mccolorstoconsole": "^1.1.0",
         "node-machine-id": "^1.1.12",
-        "pkg": "github:kkoomen/pkg",
+        "semver": "^7.3.4",
         "set-interval-async": "^1.0.33",
         "silent": "^0.1.2",
         "unzipper": "^0.10.11",
@@ -86,13 +87,12 @@
         "yaml": "^1.10.0"
     },
     "devDependencies": {
-        "@babel/plugin-proposal-decorators": "7.12.1",
+        "@babel/plugin-proposal-decorators": "7.12.12",
         "@types/git-rev-sync": "2.0.0",
         "@types/jest": "26.0.19",
         "@types/jwt-decode": "3.1.0",
-        "@types/node": "14.14.14",
+        "@types/node": "14.14.16",
         "@types/node-fetch": "2.5.7",
-        "@types/rimraf": "3.0.0",
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.3",
         "babel-eslint": "10.1.0",
@@ -107,5 +107,7 @@
         "typedoc": "0.19.2",
         "typescript": "4.1.3"
     },
-    "optionalDependencies": {}
+    "optionalDependencies": {
+        "pkg": "github:kkoomen/pkg"
+    }
 }

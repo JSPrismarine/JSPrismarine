@@ -1,51 +1,52 @@
-import type Prismarine from '../Prismarine';
-import TextType from '../network/type/TextType';
-import TextPacket from '../network/packet/TextPacket';
-import MovementType from '../network/type/MovementType';
-import Block from '../block/Block';
-import DisconnectPacket from '../network/packet/DisconnectPacket';
-import Item from '../item/Item';
-import Chunk from '../world/chunk/Chunk';
-import type Connection from '../network/raknet/Connection';
-import type Player from './Player';
-import BatchPacket from '../network/packet/BatchPacket';
-import AddPlayerPacket from '../network/packet/AddPlayerPacket';
-import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
-import PlayStatusPacket from '../network/packet/PlayStatusPacket';
-import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
-import SetTimePacket from '../network/packet/SetTimePacket';
-import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
-import LevelChunkPacket from '../network/packet/LevelChunkPacket';
-import InventoryContentPacket from '../network/packet/InventoryContentPacket';
-import CreativeContentPacket from '../network/packet/CreativeContentPacket';
-import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
-import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import PlayerListPacket, {
     PlayerListAction,
     PlayerListEntry
 } from '../network/packet/PlayerListPacket';
-import MovePlayerPacket from '../network/packet/MovePlayerPacket';
-import SetActorDataPacket from '../network/packet/SetActorDataPacket';
-import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
-import SetGamemodePacket from '../network/packet/SetGamemodePacket';
+import AddPlayerPacket from '../network/packet/AddPlayerPacket';
+import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
+import BatchPacket from '../network/packet/BatchPacket';
+import Block from '../block/Block';
+import Chunk from '../world/chunk/Chunk';
+import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
+import type Connection from '../network/raknet/Connection';
 import CoordinateUtils from '../world/CoordinateUtils';
+import CreativeContentPacket from '../network/packet/CreativeContentPacket';
+import DisconnectPacket from '../network/packet/DisconnectPacket';
+import InventoryContentPacket from '../network/packet/InventoryContentPacket';
+import Item from '../item/Item';
+import LevelChunkPacket from '../network/packet/LevelChunkPacket';
+import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
+import MovePlayerPacket from '../network/packet/MovePlayerPacket';
+import MovementType from '../network/type/MovementType';
+import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
+import PlayStatusPacket from '../network/packet/PlayStatusPacket';
+import type Player from './Player';
+import RemoveActorPacket from '../network/packet/RemoveActorPacket';
+import type Server from '../Server';
+import SetActorDataPacket from '../network/packet/SetActorDataPacket';
+import SetGamemodePacket from '../network/packet/SetGamemodePacket';
+import SetTimePacket from '../network/packet/SetTimePacket';
 import Skin from '../utils/skin/Skin';
+import TextPacket from '../network/packet/TextPacket';
+import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import { Attribute } from '../entity/attribute';
 import DataPacket from '../network/packet/DataPacket';
 import CreativeContentEntry from '../network/type/CreativeContentEntry';
+import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
+import { WindowIds } from '../inventory/WindowManager';
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
 export default class PlayerConnection {
     private player: Player;
     private connection: Connection;
-    private server: Prismarine;
+    private server: Server;
     private chunkSendQueue: Set<Chunk> = new Set();
     private loadedChunks: Set<string> = new Set();
     private loadingChunks: Set<string> = new Set();
 
-    constructor(server: Prismarine, connection: Connection, player: Player) {
+    constructor(server: Server, connection: Connection, player: Player) {
         this.server = server;
         this.connection = connection;
         this.player = player;
@@ -216,21 +217,21 @@ export default class PlayerConnection {
     public sendInventory() {
         let pk;
         pk = new InventoryContentPacket();
-        pk.items = this.player.inventory.getItems(true);
-        pk.windowId = 0; // Inventory window
+        pk.items = this.player.getInventory().getItems(true);
+        pk.windowId = WindowIds.INVENTORY; // Inventory window
         this.sendDataPacket(pk);
 
-        pk = new InventoryContentPacket();
-        pk.items = []; // TODO
-        pk.windowId = 78; // ArmorInventory window
-        this.sendDataPacket(pk);
+        // pk = new InventoryContentPacket();
+        // pk.items = []; // TODO
+        // pk.windowId = 78; // ArmorInventory window
+        // this.sendDataPacket(pk);
 
         // https://github.com/NiclasOlofsson/MiNET/blob/master/src/MiNET/MiNET/Player.cs#L1736
         // TODO: documentate about
         // 0x7c (ui content)
         // 0x77 (off hand)
 
-        this.sendHandItem(this.player.inventory.getItemInHand()); // TODO: not working
+        this.sendHandItem(this.player.getInventory().getItemInHand()); // TODO: not working
     }
 
     public sendCreativeContents(empty: boolean = false) {
@@ -271,8 +272,8 @@ export default class PlayerConnection {
         let pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.item = item;
-        pk.inventorySlot = this.player.inventory.getHandSlotIndex();
-        pk.hotbarSlot = this.player.inventory.getHandSlotIndex();
+        pk.inventorySlot = this.player.getInventory().getHandSlotIndex();
+        pk.hotbarSlot = this.player.getInventory().getHandSlotIndex();
         pk.windowId = 0; // inventory ID
         this.sendDataPacket(pk);
     }

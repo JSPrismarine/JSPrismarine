@@ -1,4 +1,4 @@
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 
 export const GameRules = {
     CommandBlockOutput: 'commandblockoutput',
@@ -23,10 +23,10 @@ export const GameRules = {
 };
 
 export default class GameruleManager {
-    private server: Prismarine;
+    private server: Server;
     private rules: Map<string, any> = new Map();
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 

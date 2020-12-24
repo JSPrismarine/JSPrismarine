@@ -1,34 +1,31 @@
 import Random from './Random';
 
 export default class SharedSeedRandom extends Random {
-    private count: number = 0;
-
-    constructor(
+    public constructor(
         seed: bigint | number = Random._seedUniquifier() ^
             process.hrtime.bigint()
     ) {
         super(seed);
     }
 
-    consumeCount(bits: number) {
+    public consumeCount(bits: number) {
         for (let i = 0; i < bits; ++i) {
             this.next(1);
         }
     }
 
-    next(bits: number) {
-        ++this.count;
+    public next(bits: number) {
         return super.next(bits);
     }
 
-    setBaseChunkSeed(x: number, z: number): bigint {
+    public setBaseChunkSeed(x: number, z: number): bigint {
         const i = BigInt(x) * 341873128712n + BigInt(z) * 132897987541n;
         this.setSeed(i);
 
         return i;
     }
 
-    setDecorationSeed(baseSeed: bigint, x: number, z: number): bigint {
+    public setDecorationSeed(baseSeed: bigint, x: number, z: number): bigint {
         this.setSeed(baseSeed);
         const i = this.nextLong() | 1n,
             j = this.nextLong() | 1n,
@@ -38,7 +35,7 @@ export default class SharedSeedRandom extends Random {
         return k;
     }
 
-    setLargeFeatureSeed(baseSeed: bigint, x: number, z: number): bigint {
+    public setLargeFeatureSeed(baseSeed: bigint, x: number, z: number): bigint {
         this.setSeed(baseSeed);
         const i = this.nextLong(),
             j = this.nextLong(),
@@ -48,7 +45,7 @@ export default class SharedSeedRandom extends Random {
         return k;
     }
 
-    setLargeFeatureSeedWithSalt(
+    public setLargeFeatureSeedWithSalt(
         baseSeed: bigint,
         x: number,
         z: number,
@@ -63,7 +60,7 @@ export default class SharedSeedRandom extends Random {
         return i;
     }
 
-    seedSlimeChunk(
+    public seedSlimeChunk(
         x: number,
         z: number,
         baseSeed: bigint,

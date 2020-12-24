@@ -1,5 +1,5 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class BiomeDefinitionListPacket extends DataPacket {
     static NetID = Identifiers.BiomeDefinitionListPacket;

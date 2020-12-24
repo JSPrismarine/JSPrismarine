@@ -1,4 +1,3 @@
-import Block from '../block/Block';
 import Air from '../block/blocks/Air';
 import Item from '../item/Item';
 
@@ -8,9 +7,9 @@ export default class Inventory {
     /**
      * (Slot number - Item in the slot)
      */
-    private content: Map<number, Item | Block> = new Map();
+    private content: Map<number, Item> = new Map();
 
-    constructor(slots = 0, items = []) {
+    public constructor(slots = 0, items: Array<Item> = []) {
         this.slots = slots;
         this.setItems(items);
     }
@@ -18,7 +17,7 @@ export default class Inventory {
     /**
      * Adds an array of items into the inventory.
      */
-    setItems(items: Array<Item | Block> = []) {
+    public setItems(items: Array<Item> = []) {
         if (items.length > this.slots) {
             // If the inventory slots are less
             // than items cut the items array
@@ -26,14 +25,14 @@ export default class Inventory {
         }
 
         for (let i = 0; i < this.getSlotCount(); i++) {
-            this.setItem(i, items[i] || new Air());
+            this.setItem(i, items[i] ?? new Air());
         }
     }
 
     /**
      * Returns all the items inside the inventory.
      */
-    getItems(includeAir: boolean = false): Array<Item | Block> {
+    public getItems(includeAir: boolean = false): Array<Item> {
         if (includeAir) {
             return Array.from(this.content.values());
         }
@@ -46,7 +45,7 @@ export default class Inventory {
     /**
      * Sets an item in the inventory content.
      */
-    setItem(slot: number, item: Item | Block) {
+    public setItem(slot: number, item: Item) {
         if (slot > this.slots) {
             return false;
         }
@@ -58,7 +57,7 @@ export default class Inventory {
     /**
      * Returns the item in the slot.
      */
-    getItem(slot: number) {
+    public getItem(slot: number) {
         if (this.content.has(slot)) {
             return this.content.get(slot);
         } else {
@@ -69,12 +68,12 @@ export default class Inventory {
     /**
      * Removes an item from a slot and returns it.
      */
-    removeItem(slot: number) {
+    public removeItem(slot: number) {
         if (!this.content.has(slot)) {
             return new Air();
         }
 
-        let item = this.content.get(slot);
+        const item = this.content.get(slot);
         this.content.delete(slot);
         return item;
     }
@@ -82,7 +81,7 @@ export default class Inventory {
     /**
      * Returns the slot count of the inventory.
      */
-    getSlotCount(): number {
+    public getSlotCount(): number {
         return this.slots;
     }
 }

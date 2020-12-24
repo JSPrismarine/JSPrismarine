@@ -1,9 +1,8 @@
-import Prismarine from '../Prismarine';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import git from 'git-rev-sync';
-import PluginFile from '../plugin/PluginFile';
 import type InetAddress from '../network/raknet/utils/InetAddress';
-import { RemoteInfo } from 'dgram';
+import PluginFile from '../plugin/PluginFile';
+import Server from '../Server';
+import git from 'git-rev-sync';
 
 export enum QueryType {
     Handshake = 0,
@@ -11,10 +10,10 @@ export enum QueryType {
 }
 
 export default class QueryManager {
-    private server: Prismarine;
+    private server: Server;
     public git_rev: string;
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
 
         try {

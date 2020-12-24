@@ -1,6 +1,6 @@
-import path from 'path';
-import Prismarine from '../Prismarine';
 import PluginApiVersion from './api/PluginApiVersion';
+import Server from '../Server';
+import path from 'path';
 
 export class Plugin {
     constructor(api: PluginApiVersion) {}
@@ -9,7 +9,7 @@ export class Plugin {
 }
 
 export default class PluginFile {
-    private server: Prismarine;
+    private server: Server;
     private path: string;
     private package;
     private plugin: Plugin;
@@ -19,7 +19,7 @@ export default class PluginFile {
     private version: string;
 
     constructor(
-        server: Prismarine,
+        server: Server,
         dir: string,
         pluginApiVersion: PluginApiVersion
     ) {
@@ -31,6 +31,8 @@ export default class PluginFile {
             throw new Error('name is missing in package.json!');
         else if (!this.package.version)
             throw new Error('version is missing in package.json!');
+        else if (!this.package.main)
+            throw new Error('main is missing in package.json!');
         else if (!this.package.prismarine.displayName)
             this.server
                 .getLogger()

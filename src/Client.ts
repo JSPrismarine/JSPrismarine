@@ -1,25 +1,25 @@
-import LoggerBuilder from './utils/Logger';
-import RakNetListener from './network/raknet/RakNetListener';
+import Connection, { Priority } from './network/raknet/Connection';
 import Dgram, { Socket } from 'dgram';
-import Connection, { Priority, Status } from './network/raknet/Connection';
-import InetAddress from './network/raknet/utils/InetAddress';
-import { EventEmitter } from 'events';
-import Identifiers from './network/raknet/protocol/Identifiers';
 import {
     clearIntervalAsync,
     setIntervalAsync
 } from 'set-interval-async/dynamic';
-import UnconnectedPing from './network/raknet/protocol/UnconnectedPing';
-import Crypto from 'crypto';
-import UnconnectedPong from './network/raknet/protocol/UnconnectedPong';
-import OpenConnectionRequest1 from './network/raknet/protocol/OpenConnectionRequest1';
-import OpenConnectionReply1 from './network/raknet/protocol/OpenConnectionReply1';
-import OpenConnectionRequest2 from './network/raknet/protocol/OpenConnectionRequest2';
-import OpenConnectionReply2 from './network/raknet/protocol/OpenConnectionReply2';
+
 import ConnectionRequest from './network/raknet/protocol/ConnectionRequest';
+import Crypto from 'crypto';
 import EncapsulatedPacket from './network/raknet/protocol/EncapsulatedPacket';
+import { EventEmitter } from 'events';
+import Identifiers from './network/raknet/protocol/Identifiers';
+import InetAddress from './network/raknet/utils/InetAddress';
+import LoggerBuilder from './utils/Logger';
 import LoginPacket from './network/packet/LoginPacket';
-import { RSA_PKCS1_OAEP_PADDING } from 'constants';
+import OpenConnectionReply1 from './network/raknet/protocol/OpenConnectionReply1';
+import OpenConnectionReply2 from './network/raknet/protocol/OpenConnectionReply2';
+import OpenConnectionRequest1 from './network/raknet/protocol/OpenConnectionRequest1';
+import OpenConnectionRequest2 from './network/raknet/protocol/OpenConnectionRequest2';
+import RakNetListener from './network/raknet/RakNetListener';
+import UnconnectedPing from './network/raknet/protocol/UnconnectedPing';
+import UnconnectedPong from './network/raknet/protocol/UnconnectedPong';
 
 // https://stackoverflow.com/a/1527820/3142553
 const getRandomInt = (min: number, max: number) => {
@@ -84,11 +84,6 @@ export default class Client extends EventEmitter implements RakNetListener {
                     pk.clientGUID = this.clientGUID;
                     pk.encode();
                     this.sendBuffer(pk.getBuffer());
-
-                    console.log(
-                        `[PING] Sent ping to ${this.targetAddress.getAddress()}:${this.targetAddress.getPort()}`
-                    );
-                    console.log('-'.repeat(40));
                 }
 
                 if (this.connected && !this.loginHandled) {
@@ -125,7 +120,6 @@ export default class Client extends EventEmitter implements RakNetListener {
                 case Identifiers.UnconnectedPong:
                     buf = this.handleUnconnectedPong(buffer);
                     this.sendBuffer(buf);
-                    console.log('[Client] Got unconnected pong!');
                     break;
                 case Identifiers.OpenConnectionReply1:
                     buf = this.handleOpenConnectionReply1(buffer);
@@ -135,7 +129,7 @@ export default class Client extends EventEmitter implements RakNetListener {
                     this.handleOpenConnectionReply2(buffer);
                     break;
                 default:
-                    console.log(`Unhandled offline packet ID: ${header}`);
+                    this.logger.warn(`Unhandled offline packet ID: ${header}`);
             }
         }
     }
@@ -178,10 +172,6 @@ export default class Client extends EventEmitter implements RakNetListener {
             throw new Error('Received an invalid offline message');
         }
 
-        console.log('[MTU SIZE] ' + decodedPacket.mtuSize);
-        console.log('[SERVER ID] ' + decodedPacket.serverGUID);
-        console.log('-'.repeat(40));
-
         // Encode response
         packet = new OpenConnectionRequest2();
         packet.serverAddress = this.targetAddress;
@@ -213,14 +203,6 @@ export default class Client extends EventEmitter implements RakNetListener {
         if (!decodedPacket.isValid()) {
             throw new Error('Received an invalid offline message');
         }
-
-        const inetAddr = decodedPacket.clientAddress;
-        console.log('[SERVER ID] ' + decodedPacket.serverGUID);
-        console.log(
-            `[CLIENT ADDRESS] ${inetAddr.getAddress()}:${inetAddr.getPort()}`
-        );
-        console.log('[MTU SIZE] ' + decodedPacket.mtuSize);
-        console.log('-'.repeat(40));
 
         // Encode response (encapsulated)
         packet = new ConnectionRequest();
@@ -257,6 +239,10 @@ export default class Client extends EventEmitter implements RakNetListener {
 
     public getSocket(): Socket {
         return this.socket;
+    }
+
+    public getAddress(): InetAddress {
+        return this.address;
     }
 
     public removeConnection(connection: Connection, reason: string): void {

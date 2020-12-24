@@ -1,5 +1,5 @@
-import { Socket } from 'dgram';
 import Connection from './Connection';
+import { Socket } from 'dgram';
 
 export default interface RakNetListener {
     sendBuffer(buffer: Buffer, address: string, port: number): void;
