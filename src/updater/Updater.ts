@@ -22,7 +22,7 @@ export default class Updater {
 
             if (
                 this.config.getUpdateChannel() === 'release' &&
-                !semver.prerelease(pkg.version).length
+                !semver.prerelease(pkg.version)?.length
             )
                 release = await (
                     await fetch(
