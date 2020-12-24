@@ -24,14 +24,15 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
             return;
         }
 
+        if (!packet.displayName) {
+            player.kick('Invalid username!');
+            return;
+        }
+
         // Player with same name is already online
         let maybePlayer = null;
-        if (
-            (maybePlayer = server.getPlayerByExactName(packet.displayName)) !==
-            null
-        ) {
+        if ((maybePlayer = server.getPlayerByExactName(packet.displayName)))
             maybePlayer.kick('Logged in from another location');
-        }
 
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;

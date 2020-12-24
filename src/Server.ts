@@ -206,14 +206,17 @@ export default class Server {
                         player.getConnection().sendDespawn(onlinePlayer);
                     }
 
-                    // Announce disconnection
-                    const event = new ChatEvent(
-                        new Chat(
-                            this.getConsole(),
-                            `§e${player.getUsername()} left the game`
-                        )
-                    );
-                    this.getEventManager().emit('chat', event);
+                    // Sometimes we fail at decoding the username for whatever reason
+                    if (player.getUsername()) {
+                        // Announce disconnection
+                        const event = new ChatEvent(
+                            new Chat(
+                                this.getConsole(),
+                                `§e${player.getUsername()} left the game`
+                            )
+                        );
+                        this.getEventManager().emit('chat', event);
+                    }
 
                     player.getWorld().removePlayer(player); // TODO: player.close();
                     this.players.delete(token);
@@ -304,7 +307,9 @@ export default class Server {
             startTime = finishTime;
 
             if (this.tps > 20)
-                this.getLogger().debug(`TPS is ${this.tps} which is greater than 20!`);
+                this.getLogger().debug(
+                    `TPS is ${this.tps} which is greater than 20!`
+                );
         }, 50);
     }
 
