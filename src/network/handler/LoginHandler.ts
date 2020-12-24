@@ -1,10 +1,10 @@
 import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
+import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
+import PlayStatusType from '../type/PlayStatusType';
 import PacketHandler from './PacketHandler';
-import PlayStatus from '../type/play-status';
 import type Player from '../../player/Player';
 import type Server from '../../Server';
-import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 
 export default class LoginHandler implements PacketHandler<LoginPacket> {
     public handle(packet: LoginPacket, server: Server, player: Player): void {
@@ -15,11 +15,11 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
             if (packet.protocol < Identifiers.Protocol) {
                 player
                     .getConnection()
-                    .sendPlayStatus(PlayStatus.LoginFailedClient);
+                    .sendPlayStatus(PlayStatusType.LoginFailedClient);
             } else {
                 player
                     .getConnection()
-                    .sendPlayStatus(PlayStatus.LoginFailedServer);
+                    .sendPlayStatus(PlayStatusType.LoginFailedServer);
             }
             return;
         }
@@ -43,7 +43,7 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
         player.skin = packet.skin;
         player.device = packet.device;
 
-        player.getConnection().sendPlayStatus(PlayStatus.LoginSuccess);
+        player.getConnection().sendPlayStatus(PlayStatusType.LoginSuccess);
 
         const reason = server.getBanManager().isBanned(player);
         if (reason !== false) {

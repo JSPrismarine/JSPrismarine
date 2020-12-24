@@ -1,8 +1,8 @@
-import PacketHandler from './PacketHandler';
-import PlayStatus from '../type/play-status';
 import type Player from '../../player/Player';
 import type Server from '../../Server';
 import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
+import PlayStatusType from '../type/PlayStatusType';
+import PacketHandler from './PacketHandler';
 
 export default class RequestChunkRadiusHandler
     implements PacketHandler<RequestChunkRadiusPacket> {
@@ -18,6 +18,6 @@ export default class RequestChunkRadiusHandler
 
         player.getConnection().sendNetworkChunkPublisher();
 
-        player.getConnection().sendPlayStatus(PlayStatus.PlayerSpawn);
+        player.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
     }
 }
