@@ -119,6 +119,12 @@ export default class PlayerActionHandler
                 })();
                 break;
             }
+            case PlayerActionType.StartSprint: {
+                player.isSprinting = true;
+            }
+            case PlayerActionType.StopSprint: {
+                player.isSprinting = false;
+            }
             default: {
                 // This will get triggered even if an action is simply not handled
                 server

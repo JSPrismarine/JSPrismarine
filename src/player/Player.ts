@@ -48,6 +48,7 @@ export default class Player extends Human implements CommandExecuter {
     public headYaw: number = 0;
 
     public onGround: boolean = false;
+    public isSprinting: boolean = false;
 
     public platformChatId: string = '';
 
