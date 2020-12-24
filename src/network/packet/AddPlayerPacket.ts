@@ -26,7 +26,10 @@ export default class AddPlayerPacket extends DataPacket {
     public deviceId!: string;
     public buildPlatform!: number;
 
-    public metadata = new Map();
+    public metadata: Map<
+        number,
+        [number, string | number | bigint | boolean]
+    > = new Map();
 
     public encodePayload() {
         this.writeUUID(this.uuid);
