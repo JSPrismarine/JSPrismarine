@@ -19,6 +19,7 @@ jobs:
               with:
                   token: ${{ secrets.NPM_TOKEN }}
 
+            - run: rm -f ./.npmrc
             - run: npm prune --production
             - run: npm install -g github:kkoomen/pkg
             - run: npm run package
