@@ -93,7 +93,10 @@ export default class Player extends Human implements CommandExecuter {
         await this.playerConnection.update(tick);
     }
 
-    public async kick(reason = 'unknown reason'): Promise<void> {
+    public kick(reason = 'unknown reason'): void {
+        this.getServer()
+            .getLogger()
+            .debug(`Player with id ${this.runtimeId} was kicked: ${reason}`);
         this.playerConnection.kick(reason);
     }
 
