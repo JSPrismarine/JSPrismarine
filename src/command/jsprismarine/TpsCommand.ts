@@ -3,7 +3,7 @@ import Player from '../../player/Player';
 
 export default class PluginsCommand extends Command {
     constructor() {
-        super({ id: 'jsprismarine:tps', description: 'Get current TPS' });
+        super({ id: 'jsprismarine:tps', description: 'Get current TPS.' });
     }
 
     private formatTPS(tps: number): string {

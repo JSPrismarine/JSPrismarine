@@ -9,7 +9,7 @@ export default class PardonCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:pardon',
-            description: 'Pardon a player',
+            description: 'Pardon a player.',
             permission: 'minecraft.command.pardon'
         } as any);
 

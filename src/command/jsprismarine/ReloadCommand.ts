@@ -5,7 +5,7 @@ export default class ReloadCommand extends Command {
     constructor() {
         super({
             id: 'jsprismarine:reload',
-            description: 'Reloads the server',
+            description: 'Reloads the server.',
             permission: 'jsprismarine.command.reload'
         });
     }
