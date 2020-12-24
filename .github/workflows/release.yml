@@ -25,7 +25,7 @@ jobs:
 
             - name: Changelog
               uses: scottbrenner/generate-changelog-action@master
-              id: Changelog
+              id: changelog
               env:
                   REPO: ${{ github.repository }}
 
