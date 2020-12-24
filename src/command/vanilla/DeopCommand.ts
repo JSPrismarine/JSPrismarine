@@ -11,7 +11,7 @@ export default class DeopCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:deop',
-            description: 'Remove player op status',
+            description: `Remove a player's op status.`,
             permission: 'minecraft.command.op'
         } as any);
 

@@ -9,7 +9,7 @@ export default class BanCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:ban',
-            description: 'Ban a player',
+            description: 'Ban a player.',
             permission: 'minecraft.command.ban'
         } as any);
 

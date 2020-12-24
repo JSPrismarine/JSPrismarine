@@ -12,7 +12,8 @@ export default class TpCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:tp',
-            description: 'Teleports a player to a specified location',
+            description:
+                'Teleports a player to a specified location or another entity.',
             aliases: ['teleport'],
             permission: 'minecraft.command.teleport'
         });

@@ -11,7 +11,7 @@ export default class OpCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:op',
-            description: 'Grant player op status',
+            description: 'Grant player op status.',
             permission: 'minecraft.command.op'
         } as any);
 
