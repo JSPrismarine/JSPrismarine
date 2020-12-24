@@ -20,7 +20,10 @@ export default class Updater {
                 tag_name: string;
             };
 
-            if (this.config.getUpdateChannel() === 'release' && !semver.prerelease(pkg.version).length)
+            if (
+                this.config.getUpdateChannel() === 'release' &&
+                !semver.prerelease(pkg.version).length
+            )
                 release = await (
                     await fetch(
                         `https://api.github.com/repos/${this.config.getUpdateRepo()}/releases/latest`
