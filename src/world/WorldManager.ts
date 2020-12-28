@@ -34,8 +34,8 @@ export default class WorldManager {
 
     public async onDisable(): Promise<void> {
         await Promise.all(
-            this.getWorlds().map(
-                async (world) => this.unloadWorld(world.getName())
+            this.getWorlds().map(async (world) =>
+                this.unloadWorld(world.getName())
             )
         );
     }
