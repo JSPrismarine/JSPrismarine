@@ -3,6 +3,7 @@ import { Attribute } from '../entity/attribute';
 import { WindowIds } from '../inventory/WindowManager';
 import Item from '../item/Item';
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
+import AdventureSettingsPacket from '../network/packet/AdventureSettingsPacket';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
 import BatchPacket from '../network/packet/BatchPacket';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
@@ -29,6 +30,8 @@ import type Connection from '../network/raknet/Connection';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import CreativeContentEntry from '../network/type/CreativeContentEntry';
 import MovementType from '../network/type/MovementType';
+import PermissionType from '../network/type/PermissionType';
+import PlayerPermissionType from '../network/type/PlayerPermissionType';
 import TextType from '../network/type/TextType';
 import type Server from '../Server';
 import Skin from '../utils/skin/Skin';
@@ -83,6 +86,21 @@ export default class PlayerConnection {
         }
 
         await this.needNewChunks();
+    }
+
+    public async sendSettings() {
+        const pk = new AdventureSettingsPacket();
+
+        // TODO: flags
+
+        pk.commandPermission = this.player.isOp()
+            ? PermissionType.Operator
+            : PermissionType.Normal;
+        pk.playerPermission = this.player.isOp()
+            ? PlayerPermissionType.Operator
+            : PlayerPermissionType.Visitor;
+        pk.entityId = this.player.runtimeId;
+        await this.sendDataPacket(pk);
     }
 
     public async needNewChunks(forceResend = false) {
@@ -399,7 +417,7 @@ export default class PlayerConnection {
 
         pk.mode = mode;
 
-        pk.onGround = player.onGround;
+        pk.onGround = player.isOnGround();
 
         pk.ridingEntityRuntimeId = BigInt(0);
         pk.tick = BigInt(0); // TODO

@@ -87,4 +87,8 @@ export default class Console implements CommandExecuter {
     public isPlayer(): boolean {
         return false;
     }
+
+    public isOp(): boolean {
+        return true;
+    }
 }

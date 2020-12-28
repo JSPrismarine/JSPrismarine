@@ -62,7 +62,7 @@ export default class MovePlayerHandler
         player.headYaw = packet.headYaw;
 
         // Additional fields
-        player.onGround = packet.onGround;
+        await player.setOnGround(packet.onGround);
         // We still have some fields
         // at the moment we don't need them
 

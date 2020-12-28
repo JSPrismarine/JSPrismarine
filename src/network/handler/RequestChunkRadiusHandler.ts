@@ -15,6 +15,7 @@ export default class RequestChunkRadiusHandler
         const viewDistance =
             packet.radius >= maxViewDistance ? maxViewDistance : packet.radius;
 
+        await player.getConnection().sendSettings();
         await player.getConnection().setViewDistance(viewDistance);
         await player.getConnection().sendNetworkChunkPublisher();
         await player.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
