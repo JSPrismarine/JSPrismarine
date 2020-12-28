@@ -59,13 +59,9 @@ export default class Console implements CommandExecuter {
         server.getEventManager().on('chat', (evt: ChatEvent) => {
             if (evt.cancelled) return;
 
-            // TODO: proper channel system
             if (
                 evt.getChat().getChannel() === '*.everyone' ??
-                (evt.getChat().getChannel() === '*.ops' &&
-                    this.server
-                        .getPermissionManager()
-                        .isOp(this.getUsername())) ??
+                evt.getChat().getChannel() === '*.ops' ??
                 evt.getChat().getChannel() === `*.player.${this.getUsername()}`
             )
                 this.sendMessage(evt.getChat().getMessage());

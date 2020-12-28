@@ -11,9 +11,7 @@ export default class StopCommand extends Command {
     }
 
     execute(sender: Player, args: Array<string>): string {
-        // TODO: implement operators and just check if player is operator
-
-        if (args[0] && args[0].toLowerCase() == 'f') process.exit();
+        if (args[0] && args[0].toLowerCase() === 'f') process.exit();
 
         sender.getServer().getServer().kill();
         return 'Stopping the server...';
