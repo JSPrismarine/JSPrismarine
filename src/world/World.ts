@@ -112,7 +112,7 @@ export default class World {
         z: number,
         generate = true
     ): Promise<Chunk> {
-        return await this.loadChunk(x, z, generate);
+        return this.loadChunk(x, z, generate);
     }
 
     /**
@@ -185,7 +185,7 @@ export default class World {
         z: number,
         generate = false
     ): Promise<Chunk> {
-        return await this.getChunk(
+        return this.getChunk(
             Math.floor((x as number) / 16),
             Math.floor((z as number) / 16),
             generate

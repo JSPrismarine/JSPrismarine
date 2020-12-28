@@ -92,7 +92,7 @@ export default class Connection {
     }
 
     public async update(timestamp: number): Promise<void> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             if (!this.isActive() && this.lastUpdate + 10000 < timestamp) {
                 this.disconnect('timeout');
                 return;
@@ -166,16 +166,16 @@ export default class Connection {
             // Don't handle offline packets
             return;
         } else if (header & BitFlags.ACK) {
-            return await this.handleACK(buffer);
+            return this.handleACK(buffer);
         } else if (header & BitFlags.NACK) {
-            return await this.handleNACK(buffer);
+            return this.handleNACK(buffer);
         } else {
-            return await this.handleDatagram(buffer);
+            return this.handleDatagram(buffer);
         }
     }
 
     public async handleDatagram(buffer: Buffer): Promise<void> {
-        return await new Promise(async (resolve) => {
+        return new Promise(async (resolve) => {
             const dataPacket = new DataPacket(buffer);
             dataPacket.decode();
 
@@ -241,7 +241,7 @@ export default class Connection {
     // Handles a ACK packet, this packet confirm that the other
     // end successfully received the datagram
     public async handleACK(buffer: Buffer): Promise<void> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             const packet = new ACK(buffer);
             packet.decode();
 
@@ -257,7 +257,7 @@ export default class Connection {
     }
 
     public async handleNACK(buffer: Buffer): Promise<void> {
-        return await new Promise(async (resolve) => {
+        return new Promise(async (resolve) => {
             const packet = new NACK(buffer);
             packet.decode();
 
@@ -380,7 +380,7 @@ export default class Connection {
      * Encapsulated handling route
      */
     public async handlePacket(packet: EncapsulatedPacket): Promise<void> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             if (packet.splitCount > 0) {
                 this.handleSplit(packet);
                 return resolve();
@@ -457,7 +457,7 @@ export default class Connection {
     public async handleConnectionRequest(
         buffer: Buffer
     ): Promise<EncapsulatedPacket> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             const dataPacket = new ConnectionRequest(buffer);
             dataPacket.decode();
 
@@ -478,7 +478,7 @@ export default class Connection {
     public async handleConnectedPing(
         buffer: Buffer
     ): Promise<EncapsulatedPacket> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             const dataPacket = new ConnectedPing(buffer);
             dataPacket.decode();
 
