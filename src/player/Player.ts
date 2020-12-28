@@ -13,13 +13,6 @@ import Gamemode from '../world/Gamemode';
 import World from '../world/World';
 import PlayerConnection from './PlayerConnection';
 
-export enum PlayerPermission {
-    Visitor,
-    Member,
-    Operator,
-    Custom
-}
-
 export default class Player extends Human implements CommandExecuter {
     private readonly server: Server;
     private readonly address: InetAddress;
@@ -48,8 +41,9 @@ export default class Player extends Human implements CommandExecuter {
     public yaw = 0;
     public headYaw = 0;
 
-    public onGround = false;
-    public isSprinting = false;
+    private onGround = false;
+    private sprinting = false;
+    private sneaking = false;
 
     public platformChatId = '';
 
@@ -159,12 +153,31 @@ export default class Player extends Human implements CommandExecuter {
     public isPlayer(): boolean {
         return true;
     }
+    public isOp(): boolean {
+        return this.getServer().getPermissionManager().isOp(this.getUsername());
+    }
 
+    public isSprinting() {
+        return this.sprinting;
+    }
     public async setSprinting(val: boolean) {
-        this.isSprinting = val;
-        // TODO: notify clients
+        this.sprinting = val;
+        await this.getConnection().sendSettings();
+    }
+
+    public isSneaking() {
+        return this.sneaking;
+    }
+    public async setSneaking(val: boolean) {
+        this.sneaking = val;
+        await this.getConnection().sendSettings();
+    }
+
+    public isOnGround() {
+        return this.onGround;
     }
     public async setOnGround(val: boolean) {
         this.onGround = val;
+        await this.getConnection().sendSettings();
     }
 }

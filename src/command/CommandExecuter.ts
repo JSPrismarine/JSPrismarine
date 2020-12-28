@@ -6,4 +6,5 @@ export default interface CommandExecuter {
     getUsername(): string;
     getFormattedUsername(): string;
     isPlayer(): boolean;
+    isOp(): boolean;
 }

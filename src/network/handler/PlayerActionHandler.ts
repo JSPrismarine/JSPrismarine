@@ -122,13 +122,22 @@ export default class PlayerActionHandler
                 break;
 
             case PlayerActionType.StartSprint: {
-                await player.setSprinting(false);
+                await player.setSprinting(true);
                 break;
             }
 
             case PlayerActionType.StopSprint: {
-                player.isSprinting = false;
                 await player.setSprinting(false);
+                break;
+            }
+
+            case PlayerActionType.StartSneak: {
+                await player.setSneaking(true);
+                break;
+            }
+
+            case PlayerActionType.StopSneak: {
+                await player.setSneaking(false);
                 break;
             }
 
