@@ -24,7 +24,7 @@ export default class QueryManager {
     }
 
     public async onRaw(buffer: Buffer, rinfo: InetAddress): Promise<Buffer> {
-        return await new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             const stream = new BinaryStream(buffer);
             const magic = stream.readShort();
             const type: QueryType = stream.readByte();

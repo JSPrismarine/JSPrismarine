@@ -166,11 +166,11 @@ export default class Connection {
             // Don't handle offline packets
             return;
         } else if (header & BitFlags.ACK) {
-            return await this.handleACK(buffer);
+            return this.handleACK(buffer);
         } else if (header & BitFlags.NACK) {
-            return await this.handleNACK(buffer);
+            return this.handleNACK(buffer);
         } else {
-            return await this.handleDatagram(buffer);
+            return this.handleDatagram(buffer);
         }
     }
 
