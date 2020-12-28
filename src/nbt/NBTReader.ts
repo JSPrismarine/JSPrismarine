@@ -1,5 +1,5 @@
-import { Allocation } from './Allocation';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { Allocation } from './Allocation';
 import { ByteOrder } from './ByteOrder';
 import { NBTDefinitions } from './NBTDefinitions';
 import NBTStreamReader from './NBTStreamReader';

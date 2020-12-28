@@ -1,5 +1,5 @@
-import Entity from './entity';
 import HumanInventory from '../inventory/HumanInventory';
+import Entity from './entity';
 
 export default class Human extends Entity {
     protected inventory = new HumanInventory();

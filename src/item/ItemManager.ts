@@ -1,7 +1,7 @@
-import Item from './Item';
-import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
+import Server from '../Server';
+import Item from './Item';
 
 export default class ItemManager {
     private readonly server: Server;

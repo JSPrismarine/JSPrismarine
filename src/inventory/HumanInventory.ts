@@ -1,5 +1,5 @@
-import Inventory from './Inventory';
 import Item from '../item/Item';
+import Inventory from './Inventory';
 
 export default class HumanInventory extends Inventory {
     private get handSlot() {

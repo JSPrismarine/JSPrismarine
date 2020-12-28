@@ -82,50 +82,54 @@ export default class PlayerActionHandler
 
             case PlayerActionType.ContinueBreak: {
                 // This fires twice in creative.. wtf Mojang?
-                (async () => {
-                    const chunk = await player
-                        .getWorld()
-                        .getChunkAt(packet.x, packet.z);
+                const chunk = await player
+                    .getWorld()
+                    .getChunkAt(packet.x, packet.z);
 
-                    const blockId = chunk.getBlockId(
-                        packet.x % 16,
-                        packet.y,
-                        packet.z % 16
-                    );
+                const blockId = chunk.getBlockId(
+                    packet.x % 16,
+                    packet.y,
+                    packet.z % 16
+                );
 
-                    const blockMeta = chunk.getBlockMetadata(
-                        packet.x % 16,
-                        packet.y,
-                        packet.z % 16
-                    );
+                const blockMeta = chunk.getBlockMetadata(
+                    packet.x % 16,
+                    packet.y,
+                    packet.z % 16
+                );
 
-                    const pk = new WorldEventPacket();
-                    pk.eventId = LevelEventType.ParticlePunchBlock;
-                    pk.x = packet.x;
-                    pk.y = packet.y;
-                    pk.z = packet.z;
-                    pk.data = server
-                        .getBlockManager()
-                        .getRuntimeWithMeta(blockId, blockMeta);
+                const pk = new WorldEventPacket();
+                pk.eventId = LevelEventType.ParticlePunchBlock;
+                pk.x = packet.x;
+                pk.y = packet.y;
+                pk.z = packet.z;
+                pk.data = server
+                    .getBlockManager()
+                    .getRuntimeWithMeta(blockId, blockMeta);
 
-                    await Promise.all(
-                        player
-                            .getPlayersInChunk()
-                            .map(async (nearbyPlayer) =>
-                                nearbyPlayer.getConnection().sendDataPacket(pk)
-                            )
-                    );
-                })();
+                await Promise.all(
+                    player
+                        .getPlayersInChunk()
+                        .map(async (nearbyPlayer) =>
+                            nearbyPlayer.getConnection().sendDataPacket(pk)
+                        )
+                );
 
                 break;
             }
 
+            case PlayerActionType.Jump:
+                break;
+
             case PlayerActionType.StartSprint: {
-                player.isSprinting = true;
+                await player.setSprinting(false);
+                break;
             }
 
             case PlayerActionType.StopSprint: {
                 player.isSprinting = false;
+                await player.setSprinting(false);
+                break;
             }
 
             default: {

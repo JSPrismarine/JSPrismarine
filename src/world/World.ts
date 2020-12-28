@@ -1,19 +1,18 @@
-import GameruleManager, { GameRules } from './GameruleManager';
-
 import Block from '../block/Block';
-import Chunk from './chunk/Chunk';
-import CoordinateUtils from './CoordinateUtils';
-import DataPacket from '../network/packet/DataPacket';
 import Entity from '../entity/entity';
 import Item from '../item/Item';
+import Vector3 from '../math/Vector3';
+import DataPacket from '../network/packet/DataPacket';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
+import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
+import WorldEventPacket from '../network/packet/WorldEventPacket';
 import Player from '../player/Player';
 import Server from '../Server';
-import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/UUID';
-import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
-import Vector3 from '../math/Vector3';
-import WorldEventPacket from '../network/packet/WorldEventPacket';
+import Chunk from './chunk/Chunk';
+import CoordinateUtils from './CoordinateUtils';
+import GameruleManager, { GameRules } from './GameruleManager';
+import SharedSeedRandom from './util/SharedSeedRandom';
 
 interface WorldData {
     name: string;

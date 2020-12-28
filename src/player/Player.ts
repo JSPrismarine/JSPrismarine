@@ -1,17 +1,17 @@
-import ChatEvent from '../events/chat/ChatEvent';
-import Chunk from '../world/chunk/Chunk';
 import CommandExecuter from '../command/CommandExecuter';
-import Connection from '../network/raknet/Connection';
-import Device from '../utils/Device';
-import Gamemode from '../world/Gamemode';
 import Human from '../entity/Human';
-import InetAddress from '../network/raknet/utils/InetAddress';
-import PlayerConnection from './PlayerConnection';
-import Server from '../Server';
-import Skin from '../utils/skin/Skin';
-import WindowManager from '../inventory/WindowManager';
-import World from '../world/World';
+import ChatEvent from '../events/chat/ChatEvent';
 import withDeprecated from '../hoc/withDeprecated';
+import WindowManager from '../inventory/WindowManager';
+import Connection from '../network/raknet/Connection';
+import InetAddress from '../network/raknet/utils/InetAddress';
+import Server from '../Server';
+import Device from '../utils/Device';
+import Skin from '../utils/skin/Skin';
+import Chunk from '../world/chunk/Chunk';
+import Gamemode from '../world/Gamemode';
+import World from '../world/World';
+import PlayerConnection from './PlayerConnection';
 
 export enum PlayerPermission {
     Visitor,
@@ -158,5 +158,13 @@ export default class Player extends Human implements CommandExecuter {
 
     public isPlayer(): boolean {
         return true;
+    }
+
+    public async setSprinting(val: boolean) {
+        this.isSprinting = val;
+        // TODO: notify clients
+    }
+    public async setOnGround(val: boolean) {
+        this.onGround = val;
     }
 }
