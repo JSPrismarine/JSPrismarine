@@ -39,9 +39,9 @@ export default class ConfigBuilder {
                 (i) => i.toLowerCase() === this.#type.toLowerCase()
             )
         ) {
-            throw `Unsupported config type. (Supported types: ${Object.keys(
+            throw new Error(`Unsupported config type. (Supported types: ${Object.keys(
                 TypeDefaults
-            ).join(', ')})`;
+            ).join(', ')})`);
         }
 
         if (fs.existsSync(pathSplitted.dir)) {
@@ -85,7 +85,7 @@ export default class ConfigBuilder {
                 fileData = TOML.stringify(data);
                 break;
             default:
-                throw `Unknown config type ${this.#type}!`;
+                throw new Error(`Unknown config type ${this.#type}!`);
         }
         fs.writeFileSync(this.#path, fileData, 'utf8');
     }
@@ -109,7 +109,7 @@ export default class ConfigBuilder {
                 resultData = TOML.parse(rawFileData);
                 break;
             default:
-                throw `Unknown config type: ${this.#type}!`;
+                throw new Error(`Unknown config type: ${this.#type}!`);
         }
 
         return resultData || {};

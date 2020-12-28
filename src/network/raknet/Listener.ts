@@ -51,7 +51,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
         this.socket.on('message', async (buffer: Buffer, rinfo: RemoteInfo) => {
             const token = `${rinfo.address}:${rinfo.port}`;
             if (this.connections.has(token)) {
-                return await (this.connections.get(
+                return (this.connections.get(
                     token
                 ) as Connection).receive(buffer);
             }
@@ -69,7 +69,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
             }
         });
 
-        return await new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             const failFn = (e: Error) => reject(e);
 
             this.socket.once('error', failFn);
@@ -108,11 +108,11 @@ export default class Listener extends EventEmitter implements RakNetListener {
                         new InetAddress(rinfo.address, rinfo.port)
                     )) as Buffer;
             case Identifiers.UnconnectedPing:
-                return await this.handleUnconnectedPing(buffer);
+                return this.handleUnconnectedPing(buffer);
             case Identifiers.OpenConnectionRequest1:
-                return await this.handleOpenConnectionRequest1(buffer);
+                return this.handleOpenConnectionRequest1(buffer);
             case Identifiers.OpenConnectionRequest2:
-                return await this.handleOpenConnectionRequest2(
+                return this.handleOpenConnectionRequest2(
                     buffer,
                     new InetAddress(
                         rinfo.address,
@@ -130,7 +130,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
     // async handlers
 
     private async handleUnconnectedPing(buffer: Buffer): Promise<Buffer> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             const decodedPacket = new UnconnectedPing(buffer);
             decodedPacket.decode();
 
@@ -155,7 +155,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
     private async handleOpenConnectionRequest1(
         buffer: Buffer
     ): Promise<Buffer> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             const decodedPacket = new OpenConnectionRequest1(buffer);
             decodedPacket.decode();
 
@@ -184,7 +184,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
         buffer: Buffer,
         address: InetAddress
     ): Promise<Buffer> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             const decodedPacket = new OpenConnectionRequest2(buffer);
             decodedPacket.decode();
 

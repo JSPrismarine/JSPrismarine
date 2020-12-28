@@ -117,7 +117,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeBool(false); // new inventory system
     }
 
-    /* 
+    /*
     TODO
     public serializeItemTable(table: object): Buffer {
         if (this.cachedItemPalette == null) {
@@ -133,6 +133,6 @@ export default class StartGamePacket extends DataPacket {
         }
 
         return this.cachedItemPalette as Buffer;
-    } 
+    }
     */
 }
