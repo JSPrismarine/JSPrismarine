@@ -8,12 +8,9 @@ export enum SandType {
 }
 
 export default class Sand extends Solid {
-    constructor(
-        name: string = 'minecraft:sand',
-        type: SandType = SandType.Regular
-    ) {
+    constructor(name = 'minecraft:sand', type: SandType = SandType.Regular) {
         super({
-            name: name,
+            name,
             id: BlockIdsType.Sand,
             hardness: 0.5
         });

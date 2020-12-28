@@ -5,8 +5,8 @@ import path from 'path';
 import util from 'util';
 
 export default class BanManager {
-    private server: Server;
-    private banned: Map<
+    private readonly server: Server;
+    private readonly banned: Map<
         string,
         {
             reason: string;
@@ -38,7 +38,7 @@ export default class BanManager {
             }
 
             const readFile = util.promisify(fs.readFile);
-            const banned: Array<any> = JSON.parse(
+            const banned: any[] = JSON.parse(
                 (
                     await readFile(
                         path.join(process.cwd(), '/banned-players.json')
@@ -47,8 +47,8 @@ export default class BanManager {
             );
 
             for (const player of banned) this.banned.set(player.name, player);
-        } catch (err) {
-            this.server.getLogger().error(err);
+        } catch (error) {
+            this.server.getLogger().error(error);
             throw new Error(`Invalid banned-players.json file.`);
         }
     }

@@ -37,11 +37,12 @@ export default class DataPacket extends PacketBinaryStream {
     }
 
     public decodeHeader() {
-        let header = this.readUnsignedVarInt();
-        let pid = header & PID_MASK;
+        const header = this.readUnsignedVarInt();
+        const pid = header & PID_MASK;
         if (pid !== this.getId()) {
             throw new Error(`Packet ID must be ${this.getId()}, got ${pid}`);
         }
+
         this.senderSubId = (header >> SENDER_SHIFT) & SUBCLIENT_MASK;
         this.receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK;
     }

@@ -3,15 +3,13 @@ import type Player from '../../player/Player';
 import type Server from '../../Server';
 
 export default class ContainerCloseHandler {
-    public handle(
+    public async handle(
         packet: ContainerClosePacket,
         server: Server,
         player: Player
-    ): void {
+    ): Promise<void> {
         const pk = new ContainerClosePacket();
         pk.windowId = packet.windowId;
-        player.getConnection().sendDataPacket(pk);
-
-        // TODO: event
+        await player.getConnection().sendDataPacket(pk);
     }
 }

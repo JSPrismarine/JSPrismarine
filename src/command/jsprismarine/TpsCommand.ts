@@ -15,17 +15,16 @@ export default class PluginsCommand extends Command {
         return `${color}${tps}§r`;
     }
 
-    public execute(sender: Player, args: Array<any>): void {
+    public async execute(sender: Player, args: any[]): Promise<void> {
         const tps = sender.getServer().getTPS();
         const history = sender.getServer().getAverageTPS();
 
-        sender.sendMessage(
+        await sender.sendMessage(
             `TPS from last 0m, 1m, 5m, 10m: ${this.formatTPS(
                 tps
             )}, ${this.formatTPS(history.one)}, ${this.formatTPS(
                 history.five
             )}, ${this.formatTPS(history.ten)}`
         );
-        return;
     }
 }

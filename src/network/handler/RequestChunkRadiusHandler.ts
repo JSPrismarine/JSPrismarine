@@ -6,18 +6,17 @@ import PacketHandler from './PacketHandler';
 
 export default class RequestChunkRadiusHandler
     implements PacketHandler<RequestChunkRadiusPacket> {
-    public handle(
+    public async handle(
         packet: RequestChunkRadiusPacket,
         server: Server,
         player: Player
-    ): void {
+    ): Promise<void> {
         const maxViewDistance = server.getConfig().getViewDistance();
         const viewDistance =
             packet.radius >= maxViewDistance ? maxViewDistance : packet.radius;
-        player.getConnection().setViewDistance(viewDistance);
 
-        player.getConnection().sendNetworkChunkPublisher();
-
-        player.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await player.getConnection().setViewDistance(viewDistance);
+        await player.getConnection().sendNetworkChunkPublisher();
+        await player.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
     }
 }

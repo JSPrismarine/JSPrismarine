@@ -19,7 +19,7 @@ export default class InventoryTransactionHandler
         player: Player
     ): void {
         switch (packet.type) {
-            case InventoryTransactionType.UseItem:
+            case InventoryTransactionType.UseItem: {
                 if (player.gamemode !== Gamemode.Spectator) {
                     switch (packet.actionType) {
                         case InventoryTransactionUseItemActionType.ClickBlock:
@@ -39,6 +39,7 @@ export default class InventoryTransactionHandler
                                         player
                                     );
                             })();
+
                             break;
                         case InventoryTransactionUseItemActionType.ClickAir:
                             break;
@@ -53,10 +54,9 @@ export default class InventoryTransactionHandler
 
                                 // TODO: figure out why blockId sometimes === 0
                                 const chunkPos = new Vector3(
-                                    (packet.blockPosition.getX() as number) %
-                                        16,
+                                    packet.blockPosition.getX() % 16,
                                     packet.blockPosition.getY(),
-                                    (packet.blockPosition.getZ() as number) % 16
+                                    packet.blockPosition.getZ() % 16
                                 );
 
                                 const blockId = chunk.getBlockId(
@@ -88,10 +88,10 @@ export default class InventoryTransactionHandler
                                     .getBlockManager()
                                     .getRuntimeWithId(0); // Air
 
-                                Promise.all(
+                                await Promise.all(
                                     server
                                         .getOnlinePlayers()
-                                        .map((player) =>
+                                        .map(async (player) =>
                                             player
                                                 .getConnection()
                                                 .sendDataPacket(pk)
@@ -116,21 +116,22 @@ export default class InventoryTransactionHandler
 
                                 soundPk.extraData = server
                                     .getBlockManager()
-                                    .getRuntimeWithMeta(blockId, blockMeta); // in this case refers to block runtime Id
+                                    .getRuntimeWithMeta(blockId, blockMeta); // In this case refers to block runtime Id
                                 soundPk.entityType = ':';
                                 soundPk.isBabyMob = false;
                                 soundPk.disableRelativeVolume = false;
 
-                                Promise.all(
+                                await Promise.all(
                                     player
                                         .getPlayersInChunk()
-                                        .map((narbyPlayer) =>
+                                        .map(async (narbyPlayer) =>
                                             narbyPlayer
                                                 .getConnection()
                                                 .sendDataPacket(soundPk)
                                         )
                                 );
                             })();
+
                             break;
                         default:
                             server
@@ -140,7 +141,12 @@ export default class InventoryTransactionHandler
                                 );
                     }
                 }
+
                 break;
+            }
+            default: {
+                throw new Error('Invalid InventoryTransactionType');
+            }
         }
     }
 }

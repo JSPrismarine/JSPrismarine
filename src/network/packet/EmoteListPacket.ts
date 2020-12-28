@@ -12,7 +12,7 @@ export default class EmoteListPacket extends DataPacket {
         this.writeUnsignedVarInt(this.runtimeId);
         this.writeUnsignedVarInt(this.emoteIds.size);
 
-        for (let emote of this.emoteIds.values()) {
+        for (const emote of this.emoteIds.values()) {
             this.writeUUID(emote);
         }
     }

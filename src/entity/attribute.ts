@@ -19,11 +19,11 @@ export const AttributeIds = {
 };
 
 export class Attribute {
-    private name: string;
-    private min: number;
-    private max: number;
-    private default: number;
-    private value: number;
+    private readonly name: string;
+    private readonly min: number;
+    private readonly max: number;
+    private readonly default: number;
+    private readonly value: number;
 
     /**
      * Class used to store Attribute data.
@@ -71,58 +71,40 @@ export class Attribute {
 
 const MAX_FLOAT32 = 3.4028234663852886e38;
 export default class AttributeManager {
-    private attributes: Array<Attribute> = [];
+    private readonly attributes: Attribute[] = [];
 
     /**
      * Returns a list of default attributes to send the first time a player spawns.
      */
     public getDefaults() {
         return [
-            new Attribute(AttributeIds.Absorption, 0.0, MAX_FLOAT32, 0.0, 0.0),
-            new Attribute(AttributeIds.PlayerSaturation, 0.0, 20.0, 20.0, 20.0),
-            new Attribute(AttributeIds.PlayerExhaustion, 0.0, 5.0, 0.0, 0.0),
-            new Attribute(AttributeIds.KnockbackResistence, 0.0, 1.0, 0.0, 0.0),
-            new Attribute(AttributeIds.Health, 0.0, 20.0, 20.0, 20.0),
-            new Attribute(AttributeIds.Movement, 0.0, MAX_FLOAT32, 0.1, 0.1),
-            new Attribute(AttributeIds.FollowRange, 0.0, 2048.0, 16.0, 16.0),
-            new Attribute(AttributeIds.PlayerHunger, 0.0, 20.0, 20.0, 20.0),
-            new Attribute(
-                AttributeIds.AttackDamage,
-                0.0,
-                MAX_FLOAT32,
-                1.0,
-                1.0
-            ),
-            new Attribute(AttributeIds.PlayerLevel, 0.0, 24791.0, 0.0, 0.0),
-            new Attribute(AttributeIds.PlayerExperience, 0.0, 1.0, 0.0, 0.0),
+            new Attribute(AttributeIds.Absorption, 0, MAX_FLOAT32, 0, 0),
+            new Attribute(AttributeIds.PlayerSaturation, 0, 20, 20, 20),
+            new Attribute(AttributeIds.PlayerExhaustion, 0, 5, 0, 0),
+            new Attribute(AttributeIds.KnockbackResistence, 0, 1, 0, 0),
+            new Attribute(AttributeIds.Health, 0, 20, 20, 20),
+            new Attribute(AttributeIds.Movement, 0, MAX_FLOAT32, 0.1, 0.1),
+            new Attribute(AttributeIds.FollowRange, 0, 2048, 16, 16),
+            new Attribute(AttributeIds.PlayerHunger, 0, 20, 20, 20),
+            new Attribute(AttributeIds.AttackDamage, 0, MAX_FLOAT32, 1, 1),
+            new Attribute(AttributeIds.PlayerLevel, 0, 24791, 0, 0),
+            new Attribute(AttributeIds.PlayerExperience, 0, 1, 0, 0),
             new Attribute(
                 AttributeIds.UnderwaterMovement,
-                0.0,
+                0,
                 MAX_FLOAT32,
                 0.02,
                 0.02
             ),
-            new Attribute(AttributeIds.Luck, -1024.0, 1024.0, 0.0, 0.0),
-            new Attribute(AttributeIds.FallDamage, 0.0, MAX_FLOAT32, 1.0, 1.0),
-            new Attribute(AttributeIds.HorseJumpStrength, 0.0, 2.0, 0.7, 0.7),
-            new Attribute(
-                AttributeIds.ZombieSpawnReinforcements,
-                0.0,
-                1.0,
-                0.0,
-                0.0
-            ),
-            new Attribute(
-                AttributeIds.LavaMovement,
-                0.0,
-                MAX_FLOAT32,
-                0.02,
-                0.02
-            )
+            new Attribute(AttributeIds.Luck, -1024, 1024, 0, 0),
+            new Attribute(AttributeIds.FallDamage, 0, MAX_FLOAT32, 1, 1),
+            new Attribute(AttributeIds.HorseJumpStrength, 0, 2, 0.7, 0.7),
+            new Attribute(AttributeIds.ZombieSpawnReinforcements, 0, 1, 0, 0),
+            new Attribute(AttributeIds.LavaMovement, 0, MAX_FLOAT32, 0.02, 0.02)
         ];
     }
 
-    public getAttributes(): Array<Attribute> {
+    public getAttributes(): Attribute[] {
         return this.attributes;
     }
 }

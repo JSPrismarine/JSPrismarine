@@ -17,14 +17,14 @@ export const GameRules = {
     NaturalRegeneration: 'naturalregeneration',
     PVP: 'pvp',
     SendCommandFeedback: 'sendcommandfeedback',
-    ShowCoordinates: 'showcoordinates', // bool
+    ShowCoordinates: 'showcoordinates', // Bool
     RandomTickSpeed: 'randomtickspeed',
     TNTExplodes: 'tntexplodes'
 };
 
 export default class GameruleManager {
-    private server: Server;
-    private rules: Map<string, any> = new Map();
+    private readonly server: Server;
+    private readonly rules: Map<string, any> = new Map();
 
     constructor(server: Server) {
         this.server = server;
@@ -49,6 +49,7 @@ export default class GameruleManager {
         if (!Object.values(GameRules).includes(name)) {
             this.server.getLogger().error(`Unknown Gamerule with name ${name}`);
         }
+
         this.rules.get(name);
     }
 

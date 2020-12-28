@@ -10,7 +10,7 @@ export enum QueryType {
 }
 
 export default class QueryManager {
-    private server: Server;
+    private readonly server: Server;
     public git_rev: string;
 
     constructor(server: Server) {
@@ -30,7 +30,7 @@ export default class QueryManager {
             const type: QueryType = stream.readByte();
             const sessionId = stream.readInt() & 0x0f0f0f0f;
 
-            if (magic !== 65277) return reject();
+            if (magic !== 65277) return reject(new Error('Invalid magic'));
 
             switch (type) {
                 case QueryType.Handshake: {
@@ -48,10 +48,11 @@ export default class QueryManager {
                         );
                     return resolve(res.getBuffer());
                 }
+
                 case QueryType.Stats: {
                     const res = new BinaryStream();
                     res.writeByte(0);
-                    // padding
+                    // Padding
                     res.writeByte(115);
                     res.writeByte(112);
                     res.writeByte(108);
@@ -113,7 +114,7 @@ export default class QueryManager {
                         )
                     );
 
-                    // padding
+                    // Padding
                     res.writeByte(1);
                     res.writeByte(112);
                     res.writeByte(108);
@@ -144,8 +145,11 @@ export default class QueryManager {
                             rinfo.getPort()
                         );
 
-                    resolve(res.getBuffer());
+                    return resolve(res.getBuffer());
                 }
+
+                default:
+                    throw new Error('Invalid QueryType');
             }
         });
     }

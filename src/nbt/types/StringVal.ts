@@ -1,7 +1,7 @@
-export default class StringVal {
-    private value: string;
+export default class StringValue {
+    private readonly value: string;
 
-    public constructor(value: string = '') {
+    public constructor(value = '') {
         this.value = value;
     }
 
