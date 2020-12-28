@@ -155,7 +155,10 @@ export default class PacketRegistry {
     private loadHandlers(): void {
         const time = Date.now();
 
-        this.registerHandler(Identifiers.AdventureSettingsPacket, new AdventureSettingsHandler());
+        this.registerHandler(
+            Identifiers.AdventureSettingsPacket,
+            new AdventureSettingsHandler()
+        );
         this.registerHandler(Identifiers.AnimatePacket, new AnimateHandler());
         this.registerHandler(
             Identifiers.ClientCacheStatusPacket,

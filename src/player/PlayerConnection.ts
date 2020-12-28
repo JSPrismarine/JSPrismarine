@@ -3,7 +3,9 @@ import { Attribute } from '../entity/attribute';
 import { WindowIds } from '../inventory/WindowManager';
 import Item from '../item/Item';
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
-import AdventureSettingsPacket, { AdventureSettingsFlags } from '../network/packet/AdventureSettingsPacket';
+import AdventureSettingsPacket, {
+    AdventureSettingsFlags
+} from '../network/packet/AdventureSettingsPacket';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
 import BatchPacket from '../network/packet/BatchPacket';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
@@ -91,7 +93,10 @@ export default class PlayerConnection {
     public async sendSettings() {
         const pk = new AdventureSettingsPacket();
 
-        pk.setFlag(AdventureSettingsFlags.WorldImmutable, this.player.gamemode === 3);
+        pk.setFlag(
+            AdventureSettingsFlags.WorldImmutable,
+            this.player.gamemode === 3
+        );
         pk.setFlag(AdventureSettingsFlags.NoPvp, this.player.gamemode === 3);
         pk.setFlag(AdventureSettingsFlags.AutoJump, true); // TODO
         pk.setFlag(AdventureSettingsFlags.AllowFlight, true); // TODO

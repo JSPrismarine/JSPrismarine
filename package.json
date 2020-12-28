@@ -87,7 +87,8 @@
             "no-fallthrough": 0,
             "no-await-in-loop": 0,
             "max-depth": 0,
-            "capitalized-comments": 0
+            "capitalized-comments": 0,
+            "no-lonely-if": 0
         }
     },
     "keywords": [
