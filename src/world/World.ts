@@ -112,7 +112,7 @@ export default class World {
         z: number,
         generate = true
     ): Promise<Chunk> {
-        return await this.loadChunk(x, z, generate);
+        return this.loadChunk(x, z, generate);
     }
 
     /**
