@@ -15,6 +15,9 @@
 <a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
   <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/JSPrismarine/JSPrismarine?style=flat-square">
 </a>
+<a href="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine">
+  <img alt="Codefactor.io" src="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine/badge?style=flat-square">
+</a>
 <a href="https://discord.gg/6w8JWhy">
   <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
 </a>
