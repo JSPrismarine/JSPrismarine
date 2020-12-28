@@ -1,8 +1,6 @@
-import ActorFallHandler from './handler/ActorFallHandler';
 import ActorFallPacket from './packet/ActorFallPacket';
 import AddActorPacket from './packet/AddActorPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
-import AdventureSettingsHandler from './handler/AdventureSettingsHandler';
 import AdventureSettingsPacket from './packet/AdventureSettingsPacket';
 import AnimateHandler from './handler/AnimateHandler';
 import AnimatePacket from './packet/AnimatePacket';
@@ -19,7 +17,6 @@ import ContainerClosePacket from './packet/ContainerClosePacket';
 import ContainerOpenPacket from './packet/ContainerOpenPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
-import EmoteListHandler from './handler/EmoteListHandler';
 import EmoteListPacket from './packet/EmoteListPacket';
 import Identifiers from './Identifiers';
 import InteractHandler from './handler/InteractHandler';
@@ -27,7 +24,6 @@ import InteractPacket from './packet/InteractPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
 import InventoryTransactionPacket from './packet/InventoryTransactionPacket';
-import ItemStackRequestHandler from './handler/ItemStackRequestHandler';
 import ItemStackRequestPacket from './packet/ItemStackRequestPacket';
 import ItemStackResponsePacket from './packet/ItemStackResponsePacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
@@ -66,16 +62,15 @@ import SetTitlePacket from './packet/SetTitlePacket';
 import StartGamePacket from './packet/StartGamePacket';
 import TextHandler from './handler/TextHandler';
 import TextPacket from './packet/TextPacket';
-import TickSyncHandler from './handler/TickSyncHandler';
 import TickSyncPacket from './packet/TickSyncPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import WorldEventPacket from './packet/WorldEventPacket';
 
 export default class PacketRegistry {
-    private logger: LoggerBuilder;
-    private packets: Map<number, any> = new Map();
-    private handlers: Map<number, any> = new Map();
+    private readonly logger: LoggerBuilder;
+    private readonly packets: Map<number, any> = new Map();
+    private readonly handlers: Map<number, any> = new Map();
 
     public constructor(server: Server) {
         this.logger = server.getLogger();
@@ -158,14 +153,6 @@ export default class PacketRegistry {
     private loadHandlers(): void {
         const time = Date.now();
 
-        this.registerHandler(
-            Identifiers.ActorFallPacket,
-            new ActorFallHandler()
-        );
-        this.registerHandler(
-            Identifiers.AdventureSettingsPacket,
-            new AdventureSettingsHandler()
-        );
         this.registerHandler(Identifiers.AnimatePacket, new AnimateHandler());
         this.registerHandler(
             Identifiers.ClientCacheStatusPacket,
@@ -179,18 +166,10 @@ export default class PacketRegistry {
             Identifiers.CommandRequestPacket,
             new CommandRequestHandler()
         );
-        this.registerHandler(
-            Identifiers.EmoteListPacket,
-            new EmoteListHandler()
-        );
         this.registerHandler(Identifiers.InteractPacket, new InteractHandler());
         this.registerHandler(
             Identifiers.InventoryTransactionPacket,
             new InventoryTransactionHandler()
-        );
-        this.registerHandler(
-            Identifiers.ItemStackRequestPacket,
-            new ItemStackRequestHandler()
         );
         this.registerHandler(
             Identifiers.LevelSoundEventPacket,
@@ -226,7 +205,6 @@ export default class PacketRegistry {
             new SetLocalPlayerAsInitializedHandler()
         );
         this.registerHandler(Identifiers.TextPacket, new TextHandler());
-        this.registerHandler(Identifiers.TickSyncPacket, new TickSyncHandler());
 
         this.logger.debug(
             `Registered §b${this.handlers.size}§r packet handler(s) (took ${
@@ -242,9 +220,9 @@ export default class PacketRegistry {
     public getPacketHandler(id: number): object | null {
         if (this.handlers.has(id)) {
             return this.handlers.get(id);
-        } else {
-            this.logger.error(`Missing handler for packet id=%d`, id);
-            return null;
         }
+
+        this.logger.error(`Missing handler for packet id=%d`, id);
+        return null;
     }
 }

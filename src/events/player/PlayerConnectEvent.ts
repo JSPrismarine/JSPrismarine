@@ -6,8 +6,8 @@ import type Player from '../../player/Player';
  * Fired just after a client has connected to the raknet instance
  */
 export default class PlayerConnectEvent extends Event {
-    private player;
-    private inetAddr;
+    private readonly player;
+    private readonly inetAddr;
 
     constructor(player: Player, inetAddr: InetAddress) {
         super();

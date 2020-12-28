@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import InetAddress from '../utils/InetAddress';
 
 export default class Packet extends BinaryStream {
-    private id: number;
+    private readonly id: number;
 
     public constructor(id: number, buffer?: Buffer) {
         super(buffer);
@@ -43,28 +43,28 @@ export default class Packet extends BinaryStream {
 
     // Reads a RakNet address passed into the buffer
     public readAddress() {
-        let ver = this.readByte();
-        if (ver == 4) {
+        const ver = this.readByte();
+        if (ver === 4) {
             // Read 4 bytes
-            let ipBytes = this.getBuffer().slice(
+            const ipBytes = this.getBuffer().slice(
                 this.getOffset(),
                 this.addOffset(4, true)
             );
-            let addr = `${(-ipBytes[0] - 1) & 0xff}.${
+            const addr = `${(-ipBytes[0] - 1) & 0xff}.${
                 (-ipBytes[1] - 1) & 0xff
             }.${(-ipBytes[2] - 1) & 0xff}.${(-ipBytes[3] - 1) & 0xff}`;
-            let port = this.readShort();
-            return new InetAddress(addr, port, ver);
-        } else {
-            this.addOffset(2, true); // Skip 2 bytes
-            let port = this.readShort();
-            this.addOffset(4, true); // Skip 4 bytes
-            let addr = this.getBuffer()
-                .slice(this.getOffset(), this.addOffset(16, true))
-                .toString();
-            this.addOffset(4, true); // Skip 4 bytes
+            const port = this.readShort();
             return new InetAddress(addr, port, ver);
         }
+
+        this.addOffset(2, true); // Skip 2 bytes
+        const port = this.readShort();
+        this.addOffset(4, true); // Skip 4 bytes
+        const addr = this.getBuffer()
+            .slice(this.getOffset(), this.addOffset(16, true))
+            .toString();
+        this.addOffset(4, true); // Skip 4 bytes
+        return new InetAddress(addr, port, ver);
     }
 
     // Writes an IPv4 address into the buffer

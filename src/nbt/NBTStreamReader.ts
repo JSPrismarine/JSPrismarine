@@ -12,8 +12,8 @@ export default class NBTStreamReader {
     protected input: BinaryStream;
     protected byteOrder: ByteOrder;
 
-    private useVarint: boolean = false;
-    private allocateLimit: number = -1;
+    private useVarint = false;
+    private allocateLimit = -1;
 
     protected constructor(input: BinaryStream, byteOrder: ByteOrder) {
         this.input = input;
@@ -38,12 +38,12 @@ export default class NBTStreamReader {
     }
 
     protected readStringValue(): StringVal {
-        let length: number = this.useVarint
+        const length: number = this.useVarint
             ? this.input.readUnsignedVarInt()
             : this.readShortValue().getValue();
         this.expectInput(length, 'Invalid NBT Data: Expected string bytes');
 
-        let data: Buffer = this.input.read(length);
+        const data: Buffer = this.input.read(length);
 
         return new StringVal(data.toString('utf8'));
     }
@@ -51,7 +51,7 @@ export default class NBTStreamReader {
     protected readShortValue(): ShortVal {
         this.expectInput(2, 'Invalid NBT Data: Expected short');
 
-        if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
+        if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return new ShortVal(this.input.readLShort());
         }
 
@@ -65,7 +65,7 @@ export default class NBTStreamReader {
 
         this.expectInput(4, 'Invalid NBT Data: Expected int');
 
-        if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
+        if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return new NumberVal(this.input.readLInt());
         }
 
@@ -75,21 +75,21 @@ export default class NBTStreamReader {
     protected readLongValue(): LongVal {
         if (this.useVarint) {
             return new LongVal(this.input.readVarLong());
-        } else {
-            this.expectInput(8, 'Invalid NBT Data: Expected long');
-
-            if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
-                return new LongVal(this.input.readLLong());
-            }
-
-            return new LongVal(this.input.readLong());
         }
+
+        this.expectInput(8, 'Invalid NBT Data: Expected long');
+
+        if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
+            return new LongVal(this.input.readLLong());
+        }
+
+        return new LongVal(this.input.readLong());
     }
 
     protected readFloatValue(): FloatVal {
         this.expectInput(4, 'Invalid NBT Data: Expected long');
 
-        if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
+        if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return new FloatVal(this.input.readLFloat());
         }
 
@@ -99,7 +99,7 @@ export default class NBTStreamReader {
     protected readDoubleValue(): DoubleVal {
         this.expectInput(8, 'Invalid NBT Data: Expected double');
 
-        if (this.byteOrder == ByteOrder.LITTLE_ENDIAN) {
+        if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
             return new DoubleVal(this.input.readLDouble());
         }
 
@@ -107,42 +107,43 @@ export default class NBTStreamReader {
     }
 
     protected readByteArrayValue(): Buffer {
-        let size: number = this.readIntValue().getValue();
+        const size: number = this.readIntValue().getValue();
         this.expectInput(size, 'Invalid NBT Data: Expected byte array data');
         return this.input.read(size);
     }
 
     protected readIntArrayValue(): number[] {
-        let size: number = this.readIntValue().getValue();
+        const size: number = this.readIntValue().getValue();
         this.expectInput(
             this.isUsingVarint() ? size : size * 4,
             'Invalid NBT Data: Expected int array data'
         );
-        let result: number[] = [];
+        const result: number[] = [];
         for (let i = 0; i < size; i++) {
             result.push(this.readIntValue().getValue());
         }
+
         return result;
     }
 
     protected expectInput(
         remaining: number,
         message: string,
-        alterAllocationLimit: boolean = true
+        alterAllocationLimit = true
     ): void {
         if (alterAllocationLimit) {
             this.alterAllocationLimit(remaining);
         }
 
-        let len = this.input.readRemaining().length;
-        this.input.addOffset(-len, false);
-        if (len < remaining) {
+        const length = this.input.readRemaining().length;
+        this.input.addOffset(-length, false);
+        if (length < remaining) {
             throw new Error(message);
         }
     }
 
     public alterAllocationLimit(remaining: number): void {
-        if (this.allocateLimit != -1) {
+        if (this.allocateLimit !== -1) {
             if (this.allocateLimit - remaining < 0) {
                 throw new Error(
                     'Could not allocate more bytes due to reaching the set limit'

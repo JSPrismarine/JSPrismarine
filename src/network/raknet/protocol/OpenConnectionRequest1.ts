@@ -18,8 +18,8 @@ export default class OpenConnectionRequest1 extends OfflinePacket {
     public encodePayload(): void {
         this.writeMagic();
         this.writeByte(this.protocol);
-        let length = this.mtuSize - this.getBuffer().byteLength;
-        let buf = Buffer.alloc(length).fill(0x00);
+        const length = this.mtuSize - this.getBuffer().byteLength;
+        const buf = Buffer.alloc(length).fill(0x00);
         this.append(buf);
     }
 }

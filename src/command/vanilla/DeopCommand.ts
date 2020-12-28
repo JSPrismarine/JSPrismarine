@@ -26,7 +26,10 @@ export default class DeopCommand extends Command {
         );
     }
 
-    execute(sender: Player, args: Array<any>) {
+    public async execute(
+        sender: Player,
+        args: any[]
+    ): Promise<string | undefined> {
         if (args.length <= 0) {
             const event = new ChatEvent(
                 new Chat(
@@ -35,22 +38,22 @@ export default class DeopCommand extends Command {
                     `*.player.${sender.getUsername()}`
                 )
             );
-            sender.getServer().getEventManager().emit('chat', event);
+            await sender.getServer().getEventManager().emit('chat', event);
             return;
-        } else {
-            const target = sender.getServer().getPlayerByName(args[0]);
-            sender.getServer().getPermissionManager().setOp(args[0], false);
+        }
 
-            if (target) {
-                const event = new ChatEvent(
-                    new Chat(
-                        sender,
-                        '§eYou are no longer op!',
-                        `*.player.${target.getUsername()}`
-                    )
-                );
-                sender.getServer().getEventManager().emit('chat', event);
-            }
+        const target = sender.getServer().getPlayerByName(args[0]);
+        await sender.getServer().getPermissionManager().setOp(args[0], false);
+
+        if (target) {
+            const event = new ChatEvent(
+                new Chat(
+                    sender,
+                    '§eYou are no longer op!',
+                    `*.player.${target.getUsername()}`
+                )
+            );
+            await sender.getServer().getEventManager().emit('chat', event);
         }
 
         return `Made ${

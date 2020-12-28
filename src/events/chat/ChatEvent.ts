@@ -2,7 +2,7 @@ import type Chat from '../../chat/Chat';
 import Event from '../Event';
 
 export default class ChatEvent extends Event {
-    private chat;
+    private readonly chat;
 
     constructor(chat: Chat) {
         super();

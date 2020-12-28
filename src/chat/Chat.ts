@@ -2,9 +2,9 @@ import type Console from '../Console';
 import type Player from '../player/Player';
 
 export default class Chat {
-    private channel: string;
-    private sender: Player | Console;
-    private message: string;
+    private readonly channel: string;
+    private readonly sender: Player | Console;
+    private readonly message: string;
 
     constructor(
         sender: Player | Console,

@@ -26,7 +26,7 @@ interface PersonaPiece {
 }
 
 interface PieceTintColor {
-    Colors: Array<string>;
+    Colors: string[];
     PieceType: string;
 }
 
@@ -47,24 +47,24 @@ interface JWT {
     PersonaSkin: boolean;
     SkinColor: string;
     ArmSize: string;
-    AnimatedImageData: Array<AnimatedImageData>;
-    PersonaPieces: Array<PersonaPiece>;
-    PieceTintColors: Array<PieceTintColor>;
+    AnimatedImageData: AnimatedImageData[];
+    PersonaPieces: PersonaPiece[];
+    PieceTintColors: PieceTintColor[];
 }
 
 export default class Skin {
     private id!: string;
     private resourcePatch!: string;
     private image!: SkinImage;
-    private animations: Set<SkinAnimation> = new Set();
+    private readonly animations: Set<SkinAnimation> = new Set();
     private cape!: SkinCape;
     private geometry!: string;
     private animationData!: string;
     private premium!: boolean;
     private persona!: boolean;
     private capeOnClassicSkin!: boolean;
-    private color: string = '#0';
-    private armSize: string = 'wide';
+    private color = '#0';
+    private armSize = 'wide';
     private personaData!: SkinPersona;
 
     /**
@@ -72,7 +72,7 @@ export default class Skin {
      * not sent on JWT.
      */
     public fullId!: string;
-    public isTrusted: boolean = true;
+    public isTrusted = true;
 
     /**
      * Loads a skin from a JSON file contianing skin data
@@ -81,7 +81,7 @@ export default class Skin {
      * (loads the skin persona)
      */
     public static fromJWT(jwt: JWT): Skin {
-        let skin = new Skin();
+        const skin = new Skin();
 
         // Read skin
         skin.id = jwt.SkinId;
@@ -98,7 +98,7 @@ export default class Skin {
         skin.armSize = jwt.ArmSize;
 
         // Read animations
-        for (let animation of jwt.AnimatedImageData) {
+        for (const animation of jwt.AnimatedImageData) {
             skin.animations.add(
                 new SkinAnimation({
                     image: new SkinImage({
@@ -142,7 +142,7 @@ export default class Skin {
             skin.personaData = new SkinPersona();
 
             // Read persona pieces
-            for (let personaPiece of jwt.PersonaPieces) {
+            for (const personaPiece of jwt.PersonaPieces) {
                 skin.personaData.getPieces().add(
                     new SkinPersonaPiece({
                         def: personaPiece.IsDefault,
@@ -155,8 +155,8 @@ export default class Skin {
             }
 
             // Read piece tint colors
-            for (let pieceTintColor of jwt.PieceTintColors) {
-                let tintColor = new SkinPersonaPieceTintColor();
+            for (const pieceTintColor of jwt.PieceTintColors) {
+                const tintColor = new SkinPersonaPieceTintColor();
                 tintColor.getColors().push(...pieceTintColor.Colors);
                 tintColor.setPieceType(pieceTintColor.PieceType);
                 skin.personaData.getTintColors().add(tintColor);

@@ -23,11 +23,11 @@ export default class PlayerActionPacket extends DataPacket {
     }
 
     public encodePayload() {
-        this.writeUnsignedVarLong(this.runtimeEntityId as bigint);
-        this.writeVarInt(this.action as number);
-        this.writeVarInt(this.x as number);
-        this.writeUnsignedVarInt(this.y as number);
-        this.writeVarInt(this.z as number);
-        this.writeVarInt(this.face as number);
+        this.writeUnsignedVarLong(this.runtimeEntityId);
+        this.writeVarInt(this.action);
+        this.writeVarInt(this.x);
+        this.writeUnsignedVarInt(this.y);
+        this.writeVarInt(this.z);
+        this.writeVarInt(this.face);
     }
 }

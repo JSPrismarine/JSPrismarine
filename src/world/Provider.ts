@@ -1,7 +1,7 @@
 import fs from 'fs';
 
 export default class Provider {
-    private path: string = '';
+    private path: string;
 
     public constructor(path: string) {
         this.path = path;

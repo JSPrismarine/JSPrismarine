@@ -6,7 +6,7 @@ export default class UpdateAttributesPacket extends DataPacket {
     static NetID = Identifiers.UpdateAttributesPacket;
 
     public runtimeEntityId!: bigint;
-    public attributes: Array<Attribute> = [];
+    public attributes: Attribute[] = [];
 
     public tick!: bigint;
 

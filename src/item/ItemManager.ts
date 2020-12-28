@@ -4,22 +4,22 @@ import fs from 'fs';
 import path from 'path';
 
 export default class ItemManager {
-    private server: Server;
-    private items = new Map();
+    private readonly server: Server;
+    private readonly items = new Map();
 
     constructor(server: Server) {
         this.server = server;
     }
 
     /**
-     * onEnable hook
+     * OnEnable hook
      */
     public async onEnable() {
         this.importItems();
     }
 
     /**
-     * onDisable hook
+     * OnDisable hook
      */
     public async onDisable() {
         this.items.clear();
@@ -29,7 +29,7 @@ export default class ItemManager {
         return this.items.get(name);
     }
 
-    public getItems(): Array<Item> {
+    public getItems(): Item[] {
         return Array.from(this.items.values());
     }
 
@@ -54,7 +54,7 @@ export default class ItemManager {
                 const item = require(`./items/${id}`).default;
                 try {
                     this.registerClassItem(new item());
-                } catch (err) {
+                } catch {
                     this.server.getLogger().error(`${id} failed to register!`);
                 }
             });
@@ -65,8 +65,8 @@ export default class ItemManager {
                         Date.now() - time
                     } ms)!`
                 );
-        } catch (err) {
-            this.server.getLogger().error(`Failed to register items: ${err}`);
+        } catch (error) {
+            this.server.getLogger().error(`Failed to register items: ${error}`);
         }
     }
 }

@@ -5,11 +5,11 @@ import Server from '../Server';
 import { machineIdSync } from 'node-machine-id';
 
 export default class TelemetryManager {
-    private id = this.generateAnonomizedId();
-    private server: Server;
+    private readonly id = this.generateAnonomizedId();
+    private readonly server: Server;
     private ticker: any;
-    private enabled: boolean;
-    private urls: string[];
+    private readonly enabled: boolean;
+    private readonly urls: string[];
 
     constructor(server: Server) {
         this.server = server;
@@ -47,6 +47,7 @@ export default class TelemetryManager {
         await this.tick();
         this.ticker = setInterval(this.tick, 5 * 60 * 1000);
     }
+
     public async onDisable() {
         clearInterval(this.ticker);
     }
@@ -86,10 +87,10 @@ export default class TelemetryManager {
                         })
                     });
                     this.server.getLogger().silly('[telemetry] Sent heartbeat');
-                } catch (err) {
+                } catch (error) {
                     this.server
                         .getLogger()
-                        .warn(`[telemetry] Failed to tick: ${url} (${err})`);
+                        .warn(`[telemetry] Failed to tick: ${url} (${error})`);
                 }
             })
         );
@@ -99,7 +100,7 @@ export default class TelemetryManager {
         return machineIdSync();
     }
 
-    public async sendCrashLog(crashlog: Error, urls: Array<string>) {
+    public async sendCrashLog(crashlog: Error, urls: string[]) {
         this.server
             .getLogger()
             .error(

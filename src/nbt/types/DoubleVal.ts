@@ -1,7 +1,7 @@
-export default class DoubleVal {
-    private value: number;
+export default class DoubleValue {
+    private readonly value: number;
 
-    public constructor(value: number = 0) {
+    public constructor(value = 0) {
         this.value = value;
     }
 
