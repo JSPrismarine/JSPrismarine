@@ -21,6 +21,7 @@ import Identifiers from './Identifiers';
 import ActorFallPacket from './packet/ActorFallPacket';
 import AddActorPacket from './packet/AddActorPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
+import AdventureSettingsHandler from './handler/AdventureSettingsHandler';
 import AdventureSettingsPacket from './packet/AdventureSettingsPacket';
 import AnimatePacket from './packet/AnimatePacket';
 import AvailableActorIdentifiersPacket from './packet/AvailableActorIdentifiersPacket';
@@ -154,6 +155,7 @@ export default class PacketRegistry {
     private loadHandlers(): void {
         const time = Date.now();
 
+        this.registerHandler(Identifiers.AdventureSettingsPacket, new AdventureSettingsHandler());
         this.registerHandler(Identifiers.AnimatePacket, new AnimateHandler());
         this.registerHandler(
             Identifiers.ClientCacheStatusPacket,
