@@ -1,4 +1,4 @@
-// import PacketBinaryStream from '../PacketBinaryStream';
+// Import PacketBinaryStream from '../PacketBinaryStream';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import Vector3 from '../../math/Vector3';
@@ -19,7 +19,7 @@ export default class StartGamePacket extends DataPacket {
 
     public gamerules: Map<string, any> = new Map();
 
-    //    private cachedItemPalette!: Buffer;
+    //    Private cachedItemPalette!: Buffer;
 
     public encodePayload() {
         this.writeVarLong(this.entityId);
@@ -27,100 +27,100 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(this.gamemode);
 
-        // vector 3
+        // Vector 3
         this.writeLFloat(this.playerPos.getX());
         this.writeLFloat(this.playerPos.getY());
         this.writeLFloat(this.playerPos.getZ());
 
-        this.writeLFloat(0); // pitch
-        this.writeLFloat(0); // yaw
+        this.writeLFloat(0); // Pitch
+        this.writeLFloat(0); // Yaw
 
-        this.writeVarInt(0); //  seed
+        this.writeVarInt(0); //  Seed
 
-        this.writeLShort(0x00); // default spawn biome type
-        this.writeString('plains'); // user defined biome name
+        this.writeLShort(0x00); // Default spawn biome type
+        this.writeString('plains'); // User defined biome name
 
-        this.writeVarInt(0); // dimension
+        this.writeVarInt(0); // Dimension
 
-        this.writeVarInt(1); // generator
-        this.writeVarInt(0); // gamemode
-        this.writeVarInt(0); // difficulty
+        this.writeVarInt(1); // Generator
+        this.writeVarInt(0); // Gamemode
+        this.writeVarInt(0); // Difficulty
 
         // world spawn vector 3
         this.writeVarInt(this.worldSpawnPos.getX());
         this.writeUnsignedVarInt(this.worldSpawnPos.getY());
         this.writeVarInt(this.worldSpawnPos.getZ());
 
-        this.writeBool(true); // achievement disabled
+        this.writeBool(true); // Achievement disabled
 
-        this.writeVarInt(0); // day cycle / time
-        this.writeVarInt(0); // edu edition offer
-        this.writeBool(false); // edu features
-        this.writeString(''); // edu product id
+        this.writeVarInt(0); // Day cycle / time
+        this.writeVarInt(0); // Edu edition offer
+        this.writeBool(false); // Edu features
+        this.writeString(''); // Edu product id
 
-        this.writeLFloat(0); // rain lvl
-        this.writeLFloat(0); // lightning lvl
+        this.writeLFloat(0); // Rain lvl
+        this.writeLFloat(0); // Lightning lvl
 
-        this.writeByte(0); // confirmed platform locked
-        this.writeByte(1); // multi player game
-        this.writeByte(1); // broadcast to lan
+        this.writeByte(0); // Confirmed platform locked
+        this.writeByte(1); // Multi player game
+        this.writeByte(1); // Broadcast to lan
 
-        this.writeVarInt(4); // xbl broadcast mode
-        this.writeVarInt(4); // platform broadcast mode
+        this.writeVarInt(4); // Xbl broadcast mode
+        this.writeVarInt(4); // Platform broadcast mode
 
-        this.writeByte(1); // commands enabled
-        this.writeByte(0); // texture required
+        this.writeByte(1); // Commands enabled
+        this.writeByte(0); // Texture required
 
         this.writeGamerules(this.gamerules);
 
-        this.writeLInt(0); // experiment count
-        this.writeBool(false); // experiments previously toggled?
+        this.writeLInt(0); // Experiment count
+        this.writeBool(false); // Experiments previously toggled?
 
-        this.writeByte(0); // bonus chest
-        this.writeByte(0); // start with map
+        this.writeByte(0); // Bonus chest
+        this.writeByte(0); // Start with map
 
-        this.writeVarInt(1); // player perms
+        this.writeVarInt(1); // Player perms
 
-        this.writeLInt(0); // chunk tick range
+        this.writeLInt(0); // Chunk tick range
 
-        this.writeByte(0); // locked behavior
-        this.writeByte(0); // locked texture
-        this.writeByte(0); // from locked template
-        this.writeByte(0); // msa gamer tags only
-        this.writeByte(0); // from world template
-        this.writeByte(0); // world template option locked
-        this.writeByte(0); // only spawn v1 villagers
+        this.writeByte(0); // Locked behavior
+        this.writeByte(0); // Locked texture
+        this.writeByte(0); // From locked template
+        this.writeByte(0); // Msa gamer tags only
+        this.writeByte(0); // From world template
+        this.writeByte(0); // World template option locked
+        this.writeByte(0); // Only spawn v1 villagers
         this.writeString(Identifiers.MinecraftVersion);
 
-        this.writeLInt(0); // limited world height
-        this.writeLInt(0); // limited world length
+        this.writeLInt(0); // Limited world height
+        this.writeLInt(0); // Limited world length
 
-        this.writeBool(false); // has new nether
-        this.writeBool(false); // experimental gameplay
+        this.writeBool(false); // Has new nether
+        this.writeBool(false); // Experimental gameplay
 
         this.writeString(this.levelId);
         this.writeString(this.worldName);
-        this.writeString(''); // template content identity
+        this.writeString(''); // Template content identity
 
-        this.writeByte(0); // is trial
-        this.writeUnsignedVarInt(0); // server auth movement
+        this.writeByte(0); // Is trial
+        this.writeUnsignedVarInt(0); // Server auth movement
 
-        this.writeLLong(BigInt(0)); // world ticks (for time)
+        this.writeLLong(BigInt(0)); // World ticks (for time)
 
-        this.writeVarInt(0); // enchantment seed
+        this.writeVarInt(0); // Enchantment seed
 
-        this.writeUnsignedVarInt(0); // custom blocks
+        this.writeUnsignedVarInt(0); // Custom blocks
 
-        this.writeUnsignedVarInt(0); // item palette
+        this.writeUnsignedVarInt(0); // Item palette
 
         this.writeString('');
-        this.writeBool(false); // new inventory system
+        this.writeBool(false); // New inventory system
     }
 
     /*
     TODO
     public serializeItemTable(table: object): Buffer {
-        if (this.cachedItemPalette == null) {
+        if (this.cachedItemPalette === null) {
             let stream = new PacketBinaryStream();
             let entries = Object.entries(table);
             stream.writeUnsignedVarInt(entries.length);

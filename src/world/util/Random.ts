@@ -37,7 +37,7 @@ export default class Random {
         for (;;) {
             const current = this.seedUniquifier;
             const next = current * 181783497276652981n;
-            if (this.seedUniquifier == current) {
+            if (this.seedUniquifier === current) {
                 this.seedUniquifier = next;
                 return next;
             }
@@ -102,7 +102,7 @@ export default class Random {
             const n = bound - origin,
                 m = n - 1n;
 
-            if ((n & m) == 0n)
+            if ((n & m) === 0n)
                 // power of two
                 r = (r & m) + origin;
             else if (n > 0n) {
@@ -134,17 +134,15 @@ export default class Random {
     internalNextInt(origin: number, bound: number): number {
         if (origin < bound) {
             const n = bound - origin;
-            if (n > 0) {
-                return this.nextInt(n) + origin;
-            } else {
-                // range not representable as int
-                let r;
-                do {
-                    r = this.nextInt();
-                } while (r < origin || r >= bound);
+            if (n > 0) return this.nextInt(n) + origin;
 
-                return r;
-            }
+            // range not representable as int
+            let r;
+            do {
+                r = this.nextInt();
+            } while (r < origin || r >= bound);
+
+            return r;
         }
 
         return origin;
@@ -174,21 +172,19 @@ export default class Random {
      */
     nextInt(bound: number | undefined = undefined): number {
         if (!bound) return this.next(32);
+        if (bound <= 0) throw new TypeError('NextInt: Bound is below 0!');
+
+        let r = this.next(31);
+        const m = bound - 1;
+
+        if ((bound & m) === 0)
+            // i.e., bound is a power of 2
+            r = ~~Number(~~(BigInt(bound) * BigInt(r)) >> 31n);
         else {
-            if (bound <= 0) throw new TypeError('NextInt: Bound is below 0!');
-
-            let r = this.next(31),
-                m = bound - 1;
-
-            if ((bound & m) == 0)
-                // i.e., bound is a power of 2
-                r = ~~Number(~~(BigInt(bound) * BigInt(r)) >> 31n);
-            else {
-                for (let u = r; u - (r = u % bound) + m < 0; u = this.next(31));
-            }
-
-            return ~~r;
+            for (let u = r; u - (r = u % bound) + m < 0; u = this.next(31));
         }
+
+        return ~~r;
     }
 
     /**
@@ -216,7 +212,7 @@ export default class Random {
     }
 
     nextBoolean(): boolean {
-        return this.next(1) != 0;
+        return this.next(1) !== 0;
     }
 
     nextFloat(): number {
@@ -233,28 +229,19 @@ export default class Random {
         if (this.#haveNextNextGaussian) {
             this.#haveNextNextGaussian = false;
             return this.#nextNextGaussian;
-        } else {
-            let v1, v2, s;
-            do {
-                v1 = 2 * this.nextDouble() - 1; // between -1 and 1
-                v2 = 2 * this.nextDouble() - 1; // between -1 and 1
-                s = v1 * v1 + v2 * v2;
-            } while (s >= 1 || s == 0);
-
-            const multiplier = Math.sqrt((-2 * Math.log(s)) / s);
-            this.#nextNextGaussian = v2 * multiplier;
-            this.#haveNextNextGaussian = true;
-
-            return v1 * multiplier;
         }
+
+        let v1, v2, s;
+        do {
+            v1 = 2 * this.nextDouble() - 1; // between -1 and 1
+            v2 = 2 * this.nextDouble() - 1; // between -1 and 1
+            s = v1 * v1 + v2 * v2;
+        } while (s >= 1 || s === 0);
+
+        const multiplier = Math.sqrt((-2 * Math.log(s)) / s);
+        this.#nextNextGaussian = v2 * multiplier;
+        this.#haveNextNextGaussian = true;
+
+        return v1 * multiplier;
     }
 }
-
-/* function compareAndSet(oldVal: any, currentVal: any, newVal: any) {
-    if (oldVal == currentVal) {
-        oldVal = newVal;
-        return true;
-    } else {
-        return false;
-    }
-}*/

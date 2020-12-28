@@ -1,7 +1,7 @@
-export default class LongVal {
-    private value: bigint;
+export default class LongValue {
+    private readonly value: bigint;
 
-    public constructor(value: bigint = 0n) {
+    public constructor(value = 0n) {
         this.value = value;
     }
 

@@ -8,12 +8,9 @@ export enum DirtType {
 }
 
 export default class Dirt extends Solid {
-    constructor(
-        name: string = 'minecraft:dirt',
-        type: DirtType = DirtType.Regular
-    ) {
+    constructor(name = 'minecraft:dirt', type: DirtType = DirtType.Regular) {
         super({
-            name: name,
+            name,
             id: BlockIdsType.Dirt,
             hardness: 0.5
         });

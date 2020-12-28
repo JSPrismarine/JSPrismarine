@@ -24,14 +24,13 @@ export default class PardonCommand extends Command {
         );
     }
 
-    execute(sender: Player, args: Array<any>) {
+    public async execute(sender: Player, args: any[]) {
         if (args.length <= 0) {
-            sender.sendMessage('§cYou have to specify a target.');
+            await sender.sendMessage('§cYou have to specify a target.');
             return;
-        } else {
-            sender.getServer().getBanManager().setUnbanned(args[0]);
         }
 
+        await sender.getServer().getBanManager().setUnbanned(args[0]);
         return `Unbanned ${args[0] || sender.getUsername()}`;
     }
 }

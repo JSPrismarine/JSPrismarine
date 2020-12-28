@@ -9,7 +9,7 @@ interface PositionData {
 }
 
 export default class Position extends Vector3 {
-    private world: World;
+    private readonly world: World;
 
     public constructor({ x, y, z, world }: PositionData) {
         super(x, y, z);

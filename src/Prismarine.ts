@@ -11,26 +11,28 @@ const updater = new Updater({
     logger
 });
 
-updater.check().then(() => {
+void updater.check().then(() => {
     const Prismarine = new Server({
         config,
         logger
     });
 
-    Prismarine.listen(config.getServerIp(), config.getPort()).catch((err) => {
-        Prismarine.getLogger().error(
-            `Cannot start the server, is it already running on the same port?`
-        );
-        if (err) console.error(err);
+    Prismarine.listen(config.getServerIp(), config.getPort()).catch(
+        async (error) => {
+            Prismarine.getLogger().error(
+                `Cannot start the server, is it already running on the same port?`
+            );
+            if (error) console.error(error);
 
-        Prismarine.kill();
-        process.exit(1);
-    });
+            await Prismarine.kill();
+            process.exit(1);
+        }
+    );
 
     // Kills the server when exiting process
-    for (let interruptSignal of ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM']) {
-        process.on(interruptSignal, () => {
-            Prismarine.kill();
+    for (const interruptSignal of ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM']) {
+        process.on(interruptSignal, async () => {
+            await Prismarine.kill();
         });
     }
 

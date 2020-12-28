@@ -7,17 +7,17 @@ import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 
 export default class InteractHandler implements PacketHandler<InteractPacket> {
-    public handle(
+    public async handle(
         packet: InteractPacket,
         server: Server,
         player: Player
-    ): void {
+    ): Promise<void> {
         switch (packet.action) {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:
                 break;
-            case InteractAction.OpenInventory:
-                let pk = new ContainerOpenPacket();
+            case InteractAction.OpenInventory: {
+                const pk = new ContainerOpenPacket();
                 pk.windowId = 0; // TODO
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerPos = new Vector3(
@@ -26,8 +26,9 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                     player.getZ()
                 );
                 pk.containerEntityId = player.runtimeId;
-                player.getConnection().sendDataPacket(pk);
+                await player.getConnection().sendDataPacket(pk);
                 break;
+            }
             default:
                 server
                     .getLogger()

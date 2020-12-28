@@ -21,40 +21,41 @@ export enum PlayerPermission {
 }
 
 export default class Player extends Human implements CommandExecuter {
-    private server: Server;
-    private address: InetAddress;
-    private playerConnection: PlayerConnection;
+    private readonly server: Server;
+    private readonly address: InetAddress;
+    private readonly playerConnection: PlayerConnection;
 
     // TODO: finish implementation
-    private windows: WindowManager;
+    private readonly windows: WindowManager;
 
     public username = {
         prefix: '<',
         suffix: '>',
         name: ''
     };
-    public locale: string = '';
-    public randomId: number = 0;
 
-    public uuid: string = '';
-    public xuid: string = '';
+    public locale = '';
+    public randomId = 0;
+
+    public uuid = '';
+    public xuid = '';
     public skin: Skin | null = null;
 
     public viewDistance: any;
-    public gamemode: number = 0;
+    public gamemode = 0;
 
-    public pitch: number = 0;
-    public yaw: number = 0;
-    public headYaw: number = 0;
+    public pitch = 0;
+    public yaw = 0;
+    public headYaw = 0;
 
-    public onGround: boolean = false;
-    public isSprinting: boolean = false;
+    public onGround = false;
+    public isSprinting = false;
 
-    public platformChatId: string = '';
+    public platformChatId = '';
 
     public device: Device | null = null;
 
-    public cacheSupport: boolean = false;
+    public cacheSupport = false;
 
     public currentChunk: Chunk | null = null;
 
@@ -74,7 +75,7 @@ export default class Player extends Human implements CommandExecuter {
         );
 
         // Handle chat messages
-        server.getEventManager().on('chat', (evt: ChatEvent) => {
+        server.getEventManager().on('chat', async (evt: ChatEvent) => {
             if (evt.cancelled) return;
 
             // TODO: proper channel system
@@ -86,7 +87,7 @@ export default class Player extends Human implements CommandExecuter {
                         .isOp(this.getUsername())) ??
                 evt.getChat().getChannel() === `*.player.${this.getUsername()}`
             )
-                this.sendMessage(evt.getChat().getMessage());
+                await this.sendMessage(evt.getChat().getMessage());
         });
     }
 
@@ -94,32 +95,32 @@ export default class Player extends Human implements CommandExecuter {
         await this.playerConnection.update(tick);
     }
 
-    public kick(reason = 'unknown reason'): void {
+    public async kick(reason = 'unknown reason'): Promise<void> {
         this.getServer()
             .getLogger()
             .debug(`Player with id ${this.runtimeId} was kicked: ${reason}`);
-        this.playerConnection.kick(reason);
+        await this.playerConnection.kick(reason);
     }
 
     // Return all the players in the same chunk
     // TODO: move to world
-    public getPlayersInChunk(): Array<Player> {
+    public getPlayersInChunk(): Player[] {
         return this.server
             .getOnlinePlayers()
             .filter((player) => player.currentChunk === this.currentChunk);
     }
 
-    public sendMessage(message: string): void {
-        this.playerConnection.sendMessage(message);
+    public async sendMessage(message: string): Promise<void> {
+        await this.playerConnection.sendMessage(message);
     }
 
-    public setGamemode(mode: number): void {
+    public async setGamemode(mode: number): Promise<void> {
         this.gamemode = mode;
-        this.playerConnection.sendGamemode(this.gamemode);
+        await this.playerConnection.sendGamemode(this.gamemode);
     }
 
-    public setTime(tick: number): void {
-        this.getConnection().sendTime(tick);
+    public async setTime(tick: number): Promise<void> {
+        await this.getConnection().sendTime(tick);
     }
 
     public getServer(): Server {
@@ -142,6 +143,7 @@ export default class Player extends Human implements CommandExecuter {
     public getUsername(): string {
         return this.username.name;
     }
+
     public getFormattedUsername(): string {
         return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
     }

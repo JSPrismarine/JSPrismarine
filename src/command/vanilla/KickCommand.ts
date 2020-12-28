@@ -27,19 +27,24 @@ export default class KickCommand extends Command {
         );
     }
 
-    execute(sender: Player, args: Array<string>) {
+    public async execute(
+        sender: Player,
+        args: string[]
+    ): Promise<string | void> {
         if (!args[0]) {
             return sender.sendMessage('§cYou have to specify a player.');
         }
 
-        let reason = args[1] ? args.slice(1).join(' ') : 'No reason specified.';
-        let target = sender.getServer().getPlayerByName(args[0]);
+        const reason = args[1]
+            ? args.slice(1).join(' ')
+            : 'No reason specified.';
+        const target = sender.getServer().getPlayerByName(args[0]);
 
         if (!target) {
             return sender.sendMessage("§cCan't find the selected player.");
         }
 
-        target.kick(
+        await target.kick(
             'You have been kicked from the server due to: \n\n' + reason
         );
         return `Kicked ${args[0]}`;

@@ -10,11 +10,11 @@ const d3 = require('d3-interpolate');
 
 export default class MovePlayerHandler
     implements PacketHandler<MovePlayerPacket> {
-    public handle(
+    public async handle(
         packet: MovePlayerPacket,
         server: Server,
         player: Player
-    ): void {
+    ): Promise<void> {
         // Update movement for every player & interpolate position to smooth it
         const interpolatedVector = d3.interpolateObject(
             { x: player.getX(), z: player.getZ() },
@@ -32,7 +32,9 @@ export default class MovePlayerHandler
         server.getEventManager().post(['playerMove', event]);
         if (event.cancelled) {
             // Reset the player position
-            player.getConnection().broadcastMove(player, MovementType.Reset);
+            await player
+                .getConnection()
+                .broadcastMove(player, MovementType.Reset);
             return;
         }
 
@@ -44,7 +46,9 @@ export default class MovePlayerHandler
             immutableFrom.getY() !== resultantVector.getY() ||
             immutableFrom.getZ() !== resultantVector.getZ()
         ) {
-            player.getConnection().broadcastMove(player, MovementType.Reset);
+            await player
+                .getConnection()
+                .broadcastMove(player, MovementType.Reset);
         }
 
         // Position
@@ -63,8 +67,8 @@ export default class MovePlayerHandler
         // at the moment we don't need them
 
         for (const onlinePlayer of server.getOnlinePlayers()) {
-            if (onlinePlayer == player) continue;
-            onlinePlayer
+            if (onlinePlayer === player) continue;
+            await onlinePlayer
                 .getConnection()
                 .broadcastMove(player, MovementType.Normal);
         }

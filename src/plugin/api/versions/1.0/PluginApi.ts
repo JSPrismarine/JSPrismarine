@@ -8,17 +8,18 @@ import path from 'path';
 export const PLUGIN_API_VERSION = '1.0';
 
 export default class PluginApi extends PluginApiVersion {
-    private pkg;
+    private readonly pkg;
 
-    constructor(private server: Server, pkg: any) {
+    constructor(private readonly server: Server, pkg: any) {
         super(PLUGIN_API_VERSION);
         this.pkg = pkg;
     }
+
     public async onInit() {}
     public async onDisable() {}
 
     /**
-     * returns an instance of the logger builder class with the plugin name prefixed
+     * Returns an instance of the logger builder class with the plugin name prefixed
      */
     public getLogger(): LoggerBuilder {
         const name = this.pkg.prismarine?.displayName || this.pkg.name;
@@ -38,7 +39,7 @@ export default class PluginApi extends PluginApiVersion {
     }
 
     /**
-     * returns an instance of the config builder class
+     * Returns an instance of the config builder class
      */
     public getConfigBuilder(configFile: string): ConfigBuilder {
         return new ConfigBuilder(
@@ -47,7 +48,7 @@ export default class PluginApi extends PluginApiVersion {
     }
 
     /**
-     * returns an instance of the server class
+     * Returns an instance of the server class
      */
     public getServer(): Server {
         return this.server;
@@ -56,7 +57,7 @@ export default class PluginApi extends PluginApiVersion {
     private eventManager: EventManager<[string, any]> | undefined = undefined;
 
     /**
-     * returns an instance of the event manager
+     * Returns an instance of the event manager
      */
     public getEventManager<
         CustomEventTypes extends [string, any] = [string, any]

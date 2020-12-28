@@ -5,7 +5,7 @@ import type Server from './Server';
 import readline from 'readline';
 
 export default class Console implements CommandExecuter {
-    private server: Server;
+    private readonly server: Server;
 
     public constructor(server: Server) {
         this.server = server;
@@ -44,7 +44,7 @@ export default class Console implements CommandExecuter {
             completer: process.stdin.isTTY ? completer : undefined
         });
 
-        cli.on('line', (input: string) => {
+        cli.on('line', async (input: string) => {
             if (input.startsWith('/'))
                 return this.getServer()
                     .getCommandManager()

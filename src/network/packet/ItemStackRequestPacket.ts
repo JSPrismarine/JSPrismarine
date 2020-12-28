@@ -7,7 +7,7 @@ export default class ItemStackRequestPacket extends DataPacket {
     public requests: any[] = [];
 
     public decodePayload() {
-        let count = this.readUnsignedVarInt();
+        const count = this.readUnsignedVarInt();
         for (let i = 0; i < count; i++) {
             this.requests.push(this.readItemStackRequest());
         }

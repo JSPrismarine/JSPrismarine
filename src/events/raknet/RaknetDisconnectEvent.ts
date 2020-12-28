@@ -5,8 +5,8 @@ import type InetAddress from '../../network/raknet/utils/InetAddress';
  * Fired just as a client disconnects from the raknet instance
  */
 export default class RaknetDisconnectEvent extends Event {
-    private inetAddr: InetAddress;
-    private reason: string;
+    private readonly inetAddr: InetAddress;
+    private readonly reason: string;
 
     constructor(inetAddr: InetAddress, reason: string) {
         super();
@@ -17,6 +17,7 @@ export default class RaknetDisconnectEvent extends Event {
     public getInetAddr(): InetAddress {
         return this.inetAddr;
     }
+
     public getReason(): string {
         return this.reason;
     }

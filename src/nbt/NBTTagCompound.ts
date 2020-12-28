@@ -14,7 +14,7 @@ import StringVal from './types/StringVal';
 
 export default class NBTTagCompound {
     private name: string | null;
-    private children: Map<string, any> = new Map();
+    private readonly children: Map<string, any> = new Map();
 
     public static readFromFile(
         path: string,
@@ -30,7 +30,7 @@ export default class NBTTagCompound {
         input: BinaryStream,
         byteOrder: ByteOrder
     ): NBTTagCompound {
-        let reader: NBTReader = new NBTReader(input, byteOrder);
+        const reader: NBTReader = new NBTReader(input, byteOrder);
         return reader.parse();
     }
 
@@ -48,12 +48,13 @@ export default class NBTTagCompound {
 
     public addValue(name: string, value: any): void {
         if (value instanceof NBTTagCompound) {
-            if (!(name == value.getName())) {
+            if (!(name === value.getName())) {
                 throw new Error(
                     `Failed to add NBTTagCompound with name ${value.getName()} given name ${name}`
                 );
             }
         }
+
         this.children.set(name, value);
     }
 
@@ -67,12 +68,12 @@ export default class NBTTagCompound {
         }
 
         if (insert) {
-            let backingList: Set<any> = new Set();
+            const backingList: Set<any> = new Set();
             this.addValue(name, backingList);
             return backingList;
-        } else {
-            return null;
         }
+
+        return null;
     }
 
     public getCompound(name: string, insert: boolean): NBTTagCompound | null {
@@ -81,16 +82,16 @@ export default class NBTTagCompound {
         }
 
         if (insert) {
-            let compound: NBTTagCompound = new NBTTagCompound();
+            const compound: NBTTagCompound = new NBTTagCompound();
             this.addValue(name, compound);
             return compound;
-        } else {
-            return null;
         }
+
+        return null;
     }
 
     public writeToStream(out: BinaryStream, byteOrder: ByteOrder): void {
-        let writer: NBTWriter = new NBTWriter(out, byteOrder);
+        const writer: NBTWriter = new NBTWriter(out, byteOrder);
         writer.writeCompound(this);
     }
 

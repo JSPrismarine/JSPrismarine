@@ -9,12 +9,5 @@ describe('command', () => {
         it('name & namespace should be set correctly', () => {
             expect(command.id).toBe('test:test-plugin');
         });
-
-        it('execute should return void', async (done) => {
-            expect(
-                await command.execute(null as any, null as any)
-            ).toBeUndefined();
-            done();
-        });
     });
 });

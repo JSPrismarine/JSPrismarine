@@ -6,7 +6,7 @@ export enum WindowIds {
 }
 
 export default class WindowManager {
-    private windows: Map<number, Inventory> = new Map();
+    private readonly windows: Map<number, Inventory> = new Map();
 
     public setWindow(inventory: Inventory, id?: number): number {
         if (this.getWindowId(inventory) !== WindowIds.UNKNOWN) {

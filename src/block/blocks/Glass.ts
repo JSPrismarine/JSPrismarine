@@ -3,7 +3,7 @@ import { BlockIdsType } from '../BlockIdsType';
 
 export default class Glass extends Transparent {
     constructor(
-        name: string = 'minecraft:glass',
+        name = 'minecraft:glass',
         id: BlockIdsType = BlockIdsType.Glass
     ) {
         super({
