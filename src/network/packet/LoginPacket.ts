@@ -57,7 +57,7 @@ export default class LoginPacket extends DataPacket {
     }
 
     public encodePayload(): void {
-        /* 
+        /*
         TODO
         this.writeInt(Identifiers.Protocol);
 

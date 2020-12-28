@@ -42,7 +42,7 @@ export default class LevelDB extends Provider {
         seed,
         server
     }: readChunk): Promise<Chunk | null> {
-        return await new Promise(async (resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             const index = LevelDB.chunkIndex(x, z);
             const subChunks: Map<number, SubChunk> = new Map();
 
@@ -92,7 +92,7 @@ export default class LevelDB extends Provider {
                 // Chunk doesn't exist
                 await this.db.put(index + Tags.Version, 7);
 
-                return await (async () => {
+                return (async () => {
                     const chunk = await generator.getChunk({
                         pos: new Vector3(x, 0, z),
                         seed,
