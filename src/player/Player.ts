@@ -43,6 +43,7 @@ export default class Player extends Human implements CommandExecuter {
 
     private onGround = false;
     private sprinting = false;
+    private flying = false;
     private sneaking = false;
 
     public platformChatId = '';
@@ -162,6 +163,14 @@ export default class Player extends Human implements CommandExecuter {
     }
     public async setSprinting(val: boolean) {
         this.sprinting = val;
+        await this.getConnection().sendSettings();
+    }
+
+    public isFlying() {
+        return this.flying;
+    }
+    public async setFlying(val: boolean) {
+        this.flying = val;
         await this.getConnection().sendSettings();
     }
 
