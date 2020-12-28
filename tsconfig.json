@@ -25,7 +25,7 @@
         "package.json"
     ],
     "exclude": [
-        "./**/*.test.*"
+        "./**/*.test.ts"
     ],
     "typeRoots": [
         "node_modules/@types",
