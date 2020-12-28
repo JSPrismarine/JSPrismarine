@@ -105,7 +105,10 @@
     },
     "husky": {
         "hooks": {
-            "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test"
+            "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test",
+            "post-checkout": "yarnhook",
+            "post-merge": "yarnhook",
+            "post-rewrite": "yarnhook"
         }
     },
     "pkg": {
@@ -163,14 +166,15 @@
         "babel-eslint": "10.1.0",
         "coveralls": "3.1.0",
         "cross-env": "7.0.3",
-        "husky": "4.3.6",
+        "husky": "^4.3.6",
         "mock-fs": "4.13.0",
         "node-fetch": "2.6.1",
         "nodemon": "2.0.6",
         "prettier": "2.2.1",
         "typedoc": "0.20.0",
         "typescript": "4.1.3",
-        "xo": "0.36.1"
+        "xo": "0.36.1",
+        "yarnhook": "^0.5.1"
     },
     "optionalDependencies": {
         "pkg": "github:kkoomen/pkg"
