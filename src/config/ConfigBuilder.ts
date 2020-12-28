@@ -39,9 +39,11 @@ export default class ConfigBuilder {
                 (i) => i.toLowerCase() === this.#type.toLowerCase()
             )
         ) {
-            throw new Error(`Unsupported config type. (Supported types: ${Object.keys(
-                TypeDefaults
-            ).join(', ')})`);
+            throw new Error(
+                `Unsupported config type. (Supported types: ${Object.keys(
+                    TypeDefaults
+                ).join(', ')})`
+            );
         }
 
         if (fs.existsSync(pathSplitted.dir)) {
