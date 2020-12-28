@@ -1,4 +1,3 @@
-import Chat from '../../chat/Chat';
 import Command from '../Command';
 import type Player from '../../player/Player';
 
@@ -23,11 +22,7 @@ export default class HelpCommand extends Command {
                 );
             });
 
-        const chat = new Chat(
-            sender,
-            `§5[${sender.getUsername()}] ${commands.join('\n')}`
-        );
-        sender.getServer().getChatManager().send(chat);
+        sender.sendMessage(commands.join('\n'));
         return;
     }
 }
