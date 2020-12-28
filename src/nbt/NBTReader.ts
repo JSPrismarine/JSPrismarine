@@ -16,7 +16,7 @@ export default class NBTReader extends NBTStreamReader {
             'Invalid NBT Data: Not enough data to read new tag',
             false
         );
-        if (this.readByteValue().getValue() != NBTDefinitions.TAG_LIST) {
+        if (this.readByteValue().getValue() !== NBTDefinitions.TAG_LIST) {
             throw new Error('Invalid NBT Data: Not list tag found');
         }
 
@@ -30,19 +30,19 @@ export default class NBTReader extends NBTStreamReader {
             'Invalid NBT Data: Not enough data to read new tag',
             false
         );
-        if (this.readByteValue().getValue() != NBTDefinitions.TAG_COMPOUND) {
+        if (this.readByteValue().getValue() !== NBTDefinitions.TAG_COMPOUND) {
             throw new Error('Invalid NBT Data: No root tag found');
         }
 
-        let name: string = this.readStringValue().getValue();
-        let root: NBTTagCompound = this.readTagCompoundValue();
+        const name: string = this.readStringValue().getValue();
+        const root: NBTTagCompound = this.readTagCompoundValue();
         root.setName(name);
         return root;
     }
 
     private readTagCompoundValue(): NBTTagCompound {
         this.alterAllocationLimit(Allocation.COMPOUND);
-        let compound: NBTTagCompound = new NBTTagCompound();
+        const compound: NBTTagCompound = new NBTTagCompound();
         this.expectInput(
             1,
             'Invalid NBT Data: Expected Tag ID in compound tag',
@@ -50,7 +50,7 @@ export default class NBTReader extends NBTStreamReader {
         );
 
         let tagID = this.readByteValue().getValue();
-        while (tagID != NBTDefinitions.TAG_END) {
+        while (tagID !== NBTDefinitions.TAG_END) {
             switch (tagID) {
                 case NBTDefinitions.TAG_BYTE:
                     compound.addValue(
@@ -107,8 +107,8 @@ export default class NBTReader extends NBTStreamReader {
                     );
                     break;
                 case NBTDefinitions.TAG_COMPOUND:
-                    let name: string = this.readStringValue().getValue();
-                    let child: NBTTagCompound = this.readTagCompoundValue();
+                    const name: string = this.readStringValue().getValue();
+                    const child: NBTTagCompound = this.readTagCompoundValue();
                     child.setName(name);
                     compound.addChild(child);
                     break;
@@ -139,13 +139,13 @@ export default class NBTReader extends NBTStreamReader {
             'Invalid NBT Data: Expected TAGList header',
             false
         );
-        let listType: number = this.readByteValue().getValue();
+        const listType: number = this.readByteValue().getValue();
         let listLength: number = this.readIntValue().getValue();
 
         this.alterAllocationLimit(Allocation.ARRAY_LIST);
         this.alterAllocationLimit(Allocation.REFERENCE);
 
-        let backingList: Set<any> = new Set();
+        const backingList: Set<any> = new Set();
 
         switch (listType) {
             case NBTDefinitions.TAG_END:
@@ -159,6 +159,7 @@ export default class NBTReader extends NBTStreamReader {
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readShortValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_SHORT:
                 this.expectInput(
@@ -168,6 +169,7 @@ export default class NBTReader extends NBTStreamReader {
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readShortValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_INT:
                 this.expectInput(
@@ -177,6 +179,7 @@ export default class NBTReader extends NBTStreamReader {
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readIntValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_LONG:
                 this.expectInput(
@@ -186,6 +189,7 @@ export default class NBTReader extends NBTStreamReader {
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readLongValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_FLOAT:
                 this.expectInput(
@@ -195,6 +199,7 @@ export default class NBTReader extends NBTStreamReader {
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readFloatValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_DOUBLE:
                 this.expectInput(
@@ -204,35 +209,42 @@ export default class NBTReader extends NBTStreamReader {
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readDoubleValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_BYTE_ARRAY:
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readByteArrayValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_STRING:
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readStringValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_LIST:
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readTagListValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_COMPOUND:
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readTagCompoundValue());
                 }
+
                 break;
             case NBTDefinitions.TAG_INT_ARRAY:
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readIntArrayValue());
                 }
+
                 break;
             default:
                 throw new Error(`Invalid NBT Data: Unknown tag <${listType}>`);
         }
+
         return backingList;
     }
 }

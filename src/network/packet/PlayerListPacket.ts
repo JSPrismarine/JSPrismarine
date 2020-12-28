@@ -16,15 +16,15 @@ interface PlayerListData {
 }
 
 export class PlayerListEntry {
-    private uuid: UUID;
-    private uniqueEntityId: bigint | null;
-    private name: string | null;
-    private xuid: string;
-    private platformChatId: string | null;
-    private buildPlatform: number | null;
-    private skin: Skin | null;
-    private teacher: boolean;
-    private host: boolean;
+    private readonly uuid: UUID;
+    private readonly uniqueEntityId: bigint | null;
+    private readonly name: string | null;
+    private readonly xuid: string;
+    private readonly platformChatId: string | null;
+    private readonly buildPlatform: number | null;
+    private readonly skin: Skin | null;
+    private readonly teacher: boolean;
+    private readonly host: boolean;
 
     public constructor({
         uuid,
@@ -93,7 +93,7 @@ export enum PlayerListAction {
 export default class PlayerListPacket extends DataPacket {
     static NetID = Identifiers.PlayerListPacket;
 
-    public entries: Array<PlayerListEntry> = [];
+    public entries: PlayerListEntry[] = [];
     public type!: number;
 
     public encodePayload() {
@@ -108,7 +108,7 @@ export default class PlayerListPacket extends DataPacket {
         }
 
         if (this.type === PlayerListAction.TYPE_ADD) {
-            for (let entry of this.entries) {
+            for (const entry of this.entries) {
                 this.writeBool(entry.getSkin()!.isTrusted);
             }
         }

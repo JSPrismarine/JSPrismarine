@@ -4,24 +4,24 @@ import path from 'path';
 import pkg from '../../package.json';
 
 export default class Config {
-    private configBuilder: ConfigBuilder;
+    private readonly configBuilder: ConfigBuilder;
 
-    private version: string;
-    private port: number;
-    private serverIp: string;
-    private levelName: string;
-    private worlds: any;
-    private maxPlayers: number;
-    private gamemode: string;
-    private motd: string;
-    private viewDistance: number;
-    private onlineMode: boolean;
-    private enableEval: boolean;
-    private enableTelemetry: boolean;
-    private telemetryUrls: Array<string>;
-    private packetCompressionLevel: number;
-    private updateRepo: string;
-    private updateChannel: string;
+    private readonly version: string;
+    private readonly port: number;
+    private readonly serverIp: string;
+    private readonly levelName: string;
+    private readonly worlds: any;
+    private readonly maxPlayers: number;
+    private readonly gamemode: string;
+    private readonly motd: string;
+    private readonly viewDistance: number;
+    private readonly onlineMode: boolean;
+    private readonly enableEval: boolean;
+    private readonly enableTelemetry: boolean;
+    private readonly telemetryUrls: string[];
+    private readonly packetCompressionLevel: number;
+    private readonly updateRepo: string;
+    private readonly updateChannel: string;
 
     constructor() {
         this.version = pkg.version;
@@ -71,42 +71,54 @@ export default class Config {
     public getVersion() {
         return this.version;
     }
+
     public getPort() {
         return this.port;
     }
+
     public getServerIp() {
         return this.serverIp;
     }
+
     public getLevelName() {
         return this.levelName;
     }
+
     public getWorlds() {
         return this.worlds;
     }
+
     public getMaxPlayers() {
         return this.maxPlayers;
     }
+
     public getGamemode() {
         return this.gamemode;
     }
+
     public getMotd() {
         return this.motd;
     }
+
     public getViewDistance() {
         return this.viewDistance;
     }
+
     public getOnlineMode() {
         return this.onlineMode;
     }
+
     public getEnableEval() {
         return this.enableEval;
     }
+
     public getTelemetry() {
         return {
             enabled: this.enableTelemetry,
             urls: this.telemetryUrls
         };
     }
+
     public getPacketCompressionLevel() {
         return this.packetCompressionLevel;
     }
@@ -114,6 +126,7 @@ export default class Config {
     public getUpdateRepo() {
         return this.updateRepo;
     }
+
     public getUpdateChannel() {
         return this.updateChannel;
     }

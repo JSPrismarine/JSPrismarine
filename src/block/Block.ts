@@ -9,7 +9,7 @@ export default class Block {
     runtimeId?: number;
     name: string;
     hardness: number;
-    meta: number = 0;
+    meta = 0;
 
     // TODO
     nbt = null;
@@ -26,7 +26,7 @@ export default class Block {
     }) {
         this.id = id;
         this.name = name;
-        this.hardness = hardness || 0;
+        this.hardness = hardness ?? 0;
     }
 
     /**
@@ -56,6 +56,7 @@ export default class Block {
     public getRuntimeId() {
         return this.runtimeId;
     }
+
     /**
      * Set the Block's runtime id
      *
@@ -76,16 +77,12 @@ export default class Block {
      * Get the Block's break time
      */
     public getBreakTime(item: Item | null, server: Server) {
-        return this.getHardness(); // TODO
+        return this.getHardness(); // TODO: Fix break time calculations
 
-        let base = this.getHardness();
-
-        if (this.isCompatibleWithTool(item)) base *= 1.5;
-        else base *= 5;
-
-        const efficiency = 1; // item.getMiningEfficiency(this);
-
-        return (base /= efficiency);
+        /* let base = this.getHardness();
+        base *= this.isCompatibleWithTool(item) ? 1.5 : 5;
+        const efficiency = 1; // Item.getMiningEfficiency(this);
+        return (base /= efficiency); */
     }
 
     /**
@@ -201,7 +198,7 @@ export default class Block {
         const harvestLevel = this.getToolHarvestLevel();
 
         if (toolType === BlockToolType.None || harvestLevel === 0) return true;
-        else if (
+        if (
             toolType & item.getToolType() &&
             item.getToolHarvestLevel() >= harvestLevel
         )

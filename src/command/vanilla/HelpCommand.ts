@@ -10,8 +10,8 @@ export default class HelpCommand extends Command {
         } as any);
     }
 
-    execute(sender: Player, args: Array<string>) {
-        const commands: Array<string> = [];
+    public async execute(sender: Player, args: string[]) {
+        const commands: string[] = [];
         sender
             .getServer()
             .getCommandManager()
@@ -22,7 +22,6 @@ export default class HelpCommand extends Command {
                 );
             });
 
-        sender.sendMessage(commands.join('\n'));
-        return;
+        await sender.sendMessage(commands.join('\n'));
     }
 }

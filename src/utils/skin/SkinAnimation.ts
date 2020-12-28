@@ -1,10 +1,10 @@
 import SkinImage from './SkinImage';
 
 export default class SkinAnimation {
-    private image: SkinImage;
-    private frames: number;
-    private type: number;
-    private expression: number;
+    private readonly image: SkinImage;
+    private readonly frames: number;
+    private readonly type: number;
+    private readonly expression: number;
 
     constructor({
         image,

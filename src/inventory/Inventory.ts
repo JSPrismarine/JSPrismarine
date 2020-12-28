@@ -3,13 +3,13 @@ import Item from '../item/Item';
 
 // TODO: viewer logic
 export default class Inventory {
-    private slots: number;
+    private readonly slots: number;
     /**
      * (Slot number - Item in the slot)
      */
-    private content: Map<number, Item> = new Map();
+    private readonly content: Map<number, Item> = new Map();
 
-    public constructor(slots = 0, items: Array<Item> = []) {
+    public constructor(slots = 0, items: Item[] = []) {
         this.slots = slots;
         this.setItems(items);
     }
@@ -17,7 +17,7 @@ export default class Inventory {
     /**
      * Adds an array of items into the inventory.
      */
-    public setItems(items: Array<Item> = []) {
+    public setItems(items: Item[] = []) {
         if (items.length > this.slots) {
             // If the inventory slots are less
             // than items cut the items array
@@ -32,7 +32,7 @@ export default class Inventory {
     /**
      * Returns all the items inside the inventory.
      */
-    public getItems(includeAir: boolean = false): Array<Item> {
+    public getItems(includeAir = false): Item[] {
         if (includeAir) {
             return Array.from(this.content.values());
         }
@@ -60,9 +60,9 @@ export default class Inventory {
     public getItem(slot: number) {
         if (this.content.has(slot)) {
             return this.content.get(slot);
-        } else {
-            return new Air();
         }
+
+        return new Air();
     }
 
     /**

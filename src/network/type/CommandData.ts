@@ -4,7 +4,7 @@ interface CommandData {
     id: string;
     name: string;
     description: string;
-    aliases: Array<string>;
+    aliases: string[];
     flags: number;
     parameters: Set<CommandParameter>;
     permission: string;

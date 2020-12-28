@@ -7,12 +7,9 @@ export enum SpongeType {
 }
 
 export default class Sponge extends Solid {
-    constructor(
-        name: string = 'minecraft:sponge',
-        type: SpongeType = SpongeType.Dry
-    ) {
+    constructor(name = 'minecraft:sponge', type: SpongeType = SpongeType.Dry) {
         super({
-            name: name,
+            name,
             id: BlockIdsType.Sponge,
             hardness: 0.6
         });

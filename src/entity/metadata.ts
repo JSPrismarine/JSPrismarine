@@ -38,7 +38,7 @@ export enum FlagType {
 }
 
 export default class MetadataManager {
-    private metadata: Map<
+    private readonly metadata: Map<
         number,
         [number, bigint | number | boolean | string]
     > = new Map();

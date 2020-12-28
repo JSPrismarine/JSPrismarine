@@ -24,30 +24,30 @@ export default class BanCommand extends Command {
         );
     }
 
-    execute(sender: Player, args: Array<any>) {
+    public async execute(sender: Player, args: any[]): Promise<string | void> {
         if (args.length <= 0) {
-            sender.sendMessage('§cYou have to specify a target.');
+            await sender.sendMessage('§cYou have to specify a target.');
             return;
-        } else {
-            const target = sender.getServer().getPlayerByName(args[0]);
-
-            sender
-                .getServer()
-                .getBanManager()
-                .setBanned(
-                    args[0],
-                    args.length > 1 ? args.slice(1).join(' ') : undefined
-                );
-
-            if (target)
-                target.kick(
-                    `You have been banned${
-                        args.length > 1
-                            ? ` for reason: ${args.slice(1).join(' ')}`
-                            : ''
-                    }!`
-                );
         }
+
+        const target = sender.getServer().getPlayerByName(args[0]);
+
+        await sender
+            .getServer()
+            .getBanManager()
+            .setBanned(
+                args[0],
+                args.length > 1 ? args.slice(1).join(' ') : undefined
+            );
+
+        if (target)
+            await target.kick(
+                `You have been banned${
+                    args.length > 1
+                        ? ` for reason: ${args.slice(1).join(' ')}`
+                        : ''
+                }!`
+            );
 
         return `Banned ${args[0] || sender.getUsername()} ${
             args.length > 1 ? `for reason ${args.slice(1).join(' ')}` : ''

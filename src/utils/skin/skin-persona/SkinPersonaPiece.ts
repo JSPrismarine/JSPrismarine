@@ -1,9 +1,9 @@
 export default class SkinPersonaPiece {
-    private def: boolean;
-    private packId: string;
-    private pieceId: string;
-    private pieceType: string;
-    private productId: string;
+    private readonly def: boolean;
+    private readonly packId: string;
+    private readonly pieceId: string;
+    private readonly pieceType: string;
+    private readonly productId: string;
 
     constructor({
         def,

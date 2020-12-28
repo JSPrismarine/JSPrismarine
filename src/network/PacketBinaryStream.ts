@@ -37,10 +37,10 @@ export default class PacketBinaryStream extends BinaryStream {
     }
 
     public readUUID(): UUID {
-        let part1 = this.readLInt();
-        let part0 = this.readLInt();
-        let part3 = this.readLInt();
-        let part2 = this.readLInt();
+        const part1 = this.readLInt();
+        const part0 = this.readLInt();
+        const part3 = this.readLInt();
+        const part2 = this.readLInt();
 
         return new UUID(part0, part1, part2, part3);
     }
@@ -63,7 +63,7 @@ export default class PacketBinaryStream extends BinaryStream {
      * Encodes an UUID into the buffer.
      */
     public writeUUID(uuid: UUID): void {
-        let parts = uuid.getParts();
+        const parts = uuid.getParts();
         this.writeLInt(parts[1]);
         this.writeLInt(parts[0]);
         this.writeLInt(parts[3]);
@@ -168,7 +168,7 @@ export default class PacketBinaryStream extends BinaryStream {
 
         // Animations
         this.writeLInt(skin.getAnimations().size);
-        for (let animation of skin.getAnimations()) {
+        for (const animation of skin.getAnimations()) {
             this.writeSkinImage(animation.getImage());
             this.writeLInt(animation.getType());
             this.writeLFloat(animation.getFrames());
@@ -192,18 +192,19 @@ export default class PacketBinaryStream extends BinaryStream {
         // Hack to keep less useless data in software
         if (skin.isPersona()) {
             this.writeLInt(skin.getPersonaData().getPieces().size);
-            for (let personaPiece of skin.getPersonaData().getPieces()) {
+            for (const personaPiece of skin.getPersonaData().getPieces()) {
                 this.writeString(personaPiece.getPieceId());
                 this.writeString(personaPiece.getPieceType());
                 this.writeString(personaPiece.getPackId());
                 this.writeBool(personaPiece.isDefault());
                 this.writeString(personaPiece.getProductId());
             }
+
             this.writeLInt(skin.getPersonaData().getTintColors().size);
-            for (let tint of skin.getPersonaData().getTintColors()) {
+            for (const tint of skin.getPersonaData().getTintColors()) {
                 this.writeString(tint.getPieceType());
                 this.writeLInt(tint.getColors().length);
-                for (let color of tint.getColors()) {
+                for (const color of tint.getColors()) {
                     this.writeString(color);
                 }
             }
@@ -237,7 +238,7 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeBool(entry.isHost());
     }
 
-    public writeAttributes(attributes: Array<Attribute>): void {
+    public writeAttributes(attributes: Attribute[]): void {
         this.writeUnsignedVarInt(attributes.length);
         for (const attribute of attributes) {
             this.writeLFloat(attribute.getMin());
@@ -252,6 +253,7 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeVarInt(entry.entryId);
         this.writeItemStack(entry.item);
     }
+
     readCreativeContentEntry() {
         return {
             entryId: this.readVarInt(),
@@ -264,24 +266,25 @@ export default class PacketBinaryStream extends BinaryStream {
      */
     writeGamerules(rules: any) {
         this.writeUnsignedVarInt(rules.size);
-        for (let [name, value] of rules) {
+        for (const [name, value] of rules) {
             this.writeString(name);
             switch (typeof value) {
                 case 'boolean':
-                    this.writeByte(1); // maybe value type ??
+                    this.writeByte(1); // Maybe value type ??
                     this.writeBool(value);
                     break;
                 case 'number':
                     if (this.isInt(value)) {
-                        this.writeByte(2); // maybe value type ??
+                        this.writeByte(2); // Maybe value type ??
                         this.writeUnsignedVarInt(value);
                     } else if (this.isFloat(value)) {
-                        this.writeByte(3); // maybe value type ??
+                        this.writeByte(3); // Maybe value type ??
                         this.writeLFloat(value);
                     }
+
                     break;
                 default:
-                /* this.#server
+                /* This.#server
                         .getLogger()
                         .error(`Unknown Gamerule type ${value}`); */
             }
@@ -291,6 +294,7 @@ export default class PacketBinaryStream extends BinaryStream {
     private isInt(n: number) {
         return n % 1 === 0;
     }
+
     private isFloat(n: number) {
         return n % 1 !== 0;
     }
@@ -319,14 +323,14 @@ export default class PacketBinaryStream extends BinaryStream {
                     this.writeLShort(value[1] as number);
                     break;
                 default:
-                //this.#server.getLogger().warn(`Unknown meta type ${value}`);
+                // This.#server.getLogger().warn(`Unknown meta type ${value}`);
             }
         }
     }
 
     readItemStack() {
-        let id = this.readVarInt();
-        if (id == 0) {
+        const id = this.readVarInt();
+        if (id === 0) {
             // TODO: items
             return {
                 id: 0,
@@ -334,11 +338,11 @@ export default class PacketBinaryStream extends BinaryStream {
             };
         }
 
-        let temp = this.readVarInt();
-        let meta = temp >> 8;
+        const temporary = this.readVarInt();
+        const meta = temporary >> 8;
 
-        let extraLen = this.readLShort();
-        if (extraLen == 0xffff) {
+        const extraLength = this.readLShort();
+        if (extraLength === 0xffff) {
             this.readByte(); // ? nbt version
             // As i cannot pass offset by reference, i keep it using this binary stream directly
             /* let stream = new NetworkLittleEndianBinaryStream(
@@ -351,16 +355,16 @@ export default class PacketBinaryStream extends BinaryStream {
             }
             nbt = decodedNBT;
             (this as any).offset = stream.getOffset(); */
-        } else if (extraLen !== 0) {
-            throw new Error(`Invalid NBT itemstack length ${extraLen}`);
+        } else if (extraLength !== 0) {
+            throw new Error(`Invalid NBT itemstack length ${extraLength}`);
         }
 
-        let countPlaceOn = this.readVarInt();
+        const countPlaceOn = this.readVarInt();
         for (let i = 0; i < countPlaceOn; i++) {
             this.readString();
         }
 
-        let countCanBreak = this.readVarInt();
+        const countCanBreak = this.readVarInt();
         for (let i = 0; i < countCanBreak; i++) {
             this.readString();
         }
@@ -392,18 +396,18 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeVarInt(((itemstack.meta & 0x7fff) << 8) | itemstack.count);
 
         if (itemstack.nbt !== null) {
-            // write the amount of tags to write
+            // Write the amount of tags to write
             // (1) according to vanilla
             this.writeLShort(0xffff);
             this.writeByte(1);
 
-            // write hardcoded NBT tag
+            // Write hardcoded NBT tag
             // TODO: unimplemented NBT.write(nbt, true, true)
         } else {
             this.writeLShort(0);
         }
 
-        // canPlace and canBreak
+        // CanPlace and canBreak
         this.writeVarInt(0);
         this.writeVarInt(0);
 
@@ -413,7 +417,7 @@ export default class PacketBinaryStream extends BinaryStream {
 
     readItemStackRequest() {
         const id = this.readVarInt();
-        // this.#server.getLogger().debug(`Request ID: ${id}`);
+        // This.#server.getLogger().debug(`Request ID: ${id}`);
 
         const actions = [];
         for (let i = 0; i < this.readUnsignedVarInt(); i++) {
@@ -436,7 +440,7 @@ export default class PacketBinaryStream extends BinaryStream {
     readItemStackRequestAction() {
         const id = this.readByte();
 
-        // this.#server.getLogger().debug(`Action ${id}`);
+        // This.#server.getLogger().debug(`Action ${id}`);
         switch (id) {
             case 0: // TODO: enum
                 return new ItemStackRequestTake({
@@ -501,21 +505,24 @@ export default class PacketBinaryStream extends BinaryStream {
                         'Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)'
                     ); */
                 return {};
-            case 13: // CRAFTING_RESULTS_DEPRECATED, Deprecated so we'll just ignore it
+            case 13: {
+                // CRAFTING_RESULTS_DEPRECATED, Deprecated so we'll just ignore it
                 /* this.#server
                     .getLogger()
                     .silly(
                         'Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)'
                     ); */
                 // We still need to read it...
-                let items = [];
+                const items = [];
                 for (let i = 0; i < this.readUnsignedVarInt(); i++) {
                     items.push(this.readItemStack());
                 }
-                this.readByte(); // times crafted
+
+                this.readByte(); // Times crafted
                 return {};
+            }
             default:
-                /* this.#server
+                /* This.#server
                     .getLogger()
                     .debug(`Unknown item stack request id: ${id}`); */
                 return {};
@@ -531,7 +538,7 @@ export default class PacketBinaryStream extends BinaryStream {
     }
 
     readCommandOriginData() {
-        let data = new CommandOriginData();
+        const data = new CommandOriginData();
         data.type = this.readUnsignedVarInt();
         data.uuid = this.readUUID();
         data.requestId = this.readString();
@@ -542,6 +549,7 @@ export default class PacketBinaryStream extends BinaryStream {
         ) {
             data.uniqueEntityId = this.readVarLong();
         }
+
         return data;
     }
 }

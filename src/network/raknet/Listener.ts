@@ -1,8 +1,8 @@
-import { RemoteInfo, Socket } from 'dgram';
+import Dgram, { RemoteInfo, Socket } from 'dgram';
 
 import Connection from './Connection';
 import Crypto from 'crypto';
-import Dgram from 'dgram';
+
 import { EventEmitter } from 'events';
 import Identifiers from './protocol/Identifiers';
 import IncompatibleProtocolVersion from './protocol/IncompatibleProtocolVersion';
@@ -26,19 +26,22 @@ const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
 // Listen to packets and then process them
 export default class Listener extends EventEmitter implements RakNetListener {
-    private id: bigint;
+    private readonly id: bigint;
     private name: ServerName;
     private socket!: Socket;
-    private connections: Map<string, Connection> = new Map();
-    private shutdown = false;
-    private server: Server;
+    private readonly connections: Map<string, Connection> = new Map();
+    private get shutdown() {
+        return false;
+    }
+
+    private readonly server: Server;
 
     public constructor(server: Server) {
         super();
         this.server = server;
         this.name = new ServerName(server);
         // Generate a signed random 64 bit GUID
-        let uniqueId = Crypto.randomBytes(8).readBigInt64BE();
+        const uniqueId = Crypto.randomBytes(8).readBigInt64BE();
         this.id = uniqueId;
         this.name.setServerId(uniqueId);
     }
@@ -51,9 +54,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
         this.socket.on('message', async (buffer: Buffer, rinfo: RemoteInfo) => {
             const token = `${rinfo.address}:${rinfo.port}`;
             if (this.connections.has(token)) {
-                return (this.connections.get(
-                    token
-                ) as Connection).receive(buffer);
+                return (this.connections.get(token) as Connection).receive(
+                    buffer
+                );
             }
 
             try {
@@ -76,12 +79,12 @@ export default class Listener extends EventEmitter implements RakNetListener {
             this.socket.bind(port, address, () => {
                 this.socket.removeListener('error', failFn);
 
-                const timer = setInterval(() => {
+                const timer = setInterval(async () => {
                     if (!this.shutdown) {
-                        Promise.all(
-                            Array.from(this.connections.values()).map((conn) =>
-                                conn.update(Date.now())
-                            )
+                        await Promise.all(
+                            Array.from(
+                                this.connections.values()
+                            ).map(async (conn) => conn.update(Date.now()))
                         );
                     } else {
                         clearInterval(timer);
@@ -101,12 +104,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
         switch (header) {
             case Identifiers.Query:
-                return (await this.server
+                return this.server
                     .getQueryManager()
-                    .onRaw(
-                        buffer,
-                        new InetAddress(rinfo.address, rinfo.port)
-                    )) as Buffer;
+                    .onRaw(buffer, new InetAddress(rinfo.address, rinfo.port));
             case Identifiers.UnconnectedPing:
                 return this.handleUnconnectedPing(buffer);
             case Identifiers.OpenConnectionRequest1:
@@ -117,7 +117,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
                     new InetAddress(
                         rinfo.address,
                         rinfo.port,
-                        rinfo.family == 'IPv4' ? 4 : 6 // v6 is not implemented yet
+                        rinfo.family === 'IPv4' ? 4 : 6 // V6 is not implemented yet
                     )
                 );
             default:
@@ -127,7 +127,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
         }
     }
 
-    // async handlers
+    // Async handlers
 
     private async handleUnconnectedPing(buffer: Buffer): Promise<Buffer> {
         return new Promise((resolve) => {
@@ -168,7 +168,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
                 packet.protocol = PROTOCOL;
                 packet.serverGUID = this.id;
                 packet.encode();
-                return resolve(packet.getBuffer());
+
+                const buffer = packet.getBuffer();
+                return resolve(buffer);
             }
 
             const packet = new OpenConnectionReply1();
@@ -210,13 +212,17 @@ export default class Listener extends EventEmitter implements RakNetListener {
     /**
      * Remove a connection from all connections.
      */
-    public removeConnection(connection: Connection, reason: string): void {
-        let inetAddr = connection.getAddress();
-        let token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
+    public async removeConnection(
+        connection: Connection,
+        reason: string
+    ): Promise<void> {
+        const inetAddr = connection.getAddress();
+        const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
         if (this.connections.has(token)) {
-            this.connections.get(token)?.close();
+            await this.connections.get(token)?.close();
             this.connections.delete(token);
         }
+
         this.emit('closeConnection', connection.getAddress(), reason);
     }
 

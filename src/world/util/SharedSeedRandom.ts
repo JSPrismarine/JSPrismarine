@@ -27,9 +27,9 @@ export default class SharedSeedRandom extends Random {
 
     public setDecorationSeed(baseSeed: bigint, x: number, z: number): bigint {
         this.setSeed(baseSeed);
-        const i = this.nextLong() | 1n,
-            j = this.nextLong() | 1n,
-            k = (BigInt(x) * i + BigInt(z) * j) ^ baseSeed;
+        const i = this.nextLong() | 1n;
+        const j = this.nextLong() | 1n;
+        const k = (BigInt(x) * i + BigInt(z) * j) ^ baseSeed;
 
         this.setSeed(k);
         return k;
@@ -37,9 +37,9 @@ export default class SharedSeedRandom extends Random {
 
     public setLargeFeatureSeed(baseSeed: bigint, x: number, z: number): bigint {
         this.setSeed(baseSeed);
-        const i = this.nextLong(),
-            j = this.nextLong(),
-            k = (BigInt(x) * i) ^ (BigInt(z) * j) ^ baseSeed;
+        const i = this.nextLong();
+        const j = this.nextLong();
+        const k = (BigInt(x) * i) ^ (BigInt(z) * j) ^ baseSeed;
 
         this.setSeed(k);
         return k;

@@ -9,6 +9,7 @@ export default class ChunkRadiusUpdatedPacket extends DataPacket {
     public encodePayload() {
         this.writeVarInt(this.radius);
     }
+
     public decodePayload() {
         this.radius = this.readVarInt();
     }

@@ -1,8 +1,8 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class UUID {
-    private parts: Array<number> = [];
-    private version: number;
+    private readonly parts: number[] = [];
+    private readonly version: number;
 
     public constructor(
         part1 = 0,
@@ -42,7 +42,7 @@ export default class UUID {
             throw new Error('UUID must have 16 bytes');
         }
 
-        let stream = new BinaryStream(uuid);
+        const stream = new BinaryStream(uuid);
         return new UUID(
             stream.readInt(),
             stream.readInt(),
@@ -57,26 +57,23 @@ export default class UUID {
      */
     public static randomString(): string {
         let dt = new Date().getTime();
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
-            /[xy]/g,
-            function (c) {
-                let r = (dt + Math.random() * 16) % 16 | 0;
-                dt = Math.floor(dt / 16);
-                return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-            }
-        );
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = Math.trunc((dt + Math.random() * 16) % 16);
+            dt = Math.floor(dt / 16);
+            return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+        });
     }
 
     /**
      * Generates a random UUIDv4
      */
     public static fromRandom(): UUID {
-        let strUUID = UUID.randomString();
-        return UUID.fromString(strUUID, 3);
+        const stringUUID = UUID.randomString();
+        return UUID.fromString(stringUUID, 3);
     }
 
     public toBinary(): Buffer {
-        let stream = new BinaryStream();
+        const stream = new BinaryStream();
         stream.writeInt(this.parts[0]);
         stream.writeInt(this.parts[1]);
         stream.writeInt(this.parts[2]);
@@ -85,10 +82,10 @@ export default class UUID {
     }
 
     public toString(): string {
-        let hex = this.toBinary().toString('hex');
+        const hex = this.toBinary().toString('hex');
 
-        //xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx 8-4-4-4-12
-        let parts = [];
+        // Xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx 8-4-4-4-12
+        const parts = [];
         parts.push(hex.slice(0, 8));
         parts.push(hex.slice(8, 8 + 4));
         parts.push(hex.slice(12, 12 + 4));
@@ -101,7 +98,7 @@ export default class UUID {
         return this.version;
     }
 
-    public getParts(): Array<number> {
+    public getParts(): number[] {
         return this.parts;
     }
 }

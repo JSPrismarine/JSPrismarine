@@ -2,7 +2,7 @@ import Identifiers from '../../Identifiers';
 import type Server from '../../../Server';
 
 export default class ServerName {
-    private server: Server;
+    private readonly server: Server;
     private motd: string;
     private name = 'JSRakNet';
     private protocol = Identifiers.Protocol;
