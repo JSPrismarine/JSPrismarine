@@ -10,7 +10,7 @@ export default class GamemodeCommand extends Command {
         } as any);
     }
 
-    public execute(sender: Player, args: any[]) {
+    public async execute(sender: Player, args: any[]) {
         const world =
             sender?.getWorld?.() ||
             sender.getServer().getWorldManager().getDefaultWorld();
@@ -36,8 +36,8 @@ export default class GamemodeCommand extends Command {
                     throw new Error(`Invalid argument "${args[0]}"`);
             }
 
-            world.sendTime();
-            return sender.sendMessage(`Set time to: ${world.getTicks()}`);
+            await world.sendTime();
+            await sender.sendMessage(`Set time to: ${world.getTicks()}`);
         }
     }
 }
