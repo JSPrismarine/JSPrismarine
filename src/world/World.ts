@@ -24,17 +24,18 @@ interface WorldData {
 }
 
 export default class World {
-    private uniqueId: string = UUID.randomString();
-    private name: string = 'Unknown';
-    private players: Map<bigint, Player> = new Map();
-    private entities: Map<bigint, Entity> = new Map();
-    private chunks: Map<string, Chunk> = new Map();
-    private gameruleManager: GameruleManager;
-    private currentTick: number = 0;
-    private provider: any; // TODO: interface
-    private server: Server;
-    private seed: SharedSeedRandom;
-    private generator: any; // TODO: interface
+    private readonly uniqueId: string = UUID.randomString();
+    private name: string;
+
+    private readonly players: Map<bigint, Player> = new Map();
+    private readonly entities: Map<bigint, Entity> = new Map();
+    private readonly chunks: Map<string, Chunk> = new Map();
+    private readonly gameruleManager: GameruleManager;
+    private currentTick = 0;
+    private readonly provider: any; // TODO: interface
+    private readonly server: Server;
+    private readonly seed: SharedSeedRandom;
+    private readonly generator: any; // TODO: interface
 
     constructor({
         name,
@@ -82,18 +83,18 @@ export default class World {
      */
     public async update(timestamp: number): Promise<void> {
         // Auto save every 2 minutes
-        if (this.currentTick / 20 == 2 * 60) {
-            this.save();
+        if (this.currentTick / 20 === 2 * 60) {
+            await this.save();
         }
 
         // Tick players
         for (const player of this.players.values()) {
-            player.update(timestamp);
+            await player.update(timestamp);
             // TODO: get documentation about timings from vanilla
             // 1 second / 20 = 1 tick, 20 * 5 = 1 second
             // 1 second * 60 = 1 minute
-            if (this.currentTick % (20 * 5 * 60 * 1) == 0) {
-                player.getConnection().sendTime(this.currentTick);
+            if (this.currentTick % (20 * 5 * 60 * 1) === 0) {
+                await player.getConnection().sendTime(this.currentTick);
             }
         }
 
@@ -126,7 +127,7 @@ export default class World {
         z: number,
         _generate: boolean
     ): Promise<Chunk> {
-        let index = CoordinateUtils.encodePos(x, z);
+        const index = CoordinateUtils.encodePos(x, z);
         if (!this.chunks.has(index)) {
             const generator = this.server
                 .getWorldManager()
@@ -139,7 +140,7 @@ export default class World {
                 throw new Error('invalid generator');
             }
 
-            // try - catch for provider errors
+            // Try - catch for provider errors
             const chunk = await this.provider.readChunk({
                 x,
                 z,
@@ -149,6 +150,7 @@ export default class World {
             });
             this.chunks.set(index, chunk);
         }
+
         return this.chunks.get(index) as Chunk;
     }
 
@@ -164,18 +166,18 @@ export default class World {
         worldEvent: number,
         data: number
     ): void {
-        let worldEventPacket = new WorldEventPacket();
+        const worldEventPacket = new WorldEventPacket();
         worldEventPacket.eventId = worldEvent;
         worldEventPacket.data = data;
-        if (position != null) {
+        if (position !== null) {
             // TODO: this.getChunkAt(position.getX(), position.getZ()).
             // Save player into the chunk directly
         } else {
-            // to all players
+            // To all players
         }
     }
 
-    // public playSound()
+    // Public playSound()
 
     /**
      * Returns a chunk from minecraft block positions x and z.
@@ -185,21 +187,17 @@ export default class World {
         z: number,
         generate = false
     ): Promise<Chunk> {
-        return this.getChunk(
-            Math.floor((x as number) / 16),
-            Math.floor((z as number) / 16),
-            generate
-        );
+        return this.getChunk(Math.floor(x / 16), Math.floor(z / 16), generate);
     }
 
     /**
      * Returns the world default spawn position.
      */
     public async getSpawnPosition(): Promise<Vector3> {
-        let x = 0,
-            z = 0; // TODO: replace with actual data
-        let chunk = await this.getChunkAt(x, z);
-        let y = chunk.getHighestBlock(x, z) + 1;
+        const x = 0;
+        const z = 0; // TODO: replace with actual data
+        const chunk = await this.getChunkAt(x, z);
+        const y = chunk.getHighestBlock(x, z) + 1;
         return new Vector3(z, y + 2, z);
     }
 
@@ -218,7 +216,7 @@ export default class World {
                 .warn(`Block with runtimeId ${0} is invalid`);
         if (itemInHand instanceof Item) return; // TODO
 
-        //TODO: checks
+        // TODO: checks
         // TODO: canInteract
 
         const block = itemInHand; // TODO: get block from itemInHand
@@ -250,24 +248,26 @@ export default class World {
         // Only set correct face if the block can't be replaced
         if (!clickedBlock.canBeReplaced())
             switch (face) {
-                case 0: // bottom
+                case 0: // Bottom
                     placedPosition.setY(placedPosition.getY() - 1);
                     break;
-                case 1: // top
+                case 1: // Top
                     placedPosition.setY(placedPosition.getY() + 1);
                     break;
-                case 2: // front
+                case 2: // Front
                     placedPosition.setZ(placedPosition.getZ() - 1);
                     break;
-                case 3: // back
+                case 3: // Back
                     placedPosition.setZ(placedPosition.getZ() + 1);
                     break;
-                case 4: // right
+                case 4: // Right
                     placedPosition.setX(placedPosition.getX() - 1);
                     break;
-                case 5: // left
+                case 5: // Left
                     placedPosition.setX(placedPosition.getX() + 1);
                     break;
+                default:
+                    throw new Error('Invalid Face');
             }
 
         if (blockPosition.getY() < 0) return; // TODO: broadcast to player
@@ -286,14 +286,14 @@ export default class World {
                     block
                 );
                 return resolve(true);
-            } catch (err) {
+            } catch (error) {
                 player
                     .getServer()
                     .getLogger()
                     .warn(
-                        `${player.getUsername()} failed to place block due to ${err}`
+                        `${player.getUsername()} failed to place block due to ${error}`
                     );
-                player.sendMessage(err?.message);
+                await player.sendMessage(error?.message);
 
                 return resolve(false);
             }
@@ -320,10 +320,10 @@ export default class World {
         blockUpdate.z = placedPosition.getZ();
         blockUpdate.blockRuntimeId = runtimeId;
 
-        Promise.all(
+        await Promise.all(
             this.server
                 .getOnlinePlayers()
-                .map((onlinePlayer) =>
+                .map(async (onlinePlayer) =>
                     onlinePlayer.getConnection().sendDataPacket(blockUpdate)
                 )
         );
@@ -335,23 +335,23 @@ export default class World {
         pk.positionY = player.getY();
         pk.positionZ = player.getZ();
 
-        pk.extraData = runtimeId; // in this case refers to block runtime Id
+        pk.extraData = runtimeId; // In this case refers to block runtime Id
         pk.entityType = ':';
         pk.isBabyMob = false;
         pk.disableRelativeVolume = false;
 
-        Promise.all(
+        await Promise.all(
             player
                 .getPlayersInChunk()
-                .map((narbyPlayer) =>
+                .map(async (narbyPlayer) =>
                     narbyPlayer.getConnection().sendDataPacket(pk)
                 )
         );
     }
 
-    public sendTime(): void {
+    public async sendTime(): Promise<void> {
         for (const player of this.players.values()) {
-            player.setTime(this.getTicks());
+            await player.setTime(this.getTicks());
         }
     }
 
@@ -361,7 +361,7 @@ export default class World {
      */
     public async addEntity(entity: Entity): Promise<void> {
         this.entities.set(entity.runtimeId, entity);
-        let chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
+        const chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
         chunk.addEntity(entity as any);
     }
 
@@ -383,7 +383,7 @@ export default class World {
      * Saves changed chunks into disk.
      */
     public async saveChunks(): Promise<void> {
-        let time = Date.now();
+        const time = Date.now();
         this.server.getLogger().debug('[World save] saving chunks...');
         const promises: Array<Promise<void>> = [];
         for (const chunk of this.chunks.values()) {
@@ -392,6 +392,7 @@ export default class World {
                 chunk.setChanged(false);
             }
         }
+
         await Promise.all(promises);
         this.server
             .getLogger()
@@ -423,7 +424,7 @@ export default class World {
         return this.provider;
     }
 
-    // this is used for example in start game packet
+    // This is used for example in start game packet
     public getUniqueId(): string {
         return this.uniqueId;
     }

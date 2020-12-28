@@ -8,6 +8,7 @@ export default class IronBoots extends Armor {
             id: ItemIdsType.IronBoots
         });
     }
+
     getMaxDurability() {
         return 195;
     }

@@ -29,12 +29,12 @@ export function EventEmitterishMixin<
     TBase extends new (...args: any[]) => {}
 >(
     Base: TBase,
-    getEvt: (params: {
+    getEvt: (parameters: {
         constructorArgs: ConstructorParameters<TBase>;
         instance: InstanceType<TBase>;
     }) => Evt<EventTypes>
 ) {
-    //NOTE: We can't use private properties in a mixin hence the use of a weak map.
+    // NOTE: We can't use private properties in a mixin hence the use of a weak map.
     const instanceProperties = new WeakMap<
         {},
         {
@@ -118,7 +118,7 @@ export function EventEmitterishMixin<
          * Returns a promise that resolve after
          * each async callbacks have resolved.
          */
-        emit<T extends EventTypes, K extends T[0]>(
+        async emit<T extends EventTypes, K extends T[0]>(
             id: K,
             event: T extends readonly [K, infer U] ? U : never
         ): Promise<void> {

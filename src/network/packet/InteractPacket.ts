@@ -22,7 +22,7 @@ export default class InteractPacket extends DataPacket {
         this.writeByte(this.action);
         this.writeUnsignedVarLong(this.target);
 
-        if (this.action == InteractAction.MouseOver) {
+        if (this.action === InteractAction.MouseOver) {
             this.writeLFloat(this.x);
             this.writeLFloat(this.y);
             this.writeLFloat(this.z);
@@ -33,7 +33,7 @@ export default class InteractPacket extends DataPacket {
         this.action = this.readByte();
         this.target = this.readUnsignedVarLong();
 
-        if (this.action == InteractAction.MouseOver) {
+        if (this.action === InteractAction.MouseOver) {
             this.x = this.readLFloat();
             this.y = this.readLFloat();
             this.z = this.readLFloat();

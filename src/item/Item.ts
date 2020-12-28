@@ -14,12 +14,12 @@ export default class Item {
     id: number;
     runtimeId: number;
     name: string;
-    meta: number = 0;
+    meta = 0;
     durability: number = this.getMaxDurability();
 
     // TODO
     nbt = null;
-    count: number = 1;
+    count = 1;
 
     constructor({ id, name }: ItemProps) {
         this.id = id;

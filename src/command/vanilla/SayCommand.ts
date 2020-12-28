@@ -11,14 +11,13 @@ export default class SayCommand extends Command {
         } as any);
     }
 
-    execute(sender: Player, args: Array<string>) {
+    public async execute(sender: Player, args: string[]) {
         if (!args[0]) {
             return sender.sendMessage(`§cPlease specify a message.`);
         }
 
-        let message = args.join(' ');
+        const message = args.join(' ');
         const chat = new Chat(sender, `§5[${sender.getUsername()}] ${message}`);
-        sender.getServer().getChatManager().send(chat);
-        return;
+        await sender.getServer().getChatManager().send(chat);
     }
 }

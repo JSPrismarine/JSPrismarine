@@ -2,7 +2,9 @@ import Inventory from './Inventory';
 import Item from '../item/Item';
 
 export default class HumanInventory extends Inventory {
-    private handSlot: number = 0;
+    private get handSlot() {
+        return 0;
+    }
 
     public constructor() {
         super(36);

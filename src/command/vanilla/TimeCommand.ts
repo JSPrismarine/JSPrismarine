@@ -10,12 +10,12 @@ export default class GamemodeCommand extends Command {
         } as any);
     }
 
-    public execute(sender: Player, args: Array<any>) {
+    public async execute(sender: Player, args: any[]) {
         const world =
             sender?.getWorld?.() ||
             sender.getServer().getWorldManager().getDefaultWorld();
 
-        if (args.length < 1) {
+        if (args.length === 0) {
             return sender.sendMessage(
                 `The current time is ${world.getTicks()}`
             );
@@ -32,11 +32,12 @@ export default class GamemodeCommand extends Command {
                 case 'sub':
                     world.setTicks(world.getTicks() - args[1]);
                     break;
+                default:
+                    throw new Error(`Invalid argument "${args[0]}"`);
             }
 
-            world.sendTime();
-
-            return sender.sendMessage(`Set time to: ${world.getTicks()}`);
+            await world.sendTime();
+            await sender.sendMessage(`Set time to: ${world.getTicks()}`);
         }
     }
 }

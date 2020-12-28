@@ -12,12 +12,12 @@ export default class ConnectionRequest extends Packet {
     public decodePayload(): void {
         this.clientGUID = this.readLong();
         this.requestTimestamp = this.readLong();
-        this.readByte(); // secure
+        this.readByte(); // Secure
     }
 
     public encodePayload(): void {
         this.writeLong(this.clientGUID);
         this.writeLong(this.requestTimestamp);
-        this.writeByte(0); // secure
+        this.writeByte(0); // Secure
     }
 }

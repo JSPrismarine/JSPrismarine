@@ -3,8 +3,8 @@ import Event from '../Event';
 import type InetAddress from '../../network/raknet/utils/InetAddress';
 
 export default class RaknetEncapsulatedPacketEvent extends Event {
-    private inetAddr: InetAddress;
-    private packet: EncapsulatedPacket;
+    private readonly inetAddr: InetAddress;
+    private readonly packet: EncapsulatedPacket;
 
     constructor(inetAddr: InetAddress, packet: EncapsulatedPacket) {
         super();
@@ -15,6 +15,7 @@ export default class RaknetEncapsulatedPacketEvent extends Event {
     public getInetAddr(): InetAddress {
         return this.inetAddr;
     }
+
     public getPacket(): EncapsulatedPacket {
         return this.packet;
     }

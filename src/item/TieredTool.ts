@@ -3,7 +3,7 @@ import { ItemTieredToolType } from './ItemTieredToolType';
 import Tool from './Tool';
 
 export default class TieredTool extends Tool {
-    private tier: ItemTieredToolType = ItemTieredToolType.None;
+    private readonly tier: ItemTieredToolType = ItemTieredToolType.None;
 
     constructor(args: ItemProps, tier: ItemTieredToolType) {
         super(args);

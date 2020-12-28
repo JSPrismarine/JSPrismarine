@@ -5,7 +5,7 @@ import LoginPacket from '../packet/LoginPacket';
 describe('network', () => {
     describe('handler', () => {
         describe('LoginHandler', () => {
-            it('handle with non-banned', (done) => {
+            it('handle with non-banned', async (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
@@ -30,7 +30,7 @@ describe('network', () => {
                 };
 
                 const handler = new LoginHandler();
-                handler.handle(
+                await handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
@@ -46,7 +46,7 @@ describe('network', () => {
                 );
             });
 
-            it('handle with banned without reason', (done) => {
+            it('handle with banned without reason', async (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
@@ -65,7 +65,7 @@ describe('network', () => {
                 };
 
                 const handler = new LoginHandler();
-                handler.handle(
+                await handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
@@ -81,7 +81,7 @@ describe('network', () => {
                 );
             });
 
-            it('handle with banned with reason', (done) => {
+            it('handle with banned with reason', async (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
@@ -102,7 +102,7 @@ describe('network', () => {
                 };
 
                 const handler = new LoginHandler();
-                handler.handle(
+                await handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
@@ -118,7 +118,7 @@ describe('network', () => {
                 );
             });
 
-            it('handle invalid username', (done) => {
+            it('handle invalid username', async (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = '';
                 pk.protocol = Identifiers.Protocol;
@@ -137,10 +137,10 @@ describe('network', () => {
                 };
 
                 const handler = new LoginHandler();
-                handler.handle(pk, {} as any, player as any);
+                await handler.handle(pk, {} as any, player as any);
             });
 
-            it('handle outdated client', (done) => {
+            it('handle outdated client', async (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = '';
                 pk.protocol = Identifiers.Protocol - 10;
@@ -156,10 +156,10 @@ describe('network', () => {
                 };
 
                 const handler = new LoginHandler();
-                handler.handle(pk, {} as any, player as any);
+                await handler.handle(pk, {} as any, player as any);
             });
 
-            it('handle outdated server', (done) => {
+            it('handle outdated server', async (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = '';
                 pk.protocol = Identifiers.Protocol + 10;
@@ -175,7 +175,7 @@ describe('network', () => {
                 };
 
                 const handler = new LoginHandler();
-                handler.handle(pk, {} as any, player as any);
+                await handler.handle(pk, {} as any, player as any);
             });
         });
     });

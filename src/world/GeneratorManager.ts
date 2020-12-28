@@ -3,10 +3,10 @@ import fs from 'fs';
 import path from 'path';
 
 export default class GeneratorManager {
-    private generators: Map<string, any> = new Map();
+    private readonly generators: Map<string, any> = new Map();
 
     public constructor(server: Server) {
-        const generators = fs.readdirSync(__dirname + '/generators');
+        const generators = fs.readdirSync(path.join(__dirname, '/generators'));
         generators.forEach((generator) => {
             if (generator.includes('.test.') || generator.includes('.d.ts'))
                 return;
@@ -18,7 +18,9 @@ export default class GeneratorManager {
     }
 
     public registerClassGenerator(id: string, server: Server): void {
-        const generator = require(path.resolve(__dirname + '/generators', id));
+        const generator = require(path.resolve(
+            path.join(__dirname, '/generators', id)
+        ));
         this.generators.set(
             id.toLowerCase(),
             new (generator.default || generator)()

@@ -6,8 +6,8 @@ interface SkinCapeData {
 }
 
 export default class SkinCape {
-    private id: string;
-    private image: SkinImage;
+    private readonly id: string;
+    private readonly image: SkinImage;
 
     constructor({ id, image }: SkinCapeData) {
         this.id = id;
