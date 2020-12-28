@@ -23,8 +23,8 @@ export default class AdventureSettingsHandler
         if (flying !== player.isFlying()) {
             // TODO: check if the player is allow to fly
             // TODO: PlayerToggleFlight event
-            
-            player.setFlying(flying);
+
+            await player.setFlying(flying);
         }
     }
 }
