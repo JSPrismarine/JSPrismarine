@@ -1,8 +1,8 @@
-import CommandExecuter from '../command/CommandExecuter';
-import type Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
+import CommandExecuter from '../command/CommandExecuter';
+import type Server from '../Server';
 
 interface OpType {
     name: string;

@@ -1,8 +1,8 @@
+import fs from 'fs';
+import Server from '../Server';
 import GeneratorManager from './GeneratorManager';
 import LevelDB from './leveldb/Leveldb';
-import Server from '../Server';
 import World from './World';
-import fs from 'fs';
 
 export default class WorldManager {
     private readonly worlds: Map<string, World> = new Map();

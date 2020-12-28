@@ -1,8 +1,8 @@
-import type Player from '../player/Player';
-import type Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
+import type Player from '../player/Player';
+import type Server from '../Server';
 
 export default class BanManager {
     private readonly server: Server;

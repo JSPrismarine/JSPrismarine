@@ -237,7 +237,7 @@ export default class Server {
             }
         );
 
-        this.getEventManager().on('raknetEncapsulatedPacket', (event) => {
+        this.getEventManager().on('raknetEncapsulatedPacket', async (event) => {
             const raknetPacket = event.getPacket();
             const inetAddr = event.getInetAddr();
 
@@ -281,7 +281,7 @@ export default class Server {
                 }
 
                 try {
-                    (handler as PacketHandler<any>).handle(
+                    await (handler as PacketHandler<any>).handle(
                         packet,
                         this,
                         player as Player

@@ -1,6 +1,5 @@
-import { Evt, to } from 'evt';
-
 import type { VoidCtx } from 'evt';
+import { Evt, to } from 'evt';
 
 export interface EventEmitterish<EventTypes extends [string, any]> {
     on<T extends EventTypes, K extends T[0]>(

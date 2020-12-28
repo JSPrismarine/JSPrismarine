@@ -9,5 +9,5 @@ export default interface PacketHandler<T extends DataPacket> {
      * @param server The server instance
      * @param connection The playeer connection
      */
-    handle(packet: T, server: Server, player: Player): void;
+    handle(packet: T, server: Server, player: Player): Promise<void> | void;
 }

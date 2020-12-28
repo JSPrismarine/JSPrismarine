@@ -1,10 +1,9 @@
-import MetadataManager, { FlagType, MetadataFlag } from './metadata';
-
 import AddActorPacket from '../network/packet/AddActorPacket';
-import AttributeManager from './attribute';
 import Player from '../player/Player';
 import Position from '../world/Position';
 import World from '../world/World';
+import AttributeManager from './attribute';
+import MetadataManager, { FlagType, MetadataFlag } from './metadata';
 
 // All entities will extend this base class
 export default class Entity extends Position {

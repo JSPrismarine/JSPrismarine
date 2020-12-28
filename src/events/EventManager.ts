@@ -1,6 +1,6 @@
+import { Evt } from 'evt';
 import type ChatEvent from './chat/ChatEvent';
 import { EventEmitterishMixin } from './EventEmitterishMixin';
-import { Evt } from 'evt';
 import type PlayerConnectEvent from './player/PlayerConnectEvent';
 import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';

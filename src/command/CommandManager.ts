@@ -1,7 +1,7 @@
 import Chat from '../chat/Chat';
+import Server from '../Server';
 import Command from './Command';
 import CommandExecuter from './CommandExecuter';
-import Server from '../Server';
 
 const path = require('path');
 const fs = require('fs');

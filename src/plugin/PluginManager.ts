@@ -1,10 +1,10 @@
-import { PluginManager as ModuleManager } from 'live-plugin-manager';
-import PluginApiVersion from './api/PluginApiVersion';
-import PluginFile from './PluginFile';
-import Server from '../Server';
 import fs from 'fs';
+import { PluginManager as ModuleManager } from 'live-plugin-manager';
 import path from 'path';
 import unzipper from 'unzipper';
+import Server from '../Server';
+import PluginApiVersion from './api/PluginApiVersion';
+import PluginFile from './PluginFile';
 
 export default class PluginManager {
     private readonly server: Server;
