@@ -5,10 +5,10 @@ import World from './World';
 import fs from 'fs';
 
 export default class WorldManager {
-    private worlds: Map<string, World> = new Map();
+    private readonly worlds: Map<string, World> = new Map();
     private defaultWorld: World | null = null;
-    private genManager: GeneratorManager;
-    private server: Server;
+    private readonly genManager: GeneratorManager;
+    private readonly server: Server;
 
     public constructor(server: Server) {
         this.server = server;
@@ -43,7 +43,7 @@ export default class WorldManager {
     /**
      * Loads a world by its folder name.
      */
-    public loadWorld(worldData: any, folderName: string): Promise<World> {
+    public async loadWorld(worldData: any, folderName: string): Promise<World> {
         return new Promise((resolve, reject) => {
             if (this.isWorldLoaded(folderName)) {
                 this.server
@@ -51,9 +51,10 @@ export default class WorldManager {
                     .warn(`World §e${folderName}§r has already been loaded!`);
                 reject();
             }
-            let levelPath = process.cwd() + `/worlds/${folderName}/`;
+
+            const levelPath = process.cwd() + `/worlds/${folderName}/`;
             // TODO: figure out provider by data
-            let world = new World({
+            const world = new World({
                 name: folderName,
                 server: this.server,
                 provider: new LevelDB(levelPath, this.server),
@@ -66,11 +67,12 @@ export default class WorldManager {
             // First level to be loaded is also the default one
             if (!this.defaultWorld) {
                 this.defaultWorld =
-                    this.worlds.get(world.getUniqueId()) || null;
+                    this.worlds.get(world.getUniqueId()) ?? null;
                 this.server
                     .getLogger()
                     .info(`Loaded §b${folderName}§r as default world!`);
             }
+
             this.server
                 .getLogger()
                 .debug(`World §b${folderName}§r successfully loaded!`);
@@ -90,7 +92,7 @@ export default class WorldManager {
                 );
         }
 
-        let world = this.getWorldByName(folderName);
+        const world = this.getWorldByName(folderName);
         if (!world) {
             return this.server
                 .getLogger()
@@ -108,13 +110,16 @@ export default class WorldManager {
      * Returns whatever the world is loaded or not.
      */
     public isWorldLoaded(folderName: string): boolean {
-        for (let world of this.worlds.values()) {
-            if (world.getName().toLowerCase() == folderName.toLowerCase()) {
+        for (const world of this.worlds.values()) {
+            if (world.getName().toLowerCase() === folderName.toLowerCase()) {
                 return true;
-            } else if (world.getUniqueId() === folderName) {
+            }
+
+            if (world.getUniqueId() === folderName) {
                 return true;
             }
         }
+
         return false;
     }
 

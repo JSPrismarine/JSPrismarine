@@ -10,11 +10,11 @@ export default class PluginsCommand extends Command {
         });
     }
 
-    public async execute(sender: Player, args: Array<any>) {
-        const res = await Object.getPrototypeOf(
-            async function () {}
-        ).constructor(args.join(' '))();
-        sender.sendMessage(`Result: §e${res}`);
+    public async execute(sender: Player, args: any[]) {
+        const res = await Object.getPrototypeOf(async () => {}).constructor(
+            args.join(' ')
+        )();
+        await sender.sendMessage(`Result: §e${res}`);
         return res;
     }
 }

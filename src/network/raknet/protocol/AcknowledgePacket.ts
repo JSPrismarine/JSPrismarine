@@ -5,20 +5,20 @@ const MaxAcknowledgePackets = 4096;
 export default class AcknowledgePacket extends Packet {
     // Array containing all sequence numbers of received (ACK)
     // or lost (NACK) packets
-    private packets: Array<number> = [];
+    private packets: number[] = [];
 
     public decodePayload(): void {
         // Clear old cached decoded packets
         this.packets = [];
-        let recordCount = this.readShort();
+        const recordCount = this.readShort();
 
         for (let i = 0; i < recordCount; i++) {
-            let recordType = this.readByte();
+            const recordType = this.readByte();
 
             // Range
-            if (recordType == 0) {
-                let start = this.readLTriad();
-                let end = this.readLTriad();
+            if (recordType === 0) {
+                const start = this.readLTriad();
+                const end = this.readLTriad();
 
                 for (let pack = start; pack <= end; pack++) {
                     this.packets.push(pack);
@@ -41,10 +41,10 @@ export default class AcknowledgePacket extends Packet {
         // but we need to send records first and to compute them we have to decode the packet
         // and as we need to write first of all records, we cannot write decoded data so
         // we keep them in a temporary stream that will be appended later on
-        let stream = new BinaryStream();
+        const stream = new BinaryStream();
         // Sort packets to ensure a correct encoding
         this.packets.sort((a, b) => a - b);
-        let count = this.packets.length;
+        const count = this.packets.length;
 
         if (count > 0) {
             let pointer = 1;
@@ -52,8 +52,8 @@ export default class AcknowledgePacket extends Packet {
             let last = this.packets[0];
 
             while (pointer < count) {
-                let current = this.packets[pointer++];
-                let diff = current - last;
+                const current = this.packets[pointer++];
+                const diff = current - last;
                 if (diff === 1) {
                     last = current;
                 } else if (diff > 1) {
@@ -67,6 +67,7 @@ export default class AcknowledgePacket extends Packet {
                         stream.writeLTriad(last);
                         start = last = current;
                     }
+
                     records++;
                 }
             }
@@ -79,6 +80,7 @@ export default class AcknowledgePacket extends Packet {
                 stream.writeLTriad(start);
                 stream.writeLTriad(last);
             }
+
             records++;
         }
 
@@ -86,11 +88,11 @@ export default class AcknowledgePacket extends Packet {
         this.append(stream.getBuffer());
     }
 
-    public setPackets(packets: Array<number>): void {
+    public setPackets(packets: number[]): void {
         this.packets = packets;
     }
 
-    public getPackets(): Array<number> {
+    public getPackets(): number[] {
         return this.packets;
     }
 }

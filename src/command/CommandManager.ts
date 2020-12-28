@@ -7,15 +7,15 @@ const path = require('path');
 const fs = require('fs');
 
 export default class CommandManager {
-    private commands: Set<Command> = new Set();
-    private server: Server;
+    private readonly commands: Set<Command> = new Set();
+    private readonly server: Server;
 
     constructor(server: Server) {
         this.server = server;
     }
 
     /**
-     * onEnable hook
+     * OnEnable hook
      */
     public async onEnable() {
         const time = Date.now();
@@ -56,13 +56,13 @@ export default class CommandManager {
             .getLogger()
             .debug(
                 `Registered §b${
-                    vanilla.length + jsprismarine.length
+                    (vanilla.length as number) + (jsprismarine.length as number)
                 }§r commands(s) (took ${Date.now() - time} ms)!`
             );
     }
 
     /**
-     * onDisable hook
+     * OnDisable hook
      */
     public async onDisable() {
         this.commands.clear();
@@ -86,7 +86,7 @@ export default class CommandManager {
             sender.sendMessage('Received an invalid command!');
         }
 
-        const commandParts: Array<any> = commandInput.substr(1).split(' '); // Name + arguments array
+        const commandParts: any[] = commandInput.slice(1).split(' '); // Name + arguments array
         const namespace: string =
             commandParts[0].split(':').length === 2
                 ? commandParts[0].split(':')[0]
@@ -98,17 +98,17 @@ export default class CommandManager {
         commandParts.shift();
 
         // Check for numbers and convert them
-        for (let argument of commandParts) {
-            if (!isNaN(argument as any) && argument.trim().length != 0) {
-                // command argument parsing fixed
-                let argumentIndex = commandParts.indexOf(argument);
+        for (const argument of commandParts) {
+            if (!Number.isNaN(argument) && argument.trim().length > 0) {
+                // Command argument parsing fixed
+                const argumentIndex = commandParts.indexOf(argument);
                 commandParts[argumentIndex] = Number(argument);
             }
         }
 
         let command: Command | null = null;
         if (namespace) {
-            for (let c of this.commands) {
+            for (const c of this.commands) {
                 if (
                     c.id === `${namespace}:${commandName}` ||
                     (c.id.split(':')[0] === namespace &&
@@ -119,7 +119,7 @@ export default class CommandManager {
         } else {
             // TODO: handle multiple commands with same identifier
             // by prioritizing minecraft:->jsprismarine:->first hit
-            for (let c of this.commands) {
+            for (const c of this.commands) {
                 if (
                     c.id.split(':')[1] === `${commandName}` ||
                     c.aliases?.includes(commandName)
@@ -149,7 +149,7 @@ export default class CommandManager {
                 }]§r`,
                 '*.ops'
             );
-            this.server.getChatManager().send(chat);
+            await this.server.getChatManager().send(chat);
 
             return;
         }

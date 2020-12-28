@@ -1,7 +1,7 @@
 import Command from '../Command';
 import Player from '../../player/Player';
 
-class MeCommand extends Command {
+export default class MeCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:me',
@@ -10,19 +10,17 @@ class MeCommand extends Command {
         });
     }
 
-    execute(sender: Player, args: Array<string>) {
+    public async execute(sender: Player, args: string[]) {
         if (!args[0]) {
             return sender.sendMessage(`§cPlease specify a message.`);
         }
 
-        let message = args.join(' ');
-        let messageToSend = `*${sender.getUsername()}: ${message}`;
+        const message = args.join(' ');
+        const messageToSend = `*${sender.getUsername()}: ${message}`;
 
         sender.getServer().getLogger().info(messageToSend);
-        for (let player of sender.getServer().getOnlinePlayers()) {
-            player.sendMessage(messageToSend);
+        for (const player of sender.getServer().getOnlinePlayers()) {
+            await player.sendMessage(messageToSend);
         }
     }
 }
-
-module.exports = MeCommand;

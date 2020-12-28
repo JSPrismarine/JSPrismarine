@@ -16,10 +16,7 @@ export enum StoneType {
 }
 
 export default class Stone extends Solid {
-    constructor(
-        name: string = 'minecraft:stone',
-        type: StoneType = StoneType.Stone
-    ) {
+    constructor(name = 'minecraft:stone', type: StoneType = StoneType.Stone) {
         super({
             name,
             id: BlockIdsType.Stone,

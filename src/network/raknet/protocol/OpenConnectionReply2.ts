@@ -16,7 +16,7 @@ export default class OpenConnectionReply2 extends OfflinePacket {
         this.serverGUID = this.readLong();
         this.clientAddress = this.readAddress();
         this.mtuSize = this.readShort();
-        this.readByte(); // secure
+        this.readByte(); // Secure
     }
 
     public encodePayload(): void {
@@ -24,6 +24,6 @@ export default class OpenConnectionReply2 extends OfflinePacket {
         this.writeLong(this.serverGUID);
         this.writeAddress(this.clientAddress);
         this.writeShort(this.mtuSize);
-        this.writeByte(0); // secure
+        this.writeByte(0); // Secure
     }
 }

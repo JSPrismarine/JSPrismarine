@@ -5,12 +5,16 @@ import type Server from '../../Server';
 import type TextPacket from '../packet/TextPacket';
 
 export default class TextHandler implements PacketHandler<TextPacket> {
-    public handle(packet: TextPacket, server: Server, player: Player): void {
+    public async handle(
+        packet: TextPacket,
+        server: Server,
+        player: Player
+    ): Promise<void> {
         // Emit chat event
         const chat = new Chat(
             player,
             `${player.getFormattedUsername()} ${packet.message}`
         );
-        server.getChatManager().send(chat);
+        await server.getChatManager().send(chat);
     }
 }

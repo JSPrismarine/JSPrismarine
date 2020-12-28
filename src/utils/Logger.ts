@@ -6,15 +6,15 @@ const { combine, timestamp, printf } = format;
 const mcColors = require('mccolorstoconsole');
 
 export default class LoggerBuilder {
-    private logger: Logger;
+    private readonly logger: Logger;
 
     constructor() {
         this.logger = createLogger({
             transports: [
                 new transports.Console({
                     level:
-                        /*process.env.NODE_ENV !== 'development' &&*/ (global as any)
-                            .log_level || 'info', //|| 'silly',
+                        /* Process.env.NODE_ENV !== 'development' && */ (global as any)
+                            .log_level || 'info', // || 'silly',
                     format: combine(
                         timestamp({ format: 'HH:mm:ss' }),
                         format.colorize(),
@@ -36,7 +36,7 @@ export default class LoggerBuilder {
                             return `[${timestamp}] ${level}: ${mcColors
                                 .minecraftToConsole(message)
                                 .replace(
-                                    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+                                    /[\u001B\u009B][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[\dA-ORZcf-nqry=><]/g,
                                     ''
                                 )}`; // eslint-disable-line
                         })
@@ -50,10 +50,10 @@ export default class LoggerBuilder {
      * Log information messages
      * @param message
      */
-    public info = (message: string, ...param: any[]) => {
+    public info = (message: string, ...parameter: any[]) => {
         this.logger.log(
             'info',
-            param.length > 1 ? util.format(message, param) : message
+            parameter.length > 1 ? util.format(message, parameter) : message
         );
     };
 
@@ -61,10 +61,10 @@ export default class LoggerBuilder {
      * Log warning messages
      * @param message
      */
-    public warn = (message: string, ...param: any[]) => {
+    public warn = (message: string, ...parameter: any[]) => {
         this.logger.log(
             'warn',
-            param.length > 1 ? util.format(message, param) : message
+            parameter.length > 1 ? util.format(message, parameter) : message
         );
     };
 
@@ -72,10 +72,10 @@ export default class LoggerBuilder {
      * Log error messages
      * @param message
      */
-    public error = (message: string, ...param: any[]) => {
+    public error = (message: string, ...parameter: any[]) => {
         this.logger.log(
             'error',
-            param.length > 1 ? util.format(message, param) : message
+            parameter.length > 1 ? util.format(message, parameter) : message
         );
     };
 
@@ -83,10 +83,10 @@ export default class LoggerBuilder {
      * Log debug messages
      * @param message
      */
-    public debug = (message: string, ...param: any[]) => {
+    public debug = (message: string, ...parameter: any[]) => {
         this.logger.log(
             'debug',
-            param.length > 1 ? util.format(message, param) : message
+            parameter.length > 1 ? util.format(message, parameter) : message
         );
     };
 
@@ -94,10 +94,10 @@ export default class LoggerBuilder {
      * Log silly messages
      * @param message
      */
-    public silly = (message: string, ...param: any[]) => {
+    public silly = (message: string, ...parameter: any[]) => {
         this.logger.log(
             'silly',
-            param.length > 1 ? util.format(message, param) : message
+            parameter.length > 1 ? util.format(message, parameter) : message
         );
     };
 }

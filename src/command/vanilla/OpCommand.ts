@@ -26,7 +26,7 @@ export default class OpCommand extends Command {
         );
     }
 
-    execute(sender: Player, args: Array<any>) {
+    public async execute(sender: Player, args: any[]) {
         if (args.length <= 0) {
             const event = new ChatEvent(
                 new Chat(
@@ -35,25 +35,25 @@ export default class OpCommand extends Command {
                     `*.player.${sender.getUsername()}`
                 )
             );
-            sender.getServer().getEventManager().emit('chat', event);
+            await sender.getServer().getEventManager().emit('chat', event);
             return;
-        } else {
-            const target = sender.getServer().getPlayerByName(args[0]);
-            sender
-                .getServer()
-                .getPermissionManager()
-                .setOp(target?.getUsername() || args[0], true);
+        }
 
-            if (target) {
-                const event = new ChatEvent(
-                    new Chat(
-                        sender,
-                        '§eYou are now op!',
-                        `*.player.${target.getUsername()}`
-                    )
-                );
-                sender.getServer().getEventManager().emit('chat', event);
-            }
+        const target = sender.getServer().getPlayerByName(args[0]);
+        await sender
+            .getServer()
+            .getPermissionManager()
+            .setOp(target?.getUsername() ?? args[0], true);
+
+        if (target) {
+            const event = new ChatEvent(
+                new Chat(
+                    sender,
+                    '§eYou are now op!',
+                    `*.player.${target.getUsername()}`
+                )
+            );
+            await sender.getServer().getEventManager().emit('chat', event);
         }
 
         return `Made ${args[0] || sender.getUsername()} a server operator`;

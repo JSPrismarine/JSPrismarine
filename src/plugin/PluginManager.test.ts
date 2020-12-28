@@ -31,45 +31,56 @@ describe('plugin', () => {
         beforeAll(() => {
             const logger = new LoggerBuilder();
 
-            server = server = new Server({
+            server = new Server({
                 logger,
                 config: new (class DebugConfig {
                     public getPort() {
                         return 19199;
                     }
+
                     public getServerIp() {
                         return '0.0.0.0';
                     }
+
                     public getLevelName() {
                         return '';
                     }
+
                     public getWorlds() {
                         return {};
                     }
+
                     public getMaxPlayers() {
                         return 1;
                     }
+
                     public getGamemode() {
                         return 1;
                     }
+
                     public getMotd() {
                         return 'CI';
                     }
+
                     public getViewDistance() {
                         return 4;
                     }
+
                     public getOnlineMode() {
                         return false;
                     }
+
                     public getEnableEval() {
                         return false;
                     }
+
                     public getTelemetry() {
                         return {
                             enabled: false,
                             urls: []
                         };
                     }
+
                     public getPacketCompressionLevel() {
                         return 7;
                     }

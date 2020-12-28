@@ -4,7 +4,7 @@ import NetworkTransactionSourceType from './NetworkTransactionSourceType';
 class NetworkTransaction {
     public sourceType!: number;
     public windowId!: number;
-    public sourceFlags: number = 0;
+    public sourceFlags = 0;
     public slot!: number;
 
     public oldItem: any;
@@ -28,7 +28,7 @@ class NetworkTransaction {
             case NetworkTransactionSourceType.Creative:
                 break;
             default:
-            //    this.server
+            //    This.server
             //        .getLogger()
             //        .warn(`Unknown source type ${this.sourceType}`);
         }

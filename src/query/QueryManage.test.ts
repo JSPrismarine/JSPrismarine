@@ -35,7 +35,7 @@ describe('QueryManager', () => {
         );
         expect(buffer.toString()).toBe(
             Buffer.from(
-                '\x09\x00\x00\x00\x00\x39\x35\x31\x33\x33\x30\x37\x00',
+                '\u0009\u0000\u0000\u0000\u0000\u0039\u0035\u0031\u0033\u0033\u0030\u0037\u0000',
                 'binary'
             ).toString()
         );

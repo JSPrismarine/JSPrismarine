@@ -5,12 +5,12 @@ import type Server from '../../Server';
 
 export default class CommandRequestHandler
     implements PacketHandler<CommandRequestPacket> {
-    public handle(
+    public async handle(
         packet: CommandRequestPacket,
         server: Server,
         player: Player
-    ): void {
-        player
+    ): Promise<void> {
+        await player
             .getServer()
             .getCommandManager()
             .dispatchCommand(player, packet.commandName);

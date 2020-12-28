@@ -4,16 +4,20 @@ import type Player from '../../player/Player';
 import type Server from '../../Server';
 
 export default class AnimateHandler implements PacketHandler<AnimatePacket> {
-    public handle(packet: AnimatePacket, server: Server, player: Player): void {
+    public async handle(
+        packet: AnimatePacket,
+        server: Server,
+        player: Player
+    ): Promise<void> {
         const pk = new AnimatePacket();
         pk.runtimeEntityId = player.runtimeId;
         pk.action = packet.action;
 
-        Promise.all(
+        await Promise.all(
             server
                 .getOnlinePlayers()
-                .filter((onlinePlayer) => !(onlinePlayer == player))
-                .map((otherPlayer) =>
+                .filter((onlinePlayer) => !(onlinePlayer === player))
+                .map(async (otherPlayer) =>
                     otherPlayer.getConnection().sendDataPacket(pk)
                 )
         );

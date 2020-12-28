@@ -11,10 +11,10 @@ import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';
 
 export default class NBTWriter {
-    private order: ByteOrder;
-    private buf: BinaryStream;
+    private readonly order: ByteOrder;
+    private readonly buf: BinaryStream;
 
-    private useVarint: boolean = false;
+    private useVarint = false;
 
     public constructor(out: BinaryStream, byteOrder: ByteOrder) {
         this.buf = out;
@@ -44,8 +44,8 @@ export default class NBTWriter {
     }
 
     private writeStringValue(value: string | null): void {
-        if (value != null) {
-            let bytes = Buffer.from(value, 'utf8');
+        if (value !== null) {
+            const bytes = Buffer.from(value, 'utf8');
             if (this.useVarint) {
                 this.buf.writeUnsignedVarInt(Buffer.byteLength(value));
             } else {
@@ -53,12 +53,10 @@ export default class NBTWriter {
             }
 
             this.buf.append(bytes);
+        } else if (this.useVarint) {
+            this.writeByteValue(0);
         } else {
-            if (this.useVarint) {
-                this.writeByteValue(0);
-            } else {
-                this.writeShortValue(0);
-            }
+            this.writeShortValue(0);
         }
     }
 
@@ -67,7 +65,7 @@ export default class NBTWriter {
     }
 
     public writeShortValue(value: number): void {
-        if (this.order == ByteOrder.LITTLE_ENDIAN) {
+        if (this.order === ByteOrder.LITTLE_ENDIAN) {
             this.buf.writeLShort(value);
         } else {
             this.buf.writeShort(value);
@@ -77,29 +75,25 @@ export default class NBTWriter {
     private writeIntegerValue(value: number): void {
         if (this.useVarint) {
             this.buf.writeVarInt(value);
+        } else if (this.order === ByteOrder.LITTLE_ENDIAN) {
+            this.buf.writeLInt(value);
         } else {
-            if (this.order == ByteOrder.LITTLE_ENDIAN) {
-                this.buf.writeLInt(value);
-            } else {
-                this.buf.writeInt(value);
-            }
+            this.buf.writeInt(value);
         }
     }
 
     private writeLongValue(value: bigint): void {
         if (this.useVarint) {
             this.buf.writeVarLong(value);
+        } else if (this.order === ByteOrder.LITTLE_ENDIAN) {
+            this.buf.writeLLong(value);
         } else {
-            if (this.order == ByteOrder.LITTLE_ENDIAN) {
-                this.buf.writeLLong(value);
-            } else {
-                this.buf.writeLong(value);
-            }
+            this.buf.writeLong(value);
         }
     }
 
     private writeFloatValue(value: number): void {
-        if (this.order == ByteOrder.LITTLE_ENDIAN) {
+        if (this.order === ByteOrder.LITTLE_ENDIAN) {
             this.buf.writeLFloat(value);
         } else {
             this.buf.writeFloat(value);
@@ -107,7 +101,7 @@ export default class NBTWriter {
     }
 
     private writeDoubleValue(value: number): void {
-        if (this.order == ByteOrder.LITTLE_ENDIAN) {
+        if (this.order === ByteOrder.LITTLE_ENDIAN) {
             this.buf.writeLDouble(value);
         } else {
             this.buf.writeDouble(value);
@@ -126,12 +120,12 @@ export default class NBTWriter {
 
     private writeListValue(value: Set<any>): void {
         if (value.size > 0) {
-            let listNbtType = this.getNBTTypeFromValue(
+            const listNbtType = this.getNBTTypeFromValue(
                 value.entries().next().value
             );
             this.writeByteValue(listNbtType);
             this.writeIntegerValue(value.size);
-            for (let rawValue of value) {
+            for (const rawValue of value) {
                 switch (listNbtType) {
                     case NBTDefinitions.TAG_BYTE:
                         this.writeByteValue(rawValue.getValue());
@@ -166,6 +160,8 @@ export default class NBTWriter {
                     case NBTDefinitions.TAG_INT_ARRAY:
                         this.writeIntegerArrayValue(rawValue);
                         break;
+                    default:
+                        throw new Error('Invalid NBTTagType');
                 }
             }
         } else {
@@ -175,8 +171,8 @@ export default class NBTWriter {
     }
 
     private writeCompoundValue(compound: NBTTagCompound): void {
-        for (let [key, value] of compound.entries()) {
-            let nbtType = this.getNBTTypeFromValue(value);
+        for (const [key, value] of compound.entries()) {
+            const nbtType = this.getNBTTypeFromValue(value);
             this.writeTagHeader(nbtType, key);
             switch (nbtType) {
                 case NBTDefinitions.TAG_BYTE:
@@ -212,6 +208,8 @@ export default class NBTWriter {
                 case NBTDefinitions.TAG_INT_ARRAY:
                     this.writeIntegerValue(value);
                     break;
+                default:
+                    throw new Error('Invalid NBTTagType');
             }
         }
 
@@ -221,30 +219,40 @@ export default class NBTWriter {
     private getNBTTypeFromValue(value: any): NBTDefinitions {
         if (value instanceof ByteVal) {
             return NBTDefinitions.TAG_BYTE;
-        } else if (value instanceof ShortVal) {
-            return NBTDefinitions.TAG_SHORT;
-        } else if (value instanceof NumberVal) {
-            return NBTDefinitions.TAG_INT;
-        } else if (value instanceof LongVal) {
-            return NBTDefinitions.TAG_LONG;
-        } else if (value instanceof FloatVal) {
-            return NBTDefinitions.TAG_FLOAT;
-        } else if (value instanceof DoubleVal) {
-            return NBTDefinitions.TAG_DOUBLE;
-        } else if (value instanceof Buffer) {
-            return NBTDefinitions.TAG_BYTE_ARRAY;
-        } else if (value instanceof StringVal) {
-            return NBTDefinitions.TAG_STRING;
-        } else if (value instanceof Set) {
-            return NBTDefinitions.TAG_LIST;
-        } else if (value instanceof NBTTagCompound) {
-            return NBTDefinitions.TAG_COMPOUND;
-        } else if (Array.isArray(value)) {
-            return NBTDefinitions.TAG_INT_ARRAY;
-        } else {
-            throw new Error(
-                `Invalid NBT Data: Cannot deduce NBT type of class ${value.constructor.name} (${value})`
-            );
         }
+        if (value instanceof ShortVal) {
+            return NBTDefinitions.TAG_SHORT;
+        }
+        if (value instanceof NumberVal) {
+            return NBTDefinitions.TAG_INT;
+        }
+        if (value instanceof LongVal) {
+            return NBTDefinitions.TAG_LONG;
+        }
+        if (value instanceof FloatVal) {
+            return NBTDefinitions.TAG_FLOAT;
+        }
+        if (value instanceof DoubleVal) {
+            return NBTDefinitions.TAG_DOUBLE;
+        }
+        if (value instanceof Buffer) {
+            return NBTDefinitions.TAG_BYTE_ARRAY;
+        }
+        if (value instanceof StringVal) {
+            return NBTDefinitions.TAG_STRING;
+        }
+        if (value instanceof Set) {
+            return NBTDefinitions.TAG_LIST;
+        }
+        if (value instanceof NBTTagCompound) {
+            return NBTDefinitions.TAG_COMPOUND;
+        }
+        if (Array.isArray(value)) {
+            return NBTDefinitions.TAG_INT_ARRAY;
+        }
+
+        throw new TypeError(
+            `Invalid NBT Data: Cannot deduce NBT type of class ${value.constructor.name} (${value})`
+        );
     }
 }

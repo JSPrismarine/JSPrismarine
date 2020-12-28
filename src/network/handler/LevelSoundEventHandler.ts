@@ -5,14 +5,14 @@ import type Server from '../../Server';
 
 export default class LevelSoundEventHandler
     implements PacketHandler<LevelSoundEventPacket> {
-    public handle(
+    public async handle(
         packet: LevelSoundEventPacket,
         server: Server,
         player: Player
-    ): void {
+    ): Promise<void> {
         // TODO: broadcast to viewers
         for (const chunkPlayer of player.getPlayersInChunk()) {
-            chunkPlayer.getConnection().sendDataPacket(packet);
+            await chunkPlayer.getConnection().sendDataPacket(packet);
         }
     }
 }

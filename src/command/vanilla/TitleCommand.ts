@@ -19,27 +19,28 @@ export default class TitleCommand extends Command {
         } as any);
     }
 
-    execute(sender: Player, args: Array<string>): void {
+    public async execute(sender: Player, args: string[]): Promise<void> {
         if (!args[0])
             return sender.sendMessage('§cYou have to select a player.');
 
         if (!Object.keys(TitleTypes).includes(`${args[1]}`.toLowerCase()))
             return sender.sendMessage(`§cInvalid title type.`);
 
-        if (!args[2] && args[1] != 'clear')
+        if (!args[2] && args[1] !== 'clear')
             return sender.sendMessage('§cPlease specify a message.');
 
-        let targets: Array<Player> = [];
-        if (args[0] == '@a') {
-            let players = Array.from(
+        const targets: Player[] = [];
+        if (args[0] === '@a') {
+            const players = Array.from(
                 sender.getServer().getOnlinePlayers().values()
             );
-            if (players.length == 0) {
+            if (players.length === 0) {
                 return sender.sendMessage('§cNo player specified.');
             }
+
             targets.push(...players);
         } else {
-            let player = sender.getServer().getPlayerByName(args[0]);
+            const player = sender.getServer().getPlayerByName(args[0]);
             if (!player)
                 return sender.sendMessage(
                     `§cCan't find the player ${args[0]}.`
@@ -47,15 +48,16 @@ export default class TitleCommand extends Command {
             targets.push(player);
         }
 
-        let text = args.slice(2).join(' ');
-        for (let i = 0; i < targets.length; i++) {
-            let player = targets[i];
-            let pk = new SetTitlePacket();
+        const text = args.slice(2).join(' ');
+        for (const player of targets) {
+            const pk = new SetTitlePacket();
             pk.type = TitleTypes[args[1]];
-            if (args[1] != 'clear') {
+
+            if (args[1] !== 'clear') {
                 pk.text = text;
             }
-            player.getConnection().sendDataPacket(pk);
+
+            await player.getConnection().sendDataPacket(pk);
         }
     }
 }

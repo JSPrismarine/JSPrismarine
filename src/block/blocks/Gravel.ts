@@ -5,9 +5,9 @@ import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
 export default class Sand extends Solid {
-    constructor(name: string = 'minecraft:gravel') {
+    constructor(name = 'minecraft:gravel') {
         super({
-            name: name,
+            name,
             id: BlockIdsType.Gravel,
             hardness: 0.6
         });

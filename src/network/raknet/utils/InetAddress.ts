@@ -1,7 +1,7 @@
 export default class InetAddress {
-    private address: string;
-    private port: number;
-    private version: number;
+    private readonly address: string;
+    private readonly port: number;
+    private readonly version: number;
 
     public constructor(address: string, port: number, version = 4) {
         this.address = address;

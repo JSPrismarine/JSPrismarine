@@ -23,7 +23,7 @@ const targetApiToCurrentApi: Operator.fλ<
 class EventManagerWithoutEventEmitterishMethods<
     CustomEventTypes extends [string, any]
 > {
-    constructor(private server: Server) {}
+    constructor(private readonly server: Server) {}
 
     private static readonly CustomEventManager = EventEmitterishMixin(
         class {
@@ -62,12 +62,14 @@ export default class EventManager<
 
         evtSrc.$attach(
             currentApiToTargetApi,
-            (data) => (internalEvents.add(data), evtProxy.postAndWait(data))
+            async (data) => (
+                internalEvents.add(data), evtProxy.postAndWait(data)
+            )
         );
 
         evtProxy.$attachExtract(
             compose((data) => !internalEvents.has(data), targetApiToCurrentApi),
-            (data) => evtSrc.postAndWait(data)
+            async (data) => evtSrc.postAndWait(data)
         );
 
         return evtProxy;
