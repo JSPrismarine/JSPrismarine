@@ -1,8 +1,13 @@
 name: Release
 on:
-    create:
-        tags:
-            - "v*"
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Version (v0.1.0-rc.17)"
+                required: true
+            prerelease:
+                description: "Pre-release?"
+                required: false
 
 jobs:
     create-release:
@@ -42,11 +47,11 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
-                  tag_name: ${{ github.ref }}
-                  release_name: ${{ github.ref }}
+                  tag_name: ${{ github.event.inputs.version }}
+                  release_name: ${{ github.event.inputs.version }}
                   body: |
                       ${{ steps.Changelog.outputs.changelog }}
-                  prerelease: true
+                  prerelease: ${{ github.event.inputs.prerelease }}
 
             - name: Upload Linux Release Asset
               id: upload-linux-release-asset
