@@ -222,7 +222,7 @@ export default class PacketRegistry {
             return this.handlers.get(id);
         }
 
-        this.logger.error(`Missing handler for packet id=%d`, id);
+        this.logger.warn(`Missing handler for packet 0x${id.toString(16)}`);
         return null;
     }
 }
