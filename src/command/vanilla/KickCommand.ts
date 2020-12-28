@@ -4,7 +4,6 @@ import type Player from '../../player/Player';
 
 export default class KickCommand extends Command {
     constructor() {
-        // TODO: Add permissions
         super({
             id: 'minecraft:kick',
             description: 'Kicks a player off the server.',

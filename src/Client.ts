@@ -70,7 +70,9 @@ export default class Client extends EventEmitter implements RakNetListener {
             this.handle(buffer);
         });
 
-        // TODO: check if it's already connecting...
+        if (this.connection)
+            throw new Error('Already connected/connecting to server.');
+
         this.logger.info('JSPrismarine client is now attempting to connect...');
 
         const timer = setIntervalAsync(async () => {

@@ -12,7 +12,6 @@ const TitleTypes: any = {
 
 export default class TitleCommand extends Command {
     constructor() {
-        // TODO: add permissions to command
         super({
             id: 'minecraft:title',
             description: 'Controls text displayed on the screen.',
@@ -21,20 +20,16 @@ export default class TitleCommand extends Command {
     }
 
     execute(sender: Player, args: Array<string>): void {
-        if (!args[0]) {
+        if (!args[0])
             return sender.sendMessage('§cYou have to select a player.');
-        }
 
-        if (!Object.keys(TitleTypes).includes(`${args[1]}`.toLowerCase())) {
+        if (!Object.keys(TitleTypes).includes(`${args[1]}`.toLowerCase()))
             return sender.sendMessage(`§cInvalid title type.`);
-        }
 
-        if (!args[2] && args[1] != 'clear') {
+        if (!args[2] && args[1] != 'clear')
             return sender.sendMessage('§cPlease specify a message.');
-        }
 
         let targets: Array<Player> = [];
-
         if (args[0] == '@a') {
             let players = Array.from(
                 sender.getServer().getOnlinePlayers().values()

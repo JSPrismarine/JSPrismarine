@@ -94,7 +94,6 @@ export default class Server {
         await this.commandManager.onEnable();
         await this.pluginManager.onEnable();
         await this.telemetryManager.onEnable();
-        // TODO: rework managers to this format
     }
 
     private async onDisable(): Promise<void> {
@@ -105,7 +104,6 @@ export default class Server {
         await this.itemManager.onDisable();
         await this.banManager.onDisable();
         await this.permissionManager.onDisable();
-        // TODO: rework managers to this format
     }
 
     public async reload(): Promise<void> {
