@@ -35,6 +35,14 @@ export default class LevelDB extends Provider {
      * Decodes a serialized chunk from
      * the database asynchronously.
      */
+    public async close() {
+        await this.db.close();
+    }
+
+    /**
+     * Decodes a serialized chunk from
+     * the database asynchronously.
+     */
     public async readChunk({
         x,
         z,

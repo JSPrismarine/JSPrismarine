@@ -60,7 +60,8 @@ export default class World {
         this.server
             .getLogger()
             .info(
-                `Preparing start region for dimension §b'${this.name}'/${this.generator}§r`
+                `Preparing start region for dimension §b'${this.name}'/${this.generator}§r`,
+                'World/onEnable'
             );
         const chunksToLoad: Array<Promise<Chunk>> = [];
         const time = Date.now();
@@ -72,7 +73,9 @@ export default class World {
         }
 
         await Promise.all(chunksToLoad);
-        this.server.getLogger().info(`(took ${Date.now() - time} ms)`);
+        this.server
+            .getLogger()
+            .info(`(took ${Date.now() - time} ms)`, 'World/onEnable');
     }
 
     /**
@@ -135,7 +138,10 @@ export default class World {
             if (!generator) {
                 this.server
                     .getLogger()
-                    .error(`Invalid generator §b${this.generator}§r!`);
+                    .error(
+                        `Invalid generator §b${this.generator}§r!`,
+                        'World/loadChunk'
+                    );
                 throw new Error('invalid generator');
             }
 
@@ -383,7 +389,7 @@ export default class World {
      */
     public async saveChunks(): Promise<void> {
         const time = Date.now();
-        this.server.getLogger().debug('[World save] saving chunks...');
+        this.server.getLogger().debug('saving chunks...', 'World/saveChunks');
         const promises: Array<Promise<void>> = [];
         for (const chunk of this.chunks.values()) {
             if (chunk.hasChanged()) {
@@ -395,7 +401,7 @@ export default class World {
         await Promise.all(promises);
         this.server
             .getLogger()
-            .debug('[World save] took ' + (Date.now() - time) + 'ms');
+            .debug('took ' + (Date.now() - time) + 'ms', 'world/saveChunks');
     }
 
     public async save(): Promise<void> {
@@ -403,8 +409,8 @@ export default class World {
         await this.saveChunks();
     }
 
-    public close(): void {
-        // TODO
+    public async close(): Promise<void> {
+        await this.getProvider().close();
     }
 
     public getGameruleManager(): GameruleManager {

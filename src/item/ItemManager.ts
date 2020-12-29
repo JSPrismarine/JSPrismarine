@@ -36,7 +36,10 @@ export default class ItemManager {
     public registerClassItem = (item: Item) => {
         this.server
             .getLogger()
-            .silly(`Item with id §b${item.name}§r registered`);
+            .silly(
+                `Item with id §b${item.name}§r registered`,
+                'ItemManager/registerClassItem'
+            );
         item.setRuntimeId(this.items.size);
         this.items.set(item.name, item);
     };
@@ -55,7 +58,12 @@ export default class ItemManager {
                 try {
                     this.registerClassItem(new item());
                 } catch {
-                    this.server.getLogger().error(`${id} failed to register!`);
+                    this.server
+                        .getLogger()
+                        .error(
+                            `${id} failed to register!`,
+                            'ItemManager/importItems'
+                        );
                 }
             });
             this.server
@@ -63,10 +71,16 @@ export default class ItemManager {
                 .debug(
                     `Registered §b${items.length}§r item(s) (took ${
                         Date.now() - time
-                    } ms)!`
+                    } ms)!`,
+                    'ItemManager/importItems'
                 );
         } catch (error) {
-            this.server.getLogger().error(`Failed to register items: ${error}`);
+            this.server
+                .getLogger()
+                .error(
+                    `Failed to register items: ${error}`,
+                    'ItemManager/importItems'
+                );
         }
     }
 }

@@ -14,7 +14,10 @@ export default class GeneratorManager {
         });
         server
             .getLogger()
-            .debug(`Registered §b${generators.length}§r generator(s)!`);
+            .debug(
+                `Registered §b${generators.length}§r generator(s)!`,
+                'GeneratorManager'
+            );
     }
 
     public registerClassGenerator(id: string, server: Server): void {
@@ -25,7 +28,12 @@ export default class GeneratorManager {
             id.toLowerCase(),
             new (generator.default || generator)()
         );
-        server.getLogger().silly(`Generator with id §b${id}§r registered`);
+        server
+            .getLogger()
+            .silly(
+                `Generator with id §b${id}§r registered`,
+                'registerClassGenerator'
+            );
     }
 
     public getGenerator(id: string): any {
