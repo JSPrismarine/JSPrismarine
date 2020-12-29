@@ -1,4 +1,4 @@
-const Vector3 = require('./Vector3').default;
+import Vector3 from './Vector3';
 
 describe('math', () => {
     describe('Vector3', () => {
