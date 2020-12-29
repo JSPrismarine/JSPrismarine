@@ -12,16 +12,23 @@ export default class AdventureSettingsHandler
         server: Server,
         player: Player
     ): Promise<void> {
-        if (player.runtimeId !== packet.entityId) {
-            server
-                .getLogger()
-                .debug(`${packet.entityId} doesn't match ${player.runtimeId}`);
+        if (player.runtimeId !== packet.entityId && !player.isOp()) {
             return;
         }
 
+        const target = server.getPlayerById(packet.entityId);
+        if (!target) return;
+
         const flying = packet.getFlag(AdventureSettingsFlags.Flying);
-        if (flying !== player.isFlying()) {
-            await player.setFlying(flying);
+        if (flying !== target.isFlying()) {
+            await target.setFlying(flying);
+        }
+
+        const operator = packet.getFlag(AdventureSettingsFlags.Operator);
+        if (player.isOp()) {
+            await server
+                .getPermissionManager()
+                .setOp(target.getUsername(), operator);
         }
     }
 }
