@@ -21,9 +21,6 @@ export default class AdventureSettingsHandler
 
         const flying = packet.getFlag(AdventureSettingsFlags.Flying);
         if (flying !== player.isFlying()) {
-            // TODO: check if the player is allow to fly
-            // TODO: PlayerToggleFlight event
-
             await player.setFlying(flying);
         }
     }
