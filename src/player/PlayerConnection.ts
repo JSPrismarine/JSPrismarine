@@ -99,7 +99,10 @@ export default class PlayerConnection {
         );
         pk.setFlag(AdventureSettingsFlags.NoPvp, this.player.gamemode === 3);
         pk.setFlag(AdventureSettingsFlags.AutoJump, true); // TODO
-        pk.setFlag(AdventureSettingsFlags.AllowFlight, true); // TODO
+        pk.setFlag(
+            AdventureSettingsFlags.AllowFlight,
+            this.player.getAllowFlight()
+        );
         pk.setFlag(AdventureSettingsFlags.NoClip, this.player.gamemode === 3);
         pk.setFlag(AdventureSettingsFlags.Flying, this.player.isFlying());
 

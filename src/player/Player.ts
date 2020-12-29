@@ -45,6 +45,7 @@ export default class Player extends Human implements CommandExecuter {
     private sprinting = false;
     private flying = false;
     private sneaking = false;
+    private allowFight = false;
 
     public platformChatId = '';
 
@@ -112,6 +113,15 @@ export default class Player extends Human implements CommandExecuter {
     public async setGamemode(mode: number): Promise<void> {
         this.gamemode = mode;
         await this.playerConnection.sendGamemode(this.gamemode);
+
+        if (
+            this.gamemode === Gamemode.Creative ||
+            this.gamemode === Gamemode.Spectator
+        )
+            this.allowFight = true;
+        else this.allowFight = false;
+
+        await this.getConnection().sendSettings();
     }
 
     public async setTime(tick: number): Promise<void> {
@@ -149,6 +159,10 @@ export default class Player extends Human implements CommandExecuter {
 
     public getWindows(): WindowManager {
         return this.windows;
+    }
+
+    public getAllowFlight(): boolean {
+        return this.allowFight;
     }
 
     public isPlayer(): boolean {
