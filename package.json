@@ -55,6 +55,7 @@
             "unicorn/prefer-ternary": 0,
             "unicorn/better-regex": 0,
             "unicorn/escape-case": 0,
+            "unicorn/catch-error-name": 0,
             "import/no-named-as-default": 0,
             "@typescript-eslint/member-ordering": 0,
             "@typescript-eslint/ban-types": 0,
