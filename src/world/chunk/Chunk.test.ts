@@ -63,12 +63,12 @@ describe('world', () => {
 
             it('setBlock() should throw when block is null or undefined', () => {
                 const chunk = new Chunk(0, 0);
-                expect(() => chunk.setBlock(0, 0, 0, null)).toThrowError(
+                expect(() => chunk.setBlock(0, 0, 0, null as any)).toThrowError(
                     `block can't be undefined or null`
                 );
-                expect(() => chunk.setBlock(0, 0, 0, undefined)).toThrowError(
-                    `block can't be undefined or null`
-                );
+                expect(() =>
+                    chunk.setBlock(0, 0, 0, undefined as any)
+                ).toThrowError(`block can't be undefined or null`);
             });
         });
     });

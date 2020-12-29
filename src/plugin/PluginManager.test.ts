@@ -27,7 +27,7 @@ jest.mock('winston', () => ({
 
 describe('plugin', () => {
     describe('PluginManager', () => {
-        let server;
+        let server: any;
         beforeAll(() => {
             const logger = new LoggerBuilder();
 

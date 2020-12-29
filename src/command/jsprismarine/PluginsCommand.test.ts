@@ -1,4 +1,4 @@
-const Command = require('./PluginsCommand').default;
+import Command from './PluginsCommand';
 
 describe('command', () => {
     describe('jsprismarine', () => {
@@ -9,8 +9,8 @@ describe('command', () => {
                 expect(command.id).toBe('jsprismarine:plugins');
             });
 
-            it('plugins command should fail with no plugins', (done) => {
-                command.execute(
+            it('plugins command should fail with no plugins', async (done) => {
+                await command.execute(
                     {
                         getServer: () => ({
                             getPluginManager: () => ({
@@ -21,7 +21,7 @@ describe('command', () => {
                             expect(message).toBe(`§cCan't find any plugins.`);
                             done();
                         }
-                    },
+                    } as any,
                     []
                 );
             });

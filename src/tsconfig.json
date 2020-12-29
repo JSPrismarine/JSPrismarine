@@ -23,6 +23,6 @@
             "path": "../"
         }
     ],
-    "exclude": ["./**/*.test.*"],
-    "typeRoots": ["node_modules/@types", "./src/@types"]
+    "exclude": ["**/*.test.*"],
+    "typeRoots": ["../node_modules/@types", "src/@types"]
 }
