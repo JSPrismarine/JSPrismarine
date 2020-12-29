@@ -25,7 +25,7 @@ jest.mock('winston', () => ({
     }
 }));
 
-describe('plugin', () => {
+describe.skip('plugin', () => {
     describe('PluginManager', () => {
         let server: any;
         beforeAll(() => {
@@ -89,7 +89,7 @@ describe('plugin', () => {
         });
         afterEach(() => mock.restore());
 
-        it.skip('onEnable() should succeed with 0 plugins', async (done) => {
+        it('onEnable() should succeed with 0 plugins', async (done) => {
             const pl = new PluginManager(server);
             // Mock file-system
             mock({
@@ -107,7 +107,7 @@ describe('plugin', () => {
             done();
         });
 
-        it.skip('onEnable() should succeed with valid plugin', async (done) => {
+        it('onEnable() should succeed with valid plugin', async (done) => {
             const pl = new PluginManager(server);
 
             // Mock file-system
