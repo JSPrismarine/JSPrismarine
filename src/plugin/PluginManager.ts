@@ -37,7 +37,8 @@ export default class PluginManager {
                     this.server
                         .getLogger()
                         .error(
-                            `§cFailed to load pluginApiVersion ${id}: ${error}`
+                            `§cFailed to load pluginApiVersion ${id}: ${error}`,
+                            'PluginManager/onEnable'
                         );
                     return null;
                 }
@@ -48,7 +49,8 @@ export default class PluginManager {
             .debug(
                 `Registered §b${
                     pluginApiVersions.length
-                }§r pluginApiVersion(s) (took ${Date.now() - time} ms)!`
+                }§r pluginApiVersion(s) (took ${Date.now() - time} ms)!`,
+                'PluginManager/onEnable'
             );
 
         // Register Plugin(s)
@@ -62,7 +64,10 @@ export default class PluginManager {
                     } catch (error) {
                         this.server
                             .getLogger()
-                            .error(`§cFailed to load plugin ${id}: ${error}`);
+                            .error(
+                                `§cFailed to load plugin ${id}: ${error}`,
+                                'PluginManager/onEnable'
+                            );
                     }
                 })
             )
@@ -72,7 +77,8 @@ export default class PluginManager {
             .debug(
                 `Registered §b${res.length}§r plugin(s) (took ${
                     Date.now() - time
-                } ms)!`
+                } ms)!`,
+                'PluginManager/onEnable'
             );
     }
 
@@ -99,7 +105,10 @@ export default class PluginManager {
             this.pluginApiVersions.set(id, PluginVersion);
             this.server
                 .getLogger()
-                .silly(`PluginApiVersion with id §b${id}§r registered`);
+                .silly(
+                    `PluginApiVersion with id §b${id}§r registered`,
+                    'PluginManager/registerPluginApiVersion'
+                );
         } catch {
             throw new Error('invalid PluginApiVersion');
         }
@@ -129,7 +138,10 @@ export default class PluginManager {
 
             this.server
                 .getLogger()
-                .silly(`Extracting plugin with id §b${id}...`);
+                .silly(
+                    `Extracting plugin with id §b${id}...`,
+                    'PluginManager/registerPlugin'
+                );
             await fs
                 .createReadStream(path.join(process.cwd(), 'plugins/', id))
                 .pipe(unzipper.Extract({ path: dir }))
@@ -188,7 +200,8 @@ export default class PluginManager {
             this.server
                 .getLogger()
                 .warn(
-                    `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`
+                    `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
+                    'PluginManager/registerPlugin'
                 );
             return null;
         }
@@ -198,14 +211,16 @@ export default class PluginManager {
         this.server
             .getLogger()
             .silly(
-                `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`
+                `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`,
+                'PluginManager/registerPlugin'
             );
         this.server
             .getLogger()
             .info(
                 `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${
                     Date.now() - time
-                } ms)!`
+                } ms)!`,
+                'PluginManager/registerPlugin'
             );
         return plugin;
     }
@@ -221,7 +236,8 @@ export default class PluginManager {
             this.server
                 .getLogger()
                 .warn(
-                    `Failed to disable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`
+                    `Failed to disable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
+                    'PluginManager/deregisterPlugin'
                 );
         }
 

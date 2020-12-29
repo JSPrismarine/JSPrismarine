@@ -23,7 +23,9 @@ export default class WorldManager {
     public async onEnable(): Promise<void> {
         const defaultWorld = this.server.getConfig().getLevelName();
         if (!defaultWorld)
-            return this.server.getLogger().warn(`Invalid world!`);
+            return this.server
+                .getLogger()
+                .warn(`Invalid world!`, 'WorldManager/onEnable');
 
         const world = await this.loadWorld(
             this.server.getConfig().getWorlds()[defaultWorld],
@@ -48,7 +50,10 @@ export default class WorldManager {
             if (this.isWorldLoaded(folderName)) {
                 this.server
                     .getLogger()
-                    .warn(`World §e${folderName}§r has already been loaded!`);
+                    .warn(
+                        `World §e${folderName}§r has already been loaded!`,
+                        'WorldManager/loadWorld'
+                    );
                 reject();
             }
 
@@ -70,12 +75,18 @@ export default class WorldManager {
                     this.worlds.get(world.getUniqueId()) ?? null;
                 this.server
                     .getLogger()
-                    .info(`Loaded §b${folderName}§r as default world!`);
+                    .info(
+                        `Loaded §b${folderName}§r as default world!`,
+                        'WorldManager/loadWorld'
+                    );
             }
 
             this.server
                 .getLogger()
-                .debug(`World §b${folderName}§r successfully loaded!`);
+                .debug(
+                    `World §b${folderName}§r successfully loaded!`,
+                    'WorldManager/loadWorld'
+                );
             resolve(world);
         });
     }
@@ -88,7 +99,8 @@ export default class WorldManager {
             return this.server
                 .getLogger()
                 .error(
-                    `Cannot unload a not loaded world with name §b${folderName}`
+                    `Cannot unload a not loaded world with name §b${folderName}`,
+                    'WorldManager/unloadWorld'
                 );
         }
 
@@ -96,14 +108,20 @@ export default class WorldManager {
         if (!world) {
             return this.server
                 .getLogger()
-                .error(`Cannot unload world ${folderName}`);
+                .error(
+                    `Cannot unload world ${folderName}`,
+                    'WorldManager/unloadWorld'
+                );
         }
 
-        world.close();
+        await world.close();
         this.worlds.delete(world.getUniqueId());
         this.server
             .getLogger()
-            .debug(`Successfully unloaded world §b${folderName}§f!`);
+            .debug(
+                `Successfully unloaded world §b${folderName}§f!`,
+                'WorldManager/unloadWorld'
+            );
     }
 
     /**

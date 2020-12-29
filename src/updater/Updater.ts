@@ -34,17 +34,24 @@ export default class Updater {
                   ).find?.((a: any) => a.prerelease);
 
         if (!release?.tag_name) {
-            this.logger.debug('Failed to check for updates!');
+            this.logger.debug('Failed to check for updates!', 'Updater/check');
             if ((release as any)?.message)
-                this.logger.debug(`Error: ${(release as any).message}`);
+                this.logger.debug(
+                    `Error: ${(release as any).message}`,
+                    'Updater/check'
+                );
             return;
         }
 
         if (semver.gt(release.tag_name, pkg.version)) {
             this.logger.info(
-                `§5There's a new version of JSPrismarine available, new version: §2${release.tag_name}`
+                `§5There's a new version of JSPrismarine available, new version: §2${release.tag_name}`,
+                'Updater/check'
             );
-            this.logger.info(`§5Download: §e${release.html_url}`);
+            this.logger.info(
+                `§5Download: §e${release.html_url}`,
+                'Updater/check'
+            );
         }
     }
 }

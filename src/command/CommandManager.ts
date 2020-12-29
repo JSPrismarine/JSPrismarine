@@ -57,7 +57,8 @@ export default class CommandManager {
             .debug(
                 `Registered §b${
                     (vanilla.length as number) + (jsprismarine.length as number)
-                }§r commands(s) (took ${Date.now() - time} ms)!`
+                }§r commands(s) (took ${Date.now() - time} ms)!`,
+                'CommandManager/onEnable'
             );
     }
 
@@ -75,7 +76,10 @@ export default class CommandManager {
         this.commands.add(command);
         server
             .getLogger()
-            .silly(`Command with id §b${command.id}§r registered`);
+            .silly(
+                `Command with id §b${command.id}§r registered`,
+                'CommandManager/registerClassCommand'
+            );
     }
 
     /**

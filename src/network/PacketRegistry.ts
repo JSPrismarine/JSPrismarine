@@ -82,13 +82,17 @@ export default class PacketRegistry {
 
     private registerPacket(packet: any): void {
         this.packets.set(packet.NetID, packet);
-        this.logger.silly(`Packet with id §b${packet.name}§r registered`);
+        this.logger.silly(
+            `Packet with id §b${packet.name}§r registered`,
+            'PacketRegistry/registerPacket'
+        );
     }
 
     private registerHandler(id: number, handler: object): void {
         this.handlers.set(id, handler);
         this.logger.silly(
-            `Handler with id §b${handler.constructor.name}§r registered`
+            `Handler with id §b${handler.constructor.name}§r registered`,
+            'PacketRegistry/registerHandler'
         );
     }
 
@@ -148,7 +152,8 @@ export default class PacketRegistry {
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
                 Array.from(Object.keys(Identifiers)).length - 2
-            }§r packet(s) (took ${Date.now() - time} ms)!`
+            }§r packet(s) (took ${Date.now() - time} ms)!`,
+            'PacketRegistry/loadPackets'
         );
     }
 
@@ -216,7 +221,8 @@ export default class PacketRegistry {
         this.logger.debug(
             `Registered §b${this.handlers.size}§r packet handler(s) (took ${
                 Date.now() - time
-            } ms)!`
+            } ms)!`,
+            'PacketRegistry/loadHandlers'
         );
     }
 
@@ -224,12 +230,9 @@ export default class PacketRegistry {
         return this.packets;
     }
 
-    public getPacketHandler(id: number): object | null {
-        if (this.handlers.has(id)) {
-            return this.handlers.get(id);
-        }
+    public getPacketHandler(id: number): object {
+        if (this.handlers.has(id)) return this.handlers.get(id);
 
-        this.logger.warn(`Missing handler for packet 0x${id.toString(16)}`);
-        return null;
+        throw new Error(`Missing handler for packet 0x${id.toString(16)}`);
     }
 }

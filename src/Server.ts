@@ -65,7 +65,8 @@ export default class Server {
         config: Config;
     }) {
         logger.info(
-            `Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`
+            `Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`,
+            'Server'
         );
 
         this.logger = logger;
@@ -148,7 +149,10 @@ export default class Server {
             await this.getQueryManager().onRaw(buffer, inetAddr);
         });
 
-        this.logger.info(`JSPrismarine is now listening on port §b${port}`);
+        this.logger.info(
+            `JSPrismarine is now listening on port §b${port}`,
+            'Server/listen'
+        );
 
         this.getEventManager().on(
             'raknetConnect',
@@ -187,7 +191,8 @@ export default class Server {
                 world.addPlayer(player);
 
                 this.logger.silly(
-                    `Player creation took about ${Date.now() - time} ms`
+                    `Player creation took about ${Date.now() - time} ms`,
+                    'Server/listen/raknetConnect'
                 );
             }
         );
@@ -225,14 +230,19 @@ export default class Server {
                     this.players.delete(token);
                 } else {
                     this.logger.debug(
-                        `Cannot remove connection from unexisting player (${token})`
+                        `Cannot remove connection from non-existing player (${token})`,
+                        'Server/listen/raknetDisconnect'
                     );
                 }
 
-                this.logger.info(`${token} disconnected due to ${reason}`);
+                this.logger.info(
+                    `${token} disconnected due to ${reason}`,
+                    'Server/listen/raknetDisconnect'
+                );
 
                 this.logger.silly(
-                    `Player destruction took about ${Date.now() - time} ms`
+                    `Player destruction took about ${Date.now() - time} ms`,
+                    'Server/listen/raknetDisconnect'
                 );
             }
         );
@@ -254,7 +264,8 @@ export default class Server {
                 const pid = buf[0];
                 if (!this.packetRegistry.getPackets().has(pid)) {
                     this.logger.error(
-                        `Packet ${pid.toString(16)} doesn't have a handler`
+                        `Packet 0x${pid.toString(16)} isn't implemented`,
+                        'Server/listen/raknetEncapsulatedPacket'
                     );
                     continue;
                 }
@@ -268,19 +279,17 @@ export default class Server {
                     packet.decode();
                 } catch (error) {
                     this.logger.error(
-                        `Error while decoding packet: ${packet.constructor.name}: ${error}`
+                        `Error while decoding packet: ${packet.constructor.name}: ${error}`,
+                        'Server/listen/raknetEncapsulatedPacket'
                     );
                     continue;
                 }
 
-                const handler = this.packetRegistry.getPacketHandler(
-                    packet.getId()
-                );
-                if (handler === null) {
-                    continue;
-                }
-
                 try {
+                    const handler = this.packetRegistry.getPacketHandler(
+                        packet.getId()
+                    );
+
                     await (handler as PacketHandler<any>).handle(
                         packet,
                         this,
@@ -288,7 +297,8 @@ export default class Server {
                     );
                 } catch (error) {
                     this.logger.error(
-                        `Handler error ${packet.constructor.name}-handler: (${error})`
+                        `Handler error ${packet.constructor.name}-handler: (${error})`,
+                        'Server/listen/raknetEncapsulatedPacket'
                     );
                 }
             }
@@ -312,7 +322,8 @@ export default class Server {
 
             if (this.tps > 20)
                 return this.getLogger().debug(
-                    `TPS is ${this.tps} which is greater than 20!`
+                    `TPS is ${this.tps} which is greater than 20!`,
+                    'Server/listen/setIntervalAsync'
                 );
 
             const promises: Array<Promise<void>> = [];
@@ -389,6 +400,7 @@ export default class Server {
             // Save all worlds
             for (const world of this.getWorldManager().getWorlds()) {
                 await world.save();
+                await world.close();
             }
 
             await this.worldManager.onDisable();

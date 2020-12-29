@@ -32,7 +32,10 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
             default:
                 server
                     .getLogger()
-                    .debug('Unknown interact action id=%d', packet.action);
+                    .debug(
+                        `Unknown interact action id ${packet.action}`,
+                        'InteractHandler/handle'
+                    );
         }
     }
 }
