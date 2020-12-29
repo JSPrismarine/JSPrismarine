@@ -103,7 +103,10 @@ export default class CommandManager {
 
         // Check for numbers and convert them
         for (const argument of commandParts) {
-            if (!Number.isNaN(argument) && argument.trim().length > 0) {
+            if (
+                !Number.isNaN(Number.parseFloat(argument)) &&
+                argument.trim().length > 0
+            ) {
                 // Command argument parsing fixed
                 const argumentIndex = commandParts.indexOf(argument);
                 commandParts[argumentIndex] = Number(argument);
@@ -143,7 +146,7 @@ export default class CommandManager {
         ) {
             const res: string | void = await command.execute(
                 sender,
-                commandParts
+                commandParts.filter((a) => a)
             );
 
             const chat = new Chat(
@@ -154,7 +157,6 @@ export default class CommandManager {
                 '*.ops'
             );
             await this.server.getChatManager().send(chat);
-
             return;
         }
 

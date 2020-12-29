@@ -60,9 +60,9 @@ export default class Console implements CommandExecuter {
             if (evt.cancelled) return;
 
             if (
-                evt.getChat().getChannel() === '*.everyone' ??
-                evt.getChat().getChannel() === '*.ops' ??
-                evt.getChat().getChannel() === `*.player.${this.getUsername()}`
+                evt.getChat().getChannel() === '*.everyone' ||
+                evt.getChat().getChannel() === '*.ops' ||
+                evt.getChat().getChannel() === `*.console`
             )
                 this.sendMessage(evt.getChat().getMessage());
         });
@@ -77,7 +77,7 @@ export default class Console implements CommandExecuter {
     }
 
     public sendMessage(message: string): void {
-        this.getServer().getLogger().info(message);
+        this.getServer().getLogger().info(message, 'Console');
     }
 
     public getServer(): Server {

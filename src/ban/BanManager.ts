@@ -30,7 +30,9 @@ export default class BanManager {
             if (
                 !fs.existsSync(path.join(process.cwd(), '/banned-players.json'))
             ) {
-                this.server.getLogger().warn(`Failed to load ban list!`);
+                this.server
+                    .getLogger()
+                    .warn(`Failed to load ban list!`, 'BanManager/parseBanned');
                 fs.writeFileSync(
                     path.join(process.cwd(), '/banned-players.json'),
                     '[]'
@@ -48,7 +50,7 @@ export default class BanManager {
 
             for (const player of banned) this.banned.set(player.name, player);
         } catch (error) {
-            this.server.getLogger().error(error);
+            this.server.getLogger().error(error, 'BanManager/parseBanned');
             throw new Error(`Invalid banned-players.json file.`);
         }
     }
@@ -61,7 +63,11 @@ export default class BanManager {
         const writeFile = util.promisify(fs.writeFile);
         try {
             await writeFile(
-                path.join(process.cwd(), '/banned-players.json'),
+                path.join(
+                    process.cwd(),
+                    '/banned-players.json',
+                    'BanManager/setBanned'
+                ),
                 JSON.stringify(
                     Array.from(this.banned).map((entry) => ({
                         name: entry[0],
@@ -71,6 +77,7 @@ export default class BanManager {
                     4
                 )
             );
+            return true;
         } catch {
             return false;
         }
@@ -92,6 +99,7 @@ export default class BanManager {
                     4
                 )
             );
+            return true;
         } catch {
             return false;
         }

@@ -52,6 +52,12 @@ export default class Updater {
                 `§5Download: §e${release.html_url}`,
                 'Updater/check'
             );
+            return;
         }
+
+        this.logger.debug(
+            'No new version of JSPrismarine available',
+            'Updater/check'
+        );
     }
 }

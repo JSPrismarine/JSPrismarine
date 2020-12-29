@@ -29,7 +29,12 @@ export default class PermissionManager {
     private async parseOps(): Promise<void> {
         try {
             if (!fs.existsSync(path.join(process.cwd(), '/ops.json'))) {
-                this.server.getLogger().warn(`Failed to load operators list!`);
+                this.server
+                    .getLogger()
+                    .warn(
+                        `Failed to load operators list!`,
+                        'PermissionManager/parseOps'
+                    );
                 fs.writeFileSync(path.join(process.cwd(), '/ops.json'), '[]');
             }
 
@@ -42,7 +47,7 @@ export default class PermissionManager {
 
             ops.map((op) => this.ops.add(op.name));
         } catch (error) {
-            this.server.getLogger().error(error);
+            this.server.getLogger().error(error, 'PermissionManager/parseOps');
             throw new Error(`Invalid ops.json file.`);
         }
     }
