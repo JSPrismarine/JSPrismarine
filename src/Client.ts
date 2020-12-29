@@ -136,7 +136,10 @@ export default class Client extends EventEmitter implements RakNetListener {
                 this.handleOpenConnectionReply2(buffer);
                 break;
             default:
-                this.logger.warn(`Unhandled offline packet ID: ${header}`);
+                this.logger.warn(
+                    `Unhandled offline packet ID: ${header}`,
+                    'Client/handle'
+                );
         }
     }
 
