@@ -1,12 +1,8 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../chunk/Chunk';
-import EmptySubChunk from '../chunk/EmptySubChunk';
-import Level from 'level';
-import type Server from '../../Server';
 import Provider from '../Provider';
-import SubChunk from '../chunk/SubChunk';
+import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
-import path from 'path';
 
 interface readChunk {
     x: number;
@@ -16,19 +12,19 @@ interface readChunk {
     server: Server;
 }
 
-const Tags = {
+/* const Tags = {
     Version: 'v',
     SubChunkPrefix: '\u002F'
-};
+}; */
 
 export default class LevelDB extends Provider {
-    private readonly server: Server;
-    private readonly db: Level;
+    // private readonly server: Server;
+    // private readonly db: Level;
 
     constructor(levelPath: string, server: Server) {
         super(levelPath);
-        this.db = new Level(path.join(levelPath, 'db'));
-        this.server = server;
+        // this.db = new Level(path.join(levelPath, 'db'));
+        // this.server = server;
     }
 
     /**
@@ -42,12 +38,18 @@ export default class LevelDB extends Provider {
         seed,
         server
     }: readChunk): Promise<Chunk | null> {
-        return new Promise(async (resolve, reject) => {
-            const index = LevelDB.chunkIndex(x, z);
-            const subChunks: Map<number, SubChunk> = new Map();
+        return await generator.getChunk({
+            pos: new Vector3(x, 0, z),
+            seed,
+            server
+        });
+        // return new Promise(async (resolve, reject) => {
 
-            // Check if the chunks exists
-            try {
+        // const index = LevelDB.chunkIndex(x, z);
+        // const subChunks: Map<number, SubChunk> = new Map();
+
+        // Check if the chunks exists
+        /* try {
                 // Chunk exists
                 const version = await this.db.get(index + Tags.Version);
                 // Needed for future versions
@@ -120,14 +122,14 @@ export default class LevelDB extends Provider {
                     await this.db.put(index + '\u002D', data);
                     return resolve(chunk);
                 })();
-            }
-        });
+            } */
+        // });
     }
 
     /**
      * Serialize a chunk into the database asynchronously.
      */
-    async writeChunk(chunk: Chunk): Promise<void> {
+    /* async writeChunk(chunk: Chunk): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 const index = LevelDB.chunkIndex(chunk.getX(), chunk.getZ());
@@ -156,7 +158,7 @@ export default class LevelDB extends Provider {
                 return reject(error);
             }
         });
-    }
+    } */
 
     /**
      * Creates an string index from chunk

@@ -1,18 +1,19 @@
+import GameruleManager, { GameRules } from './GameruleManager';
+
 import Block from '../block/Block';
-import Entity from '../entity/entity';
-import Item from '../item/Item';
-import Vector3 from '../math/Vector3';
-import DataPacket from '../network/packet/DataPacket';
-import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
-import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
-import WorldEventPacket from '../network/packet/WorldEventPacket';
-import Player from '../player/Player';
-import Server from '../Server';
-import UUID from '../utils/UUID';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
-import GameruleManager, { GameRules } from './GameruleManager';
+import DataPacket from '../network/packet/DataPacket';
+import Entity from '../entity/entity';
+import Item from '../item/Item';
+import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
+import Player from '../player/Player';
+import Server from '../Server';
 import SharedSeedRandom from './util/SharedSeedRandom';
+import UUID from '../utils/UUID';
+import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
+import Vector3 from '../math/Vector3';
+import WorldEventPacket from '../network/packet/WorldEventPacket';
 
 interface WorldData {
     name: string;
@@ -65,8 +66,8 @@ export default class World {
         const chunksToLoad: Array<Promise<Chunk>> = [];
         const time = Date.now();
 
-        for (let x = 0; x < 32; x++) {
-            for (let z = 0; z < 32; z++) {
+        for (let x = 0; x < 5; x++) {
+            for (let z = 0; z < 5; z++) {
                 chunksToLoad.push(this.loadChunk(x, z, true));
             }
         }
@@ -196,7 +197,7 @@ export default class World {
         const x = 0;
         const z = 0; // TODO: replace with actual data
         const chunk = await this.getChunkAt(x, z);
-        const y = chunk.getHighestBlock(x, z) + 1;
+        const y = chunk.getHighestBlockAt(x, z) + 1;
         return new Vector3(z, y + 2, z);
     }
 
@@ -360,8 +361,8 @@ export default class World {
      */
     public async addEntity(entity: Entity): Promise<void> {
         this.entities.set(entity.runtimeId, entity);
-        const chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
-        chunk.addEntity(entity as any);
+        // const chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
+        // chunk.addEntity(entity as any);
     }
 
     /**
@@ -382,20 +383,21 @@ export default class World {
      * Saves changed chunks into disk.
      */
     public async saveChunks(): Promise<void> {
-        const time = Date.now();
+        // const time = Date.now();
         this.server.getLogger().debug('[World save] saving chunks...');
-        const promises: Array<Promise<void>> = [];
-        for (const chunk of this.chunks.values()) {
-            if (chunk.hasChanged()) {
-                promises.push(this.provider.writeChunk(chunk));
-                chunk.setChanged(false);
-            }
-        }
+        // const promises: Array<Promise<void>> = [];
+        // for (const chunk of this.chunks.values()) {
+        // console.log(chunk.getX());
+        // if (chunk.hasChanged()) {
+        //     promises.push(this.provider.writeChunk(chunk));
+        //     chunk.setChanged(false);
+        // }
+        // }
 
-        await Promise.all(promises);
-        this.server
-            .getLogger()
-            .debug('[World save] took ' + (Date.now() - time) + 'ms');
+        // await Promise.all(promises);
+        // this.server
+        //   .getLogger()
+        //   .debug('[World save] took ' + (Date.now() - time) + 'ms');
     }
 
     public async save(): Promise<void> {

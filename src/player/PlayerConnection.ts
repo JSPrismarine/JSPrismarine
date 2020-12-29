@@ -1,46 +1,48 @@
-import Block from '../block/Block';
-import { Attribute } from '../entity/attribute';
-import { WindowIds } from '../inventory/WindowManager';
-import Item from '../item/Item';
-import AddPlayerPacket from '../network/packet/AddPlayerPacket';
 import AdventureSettingsPacket, {
     AdventureSettingsFlags
 } from '../network/packet/AdventureSettingsPacket';
-import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
-import BatchPacket from '../network/packet/BatchPacket';
-import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
-import CreativeContentPacket from '../network/packet/CreativeContentPacket';
-import DataPacket from '../network/packet/DataPacket';
-import DisconnectPacket from '../network/packet/DisconnectPacket';
-import InventoryContentPacket from '../network/packet/InventoryContentPacket';
-import LevelChunkPacket from '../network/packet/LevelChunkPacket';
-import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
-import MovePlayerPacket from '../network/packet/MovePlayerPacket';
-import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
 import PlayerListPacket, {
     PlayerListAction,
     PlayerListEntry
 } from '../network/packet/PlayerListPacket';
+
+import AddPlayerPacket from '../network/packet/AddPlayerPacket';
+import { Attribute } from '../entity/attribute';
+import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
+import BatchPacket from '../network/packet/BatchPacket';
+import Block from '../block/Block';
+import Chunk from '../world/chunk/Chunk';
+import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
+import type Connection from '../network/raknet/Connection';
+import CoordinateUtils from '../world/CoordinateUtils';
+import CreativeContentEntry from '../network/type/CreativeContentEntry';
+import CreativeContentPacket from '../network/packet/CreativeContentPacket';
+import DataPacket from '../network/packet/DataPacket';
+import DisconnectPacket from '../network/packet/DisconnectPacket';
+import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
+import InventoryContentPacket from '../network/packet/InventoryContentPacket';
+import Item from '../item/Item';
+import LevelChunkPacket from '../network/packet/LevelChunkPacket';
+import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
+import MovePlayerPacket from '../network/packet/MovePlayerPacket';
+import MovementType from '../network/type/MovementType';
+import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
+import PermissionType from '../network/type/PermissionType';
 import PlayStatusPacket from '../network/packet/PlayStatusPacket';
+import type Player from './Player';
+import PlayerPermissionType from '../network/type/PlayerPermissionType';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
+import type Server from '../Server';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import SetTimePacket from '../network/packet/SetTimePacket';
-import TextPacket from '../network/packet/TextPacket';
-import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
-import type Connection from '../network/raknet/Connection';
-import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
-import CreativeContentEntry from '../network/type/CreativeContentEntry';
-import MovementType from '../network/type/MovementType';
-import PermissionType from '../network/type/PermissionType';
-import PlayerPermissionType from '../network/type/PlayerPermissionType';
-import TextType from '../network/type/TextType';
-import type Server from '../Server';
 import Skin from '../utils/skin/Skin';
+import TextPacket from '../network/packet/TextPacket';
+import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
-import Chunk from '../world/chunk/Chunk';
-import CoordinateUtils from '../world/CoordinateUtils';
-import type Player from './Player';
+import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
+import { WindowIds } from '../inventory/WindowManager';
+
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
 export default class PlayerConnection {
@@ -401,8 +403,8 @@ export default class PlayerConnection {
         const pk = new LevelChunkPacket();
         pk.chunkX = chunk.getX();
         pk.chunkZ = chunk.getZ();
-        pk.subChunkCount = chunk.getSubChunkSendCount();
-        pk.data = chunk.toBinary();
+        pk.subChunkCount = chunk.getSubChunks().size;
+        pk.data = chunk.networkSerialize();
         await this.sendDataPacket(pk);
 
         const hash = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());

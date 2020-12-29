@@ -1,97 +1,68 @@
-import Block from '../../block/Block';
-
-const Sizes = {
-    BlockSize: 16 * 16 * 16,
-    Metadata: (16 * 16 * 16) / 2
-};
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BlockStorage from './BlockStorage';
 
 export default class SubChunk {
-    ids = Buffer.alloc(Sizes.BlockSize).fill(0x00);
-    metadata = Buffer.alloc(Sizes.Metadata).fill(0x00);
+    private storages: Map<number, BlockStorage> = new Map();
+    private blockLight: Buffer;
+    private skyLight: Buffer;
 
-    public static getIndex(x: number, y: number, z: number) {
-        const bx = x & 0x0f;
-        const by = y & 0x0f;
-        const bz = z & 0x0f;
-        return ((bx << 8) + (bz << 4)) | by;
+    public constructor(
+        storages: Map<number, BlockStorage> = new Map(),
+        blockLight?: Buffer,
+        skyLight?: Buffer
+    ) {
+        // Restore storages if they exists
+        this.storages.set(
+            0,
+            storages.has(0)
+                ? (storages.get(0) as BlockStorage)
+                : new BlockStorage()
+        ); // Terrain storage
+        // TODO: if (storages[1]) this.storages[1] = storages[1];  // Water storage
+
+        // Restore block and sky lighting
+        this.blockLight = blockLight ?? Buffer.alloc(2048).fill(0);
+        this.skyLight = skyLight ?? Buffer.alloc(2048).fill(0);
     }
 
-    /**
-     * Sets a block in the subchunk block ids
-     */
-    public setBlockId(x: number, y: number, z: number, id: number): boolean {
-        if (y < 0) return false;
-
-        this.ids[SubChunk.getIndex(x, y, z)] = id;
-        return true;
+    public getBlockLight(): Buffer {
+        return this.blockLight;
     }
 
-    public setBlockMetadata(
-        x: number,
-        y: number,
-        z: number,
-        metadata: number
-    ): boolean {
-        const bx = x & 0x0f;
-        const by = y & 0x0f;
-        const bz = z & 0x0f;
-        const index = (bx << 7) | (bz << 3) | (by >> 1);
-        const shift = (by & 1) << 2;
-        const byte = this.metadata[index];
-        this.metadata[index] =
-            (byte & ~(0xf << shift)) | ((metadata & 0xf) << shift);
-        return true;
+    public getSkyLight(): Buffer {
+        return this.skyLight;
     }
 
-    public setBlock(x: number, y: number, z: number, block: Block): boolean {
-        if (!block) return false;
-
-        this.setBlockId(x, y, z, block.getId());
-        this.setBlockMetadata(x, y, z, block.getMeta());
-        return true;
+    public isEmpty(): boolean {
+        return this.storages.size === 0;
     }
 
-    public getFullBlock(x: number, y: number, z: number): number {
-        const index = SubChunk.getIndex(x, y, z);
-        return (
-            (this.ids[index] << 4) |
-            ((this.metadata[index >> 4] >> ((y & 1) << 2)) & 0x0f)
-        );
-    }
-
-    /**
-     * Returns the block ID in the given position
-     */
-    public getBlockId(x: number, y: number, z: number) {
-        return this.ids[SubChunk.getIndex(x, y, z)];
-    }
-
-    public getBlockMetadata(x: number, y: number, z: number) {
-        const bx = x & 0x0f;
-        const by = y & 0x0f;
-        const bz = z & 0x0f;
-        return (
-            (this.metadata[(bx << 7) | (bz << 3) | (by >> 1)] >>
-                ((by & 1) << 2)) &
-            0xf
-        );
-    }
-
-    public getHighestBlockAt(x: number, z: number) {
-        const low = (x << 8) | (z << 4);
-        let i = low | 0x0f;
-        for (; i >= low; --i) {
-            if (this.ids[i] !== 0x00) {
-                return i & 0x0f;
+    public getStorage(index: number): BlockStorage {
+        if (!this.storages.has(index)) {
+            // Create all missing storage layers
+            for (let i = 0; i < index; i++) {
+                if (!this.storages.has(index)) {
+                    this.storages.set(i, new BlockStorage());
+                }
             }
         }
 
-        return -1;
+        return this.storages.get(index) as BlockStorage;
     }
 
-    public toBinary() {
-        const buffer = Buffer.alloc(1);
-        buffer.writeUInt8(0); // SubChunk version
-        return Buffer.concat([buffer, this.ids, this.metadata]);
+    public getStorages(): BlockStorage[] {
+        return Array.from(this.storages.values());
+    }
+
+    public networkSerialize(): Buffer {
+        const stream = new BinaryStream();
+        // SubChunk version
+        stream.writeByte(8);
+        // Layer count
+        stream.writeByte(this.storages.size);
+        for (const storage of this.storages.values()) {
+            stream.append(storage.networkSerialize());
+        }
+        return stream.getBuffer();
     }
 }

@@ -3,6 +3,7 @@ import InventoryTransactionPacket, {
     InventoryTransactionUseItemActionType
 } from '../packet/InventoryTransactionPacket';
 
+import Block from '../../block/Block';
 import Gamemode from '../../world/Gamemode';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import PacketHandler from './PacketHandler';
@@ -64,14 +65,14 @@ export default class InventoryTransactionHandler
                                     chunkPos.getY(),
                                     chunkPos.getZ()
                                 );
-                                const blockMeta = chunk.getBlockMetadata(
+                                /* const blockMeta = chunk.getBlockMetadata(
                                     chunkPos.getX(),
                                     chunkPos.getY(),
                                     chunkPos.getZ()
-                                );
+                                ); */
                                 const block = server
                                     .getBlockManager()
-                                    .getBlockByIdAndMeta(blockId, blockMeta);
+                                    .getBlockById(blockId);
 
                                 if (!block)
                                     return server
@@ -104,7 +105,7 @@ export default class InventoryTransactionHandler
                                     chunkPos.getZ(),
                                     server
                                         .getBlockManager()
-                                        .getBlock('minecraft:air')
+                                        .getBlock('minecraft:air') as Block
                                 );
 
                                 const soundPk = new LevelSoundEventPacket();
@@ -116,7 +117,7 @@ export default class InventoryTransactionHandler
 
                                 soundPk.extraData = server
                                     .getBlockManager()
-                                    .getRuntimeWithMeta(blockId, blockMeta); // In this case refers to block runtime Id
+                                    .getRuntimeWithId(blockId); // In this case refers to block runtime Id
                                 soundPk.entityType = ':';
                                 soundPk.isBabyMob = false;
                                 soundPk.disableRelativeVolume = false;

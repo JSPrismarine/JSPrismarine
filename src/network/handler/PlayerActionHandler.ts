@@ -1,10 +1,10 @@
-import type Player from '../../player/Player';
-import type Server from '../../Server';
-import type PlayerActionPacket from '../packet/PlayerActionPacket';
-import PlayerActionType from '../type/PlayerActionType';
-import WorldEventPacket from '../packet/WorldEventPacket';
 import LevelEventType from '../type/LevelEventType';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type PlayerActionPacket from '../packet/PlayerActionPacket';
+import PlayerActionType from '../type/PlayerActionType';
+import type Server from '../../Server';
+import WorldEventPacket from '../packet/WorldEventPacket';
 
 export default class PlayerActionHandler
     implements PacketHandler<PlayerActionPacket> {
@@ -92,20 +92,18 @@ export default class PlayerActionHandler
                     packet.z % 16
                 );
 
-                const blockMeta = chunk.getBlockMetadata(
+                /* const blockMeta = chunk.getBlockMetadata(
                     packet.x % 16,
                     packet.y,
                     packet.z % 16
-                );
+                ); */
 
                 const pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.ParticlePunchBlock;
                 pk.x = packet.x;
                 pk.y = packet.y;
                 pk.z = packet.z;
-                pk.data = server
-                    .getBlockManager()
-                    .getRuntimeWithMeta(blockId, blockMeta);
+                pk.data = server.getBlockManager().getRuntimeWithId(blockId);
 
                 await Promise.all(
                     player

@@ -1,3 +1,4 @@
+import Block from '../../block/Block';
 import Chunk from '../chunk/Chunk';
 import type Server from '../../Server';
 import type Vector3 from '../../math/Vector3';
@@ -14,9 +15,15 @@ export default class Flat {
     }) {
         const chunk = new Chunk(pos.getX(), pos.getZ());
 
-        const bedrock = server.getBlockManager().getBlock('minecraft:bedrock');
-        const dirt = server.getBlockManager().getBlock('minecraft:dirt');
-        const grass = server.getBlockManager().getBlock('minecraft:grass');
+        const bedrock = server
+            .getBlockManager()
+            .getBlock('minecraft:bedrock') as Block;
+        const dirt = server
+            .getBlockManager()
+            .getBlock('minecraft:dirt') as Block;
+        const grass = server
+            .getBlockManager()
+            .getBlock('minecraft:grass') as Block;
         for (let x = 0; x < 16; x++) {
             for (let z = 0; z < 16; z++) {
                 let y = 0;

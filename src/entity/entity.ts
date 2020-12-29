@@ -38,6 +38,12 @@ export default class Entity extends Position {
         // TODO: level.addEntity(this)
     }
 
+    // public setHealth(health: number): void {
+    //    if (health === this.)
+    // }
+
+    public damage(): void {}
+
     public setNameTag(name: string) {
         this.metadata.setString(MetadataFlag.NAMETAG, name);
     }
