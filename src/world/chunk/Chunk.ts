@@ -46,10 +46,10 @@ export default class Chunk {
         chunkX: number,
         chunkZ: number,
         subChunks = new Map(),
-        entities = [],
-        tiles = [],
-        biomes = [],
-        heightMap = []
+        entities: any[] = [],
+        tiles: any[] = [],
+        biomes: number[] = [],
+        heightMap: number[] = []
     ) {
         this.#x = chunkX;
         this.#z = chunkZ;

@@ -21,6 +21,6 @@
         "pretty": true
     },
     "files": ["package.json"],
-    "exclude": ["./**/*.test.ts"],
-    "typeRoots": ["./src/@types", "./node_modules/@types"]
+    "exclude": ["src**/*.test.ts"],
+    "typeRoots": ["src/@types", "node_modules/@types"]
 }

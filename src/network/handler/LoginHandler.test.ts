@@ -13,28 +13,28 @@ describe('network', () => {
                 const player = {
                     username: {},
                     getConnection: () => ({
-                        sendPlayStatus: (status) => {
+                        sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
                         },
-                        sendDataPacket: (packet) => {
+                        sendDataPacket: (packet: any) => {
                             expect(player.username).toStrictEqual({
                                 name: 'runner'
                             });
                             done();
                         }
                     }),
-                    kick: (message) => {
+                    kick: (message: any) => {
                         expect(message).toBe('You have been banned!');
                         done();
                     }
-                };
+                } as any;
 
                 const handler = new LoginHandler();
                 await handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
-                            isBanned: (player) => {
+                            isBanned: (player: any) => {
                                 return false;
                             }
                         }),
@@ -42,7 +42,7 @@ describe('network', () => {
                             return null;
                         }
                     } as any,
-                    player as any
+                    player
                 );
             });
 
@@ -54,22 +54,22 @@ describe('network', () => {
                 const player = {
                     username: {},
                     getConnection: () => ({
-                        sendPlayStatus: (status) => {
+                        sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
                         }
                     }),
-                    kick: (message) => {
+                    kick: (message: any) => {
                         expect(message).toBe('You have been banned!');
                         done();
                     }
-                };
+                } as any;
 
                 const handler = new LoginHandler();
                 await handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
-                            isBanned: (player) => {
+                            isBanned: (player: any) => {
                                 return '';
                             }
                         }),
@@ -77,7 +77,7 @@ describe('network', () => {
                             return null;
                         }
                     } as any,
-                    player as any
+                    player
                 );
             });
 
@@ -89,24 +89,24 @@ describe('network', () => {
                 const player = {
                     username: {},
                     getConnection: () => ({
-                        sendPlayStatus: (status) => {
+                        sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
                         }
                     }),
-                    kick: (message) => {
+                    kick: (message: any) => {
                         expect(message).toBe(
                             'You have been banned for reason: a reason!'
                         );
                         done();
                     }
-                };
+                } as any;
 
                 const handler = new LoginHandler();
                 await handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
-                            isBanned: (player) => {
+                            isBanned: (player: any) => {
                                 return 'a reason';
                             }
                         }),
@@ -114,7 +114,7 @@ describe('network', () => {
                             return null;
                         }
                     } as any,
-                    player as any
+                    player
                 );
             });
 
@@ -126,18 +126,18 @@ describe('network', () => {
                 const player = {
                     username: {},
                     getConnection: () => ({
-                        sendPlayStatus: (status) => {
+                        sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
                         }
                     }),
-                    kick: (message) => {
+                    kick: (message: any) => {
                         expect(message).toBe('Invalid username!');
                         done();
                     }
-                };
+                } as any;
 
                 const handler = new LoginHandler();
-                await handler.handle(pk, {} as any, player as any);
+                await handler.handle(pk, {} as any, player);
             });
 
             it('handle outdated client', async (done) => {
@@ -148,15 +148,15 @@ describe('network', () => {
                 const player = {
                     username: {},
                     getConnection: () => ({
-                        sendPlayStatus: (status) => {
+                        sendPlayStatus: (status: any) => {
                             expect(status).toBe(1);
                             done();
                         }
                     })
-                };
+                } as any;
 
                 const handler = new LoginHandler();
-                await handler.handle(pk, {} as any, player as any);
+                await handler.handle(pk, {} as any, player);
             });
 
             it('handle outdated server', async (done) => {
@@ -167,15 +167,15 @@ describe('network', () => {
                 const player = {
                     username: {},
                     getConnection: () => ({
-                        sendPlayStatus: (status) => {
+                        sendPlayStatus: (status: any) => {
                             expect(status).toBe(2);
                             done();
                         }
                     })
-                };
+                } as any;
 
                 const handler = new LoginHandler();
-                await handler.handle(pk, {} as any, player as any);
+                await handler.handle(pk, {} as any, player);
             });
         });
     });

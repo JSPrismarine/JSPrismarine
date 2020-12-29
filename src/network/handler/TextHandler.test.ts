@@ -13,7 +13,7 @@ describe('network', () => {
                     pk,
                     {
                         getChatManager: () => ({
-                            send: (chat) => {
+                            send: (chat: any) => {
                                 expect(chat.getMessage()).toBe(
                                     'runner hello world'
                                 );

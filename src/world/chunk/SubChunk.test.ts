@@ -22,8 +22,8 @@ describe('world', () => {
 
             it('setBlock() should throw when block is null or undefined', () => {
                 const chunk = new SubChunk();
-                expect(chunk.setBlock(0, 0, 0, null)).toBeFalsy();
-                expect(chunk.setBlock(0, 0, 0, undefined)).toBeFalsy();
+                expect(chunk.setBlock(0, 0, 0, null as any)).toBeFalsy();
+                expect(chunk.setBlock(0, 0, 0, undefined as any)).toBeFalsy();
             });
         });
     });
