@@ -109,7 +109,7 @@ export default class PlayerConnection {
             : PermissionType.Normal;
         pk.playerPermission = target.isOp()
             ? PlayerPermissionType.Operator
-            : PlayerPermissionType.Visitor;
+            : PlayerPermissionType.Member;
         pk.entityId = target.runtimeId;
         await this.sendDataPacket(pk);
     }

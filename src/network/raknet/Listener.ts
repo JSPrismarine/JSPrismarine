@@ -141,7 +141,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
                 );
             default:
                 throw new Error(
-                    `Unknown unconnected packet with ID: ${header}`
+                    `Unknown unconnected packet with ID: 0x${header.toString(
+                        16
+                    )}`
                 );
         }
     }
