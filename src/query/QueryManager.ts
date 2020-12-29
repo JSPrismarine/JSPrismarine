@@ -24,7 +24,7 @@ export default class QueryManager {
     }
 
     public async onRaw(buffer: Buffer, rinfo: InetAddress): Promise<Buffer> {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             const stream = new BinaryStream(buffer);
             const magic = stream.readShort();
             const type: QueryType = stream.readByte();
@@ -39,7 +39,7 @@ export default class QueryManager {
                     res.writeByte(9);
                     res.writeInt(sessionId);
                     res.append(Buffer.from(`9513307\0`, 'binary'));
-                    this.server
+                    await this.server
                         .getRaknet()
                         .sendBuffer(
                             res.getBuffer(),
@@ -137,7 +137,7 @@ export default class QueryManager {
                             'binary'
                         )
                     );
-                    this.server
+                    await this.server
                         .getRaknet()
                         .sendBuffer(
                             res.getBuffer(),

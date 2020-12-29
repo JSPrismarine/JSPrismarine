@@ -1,7 +1,7 @@
 import CommandExecuter from '../command/CommandExecuter';
 import Human from '../entity/Human';
 import ChatEvent from '../events/chat/ChatEvent';
-import withDeprecated from '../hoc/withDeprecated';
+import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import WindowManager from '../inventory/WindowManager';
 import Connection from '../network/raknet/Connection';
 import InetAddress from '../network/raknet/utils/InetAddress';
@@ -136,11 +136,6 @@ export default class Player extends Human implements CommandExecuter {
         return this.playerConnection;
     }
 
-    @withDeprecated(new Date('12/11/2020'), 'getConnection')
-    public getPlayerConnection(): PlayerConnection {
-        return this.getConnection();
-    }
-
     public getAddress() {
         return this.address;
     }
@@ -184,7 +179,14 @@ export default class Player extends Human implements CommandExecuter {
         return this.flying;
     }
     public async setFlying(val: boolean) {
-        this.flying = val;
+        if (!this.getAllowFlight()) return;
+
+        // Emit move event
+        const event = new PlayerToggleFlightEvent(this, val);
+        this.server.getEventManager().post(['playerToggleFlight', event]);
+        if (event.cancelled) return;
+
+        this.flying = event.getIsFlying();
         await this.getConnection().sendSettings();
     }
 
