@@ -66,8 +66,8 @@ export default class Player extends Human implements CommandExecuter {
         this.windows = new WindowManager();
 
         // TODO: only set to default gamemode if there doesn't exist any save data for the user
-        this.gamemode = Gamemode.getGamemodeId(
-            server.getConfig().getGamemode()
+        void this.setGamemode(
+            Gamemode.getGamemodeId(server.getConfig().getGamemode())
         );
 
         // Handle chat messages
@@ -119,7 +119,10 @@ export default class Player extends Human implements CommandExecuter {
             this.gamemode === Gamemode.Spectator
         )
             this.allowFight = true;
-        else this.allowFight = false;
+        else {
+            this.allowFight = false;
+            await this.setFlying(false);
+        }
 
         await this.getConnection().sendSettings();
     }
@@ -179,7 +182,10 @@ export default class Player extends Human implements CommandExecuter {
         return this.flying;
     }
     public async setFlying(val: boolean) {
-        if (!this.getAllowFlight()) return;
+        if (!this.getAllowFlight()) {
+            this.flying = false;
+            return;
+        }
 
         // Emit move event
         const event = new PlayerToggleFlightEvent(this, val);
