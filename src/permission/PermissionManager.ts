@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import util from 'util';
 import CommandExecuter from '../command/CommandExecuter';
+import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import type Server from '../Server';
 
 interface OpType {
@@ -53,6 +54,13 @@ export default class PermissionManager {
     }
 
     public async setOp(username: string, op: boolean): Promise<boolean> {
+        const target = this.server.getPlayerByName(username);
+        if (target) {
+            const event = new playerToggleOperatorEvent(target, op);
+            this.server.getEventManager().post(['playerToggleOperator', event]);
+            if (event.cancelled) return false;
+        }
+
         if (op) this.ops.add(username);
         else this.ops.delete(username);
 
@@ -69,6 +77,8 @@ export default class PermissionManager {
                     4
                 )
             );
+
+            if (target) await target.sendSettings();
             return true;
         } catch {
             return false;

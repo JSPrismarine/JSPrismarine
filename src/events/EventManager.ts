@@ -6,7 +6,8 @@ import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
 import type PlayerMoveEvent from './player/PlayerMoveEvent';
 import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
-import PlayerToggleFlightEvent from './player/PlayerToggleFlightEvent';
+import type PlayerToggleFlightEvent from './player/PlayerToggleFlightEvent';
+import type playerToggleOperatorEvent from './player/PlayerToggleOperatorEvent';
 import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
@@ -21,7 +22,8 @@ export type EventTypes =
     | ['playerSpawn', PlayerSpawnEvent]
     | ['playerDespawn', PlayerDespawnEvent]
     | ['playerMove', PlayerMoveEvent]
-    | ['playerToggleFlight', PlayerToggleFlightEvent];
+    | ['playerToggleFlight', PlayerToggleFlightEvent]
+    | ['playerToggleOperator', playerToggleOperatorEvent];
 
 class EventManagerWithoutEventEmitterishMethods extends Evt<EventTypes> {
     /** Events emitted by plugin makers. We can only listen those event
