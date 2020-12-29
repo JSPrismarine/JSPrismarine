@@ -43,21 +43,25 @@ export default class Updater {
             return;
         }
 
-        if (semver.gt(release.tag_name, pkg.version)) {
-            this.logger.info(
-                `§5There's a new version of JSPrismarine available, new version: §2${release.tag_name}`,
-                'Updater/check'
-            );
-            this.logger.info(
-                `§5Download: §e${release.html_url}`,
-                'Updater/check'
-            );
-            return;
-        }
+        try {
+            if (semver.gt(release.tag_name, pkg.version)) {
+                this.logger.info(
+                    `§5There's a new version of JSPrismarine available, new version: §2${release.tag_name}`,
+                    'Updater/check'
+                );
+                this.logger.info(
+                    `§5Download: §e${release.html_url}`,
+                    'Updater/check'
+                );
+                return;
+            }
 
-        this.logger.debug(
-            'No new version of JSPrismarine available',
-            'Updater/check'
-        );
+            this.logger.debug(
+                'No new version of JSPrismarine available',
+                'Updater/check'
+            );
+        } catch (err) {
+            this.logger.error(err, 'Updater/check');
+        }
     }
 }
