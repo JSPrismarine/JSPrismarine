@@ -109,7 +109,10 @@ export default class PluginManager {
                     `PluginApiVersion with id §b${id}§r registered`,
                     'PluginManager/registerPluginApiVersion'
                 );
-        } catch {
+        } catch (err) {
+            this.server
+                .getLogger()
+                .error(err, 'PluginManager/registerPluginApiVersion');
             throw new Error('invalid PluginApiVersion');
         }
     }

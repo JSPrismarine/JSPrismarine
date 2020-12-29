@@ -275,7 +275,7 @@ export default class World {
                     throw new Error('Invalid Face');
             }
 
-        if (blockPosition.getY() < 0) return; // TODO: broadcast to player
+        if (blockPosition.getY() < 0 || blockPosition.getY() > 255) return;
 
         const success: boolean = await new Promise(async (resolve) => {
             try {
