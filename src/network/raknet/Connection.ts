@@ -542,7 +542,7 @@ export default class Connection {
     public async sendPacket(packet: Packet): Promise<void> {
         packet.encode();
 
-        await(this.listener as any).sendBuffer(
+        await (this.listener as any).sendBuffer(
             packet.getBuffer(),
             this.address.getAddress(),
             this.address.getPort()
