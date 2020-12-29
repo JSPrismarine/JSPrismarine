@@ -91,6 +91,10 @@ export default class Connection {
         }
     }
 
+    public getSendQueue() {
+        return this.sendQueue;
+    }
+
     public async update(timestamp: number): Promise<void> {
         return new Promise(async (resolve) => {
             if (!this.isActive() && this.lastUpdate + 10000 < timestamp) {
@@ -538,8 +542,7 @@ export default class Connection {
     public async sendPacket(packet: Packet): Promise<void> {
         packet.encode();
 
-        // TODO: make awaitable
-        this.listener.sendBuffer(
+        await(this.listener as any).sendBuffer(
             packet.getBuffer(),
             this.address.getAddress(),
             this.address.getPort()

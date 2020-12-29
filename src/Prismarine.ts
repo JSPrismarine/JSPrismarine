@@ -3,6 +3,9 @@ import Logger from './utils/Logger';
 import Server from './Server';
 import Updater from './updater/Updater';
 
+// Process metadata
+process.title = 'Prismarine';
+
 const config = new Config();
 const logger = new Logger();
 

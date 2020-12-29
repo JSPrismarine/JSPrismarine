@@ -405,6 +405,7 @@ export default class Server {
 
             await this.worldManager.onDisable();
             await this.onDisable();
+            await this.raknet.kill();
             process.exit(0);
         } catch (error) {
             this.getLogger().error(error, 'Server/kill');
