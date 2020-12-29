@@ -146,7 +146,7 @@ export default class CommandManager {
         ) {
             const res: string | void = await command.execute(
                 sender,
-                commandParts.filter((a) => a)
+                commandParts.filter((a) => a !== null && a !== undefined)
             );
 
             const chat = new Chat(
