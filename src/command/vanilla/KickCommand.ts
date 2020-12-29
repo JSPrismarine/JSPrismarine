@@ -38,7 +38,7 @@ export default class KickCommand extends Command {
         const reason = args[1]
             ? args.slice(1).join(' ')
             : 'No reason specified.';
-        const target = sender.getServer().getPlayerByName(args[0]);
+        const target = sender.getServer().getPlayerByName(`${args[0]}`);
 
         if (!target) {
             return sender.sendMessage("§cCan't find the selected player.");
