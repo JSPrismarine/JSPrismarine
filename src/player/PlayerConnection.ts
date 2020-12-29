@@ -90,29 +90,27 @@ export default class PlayerConnection {
         await this.needNewChunks();
     }
 
-    public async sendSettings() {
+    public async sendSettings(player?: Player) {
+        const target = player || this.player;
         const pk = new AdventureSettingsPacket();
 
         pk.setFlag(
             AdventureSettingsFlags.WorldImmutable,
-            this.player.gamemode === 3
+            target.gamemode === 3
         );
-        pk.setFlag(AdventureSettingsFlags.NoPvp, this.player.gamemode === 3);
+        pk.setFlag(AdventureSettingsFlags.NoPvp, target.gamemode === 3);
         pk.setFlag(AdventureSettingsFlags.AutoJump, true); // TODO
-        pk.setFlag(
-            AdventureSettingsFlags.AllowFlight,
-            this.player.getAllowFlight()
-        );
-        pk.setFlag(AdventureSettingsFlags.NoClip, this.player.gamemode === 3);
-        pk.setFlag(AdventureSettingsFlags.Flying, this.player.isFlying());
+        pk.setFlag(AdventureSettingsFlags.AllowFlight, target.getAllowFlight());
+        pk.setFlag(AdventureSettingsFlags.NoClip, target.gamemode === 3);
+        pk.setFlag(AdventureSettingsFlags.Flying, target.isFlying());
 
-        pk.commandPermission = this.player.isOp()
+        pk.commandPermission = target.isOp()
             ? PermissionType.Operator
             : PermissionType.Normal;
-        pk.playerPermission = this.player.isOp()
+        pk.playerPermission = target.isOp()
             ? PlayerPermissionType.Operator
             : PlayerPermissionType.Visitor;
-        pk.entityId = this.player.runtimeId;
+        pk.entityId = target.runtimeId;
         await this.sendDataPacket(pk);
     }
 
@@ -544,6 +542,7 @@ export default class PlayerConnection {
         pk.deviceId = this.player.device?.id || '';
         pk.metadata = this.player.getMetadataManager().getMetadata();
         await player.getConnection().sendDataPacket(pk);
+        await this.sendSettings(player);
     }
 
     /**
