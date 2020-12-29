@@ -19,7 +19,10 @@ export default class TitleCommand extends Command {
         } as any);
     }
 
-    public async execute(sender: Player, args: string[]): Promise<void> {
+    public async execute(
+        sender: Player,
+        args: Array<string | number>
+    ): Promise<void> {
         if (!args[0])
             return sender.sendMessage('§cYou have to select a player.');
 
@@ -40,7 +43,7 @@ export default class TitleCommand extends Command {
 
             targets.push(...players);
         } else {
-            const player = sender.getServer().getPlayerByName(args[0]);
+            const player = sender.getServer().getPlayerByName(`${args[0]}`);
             if (!player)
                 return sender.sendMessage(
                     `§cCan't find the player ${args[0]}.`

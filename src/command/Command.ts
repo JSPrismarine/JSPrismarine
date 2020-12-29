@@ -39,7 +39,7 @@ export default class Command {
      */
     public execute(
         sender: CommandExecuter,
-        args: string[] = []
+        args: Array<string | number> = []
     ): string | void | Promise<string | void> {
         sender
             .getServer()

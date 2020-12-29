@@ -29,7 +29,7 @@ export default class KickCommand extends Command {
 
     public async execute(
         sender: Player,
-        args: string[]
+        args: Array<string | number>
     ): Promise<string | void> {
         if (!args[0]) {
             return sender.sendMessage('§cYou have to specify a player.');

@@ -10,8 +10,12 @@ export default class StopCommand extends Command {
         } as any);
     }
 
-    public async execute(sender: Player, args: string[]): Promise<string> {
-        if (args[0] && args[0].toLowerCase() === 'f') process.exit();
+    public async execute(
+        sender: Player,
+        args: Array<string | number>
+    ): Promise<string> {
+        if (typeof args[0] === 'string' && args[0].toLowerCase() === 'f')
+            process.exit();
 
         await sender.getServer().getServer().kill();
         return 'Stopping the server...';

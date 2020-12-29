@@ -25,7 +25,10 @@ export default class PluginsCommand extends Command {
         );
     }
 
-    public async execute(sender: Player, args: string[]): Promise<void> {
+    public async execute(
+        sender: Player,
+        args: Array<string | number>
+    ): Promise<void> {
         const plugins = sender.getServer().getPluginManager().getPlugins();
         let message = '';
 

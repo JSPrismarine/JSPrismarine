@@ -407,7 +407,7 @@ export default class Server {
             await this.onDisable();
             process.exit(0);
         } catch (error) {
-            this.getLogger().error(error);
+            this.getLogger().error(error, 'Server/kill');
             process.exit(1);
         }
     }

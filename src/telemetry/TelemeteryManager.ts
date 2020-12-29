@@ -21,7 +21,7 @@ export default class TelemetryManager {
         process.on('uncaughtException', async (err) => {
             await this.sendCrashLog(err, urls);
             console.error(err);
-            this.server.getLogger().error(`${err}`);
+            this.server.getLogger().error(`${err}`, 'TelemetryManager');
             process.exit(1);
         });
     }
@@ -159,6 +159,10 @@ export default class TelemetryManager {
                 'JSPrismarine has crashed, please report the following url(s) to the maintainers:',
                 'TelemetryManager/sendCrashLog'
             );
-        links.forEach((url) => this.server.getLogger().error(`- ${url}`));
+        links.forEach((url) =>
+            this.server
+                .getLogger()
+                .error(`- ${url}`, 'TelemetryManager/sendCrashLog')
+        );
     }
 }
