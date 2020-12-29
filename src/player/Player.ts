@@ -92,10 +92,20 @@ export default class Player extends Human implements CommandExecuter {
         this.getServer()
             .getLogger()
             .debug(
-                `Player with id ${this.runtimeId} was kicked: ${reason}`,
+                `Player with id §b${this.runtimeId}§r was kicked: ${reason}`,
                 'Player/kick'
             );
         await this.playerConnection.kick(reason);
+    }
+
+    public async sendSettings(): Promise<void> {
+        await Promise.all(
+            this.getServer()
+                .getOnlinePlayers()
+                .map(async (target) => {
+                    await target.getConnection().sendSettings(this);
+                })
+        );
     }
 
     // Return all the players in the same chunk
@@ -124,7 +134,7 @@ export default class Player extends Human implements CommandExecuter {
             await this.setFlying(false);
         }
 
-        await this.getConnection().sendSettings();
+        await this.sendSettings();
     }
 
     public async setTime(tick: number): Promise<void> {
@@ -175,7 +185,7 @@ export default class Player extends Human implements CommandExecuter {
     }
     public async setSprinting(val: boolean) {
         this.sprinting = val;
-        await this.getConnection().sendSettings();
+        await this.sendSettings();
     }
 
     public isFlying() {
@@ -193,7 +203,7 @@ export default class Player extends Human implements CommandExecuter {
         if (event.cancelled) return;
 
         this.flying = event.getIsFlying();
-        await this.getConnection().sendSettings();
+        await this.sendSettings();
     }
 
     public isSneaking() {
@@ -201,7 +211,7 @@ export default class Player extends Human implements CommandExecuter {
     }
     public async setSneaking(val: boolean) {
         this.sneaking = val;
-        await this.getConnection().sendSettings();
+        await this.sendSettings();
     }
 
     public isOnGround() {
@@ -209,6 +219,6 @@ export default class Player extends Human implements CommandExecuter {
     }
     public async setOnGround(val: boolean) {
         this.onGround = val;
-        await this.getConnection().sendSettings();
+        await this.sendSettings();
     }
 }
