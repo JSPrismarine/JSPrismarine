@@ -75,11 +75,8 @@ export default class Player extends Human implements CommandExecuter {
 
             // TODO: proper channel system
             if (
-                evt.getChat().getChannel() === '*.everyone' ??
-                (evt.getChat().getChannel() === '*.ops' &&
-                    this.server
-                        .getPermissionManager()
-                        .isOp(this.getUsername())) ??
+                evt.getChat().getChannel() === '*.everyone' ||
+                (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
                 evt.getChat().getChannel() === `*.player.${this.getUsername()}`
             )
                 await this.sendMessage(evt.getChat().getMessage());
@@ -93,7 +90,10 @@ export default class Player extends Human implements CommandExecuter {
     public async kick(reason = 'unknown reason'): Promise<void> {
         this.getServer()
             .getLogger()
-            .debug(`Player with id ${this.runtimeId} was kicked: ${reason}`);
+            .debug(
+                `Player with id ${this.runtimeId} was kicked: ${reason}`,
+                'Player/kick'
+            );
         await this.playerConnection.kick(reason);
     }
 

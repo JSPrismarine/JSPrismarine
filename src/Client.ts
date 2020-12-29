@@ -92,7 +92,7 @@ export default class Client extends EventEmitter implements RakNetListener {
                 pk.sendTimestamp = BigInt(Date.now());
                 pk.clientGUID = this.clientGUID;
                 pk.encode();
-                this.sendBuffer(pk.getBuffer());
+                await this.sendBuffer(pk.getBuffer());
             }
 
             if (this.connected && !this.loginHandled) {
@@ -115,7 +115,7 @@ export default class Client extends EventEmitter implements RakNetListener {
         return this;
     }
 
-    private handle(buffer: Buffer) {
+    private async handle(buffer: Buffer) {
         const header = buffer.readUInt8(); // Read packet header
 
         if (this.connection && this.offlineHandled) {
@@ -126,11 +126,11 @@ export default class Client extends EventEmitter implements RakNetListener {
         switch (header) {
             case Identifiers.UnconnectedPong:
                 buf = this.handleUnconnectedPong(buffer);
-                this.sendBuffer(buf);
+                await this.sendBuffer(buf);
                 break;
             case Identifiers.OpenConnectionReply1:
                 buf = this.handleOpenConnectionReply1(buffer);
-                this.sendBuffer(buf);
+                await this.sendBuffer(buf);
                 break;
             case Identifiers.OpenConnectionReply2:
                 this.handleOpenConnectionReply2(buffer);
@@ -227,7 +227,7 @@ export default class Client extends EventEmitter implements RakNetListener {
      * @param address
      * @param port
      */
-    public sendBuffer(buffer: Buffer): void {
+    public async sendBuffer(buffer: Buffer): Promise<void> {
         this.socket.send(
             buffer,
             0,

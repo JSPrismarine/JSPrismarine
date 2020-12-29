@@ -389,7 +389,7 @@ export default class World {
      */
     public async saveChunks(): Promise<void> {
         const time = Date.now();
-        this.server.getLogger().debug('saving chunks...', 'World/saveChunks');
+        this.server.getLogger().info('saving chunks...', 'World/saveChunks');
         const promises: Array<Promise<void>> = [];
         for (const chunk of this.chunks.values()) {
             if (chunk.hasChanged()) {

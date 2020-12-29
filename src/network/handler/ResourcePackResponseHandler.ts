@@ -66,7 +66,8 @@ export default class ResourcePackResponseHandler
                         player.runtimeId
                     }§f from ${player
                         .getAddress()
-                        .getAddress()}:${player.getAddress().getPort()}`
+                        .getAddress()}:${player.getAddress().getPort()}`,
+                    'Handler/ResourcePackResponseHandler'
                 );
 
             player.setNameTag(player.getUsername());
