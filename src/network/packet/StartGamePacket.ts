@@ -31,11 +31,7 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(this.gamemode);
 
-        // Vector 3
-        this.writeLFloat(this.playerPos.getX());
-        this.writeLFloat(this.playerPos.getY());
-        this.writeLFloat(this.playerPos.getZ());
-
+        this.writeVector3(this.playerPos);
         this.writeLFloat(this.pith);
         this.writeLFloat(this.yaw);
 
