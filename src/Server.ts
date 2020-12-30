@@ -226,7 +226,8 @@ export default class Server {
                         await this.getEventManager().emit('chat', event);
                     }
 
-                    player.getWorld().removePlayer(player); // TODO: player.close();
+                    await player.onDisable();
+                    player.getWorld().removePlayer(player);
                     this.players.delete(token);
                 } else {
                     this.logger.debug(

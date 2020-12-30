@@ -65,11 +65,6 @@ export default class Player extends Human implements CommandExecuter {
         this.playerConnection = new PlayerConnection(server, connection, this);
         this.windows = new WindowManager();
 
-        // TODO: only set to default gamemode if there doesn't exist any save data for the user
-        void this.setGamemode(
-            Gamemode.getGamemodeId(server.getConfig().getGamemode())
-        );
-
         // Handle chat messages
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
             if (evt.cancelled) return;
@@ -82,6 +77,21 @@ export default class Player extends Human implements CommandExecuter {
             )
                 await this.sendMessage(evt.getChat().getMessage());
         });
+    }
+
+    public async onEnable() {
+        const playerData = await this.getWorld().getPlayerData(this);
+
+        void this.setGamemode(Gamemode.getGamemodeId(playerData.gamemode));
+        this.setX(playerData.position.x);
+        this.setY(playerData.position.y);
+        this.setZ(playerData.position.z);
+        this.pitch = playerData.position.pitch;
+        this.yaw = playerData.position.yaw;
+    }
+
+    public async onDisable() {
+        await this.getWorld().savePlayerData(this);
     }
 
     public async update(tick: number): Promise<void> {

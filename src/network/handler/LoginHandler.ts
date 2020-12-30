@@ -48,6 +48,7 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
         player.skin = packet.skin;
         player.device = packet.device;
 
+        await player.onEnable();
         await player
             .getConnection()
             .sendPlayStatus(PlayStatusType.LoginSuccess);

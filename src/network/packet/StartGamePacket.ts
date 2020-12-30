@@ -11,9 +11,12 @@ export default class StartGamePacket extends DataPacket {
     public gamemode!: number;
 
     public playerPos!: Vector3;
+    public pith!: number;
+    public yaw!: number;
 
     public levelId!: string;
     public worldName!: string;
+    public seed!: number;
 
     public worldSpawnPos!: Vector3;
 
@@ -32,10 +35,10 @@ export default class StartGamePacket extends DataPacket {
         this.writeLFloat(this.playerPos.getY());
         this.writeLFloat(this.playerPos.getZ());
 
-        this.writeLFloat(0); // Pitch
-        this.writeLFloat(0); // Yaw
+        this.writeLFloat(this.pith);
+        this.writeLFloat(this.yaw);
 
-        this.writeVarInt(0); //  Seed
+        this.writeVarInt(this.seed || 0);
 
         this.writeLShort(0x00); // Default spawn biome type
         this.writeString('plains'); // User defined biome name
