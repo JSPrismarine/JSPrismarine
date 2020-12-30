@@ -1,6 +1,7 @@
 import CommandExecuter from '../command/CommandExecuter';
 import Human from '../entity/Human';
 import ChatEvent from '../events/chat/ChatEvent';
+import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import WindowManager from '../inventory/WindowManager';
 import Connection from '../network/raknet/Connection';
@@ -131,7 +132,11 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async setGamemode(mode: number): Promise<void> {
-        this.gamemode = mode;
+        const event = new PlayerSetGamemodeEvent(this, mode);
+        this.server.getEventManager().post(['playerSetGamemodeEvent', event]);
+        if (event.cancelled) return;
+
+        this.gamemode = event.getGamemode();
         await this.playerConnection.sendGamemode(this.gamemode);
 
         if (
@@ -207,7 +212,6 @@ export default class Player extends Human implements CommandExecuter {
             return;
         }
 
-        // Emit move event
         const event = new PlayerToggleFlightEvent(this, val);
         this.server.getEventManager().post(['playerToggleFlight', event]);
         if (event.cancelled) return;
