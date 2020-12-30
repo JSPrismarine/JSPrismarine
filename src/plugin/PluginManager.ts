@@ -228,6 +228,43 @@ export default class PluginManager {
         return plugin;
     }
 
+    public async registerClassPlugin(
+        pkg: any,
+        plugin: PluginFile
+    ): Promise<PluginFile | null> {
+        const time = Date.now();
+
+        try {
+            await plugin.onEnable();
+        } catch (error) {
+            this.server
+                .getLogger()
+                .warn(
+                    `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
+                    'PluginManager/registerPlugin'
+                );
+            return null;
+        }
+
+        this.plugins.set(pkg.name, plugin);
+
+        this.server
+            .getLogger()
+            .silly(
+                `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`,
+                'PluginManager/registerPlugin'
+            );
+        this.server
+            .getLogger()
+            .info(
+                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${
+                    Date.now() - time
+                } ms)!`,
+                'PluginManager/registerPlugin'
+            );
+        return plugin;
+    }
+
     /**
      * Deregister a plugin
      */
