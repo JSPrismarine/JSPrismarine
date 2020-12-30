@@ -12,6 +12,7 @@ describe('network', () => {
 
                 const player = {
                     username: {},
+                    onEnable: () => {},
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
@@ -53,6 +54,7 @@ describe('network', () => {
 
                 const player = {
                     username: {},
+                    onEnable: () => {},
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
@@ -88,6 +90,7 @@ describe('network', () => {
 
                 const player = {
                     username: {},
+                    onEnable: () => {},
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
@@ -125,6 +128,7 @@ describe('network', () => {
 
                 const player = {
                     username: {},
+                    onEnable: () => {},
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
@@ -147,6 +151,7 @@ describe('network', () => {
 
                 const player = {
                     username: {},
+                    onEnable: () => {},
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(1);
@@ -166,6 +171,7 @@ describe('network', () => {
 
                 const player = {
                     username: {},
+                    onEnable: () => {},
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(2);

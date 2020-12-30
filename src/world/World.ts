@@ -485,7 +485,7 @@ export default class World {
                 );
 
             return {
-                gamemode: this.server.getConfig().getGamemode().toLowerCase(),
+                gamemode: this.server.getConfig().getGamemode(),
                 position: {
                     x: (await this.getSpawnPosition()).getX(),
                     y: (await this.getSpawnPosition()).getY(),
@@ -508,7 +508,11 @@ export default class World {
             ),
             JSON.stringify(
                 {
-                    gamemode: Gamemode.getGamemodeName(player.gamemode),
+                    uuid: player.getUUID(),
+                    username: player.getUsername(),
+                    gamemode: Gamemode.getGamemodeName(
+                        player.gamemode
+                    ).toLowerCase(),
                     position: {
                         x: player.getX(),
                         y: player.getY(),
