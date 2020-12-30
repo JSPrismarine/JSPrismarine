@@ -5,10 +5,11 @@ import type PlayerConnectEvent from './player/PlayerConnectEvent';
 import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
 import type PlayerMoveEvent from './player/PlayerMoveEvent';
-import PlayerSetGamemodeEvent from './player/PlayerSetGamemodeEvent';
+import type PlayerSetGamemodeEvent from './player/PlayerSetGamemodeEvent';
 import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
 import type PlayerToggleFlightEvent from './player/PlayerToggleFlightEvent';
 import type playerToggleOperatorEvent from './player/PlayerToggleOperatorEvent';
+import type PlayerToggleSprintEvent from './player/PlayerToggleSprintEvent';
 import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
@@ -24,6 +25,7 @@ export type EventTypes =
     | ['playerDespawn', PlayerDespawnEvent]
     | ['playerMove', PlayerMoveEvent]
     | ['playerToggleFlight', PlayerToggleFlightEvent]
+    | ['playerToggleSprint', PlayerToggleSprintEvent]
     | ['playerToggleOperator', playerToggleOperatorEvent]
     | ['playerSetGamemodeEvent', PlayerSetGamemodeEvent];
 

@@ -12,7 +12,7 @@
     },
     "scripts": {
         "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
-        "dev": "cross-env NODE_ENV=development nodemon -I --watch . -e ts,js,json,yaml --exec 'ts-node --transpile-only --project ./tsconfig.json --files' ./src/Prismarine.ts",
+        "dev": "cross-env NODE_ENV=development nodemon -I --watch ./src -e ts,js,json,yaml --exec 'ts-node --transpile-only --project ./tsconfig.json --files' ./src/Prismarine.ts",
         "build": "tsc --build src",
         "clean": "rm -rf dist docs packages worlds plugins banned-players.json ops.json config.yaml jsprismarine.log",
         "docs": "typedoc --out ./docs --tsconfig ./tsconfig.json src --exclude '!**/*.test.ts' --excludeExternals",
