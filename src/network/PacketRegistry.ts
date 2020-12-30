@@ -72,6 +72,8 @@ import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
+import TransferPacket from './packet/TransferPacket';
+import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
 
 export default class PacketRegistry {
     private readonly logger: LoggerBuilder;
@@ -111,6 +113,7 @@ export default class PacketRegistry {
         this.registerPacket(AvailableActorIdentifiersPacket);
         this.registerPacket(AvailableCommandsPacket);
         this.registerPacket(BiomeDefinitionListPacket);
+        this.registerPacket(ChangeDimensionPacket);
         this.registerPacket(ChunkRadiusUpdatedPacket);
         this.registerPacket(ClientCacheStatusPacket);
         this.registerPacket(CommandRequestPacket);
@@ -151,6 +154,7 @@ export default class PacketRegistry {
         this.registerPacket(StartGamePacket);
         this.registerPacket(TextPacket);
         this.registerPacket(TickSyncPacket);
+        this.registerPacket(TransferPacket);
         this.registerPacket(UpdateAttributesPacket);
         this.registerPacket(UpdateBlockPacket);
         this.registerPacket(WorldEventPacket);

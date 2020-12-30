@@ -3,6 +3,7 @@ import Block from '../block/Block';
 import { Attribute } from '../entity/attribute';
 import { FlagType } from '../entity/metadata';
 import Item from '../item/Item';
+import Vector3 from '../math/Vector3';
 import Skin from '../utils/skin/Skin';
 import SkinImage from '../utils/skin/SkinImage';
 import UUID from '../utils/UUID';
@@ -34,6 +35,26 @@ export default class PacketBinaryStream extends BinaryStream {
     public writeString(v: string): void {
         this.writeUnsignedVarInt(Buffer.byteLength(v));
         this.append(Buffer.from(v, 'utf8'));
+    }
+
+    /**
+     * Returns a Vector3 encoded into the buffer.
+     */
+    public readVector3(): Vector3 {
+        return new Vector3(
+            this.readLFloat(),
+            this.readLFloat(),
+            this.readLFloat()
+        );
+    }
+
+    /**
+     * Encodes a Vector3 into the buffer.
+     */
+    public writeVector3(position: Vector3): void {
+        this.writeLFloat(position.getX());
+        this.writeLFloat(position.getY());
+        this.writeLFloat(position.getZ());
     }
 
     public readUUID(): UUID {
