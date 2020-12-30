@@ -1,20 +1,12 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Chunk from '../chunk/Chunk';
-import EmptySubChunk from '../chunk/EmptySubChunk';
+import Chunk from '../../chunk/Chunk';
+import EmptySubChunk from '../../chunk/EmptySubChunk';
 import Level from '@beenotung/level-ts';
-import type Server from '../../Server';
-import Provider from '../Provider';
-import SubChunk from '../chunk/SubChunk';
-import Vector3 from '../../math/Vector3';
+import type Server from '../../../Server';
+import Provider from '../../Provider';
+import SubChunk from '../../chunk/SubChunk';
+import Vector3 from '../../../math/Vector3';
 import path from 'path';
-
-interface readChunk {
-    x: number;
-    z: number;
-    generator: any;
-    seed: number;
-    server: Server;
-}
 
 const Tags = {
     Version: 'v',
@@ -45,7 +37,13 @@ export default class LevelDB extends Provider {
         generator,
         seed,
         server
-    }: readChunk): Promise<Chunk | null> {
+    }: {
+        x: number;
+        z: number;
+        generator: any;
+        seed: number;
+        server: Server;
+    }): Promise<Chunk | null> {
         return new Promise(async (resolve, reject) => {
             const index = LevelDB.chunkIndex(x, z);
             const subChunks: Map<number, SubChunk> = new Map();

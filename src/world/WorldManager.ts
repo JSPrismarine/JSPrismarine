@@ -1,7 +1,8 @@
 import fs from 'fs';
 import Server from '../Server';
 import GeneratorManager from './GeneratorManager';
-import LevelDB from './leveldb/Leveldb';
+import LevelDB from './providers/leveldb/LevelDB';
+import Anvil from './providers/anvil/Anvil';
 import World from './World';
 
 export default class WorldManager {
@@ -9,6 +10,7 @@ export default class WorldManager {
     private defaultWorld: World | null = null;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
+    private providers: Map<string, any> = new Map();
 
     public constructor(server: Server) {
         this.server = server;
@@ -18,6 +20,9 @@ export default class WorldManager {
         if (!fs.existsSync(process.cwd() + '/worlds')) {
             fs.mkdirSync(process.cwd() + '/worlds');
         }
+
+        this.providers.set('LevelDB', LevelDB);
+        this.providers.set('Anvil', Anvil);
     }
 
     public async onEnable(): Promise<void> {
@@ -58,11 +63,15 @@ export default class WorldManager {
             }
 
             const levelPath = process.cwd() + `/worlds/${folderName}/`;
+            const provider = this.providers.get(
+                worldData.provider || 'LevelDB'
+            );
+
             // TODO: figure out provider by data
             const world = new World({
                 name: folderName,
                 server: this.server,
-                provider: new LevelDB(levelPath, this.server),
+                provider: new provider(levelPath, this.server),
 
                 seed: worldData.seed,
                 generator: worldData.generator
