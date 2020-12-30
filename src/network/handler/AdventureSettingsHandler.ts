@@ -24,8 +24,9 @@ export default class AdventureSettingsHandler
             await target.setFlying(flying);
         }
 
-        const operator = packet.getFlag(AdventureSettingsFlags.Operator);
         if (player.isOp()) {
+            const operator = packet.getFlag(AdventureSettingsFlags.Operator);
+
             await server
                 .getPermissionManager()
                 .setOp(target.getUsername(), operator);
