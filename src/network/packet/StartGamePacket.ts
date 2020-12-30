@@ -38,7 +38,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeLFloat(this.pith);
         this.writeLFloat(this.yaw);
 
-        this.writeVarInt(this.seed || 0);
+        this.writeVarInt(0); // Seed
 
         this.writeLShort(0x00); // Default spawn biome type
         this.writeString('plains'); // User defined biome name
@@ -54,7 +54,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeUnsignedVarInt(this.worldSpawnPos.getY());
         this.writeVarInt(this.worldSpawnPos.getZ());
 
-        this.writeBool(true); // Achievement disabled
+        this.writeBool(false); // Achievement disabled
 
         this.writeVarInt(0); // Day cycle / time
         this.writeVarInt(0); // Edu edition offer
