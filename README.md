@@ -24,8 +24,8 @@
 <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
   <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=flat-square">
 </a>
-<a href="https://www.patreon.com/prismarine">
-  <img alt="Patreon" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dprismarine%26type%3Dpatrons&style=flat-square">
+<a href="https://github.com/sponsors/JSPrismarine">
+  <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/JSPrismarine?style=flat-square">
 </a>
 
 ## Why use JSPrismarine?
