@@ -38,68 +38,38 @@ export function getStorageBlocks(type: StorageType): number {
 }
 
 export default class BlockStorage {
-    // a single word is a 4 byte uint
-    private bufferIndex = 0;
-    private blocks: Buffer;
-    private palette: Palette;
+    private words: Array<number>;
     private readonly AIR_RUNTIME_ID: number;
 
-    public constructor(blocks = Buffer.alloc(4096 * 2)) {
+    public constructor(words?: Array<number>) {
         const blockManager = Server.instance.getBlockManager();
         this.AIR_RUNTIME_ID = blockManager.getRuntimeWithId(0);
-        this.blocks = blocks;
-        this.palette = new Palette(blockManager);
-        // If the buffer is empty, fill it with air block runtime Id
-        if (this.blocks.byteLength === 0) {
-            for (let i = 0; i < 4096; i++) {
-                this.blocks.writeUInt32BE(
-                    this.AIR_RUNTIME_ID,
-                    (this.bufferIndex += 2) - 2
-                );
-            }
-        }
-    }
-
-    public getPalette(): Palette {
-        return this.palette;
+        this.words = words ?? new Array(4096).fill(this.AIR_RUNTIME_ID);
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {
         bx &= 0x0f;
         by &= 0x0f;
         bz &= 0x0f;
-        return ((bx << 8) + (bz << 4)) | by;
+        return ((bx << 8) + (bz << 4)) + by;
     }
 
     // Returns the block id, not runtime
+    // Move to return the block instead of Id
     public getBlockId(bx: number, by: number, bz: number): number {
-        if (this.palette.size() === 0) return 0; // Air
-
-        const paletteIndex = this.blocks[BlockStorage.getIndex(bx, by, bz)];
-        const runtimeId = this.palette.getValues()[paletteIndex];
+        const runtimeId = this.words[BlockStorage.getIndex(bx, by, bz)];
 
         const block = Server.instance
             .getBlockManager()
             .getBlockByRuntimeId(runtimeId);
-
-        console.log(
-            block!.getId(),
-            runtimeId,
-            runtimeId === block!.getRuntimeId()
-        );
-
-        return block!.getId();
+        
+        return block ? block.getId() : this.AIR_RUNTIME_ID;
     }
 
     public setBlock(x: number, y: number, z: number, runtimeId: number): void {
-        const index = BlockStorage.getIndex(x, y, z);
-        this.setInternalRuntimeId(index, runtimeId);
+        this.words[BlockStorage.getIndex(x, y, z)] = runtimeId;
     }
-
-    private setInternalRuntimeId(index: number, runtimeId: number): void {
-        this.blocks[index] = this.palette.getPaletteIndex(runtimeId);
-    }
-
+        
     public getStorageId(): number {
         // Returns the bits needed to store blocks
         return Math.ceil(Math.log2(this.getPalette().size()));
