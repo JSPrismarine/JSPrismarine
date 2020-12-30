@@ -13,6 +13,9 @@ import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
 import GameruleManager, { GameRules } from './GameruleManager';
 import SharedSeedRandom from './util/SharedSeedRandom';
+import fs from 'fs';
+import path from 'path';
+import Gamemode from './Gamemode';
 
 interface WorldData {
     name: string;
@@ -20,6 +23,17 @@ interface WorldData {
     provider: any;
     seed: number;
     generator?: string;
+}
+
+export interface WorldPlayerData {
+    gamemode: string;
+    position: {
+        x: number;
+        y: number;
+        z: number;
+        pitch: number;
+        yaw: number;
+    };
 }
 
 export default class World {
@@ -54,6 +68,13 @@ export default class World {
         // TODO: getGameruleManager().showCoordinates(true ?? false);
         this.getGameruleManager().setGamerule(GameRules.DoDayLightCycle, true);
         this.getGameruleManager().setGamerule(GameRules.ShowCoordinates, true);
+
+        // Create player data folder
+        if (
+            !fs.existsSync(path.join(process.cwd(), 'worlds', name, '/players'))
+        ) {
+            fs.mkdirSync(path.join(process.cwd(), 'worlds', name, '/players'));
+        }
     }
 
     public async onEnable(): Promise<void> {
@@ -436,5 +457,69 @@ export default class World {
 
     public getName(): string {
         return this.name;
+    }
+
+    public getSeed(): number {
+        return Number(this.seed.seed);
+    }
+
+    public async getPlayerData(player: Player): Promise<WorldPlayerData> {
+        try {
+            const playerData = fs.readFileSync(
+                path.join(
+                    process.cwd(),
+                    'worlds',
+                    this.getName(),
+                    'players',
+                    `${player.getUUID()}.json`
+                )
+            );
+
+            return JSON.parse(playerData.toString('utf-8')) as WorldPlayerData;
+        } catch {
+            this.server
+                .getLogger()
+                .debug(
+                    `PlayerData is missing for player ${player.getUUID()}`,
+                    'World/getPlayerData'
+                );
+
+            return {
+                gamemode: this.server.getConfig().getGamemode().toLowerCase(),
+                position: {
+                    x: (await this.getSpawnPosition()).getX(),
+                    y: (await this.getSpawnPosition()).getY(),
+                    z: (await this.getSpawnPosition()).getZ(),
+                    pitch: 0,
+                    yaw: 0
+                }
+            };
+        }
+    }
+
+    public async savePlayerData(player: Player): Promise<void> {
+        fs.writeFileSync(
+            path.join(
+                process.cwd(),
+                'worlds',
+                this.getName(),
+                'players',
+                `${player.getUUID()}.json`
+            ),
+            JSON.stringify(
+                {
+                    gamemode: Gamemode.getGamemodeName(player.gamemode),
+                    position: {
+                        x: player.getX(),
+                        y: player.getY(),
+                        z: player.getZ(),
+                        pitch: player.pitch,
+                        yaw: player.yaw
+                    }
+                } as WorldPlayerData,
+                null,
+                4
+            )
+        );
     }
 }
