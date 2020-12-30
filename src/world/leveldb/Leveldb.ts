@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../chunk/Chunk';
 import EmptySubChunk from '../chunk/EmptySubChunk';
-import Level from 'level';
+import Level from '@beenotung/level-ts';
 import type Server from '../../Server';
 import Provider from '../Provider';
 import SubChunk from '../chunk/SubChunk';
@@ -31,12 +31,8 @@ export default class LevelDB extends Provider {
         this.server = server;
     }
 
-    /**
-     * Decodes a serialized chunk from
-     * the database asynchronously.
-     */
     public async close() {
-        await this.db.close();
+        // TODO: close the DB
     }
 
     /**
