@@ -193,18 +193,16 @@ export default class PlayerConnection {
                     !this.loadingChunks.has(hash)
                 ) {
                     this.loadingChunks.add(hash);
-                    this.requestChunk(chunk[0], chunk[1]);
+                    await this.requestChunk(chunk[0], chunk[1]);
                 } else {
-                    void this.player
+                    const loadedChunk = await this.player
                         .getWorld()
-                        .getChunk(chunk[0], chunk[1])
-                        .then(async (loadedChunk) =>
-                            this.sendChunk(loadedChunk)
-                        );
+                        .getChunk(chunk[0], chunk[1]);
+                    await this.sendChunk(loadedChunk);
                 }
             } else {
                 this.loadingChunks.add(hash);
-                this.requestChunk(chunk[0], chunk[1]);
+                await this.requestChunk(chunk[0], chunk[1]);
             }
         }
 
@@ -238,11 +236,9 @@ export default class PlayerConnection {
         }
     }
 
-    public requestChunk(x: number, z: number) {
-        void this.player
-            .getWorld()
-            .getChunk(x, z)
-            .then((chunk) => this.chunkSendQueue.add(chunk));
+    public async requestChunk(x: number, z: number) {
+        const chunk = await this.player.getWorld().getChunk(x, z);
+        this.chunkSendQueue.add(chunk);
     }
 
     public async sendInventory() {
