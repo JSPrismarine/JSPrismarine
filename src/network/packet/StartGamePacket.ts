@@ -9,6 +9,7 @@ export default class StartGamePacket extends DataPacket {
     public entityId!: bigint;
     public runtimeEntityId!: bigint;
     public gamemode!: number;
+    public defaultGamemode!: number;
 
     public playerPos!: Vector3;
     public pith!: number;
@@ -46,7 +47,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(0); // Dimension
 
         this.writeVarInt(1); // Generator
-        this.writeVarInt(0); // Gamemode
+        this.writeVarInt(this.defaultGamemode ?? 0); // Default Gamemode
         this.writeVarInt(0); // Difficulty
 
         // world spawn vector 3

@@ -36,6 +36,9 @@ export default class ResourcePackResponseHandler
             pk.entityId = player.runtimeId;
             pk.runtimeEntityId = player.runtimeId;
             pk.gamemode = player.gamemode;
+            pk.defaultGamemode = Gamemode.getGamemodeId(
+                server.getConfig().getGamemode()
+            );
 
             const worldSpawnPos = await world.getSpawnPosition();
             pk.worldSpawnPos = worldSpawnPos;
