@@ -1,11 +1,14 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.22",
+    "version": "0.1.0-rc.23",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
     "bin": {
         "prismarine": "dist/src/Prismarine.js"
+    },
+    "engines": {
+        "node": ">=14.x"
     },
     "scripts": {
         "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
@@ -55,6 +58,7 @@
             "unicorn/better-regex": 0,
             "unicorn/escape-case": 0,
             "unicorn/catch-error-name": 0,
+            "unicorn/prefer-spread": 0,
             "import/no-named-as-default": 0,
             "@typescript-eslint/member-ordering": 0,
             "@typescript-eslint/ban-types": 0,
@@ -74,6 +78,7 @@
             "@typescript-eslint/prefer-ts-expect-error": 0,
             "@typescript-eslint/lines-between-class-members": 0,
             "no-inferrable-types": 0,
+            "prefer-destructuring": 0,
             "new-cap": 0,
             "one-var": 0,
             "no-sequences": 0,
