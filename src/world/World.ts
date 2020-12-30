@@ -48,6 +48,7 @@ export default class World {
     private readonly provider: any; // TODO: interface
     private readonly server: Server;
     private readonly seed: SharedSeedRandom;
+    private readonly originalSeed: number;
     private readonly generator: any; // TODO: interface
 
     constructor({
@@ -62,6 +63,7 @@ export default class World {
         this.provider = provider;
         this.gameruleManager = new GameruleManager(server);
         this.seed = new SharedSeedRandom(seed);
+        this.originalSeed = seed;
         this.generator = generator;
 
         // TODO: Load default gamrules
@@ -377,7 +379,7 @@ export default class World {
 
     public async sendTime(): Promise<void> {
         for (const player of this.players.values()) {
-            await player.setTime(this.getTicks());
+            await player.getConnection().sendTime(this.getTicks());
         }
     }
 
@@ -460,7 +462,7 @@ export default class World {
     }
 
     public getSeed(): number {
-        return Number(this.seed.seed);
+        return this.originalSeed;
     }
 
     public async getPlayerData(player: Player): Promise<WorldPlayerData> {

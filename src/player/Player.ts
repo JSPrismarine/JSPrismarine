@@ -3,6 +3,7 @@ import Human from '../entity/Human';
 import ChatEvent from '../events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
+import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
 import WindowManager from '../inventory/WindowManager';
 import Connection from '../network/raknet/Connection';
 import InetAddress from '../network/raknet/utils/InetAddress';
@@ -152,10 +153,6 @@ export default class Player extends Human implements CommandExecuter {
         await this.sendSettings();
     }
 
-    public async setTime(tick: number): Promise<void> {
-        await this.getConnection().sendTime(tick);
-    }
-
     public getServer(): Server {
         return this.server;
     }
@@ -198,21 +195,28 @@ export default class Player extends Human implements CommandExecuter {
     public isSprinting() {
         return this.sprinting;
     }
-    public async setSprinting(val: boolean) {
-        this.sprinting = val;
+    public async setSprinting(sprinting: boolean) {
+        if (sprinting === this.isSprinting()) return;
+
+        const event = new PlayerToggleSprintEvent(this, sprinting);
+        this.server.getEventManager().post(['playerToggleSprint', event]);
+        if (event.cancelled) return;
+
+        this.sprinting = event.getIsSprinting();
         await this.sendSettings();
     }
 
     public isFlying() {
         return this.flying;
     }
-    public async setFlying(val: boolean) {
+    public async setFlying(flying: boolean) {
+        if (flying === this.isFlying()) return;
         if (!this.getAllowFlight()) {
             this.flying = false;
             return;
         }
 
-        const event = new PlayerToggleFlightEvent(this, val);
+        const event = new PlayerToggleFlightEvent(this, flying);
         this.server.getEventManager().post(['playerToggleFlight', event]);
         if (event.cancelled) return;
 
