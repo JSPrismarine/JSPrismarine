@@ -40,12 +40,12 @@ export function getStorageBlocks(type: StorageType): number {
 export default class BlockStorage {
     private words: Array<number>;
     private palette = new Palette();
-    private readonly AIR_RUNTIME_ID: number;
 
     public constructor(words?: Array<number>) {
         const blockManager = Server.instance.getBlockManager();
-        this.AIR_RUNTIME_ID = blockManager.getRuntimeWithId(0);
-        this.words = words ?? new Array(4096).fill(this.AIR_RUNTIME_ID);
+        const AIR_RUNTIME_ID = blockManager.getRuntimeWithId(0);
+        const paletteAirIndex = this.palette.getRuntimeIndex(AIR_RUNTIME_ID);
+        this.words = words ?? new Array(4096).fill(paletteAirIndex);
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {
@@ -65,7 +65,7 @@ export default class BlockStorage {
             .getBlockManager()
             .getBlockByRuntimeId(runtimeId);
         
-        return block ? block.getId() : this.AIR_RUNTIME_ID;
+        return block ? block.getId() : 0; // air id
     }
 
     public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
