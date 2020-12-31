@@ -29,6 +29,13 @@ export default class ItemManager {
         return this.items.get(name);
     }
 
+    /**
+     * Get item by numeric id
+     */
+    public getItemById(id: number): Item | null {
+        return this.getItems().find((a) => a.getId() === id) ?? null;
+    }
+
     public getItems(): Item[] {
         return Array.from(this.items.values());
     }

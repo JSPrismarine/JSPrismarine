@@ -301,6 +301,10 @@ export default class Server {
                         `Handler error ${packet.constructor.name}-handler: (${error})`,
                         'Server/listen/raknetEncapsulatedPacket'
                     );
+                    this.logger.debug(
+                        `${error.stack}`,
+                        'Server/listen/raknetEncapsulatedPacket'
+                    );
                 }
             }
         });
@@ -406,7 +410,7 @@ export default class Server {
 
             await this.worldManager.onDisable();
             await this.onDisable();
-            await this.raknet.kill();
+            await this.raknet?.kill(); // this.raknet might be undefined if we kill the server early
             process.exit(0);
         } catch (error) {
             this.getLogger().error(error, 'Server/kill');

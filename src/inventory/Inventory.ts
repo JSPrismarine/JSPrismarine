@@ -1,3 +1,4 @@
+import Block from '../block/Block';
 import Air from '../block/blocks/Air';
 import Item from '../item/Item';
 
@@ -7,9 +8,9 @@ export default class Inventory {
     /**
      * (Slot number - Item in the slot)
      */
-    private readonly content: Map<number, Item> = new Map();
+    private readonly content: Map<number, Item | Block> = new Map();
 
-    public constructor(slots = 0, items: Item[] = []) {
+    public constructor(slots = 0, items: Array<Item | Block> = []) {
         this.slots = slots;
         this.setItems(items);
     }
@@ -17,7 +18,7 @@ export default class Inventory {
     /**
      * Adds an array of items into the inventory.
      */
-    public setItems(items: Item[] = []) {
+    public setItems(items: Array<Item | Block> = []) {
         if (items.length > this.slots) {
             // If the inventory slots are less
             // than items cut the items array
@@ -32,7 +33,7 @@ export default class Inventory {
     /**
      * Returns all the items inside the inventory.
      */
-    public getItems(includeAir = false): Item[] {
+    public getItems(includeAir = false): Array<Item | Block> {
         if (includeAir) {
             return Array.from(this.content.values());
         }
@@ -45,7 +46,7 @@ export default class Inventory {
     /**
      * Sets an item in the inventory content.
      */
-    public setItem(slot: number, item: Item) {
+    public setItem(slot: number, item: Item | Block) {
         if (slot > this.slots) {
             return false;
         }
