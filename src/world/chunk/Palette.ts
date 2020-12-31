@@ -1,17 +1,11 @@
 import BlockManager from '../../block/BlockManager';
 
 export default class Palette {
-    private palette: number[];
+    private palette: number[] = [];
 
-    public constructor(blockManager: BlockManager) {
-        this.palette = new Array(16);
-        // Put air at the start (we always use it)
-        this.palette.push(blockManager.getRuntimeWithId(0));
-    }
-
-    // Adds the runtimeId into the palette, and its index
+    // Adds the runtimeId into the palette, and its index in the array
     // is basically the block referred in the blocks buffer
-    public getPaletteIndex(runtimeId: number): number {
+    public getRuntimeIndex(runtimeId: number): number {
         if (!this.palette.includes(runtimeId)) {
             this.palette.push(runtimeId);
         }
