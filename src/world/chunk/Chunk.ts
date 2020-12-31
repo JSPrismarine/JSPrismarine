@@ -6,14 +6,14 @@ import SubChunk from './SubChunk';
 const MAX_SUBCHUNKS = 16;
 
 export default class Chunk {
-    private x = 0;
-    private z = 0;
+    private x: number;
+    private z: number;
 
     private subChunks: Map<number, SubChunk> = new Map();
 
     public constructor(
-        chunkX: number,
-        chunkZ: number,
+        chunkX = 0,
+        chunkZ = 0,
         subChunks: Map<number, SubChunk> = new Map()
     ) {
         this.x = chunkX;
@@ -38,10 +38,11 @@ export default class Chunk {
     }
 
     public getSubChunk(y: number): SubChunk {
+        y = y >> 4;
         if (y < 0 || y >= this.subChunks.size) {
             throw new Error(`Invalid subchunk height: ${y}`);
         }
-        return this.subChunks.get(y >> 4) as SubChunk;
+        return this.subChunks.get(y) as SubChunk;
     }
 
     public getSubChunks(): Map<number, SubChunk> {
