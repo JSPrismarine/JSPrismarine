@@ -39,6 +39,7 @@ export function getStorageBlocks(type: StorageType): number {
 
 export default class BlockStorage {
     private words: Array<number>;
+    private palette = new Palette();
     private readonly AIR_RUNTIME_ID: number;
 
     public constructor(words?: Array<number>) {
@@ -51,14 +52,15 @@ export default class BlockStorage {
         bx &= 0x0f;
         by &= 0x0f;
         bz &= 0x0f;
-        return ((bx << 8) + (bz << 4)) + by;
+        return ((bx << 8) + (bz << 4)) | by;
     }
 
     // Returns the block id, not runtime
     // Move to return the block instead of Id
     public getBlockId(bx: number, by: number, bz: number): number {
-        const runtimeId = this.words[BlockStorage.getIndex(bx, by, bz)];
-
+        const paletteIndex = this.words[BlockStorage.getIndex(bx, by, bz)];
+        const runtimeId = this.palette.getRuntime(paletteIndex);
+        
         const block = Server.instance
             .getBlockManager()
             .getBlockByRuntimeId(runtimeId);
@@ -66,13 +68,14 @@ export default class BlockStorage {
         return block ? block.getId() : this.AIR_RUNTIME_ID;
     }
 
-    public setBlock(x: number, y: number, z: number, runtimeId: number): void {
-        this.words[BlockStorage.getIndex(x, y, z)] = runtimeId;
+    public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
+        const runtimeIndex = this.palette.getRuntimeIndex(runtimeId);
+        this.words[BlockStorage.getIndex(bx, by, bz)] = runtimeIndex;
     }
         
     public getStorageId(): number {
         // Returns the bits needed to store blocks
-        return Math.ceil(Math.log2(this.getPalette().size()));
+        return Math.ceil(Math.log2(this.palette.size()));
     }
 
     public networkSerialize(): Buffer {
@@ -97,7 +100,7 @@ export default class BlockStorage {
             for (let block = 0; block < blocksPerWord; block++) {
                 if (position > 4096) continue;
 
-                const state = this.blocks[position];
+                const state = this.words[position];
                 word |= state << (this.getStorageId() * block);
 
                 position++;
@@ -107,8 +110,10 @@ export default class BlockStorage {
         stream.append(Buffer.from(indexes));
 
         // Write palette entries as runtime ids
-        stream.writeVarInt(this.palette.size());
-        stream.append(Buffer.from(this.getPalette().getValues()));
+        stream.writeInt(this.palette.size());
+        for (const val of this.palette.getValues()) {
+             stream.writeInt(val);
+        }
 
         return stream.getBuffer();
     }
