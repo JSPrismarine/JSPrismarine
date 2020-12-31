@@ -16,6 +16,7 @@ export enum StorageType {
 // Maybe semplified with 32 / StorageTypeId
 export function getStorageBlocks(type: StorageType): number {
     switch (type) {
+        case 0: // Fix it in future
         case StorageType.Paletted1:
             return 32;
         case StorageType.Paletted2:
@@ -86,8 +87,7 @@ export default class BlockStorage {
 
         const blocksPerWord = getStorageBlocks(this.getStorageId());
 
-        const i = Math.floor(32 / this.getStorageId());
-        console.log(i, blocksPerWord);
+        // const i = Math.floor(32 / this.getStorageId());
 
         const wordsPerChunk = Math.ceil(4096 / blocksPerWord);
 
@@ -107,7 +107,10 @@ export default class BlockStorage {
             }
             indexes[w] = word;
         }
-        stream.append(Buffer.from(indexes));
+        
+        const indexesBuff = Buffer.from(indexes);
+        const fullBuff = Buffer.alloc((4096 * 4) - indexesBuff.byteLength).fill(0x00);
+        stream.append(Buffer.concat([indexesBuff, fullBuff]));
 
         // Write palette entries as runtime ids
         stream.writeVarInt(this.palette.size());
