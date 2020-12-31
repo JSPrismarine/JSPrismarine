@@ -87,8 +87,10 @@ export default class Chunk {
             stream.append(subChunk.networkSerialize());
         }
         // TODO: biomes
-        stream.append(Buffer.alloc(256).fill(0x00));
-        stream.writeByte(0); // May be useless
+        const biomeIds = Buffer.alloc(256).fill(0x00);
+        stream.writeUnsignedVarInt(biomeIds.byteLength);
+        stream.append(biomeIds);
+        stream.writeUnsignedVarInt(0); // extra data
         return stream.getBuffer();
     }
 }
