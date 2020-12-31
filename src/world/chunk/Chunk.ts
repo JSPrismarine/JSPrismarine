@@ -81,7 +81,6 @@ export default class Chunk {
     public networkSerialize(): Buffer {
         const stream = new BinaryStream();
         // Encode subchunks
-        stream.writeByte(this.getSubChunks().size);
         for (const subChunk of this.getSubChunks().values()) {
             stream.append(subChunk.networkSerialize());
         }
