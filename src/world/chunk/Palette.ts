@@ -11,6 +11,12 @@ export default class Palette {
         }
         return this.palette.indexOf(runtimeId);
     }
+    
+    // Returns a runtimeId in the specified index
+    // we should be sure that it exists
+    public getRuntime(index: number): number {
+        return this.palette[index];
+    }
 
     public getValues(): number[] {
         return this.palette;
