@@ -110,9 +110,9 @@ export default class BlockStorage {
         stream.append(Buffer.from(indexes));
 
         // Write palette entries as runtime ids
-        stream.writeInt(this.palette.size());
+        stream.writeVarInt(this.palette.size());
         for (const val of this.palette.getValues()) {
-             stream.writeInt(val);
+             stream.writeVarInt(val);
         }
 
         return stream.getBuffer();
