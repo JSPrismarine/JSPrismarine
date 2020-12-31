@@ -34,6 +34,12 @@ export interface WorldPlayerData {
         pitch: number;
         yaw: number;
     };
+    inventory: Array<{
+        id: string;
+        numeric_id: number;
+        numeric_meta: number;
+        position: number;
+    }>;
 }
 
 export default class World {
@@ -494,7 +500,8 @@ export default class World {
                     z: (await this.getSpawnPosition()).getZ(),
                     pitch: 0,
                     yaw: 0
-                }
+                },
+                inventory: []
             };
         }
     }
@@ -521,7 +528,19 @@ export default class World {
                         z: player.getZ(),
                         pitch: player.pitch,
                         yaw: player.yaw
-                    }
+                    },
+                    inventory: player
+                        .getInventory()
+                        .getItems(true)
+                        .map((item, index) => {
+                            return {
+                                id: item?.name,
+                                numeric_id: item?.getId(),
+                                numeric_meta: item?.meta,
+                                positon: index
+                            };
+                        })
+                        .filter((a) => a.numeric_id > 0) as any
                 } as WorldPlayerData,
                 null,
                 4

@@ -1,12 +1,13 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import type Item from '../../item/Item';
+import type Block from '../../block/Block';
 
 export default class InventoryContentPacket extends DataPacket {
     static NetID = Identifiers.InventoryContentPacket;
 
     public windowId!: number;
-    public items: Item[] = [];
+    public items: Array<Item | Block> = [];
 
     public encodePayload() {
         this.writeUnsignedVarInt(this.windowId);

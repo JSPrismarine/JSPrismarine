@@ -90,6 +90,14 @@ export default class Player extends Human implements CommandExecuter {
         this.setZ(playerData.position.z);
         this.pitch = playerData.position.pitch;
         this.yaw = playerData.position.yaw;
+
+        playerData.inventory.forEach((item) =>
+            this.getInventory().setItem(
+                item.position,
+                this.server.getItemManager().getItem(item.id) ||
+                    this.server.getBlockManager().getBlock(item.id)
+            )
+        );
     }
 
     public async onDisable() {
