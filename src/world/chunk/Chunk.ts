@@ -39,10 +39,9 @@ export default class Chunk {
 
     public getSubChunk(y: number): SubChunk {
         if (y < 0 || y >= this.subChunks.size) {
-            // throw new Error(`Invalid subchunk height: ${y}`);
-            return new SubChunk(); // hack
+            throw new Error(`Invalid subchunk height: ${y}`);
         }
-        return this.subChunks.get(y) as SubChunk;
+        return this.subChunks.get(y >> 4) as SubChunk;
     }
 
     public getSubChunks(): Map<number, SubChunk> {
@@ -61,7 +60,7 @@ export default class Chunk {
     }
 
     public getBlockId(bx: number, by: number, bz: number): number {
-        return this.getSubChunk(by >> 4)
+        return this.getSubChunk(by)
             .getStorage(0)
             .getBlockId(bx, by, bz);
     }
