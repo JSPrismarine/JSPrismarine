@@ -156,7 +156,13 @@ const Identifiers = {
     PositionTrackingDBClientRequestPacket: 0x9a,
     DebugInfoPacket: 0x9b,
     PacketViolationWarningPacket: 0x9c,
-    ItemComponentPacket: 0xa2
+    MotionPredictionHintsPacket: 0x9d,
+    AnimateEntityPacket: 0x9e,
+    CameraShakePacket: 0x9f,
+    PlayerFogPacket: 0xa0,
+    CorrectPlayerMovePredictionPacket: 0xa1,
+    ItemComponentPacket: 0xa2,
+    FilterTextPacket: 0xa3
 };
 
 export default Identifiers;
