@@ -38,6 +38,7 @@ export interface WorldPlayerData {
         id: string;
         numeric_id: number;
         numeric_meta: number;
+        count: number;
         position: number;
     }>;
 }
@@ -537,7 +538,8 @@ export default class World {
                                 id: item?.name,
                                 numeric_id: item?.getId(),
                                 numeric_meta: item?.meta,
-                                positon: index
+                                count: item?.count,
+                                position: index
                             };
                         })
                         .filter((a) => a.numeric_id > 0) as any

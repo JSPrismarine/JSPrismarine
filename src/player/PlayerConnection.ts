@@ -246,6 +246,7 @@ export default class PlayerConnection {
         pk.items = this.player.getInventory().getItems(true);
         pk.windowId = WindowIds.INVENTORY; // Inventory window
         await this.sendDataPacket(pk);
+        await this.sendHandItem(this.player.getInventory().getItemInHand());
 
         /* TODO: not working..
         pk = new InventoryContentPacket();
@@ -257,8 +258,6 @@ export default class PlayerConnection {
         // TODO: documentate about
         0x7c (ui content)
         0x77 (off hand)
-
-        this.sendHandItem(this.player.getInventory().getItemInHand());
         */
     }
 
