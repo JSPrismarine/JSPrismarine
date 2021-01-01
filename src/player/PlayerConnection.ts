@@ -1,5 +1,6 @@
 import Block from '../block/Block';
 import { Attribute } from '../entity/attribute';
+import ContainerEntry from '../inventory/ContainerEntry';
 import { WindowIds } from '../inventory/WindowManager';
 import Item from '../item/Item';
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
@@ -295,7 +296,7 @@ export default class PlayerConnection {
     /**
      * Sets the item in the player hand.
      */
-    public async sendHandItem(item: Item | Block) {
+    public async sendHandItem(item: ContainerEntry) {
         const pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.item = item;

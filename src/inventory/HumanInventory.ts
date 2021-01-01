@@ -1,4 +1,4 @@
-import Item from '../item/Item';
+import ContainerEntry from './ContainerEntry';
 import Inventory from './Inventory';
 
 export default class HumanInventory extends Inventory {
@@ -13,15 +13,15 @@ export default class HumanInventory extends Inventory {
     /**
      * Sets an item into the hand slot.
      */
-    public setItemInHand(item: Item) {
+    public setItemInHand(item: ContainerEntry) {
         this.setItem(this.handSlot, item);
     }
 
     /**
      * Returns the item in the player hand.
      */
-    public getItemInHand(): Item {
-        return this.getItem(this.handSlot) as Item;
+    public getItemInHand(): ContainerEntry {
+        return this.getItem(this.handSlot);
     }
 
     /**

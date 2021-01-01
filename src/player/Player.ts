@@ -4,6 +4,7 @@ import ChatEvent from '../events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
+import ContainerEntry from '../inventory/ContainerEntry';
 import WindowManager from '../inventory/WindowManager';
 import Connection from '../network/raknet/Connection';
 import InetAddress from '../network/raknet/utils/InetAddress';
@@ -94,8 +95,12 @@ export default class Player extends Human implements CommandExecuter {
         playerData.inventory.forEach((item) =>
             this.getInventory().setItem(
                 item.position,
-                this.server.getItemManager().getItem(item.id) ||
-                    this.server.getBlockManager().getBlock(item.id)
+                new ContainerEntry({
+                    item:
+                        this.server.getItemManager().getItem(item.id) ||
+                        this.server.getBlockManager().getBlock(item.id),
+                    count: item.count
+                })
             )
         );
     }
