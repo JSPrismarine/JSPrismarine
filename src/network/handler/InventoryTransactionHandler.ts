@@ -21,11 +21,43 @@ export default class InventoryTransactionHandler
     ): void {
         switch (packet.type) {
             case InventoryTransactionType.Normal: {
+                // TODO: refactor this crap
+                // <rant> probably base it on https://github.com/pmmp/PocketMine-MP/blob/d19db5d2e44d0925798c288247c3bddb71d23975/src/pocketmine/Player.php#L2399 or something smilar
+                // I'm apparently too dumb to figure out how this works. Or maybe I'm just tiered.
+                // anyways, fuck 2020. yay 2021. </rant>
                 let movedItem: ContainerEntry;
                 packet.actions.forEach(async (action) => {
                     switch (action.sourceType) {
-                        // TODO: this is hacky af
                         case 0: {
+                            // FIXME: Hack for creative inventory
+                            if (action.windowId === 124) {
+                                // from creative inventory
+                                if (player.gamemode !== 1)
+                                    throw new Error(
+                                        `Player isn't in creative mode`
+                                    );
+
+                                const id = action.oldItem.id;
+                                const meta = action.oldItem.meta;
+                                const item =
+                                    server.getItemManager().getItemById(id) ||
+                                    server
+                                        .getBlockManager()
+                                        .getBlockByIdAndMeta(id, meta);
+                                const count = 64;
+
+                                if (!item)
+                                    throw new Error(
+                                        `Invalid item ${id}:${meta}`
+                                    );
+
+                                movedItem = new ContainerEntry({
+                                    item,
+                                    count
+                                });
+                                return;
+                            }
+
                             if (action.newItem.id === 0) {
                                 movedItem = player
                                     .getInventory()
@@ -34,37 +66,20 @@ export default class InventoryTransactionHandler
                                 return;
                             }
 
+                            if (!movedItem) {
+                                server
+                                    .getLogger()
+                                    .debug(
+                                        `movedItem is undefined`,
+                                        'InventoryTransactionHandler/handle/Normal'
+                                    );
+                                return;
+                            }
+
+                            console.log(movedItem);
                             player
                                 .getInventory()
                                 .setItem(action.slot, movedItem);
-                            break;
-                        }
-                        case 3: {
-                            // from creative inventory
-                            if (player.gamemode !== 1)
-                                throw new Error(
-                                    `Player isn't in creative mode`
-                                );
-
-                            const id = action.newItem.id;
-                            const meta = action.newItem.meta;
-                            const item =
-                                server.getItemManager().getItemById(id) ||
-                                server
-                                    .getBlockManager()
-                                    .getBlockByIdAndMeta(id, meta);
-                            const count = 64;
-
-                            if (!item)
-                                throw new Error(`Invalid item ${id}:${meta}`);
-
-                            player.getInventory().setItem(
-                                action.slot,
-                                new ContainerEntry({
-                                    item,
-                                    count
-                                })
-                            );
                             break;
                         }
                         default:
