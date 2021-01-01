@@ -534,6 +534,7 @@ export default class World {
                         .getInventory()
                         .getItems(true)
                         .map((entry, index) => {
+                            console.log(index, entry);
                             if (!entry) return;
 
                             const item = entry.getItem();
