@@ -108,9 +108,10 @@ export default class BlockStorage {
             indexes[w] = word;
         }
         
-        const indexesBuff = Buffer.from(indexes);
-        const fullBuff = Buffer.alloc((4096 * 4) - indexesBuff.byteLength).fill(0x00);
-        stream.append(Buffer.concat([indexesBuff, fullBuff]));
+        // TODO: shifting
+        for (const index of indexes) {
+            stream.writeLInt(index);
+        }
 
         // Write palette entries as runtime ids
         stream.writeVarInt(this.palette.size());
