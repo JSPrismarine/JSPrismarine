@@ -92,7 +92,7 @@ export default class Player extends Human implements CommandExecuter {
         this.pitch = playerData.position.pitch;
         this.yaw = playerData.position.yaw;
 
-        playerData.inventory.forEach((item) =>
+        playerData?.inventory?.forEach((item) =>
             this.getInventory().setItem(
                 item.position,
                 new ContainerEntry({
