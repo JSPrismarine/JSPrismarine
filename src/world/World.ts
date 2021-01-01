@@ -533,12 +533,15 @@ export default class World {
                     inventory: player
                         .getInventory()
                         .getItems(true)
-                        .map((item, index) => {
+                        .map((entry, index) => {
+                            const item = entry.getItem();
+                            const count = entry.getCount();
+
                             return {
                                 id: item?.name,
                                 numeric_id: item?.getId(),
                                 numeric_meta: item?.meta,
-                                count: item?.count,
+                                count,
                                 position: index
                             };
                         })

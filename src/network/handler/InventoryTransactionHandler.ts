@@ -10,6 +10,7 @@ import type Player from '../../player/Player';
 import type Server from '../../Server';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import Vector3 from '../../math/Vector3';
+import ContainerEntry from '../../inventory/ContainerEntry';
 
 export default class InventoryTransactionHandler
     implements PacketHandler<InventoryTransactionPacket> {
@@ -20,17 +21,60 @@ export default class InventoryTransactionHandler
     ): void {
         switch (packet.type) {
             case InventoryTransactionType.Normal: {
+                let movedItem: ContainerEntry;
                 packet.actions.forEach(async (action) => {
-                    // TODO: checks?
-                    const id = action.newItem.id;
-                    const meta = action.newItem.meta;
-                    const item =
-                        server.getItemManager().getItemById(id) ||
-                        server.getBlockManager().getBlockByIdAndMeta(id, meta);
+                    switch (action.sourceType) {
+                        // TODO: this is hacky af
+                        case 0: {
+                            if (action.newItem.id === 0) {
+                                movedItem = player
+                                    .getInventory()
+                                    .getItem(action.slot);
+                                player.getInventory().removeItem(action.slot);
+                                return;
+                            }
 
-                    if (!item) throw new Error(`Invalid item ${id}:${meta}`);
+                            player
+                                .getInventory()
+                                .setItem(action.slot, movedItem);
+                            break;
+                        }
+                        case 3: {
+                            // from creative inventory
+                            if (player.gamemode !== 1)
+                                throw new Error(
+                                    `Player isn't in creative mode`
+                                );
 
-                    player.getInventory().setItem(action.slot, item);
+                            const id = action.newItem.id;
+                            const meta = action.newItem.meta;
+                            const item =
+                                server.getItemManager().getItemById(id) ||
+                                server
+                                    .getBlockManager()
+                                    .getBlockByIdAndMeta(id, meta);
+                            const count = 64;
+
+                            if (!item)
+                                throw new Error(`Invalid item ${id}:${meta}`);
+
+                            player.getInventory().setItem(
+                                action.slot,
+                                new ContainerEntry({
+                                    item,
+                                    count
+                                })
+                            );
+                            break;
+                        }
+                        default:
+                            server
+                                .getLogger()
+                                .debug(
+                                    `Unknown source type: ${action.sourceType}`,
+                                    'InventoryTransactionHandler/handle/Normal'
+                                );
+                    }
                 });
                 break;
             }
