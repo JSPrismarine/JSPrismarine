@@ -534,6 +534,8 @@ export default class World {
                         .getInventory()
                         .getItems(true)
                         .map((entry, index) => {
+                            if (!entry) return;
+
                             const item = entry.getItem();
                             const count = entry.getCount();
 
@@ -545,7 +547,7 @@ export default class World {
                                 position: index
                             };
                         })
-                        .filter((a) => a.numeric_id > 0) as any
+                        .filter((a) => a && a.numeric_id > 0) as any
                 } as WorldPlayerData,
                 null,
                 4
