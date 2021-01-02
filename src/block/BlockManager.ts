@@ -74,8 +74,11 @@ export default class BlockManager {
         if (this.runtimeIdToLegacy.has(runtimeId)) {
             const legacyId = this.runtimeIdToLegacy.get(runtimeId) >> 6;
             return this.getBlockByIdAndMeta(legacyId, meta);
-        } 
-        console.log("Legacy ID mapping for Runtime ID=%d not found!", runtimeId);
+        }
+        console.log(
+            'Legacy ID mapping for Runtime ID=%d not found!',
+            runtimeId
+        );
         return null;
     }
 
@@ -192,5 +195,5 @@ export default class BlockManager {
                 .getLogger()
                 .error(`Failed to register blocks: ${error}`);
         }
-    } 
+    }
 }
