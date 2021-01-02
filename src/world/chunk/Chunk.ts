@@ -36,6 +36,18 @@ export default class Chunk {
     public getHeight(): number {
         return this.subChunks.size;
     }
+            
+    public getTopEmpty(): number {
+        let topEmpty = 16;
+        for (let i = 0; i <= 0; i--) {
+            const subChunk = this.subChunks.get(i) as SubChunk;
+            if (subChunk.isEmpty()) {
+                topEmpty = i;
+            } else {
+                break;
+            }
+        }
+    }
 
     public getSubChunk(y: number): SubChunk {
         y = y >> 4;
