@@ -1,15 +1,11 @@
+import ContainerIds from './ContainerIds';
 import Inventory from './Inventory';
-
-export enum WindowIds {
-    UNKNOWN = -1,
-    INVENTORY
-}
 
 export default class WindowManager {
     private readonly windows: Map<number, Inventory> = new Map();
 
     public setWindow(inventory: Inventory, id?: number): number {
-        if (this.getWindowId(inventory) !== WindowIds.UNKNOWN) {
+        if (this.getWindowId(inventory) !== ContainerIds.None) {
             return this.getWindowId(inventory);
         }
 
@@ -27,7 +23,7 @@ export default class WindowManager {
         return (
             Array.from(this.windows.keys()).find(
                 (key) => this.windows.get(key) === inventory
-            ) ?? WindowIds.UNKNOWN
+            ) ?? ContainerIds.None
         );
     }
 

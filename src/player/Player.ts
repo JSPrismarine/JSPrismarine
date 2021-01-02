@@ -5,7 +5,6 @@ import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
 import ContainerEntry from '../inventory/ContainerEntry';
-import WindowManager from '../inventory/WindowManager';
 import Connection from '../network/raknet/Connection';
 import InetAddress from '../network/raknet/utils/InetAddress';
 import Server from '../Server';
@@ -20,9 +19,6 @@ export default class Player extends Human implements CommandExecuter {
     private readonly server: Server;
     private readonly address: InetAddress;
     private readonly playerConnection: PlayerConnection;
-
-    // TODO: finish implementation
-    private readonly windows: WindowManager;
 
     public username = {
         prefix: '<',
@@ -66,7 +62,6 @@ export default class Player extends Human implements CommandExecuter {
         this.address = connection.getAddress();
         this.server = server;
         this.playerConnection = new PlayerConnection(server, connection, this);
-        this.windows = new WindowManager();
 
         // Handle chat messages
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
@@ -92,7 +87,7 @@ export default class Player extends Human implements CommandExecuter {
         this.pitch = playerData.position.pitch;
         this.yaw = playerData.position.yaw;
 
-        playerData.inventory.forEach((item) =>
+        playerData.inventory.forEach((item) => {
             this.getInventory().setItem(
                 item.position,
                 new ContainerEntry({
@@ -101,8 +96,8 @@ export default class Player extends Human implements CommandExecuter {
                         this.server.getBlockManager().getBlock(item.id),
                     count: item.count
                 })
-            )
-        );
+            );
+        });
     }
 
     public async onDisable() {
@@ -188,10 +183,6 @@ export default class Player extends Human implements CommandExecuter {
 
     public getUUID(): string {
         return this.uuid ?? '';
-    }
-
-    public getWindows(): WindowManager {
-        return this.windows;
     }
 
     public getAllowFlight(): boolean {

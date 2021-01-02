@@ -42,8 +42,7 @@ export default class InventoryTransactionHandler
     ): Promise<void> {
         const actions: InventoryAction[] = [];
         packet.actions.forEach((inventoryAction) => {
-            if (inventoryAction.oldItem === inventoryAction.newItem)
-                return;
+            if (inventoryAction.oldItem === inventoryAction.newItem) return;
 
             try {
                 switch (inventoryAction.sourceType) {
