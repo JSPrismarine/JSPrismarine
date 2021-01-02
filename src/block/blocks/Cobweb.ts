@@ -2,11 +2,11 @@ import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import Flowable from '../Flowable';
 
-export default class Cowweb extends Flowable {
+export default class Cobweb extends Flowable {
     constructor() {
         super({
-            name: 'minecraft:web', // Called cowweb in the Java Edition
-            id: BlockIdsType.Cowweb,
+            name: 'minecraft:web', // Called cobweb in the Java Edition
+            id: BlockIdsType.Cobweb,
             hardness: 4
         });
     }
