@@ -37,7 +37,7 @@ export default class SubChunk {
     public getStorage(index: number): BlockStorage {
         if (!this.storages.has(index)) {
             // Create all missing storage layers
-            for (let i = 0; i < index; i++) {
+            for (let i = 0; i <= index; i++) {
                 if (!this.storages.has(i)) {
                     this.storages.set(i, new BlockStorage());
                 }
