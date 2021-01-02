@@ -93,10 +93,12 @@ export default class Chunk {
 
     public networkSerialize(): Buffer {
         const stream = new BinaryStream();
-        // Encode subchunks
-        for (const subChunk of this.getSubChunks().values()) {
-            stream.append(subChunk.networkSerialize());
+        // Encode sub chunks
+        for (let i = 0; i < this.getTopEmpty(); i++) {
+            const subChunk = this.subChunks.get(i) as SubChunk;
+            stream.append(subChunk.networkSerialize));
         }
+       
         // TODO: biomes
         const biomeIds = Buffer.alloc(256).fill(0x00);
         stream.writeUnsignedVarInt(biomeIds.byteLength);
