@@ -12,12 +12,9 @@ export default class SubChunk {
         skyLight?: Buffer
     ) {
         // Restore storages if they exists
-        this.storages.set(
-            0,
-            storages.has(0)
-                ? (storages.get(0) as BlockStorage)
-                : new BlockStorage()
-        ); // Terrain storage
+        if (storages.has(0)) {
+            this.storages.set(0, storages.get(0) as BlockStorage);
+        } // Terrain storage
         // TODO: if (storages[1]) this.storages[1] = storages[1];  // Water storage
 
         // Restore block and sky lighting
@@ -41,7 +38,7 @@ export default class SubChunk {
         if (!this.storages.has(index)) {
             // Create all missing storage layers
             for (let i = 0; i < index; i++) {
-                if (!this.storages.has(index)) {
+                if (!this.storages.has(i)) {
                     this.storages.set(i, new BlockStorage());
                 }
             }
