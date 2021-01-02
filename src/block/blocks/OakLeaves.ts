@@ -12,7 +12,10 @@ export enum LeavesType {
 }
 
 export default class Leaves extends Solid {
-    constructor(name = 'minecraft:leaves', type: LeavesType = LeavesType.Oak) {
+    constructor(
+        name = 'minecraft:oak_leaves',
+        type: LeavesType = LeavesType.Oak
+    ) {
         super({
             name,
             id: BlockIdsType.Leaves,
