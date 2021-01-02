@@ -11,221 +11,101 @@ import type Server from '../../Server';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import Vector3 from '../../math/Vector3';
 import ContainerEntry from '../../inventory/ContainerEntry';
+import CreativeInventoryAction from '../../inventory/CreativeInventoryAction';
+import InventoryAction from '../../inventory/InventoryAction';
+import InventoryTransaction from '../../inventory/InventoryTransaction';
+import ContainerIds from '../../inventory/ContainerIds';
+
+export enum InventoryTransactionSource {
+    Container = 0,
+    World = 2,
+    Creative = 3,
+
+    // According PMMP the following window Ids are fake ids used to
+    // track client-side actions and are expected to be changed/updated soon-ish.
+
+    CraftingResult = -4,
+    CraftingUseIngredient = -5,
+    AnvilResult = -12,
+    AnvilOutput = -13,
+    EnchantOutput = -17
+    // TODO: the rest of 'em
+}
 
 export default class InventoryTransactionHandler
     implements PacketHandler<InventoryTransactionPacket> {
-    public handle(
+    public async handle(
         packet: InventoryTransactionPacket,
         server: Server,
         player: Player
-    ): void {
-        switch (packet.type) {
-            case InventoryTransactionType.Normal: {
-                // TODO: refactor this crap
-                // <rant> probably base it on https://github.com/pmmp/PocketMine-MP/blob/d19db5d2e44d0925798c288247c3bddb71d23975/src/pocketmine/Player.php#L2399 or something smilar
-                // I'm apparently too dumb to figure out how this works. Or maybe I'm just tiered.
-                // anyways, fuck 2020. yay 2021. </rant>
-                let movedItem: ContainerEntry;
-                packet.actions.forEach(async (action) => {
-                    switch (action.sourceType) {
-                        case 0: {
-                            // FIXME: Hack for creative inventory
-                            if (action.windowId === 124) {
-                                // from creative inventory
-                                if (player.gamemode !== 1)
-                                    throw new Error(
-                                        `Player isn't in creative mode`
-                                    );
+    ): Promise<void> {
+        const actions: InventoryAction[] = [];
+        packet.actions.forEach((inventoryAction) => {
+            if (inventoryAction.oldItem === inventoryAction.newItem)
+                return;
 
-                                const id = action.oldItem.id;
-                                const meta = action.oldItem.meta;
-                                const item =
-                                    server.getItemManager().getItemById(id) ||
-                                    server
-                                        .getBlockManager()
-                                        .getBlockByIdAndMeta(id, meta);
-                                const count = 64;
-
-                                if (!item)
-                                    throw new Error(
-                                        `Invalid item ${id}:${meta}`
-                                    );
-
-                                movedItem = new ContainerEntry({
-                                    item,
-                                    count
-                                });
-                                return;
-                            }
-
-                            if (action.newItem.id === 0) {
-                                movedItem = player
-                                    .getInventory()
-                                    .getItem(action.slot);
-                                player.getInventory().removeItem(action.slot);
-                                return;
-                            }
-
-                            if (!movedItem) {
-                                server
-                                    .getLogger()
-                                    .debug(
-                                        `movedItem is undefined`,
-                                        'InventoryTransactionHandler/handle/Normal'
-                                    );
-                                return;
-                            }
-
-                            console.log(movedItem);
-                            player
-                                .getInventory()
-                                .setItem(action.slot, movedItem);
-                            break;
+            try {
+                switch (inventoryAction.sourceType) {
+                    case InventoryTransactionSource.Container: {
+                        // TODO:
+                        if (
+                            inventoryAction.windowId === ContainerIds.UI &&
+                            inventoryAction.slot > 0
+                        ) {
+                            if (inventoryAction.slot === 50) return; // Noise
                         }
-                        default:
-                            server
-                                .getLogger()
-                                .debug(
-                                    `Unknown source type: ${action.sourceType}`,
-                                    'InventoryTransactionHandler/handle/Normal'
-                                );
+                        break;
                     }
-                });
-                break;
-            }
-            case InventoryTransactionType.UseItem: {
-                if (player.gamemode !== Gamemode.Spectator) break;
-                switch (packet.actionType) {
-                    case InventoryTransactionUseItemActionType.ClickBlock:
-                        (async () => {
-                            await player
-                                .getWorld()
-                                .useItemOn(
-                                    server
-                                        .getBlockManager()
-                                        .getBlockByIdAndMeta(
-                                            packet.itemInHand.id,
-                                            packet.itemInHand.meta
-                                        ),
-                                    packet.blockPosition,
-                                    packet.face,
-                                    packet.clickPosition,
-                                    player
-                                );
-                        })();
-
+                    case InventoryTransactionSource.World: {
+                        // TODO:
                         break;
-                    case InventoryTransactionUseItemActionType.ClickAir:
+                    }
+                    case InventoryTransactionSource.Creative: {
+                        actions.push(
+                            new CreativeInventoryAction(
+                                inventoryAction.oldItem,
+                                inventoryAction.newItem,
+                                inventoryAction.slot
+                            )
+                        );
                         break;
-                    case InventoryTransactionUseItemActionType.BreakBlock:
-                        (async () => {
-                            const chunk = await player
-                                .getWorld()
-                                .getChunkAt(
-                                    packet.blockPosition.getX(),
-                                    packet.blockPosition.getZ()
-                                );
-
-                            // TODO: figure out why blockId sometimes === 0
-                            const chunkPos = new Vector3(
-                                packet.blockPosition.getX() % 16,
-                                packet.blockPosition.getY(),
-                                packet.blockPosition.getZ() % 16
-                            );
-
-                            const blockId = chunk.getBlockId(
-                                chunkPos.getX(),
-                                chunkPos.getY(),
-                                chunkPos.getZ()
-                            );
-                            const blockMeta = chunk.getBlockMetadata(
-                                chunkPos.getX(),
-                                chunkPos.getY(),
-                                chunkPos.getZ()
-                            );
-                            const block = server
-                                .getBlockManager()
-                                .getBlockByIdAndMeta(blockId, blockMeta);
-
-                            if (!block)
-                                return server
-                                    .getLogger()
-                                    .warn(
-                                        `Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`
-                                    );
-
-                            const pk = new UpdateBlockPacket();
-                            pk.x = packet.blockPosition.getX();
-                            pk.y = packet.blockPosition.getY();
-                            pk.z = packet.blockPosition.getZ();
-                            pk.blockRuntimeId = server
-                                .getBlockManager()
-                                .getRuntimeWithId(0); // Air
-
-                            await Promise.all(
-                                server
-                                    .getOnlinePlayers()
-                                    .map(async (player) =>
-                                        player
-                                            .getConnection()
-                                            .sendDataPacket(pk)
-                                    )
-                            );
-
-                            chunk.setBlock(
-                                chunkPos.getX(),
-                                chunkPos.getY(),
-                                chunkPos.getZ(),
-                                server
-                                    .getBlockManager()
-                                    .getBlock('minecraft:air')
-                            );
-
-                            const soundPk = new LevelSoundEventPacket();
-                            soundPk.sound = 5; // TODO: enum
-
-                            soundPk.positionX = player.getX();
-                            soundPk.positionY = player.getY();
-                            soundPk.positionZ = player.getZ();
-
-                            soundPk.extraData = server
-                                .getBlockManager()
-                                .getRuntimeWithMeta(blockId, blockMeta); // In this case refers to block runtime Id
-                            soundPk.entityType = ':';
-                            soundPk.isBabyMob = false;
-                            soundPk.disableRelativeVolume = false;
-
-                            await Promise.all(
-                                player
-                                    .getPlayersInChunk()
-                                    .map(async (narbyPlayer) =>
-                                        narbyPlayer
-                                            .getConnection()
-                                            .sendDataPacket(soundPk)
-                                    )
-                            );
-                        })();
-
-                        break;
-                    default:
-                        server
-                            .getLogger()
-                            .debug(
-                                `Unknown action type: ${packet.actionType}`,
-                                'InventoryTransactionHandler/handle'
-                            );
+                    }
                 }
-
-                break;
-            }
-            default: {
+            } catch (err) {
                 server
                     .getLogger()
                     .debug(
-                        `Unknown type: ${packet.type}`,
+                        `Unhandled inventory action from ${player.getUsername()}: ${err}`,
                         'InventoryTransactionHandler/handle'
                     );
-                throw new Error('Invalid InventoryTransactionType');
+                server
+                    .getLogger()
+                    .silly(err.stack, 'InventoryTransactionHandler/handle');
+            }
+        });
+
+        console.log(actions);
+
+        switch (packet.type) {
+            case InventoryTransactionType.Normal: {
+                const transaction = new InventoryTransaction(player, actions);
+                try {
+                    await transaction.handle();
+                } catch (err) {
+                    server
+                        .getLogger()
+                        .debug(
+                            `Failed to handle InventoryTransaction from ${player.getUsername()}: ${err}`,
+                            'InventoryTransactionHandler/handle/Normal'
+                        );
+                    server
+                        .getLogger()
+                        .silly(
+                            err.stack,
+                            'InventoryTransactionHandler/handle/Normal'
+                        );
+                }
+                return;
             }
         }
     }
