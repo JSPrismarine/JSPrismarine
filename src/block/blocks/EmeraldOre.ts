@@ -1,14 +1,14 @@
 import Solid from '../Solid';
-import { BlockIdsType } from '../BlockIdsType';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
-export default class Dispenser extends Solid {
+export default class EmeraldOre extends Solid {
     constructor() {
         super({
-            name: 'minecraft:dispenser',
-            id: BlockIdsType.Dispenser,
-            hardness: 3.5
+            name: 'minecraft:emerald_ore',
+            id: BlockIdsType.EmeraldOre,
+            hardness: 3
         });
     }
 
@@ -17,6 +17,6 @@ export default class Dispenser extends Solid {
     }
 
     getToolHarvestLevel() {
-        return ItemTieredToolType.Wood;
+        return ItemTieredToolType.Iron;
     }
 }

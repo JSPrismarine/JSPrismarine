@@ -76,7 +76,6 @@ export default class InventoryTransactionHandler
                                 return;
                             }
 
-                            console.log(movedItem);
                             player
                                 .getInventory()
                                 .setItem(action.slot, movedItem);

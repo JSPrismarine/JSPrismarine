@@ -5,7 +5,8 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 
 export enum SandstoneType {
     Regular = 0,
-    Red = 1
+    Chiseled = 1,
+    Smooth
 }
 
 export default class Sandstone extends Solid {
