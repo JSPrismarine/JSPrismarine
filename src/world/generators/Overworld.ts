@@ -55,8 +55,8 @@ export default class Overworld {
 
                 for (let y = 0; y < SEA_LEVEL; y++) {
                     const subChunk = chunk.getSubChunk(y);
-                    if (subChunk.getBlockId(x, y & 0x0f, z) === 0) {
-                        subChunk.setBlock(x, y & 0x0f, z, water, 1);
+                    if (subChunk.getStorage(1).getBlockId(x, y & 0x0f, z) === 0) {
+                        subChunk.getStorage(1).setBlock(x, y & 0x0f, z, water);
                     }
                 } 
 
