@@ -187,7 +187,7 @@ export default class World {
             this.chunks.set(index, chunk);
         }
 
-        return this.chunks.get(index) as Chunk;
+        return this.chunks.get(index)!;
     }
 
     /**
@@ -246,10 +246,12 @@ export default class World {
         clickPosition: Vector3,
         player: Player
     ): Promise<void> {
-        if (!itemInHand)
-            return this.server
+        if (!itemInHand) {
+            this.server
                 .getLogger()
                 .warn(`Block with runtimeId ${0} is invalid`);
+            return;
+        }
         if (itemInHand instanceof Item) return; // TODO
 
         // TODO: checks
@@ -321,7 +323,8 @@ export default class World {
                     placedPosition.getZ() % 16,
                     block
                 );
-                return resolve(true);
+                resolve(true);
+                return;
             } catch (error) {
                 player
                     .getServer()
@@ -331,7 +334,7 @@ export default class World {
                     );
                 await player.sendMessage(error?.message);
 
-                return resolve(false);
+                resolve(false);
             }
         });
 

@@ -13,10 +13,8 @@ export default class WindowManager {
             return this.getWindowId(inventory);
         }
 
-        if (id) {
-            if (this.getWindow(id) !== null) {
-                return this.setWindow(inventory, id + 1);
-            }
+        if (id && this.getWindow(id) !== null) {
+            return this.setWindow(inventory, id + 1);
         }
 
         this.windows.set(id ?? (id = this.windows.size + 1), inventory);

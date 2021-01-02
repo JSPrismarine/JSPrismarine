@@ -42,7 +42,7 @@ export default class LevelDB extends Provider {
         seed,
         server
     }: readChunk): Promise<Chunk | null> {
-        return await generator.getChunk({
+        return generator.getChunk({
             pos: new Vector3(x, 0, z),
             seed,
             server

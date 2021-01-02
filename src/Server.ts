@@ -27,7 +27,6 @@ import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import TelemetryManager from './telemetry/TelemeteryManager';
-import World from './world/World';
 import WorldManager from './world/WorldManager';
 import pkg from '../package.json';
 import { setIntervalAsync } from 'set-interval-async/dynamic';
@@ -162,7 +161,7 @@ export default class Server {
                 // TODO: Get last world by player data
                 // and if it doesn't exists, return the default one
                 const time = Date.now();
-                const world = this.getWorldManager().getDefaultWorld() as World;
+                const world = this.getWorldManager().getDefaultWorld()!;
 
                 const player = new Player(connection, world, this);
 
@@ -206,7 +205,7 @@ export default class Server {
                 const time = Date.now();
                 const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
                 if (this.players.has(token)) {
-                    const player = this.players.get(token) as Player;
+                    const player = this.players.get(token)!;
 
                     // Despawn the player to all online players
                     await player.getConnection().removeFromPlayerList();
@@ -294,7 +293,7 @@ export default class Server {
                     await (handler as PacketHandler<any>).handle(
                         packet,
                         this,
-                        player as Player
+                        player!
                     );
                 } catch (error) {
                     this.logger.error(
@@ -325,11 +324,13 @@ export default class Server {
             if (finishTime - startTime < 50) return;
             startTime = finishTime;
 
-            if (this.tps > 20)
-                return this.getLogger().debug(
+            if (this.tps > 20) {
+                this.getLogger().debug(
                     `TPS is ${this.tps} which is greater than 20!`,
                     'Server/listen/setIntervalAsync'
                 );
+                return;
+            }
 
             const promises: Array<Promise<void>> = [];
             for (const world of this.getWorldManager().getWorlds()) {

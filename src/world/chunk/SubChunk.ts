@@ -13,7 +13,7 @@ export default class SubChunk {
     ) {
         // Restore storages if they exists
         if (storages.has(0)) {
-            this.storages.set(0, storages.get(0) as BlockStorage);
+            this.storages.set(0, storages.get(0)!);
         } // Terrain storage
         // TODO: if (storages[1]) this.storages[1] = storages[1];  // Water storage
 
@@ -44,7 +44,7 @@ export default class SubChunk {
             }
         }
 
-        return this.storages.get(index) as BlockStorage;
+        return this.storages.get(index)!;
     }
 
     public getStorages(): BlockStorage[] {
