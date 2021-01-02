@@ -90,8 +90,7 @@ export default class Chunk {
         const runtimeId = Server.instance
             .getBlockManager()
             .getRuntimeWithMeta(block.getId(), block.getMeta());
-        this.getSubChunk(y).getStorage(layer).setBlock(x
-        bx, by, bz, runtimeId);
+        this.getSubChunk(y).getStorage(layer).setBlock(bx, by, bz, runtimeId);
     }
 
     public networkSerialize(): Buffer {
