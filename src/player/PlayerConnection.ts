@@ -1,7 +1,7 @@
 import Block from '../block/Block';
 import { Attribute } from '../entity/attribute';
 import ContainerEntry from '../inventory/ContainerEntry';
-import { WindowIds } from '../inventory/WindowManager';
+import ContainerIds from '../inventory/ContainerIds';
 import Item from '../item/Item';
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
 import AdventureSettingsPacket, {
@@ -245,7 +245,7 @@ export default class PlayerConnection {
     public async sendInventory() {
         const pk = new InventoryContentPacket();
         pk.items = this.player.getInventory().getItems(true);
-        pk.windowId = WindowIds.INVENTORY; // Inventory window
+        pk.windowId = ContainerIds.Inventory; // Inventory window
         await this.sendDataPacket(pk);
         await this.sendHandItem(this.player.getInventory().getItemInHand());
 
