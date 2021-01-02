@@ -15,6 +15,7 @@ import CreativeInventoryAction from '../../inventory/CreativeInventoryAction';
 import InventoryAction from '../../inventory/InventoryAction';
 import InventoryTransaction from '../../inventory/InventoryTransaction';
 import ContainerIds from '../../inventory/ContainerIds';
+import SlotChangeInventoryAction from '../../inventory/SlotChangeInventoryAction';
 
 export enum InventoryTransactionSource {
     Container = 0,
@@ -53,11 +54,32 @@ export default class InventoryTransactionHandler
                             inventoryAction.slot > 0
                         ) {
                             if (inventoryAction.slot === 50) return; // Noise
+
+                            // TODO: some crafting thingy??
+                        } else {
+                            const window = player
+                                .getWindows()
+                                .getWindow(inventoryAction.windowId);
+                            if (!window)
+                                throw new Error(
+                                    `Player ${player.getUsername()} has no open container with id ${
+                                        inventoryAction.windowId
+                                    }`
+                                );
+
+                            actions.push(
+                                new SlotChangeInventoryAction(
+                                    inventoryAction.oldItem,
+                                    inventoryAction.newItem,
+                                    window,
+                                    inventoryAction.slot
+                                )
+                            );
                         }
                         break;
                     }
                     case InventoryTransactionSource.World: {
-                        // TODO:
+                        // TODO: drop-item
                         break;
                     }
                     case InventoryTransactionSource.Creative: {
@@ -69,6 +91,11 @@ export default class InventoryTransactionHandler
                             )
                         );
                         break;
+                    }
+                    default: {
+                        throw new Error(
+                            `Invalid source type ${inventoryAction.sourceType}`
+                        );
                     }
                 }
             } catch (err) {
