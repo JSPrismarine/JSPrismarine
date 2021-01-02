@@ -72,7 +72,7 @@ export default class BlockManager {
      */
     public getBlockByRuntimeId(runtimeId: number, meta = 0): Block | null {
         if (this.runtimeIdToLegacy.has(runtimeId)) {
-            const legacyId = this.runtimeIdToLegacy.get(runtimeId) as Number;
+            const legacyId = this.runtimeIdToLegacy.get(runtimeId) as number;
             return this.getBlockByIdAndMeta(legacyId >> 6, meta);
         }
         console.log(
