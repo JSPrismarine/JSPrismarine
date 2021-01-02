@@ -83,12 +83,33 @@ export default class BlockStorage {
         const stream = new BinaryStream();
         // https://gist.github.com/Tomcc/a96af509e275b1af483b25c543cfbf37
         // 7 bit: storage type, 1 bit (shift to end): network format (always 1)
-        stream.writeByte((this.getStorageId() << 1) | 1);
-
-        const blocksPerWord = getStorageBlocks(this.getStorageId());
-
-        // const i = Math.floor(32 / this.getStorageId());
-
+        
+        let bitsPerBlock = Math.ceil(Math.log2(this.palette.size()));
+        
+        switch (bitsPerBlock) {
+            case 0: 
+                bitsPerBlock = 1;
+            break;
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+                break;
+            case 7:
+            case 8:
+                bitsPerBlock = 8;
+                break;
+            case bitsPerBlock > 8:
+                bitsPerBlock = 16;
+                break;
+            default:
+                break;   
+        }
+        
+        stream.writeByte((bitsPerBlock << 1) | 1);
+        const blocksPerWord = Math.floor(32 / bitsPerBlock);
         const wordsPerChunk = Math.ceil(4096 / blocksPerWord);
 
         // Encoding example
@@ -98,20 +119,23 @@ export default class BlockStorage {
         for (let w = 0; w < wordsPerChunk; w++) {
             let word = 0;
             for (let block = 0; block < blocksPerWord; block++) {
-                if (position > 4096) continue;
-
                 const state = this.words[position];
-                word |= state << (this.getStorageId() * block);
+                word |= state << (bitsPerBlock * block);
 
                 position++;
             }
             indexes[w] = word;
         }
         
+        const ba: Array<number> = new Array(indexes.length * 4);
+        ba.fill(0);
+        const fullArray = indexes.concat(ba);
+        
+        stream.append(Buffer.from(fullArray));
         // TODO: shifting
-        for (const index of indexes) {
-            stream.writeLInt(index);
-        }
+        // for (const index of indexes) {
+        //    stream.writeLInt(index);
+        // }
 
         // Write palette entries as runtime ids
         stream.writeVarInt(this.palette.size());
