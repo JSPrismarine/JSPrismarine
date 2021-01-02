@@ -29,7 +29,7 @@ export enum BlockIdsType {
     PoweredRail = 27,
     DetectorRail = 28,
     StickyPiston = 29,
-    Cowweb = 30,
+    Cobweb = 30,
     TallGrass = 31,
     DeadBush = 32,
     Piston = 33,
