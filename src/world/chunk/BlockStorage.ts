@@ -127,15 +127,9 @@ export default class BlockStorage {
             indexes[w] = word;
         }
         
-        const ba: Array<number> = new Array(indexes.length * 4);
-        ba.fill(0);
-        const fullArray = indexes.concat(ba);
-        
-        stream.append(Buffer.from(fullArray));
-        // TODO: shifting
-        // for (const index of indexes) {
-        //    stream.writeLInt(index);
-        // }
+        for (const index of indexes) {
+             stream.writeLInt(index);
+        }
 
         // Write palette entries as runtime ids
         stream.writeVarInt(this.palette.size());
