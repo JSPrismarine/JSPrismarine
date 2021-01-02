@@ -480,7 +480,7 @@ export default class World {
                     'worlds',
                     this.getName(),
                     'players',
-                    `${player.getUUID()}.json`
+                    `${player.getXUID()}.json`
                 )
             );
 
@@ -489,7 +489,7 @@ export default class World {
             this.server
                 .getLogger()
                 .debug(
-                    `PlayerData is missing for player ${player.getUUID()}`,
+                    `PlayerData is missing for player ${player.getXUID()}`,
                     'World/getPlayerData'
                 );
 
@@ -514,7 +514,7 @@ export default class World {
                 'worlds',
                 this.getName(),
                 'players',
-                `${player.getUUID()}.json`
+                `${player.getXUID()}.json`
             ),
             JSON.stringify(
                 {
