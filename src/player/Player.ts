@@ -92,17 +92,29 @@ export default class Player extends Human implements CommandExecuter {
         this.pitch = playerData.position.pitch;
         this.yaw = playerData.position.yaw;
 
-        playerData.inventory.forEach((item) =>
+        playerData.inventory.forEach((item) => {
+            const entry =
+                this.server.getItemManager().getItem(item.id) ||
+                this.server.getBlockManager().getBlock(item.id);
+
+            if (!entry) {
+                this.getServer()
+                    .getLogger()
+                    .debug(
+                        `Item/block with id ${item.id} is invalid`,
+                        'Player/onEnable'
+                    );
+                return;
+            }
+
             this.getInventory().setItem(
                 item.position,
                 new ContainerEntry({
-                    item:
-                        this.server.getItemManager().getItem(item.id) ||
-                        this.server.getBlockManager().getBlock(item.id),
+                    item: entry,
                     count: item.count
                 })
-            )
-        );
+            );
+        });
     }
 
     public async onDisable() {
@@ -187,7 +199,15 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public getUUID(): string {
-        return this.uuid ?? '';
+        if (!this.uuid) throw new Error('uuid is missing!');
+
+        return this.uuid;
+    }
+
+    public getXUID(): string {
+        if (!this.xuid) throw new Error('xuid is missing!');
+
+        return this.xuid;
     }
 
     public getWindows(): WindowManager {
