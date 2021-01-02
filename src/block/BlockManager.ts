@@ -156,6 +156,12 @@ export default class BlockManager {
      * Registers block from block class
      */
     public registerClassBlock(block: Block) {
+        if (this.blocks.get(block.name))
+            throw new Error(`Block with id ${block.name} already exists`);
+
+        // The runtime ID is a unique ID sent with the start-game packet
+        // ours is always based on the block's index in the this.blocks map
+        // starting from 0.
         this.server
             .getLogger()
             .silly(

@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.23",
+    "version": "0.1.0-rc.24",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
@@ -99,7 +99,8 @@
             "no-await-in-loop": 0,
             "max-depth": 0,
             "capitalized-comments": 0,
-            "no-lonely-if": 0
+            "no-lonely-if": 0,
+            "guard-for-in": 0
         }
     },
     "keywords": [
