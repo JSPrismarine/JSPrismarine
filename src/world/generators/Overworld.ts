@@ -39,7 +39,7 @@ export default class Overworld {
         const grass = server
             .getBlockManager()
             .getBlock('minecraft:grass') as Block;
-        // const water = server.getBlockManager().getBlock('minecraft:water') as Block;
+        const water = server.getBlockManager().getBlock('minecraft:water') as Block;
         for (let x = 0; x < CHUNK_WIDTH; x++) {
             for (let z = 0; z < CHUNK_LENGTH; z++) {
                 const noise_height = noise.perlin2(
