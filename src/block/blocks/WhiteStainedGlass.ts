@@ -20,9 +20,9 @@ export enum StainedGlassType {
     Black = 15
 }
 
-export default class StainedGlass extends Glass {
+export default class WhiteStainedGlass extends Glass {
     constructor(
-        name = 'minecraft:stained_glass',
+        name = 'minecraft:white_stained_glass',
         type: StainedGlassType = StainedGlassType.White
     ) {
         super(name, BlockIdsType.StainedGlass);
