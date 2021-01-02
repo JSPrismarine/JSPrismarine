@@ -9,7 +9,7 @@ export default class TellCommand extends Command {
         } as any);
     }
 
-    public async execute(sender: Player, args: string[]) {
+    public async execute(sender: Player, args: Array<string | number>) {
         if (!args[0]) {
             return sender.sendMessage('§cYou have to select a player.');
         }
@@ -22,7 +22,7 @@ export default class TellCommand extends Command {
             return sender.sendMessage('§cPlease specify a message.');
         }
 
-        const targetPlayer = sender.getServer().getPlayerByName(args[0]);
+        const targetPlayer = sender.getServer().getPlayerByName(`${args[0]}`);
 
         if (!targetPlayer) {
             return sender.sendMessage(`§cCan't find the player ${args[0]}.`);

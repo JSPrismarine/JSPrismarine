@@ -10,7 +10,7 @@ export default class HelpCommand extends Command {
         } as any);
     }
 
-    public async execute(sender: Player, args: string[]) {
+    public async execute(sender: Player, args: Array<string | number>) {
         const commands: string[] = [];
         sender
             .getServer()

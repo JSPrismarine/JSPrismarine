@@ -11,6 +11,7 @@ import type Server from '../../Server';
 import StartGamePacket from '../packet/StartGamePacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import PacketHandler from './PacketHandler';
+import Vector3 from '../../math/Vector3';
 
 export default class ResourcePackResponseHandler
     implements PacketHandler<ResourcePackResponsePacket> {
@@ -35,15 +36,24 @@ export default class ResourcePackResponseHandler
             pk.entityId = player.runtimeId;
             pk.runtimeEntityId = player.runtimeId;
             pk.gamemode = player.gamemode;
+            pk.defaultGamemode = Gamemode.getGamemodeId(
+                server.getConfig().getGamemode()
+            );
 
             const worldSpawnPos = await world.getSpawnPosition();
             pk.worldSpawnPos = worldSpawnPos;
 
-            // TODO: replace with actual data soon
-            pk.playerPos = worldSpawnPos;
+            pk.playerPos = new Vector3(
+                player.getX(),
+                player.getY(),
+                player.getZ()
+            );
+            pk.pith = player.pitch;
+            pk.pith = player.yaw;
 
             pk.levelId = world.getUniqueId();
             pk.worldName = world.getName();
+            pk.seed = world.getSeed();
             pk.gamerules = world.getGameruleManager().getGamerules();
             await player.getConnection().sendDataPacket(pk);
             await player.getConnection().sendTime(world.getTicks());
@@ -66,7 +76,8 @@ export default class ResourcePackResponseHandler
                         player.runtimeId
                     }§f from ${player
                         .getAddress()
-                        .getAddress()}:${player.getAddress().getPort()}`
+                        .getAddress()}:${player.getAddress().getPort()}`,
+                    'Handler/ResourcePackResponseHandler'
                 );
 
             player.setNameTag(player.getUsername());

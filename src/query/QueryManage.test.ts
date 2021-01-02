@@ -5,7 +5,7 @@ import QueryManager from './QueryManager';
 
 jest.mock('../Server', () => {
     return class Prismarine {
-        constructor({ logger, config }) {}
+        constructor({ logger, config }: any) {}
 
         public getRaknet() {
             return new (class Raknet {
@@ -18,8 +18,8 @@ jest.mock('../Server', () => {
 describe('QueryManager', () => {
     it('handshake', async (done) => {
         const prismarine = new Server({
-            logger: null,
-            config: null
+            logger: null as any,
+            config: null as any
         });
         const queryManager = new QueryManager(prismarine);
 

@@ -29,7 +29,7 @@ export default class KickCommand extends Command {
 
     public async execute(
         sender: Player,
-        args: string[]
+        args: Array<string | number>
     ): Promise<string | void> {
         if (!args[0]) {
             return sender.sendMessage('§cYou have to specify a player.');
@@ -38,7 +38,7 @@ export default class KickCommand extends Command {
         const reason = args[1]
             ? args.slice(1).join(' ')
             : 'No reason specified.';
-        const target = sender.getServer().getPlayerByName(args[0]);
+        const target = sender.getServer().getPlayerByName(`${args[0]}`);
 
         if (!target) {
             return sender.sendMessage("§cCan't find the selected player.");

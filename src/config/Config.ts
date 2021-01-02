@@ -1,6 +1,7 @@
 import path from 'path';
 import pkg from '../../package.json';
 import { SeedGenerator } from '../utils/Seed';
+import Gamemode from '../world/Gamemode';
 import ConfigBuilder from './ConfigBuilder';
 
 export default class Config {
@@ -12,7 +13,7 @@ export default class Config {
     private readonly levelName: string;
     private readonly worlds: any;
     private readonly maxPlayers: number;
-    private readonly gamemode: string;
+    private gamemode: string;
     private readonly motd: string;
     private readonly viewDistance: number;
     private readonly onlineMode: boolean;
@@ -94,6 +95,10 @@ export default class Config {
 
     public getGamemode() {
         return this.gamemode;
+    }
+    public setGamemode(gamemode: number) {
+        this.gamemode = Gamemode.getGamemodeName(gamemode).toLowerCase();
+        this.configBuilder.set('gamemode', this.gamemode);
     }
 
     public getMotd() {

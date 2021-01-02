@@ -42,6 +42,7 @@ import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
 import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
 import { WindowIds } from '../inventory/WindowManager';
+import ContainerEntry from '../inventory/ContainerEntry';
 
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
@@ -92,26 +93,27 @@ export default class PlayerConnection {
         await this.needNewChunks();
     }
 
-    public async sendSettings() {
+    public async sendSettings(player?: Player) {
+        const target = player || this.player;
         const pk = new AdventureSettingsPacket();
 
         pk.setFlag(
             AdventureSettingsFlags.WorldImmutable,
-            this.player.gamemode === 3
+            target.gamemode === 3
         );
-        pk.setFlag(AdventureSettingsFlags.NoPvp, this.player.gamemode === 3);
+        pk.setFlag(AdventureSettingsFlags.NoPvp, target.gamemode === 3);
         pk.setFlag(AdventureSettingsFlags.AutoJump, true); // TODO
-        pk.setFlag(AdventureSettingsFlags.AllowFlight, true); // TODO
-        pk.setFlag(AdventureSettingsFlags.NoClip, this.player.gamemode === 3);
-        pk.setFlag(AdventureSettingsFlags.Flying, this.player.isFlying());
+        pk.setFlag(AdventureSettingsFlags.AllowFlight, target.getAllowFlight());
+        pk.setFlag(AdventureSettingsFlags.NoClip, target.gamemode === 3);
+        pk.setFlag(AdventureSettingsFlags.Flying, target.isFlying());
 
-        pk.commandPermission = this.player.isOp()
+        pk.commandPermission = target.isOp()
             ? PermissionType.Operator
             : PermissionType.Normal;
-        pk.playerPermission = this.player.isOp()
+        pk.playerPermission = target.isOp()
             ? PlayerPermissionType.Operator
-            : PlayerPermissionType.Visitor;
-        pk.entityId = this.player.runtimeId;
+            : PlayerPermissionType.Member;
+        pk.entityId = target.runtimeId;
         await this.sendDataPacket(pk);
     }
 
@@ -194,18 +196,16 @@ export default class PlayerConnection {
                     !this.loadingChunks.has(hash)
                 ) {
                     this.loadingChunks.add(hash);
-                    this.requestChunk(chunk[0], chunk[1]);
+                    await this.requestChunk(chunk[0], chunk[1]);
                 } else {
-                    void this.player
+                    const loadedChunk = await this.player
                         .getWorld()
-                        .getChunk(chunk[0], chunk[1])
-                        .then(async (loadedChunk) =>
-                            this.sendChunk(loadedChunk)
-                        );
+                        .getChunk(chunk[0], chunk[1]);
+                    await this.sendChunk(loadedChunk);
                 }
             } else {
                 this.loadingChunks.add(hash);
-                this.requestChunk(chunk[0], chunk[1]);
+                await this.requestChunk(chunk[0], chunk[1]);
             }
         }
 
@@ -239,11 +239,9 @@ export default class PlayerConnection {
         }
     }
 
-    public requestChunk(x: number, z: number) {
-        void this.player
-            .getWorld()
-            .getChunk(x, z)
-            .then((chunk) => this.chunkSendQueue.add(chunk));
+    public async requestChunk(x: number, z: number) {
+        const chunk = await this.player.getWorld().getChunk(x, z);
+        this.chunkSendQueue.add(chunk);
     }
 
     public async sendInventory() {
@@ -251,6 +249,7 @@ export default class PlayerConnection {
         pk.items = this.player.getInventory().getItems(true);
         pk.windowId = WindowIds.INVENTORY; // Inventory window
         await this.sendDataPacket(pk);
+        await this.sendHandItem(this.player.getInventory().getItemInHand());
 
         /* TODO: not working..
         pk = new InventoryContentPacket();
@@ -262,8 +261,6 @@ export default class PlayerConnection {
         // TODO: documentate about
         0x7c (ui content)
         0x77 (off hand)
-
-        this.sendHandItem(this.player.getInventory().getItemInHand());
         */
     }
 
@@ -301,7 +298,7 @@ export default class PlayerConnection {
     /**
      * Sets the item in the player hand.
      */
-    public async sendHandItem(item: Item | Block) {
+    public async sendHandItem(item: ContainerEntry) {
         const pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.item = item;
@@ -543,6 +540,7 @@ export default class PlayerConnection {
         pk.deviceId = this.player.device?.id || '';
         pk.metadata = this.player.getMetadataManager().getMetadata();
         await player.getConnection().sendDataPacket(pk);
+        await this.sendSettings(player);
     }
 
     /**

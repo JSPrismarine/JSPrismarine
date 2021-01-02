@@ -10,7 +10,7 @@ export default class ReloadCommand extends Command {
         });
     }
 
-    public async execute(sender: Player, args: string[]) {
+    public async execute(sender: Player, args: Array<string | number>) {
         await sender.sendMessage(
             '§cPlease note that this command is not supported and may cause issues when using some plugins.'
         );

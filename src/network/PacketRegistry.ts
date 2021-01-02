@@ -68,6 +68,12 @@ import TickSyncPacket from './packet/TickSyncPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import WorldEventPacket from './packet/WorldEventPacket';
+import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
+import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
+import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
+import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
+import TransferPacket from './packet/TransferPacket';
+import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
 
 export default class PacketRegistry {
     private readonly logger: LoggerBuilder;
@@ -82,13 +88,17 @@ export default class PacketRegistry {
 
     private registerPacket(packet: any): void {
         this.packets.set(packet.NetID, packet);
-        this.logger.silly(`Packet with id §b${packet.name}§r registered`);
+        this.logger.silly(
+            `Packet with id §b${packet.name}§r registered`,
+            'PacketRegistry/registerPacket'
+        );
     }
 
     private registerHandler(id: number, handler: object): void {
         this.handlers.set(id, handler);
         this.logger.silly(
-            `Handler with id §b${handler.constructor.name}§r registered`
+            `Handler with id §b${handler.constructor.name}§r registered`,
+            'PacketRegistry/registerHandler'
         );
     }
 
@@ -103,6 +113,7 @@ export default class PacketRegistry {
         this.registerPacket(AvailableActorIdentifiersPacket);
         this.registerPacket(AvailableCommandsPacket);
         this.registerPacket(BiomeDefinitionListPacket);
+        this.registerPacket(ChangeDimensionPacket);
         this.registerPacket(ChunkRadiusUpdatedPacket);
         this.registerPacket(ClientCacheStatusPacket);
         this.registerPacket(CommandRequestPacket);
@@ -134,13 +145,16 @@ export default class PacketRegistry {
         this.registerPacket(ResourcePackStackPacket);
         this.registerPacket(ServerSettingsRequestPacket);
         this.registerPacket(SetActorDataPacket);
+        this.registerPacket(SetDefaultGameTypePacket);
         this.registerPacket(SetGamemodePacket);
         this.registerPacket(SetLocalPlayerAsInitializedPacket);
+        this.registerPacket(SetPlayerGameTypePacket);
         this.registerPacket(SetTimePacket);
         this.registerPacket(SetTitlePacket);
         this.registerPacket(StartGamePacket);
         this.registerPacket(TextPacket);
         this.registerPacket(TickSyncPacket);
+        this.registerPacket(TransferPacket);
         this.registerPacket(UpdateAttributesPacket);
         this.registerPacket(UpdateBlockPacket);
         this.registerPacket(WorldEventPacket);
@@ -148,7 +162,8 @@ export default class PacketRegistry {
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
                 Array.from(Object.keys(Identifiers)).length - 2
-            }§r packet(s) (took ${Date.now() - time} ms)!`
+            }§r packet(s) (took ${Date.now() - time} ms)!`,
+            'PacketRegistry/loadPackets'
         );
     }
 
@@ -207,8 +222,16 @@ export default class PacketRegistry {
             new ResourcePackResponseHandler()
         );
         this.registerHandler(
+            Identifiers.SetDefaultGameTypePacket,
+            new SetDefaultGameTypeHandler()
+        );
+        this.registerHandler(
             Identifiers.SetLocalPlayerAsInitializedPacket,
             new SetLocalPlayerAsInitializedHandler()
+        );
+        this.registerHandler(
+            Identifiers.SetPlayerGameTypePacket,
+            new SetPlayerGameTypeHandler()
         );
         this.registerHandler(Identifiers.TextPacket, new TextHandler());
         this.registerHandler(Identifiers.TickSyncPacket, new TickSyncHandler());
@@ -216,7 +239,8 @@ export default class PacketRegistry {
         this.logger.debug(
             `Registered §b${this.handlers.size}§r packet handler(s) (took ${
                 Date.now() - time
-            } ms)!`
+            } ms)!`,
+            'PacketRegistry/loadHandlers'
         );
     }
 
@@ -224,12 +248,9 @@ export default class PacketRegistry {
         return this.packets;
     }
 
-    public getPacketHandler(id: number): object | null {
-        if (this.handlers.has(id)) {
-            return this.handlers.get(id);
-        }
+    public getPacketHandler(id: number): object {
+        if (this.handlers.has(id)) return this.handlers.get(id);
 
-        this.logger.warn(`Missing handler for packet 0x${id.toString(16)}`);
-        return null;
+        throw new Error(`Missing handler for packet 0x${id.toString(16)}`);
     }
 }

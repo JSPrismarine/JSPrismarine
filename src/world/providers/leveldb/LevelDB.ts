@@ -1,8 +1,8 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Chunk from '../chunk/Chunk';
-import Provider from '../Provider';
-import type Server from '../../Server';
-import Vector3 from '../../math/Vector3';
+import Chunk from '../../chunk/Chunk';
+import Provider from '../../Provider';
+import type Server from '../../../Server';
+import Vector3 from '../../../math/Vector3';
 
 interface readChunk {
     x: number;
@@ -25,6 +25,10 @@ export default class LevelDB extends Provider {
         super(levelPath);
         // this.db = new Level(path.join(levelPath, 'db'));
         // this.server = server;
+    }
+
+    public async close() {
+        // TODO: close the DB
     }
 
     /**

@@ -14,6 +14,9 @@ import UUID from '../utils/UUID';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import Vector3 from '../math/Vector3';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
+import fs from 'fs';
+import path from 'path';
+import Gamemode from './Gamemode';
 
 interface WorldData {
     name: string;
@@ -21,6 +24,24 @@ interface WorldData {
     provider: any;
     seed: number;
     generator?: string;
+}
+
+export interface WorldPlayerData {
+    gamemode: string;
+    position: {
+        x: number;
+        y: number;
+        z: number;
+        pitch: number;
+        yaw: number;
+    };
+    inventory: Array<{
+        id: string;
+        numeric_id: number;
+        numeric_meta: number;
+        count: number;
+        position: number;
+    }>;
 }
 
 export default class World {
@@ -35,6 +56,7 @@ export default class World {
     private readonly provider: any; // TODO: interface
     private readonly server: Server;
     private readonly seed: SharedSeedRandom;
+    private readonly originalSeed: number;
     private readonly generator: any; // TODO: interface
 
     constructor({
@@ -49,19 +71,28 @@ export default class World {
         this.provider = provider;
         this.gameruleManager = new GameruleManager(server);
         this.seed = new SharedSeedRandom(seed);
+        this.originalSeed = seed;
         this.generator = generator;
 
         // TODO: Load default gamrules
         // TODO: getGameruleManager().showCoordinates(true ?? false);
         this.getGameruleManager().setGamerule(GameRules.DoDayLightCycle, true);
         this.getGameruleManager().setGamerule(GameRules.ShowCoordinates, true);
+
+        // Create player data folder
+        if (
+            !fs.existsSync(path.join(process.cwd(), 'worlds', name, '/players'))
+        ) {
+            fs.mkdirSync(path.join(process.cwd(), 'worlds', name, '/players'));
+        }
     }
 
     public async onEnable(): Promise<void> {
         this.server
             .getLogger()
             .info(
-                `Preparing start region for dimension §b'${this.name}'/${this.generator}§r`
+                `Preparing start region for dimension §b'${this.name}'/${this.generator}§r`,
+                'World/onEnable'
             );
         const chunksToLoad: Array<Promise<Chunk>> = [];
         const time = Date.now();
@@ -73,7 +104,9 @@ export default class World {
         }
 
         await Promise.all(chunksToLoad);
-        this.server.getLogger().info(`(took ${Date.now() - time} ms)`);
+        this.server
+            .getLogger()
+            .info(`(took ${Date.now() - time} ms)`, 'World/onEnable');
     }
 
     /**
@@ -136,7 +169,10 @@ export default class World {
             if (!generator) {
                 this.server
                     .getLogger()
-                    .error(`Invalid generator §b${this.generator}§r!`);
+                    .error(
+                        `Invalid generator §b${this.generator}§r!`,
+                        'World/loadChunk'
+                    );
                 throw new Error('invalid generator');
             }
 
@@ -270,7 +306,7 @@ export default class World {
                     throw new Error('Invalid Face');
             }
 
-        if (blockPosition.getY() < 0) return; // TODO: broadcast to player
+        if (blockPosition.getY() < 0 || blockPosition.getY() > 255) return;
 
         const success: boolean = await new Promise(async (resolve) => {
             try {
@@ -351,7 +387,7 @@ export default class World {
 
     public async sendTime(): Promise<void> {
         for (const player of this.players.values()) {
-            await player.setTime(this.getTicks());
+            await player.getConnection().sendTime(this.getTicks());
         }
     }
 
@@ -405,8 +441,8 @@ export default class World {
         await this.saveChunks();
     }
 
-    public close(): void {
-        // TODO
+    public async close(): Promise<void> {
+        await this.getProvider().close();
     }
 
     public getGameruleManager(): GameruleManager {
@@ -432,5 +468,92 @@ export default class World {
 
     public getName(): string {
         return this.name;
+    }
+
+    public getSeed(): number {
+        return this.originalSeed;
+    }
+
+    public async getPlayerData(player: Player): Promise<WorldPlayerData> {
+        try {
+            const playerData = fs.readFileSync(
+                path.join(
+                    process.cwd(),
+                    'worlds',
+                    this.getName(),
+                    'players',
+                    `${player.getUUID()}.json`
+                )
+            );
+
+            return JSON.parse(playerData.toString('utf-8')) as WorldPlayerData;
+        } catch {
+            this.server
+                .getLogger()
+                .debug(
+                    `PlayerData is missing for player ${player.getUUID()}`,
+                    'World/getPlayerData'
+                );
+
+            return {
+                gamemode: this.server.getConfig().getGamemode(),
+                position: {
+                    x: (await this.getSpawnPosition()).getX(),
+                    y: (await this.getSpawnPosition()).getY(),
+                    z: (await this.getSpawnPosition()).getZ(),
+                    pitch: 0,
+                    yaw: 0
+                },
+                inventory: []
+            };
+        }
+    }
+
+    public async savePlayerData(player: Player): Promise<void> {
+        fs.writeFileSync(
+            path.join(
+                process.cwd(),
+                'worlds',
+                this.getName(),
+                'players',
+                `${player.getUUID()}.json`
+            ),
+            JSON.stringify(
+                {
+                    uuid: player.getUUID(),
+                    username: player.getUsername(),
+                    gamemode: Gamemode.getGamemodeName(
+                        player.gamemode
+                    ).toLowerCase(),
+                    position: {
+                        x: player.getX(),
+                        y: player.getY(),
+                        z: player.getZ(),
+                        pitch: player.pitch,
+                        yaw: player.yaw
+                    },
+                    inventory: player
+                        .getInventory()
+                        .getItems(true)
+                        .map((entry, index) => {
+                            if (!entry) return;
+
+                            const item = entry.getItem();
+                            const count = entry.getCount();
+
+                            return {
+                                id: item?.name,
+                                numeric_id: item?.getId(),
+                                numeric_meta: item?.meta,
+                                count,
+                                position: index
+                            };
+                        })
+                        .filter((a) => a && a.numeric_id > 0) as any
+                } as WorldPlayerData,
+                null,
+                4
+            )
+        );
     }
 }

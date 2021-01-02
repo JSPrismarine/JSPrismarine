@@ -143,7 +143,10 @@ export default class PlayerActionHandler
                 // This will get triggered even if an action is simply not handled
                 server
                     .getLogger()
-                    .debug(`Unhandled player action: ${packet.action}`);
+                    .debug(
+                        `Unhandled player action: ${packet.action}`,
+                        'PlayerActionHandler/handle'
+                    );
             }
         }
     }

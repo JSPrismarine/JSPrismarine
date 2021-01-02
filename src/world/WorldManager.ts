@@ -1,7 +1,8 @@
 import fs from 'fs';
 import Server from '../Server';
 import GeneratorManager from './GeneratorManager';
-import LevelDB from './leveldb/Leveldb';
+import LevelDB from './providers/leveldb/LevelDB';
+import Anvil from './providers/anvil/Anvil';
 import World from './World';
 
 export default class WorldManager {
@@ -9,6 +10,7 @@ export default class WorldManager {
     private defaultWorld: World | null = null;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
+    private providers: Map<string, any> = new Map();
 
     public constructor(server: Server) {
         this.server = server;
@@ -18,12 +20,17 @@ export default class WorldManager {
         if (!fs.existsSync(process.cwd() + '/worlds')) {
             fs.mkdirSync(process.cwd() + '/worlds');
         }
+
+        this.providers.set('LevelDB', LevelDB);
+        this.providers.set('Anvil', Anvil);
     }
 
     public async onEnable(): Promise<void> {
         const defaultWorld = this.server.getConfig().getLevelName();
         if (!defaultWorld)
-            return this.server.getLogger().warn(`Invalid world!`);
+            return this.server
+                .getLogger()
+                .warn(`Invalid world!`, 'WorldManager/onEnable');
 
         const world = await this.loadWorld(
             this.server.getConfig().getWorlds()[defaultWorld],
@@ -48,16 +55,23 @@ export default class WorldManager {
             if (this.isWorldLoaded(folderName)) {
                 this.server
                     .getLogger()
-                    .warn(`World §e${folderName}§r has already been loaded!`);
+                    .warn(
+                        `World §e${folderName}§r has already been loaded!`,
+                        'WorldManager/loadWorld'
+                    );
                 reject();
             }
 
             const levelPath = process.cwd() + `/worlds/${folderName}/`;
+            const provider = this.providers.get(
+                worldData.provider || 'LevelDB'
+            );
+
             // TODO: figure out provider by data
             const world = new World({
                 name: folderName,
                 server: this.server,
-                provider: new LevelDB(levelPath, this.server),
+                provider: new provider(levelPath, this.server),
 
                 seed: worldData.seed,
                 generator: worldData.generator
@@ -70,12 +84,18 @@ export default class WorldManager {
                     this.worlds.get(world.getUniqueId()) ?? null;
                 this.server
                     .getLogger()
-                    .info(`Loaded §b${folderName}§r as default world!`);
+                    .info(
+                        `Loaded §b${folderName}§r as default world!`,
+                        'WorldManager/loadWorld'
+                    );
             }
 
             this.server
                 .getLogger()
-                .debug(`World §b${folderName}§r successfully loaded!`);
+                .debug(
+                    `World §b${folderName}§r successfully loaded!`,
+                    'WorldManager/loadWorld'
+                );
             resolve(world);
         });
     }
@@ -88,7 +108,8 @@ export default class WorldManager {
             return this.server
                 .getLogger()
                 .error(
-                    `Cannot unload a not loaded world with name §b${folderName}`
+                    `Cannot unload a not loaded world with name §b${folderName}`,
+                    'WorldManager/unloadWorld'
                 );
         }
 
@@ -96,14 +117,20 @@ export default class WorldManager {
         if (!world) {
             return this.server
                 .getLogger()
-                .error(`Cannot unload world ${folderName}`);
+                .error(
+                    `Cannot unload world ${folderName}`,
+                    'WorldManager/unloadWorld'
+                );
         }
 
-        world.close();
+        await world.close();
         this.worlds.delete(world.getUniqueId());
         this.server
             .getLogger()
-            .debug(`Successfully unloaded world §b${folderName}§f!`);
+            .debug(
+                `Successfully unloaded world §b${folderName}§f!`,
+                'WorldManager/unloadWorld'
+            );
     }
 
     /**

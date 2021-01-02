@@ -1,8 +1,8 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Block from '../block/Block';
 import { Attribute } from '../entity/attribute';
 import { FlagType } from '../entity/metadata';
-import Item from '../item/Item';
+import ContainerEntry from '../inventory/ContainerEntry';
+import Vector3 from '../math/Vector3';
 import Skin from '../utils/skin/Skin';
 import SkinImage from '../utils/skin/SkinImage';
 import UUID from '../utils/UUID';
@@ -34,6 +34,26 @@ export default class PacketBinaryStream extends BinaryStream {
     public writeString(v: string): void {
         this.writeUnsignedVarInt(Buffer.byteLength(v));
         this.append(Buffer.from(v, 'utf8'));
+    }
+
+    /**
+     * Returns a Vector3 encoded into the buffer.
+     */
+    public readVector3(): Vector3 {
+        return new Vector3(
+            this.readLFloat(),
+            this.readLFloat(),
+            this.readLFloat()
+        );
+    }
+
+    /**
+     * Encodes a Vector3 into the buffer.
+     */
+    public writeVector3(position: Vector3): void {
+        this.writeLFloat(position.getX());
+        this.writeLFloat(position.getY());
+        this.writeLFloat(position.getZ());
     }
 
     public readUUID(): UUID {
@@ -251,7 +271,7 @@ export default class PacketBinaryStream extends BinaryStream {
 
     writeCreativeContentEntry(entry: CreativeContentEntry) {
         this.writeVarInt(entry.entryId);
-        this.writeItemStack(entry.item);
+        this.writeItemStack(new ContainerEntry({ item: entry.item, count: 1 }));
     }
 
     readCreativeContentEntry() {
@@ -387,13 +407,15 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Serializes an item into the buffer.
      */
-    writeItemStack(itemstack: Item | Block) {
+    writeItemStack(entry: ContainerEntry) {
+        const itemstack = entry.getItem();
+
         if (itemstack.name === 'minecraft:air') {
             return this.writeVarInt(0);
         }
 
         this.writeVarInt(itemstack.getId());
-        this.writeVarInt(((itemstack.meta & 0x7fff) << 8) | itemstack.count);
+        this.writeVarInt(((itemstack.meta & 0x7fff) << 8) | entry.getCount());
 
         if (itemstack.nbt !== null) {
             // Write the amount of tags to write

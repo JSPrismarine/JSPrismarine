@@ -57,7 +57,8 @@ export default class CommandManager {
             .debug(
                 `Registered §b${
                     (vanilla.length as number) + (jsprismarine.length as number)
-                }§r commands(s) (took ${Date.now() - time} ms)!`
+                }§r commands(s) (took ${Date.now() - time} ms)!`,
+                'CommandManager/onEnable'
             );
     }
 
@@ -75,7 +76,10 @@ export default class CommandManager {
         this.commands.add(command);
         server
             .getLogger()
-            .silly(`Command with id §b${command.id}§r registered`);
+            .silly(
+                `Command with id §b${command.id}§r registered`,
+                'CommandManager/registerClassCommand'
+            );
     }
 
     /**
@@ -99,7 +103,10 @@ export default class CommandManager {
 
         // Check for numbers and convert them
         for (const argument of commandParts) {
-            if (!Number.isNaN(argument) && argument.trim().length > 0) {
+            if (
+                !Number.isNaN(Number.parseFloat(argument)) &&
+                argument.trim().length > 0
+            ) {
                 // Command argument parsing fixed
                 const argumentIndex = commandParts.indexOf(argument);
                 commandParts[argumentIndex] = Number(argument);
@@ -139,7 +146,7 @@ export default class CommandManager {
         ) {
             const res: string | void = await command.execute(
                 sender,
-                commandParts
+                commandParts.filter((a) => a !== null && a !== undefined)
             );
 
             const chat = new Chat(
@@ -150,7 +157,6 @@ export default class CommandManager {
                 '*.ops'
             );
             await this.server.getChatManager().send(chat);
-
             return;
         }
 

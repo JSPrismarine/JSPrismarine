@@ -164,7 +164,10 @@ export default class TpCommand extends Command {
         );
     }
 
-    public async execute(sender: CommandExecuter, args: string[]) {
+    public async execute(
+        sender: CommandExecuter,
+        args: Array<string | number>
+    ) {
         if (args.length === 0) {
             sender.sendMessage('§cYou have to specify <player> x y z.');
             return;
@@ -240,7 +243,9 @@ export default class TpCommand extends Command {
                 ) {
                     player.setY(this.getCoord(player.getY(), args[1]));
                 } else if (player) {
-                    const target = sender.getServer().getPlayerByName(args[1]);
+                    const target = sender
+                        .getServer()
+                        .getPlayerByName(`${args[1]}`);
                     if (!target) {
                         sender.sendMessage(`§c${args[0]} is not online!`);
                         return;

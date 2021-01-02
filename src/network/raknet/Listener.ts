@@ -60,7 +60,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
             }
 
             try {
-                this.sendBuffer(
+                await this.sendBuffer(
                     await this.handleUnconnected(buffer, rinfo),
                     rinfo.address,
                     rinfo.port
@@ -68,7 +68,10 @@ export default class Listener extends EventEmitter implements RakNetListener {
             } catch (error: any) {
                 this.server
                     .getLogger()
-                    .debug(`Failed to handle an offline packet: ${error}`);
+                    .debug(
+                        `Failed to handle an offline packet: ${error}`,
+                        'raknet/Listner/listen'
+                    );
             }
         });
 
@@ -93,6 +96,22 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
                 resolve(this);
             });
+        });
+    }
+
+    public async kill(): Promise<void> {
+        // Wait for all remining packets to be sent
+        return new Promise((resolve) => {
+            const inter = setInterval(() => {
+                const packets = Array.from(this.connections.values()).map((a) =>
+                    a.getSendQueue()
+                );
+
+                if (packets.length <= 0) {
+                    clearInterval(inter);
+                    return resolve();
+                }
+            }, 50);
         });
     }
 
@@ -122,7 +141,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
                 );
             default:
                 throw new Error(
-                    `Unknown unconnected packet with ID: ${header}`
+                    `Unknown unconnected packet with ID: 0x${header.toString(
+                        16
+                    )}`
                 );
         }
     }
@@ -229,8 +250,17 @@ export default class Listener extends EventEmitter implements RakNetListener {
     /**
      * Send packet buffer to the client.
      */
-    public sendBuffer(buffer: Buffer, address: string, port: number) {
-        this.socket.send(buffer, 0, buffer.length, port, address);
+    public async sendBuffer(
+        buffer: Buffer,
+        address: string,
+        port: number
+    ): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.socket.send(buffer, 0, buffer.length, port, address, (err) => {
+                // Ignore errors
+                resolve();
+            });
+        });
     }
 
     public getSocket() {

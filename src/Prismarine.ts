@@ -3,6 +3,9 @@ import Logger from './utils/Logger';
 import Server from './Server';
 import Updater from './updater/Updater';
 
+// Process metadata
+process.title = 'Prismarine';
+
 const config = new Config();
 const logger = new Logger();
 
@@ -20,7 +23,8 @@ void updater.check().then(() => {
     Prismarine.listen(config.getServerIp(), config.getPort()).catch(
         async (error) => {
             Prismarine.getLogger().error(
-                `Cannot start the server, is it already running on the same port?`
+                `Cannot start the server, is it already running on the same port?`,
+                'Prismarine'
             );
             if (error) console.error(error);
 

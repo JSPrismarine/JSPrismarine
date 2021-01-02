@@ -162,7 +162,10 @@ export default class BlockManager {
     public registerClassBlock(block: Block) {
         this.server
             .getLogger()
-            .silly(`Block with id §b${block.name}§r registered`);
+            .silly(
+                `Block with id §b${block.name}§r registered`,
+                'BlockManager/registerClassBlock'
+            );
         this.blocks.set(block.name, block);
     }
 
@@ -180,7 +183,12 @@ export default class BlockManager {
                 try {
                     this.registerClassBlock(new block());
                 } catch {
-                    this.server.getLogger().error(`${id} failed to register!`);
+                    this.server
+                        .getLogger()
+                        .error(
+                            `${id} failed to register!`,
+                            'BlockManager/importBlocks'
+                        );
                 }
             });
             this.server
@@ -188,12 +196,16 @@ export default class BlockManager {
                 .debug(
                     `Registered §b${blocks.length}§r block(s) (took ${
                         Date.now() - time
-                    } ms)!`
+                    } ms)!`,
+                    'BlockManager/importBlocks'
                 );
         } catch (error) {
             this.server
                 .getLogger()
-                .error(`Failed to register blocks: ${error}`);
+                .error(
+                    `Failed to register blocks: ${error}`,
+                    'BlockManager/importBlocks'
+                );
         }
     }
 }

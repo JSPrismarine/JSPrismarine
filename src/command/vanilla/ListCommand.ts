@@ -13,7 +13,7 @@ export default class ListCommand extends Command {
      * @param {Player} sender
      * @param {Array} args
      */
-    public async execute(sender: Player, args: string[]) {
+    public async execute(sender: Player, args: Array<string | number>) {
         const players = sender.getServer().getOnlinePlayers();
         const playerArray = Array.from(players);
         const maxPlayers = sender

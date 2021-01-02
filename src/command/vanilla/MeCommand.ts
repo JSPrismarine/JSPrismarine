@@ -1,3 +1,5 @@
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
 import Player from '../../player/Player';
 
@@ -10,7 +12,7 @@ export default class MeCommand extends Command {
         });
     }
 
-    public async execute(sender: Player, args: string[]) {
+    public async execute(sender: Player, args: Array<string | number>) {
         if (!args[0]) {
             return sender.sendMessage(`§cPlease specify a message.`);
         }
@@ -18,9 +20,7 @@ export default class MeCommand extends Command {
         const message = args.join(' ');
         const messageToSend = `*${sender.getUsername()}: ${message}`;
 
-        sender.getServer().getLogger().info(messageToSend);
-        for (const player of sender.getServer().getOnlinePlayers()) {
-            await player.sendMessage(messageToSend);
-        }
+        const event = new ChatEvent(new Chat(sender, messageToSend));
+        await sender.getServer().getEventManager().emit('chat', event);
     }
 }

@@ -11,7 +11,7 @@ export default class SayCommand extends Command {
         } as any);
     }
 
-    public async execute(sender: Player, args: string[]) {
+    public async execute(sender: Player, args: Array<string | number>) {
         if (!args[0]) {
             return sender.sendMessage(`§cPlease specify a message.`);
         }

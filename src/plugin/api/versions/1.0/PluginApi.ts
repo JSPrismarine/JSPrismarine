@@ -15,7 +15,7 @@ export default class PluginApi extends PluginApiVersion {
         this.pkg = pkg;
     }
 
-    public async onInit() {}
+    public async onEnable() {}
     public async onDisable() {}
 
     /**
@@ -26,15 +26,25 @@ export default class PluginApi extends PluginApiVersion {
 
         return {
             silly: (...args) =>
-                this.server.getLogger().silly(`[${name}] ${args}`),
+                this.server
+                    .getLogger()
+                    .silly(`[${name}] ${args}`, this.pkg.name),
             debug: (...args) =>
-                this.server.getLogger().debug(`[${name}] ${args}`),
+                this.server
+                    .getLogger()
+                    .debug(`[${name}] ${args}`, this.pkg.name),
             info: (...args) =>
-                this.server.getLogger().info(`[${name}] ${args}`),
+                this.server
+                    .getLogger()
+                    .info(`[${name}] ${args}`, this.pkg.name),
             warn: (...args) =>
-                this.server.getLogger().warn(`[${name}] ${args}`),
+                this.server
+                    .getLogger()
+                    .warn(`[${name}] ${args}`, this.pkg.name),
             error: (...args) =>
-                this.server.getLogger().error(`[${name}] ${args}`)
+                this.server
+                    .getLogger()
+                    .error(`[${name}] ${args}`, this.pkg.name)
         } as LoggerBuilder;
     }
 

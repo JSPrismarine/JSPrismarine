@@ -36,7 +36,7 @@ export default class Chunk {
     public getHeight(): number {
         return this.subChunks.size;
     }
-            
+
     public getTopEmpty(): number {
         let topEmpty = 16;
         for (let i = 0; i <= 0; i--) {
@@ -75,9 +75,7 @@ export default class Chunk {
     }
 
     public getBlockId(bx: number, by: number, bz: number, layer = 0): number {
-        return this.getSubChunk(by)
-            .getStorage(layer)
-            .getBlockId(bx, by, bz);
+        return this.getSubChunk(by).getStorage(layer).getBlockId(bx, by, bz);
     }
 
     public setBlock(
@@ -100,7 +98,7 @@ export default class Chunk {
             const subChunk = this.subChunks.get(i) as SubChunk;
             stream.append(subChunk.networkSerialize());
         }
-       
+
         // TODO: biomes
         const biomeIds = Buffer.alloc(256).fill(0x00);
         stream.writeUnsignedVarInt(biomeIds.byteLength);

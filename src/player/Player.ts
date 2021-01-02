@@ -1,7 +1,10 @@
 import CommandExecuter from '../command/CommandExecuter';
 import Human from '../entity/Human';
 import ChatEvent from '../events/chat/ChatEvent';
-import withDeprecated from '../hoc/withDeprecated';
+import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
+import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
+import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
+import ContainerEntry from '../inventory/ContainerEntry';
 import WindowManager from '../inventory/WindowManager';
 import Connection from '../network/raknet/Connection';
 import InetAddress from '../network/raknet/utils/InetAddress';
@@ -45,6 +48,7 @@ export default class Player extends Human implements CommandExecuter {
     private sprinting = false;
     private flying = false;
     private sneaking = false;
+    private allowFight = false;
 
     public platformChatId = '';
 
@@ -64,26 +68,45 @@ export default class Player extends Human implements CommandExecuter {
         this.playerConnection = new PlayerConnection(server, connection, this);
         this.windows = new WindowManager();
 
-        // TODO: only set to default gamemode if there doesn't exist any save data for the user
-        this.gamemode = Gamemode.getGamemodeId(
-            server.getConfig().getGamemode()
-        );
-
         // Handle chat messages
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
             if (evt.cancelled) return;
 
             // TODO: proper channel system
             if (
-                evt.getChat().getChannel() === '*.everyone' ??
-                (evt.getChat().getChannel() === '*.ops' &&
-                    this.server
-                        .getPermissionManager()
-                        .isOp(this.getUsername())) ??
+                evt.getChat().getChannel() === '*.everyone' ||
+                (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
                 evt.getChat().getChannel() === `*.player.${this.getUsername()}`
             )
                 await this.sendMessage(evt.getChat().getMessage());
         });
+    }
+
+    public async onEnable() {
+        const playerData = await this.getWorld().getPlayerData(this);
+
+        void this.setGamemode(Gamemode.getGamemodeId(playerData.gamemode));
+        this.setX(playerData.position.x);
+        this.setY(playerData.position.y);
+        this.setZ(playerData.position.z);
+        this.pitch = playerData.position.pitch;
+        this.yaw = playerData.position.yaw;
+
+        playerData.inventory.forEach((item) =>
+            this.getInventory().setItem(
+                item.position,
+                new ContainerEntry({
+                    item:
+                        this.server.getItemManager().getItem(item.id) ||
+                        this.server.getBlockManager().getBlock(item.id),
+                    count: item.count
+                })
+            )
+        );
+    }
+
+    public async onDisable() {
+        await this.getWorld().savePlayerData(this);
     }
 
     public async update(tick: number): Promise<void> {
@@ -93,8 +116,21 @@ export default class Player extends Human implements CommandExecuter {
     public async kick(reason = 'unknown reason'): Promise<void> {
         this.getServer()
             .getLogger()
-            .debug(`Player with id ${this.runtimeId} was kicked: ${reason}`);
+            .debug(
+                `Player with id §b${this.runtimeId}§r was kicked: ${reason}`,
+                'Player/kick'
+            );
         await this.playerConnection.kick(reason);
+    }
+
+    public async sendSettings(): Promise<void> {
+        await Promise.all(
+            this.getServer()
+                .getOnlinePlayers()
+                .map(async (target) => {
+                    await target.getConnection().sendSettings(this);
+                })
+        );
     }
 
     // Return all the players in the same chunk
@@ -110,12 +146,24 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async setGamemode(mode: number): Promise<void> {
-        this.gamemode = mode;
-        await this.playerConnection.sendGamemode(this.gamemode);
-    }
+        const event = new PlayerSetGamemodeEvent(this, mode);
+        this.server.getEventManager().post(['playerSetGamemodeEvent', event]);
+        if (event.cancelled) return;
 
-    public async setTime(tick: number): Promise<void> {
-        await this.getConnection().sendTime(tick);
+        this.gamemode = event.getGamemode();
+        await this.playerConnection.sendGamemode(this.gamemode);
+
+        if (
+            this.gamemode === Gamemode.Creative ||
+            this.gamemode === Gamemode.Spectator
+        )
+            this.allowFight = true;
+        else {
+            this.allowFight = false;
+            await this.setFlying(false);
+        }
+
+        await this.sendSettings();
     }
 
     public getServer(): Server {
@@ -124,11 +172,6 @@ export default class Player extends Human implements CommandExecuter {
 
     public getConnection(): PlayerConnection {
         return this.playerConnection;
-    }
-
-    @withDeprecated(new Date('12/11/2020'), 'getConnection')
-    public getPlayerConnection(): PlayerConnection {
-        return this.getConnection();
     }
 
     public getAddress() {
@@ -151,6 +194,10 @@ export default class Player extends Human implements CommandExecuter {
         return this.windows;
     }
 
+    public getAllowFlight(): boolean {
+        return this.allowFight;
+    }
+
     public isPlayer(): boolean {
         return true;
     }
@@ -161,17 +208,33 @@ export default class Player extends Human implements CommandExecuter {
     public isSprinting() {
         return this.sprinting;
     }
-    public async setSprinting(val: boolean) {
-        this.sprinting = val;
-        await this.getConnection().sendSettings();
+    public async setSprinting(sprinting: boolean) {
+        if (sprinting === this.isSprinting()) return;
+
+        const event = new PlayerToggleSprintEvent(this, sprinting);
+        this.server.getEventManager().post(['playerToggleSprint', event]);
+        if (event.cancelled) return;
+
+        this.sprinting = event.getIsSprinting();
+        await this.sendSettings();
     }
 
     public isFlying() {
         return this.flying;
     }
-    public async setFlying(val: boolean) {
-        this.flying = val;
-        await this.getConnection().sendSettings();
+    public async setFlying(flying: boolean) {
+        if (flying === this.isFlying()) return;
+        if (!this.getAllowFlight()) {
+            this.flying = false;
+            return;
+        }
+
+        const event = new PlayerToggleFlightEvent(this, flying);
+        this.server.getEventManager().post(['playerToggleFlight', event]);
+        if (event.cancelled) return;
+
+        this.flying = event.getIsFlying();
+        await this.sendSettings();
     }
 
     public isSneaking() {
@@ -179,7 +242,7 @@ export default class Player extends Human implements CommandExecuter {
     }
     public async setSneaking(val: boolean) {
         this.sneaking = val;
-        await this.getConnection().sendSettings();
+        await this.sendSettings();
     }
 
     public isOnGround() {
@@ -187,6 +250,6 @@ export default class Player extends Human implements CommandExecuter {
     }
     public async setOnGround(val: boolean) {
         this.onGround = val;
-        await this.getConnection().sendSettings();
+        await this.sendSettings();
     }
 }

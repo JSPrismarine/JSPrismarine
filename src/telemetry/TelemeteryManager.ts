@@ -22,7 +22,7 @@ export default class TelemetryManager {
         process.on('uncaughtException', async (err) => {
             await this.sendCrashLog(err, urls);
             console.error(err);
-            this.server.getLogger().error(`${err}`);
+            this.server.getLogger().error(`${err}`, 'TelemetryManager');
             process.exit(1);
         });
     }
@@ -33,15 +33,19 @@ export default class TelemetryManager {
         this.server
             .getLogger()
             .info(
-                'Thank you for helping us improve JSPrismarine by enabling anonymized telemetry data.'
+                'Thank you for helping us improve JSPrismarine by enabling anonymized telemetry data.',
+                'TelemetryManager/onEnable'
             );
         this.server
             .getLogger()
             .info(
-                "To find out exactly what we're collecting please visit the following url(s):"
+                "To find out exactly what we're collecting please visit the following url(s):",
+                'TelemetryManager/onEnable'
             );
         this.urls.forEach((url) =>
-            this.server.getLogger().info(`- ${url}/id/${this.id}`)
+            this.server
+                .getLogger()
+                .info(`- ${url}/id/${this.id}`, 'TelemetryManager/onEnable')
         );
 
         await this.tick();
@@ -86,11 +90,16 @@ export default class TelemetryManager {
                             'Content-Type': 'application/json'
                         })
                     });
-                    this.server.getLogger().silly('[telemetry] Sent heartbeat');
+                    this.server
+                        .getLogger()
+                        .silly('Sent heartbeat', 'TelemetryManager/tick');
                 } catch (error) {
                     this.server
                         .getLogger()
-                        .warn(`[telemetry] Failed to tick: ${url} (${error})`);
+                        .warn(
+                            `Failed to tick: ${url} (${error})`,
+                            'TelemetryManager/tick'
+                        );
                 }
             })
         );
@@ -105,7 +114,8 @@ export default class TelemetryManager {
         this.server
             .getLogger()
             .error(
-                "JSPrismarine has crashed, we're now submitting the error to the telemetry service..."
+                "JSPrismarine has crashed, we're now submitting the error to the telemetry service...",
+                'TelemetryManager/sendCrashLog'
             );
         const body = {
             id: this.generateAnonomizedId(),
@@ -138,15 +148,23 @@ export default class TelemetryManager {
         if (!links.length) {
             this.server
                 .getLogger()
-                .error('Failed to submit error to telemetry service!');
+                .error(
+                    'Failed to submit error to telemetry service!',
+                    'TelemetryManager/sendCrashLog'
+                );
             return;
         }
 
         this.server
             .getLogger()
             .error(
-                'JSPrismarine has crashed, please report the following url(s) to the maintainers:'
+                'JSPrismarine has crashed, please report the following url(s) to the maintainers:',
+                'TelemetryManager/sendCrashLog'
             );
-        links.forEach((url) => this.server.getLogger().error(`- ${url}`));
+        links.forEach((url) =>
+            this.server
+                .getLogger()
+                .error(`- ${url}`, 'TelemetryManager/sendCrashLog')
+        );
     }
 }
