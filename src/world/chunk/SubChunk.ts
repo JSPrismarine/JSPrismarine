@@ -1,4 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Block from '../../block/Block';
+import Server from '../../Server';
 import BlockStorage from './BlockStorage';
 
 export default class SubChunk {
@@ -49,6 +51,23 @@ export default class SubChunk {
 
     public getStorages(): BlockStorage[] {
         return Array.from(this.storages.values());
+    }
+
+    public setBlock(
+        bx: number,
+        by: number,
+        bz: number,
+        block: Block,
+        layer = 0
+    ): void {
+        const runtimeId = Server.instance
+            .getBlockManager()
+            .getRuntimeWithMeta(block.getId(), block.getMeta());
+
+        this.getStorage(layer).setBlock(bx, by, bz, runtimeId);
+    }
+    public getBlockId(bx: number, by: number, bz: number, layer = 0): number {
+        return this.getStorage(layer).getBlockId(bx, by, bz);
     }
 
     public networkSerialize(): Buffer {
