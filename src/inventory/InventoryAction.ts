@@ -1,4 +1,5 @@
 import Player from '../player/Player';
+import ContainerEntry from './ContainerEntry';
 
 export interface InventoryActionItem {
     id: number;
@@ -6,19 +7,19 @@ export interface InventoryActionItem {
 }
 
 export default class InventoryAction {
-    private source: InventoryActionItem;
-    private target: InventoryActionItem;
+    private source: ContainerEntry;
+    private target: ContainerEntry;
 
-    constructor(source: InventoryActionItem, target: InventoryActionItem) {
+    constructor(source: ContainerEntry, target: ContainerEntry) {
         this.source = source;
         this.target = target;
     }
 
-    public getSource(): InventoryActionItem {
+    public getSource(): ContainerEntry {
         return this.source;
     }
 
-    public getTarget(): InventoryActionItem {
+    public getTarget(): ContainerEntry {
         return this.target;
     }
 

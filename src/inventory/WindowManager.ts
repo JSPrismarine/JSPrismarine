@@ -9,14 +9,17 @@ export default class WindowManager {
             return this.getWindowId(inventory);
         }
 
-        if (id) {
-            if (this.getWindow(id) !== null) {
-                return this.setWindow(inventory, id + 1);
-            }
-        }
+        if (id && this.getWindow(id) !== null)
+            throw new Error(`Window with id ${id} already exists`);
 
         this.windows.set(id ?? (id = this.windows.size + 1), inventory);
         return id;
+    }
+
+    public removeWindow(id: number) {
+        if (this.getWindow(id) === null)
+            throw new Error(`Window with id ${id} doesn't exist`);
+        this.windows.delete(id);
     }
 
     public getWindowId(inventory: Inventory): number {

@@ -1,12 +1,13 @@
 import Player from '../player/Player';
-import InventoryAction, { InventoryActionItem } from './InventoryAction';
+import ContainerEntry from './ContainerEntry';
+import InventoryAction from './InventoryAction';
 
 export default class CreativeInventoryAction extends InventoryAction {
     private action: number;
 
     constructor(
-        source: InventoryActionItem,
-        target: InventoryActionItem,
+        source: ContainerEntry,
+        target: ContainerEntry,
         action: number
     ) {
         super(source, target);

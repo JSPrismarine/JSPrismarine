@@ -82,10 +82,46 @@ export default class InventoryTransactionHandler
                         break;
                     }
                     case InventoryTransactionSource.Creative: {
+                        const oldItem =
+                            server
+                                .getBlockManager()
+                                .getBlockByIdAndMeta(
+                                    inventoryAction.oldItem.id,
+                                    inventoryAction.oldItem.meta
+                                ) ??
+                            server
+                                .getItemManager()
+                                .getItemById(inventoryAction.oldItem.id);
+                        if (!oldItem)
+                            throw new Error(
+                                `Invalid item/block with id ${inventoryAction.oldItem.id}:${inventoryAction.oldItem.meta}`
+                            );
+
+                        const newItem =
+                            server
+                                .getBlockManager()
+                                .getBlockByIdAndMeta(
+                                    inventoryAction.newItem.id,
+                                    inventoryAction.newItem.meta
+                                ) ??
+                            server
+                                .getItemManager()
+                                .getItemById(inventoryAction.newItem.id);
+                        if (!newItem)
+                            throw new Error(
+                                `Invalid item/block with id ${inventoryAction.newItem.id}:${inventoryAction.newItem.meta}`
+                            );
+
                         actions.push(
                             new CreativeInventoryAction(
-                                inventoryAction.oldItem,
-                                inventoryAction.newItem,
+                                new ContainerEntry({
+                                    item: oldItem,
+                                    count: 64
+                                }),
+                                new ContainerEntry({
+                                    item: oldItem,
+                                    count: 64
+                                }),
                                 inventoryAction.slot
                             )
                         );
