@@ -72,7 +72,7 @@ export default class BlockManager {
      */
     public getBlockByRuntimeId(runtimeId: number, meta = 0): Block | null {
         if (this.runtimeIdToLegacy.has(runtimeId)) {
-            const legacyId = this.runtimeIdToLegacy.get(runtimeId) >> 6;
+            const legacyId = (this.runtimeIdToLegacy.get(runtimeId) as Number) >> 6;
             return this.getBlockByIdAndMeta(legacyId, meta);
         }
         console.log(
@@ -150,10 +150,6 @@ export default class BlockManager {
 
     public getRuntimeWithId(legacyId: number): number {
         return this.getRuntimeWithMeta(legacyId >> 4, legacyId & 0xf);
-    }
-
-    public getBlockPalette(): Buffer {
-        return this.blockPalette;
     }
 
     /**
