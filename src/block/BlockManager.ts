@@ -72,8 +72,8 @@ export default class BlockManager {
      */
     public getBlockByRuntimeId(runtimeId: number, meta = 0): Block | null {
         if (this.runtimeIdToLegacy.has(runtimeId)) {
-            const legacyId = (this.runtimeIdToLegacy.get(runtimeId) as Number) >> 6;
-            return this.getBlockByIdAndMeta(legacyId, meta);
+            const legacyId = (this.runtimeIdToLegacy.get(runtimeId) as Number;
+            return this.getBlockByIdAndMeta(legacyId >> 6, meta);
         }
         console.log(
             'Legacy ID mapping for Runtime ID=%d not found!',
