@@ -50,12 +50,13 @@ export default class Chunk {
         return topEmpty;
     }
 
-    public getSubChunk(y: number): SubChunk {
-        y = y >> 4;
-        if (y < 0 || y >= this.subChunks.size) {
-            throw new Error(`Invalid subchunk height: ${y}`);
+    public getSubChunk(by: number): SubChunk {
+        // From block y to sub chunk index
+        by >>= 4;
+        if (by < 0 || by >= this.subChunks.size) {
+            throw new Error(`Invalid subchunk height: ${by}`);
         }
-        return this.subChunks.get(y) as SubChunk;
+        return this.subChunks.get(by) as SubChunk;
     }
 
     public getSubChunks(): Map<number, SubChunk> {
@@ -73,23 +74,24 @@ export default class Chunk {
         // return -1;
     }
 
-    public getBlockId(bx: number, by: number, bz: number): number {
+    public getBlockId(bx: number, by: number, bz: number, layer = 0): number {
         return this.getSubChunk(by)
-            .getStorage(0)
+            .getStorage(layer)
             .getBlockId(bx, by, bz);
     }
 
     public setBlock(
-        x: number,
-        y: number,
-        z: number,
+        bx: number,
+        by: number,
+        bz: number,
         block: Block,
         layer = 0
     ): void {
         const runtimeId = Server.instance
             .getBlockManager()
             .getRuntimeWithMeta(block.getId(), block.getMeta());
-        this.getSubChunk(y).getStorage(layer).setBlock(x, y, z, runtimeId);
+        this.getSubChunk(y).getStorage(layer).setBlock(x
+        bx, by, bz, runtimeId);
     }
 
     public networkSerialize(): Buffer {
@@ -97,14 +99,14 @@ export default class Chunk {
         // Encode sub chunks
         for (let i = 0; i < this.getTopEmpty(); i++) {
             const subChunk = this.subChunks.get(i) as SubChunk;
-            stream.append(subChunk.networkSerialize()));
+            stream.append(subChunk.networkSerialize());
         }
        
         // TODO: biomes
         const biomeIds = Buffer.alloc(256).fill(0x00);
         stream.writeUnsignedVarInt(biomeIds.byteLength);
         stream.append(biomeIds);
-        stream.writeUnsignedVarInt(0); // extra data
+        stream.writeByte(0); // extra data (MIT)
         return stream.getBuffer();
     }
 }
