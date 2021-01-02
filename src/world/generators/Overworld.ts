@@ -53,12 +53,12 @@ export default class Overworld {
                     else chunk.setBlock(x, y, z, stone);
                 }
 
-                /* for (let y = 0; y < SEA_LEVEL; y++) {
-                    const subChunk = chunk.getSubChunk(y >> 4);
+                for (let y = 0; y < SEA_LEVEL; y++) {
+                    const subChunk = chunk.getSubChunk(y);
                     if (subChunk.getBlockId(x, y & 0x0f, z) === 0) {
-                        subChunk.setBlock(x, y & 0x0f, z, water);
+                        subChunk.setBlock(x, y & 0x0f, z, water, 1);
                     }
-                } */
+                } 
 
                 if (height < SEA_LEVEL - 1) chunk.setBlock(x, height, z, dirt);
                 else chunk.setBlock(x, height, z, grass);
