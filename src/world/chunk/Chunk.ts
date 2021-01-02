@@ -47,6 +47,7 @@ export default class Chunk {
                 break;
             }
         }
+        return topEmpty;
     }
 
     public getSubChunk(y: number): SubChunk {
@@ -96,7 +97,7 @@ export default class Chunk {
         // Encode sub chunks
         for (let i = 0; i < this.getTopEmpty(); i++) {
             const subChunk = this.subChunks.get(i) as SubChunk;
-            stream.append(subChunk.networkSerialize));
+            stream.append(subChunk.networkSerialize()));
         }
        
         // TODO: biomes
