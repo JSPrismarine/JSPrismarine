@@ -1,4 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Block from '../../block/Block';
+import Server from '../../Server';
 import BlockStorage from './BlockStorage';
 
 export default class SubChunk {
@@ -13,7 +15,7 @@ export default class SubChunk {
     ) {
         // Restore storages if they exists
         if (storages.has(0)) {
-            this.storages.set(0, storages.get(0) as BlockStorage);
+            this.storages.set(0, storages.get(0)!);
         } // Terrain storage
         // TODO: if (storages[1]) this.storages[1] = storages[1];  // Water storage
 
@@ -44,11 +46,28 @@ export default class SubChunk {
             }
         }
 
-        return this.storages.get(index) as BlockStorage;
+        return this.storages.get(index)!;
     }
 
     public getStorages(): BlockStorage[] {
         return Array.from(this.storages.values());
+    }
+
+    public setBlock(
+        bx: number,
+        by: number,
+        bz: number,
+        block: Block,
+        layer = 0
+    ): void {
+        const runtimeId = Server.instance
+            .getBlockManager()
+            .getRuntimeWithMeta(block.getId(), block.getMeta());
+
+        this.getStorage(layer).setBlock(bx, by, bz, runtimeId);
+    }
+    public getBlockId(bx: number, by: number, bz: number, layer = 0): number {
+        return this.getStorage(layer).getBlockId(bx, by, bz);
     }
 
     public networkSerialize(): Buffer {

@@ -39,10 +39,10 @@ export function getStorageBlocks(type: StorageType): number {
 }
 
 export default class BlockStorage {
-    private words: Array<number>;
+    private words: number[];
     private palette = new Palette();
 
-    public constructor(words?: Array<number>) {
+    public constructor(words?: number[]) {
         const blockManager = Server.instance.getBlockManager();
         const AIR_RUNTIME_ID = blockManager.getRuntimeWithId(0);
         const paletteAirIndex = this.palette.getRuntimeIndex(AIR_RUNTIME_ID);
@@ -61,19 +61,24 @@ export default class BlockStorage {
     public getBlockId(bx: number, by: number, bz: number): number {
         const paletteIndex = this.words[BlockStorage.getIndex(bx, by, bz)];
         const runtimeId = this.palette.getRuntime(paletteIndex);
-        
+
         const block = Server.instance
             .getBlockManager()
             .getBlockByRuntimeId(runtimeId);
-        
+
         return block ? block.getId() : 0; // air id
     }
 
-    public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
+    public setBlock(
+        bx: number,
+        by: number,
+        bz: number,
+        runtimeId: number
+    ): void {
         const runtimeIndex = this.palette.getRuntimeIndex(runtimeId);
         this.words[BlockStorage.getIndex(bx, by, bz)] = runtimeIndex;
     }
-        
+
     public getStorageId(): number {
         // Returns the bits needed to store blocks
         return Math.ceil(Math.log2(this.palette.size()));
@@ -83,13 +88,13 @@ export default class BlockStorage {
         const stream = new BinaryStream();
         // https://gist.github.com/Tomcc/a96af509e275b1af483b25c543cfbf37
         // 7 bit: storage type, 1 bit (shift to end): network format (always 1)
-        
+
         let bitsPerBlock = Math.ceil(Math.log2(this.palette.size()));
-        
+
         switch (bitsPerBlock) {
-            case 0: 
+            case 0:
                 bitsPerBlock = 1;
-            break;
+                break;
             case 1:
             case 2:
             case 3:
@@ -101,13 +106,11 @@ export default class BlockStorage {
             case 8:
                 bitsPerBlock = 8;
                 break;
-            case bitsPerBlock > 8:
+            default:
                 bitsPerBlock = 16;
                 break;
-            default:
-                break;   
         }
-        
+
         stream.writeByte((bitsPerBlock << 1) | 1);
         const blocksPerWord = Math.floor(32 / bitsPerBlock);
         const wordsPerChunk = Math.ceil(4096 / blocksPerWord);
@@ -126,15 +129,15 @@ export default class BlockStorage {
             }
             indexes[w] = word;
         }
-        
+
         for (const index of indexes) {
-             stream.writeLInt(index);
+            stream.writeLInt(index);
         }
 
         // Write palette entries as runtime ids
         stream.writeVarInt(this.palette.size());
         for (const val of this.palette.getValues()) {
-             stream.writeVarInt(val);
+            stream.writeVarInt(val);
         }
 
         return stream.getBuffer();

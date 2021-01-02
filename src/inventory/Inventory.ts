@@ -62,7 +62,7 @@ export default class Inventory {
      */
     public getItem(slot: number): ContainerEntry {
         if (this.content.has(slot)) {
-            return this.content.get(slot) as ContainerEntry;
+            return this.content.get(slot)!;
         }
 
         return new ContainerEntry({

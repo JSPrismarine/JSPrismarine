@@ -135,8 +135,10 @@ export default class CommandManager {
             }
         }
 
-        if (!command)
-            return sender.sendMessage('§cCannot find the desired command!');
+        if (!command) {
+            sender.sendMessage('§cCannot find the desired command!');
+            return;
+        }
 
         if (
             await this.server
@@ -160,7 +162,7 @@ export default class CommandManager {
             return;
         }
 
-        return sender.sendMessage(
+        sender.sendMessage(
             '§cYou do not have permission to perform this command!'
         );
     }

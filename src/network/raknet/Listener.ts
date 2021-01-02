@@ -54,9 +54,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
         this.socket.on('message', async (buffer: Buffer, rinfo: RemoteInfo) => {
             const token = `${rinfo.address}:${rinfo.port}`;
             if (this.connections.has(token)) {
-                return (this.connections.get(token) as Connection).receive(
-                    buffer
-                );
+                return this.connections.get(token)!.receive(buffer);
             }
 
             try {
@@ -76,7 +74,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
         });
 
         return new Promise((resolve, reject) => {
-            const failFn = (e: Error) => reject(e);
+            const failFn = (e: Error) => {
+                reject(e);
+            };
 
             this.socket.once('error', failFn);
             this.socket.bind(port, address, () => {
@@ -109,7 +109,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
                 if (packets.length <= 0) {
                     clearInterval(inter);
-                    return resolve();
+                    resolve();
                 }
             }, 50);
         });
@@ -191,7 +191,8 @@ export default class Listener extends EventEmitter implements RakNetListener {
                 packet.encode();
 
                 const buffer = packet.getBuffer();
-                return resolve(buffer);
+                resolve(buffer);
+                return;
             }
 
             const packet = new OpenConnectionReply1();

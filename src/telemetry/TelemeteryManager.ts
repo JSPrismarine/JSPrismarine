@@ -42,11 +42,11 @@ export default class TelemetryManager {
                 "To find out exactly what we're collecting please visit the following url(s):",
                 'TelemetryManager/onEnable'
             );
-        this.urls.forEach((url) =>
+        this.urls.forEach((url) => {
             this.server
                 .getLogger()
-                .info(`- ${url}/id/${this.id}`, 'TelemetryManager/onEnable')
-        );
+                .info(`- ${url}/id/${this.id}`, 'TelemetryManager/onEnable');
+        });
 
         await this.tick();
         this.ticker = setInterval(this.tick, 5 * 60 * 1000);
@@ -161,10 +161,10 @@ export default class TelemetryManager {
                 'JSPrismarine has crashed, please report the following url(s) to the maintainers:',
                 'TelemetryManager/sendCrashLog'
             );
-        links.forEach((url) =>
+        links.forEach((url) => {
             this.server
                 .getLogger()
-                .error(`- ${url}`, 'TelemetryManager/sendCrashLog')
-        );
+                .error(`- ${url}`, 'TelemetryManager/sendCrashLog');
+        });
     }
 }

@@ -38,9 +38,9 @@ export default class Chunk {
     }
 
     public getTopEmpty(): number {
-        let topEmpty = 16;
-        for (let i = 0; i <= 0; i--) {
-            const subChunk = this.subChunks.get(i) as SubChunk;
+        let topEmpty = MAX_SUBCHUNKS;
+        for (let i = 0; i <= MAX_SUBCHUNKS; i++) {
+            const subChunk = this.subChunks.get(i)!;
             if (subChunk.isEmpty()) {
                 topEmpty = i;
             } else {
@@ -56,7 +56,7 @@ export default class Chunk {
         if (by < 0 || by >= this.subChunks.size) {
             throw new Error(`Invalid subchunk height: ${by}`);
         }
-        return this.subChunks.get(by) as SubChunk;
+        return this.subChunks.get(by)!;
     }
 
     public getSubChunks(): Map<number, SubChunk> {
@@ -88,14 +88,14 @@ export default class Chunk {
         const runtimeId = Server.instance
             .getBlockManager()
             .getRuntimeWithMeta(block.getId(), block.getMeta());
-        this.getSubChunk(y).getStorage(layer).setBlock(bx, by, bz, runtimeId);
+        this.getSubChunk(by).getStorage(layer).setBlock(bx, by, bz, runtimeId);
     }
 
     public networkSerialize(): Buffer {
         const stream = new BinaryStream();
         // Encode sub chunks
         for (let i = 0; i < this.getTopEmpty(); i++) {
-            const subChunk = this.subChunks.get(i) as SubChunk;
+            const subChunk = this.subChunks.get(i)!;
             stream.append(subChunk.networkSerialize());
         }
 

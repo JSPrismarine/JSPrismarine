@@ -3,7 +3,6 @@ import InventoryTransactionPacket, {
     InventoryTransactionUseItemActionType
 } from '../packet/InventoryTransactionPacket';
 
-import Block from '../../block/Block';
 import Gamemode from '../../world/Gamemode';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import PacketHandler from './PacketHandler';
@@ -147,12 +146,14 @@ export default class InventoryTransactionHandler
                                 .getBlockManager()
                                 .getBlockById(blockId);
 
-                            if (!block)
-                                return server
+                            if (!block) {
+                                server
                                     .getLogger()
                                     .warn(
                                         `Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`
                                     );
+                                return;
+                            }
 
                             const pk = new UpdateBlockPacket();
                             pk.x = packet.blockPosition.getX();
