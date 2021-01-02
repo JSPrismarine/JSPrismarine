@@ -13,8 +13,6 @@ const BedrockData = require('@jsprismarine/bedrock-data'); // TODO: convert to i
 export default class BlockManager {
     private readonly server: Server;
     private readonly blocks = new Map();
-    private readonly runtimeIds: number[] = [];
-    private readonly blockPalette: Buffer = Buffer.alloc(0);
 
     private readonly legacyToRuntimeId: Map<number, number> = new Map();
     private readonly runtimeIdToLegacy: Map<number, number> = new Map();
@@ -29,7 +27,6 @@ export default class BlockManager {
      */
     public async onEnable() {
         this.importBlocks();
-        this.generateRuntimeIds();
         await this.generateBlockPalette();
     }
 
@@ -44,7 +41,7 @@ export default class BlockManager {
      * Get block by namespaced  id
      */
     public getBlock(name: string): Block | null {
-        return this.blocks.get(name) || null;
+        return this.blocks.get(name) ?? null;
     }
 
     /**
@@ -73,8 +70,13 @@ export default class BlockManager {
     /**
      * Get block by runtime id
      */
-    public getBlockByRuntimeId(id: number, meta = 0): Block | null {
-        return this.getBlockByIdAndMeta(this.runtimeIds[id], meta) || null;
+    public getBlockByRuntimeId(runtimeId: number, meta = 0): Block | null {
+        if (this.runtimeIdToLegacy.has(runtimeId)) {
+            const legacyId = this.runtimeIdToLegacy.get(runtimeId) >> 6;
+            return this.getBlockByIdAndMeta(runtimeId, meta);
+        } 
+        console.log("Legacy ID mapping for Runtime ID=%d not found!", runtimeId);
+        return null;
     }
 
     /**
@@ -155,9 +157,6 @@ export default class BlockManager {
      * Registers block from block class
      */
     public registerClassBlock(block: Block) {
-        // The runtime ID is a unique ID sent with the start-game packet
-        // ours is always based on the block's index in the this.blocks map
-        // starting from 0.
         this.server
             .getLogger()
             .silly(`Block with id §b${block.name}§r registered`);
@@ -193,13 +192,5 @@ export default class BlockManager {
                 .getLogger()
                 .error(`Failed to register blocks: ${error}`);
         }
-    }
-
-    private generateRuntimeIds() {
-        const blocks = this.getBlocks().sort(() => 0.5 - Math.random()); // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
-
-        for (const block of blocks) {
-            this.runtimeIds.push(block.getId());
-        }
-    }
+    } 
 }
