@@ -159,7 +159,7 @@ export default class Player extends Human implements CommandExecuter {
 
     public async setGamemode(mode: number): Promise<void> {
         const event = new PlayerSetGamemodeEvent(this, mode);
-        this.server.getEventManager().post(['playerSetGamemodeEvent', event]);
+        this.server.getEventManager().post(['playerSetGamemode', event]);
         if (event.cancelled) return;
 
         this.gamemode = event.getGamemode();
