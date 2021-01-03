@@ -1,19 +1,19 @@
 import Solid from '../Solid';
-import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 
-export default class Cobblestone extends Solid {
+export default class OakStairs extends Solid {
     constructor() {
         super({
-            name: 'minecraft:cobblestone',
-            id: BlockIdsType.Cobblestone,
+            name: 'minecraft:oak_stairs',
+            id: BlockIdsType.OakStairs,
             hardness: 2
         });
     }
 
     public getToolType() {
-        return BlockToolType.Pickaxe;
+        return BlockToolType.Axe;
     }
 
     public getToolHarvestLevel() {
