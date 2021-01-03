@@ -28,7 +28,6 @@ export default class BlockManager {
      */
     public async onEnable() {
         await this.importBlocks();
-        this.generateRuntimeIds();
         await this.generateBlockPalette();
     }
 
