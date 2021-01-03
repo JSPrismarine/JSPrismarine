@@ -1,15 +1,18 @@
+import ItemRequest from '../../item/request/ItemRequest';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 export default class ItemStackRequestPacket extends DataPacket {
-    static NetID = Identifiers.ItemStackRequestPacket;
+    public static NetID = Identifiers.ItemStackRequestPacket;
 
-    public requests: any[] = [];
+    public requests: Array<ItemRequest> = [];
 
-    public decodePayload() {
-        let count = this.readUnsignedVarInt();
+    public decodePayload(): void {
+        const count = this.readUnsignedVarInt();
         for (let i = 0; i < count; i++) {
-            this.requests.push(this.readItemStackRequest());
+            const req = this.readItemStackRequest();
+            console.log(req)
+            this.requests.push(req);
         }
     }
 }

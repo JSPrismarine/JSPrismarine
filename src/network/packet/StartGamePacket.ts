@@ -114,7 +114,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeUnsignedVarInt(0); // item palette
 
         this.writeString('');
-        this.writeBool(false); // new inventory system
+        this.writeBool(true); // new inventory system
     }
 
     /* 

@@ -1,12 +1,19 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { Attribute } from '../entity/attribute';
 import { FlagType } from '../entity/metadata';
+import ItemActionRequest from '../item/request/action/ActionRequest';
+import ConsumeRequest from '../item/request/action/Consume';
+import CreativeCreateRequest from '../item/request/action/CreativeCreate';
+import PlaceRequest from '../item/request/action/Place';
+import TakeRequest from '../item/request/action/Take';
+import ItemRequest, { ItemRequests } from '../item/request/ItemRequest';
+import SlotInfoRequest from '../item/request/SlotInfoRequest';
 import Skin from '../utils/skin/Skin';
-import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
-import SkinPersonaPiece from '../utils/skin/skin-persona/SkinPersonaPiece';
-import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/SkinPersonaPieceTintColor';
-import SkinAnimation from '../utils/skin/SkinAnimation';
-import SkinCape from '../utils/skin/SkinCape';
+// import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
+// import SkinPersonaPiece from '../utils/skin/skin-persona/SkinPersonaPiece';
+// import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/SkinPersonaPieceTintColor';
+// import SkinAnimation from '../utils/skin/SkinAnimation';
+// import SkinCape from '../utils/skin/SkinCape';
 import SkinImage from '../utils/skin/SkinImage';
 import UUID from '../utils/UUID';
 import BlockPosition from '../world/BlockPosition';
@@ -15,15 +22,6 @@ import CreativeContentEntry from './type/creative-content-entry';
 
 const CommandOriginData = require('./type/command-origin-data');
 const CommandOrigin = require('./type/command-origin');
-
-const ItemStackRequest = require('./type/item-stack-requests/item-stack-request');
-const ItemStackRequestTake = require('./type/item-stack-requests/take');
-const ItemStackRequestPlace = require('./type/item-stack-requests/place');
-const ItemStackRequestDrop = require('./type/item-stack-requests/drop');
-const ItemStackRequestSwap = require('./type/item-stack-requests/swap');
-const ItemStackRequestDestroy = require('./type/item-stack-requests/destroy');
-const ItemStackRequestCreativeCreate = require('./type/item-stack-requests/creative-create');
-const ItemStackRequestConsume = require('./type/item-stack-requests/consume');
 
 export default class PacketBinaryStream extends BinaryStream {
     /**
@@ -419,19 +417,17 @@ export default class PacketBinaryStream extends BinaryStream {
         return null;
     }
 
-    readItemStackRequest() {
-        const id = this.readVarInt();
-        // this.#server.getLogger().debug(`Request ID: ${id}`);
+    public readItemStackRequest(): ItemRequest {
+        const id = this.readUnsignedVarInt();
+        console.log('Request ID: %d', id);
 
-        const actions = [];
-        for (let i = 0; i < this.readUnsignedVarInt(); i++) {
-            actions.push(this.readItemStackRequestAction());
+        const actionsLength = this.readUnsignedVarInt();
+        const actions: Array<ItemActionRequest> = new Array(actionsLength);
+        for (let i = 0; i < actionsLength; i++) {
+            actions.push(this.readItemStackRequestAction() as ItemActionRequest);
         }
 
-        return new ItemStackRequest({
-            id,
-            actions: actions.filter((a) => a)
-        });
+        return new ItemRequest(id, actions);
     }
 
     writeItemStackRequest() {
@@ -441,74 +437,67 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeVarInt(0);
     }
 
-    readItemStackRequestAction() {
+    public readItemStackRequestAction(): ItemActionRequest | null {
         const id = this.readByte();
 
-        // this.#server.getLogger().debug(`Action ${id}`);
         switch (id) {
-            case 0: // TODO: enum
-                return new ItemStackRequestTake({
+            case ItemRequests.TAKE: 
+                return new TakeRequest({
                     count: this.readByte(),
                     from: this.readItemStackRequestSlotInfo(),
                     to: this.readItemStackRequestSlotInfo()
                 });
-            case 1:
-                return new ItemStackRequestPlace({
+            case ItemRequests.PLACE:
+                return new PlaceRequest({
                     count: this.readByte(),
                     from: this.readItemStackRequestSlotInfo(),
                     to: this.readItemStackRequestSlotInfo()
                 });
-            case 2:
-                return new ItemStackRequestSwap({
-                    from: this.readItemStackRequestSlotInfo(),
-                    to: this.readItemStackRequestSlotInfo()
-                });
-            case 3:
-                return new ItemStackRequestDrop({
-                    count: this.readByte(),
-                    from: this.readItemStackRequestSlotInfo(),
-                    randomly: this.readBool()
-                });
-            case 4:
-                return new ItemStackRequestDestroy({
-                    count: this.readByte(),
-                    from: this.readItemStackRequestSlotInfo()
-                });
-            case 5:
-                return new ItemStackRequestConsume({
+            case ItemRequests.SWAP:
+                // return new ItemStackRequestSwap({
+                //    from: this.readItemStackRequestSlotInfo(),
+                //    to: this.readItemStackRequestSlotInfo()
+                // });
+            case ItemRequests.DROP:
+                // return new ItemStackRequestDrop({
+                //    count: this.readByte(),
+                //    from: this.readItemStackRequestSlotInfo(),
+                //    randomly: this.readBool()
+                // });
+            case ItemRequests.DESTROY:
+                // return new ItemStackRequestDestroy({
+                //    count: this.readByte(),
+                //    from: this.readItemStackRequestSlotInfo()
+                // });
+            case ItemRequests.CONSUME:
+                return new ConsumeRequest({
                     count: this.readByte(),
                     from: this.readItemStackRequestSlotInfo()
                 });
             case 6:
-                return {
-                    slot: this.readByte()
-                };
+                // return {
+                //    slot: this.readByte()
+                // };
             case 7:
-                return {};
+                // return {};
             case 8:
-                return {
-                    primaryEffect: this.readVarInt(),
-                    secondaryEffect: this.readVarInt()
-                };
+                // return {
+                //    primaryEffect: this.readVarInt(),
+                //    secondaryEffect: this.readVarInt()
+                // };
             case 9:
-                return {
-                    recipeNetworkId: this.readUnsignedVarInt()
-                };
+                // return {
+                //    recipeNetworkId: this.readUnsignedVarInt()
+                // };
             case 10:
-                return {
-                    recipeNetworkId: this.readUnsignedVarInt()
-                };
-            case 11:
-                return new ItemStackRequestCreativeCreate({
+                // return {
+                //    recipeNetworkId: this.readUnsignedVarInt()
+                // };
+            case ItemRequests.CREATIVE_CREATE:
+                return new CreativeCreateRequest({
                     itemId: this.readUnsignedVarInt()
                 });
-            case 12: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
-                /* this.#server
-                    .getLogger()
-                    .silly(
-                        'Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)'
-                    ); */
-                return {};
+            case ItemRequests.CRAFTING_NON_IMPLEMENTED_DEPRECATED: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
             case 13: // CRAFTING_RESULTS_DEPRECATED, Deprecated so we'll just ignore it
                 /* this.#server
                     .getLogger()
@@ -521,21 +510,18 @@ export default class PacketBinaryStream extends BinaryStream {
                     items.push(this.readItemStack());
                 }
                 this.readByte(); // times crafted
-                return {};
             default:
-                /* this.#server
-                    .getLogger()
-                    .debug(`Unknown item stack request id: ${id}`); */
-                return {};
+                console.log(`Unknown item stack request id=${id}`); 
+                return null;
         }
     }
 
-    readItemStackRequestSlotInfo() {
-        return {
+    public readItemStackRequestSlotInfo(): SlotInfoRequest {
+        return new SlotInfoRequest({
             containerId: this.readByte(),
             slot: this.readByte(),
             stackNetworkId: this.readVarInt()
-        }; // TODO: class
+        }); 
     }
 
     readCommandOriginData() {

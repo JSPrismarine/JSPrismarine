@@ -26,7 +26,7 @@ export default class Inventory {
         }
 
         for (let i = 0; i < this.getSlotCount(); i++) {
-            this.setItem(i, items[i] || new Air());
+            this.setItem(i, items[i] ?? new Air());
         }
     }
 
