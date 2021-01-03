@@ -1,42 +1,21 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Block from '../../block/Block';
-import Server from '../../Server';
 import BlockStorage from './BlockStorage';
 
 export default class SubChunk {
     private storages: Map<number, BlockStorage> = new Map();
-    private blockLight: Buffer;
-    private skyLight: Buffer;
 
-    public constructor(
-        storages: Map<number, BlockStorage> = new Map(),
-        blockLight?: Buffer,
-        skyLight?: Buffer
-    ) {
-        // Restore storages if they exists
-        if (storages.has(0)) {
-            this.storages.set(0, storages.get(0)!);
-        } // Terrain storage
-        // TODO: if (storages[1]) this.storages[1] = storages[1];  // Water storage
-
-        // Restore block and sky lighting
-        this.blockLight = blockLight ?? Buffer.alloc(2048).fill(0);
-        this.skyLight = skyLight ?? Buffer.alloc(2048).fill(0);
+    public constructor(storages: Map<number, BlockStorage> = new Map()) {
+        this.storages = storages;
     }
 
-    public getBlockLight(): Buffer {
-        return this.blockLight;
-    }
-
-    public getSkyLight(): Buffer {
-        return this.skyLight;
-    }
-
+    /**
+     * Returns if the SubChunk is all air (basically empty).
+     */
     public isEmpty(): boolean {
         return this.storages.size === 0;
     }
 
-    public getStorage(index: number): BlockStorage {
+    private getStorage(index: number): BlockStorage {
         if (!this.storages.has(index)) {
             // Create all missing storage layers
             for (let i = 0; i <= index; i++) {
@@ -53,21 +32,40 @@ export default class SubChunk {
         return Array.from(this.storages.values());
     }
 
+    /**
+     * Returns the legacy block id in the given position.
+     *
+     * @param bx - block x
+     * @param by - block y
+     * @param bz - block z
+     * @param layer - block storage layer
+     */
+    public getBlockId(
+        bx: number,
+        by: number,
+        bz: number,
+        layer: number
+    ): number {
+        return this.getStorage(layer).getBlockId(bx, by & 0xf, bz);
+    }
+
+    /**
+     * Sets a block by runtime Id in the given storage layer.
+     *
+     * @param bx - block x
+     * @param by - block y
+     * @param bz - block z
+     * @param runtimeId - block runtime Id
+     * @param layer - block storage layer
+     */
     public setBlock(
         bx: number,
         by: number,
         bz: number,
-        block: Block,
-        layer = 0
+        runtimeId: number,
+        layer: number
     ): void {
-        const runtimeId = Server.instance
-            .getBlockManager()
-            .getRuntimeWithMeta(block.getId(), block.getMeta());
-
-        this.getStorage(layer).setBlock(bx, by, bz, runtimeId);
-    }
-    public getBlockId(bx: number, by: number, bz: number, layer = 0): number {
-        return this.getStorage(layer).getBlockId(bx, by, bz);
+        this.getStorage(layer).setBlock(bx, by & 0xf, bz, runtimeId);
     }
 
     public networkSerialize(): Buffer {

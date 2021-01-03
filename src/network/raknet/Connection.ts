@@ -512,9 +512,9 @@ export default class Connection {
         if (localSplits.size === packet.splitCount) {
             const pk = new EncapsulatedPacket();
             const stream = new BinaryStream();
-            Array.from(localSplits.values()).map((packet) => {
-                return stream.append(packet.buffer);
-            });
+            for (const packet of localSplits.values()) {
+                stream.append(packet.buffer);
+            }
             this.splitPackets.delete(packet.splitId);
 
             pk.buffer = stream.getBuffer();

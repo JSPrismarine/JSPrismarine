@@ -1,13 +1,13 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import fs from 'fs';
-import path from 'path';
+import Block from './Block';
+import { BlockIdsType } from './BlockIdsType';
 import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
 import { ByteOrder } from '../nbt/ByteOrder';
 import NBTReader from '../nbt/NBTReader';
 import NBTTagCompound from '../nbt/NBTTagCompound';
 import Server from '../Server';
-import Block from './Block';
-import { BlockIdsType } from './BlockIdsType';
+import fs from 'fs';
+import path from 'path';
 
 const BedrockData = require('@jsprismarine/bedrock-data'); // TODO: convert to import
 

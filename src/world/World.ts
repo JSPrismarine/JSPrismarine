@@ -5,6 +5,7 @@ import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
 import DataPacket from '../network/packet/DataPacket';
 import Entity from '../entity/entity';
+import Gamemode from './Gamemode';
 import Item from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import Player from '../player/Player';
@@ -16,7 +17,6 @@ import Vector3 from '../math/Vector3';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
 import fs from 'fs';
 import path from 'path';
-import Gamemode from './Gamemode';
 
 interface WorldData {
     name: string;
@@ -97,8 +97,8 @@ export default class World {
         const chunksToLoad: Array<Promise<Chunk>> = [];
         const time = Date.now();
 
-        for (let x = 0; x < 5; x++) {
-            for (let z = 0; z < 5; z++) {
+        for (let x = 0; x < 32; x++) {
+            for (let z = 0; z < 32; z++) {
                 chunksToLoad.push(this.loadChunk(x, z, true));
             }
         }

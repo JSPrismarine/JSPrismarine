@@ -253,7 +253,7 @@ export default class Server {
 
             const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
             if (!this.players.has(token)) return;
-            const player = this.players.get(token);
+            const player = this.players.get(token)!;
 
             // Read batch content and handle them
             const batched = new BatchPacket(raknetPacket.buffer);
@@ -293,7 +293,7 @@ export default class Server {
                     await (handler as PacketHandler<any>).handle(
                         packet,
                         this,
-                        player!
+                        player
                     );
                 } catch (error) {
                     this.logger.error(

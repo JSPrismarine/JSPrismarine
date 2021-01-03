@@ -39,14 +39,15 @@ export function getStorageBlocks(type: StorageType): number {
 }
 
 export default class BlockStorage {
-    private words: number[];
+    private blocks: number[];
     private palette = new Palette();
 
-    public constructor(words?: number[]) {
+    public constructor(blocks?: number[]) {
         const blockManager = Server.instance.getBlockManager();
         const AIR_RUNTIME_ID = blockManager.getRuntimeWithId(0);
         const paletteAirIndex = this.palette.getRuntimeIndex(AIR_RUNTIME_ID);
-        this.words = words ?? new Array(4096).fill(paletteAirIndex);
+        // Fill the
+        this.blocks = blocks ?? new Array(4096).fill(paletteAirIndex);
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {
@@ -59,7 +60,7 @@ export default class BlockStorage {
     // Returns the block id, not runtime
     // Move to return the block instead of Id
     public getBlockId(bx: number, by: number, bz: number): number {
-        const paletteIndex = this.words[BlockStorage.getIndex(bx, by, bz)];
+        const paletteIndex = this.blocks[BlockStorage.getIndex(bx, by, bz)];
         const runtimeId = this.palette.getRuntime(paletteIndex);
 
         const block = Server.instance
@@ -76,7 +77,7 @@ export default class BlockStorage {
         runtimeId: number
     ): void {
         const runtimeIndex = this.palette.getRuntimeIndex(runtimeId);
-        this.words[BlockStorage.getIndex(bx, by, bz)] = runtimeIndex;
+        this.blocks[BlockStorage.getIndex(bx, by, bz)] = runtimeIndex;
     }
 
     public getStorageId(): number {
@@ -87,8 +88,6 @@ export default class BlockStorage {
     public networkSerialize(): Buffer {
         const stream = new BinaryStream();
         // https://gist.github.com/Tomcc/a96af509e275b1af483b25c543cfbf37
-        // 7 bit: storage type, 1 bit (shift to end): network format (always 1)
-
         let bitsPerBlock = Math.ceil(Math.log2(this.palette.size()));
 
         switch (bitsPerBlock) {
@@ -111,6 +110,7 @@ export default class BlockStorage {
                 break;
         }
 
+        // 7 bit: storage type, 1 bit (shift to end): network format (always 1)
         stream.writeByte((bitsPerBlock << 1) | 1);
         const blocksPerWord = Math.floor(32 / bitsPerBlock);
         const wordsPerChunk = Math.ceil(4096 / blocksPerWord);
@@ -122,7 +122,7 @@ export default class BlockStorage {
         for (let w = 0; w < wordsPerChunk; w++) {
             let word = 0;
             for (let block = 0; block < blocksPerWord; block++) {
-                const state = this.words[position];
+                const state = this.blocks[position];
                 word |= state << (bitsPerBlock * block);
 
                 position++;

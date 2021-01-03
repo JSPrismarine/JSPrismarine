@@ -37,6 +37,9 @@ export default class Chunk {
         return this.subChunks.size;
     }
 
+    /**
+     * Returns the highest empty sub chunk (so we don't send empty sub chunks).
+     */
     public getTopEmpty(): number {
         let topEmpty = MAX_SUBCHUNKS;
         for (let i = 0; i <= MAX_SUBCHUNKS; i++) {
@@ -50,10 +53,14 @@ export default class Chunk {
         return topEmpty;
     }
 
+    /**
+     * Returns the Chunk slice at given block height.
+     *
+     * @param by - block y
+     */
     public getSubChunk(by: number): SubChunk {
-        // From block y to sub chunk index
-        by >>= 4;
-        if (by < 0 || by >= this.subChunks.size) {
+        by >>= 4; // Block to SubChunk index
+        if (!this.subChunks.has(by)) {
             throw new Error(`Invalid subchunk height: ${by}`);
         }
         return this.subChunks.get(by)!;
@@ -74,10 +81,27 @@ export default class Chunk {
         // return -1;
     }
 
+    /**
+     * Returns a block legacy id in the corresponding sub chunk.
+     *
+     * @param bx - block x
+     * @param by - block y
+     * @param bz - block z
+     * @param layer - block storage layer (0 for blocks, 1 for liquids)
+     */
     public getBlockId(bx: number, by: number, bz: number, layer = 0): number {
-        return this.getSubChunk(by).getStorage(layer).getBlockId(bx, by, bz);
+        return this.getSubChunk(by).getBlockId(bx, by, bz, layer);
     }
 
+    /**
+     * Sets a block into the chunk by its runtime Id.
+     *
+     * @param bx - block x
+     * @param by - block y
+     * @param bz - block z
+     * @param block - block to set
+     * @param layer - block storage layer (0 for blocks, 1 for liquids)
+     */
     public setBlock(
         bx: number,
         by: number,
@@ -88,7 +112,7 @@ export default class Chunk {
         const runtimeId = Server.instance
             .getBlockManager()
             .getRuntimeWithMeta(block.getId(), block.getMeta());
-        this.getSubChunk(by).getStorage(layer).setBlock(bx, by, bz, runtimeId);
+        this.getSubChunk(by).setBlock(bx, by, bz, runtimeId, layer);
     }
 
     public networkSerialize(): Buffer {
