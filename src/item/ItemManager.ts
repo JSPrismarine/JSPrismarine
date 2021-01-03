@@ -59,7 +59,13 @@ export default class ItemManager {
             const time = Date.now();
             const items = fs.readdirSync(path.join(__dirname, 'items'));
             items.forEach((id: string) => {
-                if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
+                if (
+                    id.includes('.test.') ||
+                    id.includes('.d.ts') ||
+                    id.includes('.jsc') ||
+                    id.includes('.map')
+                )
+                    return; // Exclude test files
 
                 const item = require(`./items/${id}`).default;
                 try {

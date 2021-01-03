@@ -23,7 +23,13 @@ export default class CommandManager {
         // Register vanilla commands
         const vanilla = fs.readdirSync(path.join(__dirname, 'vanilla'));
         vanilla.forEach((id: string) => {
-            if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
+            if (
+                id.includes('.test.') ||
+                id.includes('.d.ts') ||
+                id.includes('.jsc') ||
+                id.includes('.map')
+            )
+                return; // Exclude test files
 
             const command = require(`./vanilla/${id}`);
             this.registerClassCommand(
@@ -37,7 +43,13 @@ export default class CommandManager {
             path.join(__dirname, 'jsprismarine')
         );
         jsprismarine.forEach((id: string) => {
-            if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
+            if (
+                id.includes('.test.') ||
+                id.includes('.d.ts') ||
+                id.includes('.jsc') ||
+                id.includes('.map')
+            )
+                return; // Exclude test files
 
             if (
                 !this.server.getConfig().getEnableEval() &&
