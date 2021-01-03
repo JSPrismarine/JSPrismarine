@@ -3,20 +3,24 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
-export default class LapisBlock extends Solid {
+export default class IronBlock extends Solid {
     constructor() {
         super({
-            name: 'minecraft:lapis_block',
-            id: BlockIdsType.LapisBlock,
+            name: 'minecraft:iron_block',
+            id: BlockIdsType.IronBlock,
             hardness: 3
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Stone;
+    }
+
+    public getBlastResistance() {
+        return 6;
     }
 }

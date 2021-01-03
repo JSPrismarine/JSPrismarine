@@ -25,15 +25,15 @@ export default class Stone extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Wood;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:cobblestone')];
     }
 }
