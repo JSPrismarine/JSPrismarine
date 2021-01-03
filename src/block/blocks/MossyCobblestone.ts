@@ -3,12 +3,12 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
-export default class LapisBlock extends Solid {
+export default class MossyCobblestone extends Solid {
     constructor() {
         super({
-            name: 'minecraft:lapis_block',
-            id: BlockIdsType.LapisBlock,
-            hardness: 3
+            name: 'minecraft:mossy_cobblestone',
+            id: BlockIdsType.MossyCobblestone,
+            hardness: 2
         });
     }
 
@@ -17,6 +17,6 @@ export default class LapisBlock extends Solid {
     }
 
     getToolHarvestLevel() {
-        return ItemTieredToolType.Stone;
+        return ItemTieredToolType.Wood;
     }
 }
