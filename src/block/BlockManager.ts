@@ -1,6 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import fs from 'fs';
 import path from 'path';
+import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
 import { ByteOrder } from '../nbt/ByteOrder';
 import NBTReader from '../nbt/NBTReader';
 import NBTTagCompound from '../nbt/NBTTagCompound';
@@ -28,7 +29,7 @@ export default class BlockManager {
      * OnEnable hook
      */
     public async onEnable() {
-        this.importBlocks();
+        await this.importBlocks();
         this.generateRuntimeIds();
         await this.generateBlockPalette();
     }
@@ -154,7 +155,7 @@ export default class BlockManager {
     /**
      * Registers block from block class
      */
-    public registerClassBlock(block: Block) {
+    public async registerClassBlock(block: Block) {
         if (
             this.blocks.get(block.name) ||
             this.getBlockByIdAndMeta(block.getId(), block.getMeta())
@@ -162,6 +163,10 @@ export default class BlockManager {
             throw new Error(
                 `Block with id ${block.getName()} (${block.getId()}:${block.getMeta()}) already exists`
             );
+
+        const event = new BlockRegisterEvent(block);
+        await this.server.getEventManager().emit('blockRegister', event);
+        if (event.cancelled) return;
 
         // The runtime ID is a unique ID sent with the start-game packet
         // ours is always based on the block's index in the this.blocks map
@@ -178,25 +183,27 @@ export default class BlockManager {
     /**
      * Loops through ./src/block/blocks and register them
      */
-    private importBlocks() {
+    private async importBlocks() {
         try {
             const time = Date.now();
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
-            blocks.forEach((id: string) => {
-                if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
+            await Promise.all(
+                blocks.map(async (id: string) => {
+                    if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
 
-                const block = require(`./blocks/${id}`).default;
-                try {
-                    this.registerClassBlock(new block());
-                } catch {
-                    this.server
-                        .getLogger()
-                        .error(
-                            `${id} failed to register!`,
-                            'BlockManager/importBlocks'
-                        );
-                }
-            });
+                    const block = require(`./blocks/${id}`).default;
+                    try {
+                        await this.registerClassBlock(new block());
+                    } catch {
+                        this.server
+                            .getLogger()
+                            .error(
+                                `${id} failed to register!`,
+                                'BlockManager/importBlocks'
+                            );
+                    }
+                })
+            );
             this.server
                 .getLogger()
                 .debug(
