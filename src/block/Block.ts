@@ -88,42 +88,42 @@ export default class Block {
     /**
      * Get the Block's blast resistance
      */
-    getBlastResistance() {
+    public getBlastResistance() {
         return this.getHardness() * 5;
     }
 
     /**
      * Get the Block's light level emission
      */
-    getLightLevel() {
+    public getLightLevel() {
         return 0;
     }
 
     /**
      * Get the Block's flammability
      */
-    getFlammability() {
+    public getFlammability() {
         return 0;
     }
 
     /**
      * Get the Block's required tool type
      */
-    getToolType(): BlockToolType {
+    public getToolType(): BlockToolType {
         return BlockToolType.None;
     }
 
     /**
      * Get the Block's required item tool tier
      */
-    getToolHarvestLevel(): ItemTieredToolType {
+    public getToolHarvestLevel(): ItemTieredToolType {
         return ItemTieredToolType.None;
     }
 
     /**
      * Get the Block's drop(s) if the tool is compatible
      */
-    getDropsForCompatibleTool(
+    public getDropsForCompatibleTool(
         item: Item,
         server: Server
     ): Array<Block | Item | null> {
@@ -133,7 +133,7 @@ export default class Block {
     /**
      * Get the Block's drop(s) from the current item
      */
-    getDrops(item: Item, server: Server): Array<Block | Item | null> {
+    public getDrops(item: Item, server: Server): Array<Block | Item | null> {
         if (this.isCompatibleWithTool(item)) {
             if (
                 this.isAffectedBySilkTouch() &&
@@ -150,22 +150,22 @@ export default class Block {
     /**
      * Get the Block's drop(s) if silk touch is used
      */
-    getSilkTouchDrops(item: Item, server: Server) {
+    public getSilkTouchDrops(item: Item, server: Server) {
         return [this];
     }
 
-    getLightFilter() {
+    public getLightFilter() {
         return 15;
     }
 
-    canPassThrough() {
+    public canPassThrough() {
         return false;
     }
 
     /**
      * Sets if the block can be replaced when place action occurs on it
      */
-    canBeReplaced() {
+    public canBeReplaced() {
         return false;
     }
 
