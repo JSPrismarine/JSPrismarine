@@ -2,11 +2,11 @@ import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import Transparent from '../Transparent';
 
-export default class PoweredRail extends Transparent {
+export default class Rail extends Transparent {
     constructor() {
         super({
-            name: 'minecraft:powered_rail', // Called powered_rail in the Java Edition
-            id: BlockIdsType.PoweredRail,
+            name: 'minecraft:rail',
+            id: BlockIdsType.Rail,
             hardness: 0.7
         });
     }
