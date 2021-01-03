@@ -1,5 +1,5 @@
-import InetAddress from '../utils/InetAddress';
 import Identifiers from './Identifiers';
+import InetAddress from '../utils/InetAddress';
 import Packet from './Packet';
 
 export default class NewIncomingConnection extends Packet {
@@ -8,7 +8,7 @@ export default class NewIncomingConnection extends Packet {
     }
 
     public address!: InetAddress;
-    public systemAddresses: Array<InetAddress> = [];
+    public systemAddresses: InetAddress[] = [];
 
     public requestTimestamp!: bigint;
     public acceptedTimestamp!: bigint;
@@ -31,6 +31,7 @@ export default class NewIncomingConnection extends Packet {
         for (let i = 0; i < 20; i++) {
             this.writeAddress(this.address);
         }
+
         this.writeLong(this.requestTimestamp);
         this.writeLong(this.acceptedTimestamp);
     }

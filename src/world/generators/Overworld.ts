@@ -1,11 +1,11 @@
-import type Vector3 from '../../math/Vector3';
-import type Prismarine from '../../Prismarine';
 import Chunk from '../chunk/Chunk';
 import Noise from '../synth/Noise';
+import type Server from '../../Server';
 import type Random from '../util/Random';
+import type Vector3 from '../../math/Vector3';
 
 const CHUNK_WIDTH = 16;
-const CHUNK_HEIGHT = 256; // 1.17: 16?
+// Const CHUNK_HEIGHT = 256; 1.17: 16?
 const CHUNK_LENGTH = 16;
 const SEA_LEVEL = 62;
 
@@ -19,7 +19,7 @@ export default class Overworld {
     }: {
         pos: Vector3;
         seed: Random;
-        server: Prismarine;
+        server: Server;
     }) {
         if (!this.noise) this.noise = new Noise(seed);
 
@@ -46,7 +46,7 @@ export default class Overworld {
 
                 for (let y = 0; y < SEA_LEVEL; y++) {
                     const subChunk = chunk.getSubChunk(y >> 4, false);
-                    if (subChunk.getBlockId(x, y & 0x0f, z) == 0) {
+                    if (subChunk.getBlockId(x, y & 0x0f, z) === 0) {
                         subChunk.setBlock(x, y & 0x0f, z, water);
                     }
                 }

@@ -30,7 +30,7 @@ export default class ConfigBuilder {
      * Config constructor.
      */
     constructor(filePath: string) {
-        let pathSplitted = path.parse(filePath);
+        const pathSplitted = path.parse(filePath);
 
         this.#type = pathSplitted.ext.slice(1);
 
@@ -39,9 +39,11 @@ export default class ConfigBuilder {
                 (i) => i.toLowerCase() === this.#type.toLowerCase()
             )
         ) {
-            throw `Unsupported config type. (Supported types: ${Object.keys(
-                TypeDefaults
-            ).join(', ')})`;
+            throw new Error(
+                `Unsupported config type. (Supported types: ${Object.keys(
+                    TypeDefaults
+                ).join(', ')})`
+            );
         }
 
         if (fs.existsSync(pathSplitted.dir)) {
@@ -85,8 +87,9 @@ export default class ConfigBuilder {
                 fileData = TOML.stringify(data);
                 break;
             default:
-                throw `Unknown config type ${this.#type}!`;
+                throw new Error(`Unknown config type ${this.#type}!`);
         }
+
         fs.writeFileSync(this.#path, fileData, 'utf8');
     }
 
@@ -97,7 +100,7 @@ export default class ConfigBuilder {
      */
     getFileData() {
         let resultData = {};
-        let rawFileData = fs.readFileSync(this.#path, 'utf8');
+        const rawFileData = fs.readFileSync(this.#path, 'utf8');
         switch (this.#type) {
             case 'json':
                 resultData = JSON.parse(rawFileData);
@@ -109,7 +112,7 @@ export default class ConfigBuilder {
                 resultData = TOML.parse(rawFileData);
                 break;
             default:
-                throw `Unknown config type: ${this.#type}!`;
+                throw new Error(`Unknown config type: ${this.#type}!`);
         }
 
         return resultData || {};
@@ -119,13 +122,14 @@ export default class ConfigBuilder {
      * Returns the value of the key.
      */
     get(key: string, defaults: any) {
-        let data = this.getFileData();
+        const data = this.getFileData();
         let result = _.get(data, key);
-        if (typeof result == 'undefined' && typeof defaults != 'undefined') {
-            let newData = _.set(data, key, defaults);
+        if (typeof result === 'undefined' && typeof defaults !== 'undefined') {
+            const newData = _.set(data, key, defaults);
             this.setFileData(newData);
             result = defaults;
         }
+
         return result;
     }
 
@@ -133,8 +137,8 @@ export default class ConfigBuilder {
      * Sets a key - value pair in config.
      */
     set(key: string, value: any) {
-        let data = this.getFileData();
-        let newData = _.set(data, key, value);
+        const data = this.getFileData();
+        const newData = _.set(data, key, value);
         this.setFileData(newData);
     }
 
@@ -143,8 +147,8 @@ export default class ConfigBuilder {
      * contains that key.
      */
     has(key: string) {
-        let data = this.getFileData();
-        let result = _.has(data, key);
+        const data = this.getFileData();
+        const result = _.has(data, key);
         return result;
     }
 
@@ -153,12 +157,12 @@ export default class ConfigBuilder {
      * deletion was successful.
      */
     del(key: string) {
-        let data = this.getFileData();
+        const data = this.getFileData();
 
-        // it mutates the object, we
+        // It mutates the object, we
         // don't need to define a new
         // variable.
-        let isSuccessful = _.del(data, key);
+        const isSuccessful = _.del(data, key);
 
         this.setFileData(data);
         return isSuccessful;

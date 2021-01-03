@@ -1,13 +1,12 @@
-import type Block from '../../block/Block';
-import type Item from '../../item/Item';
-import Identifiers from '../Identifiers';
+import type ContainerEntry from '../../inventory/ContainerEntry';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class MobEquipmentPacket extends DataPacket {
     static NetID = Identifiers.MobEquipmentPacket;
 
     public runtimeEntityId!: bigint;
-    public item!: Item | Block;
+    public item!: ContainerEntry;
     public inventorySlot!: number;
     public hotbarSlot!: number;
     public windowId!: number;

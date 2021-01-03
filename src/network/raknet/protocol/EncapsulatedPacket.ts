@@ -1,10 +1,11 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BitFlags from './BitFlags';
 import {
     isReliable,
     isSequenced,
     isSequencedOrOrdered
 } from './ReliabilityLayer';
+
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BitFlags from './BitFlags';
 
 export default class EncapsulatedPacket {
     // Decoded Encapsulated content
@@ -14,21 +15,21 @@ export default class EncapsulatedPacket {
     public reliability!: number;
 
     // Reliable message number, used to identify reliable messages on the network
-    public messageIndex: number = 0;
+    public messageIndex = 0;
 
     // Identifier used with sequenced messages
-    public sequenceIndex: number = 0;
+    public sequenceIndex = 0;
     // Identifier used for ordering packets, included in sequenced messages
-    public orderIndex: number = 0;
+    public orderIndex = 0;
     // The order channel the packet is on, used just if the reliability type has it
-    public orderChannel: number = 0;
+    public orderChannel = 0;
 
     // If the packet is splitted, this is the count of splits
-    public splitCount: number = 0;
+    public splitCount = 0;
     // If the packet is splitted, this ID refers to the index in the splits array
-    public splitIndex: number = 0;
+    public splitIndex = 0;
     // The ID of the split packet (if the packet is splitted)
-    public splitId: number = 0;
+    public splitId = 0;
 
     public static fromBinary(stream: BinaryStream): EncapsulatedPacket {
         const packet = new EncapsulatedPacket();
@@ -38,7 +39,7 @@ export default class EncapsulatedPacket {
 
         let length = stream.readShort();
         length >>= 3;
-        if (length == 0) {
+        if (length === 0) {
             throw new Error('Got an empty encapsulated packet');
         }
 
@@ -68,11 +69,12 @@ export default class EncapsulatedPacket {
     }
 
     public toBinary(): BinaryStream {
-        let stream = new BinaryStream();
+        const stream = new BinaryStream();
         let header = this.reliability << 5;
         if (this.splitCount > 0) {
             header |= BitFlags.SPLIT;
         }
+
         stream.writeByte(header);
         stream.writeShort(this.buffer.length << 3);
 

@@ -1,44 +1,55 @@
-import path from 'path';
 import ConfigBuilder from '../../../../config/ConfigBuilder';
-import Prismarine from '../../../../Prismarine';
+import EventManager from './EventManager';
 import LoggerBuilder from '../../../../utils/Logger';
 import PluginApiVersion from '../../PluginApiVersion';
-import EventManager from './EventManager';
+import Server from '../../../../Server';
+import path from 'path';
 
 export const PLUGIN_API_VERSION = '1.0';
 
 export default class PluginApi extends PluginApiVersion {
-    private pkg;
+    private readonly pkg;
 
-    constructor(private server: Prismarine, pkg: any) {
+    constructor(private readonly server: Server, pkg: any) {
         super(PLUGIN_API_VERSION);
         this.pkg = pkg;
     }
-    public async onInit() {}
+
+    public async onEnable() {}
     public async onDisable() {}
 
     /**
-     * returns an instance of the logger builder class with the plugin name prefixed
+     * Returns an instance of the logger builder class with the plugin name prefixed
      */
     public getLogger(): LoggerBuilder {
         const name = this.pkg.prismarine?.displayName || this.pkg.name;
 
         return {
             silly: (...args) =>
-                this.server.getLogger().silly(`[${name}] ${args}`),
+                this.server
+                    .getLogger()
+                    .silly(`[${name}] ${args}`, this.pkg.name),
             debug: (...args) =>
-                this.server.getLogger().debug(`[${name}] ${args}`),
+                this.server
+                    .getLogger()
+                    .debug(`[${name}] ${args}`, this.pkg.name),
             info: (...args) =>
-                this.server.getLogger().info(`[${name}] ${args}`),
+                this.server
+                    .getLogger()
+                    .info(`[${name}] ${args}`, this.pkg.name),
             warn: (...args) =>
-                this.server.getLogger().warn(`[${name}] ${args}`),
+                this.server
+                    .getLogger()
+                    .warn(`[${name}] ${args}`, this.pkg.name),
             error: (...args) =>
-                this.server.getLogger().error(`[${name}] ${args}`)
+                this.server
+                    .getLogger()
+                    .error(`[${name}] ${args}`, this.pkg.name)
         } as LoggerBuilder;
     }
 
     /**
-     * returns an instance of the config builder class
+     * Returns an instance of the config builder class
      */
     public getConfigBuilder(configFile: string): ConfigBuilder {
         return new ConfigBuilder(
@@ -47,16 +58,16 @@ export default class PluginApi extends PluginApiVersion {
     }
 
     /**
-     * returns an instance of the server class
+     * Returns an instance of the server class
      */
-    public getServer(): Prismarine {
+    public getServer(): Server {
         return this.server;
     }
 
     private eventManager: EventManager<[string, any]> | undefined = undefined;
 
     /**
-     * returns an instance of the event manager
+     * Returns an instance of the event manager
      */
     public getEventManager<
         CustomEventTypes extends [string, any] = [string, any]

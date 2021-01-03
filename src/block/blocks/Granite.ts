@@ -1,13 +1,13 @@
 import Stone, { StoneType } from './Stone';
 import Item from '../../item/Item';
-import Prismarine from '../../Prismarine';
+import Server from '../../Server';
 
 export default class Granite extends Stone {
     constructor() {
         super('minecraft:granite', StoneType.Granite);
     }
 
-    getDropsForCompatibleTool(item: Item, server: Prismarine) {
+    getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:granite')];
     }
 }

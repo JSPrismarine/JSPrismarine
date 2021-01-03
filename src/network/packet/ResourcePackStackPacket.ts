@@ -1,5 +1,5 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class ResourcePackStackPacket extends DataPacket {
     static NetID = Identifiers.ResourcePackStackPacket;
@@ -16,21 +16,22 @@ export default class ResourcePackStackPacket extends DataPacket {
         this.writeBool(this.mustAccept);
 
         this.writeUnsignedVarInt(this.behaviorPackStack.length);
-        for (let _behaviorPackStack of this.behaviorPackStack) {
+        for (const _behaviorPackStack of this.behaviorPackStack) {
             this.writeString('');
             this.writeString('');
             this.writeString('');
         }
 
         this.writeUnsignedVarInt(this.resourcePackStack.length);
-        for (let _resourcePackStack of this.resourcePackStack) {
+        for (const _resourcePackStack of this.resourcePackStack) {
             this.writeString('');
             this.writeString('');
             this.writeString('');
         }
+
         this.writeString(Identifiers.MinecraftVersion);
 
-        this.writeLInt(this.experiments.size); // experiments count
-        this.writeBool(this.experimentsAlreadyEnabled); // experiemnts previously toggled?
+        this.writeLInt(this.experiments.size); // Experiments count
+        this.writeBool(this.experimentsAlreadyEnabled); // Experiemnts previously toggled?
     }
 }

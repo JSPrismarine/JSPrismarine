@@ -1,16 +1,18 @@
 import fs from 'fs';
-import Prismarine from '../Prismarine';
+import Server from '../Server';
 import GeneratorManager from './GeneratorManager';
+import LevelDB from './providers/leveldb/LevelDB';
+import Anvil from './providers/anvil/Anvil';
 import World from './World';
-import LevelDB from './leveldb/Leveldb';
 
 export default class WorldManager {
-    private worlds: Map<string, World> = new Map();
+    private readonly worlds: Map<string, World> = new Map();
     private defaultWorld: World | null = null;
-    private genManager: GeneratorManager;
-    private server: Prismarine;
+    private readonly genManager: GeneratorManager;
+    private readonly server: Server;
+    private providers: Map<string, any> = new Map();
 
-    public constructor(server: Prismarine) {
+    public constructor(server: Server) {
         this.server = server;
         this.genManager = new GeneratorManager(server);
 
@@ -18,12 +20,17 @@ export default class WorldManager {
         if (!fs.existsSync(process.cwd() + '/worlds')) {
             fs.mkdirSync(process.cwd() + '/worlds');
         }
+
+        this.providers.set('LevelDB', LevelDB);
+        this.providers.set('Anvil', Anvil);
     }
 
     public async onEnable(): Promise<void> {
         const defaultWorld = this.server.getConfig().getLevelName();
         if (!defaultWorld)
-            return this.server.getLogger().warn(`Invalid world!`);
+            return this.server
+                .getLogger()
+                .warn(`Invalid world!`, 'WorldManager/onEnable');
 
         const world = await this.loadWorld(
             this.server.getConfig().getWorlds()[defaultWorld],
@@ -34,8 +41,8 @@ export default class WorldManager {
 
     public async onDisable(): Promise<void> {
         await Promise.all(
-            this.getWorlds().map(
-                async (world) => await this.unloadWorld(world.getName())
+            this.getWorlds().map(async (world) =>
+                this.unloadWorld(world.getName())
             )
         );
     }
@@ -43,20 +50,28 @@ export default class WorldManager {
     /**
      * Loads a world by its folder name.
      */
-    public loadWorld(worldData: any, folderName: string): Promise<World> {
+    public async loadWorld(worldData: any, folderName: string): Promise<World> {
         return new Promise((resolve, reject) => {
             if (this.isWorldLoaded(folderName)) {
                 this.server
                     .getLogger()
-                    .warn(`World §e${folderName}§r has already been loaded!`);
+                    .warn(
+                        `World §e${folderName}§r has already been loaded!`,
+                        'WorldManager/loadWorld'
+                    );
                 reject();
             }
-            let levelPath = process.cwd() + `/worlds/${folderName}/`;
+
+            const levelPath = process.cwd() + `/worlds/${folderName}/`;
+            const provider = this.providers.get(
+                worldData.provider || 'LevelDB'
+            );
+
             // TODO: figure out provider by data
-            let world = new World({
+            const world = new World({
                 name: folderName,
                 server: this.server,
-                provider: new LevelDB(levelPath, this.server),
+                provider: new provider(levelPath, this.server),
 
                 seed: worldData.seed,
                 generator: worldData.generator
@@ -66,14 +81,21 @@ export default class WorldManager {
             // First level to be loaded is also the default one
             if (!this.defaultWorld) {
                 this.defaultWorld =
-                    this.worlds.get(world.getUniqueId()) || null;
+                    this.worlds.get(world.getUniqueId()) ?? null;
                 this.server
                     .getLogger()
-                    .info(`Loaded §b${folderName}§r as default world!`);
+                    .info(
+                        `Loaded §b${folderName}§r as default world!`,
+                        'WorldManager/loadWorld'
+                    );
             }
+
             this.server
                 .getLogger()
-                .debug(`World §b${folderName}§r successfully loaded!`);
+                .debug(
+                    `World §b${folderName}§r successfully loaded!`,
+                    'WorldManager/loadWorld'
+                );
             resolve(world);
         });
     }
@@ -86,35 +108,45 @@ export default class WorldManager {
             return this.server
                 .getLogger()
                 .error(
-                    `Cannot unload a not loaded world with name §b${folderName}`
+                    `Cannot unload a not loaded world with name §b${folderName}`,
+                    'WorldManager/unloadWorld'
                 );
         }
 
-        let world = this.getWorldByName(folderName);
+        const world = this.getWorldByName(folderName);
         if (!world) {
             return this.server
                 .getLogger()
-                .error(`Cannot unload world ${folderName}`);
+                .error(
+                    `Cannot unload world ${folderName}`,
+                    'WorldManager/unloadWorld'
+                );
         }
 
-        world.close();
+        await world.close();
         this.worlds.delete(world.getUniqueId());
         this.server
             .getLogger()
-            .debug(`Successfully unloaded world §b${folderName}§f!`);
+            .debug(
+                `Successfully unloaded world §b${folderName}§f!`,
+                'WorldManager/unloadWorld'
+            );
     }
 
     /**
      * Returns whatever the world is loaded or not.
      */
     public isWorldLoaded(folderName: string): boolean {
-        for (let world of this.worlds.values()) {
-            if (world.getName().toLowerCase() == folderName.toLowerCase()) {
+        for (const world of this.worlds.values()) {
+            if (world.getName().toLowerCase() === folderName.toLowerCase()) {
                 return true;
-            } else if (world.getUniqueId() === folderName) {
+            }
+
+            if (world.getUniqueId() === folderName) {
                 return true;
             }
         }
+
         return false;
     }
 

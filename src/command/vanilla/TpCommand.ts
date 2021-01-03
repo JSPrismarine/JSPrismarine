@@ -1,16 +1,19 @@
 import CommandParameter, {
     CommandParameterType
 } from '../../network/type/CommandParameter';
-import MovementType from '../../network/type/MovementType';
-import Console from '../../player/Console';
-import Player from '../../player/Player';
+
 import Command from '../Command';
+import CommandExecuter from '../CommandExecuter';
+import Console from '../../Console';
+import MovementType from '../../network/type/MovementType';
+import Player from '../../player/Player';
 
 export default class TpCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:tp',
-            description: 'Teleports a player to a specified location',
+            description:
+                'Teleports a player to a specified location or another entity.',
             aliases: ['teleport'],
             permission: 'minecraft.command.teleport'
         });
@@ -161,8 +164,11 @@ export default class TpCommand extends Command {
         );
     }
 
-    public execute(sender: Player, args: Array<string>) {
-        if (args.length < 1) {
+    public async execute(
+        sender: CommandExecuter,
+        args: Array<string | number>
+    ) {
+        if (args.length === 0) {
             sender.sendMessage('§cYou have to specify <player> x y z.');
             return;
         }
@@ -178,15 +184,16 @@ export default class TpCommand extends Command {
                         );
                         return;
                     }
+
                     const target = player;
-                    player = sender;
+                    player = sender as Player;
 
                     player.setX(target.getX());
                     player.setY(target.getY());
                     player.setZ(target.getZ());
                 } else if (
-                    this.getCoord(sender.getY(), args[0]) ||
-                    this.getCoord(sender.getY(), args[0]) === 0
+                    this.getCoord((sender as Player).getY(), args[0]) ||
+                    this.getCoord((sender as Player).getY(), args[0]) === 0
                 ) {
                     if (sender instanceof Console) {
                         sender.sendMessage(
@@ -194,20 +201,25 @@ export default class TpCommand extends Command {
                         );
                         return;
                     }
-                    player = sender;
 
-                    player.setY(this.getCoord(sender.getZ(), args[0]));
+                    player = sender as Player;
+
+                    player.setY(
+                        this.getCoord((sender as Player).getZ(), args[0])
+                    );
                 } else {
                     sender.sendMessage(`§c${args[0]} is not online!`);
                     return;
                 }
+
                 break;
             case 2:
                 if (
-                    (this.getCoord(sender.getX(), args[0]) ||
-                        this.getCoord(sender.getX(), args[0]) === 0) &&
-                    (this.getCoord(sender.getZ(), args[1]) ||
-                        this.getCoord(sender.getZ(), args[1]))
+                    (this.getCoord((sender as Player).getX(), args[0]) ||
+                        this.getCoord((sender as Player).getX(), args[0]) ===
+                            0) &&
+                    (this.getCoord((sender as Player).getZ(), args[1]) ||
+                        this.getCoord((sender as Player).getZ(), args[1]))
                 ) {
                     if (sender instanceof Console) {
                         sender.sendMessage(
@@ -215,10 +227,15 @@ export default class TpCommand extends Command {
                         );
                         return;
                     }
-                    player = sender;
 
-                    player.setX(this.getCoord(sender.getX(), args[0]));
-                    player.setZ(this.getCoord(sender.getZ(), args[1]));
+                    player = sender as Player;
+
+                    player.setX(
+                        this.getCoord((sender as Player).getX(), args[0])
+                    );
+                    player.setZ(
+                        this.getCoord((sender as Player).getZ(), args[1])
+                    );
                 } else if (
                     player &&
                     (this.getCoord(player.getY(), args[1]) ||
@@ -226,7 +243,9 @@ export default class TpCommand extends Command {
                 ) {
                     player.setY(this.getCoord(player.getY(), args[1]));
                 } else if (player) {
-                    const target = sender.getServer().getPlayerByName(args[1]);
+                    const target = sender
+                        .getServer()
+                        .getPlayerByName(`${args[1]}`);
                     if (!target) {
                         sender.sendMessage(`§c${args[0]} is not online!`);
                         return;
@@ -244,15 +263,18 @@ export default class TpCommand extends Command {
                     );
                     return;
                 }
+
                 break;
             case 3:
                 if (
-                    (this.getCoord(sender.getX(), args[0]) ||
-                        this.getCoord(sender.getX(), args[0]) === 0) &&
-                    (this.getCoord(sender.getY(), args[1]) ||
-                        this.getCoord(sender.getY(), args[1]) === 0) &&
-                    (this.getCoord(sender.getZ(), args[2]) ||
-                        this.getCoord(sender.getZ(), args[2]) === 0)
+                    (this.getCoord((sender as Player).getX(), args[0]) ||
+                        this.getCoord((sender as Player).getX(), args[0]) ===
+                            0) &&
+                    (this.getCoord((sender as Player).getY(), args[1]) ||
+                        this.getCoord((sender as Player).getY(), args[1]) ===
+                            0) &&
+                    (this.getCoord((sender as Player).getZ(), args[2]) ||
+                        this.getCoord((sender as Player).getZ(), args[2]) === 0)
                 ) {
                     if (sender instanceof Console) {
                         sender.sendMessage(
@@ -260,11 +282,18 @@ export default class TpCommand extends Command {
                         );
                         return;
                     }
-                    player = sender;
 
-                    player.setX(this.getCoord(sender.getX(), args[0]));
-                    player.setY(this.getCoord(sender.getY(), args[1]));
-                    player.setZ(this.getCoord(sender.getZ(), args[2]));
+                    player = sender as Player;
+
+                    player.setX(
+                        this.getCoord((sender as Player).getX(), args[0])
+                    );
+                    player.setY(
+                        this.getCoord((sender as Player).getY(), args[1])
+                    );
+                    player.setZ(
+                        this.getCoord((sender as Player).getZ(), args[2])
+                    );
                 } else if (
                     player &&
                     (this.getCoord(player.getX(), args[1]) ||
@@ -283,6 +312,7 @@ export default class TpCommand extends Command {
                     );
                     return;
                 }
+
                 break;
             case 4:
                 if (
@@ -306,6 +336,7 @@ export default class TpCommand extends Command {
                     sender.sendMessage('§cYou have to specify <player> x y z.');
                     return;
                 }
+
                 break;
             default:
                 sender.sendMessage('$cYou passed to many arguments!');
@@ -317,7 +348,9 @@ export default class TpCommand extends Command {
             return;
         }
 
-        player.getConnection().broadcastMove(player, MovementType.Teleport);
+        await player
+            .getConnection()
+            .broadcastMove(player, MovementType.Teleport);
         return `Teleported ${player.getUsername()} to ${player.getX()} ${player.getY()} ${player.getZ()}`;
     }
 
@@ -332,7 +365,9 @@ export default class TpCommand extends Command {
             Number(newCord.slice(1))
         ) {
             return oldCord + Number(newCord.slice(1));
-        } else if (typeof newCord === 'number') {
+        }
+
+        if (typeof newCord === 'number') {
             return newCord;
         }
     }

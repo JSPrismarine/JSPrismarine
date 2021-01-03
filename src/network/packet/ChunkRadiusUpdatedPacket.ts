@@ -1,5 +1,5 @@
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class ChunkRadiusUpdatedPacket extends DataPacket {
     static NetID = Identifiers.ChunkRadiusUpdatedPacket;
@@ -9,6 +9,7 @@ export default class ChunkRadiusUpdatedPacket extends DataPacket {
     public encodePayload() {
         this.writeVarInt(this.radius);
     }
+
     public decodePayload() {
         this.radius = this.readVarInt();
     }

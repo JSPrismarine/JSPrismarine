@@ -10,9 +10,9 @@ export default class SubChunk {
     metadata = Buffer.alloc(Sizes.Metadata).fill(0x00);
 
     public static getIndex(x: number, y: number, z: number) {
-        const bx = x & 0x0f,
-            by = y & 0x0f,
-            bz = z & 0x0f;
+        const bx = x & 0x0f;
+        const by = y & 0x0f;
+        const bz = z & 0x0f;
         return ((bx << 8) + (bz << 4)) | by;
     }
 
@@ -32,9 +32,9 @@ export default class SubChunk {
         z: number,
         metadata: number
     ): boolean {
-        const bx = x & 0x0f,
-            by = y & 0x0f,
-            bz = z & 0x0f;
+        const bx = x & 0x0f;
+        const by = y & 0x0f;
+        const bz = z & 0x0f;
         const index = (bx << 7) | (bz << 3) | (by >> 1);
         const shift = (by & 1) << 2;
         const byte = this.metadata[index];
@@ -67,9 +67,9 @@ export default class SubChunk {
     }
 
     public getBlockMetadata(x: number, y: number, z: number) {
-        const bx = x & 0x0f,
-            by = y & 0x0f,
-            bz = z & 0x0f;
+        const bx = x & 0x0f;
+        const by = y & 0x0f;
+        const bz = z & 0x0f;
         return (
             (this.metadata[(bx << 7) | (bz << 3) | (by >> 1)] >>
                 ((by & 1) << 2)) &
@@ -78,7 +78,7 @@ export default class SubChunk {
     }
 
     public getHighestBlockAt(x: number, z: number) {
-        let low = (x << 8) | (z << 4);
+        const low = (x << 8) | (z << 4);
         let i = low | 0x0f;
         for (; i >= low; --i) {
             if (this.ids[i] !== 0x00) {
@@ -90,7 +90,7 @@ export default class SubChunk {
     }
 
     public toBinary() {
-        let buffer = Buffer.alloc(1);
+        const buffer = Buffer.alloc(1);
         buffer.writeUInt8(0); // SubChunk version
         return Buffer.concat([buffer, this.ids, this.metadata]);
     }

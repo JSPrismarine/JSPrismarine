@@ -1,20 +1,19 @@
 import CommandParameter from '../network/type/CommandParameter';
-import Player from '../player/Player';
-const CommandData = require('../network/type/command-data');
+import CommandExecuter from './CommandExecuter';
 
 interface CommandProps {
     id: string;
     description?: string;
-    aliases?: Array<string>;
+    aliases?: string[];
     flags?: number;
     permission?: string;
     parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
 }
 
-export default class Command extends CommandData {
+export default class Command {
     id: string;
     description?: string;
-    aliases?: Array<string>;
+    aliases?: string[];
     flags?: number;
     permission?: string;
     parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
@@ -27,7 +26,6 @@ export default class Command extends CommandData {
         aliases = [],
         parameters
     }: CommandProps) {
-        super();
         this.id = id;
         this.description = description;
         this.flags = flags;
@@ -40,7 +38,12 @@ export default class Command extends CommandData {
      * Called when the command is executed.
      */
     public execute(
-        sender: Player,
-        args: Array<string> = []
-    ): string | void | Promise<string | void> {}
+        sender: CommandExecuter,
+        args: Array<string | number> = []
+    ): string | void | Promise<string | void> {
+        sender
+            .getServer()
+            .getLogger()
+            .error('execute stub was called unexpectedly!');
+    }
 }

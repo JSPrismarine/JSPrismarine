@@ -1,9 +1,8 @@
 import Vector3 from '../../math/Vector3';
 import Identifiers from '../Identifiers';
+import ChangeSlot from '../type/ChangeSlot';
+import NetworkTransaction from '../type/NetworkTransaction';
 import DataPacket from './DataPacket';
-
-const ChangeSlot = require('../type/change-slot');
-const NetworkTransaction = require('../type/network-transaction');
 
 export enum InventoryTransactionUseItemActionType {
     ClickBlock = 0,
@@ -30,6 +29,7 @@ export default class InventoryTransactionPacket extends DataPacket {
         id: 0,
         meta: 0
     };
+
     public blockPosition: Vector3 = new Vector3();
     public face!: number;
     public playerPosition: Vector3 = new Vector3();
@@ -42,8 +42,8 @@ export default class InventoryTransactionPacket extends DataPacket {
 
     public decodePayload() {
         this.requestId = this.readVarInt();
-        if (this.requestId != 0) {
-            let length = this.readUnsignedVarInt();
+        if (this.requestId !== 0) {
+            const length = this.readUnsignedVarInt();
             for (let i = 0; i < length; i++) {
                 this.changeSlot.set(i, new ChangeSlot().decode(this));
             }
@@ -52,9 +52,9 @@ export default class InventoryTransactionPacket extends DataPacket {
         this.type = this.readUnsignedVarInt();
         this.hasItemStackIds = this.readBool();
 
-        let actionsCount = this.readUnsignedVarInt();
+        const actionsCount = this.readUnsignedVarInt();
         for (let i = 0; i < actionsCount; i++) {
-            let networkTransaction = new NetworkTransaction().decode(
+            const networkTransaction = new NetworkTransaction().decode(
                 this,
                 this.hasItemStackIds
             );

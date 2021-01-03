@@ -15,14 +15,17 @@
 <a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
   <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/JSPrismarine/JSPrismarine?style=flat-square">
 </a>
+<a href="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine">
+  <img alt="Codefactor.io" src="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine/badge?style=flat-square">
+</a>
 <a href="https://discord.gg/6w8JWhy">
   <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
 </a>
 <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
   <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=flat-square">
 </a>
-<a href="https://www.patreon.com/prismarine">
-  <img alt="Patreon" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dprismarine%26type%3Dpatrons&style=flat-square">
+<a href="https://github.com/sponsors/JSPrismarine">
+  <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/JSPrismarine?style=flat-square">
 </a>
 
 ## Why use JSPrismarine?

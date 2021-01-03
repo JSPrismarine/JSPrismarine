@@ -1,6 +1,6 @@
-import UUID from '../../utils/UUID';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import UUID from '../../utils/UUID';
 
 export default class AddPlayerPacket extends DataPacket {
     static NetID = Identifiers.AddPlayerPacket;
@@ -26,7 +26,10 @@ export default class AddPlayerPacket extends DataPacket {
     public deviceId!: string;
     public buildPlatform!: number;
 
-    public metadata = new Map();
+    public metadata: Map<
+        number,
+        [number, string | number | bigint | boolean]
+    > = new Map();
 
     public encodePayload() {
         this.writeUUID(this.uuid);
@@ -54,7 +57,7 @@ export default class AddPlayerPacket extends DataPacket {
             this.writeUnsignedVarInt(0); // TODO: Adventure settings
         }
 
-        // userId
+        // UserId
         // if (this.uniqueEntityId & 1n) {
         //    this.writeLLong(-1n * ((this.uniqueEntityId + 1n) >> 1n));
         // } else {

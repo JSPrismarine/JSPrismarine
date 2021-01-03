@@ -1,3 +1,9 @@
+// To any developer wanting to add a missing block please read the following first:
+//
+// We're currently matching the Java namespace values since
+// the "big flattening" hasn't occured yet on Bedrock Edition.
+// Thanks!
+
 export enum BlockIdsType {
     Air = 0,
     Stone = 1,
@@ -24,18 +30,18 @@ export enum BlockIdsType {
     LapisBlock = 22,
     Dispenser = 23,
     Sandstone = 24,
-    Noteblock = 25,
+    NoteBlock = 25,
     Bed = 26,
-    GoldenRail = 27,
+    PoweredRail = 27,
     DetectorRail = 28,
     StickyPiston = 29,
-    Web = 30,
+    Cobweb = 30,
     TallGrass = 31,
     DeadBush = 32,
     Piston = 33,
     PistonArmCollision = 34,
     Wool = 35,
-    Element0 = 36,
+    // Element0 = 36,
     YellowFlower = 37,
     RedFlower = 38,
     BrownMushroom = 39,
@@ -44,7 +50,7 @@ export enum BlockIdsType {
     IronBlock = 42,
     DoubleStoneSlab = 43,
     StoneSlab = 44,
-    BrickBlock = 45,
+    Bricks = 45,
     TNT = 46,
     Bookshelf = 47,
     MossyCobblestone = 48,
@@ -204,7 +210,7 @@ export enum BlockIdsType {
     PurpurStairs = 203,
     ColoredTorchBp = 204,
     UndyedShulkerBox = 205,
-    EndBricks = 206,
+    EndStoneBricks = 206,
     FrostedIce = 207,
     EndRod = 208,
     EndGateway = 209,
@@ -428,7 +434,7 @@ export enum BlockIdsType {
     MossyStoneBrickStairs = 430,
     SmoothRedSandstoneStairs = 431,
     SmoothSandstoneStairs = 432,
-    EndBrickStairs = 433,
+    EndStoneBrickStairs = 433,
     MossyCobblestoneStairs = 434,
     NormalStoneStairs = 435,
     SpruceStandingSign = 436,

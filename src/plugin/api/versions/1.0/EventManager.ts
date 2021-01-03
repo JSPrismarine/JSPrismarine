@@ -1,9 +1,10 @@
-import type Prismarine from '../../../../Prismarine';
-import type { EventTypes as CurrentVersionEventTypes } from '../../../../events/EventManager';
-import { EventEmitterishMixin } from '../../../../events/EventEmitterishMixin';
-import type { EventEmitterish } from '../../../../events/EventEmitterishMixin';
 import { Evt, compose } from 'evt';
+
+import type { EventTypes as CurrentVersionEventTypes } from '../../../../events/EventManager';
+import type { EventEmitterish } from '../../../../events/EventEmitterishMixin';
+import { EventEmitterishMixin } from '../../../../events/EventEmitterishMixin';
 import type { Operator } from 'evt';
+import type Server from '../../../../Server';
 
 /* README: https://gist.github.com/garronej/84dddc6dad77d9fd0ce5608148bc59c4 */
 
@@ -22,11 +23,11 @@ const targetApiToCurrentApi: Operator.fλ<
 class EventManagerWithoutEventEmitterishMethods<
     CustomEventTypes extends [string, any]
 > {
-    constructor(private server: Prismarine) {}
+    constructor(private readonly server: Server) {}
 
     private static readonly CustomEventManager = EventEmitterishMixin(
         class {
-            constructor(_server: Prismarine) {}
+            constructor(_server: Server) {}
         },
         ({ constructorArgs: [server] }) =>
             Evt.asPostable(server.getEventManager().evtThirdParty)
@@ -61,12 +62,14 @@ export default class EventManager<
 
         evtSrc.$attach(
             currentApiToTargetApi,
-            (data) => (internalEvents.add(data), evtProxy.postAndWait(data))
+            async (data) => (
+                internalEvents.add(data), evtProxy.postAndWait(data)
+            )
         );
 
         evtProxy.$attachExtract(
             compose((data) => !internalEvents.has(data), targetApiToCurrentApi),
-            (data) => evtSrc.postAndWait(data)
+            async (data) => evtSrc.postAndWait(data)
         );
 
         return evtProxy;

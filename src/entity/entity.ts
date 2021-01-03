@@ -1,27 +1,27 @@
+import AddActorPacket from '../network/packet/AddActorPacket';
+import Player from '../player/Player';
 import Position from '../world/Position';
 import World from '../world/World';
-import AddActorPacket from '../network/packet/AddActorPacket';
-import MetadataManager, { FlagType, MetadataFlag } from './metadata';
 import AttributeManager from './attribute';
-import Player from '../player/Player';
+import MetadataManager, { FlagType, MetadataFlag } from './metadata';
 
 // All entities will extend this base class
 export default class Entity extends Position {
     protected static MOB_ID: string;
-    public static runtimeIdCount: bigint = -1n;
+    public static runtimeIdCount = 0n;
 
     public runtimeId: bigint;
 
     // TODO: do not expose and make API instead
-    private metadata: MetadataManager = new MetadataManager();
-    private attributes: AttributeManager = new AttributeManager();
+    private readonly metadata: MetadataManager = new MetadataManager();
+    private readonly attributes: AttributeManager = new AttributeManager();
 
     /**
      * Entity constructor.
      *
      */
     constructor(world: World) {
-        super({ world: world }); // TODO
+        super({ world }); // TODO
         this.runtimeId = Entity.runtimeIdCount += 1n;
 
         this.metadata.setLong(MetadataFlag.INDEX, 0n);
@@ -86,7 +86,7 @@ export default class Entity extends Position {
         return this.metadata;
     }
 
-    public sendSpawn(player: Player) {
+    public async sendSpawn(player: Player) {
         // Recursive import, find another way
         const pk = new AddActorPacket();
         pk.runtimeEntityId = ++Entity.runtimeIdCount;
@@ -98,6 +98,6 @@ export default class Entity extends Position {
         pk.motionX = 0;
         pk.motionY = 0;
         pk.motionZ = 0;
-        player.getConnection().sendDataPacket(pk);
+        await player.getConnection().sendDataPacket(pk);
     }
 }

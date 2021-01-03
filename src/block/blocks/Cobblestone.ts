@@ -8,15 +8,15 @@ export default class Cobblestone extends Solid {
         super({
             name: 'minecraft:cobblestone',
             id: BlockIdsType.Cobblestone,
-            hardness: 1.5
+            hardness: 2
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Wood;
     }
 }

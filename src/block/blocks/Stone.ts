@@ -1,6 +1,6 @@
 import Solid from '../Solid';
 import Item from '../../item/Item';
-import Prismarine from '../../Prismarine';
+import Server from '../../Server';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
@@ -16,10 +16,7 @@ export enum StoneType {
 }
 
 export default class Stone extends Solid {
-    constructor(
-        name: string = 'minecraft:stone',
-        type: StoneType = StoneType.Stone
-    ) {
+    constructor(name = 'minecraft:stone', type: StoneType = StoneType.Stone) {
         super({
             name,
             id: BlockIdsType.Stone,
@@ -28,15 +25,15 @@ export default class Stone extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Wood;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Prismarine) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:cobblestone')];
     }
 }

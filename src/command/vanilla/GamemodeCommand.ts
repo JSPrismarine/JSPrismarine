@@ -1,10 +1,10 @@
-import Player from '../../player/Player';
-import Command from '../Command';
 import CommandParameter, {
     CommandParameterType
 } from '../../network/type/CommandParameter';
 
+import Command from '../Command';
 import Gamemode from '../../world/Gamemode';
+import Player from '../../player/Player';
 
 export default class GamemodeCommand extends Command {
     constructor() {
@@ -32,9 +32,10 @@ export default class GamemodeCommand extends Command {
         );
     }
 
-    execute(sender: Player, args: Array<any>) {
-        if (args.length < 1 || args.length > 2) {
-            return sender.sendMessage('§cYou have to specify a gamemode.');
+    public async execute(sender: Player, args: any[]) {
+        if (args.length === 0 || args.length > 2) {
+            await sender.sendMessage('§cYou have to specify a gamemode.');
+            return;
         }
 
         let mode;
@@ -59,7 +60,7 @@ export default class GamemodeCommand extends Command {
                 break;
             default:
                 // TODO: Syntax validation utility class
-                sender.sendMessage('§cIncorrect argument for command');
+                await sender.sendMessage('§cIncorrect argument for command');
                 return sender.sendMessage(
                     `§7/gamemode §c${args.join(' ')}<--[HERE]`
                 );
@@ -70,35 +71,39 @@ export default class GamemodeCommand extends Command {
             if ((target = sender.getServer().getPlayerByName(args[1])) === null)
                 return sender.sendMessage('§cNo player was found');
 
-            target.setGamemode(mode);
+            await target.setGamemode(mode);
             if (mode === Gamemode.Creative)
-                target.getConnection().sendCreativeContents();
+                await target.getConnection().sendCreativeContents();
 
-            sender.sendMessage(
+            await sender.sendMessage(
                 `Set ${target.getUsername()}'s game mode to ${Gamemode.getGamemodeName(
                     mode
                 )} Mode`
             );
-            return target.sendMessage(
+            await target.sendMessage(
                 `Your game mode has been updated to ${Gamemode.getGamemodeName(
                     mode
                 )} Mode`
             );
-        } else if (args.length > 1 && typeof args[1] === 'number') {
-            return sender.sendMessage('§cNo player was found');
-        } else {
-            if (!(sender instanceof Player)) {
-                return target.sendMessage(
-                    '§cYou have to run this command in-game!'
-                );
-            }
-            target.setGamemode(mode);
-            if (mode === Gamemode.Creative)
-                target.getConnection().sendCreativeContents();
+            return;
+        }
 
+        if (args.length > 1 && typeof args[1] === 'number') {
+            return sender.sendMessage('§cNo player was found');
+        }
+
+        if (!(sender instanceof Player)) {
             return target.sendMessage(
-                `Set own game mode to ${Gamemode.getGamemodeName(mode)} Mode`
+                '§cYou have to run this command in-game!'
             );
         }
+
+        await target.setGamemode(mode);
+        if (mode === Gamemode.Creative)
+            await target.getConnection().sendCreativeContents();
+
+        return target.sendMessage(
+            `Set own game mode to ${Gamemode.getGamemodeName(mode)} Mode`
+        );
     }
 }

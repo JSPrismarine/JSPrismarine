@@ -4,10 +4,10 @@ import Packet from './Packet';
 
 export default class DataPacket extends Packet {
     public constructor(buffer?: Buffer) {
-        super(BitFlags.VALID | 0, buffer);
+        super(Math.trunc(BitFlags.VALID), buffer);
     }
 
-    public packets: Array<EncapsulatedPacket> = [];
+    public packets: EncapsulatedPacket[] = [];
     public sendTime!: number;
 
     // Packet sequence number
@@ -33,6 +33,7 @@ export default class DataPacket extends Packet {
         for (const packet of this.packets) {
             length += packet.getByteLength();
         }
+
         return length;
     }
 }

@@ -1,16 +1,16 @@
 import ChatEvent from '../events/chat/ChatEvent';
-import type Prismarine from '../Prismarine';
+import type Server from '../Server';
 import Chat from './Chat';
 
 export default class ChatManager {
-    private server: Prismarine;
+    private readonly server: Server;
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 
-    public send(chat: Chat) {
+    public async send(chat: Chat) {
         const event = new ChatEvent(chat);
-        this.server.getEventManager().emit('chat', event);
+        await this.server.getEventManager().emit('chat', event);
     }
 }

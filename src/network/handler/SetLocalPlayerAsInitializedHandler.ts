@@ -1,23 +1,22 @@
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
-import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Server from '../../Server';
+import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
 
 export default class SetLocalPlayerAsInitializedHandler
     implements PacketHandler<SetLocalPlayerAsInitializedPacket> {
     // Login packet must be handled sync, if it takes longer to be handled
     // uuid may result null here probably... (response to a issue)
-    public handle(
+    public async handle(
         packet: SetLocalPlayerAsInitializedPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
-    ): void {
+    ): Promise<void> {
         for (const onlinePlayer of server
             .getOnlinePlayers()
-            .filter((p) => !(p == player))) {
-            onlinePlayer.getConnection().sendSpawn(player);
-            player.getConnection().sendSpawn(onlinePlayer);
+            .filter((p) => !(p === player))) {
+            await onlinePlayer.getConnection().sendSpawn(player);
+            await player.getConnection().sendSpawn(onlinePlayer);
         }
     }
 }

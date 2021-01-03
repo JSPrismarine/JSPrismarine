@@ -1,6 +1,6 @@
+import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import TextType from '../type/TextType';
-import DataPacket from './DataPacket';
 
 export default class TextPacket extends DataPacket {
     static NetID = Identifiers.TextPacket;
@@ -9,7 +9,7 @@ export default class TextPacket extends DataPacket {
     public needsTranslation!: boolean;
     public sourceName!: string;
     public message!: string;
-    public parameters: Array<string> = [];
+    public parameters: string[] = [];
     public xuid!: string;
     public platformChatId!: string;
 
@@ -34,11 +34,15 @@ export default class TextPacket extends DataPacket {
             case TextType.Popup:
             case TextType.JukeboxPopup:
                 this.message = this.readString();
-                let count = this.readUnsignedVarInt();
+                const count = this.readUnsignedVarInt();
                 for (let i = 0; i < count; i++) {
                     this.parameters.push(this.readString());
                 }
+
                 break;
+
+            default:
+                throw new Error('Invalid TextType');
         }
 
         this.xuid = this.readString();
@@ -70,7 +74,10 @@ export default class TextPacket extends DataPacket {
                 for (const parameter of this.parameters) {
                     this.writeString(parameter);
                 }
+
                 break;
+            default:
+                throw new Error('Invalid TextType');
         }
 
         this.writeString(this.xuid);

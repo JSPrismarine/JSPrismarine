@@ -1,6 +1,6 @@
-import uuid from '../../utils/UUID';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import uuid from '../../utils/UUID';
 
 export default class EmoteListPacket extends DataPacket {
     static NetID = Identifiers.EmoteListPacket;
@@ -12,7 +12,7 @@ export default class EmoteListPacket extends DataPacket {
         this.writeUnsignedVarInt(this.runtimeId);
         this.writeUnsignedVarInt(this.emoteIds.size);
 
-        for (let emote of this.emoteIds.values()) {
+        for (const emote of this.emoteIds.values()) {
             this.writeUUID(emote);
         }
     }

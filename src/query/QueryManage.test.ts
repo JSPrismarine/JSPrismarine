@@ -1,11 +1,11 @@
-import QueryManager from './QueryManager';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Prismarine from '../Prismarine';
 import InetAddress from '../network/raknet/utils/InetAddress';
+import Server from '../Server';
+import QueryManager from './QueryManager';
 
-jest.mock('../Prismarine', () => {
+jest.mock('../Server', () => {
     return class Prismarine {
-        constructor({ logger, config }) {}
+        constructor({ logger, config }: any) {}
 
         public getRaknet() {
             return new (class Raknet {
@@ -17,9 +17,9 @@ jest.mock('../Prismarine', () => {
 
 describe('QueryManager', () => {
     it('handshake', async (done) => {
-        const prismarine = new Prismarine({
-            logger: null,
-            config: null
+        const prismarine = new Server({
+            logger: null as any,
+            config: null as any
         });
         const queryManager = new QueryManager(prismarine);
 
@@ -35,7 +35,7 @@ describe('QueryManager', () => {
         );
         expect(buffer.toString()).toBe(
             Buffer.from(
-                '\x09\x00\x00\x00\x00\x39\x35\x31\x33\x33\x30\x37\x00',
+                '\u0009\u0000\u0000\u0000\u0000\u0039\u0035\u0031\u0033\u0033\u0030\u0037\u0000',
                 'binary'
             ).toString()
         );

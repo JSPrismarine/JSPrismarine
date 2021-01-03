@@ -1,10 +1,9 @@
 import Command from '../Command';
-import type Player from '../../player/Player';
 import CommandParameter from '../../network/type/CommandParameter';
+import type Player from '../../player/Player';
 
 export default class KickCommand extends Command {
     constructor() {
-        // TODO: Add permissions
         super({
             id: 'minecraft:kick',
             description: 'Kicks a player off the server.',
@@ -28,19 +27,24 @@ export default class KickCommand extends Command {
         );
     }
 
-    execute(sender: Player, args: Array<string>) {
+    public async execute(
+        sender: Player,
+        args: Array<string | number>
+    ): Promise<string | void> {
         if (!args[0]) {
             return sender.sendMessage('§cYou have to specify a player.');
         }
 
-        let reason = args[1] ? args.slice(1).join(' ') : 'No reason specified.';
-        let target = sender.getServer().getPlayerByName(args[0]);
+        const reason = args[1]
+            ? args.slice(1).join(' ')
+            : 'No reason specified.';
+        const target = sender.getServer().getPlayerByName(`${args[0]}`);
 
         if (!target) {
             return sender.sendMessage("§cCan't find the selected player.");
         }
 
-        target.kick(
+        await target.kick(
             'You have been kicked from the server due to: \n\n' + reason
         );
         return `Kicked ${args[0]}`;

@@ -1,23 +1,23 @@
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
 import InteractPacket, { InteractAction } from '../packet/InteractPacket';
+
 import ContainerOpenPacket from '../packet/ContainerOpenPacket';
-import Vector3 from '../../math/Vector3';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Server from '../../Server';
+import Vector3 from '../../math/Vector3';
 
 export default class InteractHandler implements PacketHandler<InteractPacket> {
-    public handle(
+    public async handle(
         packet: InteractPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
-    ): void {
+    ): Promise<void> {
         switch (packet.action) {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:
                 break;
-            case InteractAction.OpenInventory:
-                let pk = new ContainerOpenPacket();
+            case InteractAction.OpenInventory: {
+                const pk = new ContainerOpenPacket();
                 pk.windowId = 0; // TODO
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerPos = new Vector3(
@@ -26,12 +26,16 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                     player.getZ()
                 );
                 pk.containerEntityId = player.runtimeId;
-                player.getConnection().sendDataPacket(pk);
+                await player.getConnection().sendDataPacket(pk);
                 break;
+            }
             default:
                 server
                     .getLogger()
-                    .debug('Unknown interact action id=%d', packet.action);
+                    .debug(
+                        `Unknown interact action id ${packet.action}`,
+                        'InteractHandler/handle'
+                    );
         }
     }
 }

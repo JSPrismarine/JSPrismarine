@@ -1,22 +1,20 @@
-import { config } from 'winston';
-import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
-import Vector3 from '../../math/Vector3';
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
-import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
+import type Server from '../../Server';
+import Vector3 from '../../math/Vector3';
 
 const d3 = require('d3-interpolate');
 
 export default class MovePlayerHandler
     implements PacketHandler<MovePlayerPacket> {
-    public handle(
+    public async handle(
         packet: MovePlayerPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
-    ): void {
+    ): Promise<void> {
         // Update movement for every player & interpolate position to smooth it
         const interpolatedVector = d3.interpolateObject(
             { x: player.getX(), z: player.getZ() },
@@ -34,7 +32,9 @@ export default class MovePlayerHandler
         server.getEventManager().post(['playerMove', event]);
         if (event.cancelled) {
             // Reset the player position
-            player.getConnection().broadcastMove(player, MovementType.Reset);
+            await player
+                .getConnection()
+                .broadcastMove(player, MovementType.Reset);
             return;
         }
 
@@ -46,7 +46,9 @@ export default class MovePlayerHandler
             immutableFrom.getY() !== resultantVector.getY() ||
             immutableFrom.getZ() !== resultantVector.getZ()
         ) {
-            player.getConnection().broadcastMove(player, MovementType.Reset);
+            await player
+                .getConnection()
+                .broadcastMove(player, MovementType.Reset);
         }
 
         // Position
@@ -60,13 +62,13 @@ export default class MovePlayerHandler
         player.headYaw = packet.headYaw;
 
         // Additional fields
-        player.onGround = packet.onGround;
+        await player.setOnGround(packet.onGround);
         // We still have some fields
         // at the moment we don't need them
 
         for (const onlinePlayer of server.getOnlinePlayers()) {
-            if (onlinePlayer == player) continue;
-            onlinePlayer
+            if (onlinePlayer === player) continue;
+            await onlinePlayer
                 .getConnection()
                 .broadcastMove(player, MovementType.Normal);
         }

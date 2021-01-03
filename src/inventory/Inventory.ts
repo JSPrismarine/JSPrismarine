@@ -1,16 +1,15 @@
-import Block from '../block/Block';
 import Air from '../block/blocks/Air';
-import Item from '../item/Item';
+import ContainerEntry from './ContainerEntry';
 
 // TODO: viewer logic
 export default class Inventory {
-    private slots: number;
+    private readonly slots: number;
     /**
      * (Slot number - Item in the slot)
      */
-    private content: Map<number, Item | Block> = new Map();
+    private readonly content: Map<number, ContainerEntry> = new Map();
 
-    constructor(slots = 0, items = []) {
+    public constructor(slots = 0, items: ContainerEntry[] = []) {
         this.slots = slots;
         this.setItems(items);
     }
@@ -18,7 +17,7 @@ export default class Inventory {
     /**
      * Adds an array of items into the inventory.
      */
-    setItems(items: Array<Item | Block> = []) {
+    public setItems(items: ContainerEntry[] = []) {
         if (items.length > this.slots) {
             // If the inventory slots are less
             // than items cut the items array
@@ -26,27 +25,30 @@ export default class Inventory {
         }
 
         for (let i = 0; i < this.getSlotCount(); i++) {
-            this.setItem(i, items[i] ?? new Air());
+            this.setItem(
+                i,
+                items[i] ?? new ContainerEntry({ item: new Air() })
+            );
         }
     }
 
     /**
      * Returns all the items inside the inventory.
      */
-    getItems(includeAir: boolean = false): Array<Item | Block> {
+    public getItems(includeAir = false): ContainerEntry[] {
         if (includeAir) {
             return Array.from(this.content.values());
         }
 
         return Array.from(this.content.values()).filter(
-            (item) => !(item instanceof Air)
+            (item) => !(item.getItem() instanceof Air)
         );
     }
 
     /**
      * Sets an item in the inventory content.
      */
-    setItem(slot: number, item: Item | Block) {
+    public setItem(slot: number, item: ContainerEntry) {
         if (slot > this.slots) {
             return false;
         }
@@ -58,23 +60,25 @@ export default class Inventory {
     /**
      * Returns the item in the slot.
      */
-    getItem(slot: number) {
+    public getItem(slot: number): ContainerEntry {
         if (this.content.has(slot)) {
-            return this.content.get(slot);
-        } else {
-            return new Air();
+            return this.content.get(slot) as ContainerEntry;
         }
+
+        return new ContainerEntry({
+            item: new Air()
+        });
     }
 
     /**
      * Removes an item from a slot and returns it.
      */
-    removeItem(slot: number) {
+    public removeItem(slot: number) {
         if (!this.content.has(slot)) {
             return new Air();
         }
 
-        let item = this.content.get(slot);
+        const item = this.content.get(slot);
         this.content.delete(slot);
         return item;
     }
@@ -82,7 +86,7 @@ export default class Inventory {
     /**
      * Returns the slot count of the inventory.
      */
-    getSlotCount(): number {
+    public getSlotCount(): number {
         return this.slots;
     }
 }

@@ -1,9 +1,7 @@
-import { hasMagic } from 'glob';
+export default class StringValue {
+    private readonly value: string;
 
-export default class StringVal {
-    private value: string;
-
-    public constructor(value: string = '') {
+    public constructor(value = '') {
         this.value = value;
     }
 

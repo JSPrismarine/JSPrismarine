@@ -1,15 +1,15 @@
 import Item from '../item/Item';
-import Prismarine from '../Prismarine';
-import { ItemTieredToolType } from '../item/ItemTieredToolType';
-import { BlockToolType } from './BlockToolType';
 import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
+import { ItemTieredToolType } from '../item/ItemTieredToolType';
+import Server from '../Server';
+import { BlockToolType } from './BlockToolType';
 
 export default class Block {
     id: number;
     runtimeId?: number;
     name: string;
     hardness: number;
-    meta: number = 0;
+    meta = 0;
 
     // TODO
     nbt = null;
@@ -26,7 +26,7 @@ export default class Block {
     }) {
         this.id = id;
         this.name = name;
-        this.hardness = hardness || 0;
+        this.hardness = hardness ?? 0;
     }
 
     /**
@@ -56,6 +56,7 @@ export default class Block {
     public getRuntimeId() {
         return this.runtimeId;
     }
+
     /**
      * Set the Block's runtime id
      *
@@ -75,60 +76,56 @@ export default class Block {
     /**
      * Get the Block's break time
      */
-    public getBreakTime(item: Item | null, server: Prismarine) {
-        return this.getHardness(); // TODO
+    public getBreakTime(item: Item | null, server: Server) {
+        return this.getHardness(); // TODO: Fix break time calculations
 
-        let base = this.getHardness();
-
-        if (this.isCompatibleWithTool(item)) base *= 1.5;
-        else base *= 5;
-
-        const efficiency = 1; // item.getMiningEfficiency(this);
-
-        return (base /= efficiency);
+        /* let base = this.getHardness();
+        base *= this.isCompatibleWithTool(item) ? 1.5 : 5;
+        const efficiency = 1; // Item.getMiningEfficiency(this);
+        return (base /= efficiency); */
     }
 
     /**
      * Get the Block's blast resistance
      */
-    getBlastResistance() {
+    public getBlastResistance() {
         return this.getHardness() * 5;
     }
 
     /**
      * Get the Block's light level emission
      */
-    getLightLevel() {
+    public getLightLevel() {
         return 0;
     }
 
     /**
      * Get the Block's flammability
      */
-    getFlammability() {
+    public getFlammability() {
         return 0;
     }
 
     /**
      * Get the Block's required tool type
      */
-    getToolType(): BlockToolType {
+    public getToolType(): BlockToolType {
         return BlockToolType.None;
     }
 
     /**
      * Get the Block's required item tool tier
      */
-    getToolHarvestLevel(): ItemTieredToolType {
+    public getToolHarvestLevel(): ItemTieredToolType {
         return ItemTieredToolType.None;
     }
 
     /**
      * Get the Block's drop(s) if the tool is compatible
      */
-    getDropsForCompatibleTool(
+    public getDropsForCompatibleTool(
         item: Item,
-        server: Prismarine
+        server: Server
     ): Array<Block | Item | null> {
         return [this];
     }
@@ -136,7 +133,7 @@ export default class Block {
     /**
      * Get the Block's drop(s) from the current item
      */
-    getDrops(item: Item, server: Prismarine): Array<Block | Item | null> {
+    public getDrops(item: Item, server: Server): Array<Block | Item | null> {
         if (this.isCompatibleWithTool(item)) {
             if (
                 this.isAffectedBySilkTouch() &&
@@ -153,22 +150,22 @@ export default class Block {
     /**
      * Get the Block's drop(s) if silk touch is used
      */
-    getSilkTouchDrops(item: Item, server: Prismarine) {
+    public getSilkTouchDrops(item: Item, server: Server) {
         return [this];
     }
 
-    getLightFilter() {
+    public getLightFilter() {
         return 15;
     }
 
-    canPassThrough() {
+    public canPassThrough() {
         return false;
     }
 
     /**
      * Sets if the block can be replaced when place action occurs on it
      */
-    canBeReplaced() {
+    public canBeReplaced() {
         return false;
     }
 
@@ -201,7 +198,7 @@ export default class Block {
         const harvestLevel = this.getToolHarvestLevel();
 
         if (toolType === BlockToolType.None || harvestLevel === 0) return true;
-        else if (
+        if (
             toolType & item.getToolType() &&
             item.getToolHarvestLevel() >= harvestLevel
         )

@@ -1,14 +1,15 @@
-import Player from '../../player/Player';
-import Command from '../Command';
 import CommandParameter, {
     CommandParameterType
 } from '../../network/type/CommandParameter';
+
+import Command from '../Command';
+import Player from '../../player/Player';
 
 export default class PardonCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:pardon',
-            description: 'Pardon a player',
+            description: 'Pardon a player.',
             permission: 'minecraft.command.pardon'
         } as any);
 
@@ -23,14 +24,13 @@ export default class PardonCommand extends Command {
         );
     }
 
-    execute(sender: Player, args: Array<any>) {
+    public async execute(sender: Player, args: any[]) {
         if (args.length <= 0) {
-            sender.sendMessage('§cYou have to specify a target.');
+            await sender.sendMessage('§cYou have to specify a target.');
             return;
-        } else {
-            sender.getServer().getBanManager().setUnbanned(args[0]);
         }
 
+        await sender.getServer().getBanManager().setUnbanned(args[0]);
         return `Unbanned ${args[0] || sender.getUsername()}`;
     }
 }

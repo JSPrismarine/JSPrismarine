@@ -1,9 +1,10 @@
 import CommandParameter, {
     CommandParameterType
 } from '../../network/type/CommandParameter';
+
+import Command from '../Command';
 import Player from '../../player/Player';
 import PluginFile from '../../plugin/PluginFile';
-import Command from '../Command';
 
 export default class PluginsCommand extends Command {
     constructor() {
@@ -24,12 +25,15 @@ export default class PluginsCommand extends Command {
         );
     }
 
-    public execute(sender: Player, args: Array<string>): void {
-        let plugins = sender.getServer().getPluginManager().getPlugins();
-        let message: string = '';
+    public async execute(
+        sender: Player,
+        args: Array<string | number>
+    ): Promise<void> {
+        const plugins = sender.getServer().getPluginManager().getPlugins();
+        let message = '';
 
-        if (plugins.length == 0) {
-            sender.sendMessage("§cCan't find any plugins.");
+        if (plugins.length === 0) {
+            await sender.sendMessage("§cCan't find any plugins.");
             return;
         }
 
@@ -37,12 +41,13 @@ export default class PluginsCommand extends Command {
             plugins.filter((plugin) =>
                 plugin.getDisplayName().includes(args[0])
             );
-            if (plugins.length == 0) {
-                sender.sendMessage(
+            if (plugins.length === 0) {
+                await sender.sendMessage(
                     `§cCan't find any plugins for '${args[0]}'.`
                 );
                 return;
             }
+
             message += `$7 Plugins found for '${args[0]}' (${plugins.length}): `;
         } else {
             message += `§7Plugins (${plugins.length}): `;
@@ -52,7 +57,6 @@ export default class PluginsCommand extends Command {
             .map((p: PluginFile) => `§a${p.getDisplayName()} ${p.getVersion()}`)
             .join('§r, ')}`;
 
-        sender.sendMessage(message);
-        return;
+        await sender.sendMessage(message);
     }
 }

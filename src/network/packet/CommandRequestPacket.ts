@@ -1,5 +1,5 @@
 import Identifiers from '../Identifiers';
-import CommandOriginData from '../type/command-origin-data';
+import CommandOriginData from '../type/CommandOriginData';
 import DataPacket from './DataPacket';
 
 export default class CommandRequestPacket extends DataPacket {

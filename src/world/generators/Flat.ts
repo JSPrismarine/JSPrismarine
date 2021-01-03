@@ -1,6 +1,6 @@
-import type Vector3 from '../../math/Vector3';
-import type Prismarine from '../../Prismarine';
 import Chunk from '../chunk/Chunk';
+import type Server from '../../Server';
+import type Vector3 from '../../math/Vector3';
 
 export default class Flat {
     public getChunk({
@@ -10,7 +10,7 @@ export default class Flat {
     }: {
         pos: Vector3;
         seed: number;
-        server: Prismarine;
+        server: Server;
     }) {
         const chunk = new Chunk(pos.getX(), pos.getZ());
 

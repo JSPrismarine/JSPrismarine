@@ -1,5 +1,5 @@
-import InetAddress from '../utils/InetAddress';
 import Identifiers from './Identifiers';
+import InetAddress from '../utils/InetAddress';
 import OfflinePacket from './OfflinePacket';
 
 export default class OpenConnectionRequest2 extends OfflinePacket {

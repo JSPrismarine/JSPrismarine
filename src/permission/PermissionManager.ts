@@ -1,19 +1,20 @@
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
-import type Prismarine from '../Prismarine';
-import type Player from '../player/Player';
+import CommandExecuter from '../command/CommandExecuter';
+import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
+import type Server from '../Server';
 
 interface OpType {
     name: string;
 }
 
 export default class PermissionManager {
-    private server: Prismarine;
-    private ops: Set<string> = new Set();
-    private permissions: Map<string, string> = new Map();
+    private readonly server: Server;
+    private readonly ops: Set<string> = new Set();
+    private readonly permissions: Map<string, string> = new Map();
 
-    public constructor(server: Prismarine) {
+    public constructor(server: Server) {
         this.server = server;
     }
 
@@ -29,30 +30,41 @@ export default class PermissionManager {
     private async parseOps(): Promise<void> {
         try {
             if (!fs.existsSync(path.join(process.cwd(), '/ops.json'))) {
-                this.server.getLogger().warn(`Failed to load operators list!`);
+                this.server
+                    .getLogger()
+                    .warn(
+                        `Failed to load operators list!`,
+                        'PermissionManager/parseOps'
+                    );
                 fs.writeFileSync(path.join(process.cwd(), '/ops.json'), '[]');
             }
 
             const readFile = util.promisify(fs.readFile);
-            const ops: Array<OpType> = JSON.parse(
+            const ops: OpType[] = JSON.parse(
                 (
                     await readFile(path.join(process.cwd(), '/ops.json'))
                 ).toString()
             );
 
             ops.map((op) => this.ops.add(op.name));
-        } catch (err) {
-            this.server.getLogger().error(err);
+        } catch (error) {
+            this.server.getLogger().error(error, 'PermissionManager/parseOps');
             throw new Error(`Invalid ops.json file.`);
         }
     }
 
     public async setOp(username: string, op: boolean): Promise<boolean> {
-        if (!op) this.ops.delete(username);
-        else this.ops.add(username);
+        const target = this.server.getPlayerByName(username);
+        if (target) {
+            const event = new playerToggleOperatorEvent(target, op);
+            this.server.getEventManager().post(['playerToggleOperator', event]);
+            if (event.cancelled) return false;
+        }
+
+        if (op) this.ops.add(username);
+        else this.ops.delete(username);
 
         const writeFile = util.promisify(fs.writeFile);
-
         try {
             await writeFile(
                 path.join(process.cwd(), '/ops.json'),
@@ -65,24 +77,24 @@ export default class PermissionManager {
                     4
                 )
             );
+
+            if (target) await target.sendSettings();
             return true;
         } catch {
             return false;
         }
     }
 
-    public isOp(player: Player): boolean {
-        return !player.isPlayer() ?? this.ops.has(player.getUsername());
+    public isOp(username: string): boolean {
+        return this.ops.has(username);
     }
 
-    public can(player: Player): any {
+    public can(executer: CommandExecuter): any {
         return {
             execute: async (permission?: string) => {
-                if (!player.isPlayer()) return true; // We're the console or a plugin
-
                 if (!permission) return true;
-
-                if (this.ops.has(player.getUsername())) return true;
+                if (this.isOp(executer.getUsername())) return true;
+                if (!executer.isPlayer()) return true;
 
                 // TODO: handle permissions
             }

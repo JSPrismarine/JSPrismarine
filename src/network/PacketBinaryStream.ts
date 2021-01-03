@@ -8,21 +8,30 @@ import PlaceRequest from '../item/request/action/Place';
 import TakeRequest from '../item/request/action/Take';
 import ItemRequest, { ItemRequests } from '../item/request/ItemRequest';
 import SlotInfoRequest from '../item/request/SlotInfoRequest';
-import Skin from '../utils/skin/Skin';
 // import SkinPersona from '../utils/skin/skin-persona/SkinPersona';
 // import SkinPersonaPiece from '../utils/skin/skin-persona/SkinPersonaPiece';
 // import SkinPersonaPieceTintColor from '../utils/skin/skin-persona/SkinPersonaPieceTintColor';
 // import SkinAnimation from '../utils/skin/SkinAnimation';
 // import SkinCape from '../utils/skin/SkinCape';
+import ContainerEntry from '../inventory/ContainerEntry';
+import Vector3 from '../math/Vector3';
+import Skin from '../utils/skin/Skin';
 import SkinImage from '../utils/skin/SkinImage';
 import UUID from '../utils/UUID';
 import BlockPosition from '../world/BlockPosition';
 import { PlayerListEntry } from './packet/PlayerListPacket';
-import CreativeContentEntry from './type/creative-content-entry';
-
-const CommandOriginData = require('./type/command-origin-data');
-const CommandOrigin = require('./type/command-origin');
-
+import CommandOriginData from './type/CommandOriginData';
+import CommandOriginType from './type/CommandOriginType';
+import CreativeContentEntry from './type/CreativeContentEntry';
+/* import ItemStackRequestConsume from './type/itemStackRequest/ConsumeStack';
+import ItemStackRequestCreativeCreate from './type/itemStackRequest/CreativeCreate';
+import ItemStackRequestDestroy from './type/itemStackRequest/Destroy';
+import ItemStackRequestDrop from './type/itemStackRequest/Drop';
+import ItemStackRequest from './type/itemStackRequest/ItemStackRequest';
+import ItemStackRequestSlotInfo from './type/itemStackRequest/ItemStackRequestSlotInfo';
+import ItemStackRequestPlace from './type/itemStackRequest/Place';
+import ItemStackRequestSwap from './type/itemStackRequest/Swap';
+import ItemStackRequestTake from './type/itemStackRequest/Take'; */
 export default class PacketBinaryStream extends BinaryStream {
     /**
      * Returns a string encoded into the buffer.
@@ -39,11 +48,31 @@ export default class PacketBinaryStream extends BinaryStream {
         this.append(Buffer.from(v, 'utf8'));
     }
 
+    /**
+     * Returns a Vector3 encoded into the buffer.
+     */
+    public readVector3(): Vector3 {
+        return new Vector3(
+            this.readLFloat(),
+            this.readLFloat(),
+            this.readLFloat()
+        );
+    }
+
+    /**
+     * Encodes a Vector3 into the buffer.
+     */
+    public writeVector3(position: Vector3): void {
+        this.writeLFloat(position.getX());
+        this.writeLFloat(position.getY());
+        this.writeLFloat(position.getZ());
+    }
+
     public readUUID(): UUID {
-        let part1 = this.readLInt();
-        let part0 = this.readLInt();
-        let part3 = this.readLInt();
-        let part2 = this.readLInt();
+        const part1 = this.readLInt();
+        const part0 = this.readLInt();
+        const part3 = this.readLInt();
+        const part2 = this.readLInt();
 
         return new UUID(part0, part1, part2, part3);
     }
@@ -66,7 +95,7 @@ export default class PacketBinaryStream extends BinaryStream {
      * Encodes an UUID into the buffer.
      */
     public writeUUID(uuid: UUID): void {
-        let parts = uuid.getParts();
+        const parts = uuid.getParts();
         this.writeLInt(parts[1]);
         this.writeLInt(parts[0]);
         this.writeLInt(parts[3]);
@@ -171,7 +200,7 @@ export default class PacketBinaryStream extends BinaryStream {
 
         // Animations
         this.writeLInt(skin.getAnimations().size);
-        for (let animation of skin.getAnimations()) {
+        for (const animation of skin.getAnimations()) {
             this.writeSkinImage(animation.getImage());
             this.writeLInt(animation.getType());
             this.writeLFloat(animation.getFrames());
@@ -195,18 +224,19 @@ export default class PacketBinaryStream extends BinaryStream {
         // Hack to keep less useless data in software
         if (skin.isPersona()) {
             this.writeLInt(skin.getPersonaData().getPieces().size);
-            for (let personaPiece of skin.getPersonaData().getPieces()) {
+            for (const personaPiece of skin.getPersonaData().getPieces()) {
                 this.writeString(personaPiece.getPieceId());
                 this.writeString(personaPiece.getPieceType());
                 this.writeString(personaPiece.getPackId());
                 this.writeBool(personaPiece.isDefault());
                 this.writeString(personaPiece.getProductId());
             }
+
             this.writeLInt(skin.getPersonaData().getTintColors().size);
-            for (let tint of skin.getPersonaData().getTintColors()) {
+            for (const tint of skin.getPersonaData().getTintColors()) {
                 this.writeString(tint.getPieceType());
                 this.writeLInt(tint.getColors().length);
-                for (let color of tint.getColors()) {
+                for (const color of tint.getColors()) {
                     this.writeString(color);
                 }
             }
@@ -240,7 +270,7 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeBool(entry.isHost());
     }
 
-    public writeAttributes(attributes: Array<Attribute>): void {
+    public writeAttributes(attributes: Attribute[]): void {
         this.writeUnsignedVarInt(attributes.length);
         for (const attribute of attributes) {
             this.writeLFloat(attribute.getMin());
@@ -253,8 +283,9 @@ export default class PacketBinaryStream extends BinaryStream {
 
     writeCreativeContentEntry(entry: CreativeContentEntry) {
         this.writeVarInt(entry.entryId);
-        this.writeItemStack(entry.item);
+        this.writeItemStack(new ContainerEntry({ item: entry.item, count: 1 }));
     }
+
     readCreativeContentEntry() {
         return {
             entryId: this.readVarInt(),
@@ -267,24 +298,25 @@ export default class PacketBinaryStream extends BinaryStream {
      */
     writeGamerules(rules: any) {
         this.writeUnsignedVarInt(rules.size);
-        for (let [name, value] of rules) {
+        for (const [name, value] of rules) {
             this.writeString(name);
             switch (typeof value) {
                 case 'boolean':
-                    this.writeByte(1); // maybe value type ??
+                    this.writeByte(1); // Maybe value type ??
                     this.writeBool(value);
                     break;
                 case 'number':
                     if (this.isInt(value)) {
-                        this.writeByte(2); // maybe value type ??
+                        this.writeByte(2); // Maybe value type ??
                         this.writeUnsignedVarInt(value);
                     } else if (this.isFloat(value)) {
-                        this.writeByte(3); // maybe value type ??
+                        this.writeByte(3); // Maybe value type ??
                         this.writeLFloat(value);
                     }
+
                     break;
                 default:
-                /* this.#server
+                /* This.#server
                         .getLogger()
                         .error(`Unknown Gamerule type ${value}`); */
             }
@@ -294,40 +326,43 @@ export default class PacketBinaryStream extends BinaryStream {
     private isInt(n: number) {
         return n % 1 === 0;
     }
+
     private isFloat(n: number) {
         return n % 1 !== 0;
     }
 
-    public writeEntityMetadata(metadata: any) {
+    public writeEntityMetadata(
+        metadata: Map<number, [number, string | number | bigint | boolean]>
+    ) {
         this.writeUnsignedVarInt(metadata.size);
         for (const [index, value] of metadata) {
             this.writeUnsignedVarInt(index);
             this.writeUnsignedVarInt(value[0]);
             switch (value[0]) {
                 case FlagType.BYTE:
-                    this.writeByte(value[1]);
+                    this.writeByte(value[1] as number);
                     break;
                 case FlagType.FLOAT:
-                    this.writeLFloat(value[1]);
+                    this.writeLFloat(value[1] as number);
                     break;
                 case FlagType.LONG:
-                    this.writeVarLong(value[1]);
+                    this.writeVarLong(value[1] as bigint);
                     break;
                 case FlagType.STRING:
-                    this.writeString(value[1]);
+                    this.writeString(value[1] as string);
                     break;
                 case FlagType.SHORT:
-                    this.writeLShort(value[1]);
+                    this.writeLShort(value[1] as number);
                     break;
                 default:
-                //this.#server.getLogger().warn(`Unknown meta type ${value}`);
+                // This.#server.getLogger().warn(`Unknown meta type ${value}`);
             }
         }
     }
 
     readItemStack() {
-        let id = this.readVarInt();
-        if (id == 0) {
+        const id = this.readVarInt();
+        if (id === 0) {
             // TODO: items
             return {
                 id: 0,
@@ -335,14 +370,11 @@ export default class PacketBinaryStream extends BinaryStream {
             };
         }
 
-        let name = null;
-        let temp = this.readVarInt();
-        let amount = temp & 0xff;
-        let meta = temp >> 8;
+        const temporary = this.readVarInt();
+        const meta = temporary >> 8;
 
-        let extraLen = this.readLShort();
-        let nbt = null;
-        if (extraLen == 0xffff) {
+        const extraLength = this.readLShort();
+        if (extraLength === 0xffff) {
             this.readByte(); // ? nbt version
             // As i cannot pass offset by reference, i keep it using this binary stream directly
             /* let stream = new NetworkLittleEndianBinaryStream(
@@ -355,16 +387,16 @@ export default class PacketBinaryStream extends BinaryStream {
             }
             nbt = decodedNBT;
             (this as any).offset = stream.getOffset(); */
-        } else if (extraLen !== 0) {
-            throw new Error(`Invalid NBT itemstack length ${extraLen}`);
+        } else if (extraLength !== 0) {
+            throw new Error(`Invalid NBT itemstack length ${extraLength}`);
         }
 
-        let countPlaceOn = this.readVarInt();
+        const countPlaceOn = this.readVarInt();
         for (let i = 0; i < countPlaceOn; i++) {
             this.readString();
         }
 
-        let countCanBreak = this.readVarInt();
+        const countCanBreak = this.readVarInt();
         for (let i = 0; i < countCanBreak; i++) {
             this.readString();
         }
@@ -386,30 +418,30 @@ export default class PacketBinaryStream extends BinaryStream {
 
     /**
      * Serializes an item into the buffer.
-     *
-     * @param {Item | Block} itemstack
      */
-    writeItemStack(itemstack: any) {
+    writeItemStack(entry: ContainerEntry) {
+        const itemstack = entry.getItem();
+
         if (itemstack.name === 'minecraft:air') {
             return this.writeVarInt(0);
         }
 
         this.writeVarInt(itemstack.getId());
-        this.writeVarInt(((itemstack.meta & 0x7fff) << 8) | itemstack.count);
+        this.writeVarInt(((itemstack.meta & 0x7fff) << 8) | entry.getCount());
 
         if (itemstack.nbt !== null) {
-            // write the amount of tags to write
+            // Write the amount of tags to write
             // (1) according to vanilla
             this.writeLShort(0xffff);
             this.writeByte(1);
 
-            // write hardcoded NBT tag
+            // Write hardcoded NBT tag
             // TODO: unimplemented NBT.write(nbt, true, true)
         } else {
             this.writeLShort(0);
         }
 
-        // canPlace and canBreak
+        // CanPlace and canBreak
         this.writeVarInt(0);
         this.writeVarInt(0);
 
@@ -424,7 +456,9 @@ export default class PacketBinaryStream extends BinaryStream {
         const actionsLength = this.readUnsignedVarInt();
         const actions: Array<ItemActionRequest> = new Array(actionsLength);
         for (let i = 0; i < actionsLength; i++) {
-            actions.push(this.readItemStackRequestAction() as ItemActionRequest);
+            actions.push(
+                this.readItemStackRequestAction() as ItemActionRequest
+            );
         }
 
         return new ItemRequest(id, actions);
@@ -441,7 +475,7 @@ export default class PacketBinaryStream extends BinaryStream {
         const id = this.readByte();
 
         switch (id) {
-            case ItemRequests.TAKE: 
+            case ItemRequests.TAKE:
                 return new TakeRequest({
                     count: this.readByte(),
                     from: this.readItemStackRequestSlotInfo(),
@@ -454,45 +488,45 @@ export default class PacketBinaryStream extends BinaryStream {
                     to: this.readItemStackRequestSlotInfo()
                 });
             case ItemRequests.SWAP:
-                // return new ItemStackRequestSwap({
-                //    from: this.readItemStackRequestSlotInfo(),
-                //    to: this.readItemStackRequestSlotInfo()
-                // });
+            // return new ItemStackRequestSwap({
+            //    from: this.readItemStackRequestSlotInfo(),
+            //    to: this.readItemStackRequestSlotInfo()
+            // });
             case ItemRequests.DROP:
-                // return new ItemStackRequestDrop({
-                //    count: this.readByte(),
-                //    from: this.readItemStackRequestSlotInfo(),
-                //    randomly: this.readBool()
-                // });
+            // return new ItemStackRequestDrop({
+            //    count: this.readByte(),
+            //    from: this.readItemStackRequestSlotInfo(),
+            //    randomly: this.readBool()
+            // });
             case ItemRequests.DESTROY:
-                // return new ItemStackRequestDestroy({
-                //    count: this.readByte(),
-                //    from: this.readItemStackRequestSlotInfo()
-                // });
+            // return new ItemStackRequestDestroy({
+            //    count: this.readByte(),
+            //    from: this.readItemStackRequestSlotInfo()
+            // });
             case ItemRequests.CONSUME:
                 return new ConsumeRequest({
                     count: this.readByte(),
                     from: this.readItemStackRequestSlotInfo()
                 });
             case 6:
-                // return {
-                //    slot: this.readByte()
-                // };
+            // return {
+            //    slot: this.readByte()
+            // };
             case 7:
-                // return {};
+            // return {};
             case 8:
-                // return {
-                //    primaryEffect: this.readVarInt(),
-                //    secondaryEffect: this.readVarInt()
-                // };
+            // return {
+            //    primaryEffect: this.readVarInt(),
+            //    secondaryEffect: this.readVarInt()
+            // };
             case 9:
-                // return {
-                //    recipeNetworkId: this.readUnsignedVarInt()
-                // };
+            // return {
+            //    recipeNetworkId: this.readUnsignedVarInt()
+            // };
             case 10:
-                // return {
-                //    recipeNetworkId: this.readUnsignedVarInt()
-                // };
+            // return {
+            //    recipeNetworkId: this.readUnsignedVarInt()
+            // };
             case ItemRequests.CREATIVE_CREATE:
                 return new CreativeCreateRequest({
                     itemId: this.readUnsignedVarInt()
@@ -505,13 +539,13 @@ export default class PacketBinaryStream extends BinaryStream {
                         'Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)'
                     ); */
                 // We still need to read it...
-                let items = [];
+                const items = [];
                 for (let i = 0; i < this.readUnsignedVarInt(); i++) {
                     items.push(this.readItemStack());
                 }
                 this.readByte(); // times crafted
             default:
-                console.log(`Unknown item stack request id=${id}`); 
+                console.log(`Unknown item stack request id=${id}`);
                 return null;
         }
     }
@@ -521,21 +555,22 @@ export default class PacketBinaryStream extends BinaryStream {
             containerId: this.readByte(),
             slot: this.readByte(),
             stackNetworkId: this.readVarInt()
-        }); 
+        });
     }
 
     readCommandOriginData() {
-        let data = new CommandOriginData();
+        const data = new CommandOriginData();
         data.type = this.readUnsignedVarInt();
         data.uuid = this.readUUID();
         data.requestId = this.readString();
 
         if (
-            data.type === CommandOrigin.DevConsole ||
-            data.type === CommandOrigin.Test
+            data.type === CommandOriginType.DevConsole ||
+            data.type === CommandOriginType.Test
         ) {
             data.uniqueEntityId = this.readVarLong();
         }
+
         return data;
     }
 }

@@ -1,16 +1,16 @@
-import type Player from '../../player/Player';
-import type Prismarine from '../../Prismarine';
 import type CommandRequestPacket from '../packet/CommandRequestPacket';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Server from '../../Server';
 
 export default class CommandRequestHandler
     implements PacketHandler<CommandRequestPacket> {
-    public handle(
+    public async handle(
         packet: CommandRequestPacket,
-        server: Prismarine,
+        server: Server,
         player: Player
-    ): void {
-        player
+    ): Promise<void> {
+        await player
             .getServer()
             .getCommandManager()
             .dispatchCommand(player, packet.commandName);

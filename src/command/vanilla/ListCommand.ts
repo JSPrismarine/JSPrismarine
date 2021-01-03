@@ -13,22 +13,22 @@ export default class ListCommand extends Command {
      * @param {Player} sender
      * @param {Array} args
      */
-    execute(sender: Player, args: Array<string>) {
-        let players = sender.getServer().getOnlinePlayers();
-        let playerArray = Array.from(players);
-        let maxPlayers = sender
+    public async execute(sender: Player, args: Array<string | number>) {
+        const players = sender.getServer().getOnlinePlayers();
+        const playerArray = Array.from(players);
+        const maxPlayers = sender
             .getServer()
             .getRaknet()
             .getName()
             .getMaxPlayerCount();
-        let counter = playerArray.length;
-        let answer = playerArray
+        const counter = playerArray.length;
+        const answer = playerArray
             .map((player) => player.getUsername())
             .join(', ');
 
-        sender.sendMessage(
+        await sender.sendMessage(
             `There are ${counter}/${maxPlayers} players online:`
         );
-        if (answer) sender.sendMessage(answer);
+        if (answer) await sender.sendMessage(answer);
     }
 }

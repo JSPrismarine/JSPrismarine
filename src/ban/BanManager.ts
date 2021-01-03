@@ -1,19 +1,19 @@
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
-import type Prismarine from '../Prismarine';
 import type Player from '../player/Player';
+import type Server from '../Server';
 
 export default class BanManager {
-    private server: Prismarine;
-    private banned: Map<
+    private readonly server: Server;
+    private readonly banned: Map<
         string,
         {
             reason: string;
         }
     > = new Map();
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 
@@ -30,7 +30,9 @@ export default class BanManager {
             if (
                 !fs.existsSync(path.join(process.cwd(), '/banned-players.json'))
             ) {
-                this.server.getLogger().warn(`Failed to load ban list!`);
+                this.server
+                    .getLogger()
+                    .warn(`Failed to load ban list!`, 'BanManager/parseBanned');
                 fs.writeFileSync(
                     path.join(process.cwd(), '/banned-players.json'),
                     '[]'
@@ -38,7 +40,7 @@ export default class BanManager {
             }
 
             const readFile = util.promisify(fs.readFile);
-            const banned: Array<any> = JSON.parse(
+            const banned: any[] = JSON.parse(
                 (
                     await readFile(
                         path.join(process.cwd(), '/banned-players.json')
@@ -47,8 +49,8 @@ export default class BanManager {
             );
 
             for (const player of banned) this.banned.set(player.name, player);
-        } catch (err) {
-            this.server.getLogger().error(err);
+        } catch (error) {
+            this.server.getLogger().error(error, 'BanManager/parseBanned');
             throw new Error(`Invalid banned-players.json file.`);
         }
     }
@@ -61,7 +63,11 @@ export default class BanManager {
         const writeFile = util.promisify(fs.writeFile);
         try {
             await writeFile(
-                path.join(process.cwd(), '/banned-players.json'),
+                path.join(
+                    process.cwd(),
+                    '/banned-players.json',
+                    'BanManager/setBanned'
+                ),
                 JSON.stringify(
                     Array.from(this.banned).map((entry) => ({
                         name: entry[0],
@@ -71,6 +77,7 @@ export default class BanManager {
                     4
                 )
             );
+            return true;
         } catch {
             return false;
         }
@@ -92,6 +99,7 @@ export default class BanManager {
                     4
                 )
             );
+            return true;
         } catch {
             return false;
         }

@@ -1,6 +1,5 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
-import { BlockToolType } from '../BlockToolType';
+import Solid from '../Solid';
 
 export enum SpongeType {
     Dry = 0,
@@ -8,12 +7,9 @@ export enum SpongeType {
 }
 
 export default class Sponge extends Solid {
-    constructor(
-        name: string = 'minecraft:sponge',
-        type: SpongeType = SpongeType.Dry
-    ) {
+    constructor(name = 'minecraft:sponge', type: SpongeType = SpongeType.Dry) {
         super({
-            name: name,
+            name,
             id: BlockIdsType.Sponge,
             hardness: 0.6
         });

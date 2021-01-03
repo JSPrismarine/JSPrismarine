@@ -1,10 +1,8 @@
-import Player from '../../player/Player';
 import Command from '../Command';
-
-const Gamemode = require('../../world/Gamemode');
+import Player from '../../player/Player';
 
 export default class GamemodeCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:time',
             description: 'Get, set and add to the current time.',
@@ -12,12 +10,12 @@ export default class GamemodeCommand extends Command {
         } as any);
     }
 
-    execute(sender: Player, args: Array<any>) {
+    public async execute(sender: Player, args: any[]) {
         const world =
             sender?.getWorld?.() ||
             sender.getServer().getWorldManager().getDefaultWorld();
 
-        if (args.length < 1) {
+        if (args.length === 0) {
             return sender.sendMessage(
                 `The current time is ${world.getTicks()}`
             );
@@ -34,9 +32,12 @@ export default class GamemodeCommand extends Command {
                 case 'sub':
                     world.setTicks(world.getTicks() - args[1]);
                     break;
+                default:
+                    throw new Error(`Invalid argument "${args[0]}"`);
             }
 
-            return sender.sendMessage(`Set time to: ${world.getTicks()}`);
+            await world.sendTime();
+            await sender.sendMessage(`Set time to: ${world.getTicks()}`);
         }
     }
 }

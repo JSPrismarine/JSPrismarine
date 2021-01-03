@@ -1,40 +1,41 @@
 import Identifiers from '../Identifiers';
-import LoginPacket from '../packet/LoginPacket';
 import LoginHandler from './LoginHandler';
+import LoginPacket from '../packet/LoginPacket';
 
 describe('network', () => {
     describe('handler', () => {
         describe('LoginHandler', () => {
-            it('handle with non-banned', (done) => {
+            it('handle with non-banned', async (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
 
                 const player = {
                     username: {},
+                    onEnable: () => {},
                     getConnection: () => ({
-                        sendPlayStatus: (status) => {
+                        sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
                         },
-                        sendDataPacket: (packet) => {
+                        sendDataPacket: (packet: any) => {
                             expect(player.username).toStrictEqual({
                                 name: 'runner'
                             });
                             done();
                         }
                     }),
-                    kick: (message) => {
+                    kick: (message: any) => {
                         expect(message).toBe('You have been banned!');
                         done();
                     }
-                };
+                } as any;
 
                 const handler = new LoginHandler();
-                handler.handle(
+                await handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
-                            isBanned: (player) => {
+                            isBanned: (player: any) => {
                                 return false;
                             }
                         }),
@@ -42,34 +43,35 @@ describe('network', () => {
                             return null;
                         }
                     } as any,
-                    player as any
+                    player
                 );
             });
 
-            it('handle with banned without reason', (done) => {
+            it('handle with banned without reason', async (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
 
                 const player = {
                     username: {},
+                    onEnable: () => {},
                     getConnection: () => ({
-                        sendPlayStatus: (status) => {
+                        sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
                         }
                     }),
-                    kick: (message) => {
+                    kick: (message: any) => {
                         expect(message).toBe('You have been banned!');
                         done();
                     }
-                };
+                } as any;
 
                 const handler = new LoginHandler();
-                handler.handle(
+                await handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
-                            isBanned: (player) => {
+                            isBanned: (player: any) => {
                                 return '';
                             }
                         }),
@@ -77,36 +79,37 @@ describe('network', () => {
                             return null;
                         }
                     } as any,
-                    player as any
+                    player
                 );
             });
 
-            it('handle with banned with reason', (done) => {
+            it('handle with banned with reason', async (done) => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
 
                 const player = {
                     username: {},
+                    onEnable: () => {},
                     getConnection: () => ({
-                        sendPlayStatus: (status) => {
+                        sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
                         }
                     }),
-                    kick: (message) => {
+                    kick: (message: any) => {
                         expect(message).toBe(
                             'You have been banned for reason: a reason!'
                         );
                         done();
                     }
-                };
+                } as any;
 
                 const handler = new LoginHandler();
-                handler.handle(
+                await handler.handle(
                     pk,
                     {
                         getBanManager: () => ({
-                            isBanned: (player) => {
+                            isBanned: (player: any) => {
                                 return 'a reason';
                             }
                         }),
@@ -114,8 +117,71 @@ describe('network', () => {
                             return null;
                         }
                     } as any,
-                    player as any
+                    player
                 );
+            });
+
+            it('handle invalid username', async (done) => {
+                const pk = new LoginPacket();
+                pk.displayName = '';
+                pk.protocol = Identifiers.Protocol;
+
+                const player = {
+                    username: {},
+                    onEnable: () => {},
+                    getConnection: () => ({
+                        sendPlayStatus: (status: any) => {
+                            expect(status).toBe(0);
+                        }
+                    }),
+                    kick: (message: any) => {
+                        expect(message).toBe('Invalid username!');
+                        done();
+                    }
+                } as any;
+
+                const handler = new LoginHandler();
+                await handler.handle(pk, {} as any, player);
+            });
+
+            it('handle outdated client', async (done) => {
+                const pk = new LoginPacket();
+                pk.displayName = '';
+                pk.protocol = Identifiers.Protocol - 10;
+
+                const player = {
+                    username: {},
+                    onEnable: () => {},
+                    getConnection: () => ({
+                        sendPlayStatus: (status: any) => {
+                            expect(status).toBe(1);
+                            done();
+                        }
+                    })
+                } as any;
+
+                const handler = new LoginHandler();
+                await handler.handle(pk, {} as any, player);
+            });
+
+            it('handle outdated server', async (done) => {
+                const pk = new LoginPacket();
+                pk.displayName = '';
+                pk.protocol = Identifiers.Protocol + 10;
+
+                const player = {
+                    username: {},
+                    onEnable: () => {},
+                    getConnection: () => ({
+                        sendPlayStatus: (status: any) => {
+                            expect(status).toBe(2);
+                            done();
+                        }
+                    })
+                } as any;
+
+                const handler = new LoginHandler();
+                await handler.handle(pk, {} as any, player);
             });
         });
     });

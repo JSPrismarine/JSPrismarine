@@ -1,13 +1,12 @@
-import type Block from '../../block/Block';
-import type Item from '../../item/Item';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import type ContainerEntry from '../../inventory/ContainerEntry';
 
 export default class InventoryContentPacket extends DataPacket {
     static NetID = Identifiers.InventoryContentPacket;
 
     public windowId!: number;
-    public items: Array<Item | Block> = [];
+    public items: ContainerEntry[] = [];
 
     public encodePayload() {
         this.writeUnsignedVarInt(this.windowId);
@@ -15,7 +14,7 @@ export default class InventoryContentPacket extends DataPacket {
         // Write item stacks
         this.writeUnsignedVarInt(this.items.length);
         for (let i = 0; i < this.items.length; i++) {
-            this.writeVarInt(i + 1); // slot index
+            this.writeVarInt(i + 1); // Slot index
             this.writeItemStack(this.items[i]);
         }
     }

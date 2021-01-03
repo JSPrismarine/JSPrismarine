@@ -20,7 +20,7 @@ class Grad {
     }
 }
 
-let grad3 = [
+const grad3 = [
     new Grad(1, 1, 0),
     new Grad(-1, 1, 0),
     new Grad(1, -1, 0),
@@ -35,7 +35,7 @@ let grad3 = [
     new Grad(0, -1, -1)
 ];
 
-let p = [
+const p = [
     151,
     160,
     137,
@@ -294,16 +294,16 @@ let p = [
     180
 ];
 
-let perm = new Array(512),
-    gradP = new Array(512);
+const perm = new Array(512);
+const gradP = new Array(512);
 
 // Skewing and unskewing factors for 2, 3, and 4 dimensions
 const F2 = 0.5 * (Math.sqrt(3) - 1);
 const G2 = (3 - Math.sqrt(3)) / 6;
 
 // TODO: not used, check those
-const F3 = 1 / 3;
-const G3 = 1 / 6;
+// const F3 = 1 / 3;
+// const G3 = 1 / 6;
 
 export default class Noise {
     public seed;
@@ -329,25 +329,28 @@ export default class Noise {
      * 2D Simplex Noise
      */
     public simplex2(x: number, y: number): number {
-        let n0, n1, n2; // Noise contributions from the three corners
+        let n0;
+        let n1;
+        let n2; // Noise contributions from the three corners
 
         // Skew the input space to determine which simplex cell we're in
-        let s = (x + y) * F2; // Hairy factor for 2D
+        const s = (x + y) * F2; // Hairy factor for 2D
         let i = Math.floor(x + s);
         let j = Math.floor(y + s);
-        let t = (i + j) * G2;
-        let x0 = x - i + t; // The x,y distances from the cell origin, unskewed.
-        let y0 = y - j + t;
+        const t = (i + j) * G2;
+        const x0 = x - i + t; // The x,y distances from the cell origin, unskewed.
+        const y0 = y - j + t;
 
         // For the 2D case, the simplex shape is an equilateral triangle.
         // Determine which simplex we are in.
-        let i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
+        let i1;
+        let j1; // Offsets for second (middle) corner of simplex in (i,j) coords
         if (x0 > y0) {
-            // lower triangle, XY order: (0,0)->(1,0)->(1,1)
+            // Lower triangle, XY order: (0,0)->(1,0)->(1,1)
             i1 = 1;
             j1 = 0;
         } else {
-            // upper triangle, YX order: (0,0)->(0,1)->(1,1)
+            // Upper triangle, YX order: (0,0)->(0,1)->(1,1)
             i1 = 0;
             j1 = 1;
         }
@@ -355,18 +358,18 @@ export default class Noise {
         // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
         // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
         // c = (3-sqrt(3))/6
-        let x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
-        let y1 = y0 - j1 + G2;
+        const x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
+        const y1 = y0 - j1 + G2;
 
-        let x2 = x0 - 1 + 2 * G2; // Offsets for last corner in (x,y) unskewed coords
-        let y2 = y0 - 1 + 2 * G2;
+        const x2 = x0 - 1 + 2 * G2; // Offsets for last corner in (x,y) unskewed coords
+        const y2 = y0 - 1 + 2 * G2;
 
         // Work out the hashed gradient indices of the three simplex corners
         i &= 255;
         j &= 255;
-        let gi0 = gradP[i + perm[j]];
-        let gi1 = gradP[i + i1 + perm[j + j1]];
-        let gi2 = gradP[i + 1 + perm[j + 1]];
+        const gi0 = gradP[i + perm[j]];
+        const gi1 = gradP[i + i1 + perm[j + j1]];
+        const gi2 = gradP[i + 1 + perm[j + 1]];
 
         // Calculate the contribution from the three corners
         let t0 = 0.5 - x0 * x0 - y0 * y0;
@@ -377,7 +380,7 @@ export default class Noise {
             n0 = t0 * t0 * gi0.dot2(x0, y0); // (x,y) of grad3 used for 2D gradient
         }
 
-        var t1 = 0.5 - x1 * x1 - y1 * y1;
+        let t1 = 0.5 - x1 * x1 - y1 * y1;
         if (t1 < 0) {
             n1 = 0;
         } else {
@@ -385,7 +388,7 @@ export default class Noise {
             n1 = t1 * t1 * gi1.dot2(x1, y1);
         }
 
-        var t2 = 0.5 - x2 * x2 - y2 * y2;
+        let t2 = 0.5 - x2 * x2 - y2 * y2;
         if (t2 < 0) {
             n2 = 0;
         } else {
@@ -403,25 +406,25 @@ export default class Noise {
      */
     public perlin2(x: number, y: number): number {
         // Find unit grid cell containing point
-        let X = Math.floor(x),
-            Y = Math.floor(y);
+        let X = Math.floor(x);
+        let Y = Math.floor(y);
 
         // Get relative xy coordinates of point within that cell
-        x = x - X;
-        y = y - Y;
+        x -= X;
+        y -= Y;
 
         // Wrap the integer cells at 255 (smaller integer period can be introduced here)
-        X = X & 255;
-        Y = Y & 255;
+        X &= 255;
+        Y &= 255;
 
         // Calculate noise contributions from each of the four corners
-        let n00 = gradP[X + perm[Y]].dot2(x, y);
-        let n01 = gradP[X + perm[Y + 1]].dot2(x, y - 1);
-        let n10 = gradP[X + 1 + perm[Y]].dot2(x - 1, y);
-        let n11 = gradP[X + 1 + perm[Y + 1]].dot2(x - 1, y - 1);
+        const n00 = gradP[X + perm[Y]].dot2(x, y);
+        const n01 = gradP[X + perm[Y + 1]].dot2(x, y - 1);
+        const n10 = gradP[X + 1 + perm[Y]].dot2(x - 1, y);
+        const n11 = gradP[X + 1 + perm[Y + 1]].dot2(x - 1, y - 1);
 
         // Compute the fade curve value for x
-        let u = fade(x);
+        const u = fade(x);
 
         // Interpolate the four results
         return lerp(lerp(n00, n10, u), lerp(n01, n11, u), fade(y));

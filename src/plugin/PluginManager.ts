@@ -1,23 +1,22 @@
 import fs from 'fs';
-import path from 'path';
-import rimraf from 'rimraf';
-import unzipper from 'unzipper';
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
-import Prismarine from '../Prismarine';
-import PluginFile from './PluginFile';
+import path from 'path';
+import unzipper from 'unzipper';
+import Server from '../Server';
 import PluginApiVersion from './api/PluginApiVersion';
+import PluginFile from './PluginFile';
 
 export default class PluginManager {
-    private server: Prismarine;
-    private pluginApiVersions = new Map();
-    private plugins = new Map();
+    private readonly server: Server;
+    private readonly pluginApiVersions = new Map();
+    private readonly plugins = new Map();
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 
     /**
-     * onEnable hook
+     * OnEnable hook
      */
     public async onEnable() {
         // Create plugin folder
@@ -34,12 +33,14 @@ export default class PluginManager {
             pluginApiVersions.map((id: string) => {
                 try {
                     return this.registerPluginApiVersion(id);
-                } catch (err) {
+                } catch (error) {
                     this.server
                         .getLogger()
                         .error(
-                            `§cFailed to load pluginApiVersion ${id}: ${err}`
+                            `§cFailed to load pluginApiVersion ${id}: ${error}`,
+                            'PluginManager/onEnable'
                         );
+                    return null;
                 }
             })
         );
@@ -48,7 +49,8 @@ export default class PluginManager {
             .debug(
                 `Registered §b${
                     pluginApiVersions.length
-                }§r pluginApiVersion(s) (took ${Date.now() - time} ms)!`
+                }§r pluginApiVersion(s) (took ${Date.now() - time} ms)!`,
+                'PluginManager/onEnable'
             );
 
         // Register Plugin(s)
@@ -59,10 +61,13 @@ export default class PluginManager {
                 plugins.map(async (id: string) => {
                     try {
                         return await this.registerPlugin(id);
-                    } catch (err) {
+                    } catch (error) {
                         this.server
                             .getLogger()
-                            .error(`§cFailed to load plugin ${id}: ${err}`);
+                            .error(
+                                `§cFailed to load plugin ${id}: ${error}`,
+                                'PluginManager/onEnable'
+                            );
                     }
                 })
             )
@@ -72,16 +77,17 @@ export default class PluginManager {
             .debug(
                 `Registered §b${res.length}§r plugin(s) (took ${
                     Date.now() - time
-                } ms)!`
+                } ms)!`,
+                'PluginManager/onEnable'
             );
     }
 
     /**
-     * onDisable hook
+     * OnDisable hook
      */
     public async onDisable() {
         await Promise.all(
-            Array.from(this.plugins.keys()).map((id: string) => {
+            Array.from(this.plugins.keys()).map(async (id: string) => {
                 return this.deregisterPlugin(id);
             })
         );
@@ -92,13 +98,23 @@ export default class PluginManager {
      * Register a pluginApiVersion
      */
     private async registerPluginApiVersion(id: string) {
-        let dir = path.join(__dirname, 'api/versions', id, 'PluginApi');
-        let PluginVersion = require(dir).default;
+        try {
+            const dir = path.join(__dirname, 'api/versions', id, 'PluginApi');
+            const PluginVersion = require(dir).default;
 
-        this.pluginApiVersions.set(id, PluginVersion);
-        this.server
-            .getLogger()
-            .silly(`PluginApiVersion with id §b${id}§r registered`);
+            this.pluginApiVersions.set(id, PluginVersion);
+            this.server
+                .getLogger()
+                .silly(
+                    `PluginApiVersion with id §b${id}§r registered`,
+                    'PluginManager/registerPluginApiVersion'
+                );
+        } catch (err) {
+            this.server
+                .getLogger()
+                .error(err, 'PluginManager/registerPluginApiVersion');
+            throw new Error('invalid PluginApiVersion');
+        }
     }
 
     /**
@@ -107,7 +123,7 @@ export default class PluginManager {
     private async registerPlugin(id: string): Promise<PluginFile | null> {
         if (id === '.extracted') return null;
 
-        let time = Date.now();
+        const time = Date.now();
         let dir = path.join(process.cwd(), 'plugins', id);
         if (!fs.lstatSync(dir).isDirectory()) {
             // Invalid file
@@ -125,7 +141,10 @@ export default class PluginManager {
 
             this.server
                 .getLogger()
-                .silly(`Extracting plugin with id §b${id}...`);
+                .silly(
+                    `Extracting plugin with id §b${id}...`,
+                    'PluginManager/registerPlugin'
+                );
             await fs
                 .createReadStream(path.join(process.cwd(), 'plugins/', id))
                 .pipe(unzipper.Extract({ path: dir }))
@@ -138,7 +157,10 @@ export default class PluginManager {
         }
 
         const pkg = require(path.join(dir, 'package.json'));
-        if (!pkg) throw new Error(`package.json is invalid!`);
+        if (!pkg) throw new Error(`package.json is missing!`);
+
+        if (!pkg.name || !pkg.prismarine)
+            throw new Error(`package.json is invalid!`);
 
         if (!fs.existsSync(path.join(process.cwd(), '/plugins/', pkg.name))) {
             fs.mkdirSync(path.join(process.cwd(), '/plugins/', pkg.name));
@@ -146,13 +168,13 @@ export default class PluginManager {
 
         if (pkg.dependencies)
             await Promise.all(
-                Object.entries(pkg?.dependencies)?.map((dependency) => {
+                Object.entries(pkg?.dependencies)?.map(async (dependency) => {
                     const moduleManager = new ModuleManager({
                         cwd: dir,
                         pluginsPath: path.join(dir, 'node_modules')
                     });
                     return moduleManager.installFromNpm(
-                        dependency[0] as string,
+                        dependency[0],
                         dependency[1] as string
                     );
                 })
@@ -177,11 +199,12 @@ export default class PluginManager {
 
         try {
             await plugin.onEnable();
-        } catch (err) {
+        } catch (error) {
             this.server
                 .getLogger()
                 .warn(
-                    `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${err}!`
+                    `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
+                    'PluginManager/registerPlugin'
                 );
             return null;
         }
@@ -191,14 +214,53 @@ export default class PluginManager {
         this.server
             .getLogger()
             .silly(
-                `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`
+                `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`,
+                'PluginManager/registerPlugin'
             );
         this.server
             .getLogger()
             .info(
                 `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${
                     Date.now() - time
-                } ms)!`
+                } ms)!`,
+                'PluginManager/registerPlugin'
+            );
+        return plugin;
+    }
+
+    public async registerClassPlugin(
+        pkg: any,
+        plugin: PluginFile
+    ): Promise<PluginFile | null> {
+        const time = Date.now();
+
+        try {
+            await plugin.onEnable();
+        } catch (error) {
+            this.server
+                .getLogger()
+                .warn(
+                    `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
+                    'PluginManager/registerPlugin'
+                );
+            return null;
+        }
+
+        this.plugins.set(pkg.name, plugin);
+
+        this.server
+            .getLogger()
+            .silly(
+                `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`,
+                'PluginManager/registerPlugin'
+            );
+        this.server
+            .getLogger()
+            .info(
+                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${
+                    Date.now() - time
+                } ms)!`,
+                'PluginManager/registerPlugin'
             );
         return plugin;
     }
@@ -210,11 +272,12 @@ export default class PluginManager {
         const plugin: PluginFile = this.plugins.get(id);
         try {
             await plugin.onDisable?.();
-        } catch (err) {
+        } catch (error) {
             this.server
                 .getLogger()
                 .warn(
-                    `Failed to disable §b${plugin.getName()}@${plugin.getVersion()}§r: ${err}!`
+                    `Failed to disable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
+                    'PluginManager/deregisterPlugin'
                 );
         }
 
@@ -231,11 +294,11 @@ export default class PluginManager {
 
         // Try to use a higher minor version instead
         return this.pluginApiVersions.get(
-            Array.from(this.pluginApiVersions.keys()).filter(
+            Array.from(this.pluginApiVersions.keys()).find(
                 (apiVersion: string) =>
                     apiVersion.split('.')[0] === id.split('.')[0] &&
                     apiVersion.split('.')[1] >= id.split('.')[1]
-            )[0]
+            )
         );
     }
 

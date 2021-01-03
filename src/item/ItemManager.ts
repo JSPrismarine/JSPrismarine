@@ -1,26 +1,25 @@
 import fs from 'fs';
 import path from 'path';
-
+import Server from '../Server';
 import Item from './Item';
-import Prismarine from '../Prismarine';
 
 export default class ItemManager {
-    private server: Prismarine;
-    private items = new Map();
+    private readonly server: Server;
+    private readonly items = new Map();
 
-    constructor(server: Prismarine) {
+    constructor(server: Server) {
         this.server = server;
     }
 
     /**
-     * onEnable hook
+     * OnEnable hook
      */
     public async onEnable() {
         this.importItems();
     }
 
     /**
-     * onDisable hook
+     * OnDisable hook
      */
     public async onDisable() {
         this.items.clear();
@@ -30,14 +29,24 @@ export default class ItemManager {
         return this.items.get(name);
     }
 
-    public getItems(): Array<Item> {
+    /**
+     * Get item by numeric id
+     */
+    public getItemById(id: number): Item | null {
+        return this.getItems().find((a) => a.getId() === id) ?? null;
+    }
+
+    public getItems(): Item[] {
         return Array.from(this.items.values());
     }
 
     public registerClassItem = (item: Item) => {
         this.server
             .getLogger()
-            .silly(`Item with id §b${item.name}§r registered`);
+            .silly(
+                `Item with id §b${item.name}§r registered`,
+                'ItemManager/registerClassItem'
+            );
         item.setRuntimeId(this.items.size);
         this.items.set(item.name, item);
     };
@@ -50,13 +59,23 @@ export default class ItemManager {
             const time = Date.now();
             const items = fs.readdirSync(path.join(__dirname, 'items'));
             items.forEach((id: string) => {
-                if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
+                if (
+                    id.includes('.test.') ||
+                    id.includes('.d.ts') ||
+                    id.includes('.map')
+                )
+                    return; // Exclude test files
 
                 const item = require(`./items/${id}`).default;
                 try {
                     this.registerClassItem(new item());
-                } catch (err) {
-                    this.server.getLogger().error(`${id} failed to register!`);
+                } catch {
+                    this.server
+                        .getLogger()
+                        .error(
+                            `${id} failed to register!`,
+                            'ItemManager/importItems'
+                        );
                 }
             });
             this.server
@@ -64,10 +83,16 @@ export default class ItemManager {
                 .debug(
                     `Registered §b${items.length}§r item(s) (took ${
                         Date.now() - time
-                    } ms)!`
+                    } ms)!`,
+                    'ItemManager/importItems'
                 );
-        } catch (err) {
-            this.server.getLogger().error(`Failed to register items: ${err}`);
+        } catch (error) {
+            this.server
+                .getLogger()
+                .error(
+                    `Failed to register items: ${error}`,
+                    'ItemManager/importItems'
+                );
         }
     }
 }

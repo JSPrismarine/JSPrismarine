@@ -1,6 +1,4 @@
-const Command = require('./VersionCommand').default;
-const packageFile = require('../../../package.json');
-const identifiers = require('../../network/Identifiers').default;
+import Command from './VersionCommand';
 
 describe('command', () => {
     describe('jsprismarine', () => {

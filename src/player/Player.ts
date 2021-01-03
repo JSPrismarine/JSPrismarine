@@ -1,149 +1,275 @@
-import Prismarine from '../Prismarine';
-import Entity from '../entity/entity';
-import World from '../world/World';
-import Gamemode from '../world/Gamemode';
-import PlayerConnection from './PlayerConnection';
-import PlayerInventory from '../inventory/PlayerInventory';
-import Inventory from '../inventory/Inventory';
-import Skin from '../utils/skin/Skin';
-import Device from '../utils/Device';
-import Chunk from '../world/chunk/Chunk';
+import CommandExecuter from '../command/CommandExecuter';
+import Human from '../entity/Human';
 import ChatEvent from '../events/chat/ChatEvent';
-import withDeprecated from '../hoc/withDeprecated';
-import LoggerBuilder from '../utils/Logger';
+import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
+import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
+import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
+import ContainerEntry from '../inventory/ContainerEntry';
+import WindowManager from '../inventory/WindowManager';
+import Connection from '../network/raknet/Connection';
+import InetAddress from '../network/raknet/utils/InetAddress';
+import Server from '../Server';
+import Device from '../utils/Device';
+import Skin from '../utils/skin/Skin';
+import Chunk from '../world/chunk/Chunk';
+import Gamemode from '../world/Gamemode';
+import World from '../world/World';
+import PlayerConnection from './PlayerConnection';
 
-export enum PlayerPermission {
-    Visitor,
-    Member,
-    Operator,
-    Custom
-}
+export default class Player extends Human implements CommandExecuter {
+    private readonly server: Server;
+    private readonly address: InetAddress;
+    private readonly playerConnection: PlayerConnection;
 
-export default class Player extends Entity {
-    private server: Prismarine;
-    private address: any;
-    private playerConnection: PlayerConnection;
-
-    public inventory = new PlayerInventory();
-    public windows: Map<number, Inventory> = new Map();
+    // TODO: finish implementation
+    private readonly windows: WindowManager;
 
     public username = {
         prefix: '<',
         suffix: '>',
         name: ''
     };
-    public locale: string = '';
-    public randomId: number = 0;
 
-    public uuid: string = '';
-    public xuid: string = '';
+    public locale = '';
+    public randomId = 0;
+
+    public uuid = '';
+    public xuid = '';
     public skin: Skin | null = null;
 
     public viewDistance: any;
-    public gamemode: number = 0;
+    public gamemode = 0;
 
-    public pitch: number = 0;
-    public yaw: number = 0;
-    public headYaw: number = 0;
+    public pitch = 0;
+    public yaw = 0;
+    public headYaw = 0;
 
-    public onGround: boolean = false;
+    private onGround = false;
+    private sprinting = false;
+    private flying = false;
+    private sneaking = false;
+    private allowFight = false;
 
-    public platformChatId: string = '';
+    public platformChatId = '';
 
     public device: Device | null = null;
 
-    public cacheSupport: boolean = false;
+    public cacheSupport = false;
 
     public currentChunk: Chunk | null = null;
 
     /**
      * Player's constructor.
      */
-    constructor(
-        connection: any,
-        address: any,
-        world: World,
-        server: Prismarine
-    ) {
+    constructor(connection: Connection, world: World, server: Server) {
         super(world);
-        this.address = address;
+        this.address = connection.getAddress();
         this.server = server;
         this.playerConnection = new PlayerConnection(server, connection, this);
-
-        // TODO: only set to default gamemode if there doesn't exist any save data for the user
-        this.gamemode = Gamemode.getGamemodeId(
-            server.getConfig().getGamemode()
-        );
+        this.windows = new WindowManager();
 
         // Handle chat messages
-        server.getEventManager().on('chat', (evt: ChatEvent) => {
+        server.getEventManager().on('chat', async (evt: ChatEvent) => {
             if (evt.cancelled) return;
 
             // TODO: proper channel system
             if (
                 evt.getChat().getChannel() === '*.everyone' ||
-                (evt.getChat().getChannel() === '*.ops' &&
-                    this.server.getPermissionManager().isOp(this)) ||
+                (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
                 evt.getChat().getChannel() === `*.player.${this.getUsername()}`
             )
-                this.sendMessage(evt.getChat().getMessage());
+                await this.sendMessage(evt.getChat().getMessage());
         });
     }
 
-    public async update(tick: number) {
+    public async onEnable() {
+        const playerData = await this.getWorld().getPlayerData(this);
+
+        void this.setGamemode(Gamemode.getGamemodeId(playerData.gamemode));
+        this.setX(playerData.position.x);
+        this.setY(playerData.position.y);
+        this.setZ(playerData.position.z);
+        this.pitch = playerData.position.pitch;
+        this.yaw = playerData.position.yaw;
+
+        playerData.inventory.forEach((item) => {
+            const entry =
+                this.server.getItemManager().getItem(item.id) ||
+                this.server.getBlockManager().getBlock(item.id);
+
+            if (!entry) {
+                this.getServer()
+                    .getLogger()
+                    .debug(
+                        `Item/block with id ${item.id} is invalid`,
+                        'Player/onEnable'
+                    );
+                return;
+            }
+
+            this.getInventory().setItem(
+                item.position,
+                new ContainerEntry({
+                    item: entry,
+                    count: item.count
+                })
+            );
+        });
+    }
+
+    public async onDisable() {
+        await this.getWorld().savePlayerData(this);
+    }
+
+    public async update(tick: number): Promise<void> {
         await this.playerConnection.update(tick);
     }
 
-    public async kick(reason = 'unknown reason') {
-        this.playerConnection.kick(reason);
+    public async kick(reason = 'unknown reason'): Promise<void> {
+        this.getServer()
+            .getLogger()
+            .debug(
+                `Player with id §b${this.runtimeId}§r was kicked: ${reason}`,
+                'Player/kick'
+            );
+        await this.playerConnection.kick(reason);
+    }
+
+    public async sendSettings(): Promise<void> {
+        await Promise.all(
+            this.getServer()
+                .getOnlinePlayers()
+                .map(async (target) => {
+                    await target.getConnection().sendSettings(this);
+                })
+        );
     }
 
     // Return all the players in the same chunk
     // TODO: move to world
-    public getPlayersInChunk() {
+    public getPlayersInChunk(): Player[] {
         return this.server
             .getOnlinePlayers()
             .filter((player) => player.currentChunk === this.currentChunk);
     }
 
-    public sendMessage(message: string) {
-        this.playerConnection.sendMessage(message);
+    public async sendMessage(message: string): Promise<void> {
+        await this.playerConnection.sendMessage(message);
     }
 
-    public isPlayer() {
-        return true;
+    public async setGamemode(mode: number): Promise<void> {
+        const event = new PlayerSetGamemodeEvent(this, mode);
+        this.server.getEventManager().post(['playerSetGamemode', event]);
+        if (event.cancelled) return;
+
+        this.gamemode = event.getGamemode();
+        await this.playerConnection.sendGamemode(this.gamemode);
+
+        if (
+            this.gamemode === Gamemode.Creative ||
+            this.gamemode === Gamemode.Spectator
+        )
+            this.allowFight = true;
+        else {
+            this.allowFight = false;
+            await this.setFlying(false);
+        }
+
+        await this.sendSettings();
     }
 
-    public setGamemode(mode: number) {
-        this.gamemode = mode;
-        this.playerConnection.sendGamemode(this.gamemode);
-    }
-
-    public getServer() {
+    public getServer(): Server {
         return this.server;
     }
 
-    public getConnection() {
+    public getConnection(): PlayerConnection {
         return this.playerConnection;
-    }
-
-    @withDeprecated(new Date('12/11/2020'), 'getConnection')
-    public getPlayerConnection() {
-        return this.getConnection();
     }
 
     public getAddress() {
         return this.address;
     }
 
-    public getUsername() {
+    public getUsername(): string {
         return this.username.name;
     }
-    public getFormattedUsername() {
+
+    public getFormattedUsername(): string {
         return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
     }
 
     public getUUID(): string {
-        return this.uuid ?? '';
+        if (!this.uuid) throw new Error('uuid is missing!');
+
+        return this.uuid;
+    }
+
+    public getXUID(): string {
+        if (!this.xuid) throw new Error('xuid is missing!');
+
+        return this.xuid;
+    }
+
+    public getWindows(): WindowManager {
+        return this.windows;
+    }
+
+    public getAllowFlight(): boolean {
+        return this.allowFight;
+    }
+
+    public isPlayer(): boolean {
+        return true;
+    }
+    public isOp(): boolean {
+        return this.getServer().getPermissionManager().isOp(this.getUsername());
+    }
+
+    public isSprinting() {
+        return this.sprinting;
+    }
+    public async setSprinting(sprinting: boolean) {
+        if (sprinting === this.isSprinting()) return;
+
+        const event = new PlayerToggleSprintEvent(this, sprinting);
+        this.server.getEventManager().post(['playerToggleSprint', event]);
+        if (event.cancelled) return;
+
+        this.sprinting = event.getIsSprinting();
+        await this.sendSettings();
+    }
+
+    public isFlying() {
+        return this.flying;
+    }
+    public async setFlying(flying: boolean) {
+        if (flying === this.isFlying()) return;
+        if (!this.getAllowFlight()) {
+            this.flying = false;
+            return;
+        }
+
+        const event = new PlayerToggleFlightEvent(this, flying);
+        this.server.getEventManager().post(['playerToggleFlight', event]);
+        if (event.cancelled) return;
+
+        this.flying = event.getIsFlying();
+        await this.sendSettings();
+    }
+
+    public isSneaking() {
+        return this.sneaking;
+    }
+    public async setSneaking(val: boolean) {
+        this.sneaking = val;
+        await this.sendSettings();
+    }
+
+    public isOnGround() {
+        return this.onGround;
+    }
+    public async setOnGround(val: boolean) {
+        this.onGround = val;
+        await this.sendSettings();
     }
 }

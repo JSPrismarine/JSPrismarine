@@ -46,10 +46,10 @@ export default class Chunk {
         chunkX: number,
         chunkZ: number,
         subChunks = new Map(),
-        entities = [],
-        tiles = [],
-        biomes = [],
-        heightMap = []
+        entities: any[] = [],
+        tiles: any[] = [],
+        biomes: number[] = [],
+        heightMap: number[] = []
     ) {
         this.#x = chunkX;
         this.#z = chunkZ;
@@ -141,14 +141,10 @@ export default class Chunk {
     }
 
     public getSubChunk(y: number, generateNew = false) {
-        if (y < 0 ?? y >= this.#height) {
-            return new EmptySubChunk();
-        } else if (
-            generateNew &&
-            this.#subChunks.get(y) instanceof EmptySubChunk
-        ) {
+        if (y < 0 ?? y >= this.#height) return new EmptySubChunk();
+
+        if (generateNew && this.#subChunks.get(y) instanceof EmptySubChunk)
             this.#subChunks.set(y, new SubChunk());
-        }
 
         return this.#subChunks.get(y);
     }
@@ -173,13 +169,14 @@ export default class Chunk {
     }
 
     public getHighestBlock(x: number, z: number) {
-        let index = this.getHighestSubChunkIndex();
+        const index = this.getHighestSubChunkIndex();
         if (index === -1) {
             return -1;
         }
 
         for (let y = index; y >= 0; --y) {
-            let height = this.getSubChunk(y).getHighestBlockAt(x, z) | (y << 4);
+            const height =
+                this.getSubChunk(y).getHighestBlockAt(x, z) | (y << 4);
             if (height !== -1) {
                 return height;
             }
@@ -229,12 +226,12 @@ export default class Chunk {
     }
 
     public toBinary() {
-        let stream = new BinaryStream();
-        let subChunkCount = this.getSubChunkSendCount();
+        const stream = new BinaryStream();
+        const subChunkCount = this.getSubChunkSendCount();
         for (let y = 0; y < subChunkCount; ++y) {
             stream.append(this.#subChunks.get(y).toBinary());
         }
-        for (let biome of this.#biomes) {
+        for (const biome of this.#biomes) {
             stream.writeByte(biome);
         }
         stream.writeByte(0);

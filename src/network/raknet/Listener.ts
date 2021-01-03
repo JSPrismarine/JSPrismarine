@@ -1,21 +1,21 @@
-import type Prismarine from '../../Prismarine';
-import Identifiers from './protocol/Identifiers';
-import Connection from './Connection';
-import ServerName from './utils/ServerName';
-import InetAddress from './utils/InetAddress';
-import { RemoteInfo, Socket } from 'dgram';
-import { EventEmitter } from 'events';
-import Crypto from 'crypto';
-import Dgram from 'dgram';
+import Dgram, { RemoteInfo, Socket } from 'dgram';
 
-import UnconnectedPing from './protocol/UnconnectedPing';
-import UnconnectedPong from './protocol/UnconnectedPong';
-import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
+import Connection from './Connection';
+import Crypto from 'crypto';
+
+import { EventEmitter } from 'events';
+import Identifiers from './protocol/Identifiers';
 import IncompatibleProtocolVersion from './protocol/IncompatibleProtocolVersion';
+import InetAddress from './utils/InetAddress';
 import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
 import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
+import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
+import type Server from '../../Server';
 import RakNetListener from './RakNetListener';
+import ServerName from './utils/ServerName';
+import UnconnectedPing from './protocol/UnconnectedPing';
+import UnconnectedPong from './protocol/UnconnectedPong';
 
 // Minecraft related protocol
 const PROTOCOL = 10;
@@ -26,19 +26,22 @@ const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
 // Listen to packets and then process them
 export default class Listener extends EventEmitter implements RakNetListener {
-    private id: bigint;
+    private readonly id: bigint;
     private name: ServerName;
     private socket!: Socket;
-    private connections: Map<string, Connection> = new Map();
-    private shutdown = false;
-    private server: Prismarine;
+    private readonly connections: Map<string, Connection> = new Map();
+    private get shutdown() {
+        return false;
+    }
 
-    public constructor(server: Prismarine) {
+    private readonly server: Server;
+
+    public constructor(server: Server) {
         super();
         this.server = server;
         this.name = new ServerName(server);
         // Generate a signed random 64 bit GUID
-        let uniqueId = Crypto.randomBytes(8).readBigInt64BE();
+        const uniqueId = Crypto.randomBytes(8).readBigInt64BE();
         this.id = uniqueId;
         this.name.setServerId(uniqueId);
     }
@@ -51,13 +54,13 @@ export default class Listener extends EventEmitter implements RakNetListener {
         this.socket.on('message', async (buffer: Buffer, rinfo: RemoteInfo) => {
             const token = `${rinfo.address}:${rinfo.port}`;
             if (this.connections.has(token)) {
-                return await (this.connections.get(
-                    token
-                ) as Connection).receive(buffer);
+                return (this.connections.get(token) as Connection).receive(
+                    buffer
+                );
             }
 
             try {
-                this.sendBuffer(
+                await this.sendBuffer(
                     await this.handleUnconnected(buffer, rinfo),
                     rinfo.address,
                     rinfo.port
@@ -65,23 +68,26 @@ export default class Listener extends EventEmitter implements RakNetListener {
             } catch (error: any) {
                 this.server
                     .getLogger()
-                    .debug(`Failed to handle an offline packet: ${error}`);
+                    .debug(
+                        `Failed to handle an offline packet: ${error}`,
+                        'raknet/Listner/listen'
+                    );
             }
         });
 
-        return await new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             const failFn = (e: Error) => reject(e);
 
             this.socket.once('error', failFn);
             this.socket.bind(port, address, () => {
                 this.socket.removeListener('error', failFn);
 
-                const timer = setInterval(() => {
+                const timer = setInterval(async () => {
                     if (!this.shutdown) {
-                        Promise.all(
-                            Array.from(this.connections.values()).map((conn) =>
-                                conn.update(Date.now())
-                            )
+                        await Promise.all(
+                            Array.from(
+                                this.connections.values()
+                            ).map(async (conn) => conn.update(Date.now()))
                         );
                     } else {
                         clearInterval(timer);
@@ -93,6 +99,22 @@ export default class Listener extends EventEmitter implements RakNetListener {
         });
     }
 
+    public async kill(): Promise<void> {
+        // Wait for all remining packets to be sent
+        return new Promise((resolve) => {
+            const inter = setInterval(() => {
+                const packets = Array.from(this.connections.values()).map((a) =>
+                    a.getSendQueue()
+                );
+
+                if (packets.length <= 0) {
+                    clearInterval(inter);
+                    return resolve();
+                }
+            }, 50);
+        });
+    }
+
     private async handleUnconnected(
         buffer: Buffer,
         rinfo: RemoteInfo
@@ -101,36 +123,35 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
         switch (header) {
             case Identifiers.Query:
-                return (await this.server
+                return this.server
                     .getQueryManager()
-                    .onRaw(
-                        buffer,
-                        new InetAddress(rinfo.address, rinfo.port)
-                    )) as Buffer;
+                    .onRaw(buffer, new InetAddress(rinfo.address, rinfo.port));
             case Identifiers.UnconnectedPing:
-                return await this.handleUnconnectedPing(buffer);
+                return this.handleUnconnectedPing(buffer);
             case Identifiers.OpenConnectionRequest1:
-                return await this.handleOpenConnectionRequest1(buffer);
+                return this.handleOpenConnectionRequest1(buffer);
             case Identifiers.OpenConnectionRequest2:
-                return await this.handleOpenConnectionRequest2(
+                return this.handleOpenConnectionRequest2(
                     buffer,
                     new InetAddress(
                         rinfo.address,
                         rinfo.port,
-                        rinfo.family == 'IPv4' ? 4 : 6 // v6 is not implemented yet
+                        rinfo.family === 'IPv4' ? 4 : 6 // V6 is not implemented yet
                     )
                 );
             default:
                 throw new Error(
-                    `Unknown unconnected packet with ID: ${header}`
+                    `Unknown unconnected packet with ID: 0x${header.toString(
+                        16
+                    )}`
                 );
         }
     }
 
-    // async handlers
+    // Async handlers
 
     private async handleUnconnectedPing(buffer: Buffer): Promise<Buffer> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             const decodedPacket = new UnconnectedPing(buffer);
             decodedPacket.decode();
 
@@ -155,7 +176,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
     private async handleOpenConnectionRequest1(
         buffer: Buffer
     ): Promise<Buffer> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             const decodedPacket = new OpenConnectionRequest1(buffer);
             decodedPacket.decode();
 
@@ -168,7 +189,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
                 packet.protocol = PROTOCOL;
                 packet.serverGUID = this.id;
                 packet.encode();
-                return resolve(packet.getBuffer());
+
+                const buffer = packet.getBuffer();
+                return resolve(buffer);
             }
 
             const packet = new OpenConnectionReply1();
@@ -184,7 +207,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
         buffer: Buffer,
         address: InetAddress
     ): Promise<Buffer> {
-        return await new Promise((resolve) => {
+        return new Promise((resolve) => {
             const decodedPacket = new OpenConnectionRequest2(buffer);
             decodedPacket.decode();
 
@@ -210,21 +233,34 @@ export default class Listener extends EventEmitter implements RakNetListener {
     /**
      * Remove a connection from all connections.
      */
-    public removeConnection(connection: Connection, reason: string): void {
-        let inetAddr = connection.getAddress();
-        let token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
+    public async removeConnection(
+        connection: Connection,
+        reason: string
+    ): Promise<void> {
+        const inetAddr = connection.getAddress();
+        const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
         if (this.connections.has(token)) {
-            this.connections.get(token)?.close();
+            await this.connections.get(token)?.close();
             this.connections.delete(token);
         }
+
         this.emit('closeConnection', connection.getAddress(), reason);
     }
 
     /**
      * Send packet buffer to the client.
      */
-    public sendBuffer(buffer: Buffer, address: string, port: number) {
-        this.socket.send(buffer, 0, buffer.length, port, address);
+    public async sendBuffer(
+        buffer: Buffer,
+        address: string,
+        port: number
+    ): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.socket.send(buffer, 0, buffer.length, port, address, (err) => {
+                // Ignore errors
+                resolve();
+            });
+        });
     }
 
     public getSocket() {

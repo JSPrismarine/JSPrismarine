@@ -1,6 +1,6 @@
 import ItemRequest from '../../item/request/ItemRequest';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class ItemStackRequestPacket extends DataPacket {
     public static NetID = Identifiers.ItemStackRequestPacket;
@@ -11,7 +11,7 @@ export default class ItemStackRequestPacket extends DataPacket {
         const count = this.readUnsignedVarInt();
         for (let i = 0; i < count; i++) {
             const req = this.readItemStackRequest();
-            console.log(req)
+            console.log(req);
             this.requests.push(req);
         }
     }

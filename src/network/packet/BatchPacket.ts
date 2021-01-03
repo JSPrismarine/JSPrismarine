@@ -1,14 +1,14 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
+import Server from '../../Server';
 import Zlib from 'zlib';
-import Prismarine from '../../Prismarine';
 
 export default class BatchPacket extends DataPacket {
     static NetID = 0xfe;
 
     private payload = Buffer.alloc(0);
     // Bigger compression level leads to more CPU usage and less network, and vice versa
-    private compressionLevel: number = Prismarine.instance
+    private readonly compressionLevel: number = Server.instance
         .getConfig()
         .getPacketCompressionLevel();
 
@@ -26,7 +26,7 @@ export default class BatchPacket extends DataPacket {
             this.payload = Zlib.inflateRawSync(this.readRemaining(), {
                 chunkSize: 1024 * 1024 * 2
             });
-        } catch (e) {
+        } catch {
             this.payload = Buffer.alloc(0);
         }
     }
@@ -52,15 +52,16 @@ export default class BatchPacket extends DataPacket {
         this.payload = Buffer.concat([this.payload, stream.getBuffer()]);
     }
 
-    public getPackets(): Array<Buffer> {
+    public getPackets(): Buffer[] {
         const stream = new BinaryStream();
         (stream as any).buffer = this.payload;
-        let packets: Array<Buffer> = [];
+        const packets: Buffer[] = [];
         while (!stream.feof()) {
             const length = stream.readUnsignedVarInt();
             const buffer = stream.read(length);
             packets.push(buffer);
         }
+
         return packets;
     }
 }

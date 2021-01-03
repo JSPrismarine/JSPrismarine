@@ -1,5 +1,5 @@
-import Command from '../Command';
 import Chat from '../../chat/Chat';
+import Command from '../Command';
 import type Player from '../../player/Player';
 
 export default class SayCommand extends Command {
@@ -11,14 +11,13 @@ export default class SayCommand extends Command {
         } as any);
     }
 
-    execute(sender: Player, args: Array<string>) {
+    public async execute(sender: Player, args: Array<string | number>) {
         if (!args[0]) {
             return sender.sendMessage(`§cPlease specify a message.`);
         }
 
-        let message = args.join(' ');
+        const message = args.join(' ');
         const chat = new Chat(sender, `§5[${sender.getUsername()}] ${message}`);
-        sender.getServer().getChatManager().send(chat);
-        return;
+        await sender.getServer().getChatManager().send(chat);
     }
 }

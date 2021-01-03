@@ -1,9 +1,8 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Device from '../../utils/Device';
-import Skin from '../../utils/skin/Skin';
-import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
-
+import Device from '../../utils/Device';
+import Identifiers from '../Identifiers';
+import Skin from '../../utils/skin/Skin';
 import jwt_decode from 'jwt-decode';
 
 export default class LoginPacket extends DataPacket {
@@ -25,11 +24,11 @@ export default class LoginPacket extends DataPacket {
     public decodePayload(): void {
         this.protocol = this.readInt();
 
-        let stream = new BinaryStream(this.read(this.readUnsignedVarInt()));
-        let chainData = JSON.parse(stream.read(stream.readLInt()).toString());
+        const stream = new BinaryStream(this.read(this.readUnsignedVarInt()));
+        const chainData = JSON.parse(stream.read(stream.readLInt()).toString());
 
-        for (let chain of chainData.chain) {
-            let decodedChain = jwt_decode(chain) as any;
+        for (const chain of chainData.chain) {
+            const decodedChain = jwt_decode(chain) as any;
 
             if (decodedChain.extraData) {
                 this.XUID = decodedChain.extraData.XUID;
@@ -40,7 +39,7 @@ export default class LoginPacket extends DataPacket {
             this.identityPublicKey = decodedChain.identityPublicKey;
         }
 
-        let decodedJWT = jwt_decode(
+        const decodedJWT = jwt_decode(
             stream.read(stream.readLInt()).toString()
         ) as any;
         this.skin = Skin.fromJWT(decodedJWT);
@@ -58,7 +57,7 @@ export default class LoginPacket extends DataPacket {
     }
 
     public encodePayload(): void {
-        /* 
+        /*
         TODO
         this.writeInt(Identifiers.Protocol);
 
