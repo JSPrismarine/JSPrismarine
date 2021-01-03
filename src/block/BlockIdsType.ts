@@ -1,3 +1,9 @@
+// To any developer wanting to add a missing block please read the following first:
+//
+// We're currently matching the Java namespace values since
+// the "big flattening" hasn't occured yet on Bedrock Edition.
+// Thanks!
+
 export enum BlockIdsType {
     Air = 0,
     Stone = 1,
