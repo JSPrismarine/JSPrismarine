@@ -2,7 +2,7 @@ import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 
-export default class TNT extends Solid {
+export default class Bookshelf extends Solid {
     constructor() {
         super({
             name: 'minecraft:bookshelf',
