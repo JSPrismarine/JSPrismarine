@@ -48,7 +48,7 @@ export default class Console implements CommandExecuter {
             if (input.startsWith('/'))
                 return this.getServer()
                     .getCommandManager()
-                    .dispatchCommand(this, input);
+                    .dispatchCommand(this, input.slice(1));
 
             const event = new ChatEvent(
                 new Chat(this, `${this.getFormattedUsername()} ${input}`)

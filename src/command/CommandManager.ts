@@ -93,13 +93,18 @@ export default class CommandManager {
 
     /**
      * Dispatches a command and executes them.
+     *
+     * This should be refactored to supply the `command.execute` with
+     * an array of objects containing the value and type.
+     * We also need to start handling quotes.
+     *
+     * That will of course be a breaking change regarding plugins.
+     * We could bypass that by introducing a new `command.handle`
+     * function instead and deprecate the old `command.execute`.
+     * -FS
      */
     public async dispatchCommand(sender: CommandExecuter, commandInput = '') {
-        if (!commandInput.startsWith('/')) {
-            sender.sendMessage('Received an invalid command!');
-        }
-
-        const commandParts: any[] = commandInput.slice(1).split(' '); // Name + arguments array
+        const commandParts: any[] = commandInput.split(' '); // Name + arguments array
         const namespace: string =
             commandParts[0].split(':').length === 2
                 ? commandParts[0].split(':')[0]
@@ -111,6 +116,7 @@ export default class CommandManager {
         commandParts.shift();
 
         // Check for numbers and convert them
+        // FIXME: this should be an utility function
         for (const argument of commandParts) {
             if (
                 !Number.isNaN(Number.parseFloat(argument)) &&
