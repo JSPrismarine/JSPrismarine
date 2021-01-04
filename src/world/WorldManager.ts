@@ -6,9 +6,9 @@ import World from './World';
 import fs from 'fs';
 
 interface WorldData {
-    seed: number,
-    provider: string,
-    generator: string
+    seed: number;
+    provider: string;
+    generator: string;
 }
 
 export default class WorldManager {
@@ -58,7 +58,10 @@ export default class WorldManager {
     /**
      * Loads a world by its folder name.
      */
-    public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
+    public async loadWorld(
+        worldData: WorldData,
+        folderName: string
+    ): Promise<World> {
         return new Promise((resolve, reject) => {
             if (this.isWorldLoaded(folderName)) {
                 this.server
@@ -74,14 +77,19 @@ export default class WorldManager {
             const provider = this.providers.get(
                 worldData.provider ?? 'LevelDB'
             );
-            
+
             const generator = this.server
                 .getWorldManager()
                 .getGeneratorManager()
                 .getGenerator(worldData.generator ?? 'overworld');
-            
+
             if (!generator) {
-                this.server.getLogger().error(`Invalid generator §b${worldData.generator}§r!`, 'WorldManager/loadWorld');
+                this.server
+                    .getLogger()
+                    .error(
+                        `Invalid generator §b${worldData.generator}§r!`,
+                        'WorldManager/loadWorld'
+                    );
                 reject();
             }
 

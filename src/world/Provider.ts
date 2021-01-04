@@ -7,7 +7,7 @@ export default interface Provider {
      * Returns the path to the world folder.
      */
     getPath(): string;
-    
+
     /**
      * Returns the chunk decoded from the provider.
      * @param cx - chunk x
@@ -15,5 +15,10 @@ export default interface Provider {
      * @param seed - world seed
      * @param generator - chunk generator
      */
-    readChunk(cx: number, cz: number, seed: SharedSeedRandom, generator: Generator): Chunk;
+    readChunk(
+        cx: number,
+        cz: number,
+        seed: SharedSeedRandom,
+        generator: Generator
+    ): Chunk;
 }
