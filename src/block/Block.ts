@@ -1,8 +1,8 @@
+import { BlockToolType } from './BlockToolType';
 import Item from '../item/Item';
 import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
 import { ItemTieredToolType } from '../item/ItemTieredToolType';
 import Server from '../Server';
-import { BlockToolType } from './BlockToolType';
 
 export default class Block {
     id: number;

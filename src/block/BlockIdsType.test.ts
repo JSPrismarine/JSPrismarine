@@ -1,6 +1,6 @@
-import LoggerBuilder from '../utils/Logger';
 import { BlockIdsType } from './BlockIdsType';
 import BlockManager from './BlockManager';
+import LoggerBuilder from '../utils/Logger';
 
 describe('block', () => {
     describe('BlockIdsType', () => {
