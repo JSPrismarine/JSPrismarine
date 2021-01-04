@@ -1,8 +1,8 @@
+import ConfigBuilder from './ConfigBuilder';
+import Gamemode from '../world/Gamemode';
+import { SeedGenerator } from '../utils/Seed';
 import path from 'path';
 import pkg from '../../package.json';
-import { SeedGenerator } from '../utils/Seed';
-import Gamemode from '../world/Gamemode';
-import ConfigBuilder from './ConfigBuilder';
 
 export default class Config {
     private readonly configBuilder: ConfigBuilder;

@@ -1,9 +1,12 @@
-const fs = require('fs');
-const path = require('path');
+/**
+ * @author <TheArmagan> kiracarmaganonal@gmail.com
+ * @author <HerryYT> enricoangelon.ea@gmail.com
+ * @author <Filiph Sandström> filiph.sandstrom@filfatstudios.com
+ */
 
-// Require providers
-const YAML = require('yaml');
-const TOML = require('@iarna/toml');
+import YAML from 'yaml';
+import fs from 'fs';
+import path from 'path';
 
 const _ = {
     get: require('lodash/get'),
@@ -14,17 +17,12 @@ const _ = {
 
 const TypeDefaults = {
     json: '{}',
-    yaml: ' ',
-    toml: ' '
+    yaml: ' '
 };
 
-/**
- * @author <TheArmagan> kiracarmaganonal@gmail.com
- * @author <HerryYT> enricoangelon.ea@gmail.com
- */
 export default class ConfigBuilder {
-    #type: string;
-    #path: string;
+    private type: string;
+    private path: string;
 
     /**
      * Config constructor.
@@ -32,11 +30,11 @@ export default class ConfigBuilder {
     constructor(filePath: string) {
         const pathSplitted = path.parse(filePath);
 
-        this.#type = pathSplitted.ext.slice(1);
+        this.type = pathSplitted.ext.slice(1);
 
         if (
             !Object.keys(TypeDefaults).some(
-                (i) => i.toLowerCase() === this.#type.toLowerCase()
+                (i) => i.toLowerCase() === this.type.toLowerCase()
             )
         ) {
             throw new Error(
@@ -53,66 +51,50 @@ export default class ConfigBuilder {
         if (!fs.existsSync(filePath)) {
             fs.writeFileSync(
                 filePath,
-                (TypeDefaults as any)[this.#type],
+                (TypeDefaults as any)[this.type],
                 'utf8'
             );
         }
 
-        this.#path = filePath;
+        this.path = filePath;
     }
 
-    /** @returns {string} */
-    getPath() {
-        return this.#path;
+    public getPath(): string {
+        return this.path;
     }
 
-    /** @returns {string} */
-    getType() {
-        return this.#type;
+    public getType(): string {
+        return this.type;
     }
 
-    /**
-     * @private
-     */
-    setFileData(data = {}) {
+    private setFileData(data = {}) {
         let fileData = '';
-        switch (this.#type) {
+        switch (this.type) {
             case 'json':
                 fileData = JSON.stringify(data, null, 2);
                 break;
             case 'yaml':
                 fileData = YAML.stringify(data, { indent: 2 });
                 break;
-            case 'toml':
-                fileData = TOML.stringify(data);
-                break;
             default:
-                throw new Error(`Unknown config type ${this.#type}!`);
+                throw new Error(`Unknown config type ${this.type}!`);
         }
 
-        fs.writeFileSync(this.#path, fileData, 'utf8');
+        fs.writeFileSync(this.path, fileData, 'utf8');
     }
 
-    /**
-     * @private
-     *
-     * @returns {Object}
-     */
-    getFileData() {
+    private getFileData(): any {
         let resultData = {};
-        const rawFileData = fs.readFileSync(this.#path, 'utf8');
-        switch (this.#type) {
+        const rawFileData = fs.readFileSync(this.path, 'utf8');
+        switch (this.type) {
             case 'json':
                 resultData = JSON.parse(rawFileData);
                 break;
             case 'yaml':
                 resultData = YAML.parse(rawFileData, { indent: 2 });
                 break;
-            case 'toml':
-                resultData = TOML.parse(rawFileData);
-                break;
             default:
-                throw new Error(`Unknown config type: ${this.#type}!`);
+                throw new Error(`Unknown config type: ${this.type}!`);
         }
 
         return resultData || {};
@@ -121,7 +103,7 @@ export default class ConfigBuilder {
     /**
      * Returns the value of the key.
      */
-    get(key: string, defaults: any) {
+    public get(key: string, defaults: any): any {
         const data = this.getFileData();
         let result = _.get(data, key);
         if (typeof result === 'undefined' && typeof defaults !== 'undefined') {
@@ -136,7 +118,7 @@ export default class ConfigBuilder {
     /**
      * Sets a key - value pair in config.
      */
-    set(key: string, value: any) {
+    public set(key: string, value: any) {
         const data = this.getFileData();
         const newData = _.set(data, key, value);
         this.setFileData(newData);
@@ -146,7 +128,7 @@ export default class ConfigBuilder {
      * Returns true if the config
      * contains that key.
      */
-    has(key: string) {
+    public has(key: string): boolean {
         const data = this.getFileData();
         const result = _.has(data, key);
         return result;
@@ -156,7 +138,7 @@ export default class ConfigBuilder {
      * Returns true if the
      * deletion was successful.
      */
-    del(key: string) {
+    public del(key: string): boolean {
         const data = this.getFileData();
 
         // It mutates the object, we

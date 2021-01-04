@@ -1,10 +1,9 @@
 import Chat from '../chat/Chat';
-import Server from '../Server';
 import Command from './Command';
 import CommandExecuter from './CommandExecuter';
-
-const path = require('path');
-const fs = require('fs');
+import Server from '../Server';
+import fs from 'fs';
+import path from 'path';
 
 export default class CommandManager {
     private readonly commands: Set<Command> = new Set();
@@ -66,7 +65,7 @@ export default class CommandManager {
             .getLogger()
             .debug(
                 `Registered §b${
-                    (vanilla.length as number) + (jsprismarine.length as number)
+                    vanilla.length + jsprismarine.length
                 }§r commands(s) (took ${Date.now() - time} ms)!`,
                 'CommandManager/onEnable'
             );

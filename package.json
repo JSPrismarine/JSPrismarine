@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.24",
+    "version": "0.1.0-rc.25",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
@@ -61,6 +61,7 @@
             "unicorn/prefer-spread": 0,
             "unicorn/prefer-date-now": 1,
             "unicorn/no-lonely-if": 1,
+            "unicorn/no-array-reduce": 0,
             "import/no-named-as-default": 0,
             "@typescript-eslint/member-ordering": 0,
             "@typescript-eslint/ban-types": 0,
@@ -141,7 +142,6 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
         "@beenotung/level-ts": "^1.14.1",
-        "@iarna/toml": "^2.2.5",
         "@jsprismarine/bedrock-data": "1.16.100",
         "@jsprismarine/jsbinaryutils": "2.1.7",
         "async": "^3.2.0",
