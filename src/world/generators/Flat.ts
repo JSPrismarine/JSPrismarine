@@ -3,7 +3,6 @@ import Generator from '../Generator';
 import Server from '../../Server';
 
 export default class Flat implements Generator {
-
     public generateChunk(cx: number, cz: number): Chunk {
         const chunk = new Chunk(cx, cz);
         const server = Server.instance;
@@ -24,5 +23,4 @@ export default class Flat implements Generator {
 
         return chunk;
     }
-    
 }

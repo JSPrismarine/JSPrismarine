@@ -12,14 +12,18 @@ const SEA_LEVEL = 62;
 export default class Overworld implements Generator {
     private noise: Noise | null = null;
 
-    public generateChunk(cx: number, cz: number, seed: SharedSeedRandom): Chunk {
+    public generateChunk(
+        cx: number,
+        cz: number,
+        seed: SharedSeedRandom
+    ): Chunk {
         if (!this.noise) {
             this.noise = new Noise(seed);
-        } 
+        }
 
         const noise = this.noise;
         const chunk = new Chunk(cx, cz);
-        const server = Server.instance;  // Temp solution
+        const server = Server.instance; // Temp solution
 
         const bedrock = server.getBlockManager().getBlock('minecraft:bedrock')!;
         const stone = server.getBlockManager().getBlock('minecraft:stone')!;
