@@ -92,6 +92,13 @@ export default class CommandManager {
     }
 
     /**
+     * Get all enabled commands
+     */
+    public getCommands(): Set<Command> {
+        return this.commands;
+    }
+
+    /**
      * Dispatches a command and executes them.
      *
      * This should be refactored to supply the `command.execute` with
@@ -104,66 +111,74 @@ export default class CommandManager {
      * -FS
      */
     public async dispatchCommand(sender: CommandExecuter, commandInput = '') {
-        const commandParts: any[] = commandInput.split(' '); // Name + arguments array
-        const namespace: string =
-            commandParts[0].split(':').length === 2
-                ? commandParts[0].split(':')[0]
-                : null;
-        const commandName: string = commandParts[0].replace(
-            `${namespace}:`,
-            ''
-        );
-        commandParts.shift();
+        try {
+            const commandParts: any[] = commandInput.split(' '); // Name + arguments array
+            const namespace: string =
+                commandParts[0].split(':').length === 2
+                    ? commandParts[0].split(':')[0]
+                    : null;
+            const commandName: string = commandParts[0].replace(
+                `${namespace}:`,
+                ''
+            );
+            commandParts.shift();
 
-        // Check for numbers and convert them
-        // FIXME: this should be an utility function
-        for (const argument of commandParts) {
+            let command: Command | null = null;
+            if (namespace) {
+                for (const c of this.commands) {
+                    if (
+                        c.id === `${namespace}:${commandName}` ||
+                        (c.id.split(':')[0] === namespace &&
+                            c.aliases?.includes(commandName))
+                    )
+                        command = c;
+                }
+            } else {
+                // TODO: handle multiple commands with same identifier
+                // by prioritizing minecraft:->jsprismarine:->first hit
+                for (const c of this.commands) {
+                    if (
+                        c.id.split(':')[1] === `${commandName}` ||
+                        c.aliases?.includes(commandName)
+                    )
+                        command = c;
+                }
+            }
+
+            if (!command) {
+                sender.sendMessage('§cCannot find the desired command!');
+                return;
+            }
+
             if (
-                !Number.isNaN(Number.parseFloat(argument)) &&
-                argument.trim().length > 0
+                !(await this.server
+                    .getPermissionManager()
+                    .can(sender)
+                    .execute(command.permission))
             ) {
-                // Command argument parsing fixed
-                const argumentIndex = commandParts.indexOf(argument);
-                commandParts[argumentIndex] = Number(argument);
+                sender.sendMessage(
+                    '§cYou do not have permission to perform this command!'
+                );
+                return;
             }
-        }
 
-        let command: Command | null = null;
-        if (namespace) {
-            for (const c of this.commands) {
-                if (
-                    c.id === `${namespace}:${commandName}` ||
-                    (c.id.split(':')[0] === namespace &&
-                        c.aliases?.includes(commandName))
-                )
-                    command = c;
-            }
-        } else {
-            // TODO: handle multiple commands with same identifier
-            // by prioritizing minecraft:->jsprismarine:->first hit
-            for (const c of this.commands) {
-                if (
-                    c.id.split(':')[1] === `${commandName}` ||
-                    c.aliases?.includes(commandName)
-                )
-                    command = c;
-            }
-        }
+            if (!command.handle) {
+                this.server
+                    .getLogger()
+                    .warn(
+                        `Command with id ${command.id} is using the deprecated "execute" method`,
+                        `CommandManager/dispatchCommand/${command.id}`
+                    );
+                this.server
+                    .getLogger()
+                    .debug(
+                        `See https://app.gitbook.com/@jsprismarine/s/jsprismarine/plugin-api/plugin-getting-started for more information.`,
+                        `CommandManager/dispatchCommand/${command.id}`
+                    );
 
-        if (!command) {
-            sender.sendMessage('§cCannot find the desired command!');
-            return;
-        }
-
-        if (
-            await this.server
-                .getPermissionManager()
-                .can(sender)
-                .execute(command.permission)
-        ) {
-            try {
-                const res: string | void = await command.execute(
+                const res = await this.legacyCommandDispatcher(
                     sender,
+                    command,
                     commandParts.filter((a) => a !== null && a !== undefined)
                 );
 
@@ -176,26 +191,42 @@ export default class CommandManager {
                 );
                 await this.server.getChatManager().send(chat);
                 return;
-            } catch (err) {
-                this.server
-                    .getLogger()
-                    .error(err, 'CommandManager/dispatchCommand');
-                this.server
-                    .getLogger()
-                    .silly(err.stack, 'CommandManager/dispatchCommand');
-                return;
+            }
+
+            this.server
+                .getLogger()
+                .debug(
+                    `STUB: "handle" method isn't specced yet.`,
+                    `CommandManager/dispatchCommand/${command.id}`
+                );
+        } catch (err) {
+            this.server
+                .getLogger()
+                .error(err, 'CommandManager/dispatchCommand');
+            this.server
+                .getLogger()
+                .silly(err.stack, 'CommandManager/dispatchCommand');
+        }
+    }
+
+    private async legacyCommandDispatcher(
+        sender: CommandExecuter,
+        command: Command,
+        args: any
+    ): Promise<string | void> {
+        // Check for numbers and convert them
+        // FIXME: this should be an utility function
+        for (const argument of args) {
+            if (
+                !Number.isNaN(Number.parseFloat(argument)) &&
+                argument.trim().length > 0
+            ) {
+                // Command argument parsing fixed
+                const argumentIndex = args.indexOf(argument);
+                args[argumentIndex] = Number(argument);
             }
         }
 
-        sender.sendMessage(
-            '§cYou do not have permission to perform this command!'
-        );
-    }
-
-    /**
-     * Get all enabled commands
-     */
-    public getCommands(): Set<Command> {
-        return this.commands;
+        return command.execute(sender, args);
     }
 }

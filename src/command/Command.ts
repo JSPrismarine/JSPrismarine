@@ -10,7 +10,7 @@ interface CommandProps {
     parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
 }
 
-export default class Command {
+export default abstract class Command {
     id: string;
     description?: string;
     aliases?: string[];
@@ -37,13 +37,10 @@ export default class Command {
     /**
      * Called when the command is executed.
      */
-    public execute(
+    public abstract execute(
         sender: CommandExecuter,
-        args: Array<string | number> = []
-    ): string | void | Promise<string | void> {
-        sender
-            .getServer()
-            .getLogger()
-            .error('execute stub was called unexpectedly!');
-    }
+        args: Array<string | number>
+    ): string | void | Promise<string | void>;
+
+    public abstract handle(): Promise<string>;
 }
