@@ -32,7 +32,7 @@ export default class GeneratorManager {
         ));
         this.generators.set(
             id.toLowerCase(),
-            new (generator.default ?? generator)()
+            new (generator.default ?? generator)(server.getBlockManager())
         );
         server
             .getLogger()
@@ -42,7 +42,10 @@ export default class GeneratorManager {
             );
     }
 
-    public getGenerator(id: string): Generator | null {
-        return this.generators.get(id) ?? null;
+    public getGenerator(id: string): Generator {
+        if (!this.generators.has(id)) {
+            throw new Error(`Invalid generator with id ${id}`);
+        }
+        return this.generators.get(id)!;
     }
 }

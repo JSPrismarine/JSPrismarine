@@ -1,15 +1,14 @@
+import BaseGenerator from '../BaseGenerator';
 import Chunk from '../chunk/Chunk';
-import Generator from '../Generator';
-import Server from '../../Server';
 
-export default class Flat implements Generator {
+export default class Flat extends BaseGenerator {
     public generateChunk(cx: number, cz: number): Chunk {
         const chunk = new Chunk(cx, cz);
-        const server = Server.instance;
 
-        const bedrock = server.getBlockManager().getBlock('minecraft:bedrock')!;
-        const dirt = server.getBlockManager().getBlock('minecraft:dirt')!;
-        const grass = server.getBlockManager().getBlock('minecraft:grass')!;
+        const bedrock = this.getBlockManager().getBlock('minecraft:bedrock');
+        const dirt = this.getBlockManager().getBlock('minecraft:dirt');
+        const grass = this.getBlockManager().getBlock('minecraft:grass');
+
         for (let x = 0; x < 16; x++) {
             for (let z = 0; z < 16; z++) {
                 let y = 0;

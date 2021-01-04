@@ -13,7 +13,7 @@ const BedrockData = require('@jsprismarine/bedrock-data'); // TODO: convert to i
 
 export default class BlockManager {
     private readonly server: Server;
-    private readonly blocks = new Map();
+    private readonly blocks: Map<string, Block> = new Map();
 
     private readonly legacyToRuntimeId: Map<number, number> = new Map();
     private readonly runtimeIdToLegacy: Map<number, number> = new Map();
@@ -42,18 +42,19 @@ export default class BlockManager {
      * Get block by namespaced  id
      */
     public getBlock(name: string): Block {
-        if (!this.blocks.has(name))
+        if (!this.blocks.has(name)) {
             throw new Error(`invalid block with id ${name}`);
-
-        return this.blocks.get(name);
+        }
+        return this.blocks.get(name)!;
     }
 
     /**
      * Get block by numeric id
      */
     public getBlockById(id: number): Block {
-        if (!BlockIdsType[id])
+        if (!BlockIdsType[id]) {
             throw new Error(`invalid block with numeric id ${id}`);
+        }
 
         return this.getBlocks().find((a) => a.getId() === id && a.meta === 0)!;
     }
