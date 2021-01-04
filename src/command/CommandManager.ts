@@ -161,20 +161,30 @@ export default class CommandManager {
                 .can(sender)
                 .execute(command.permission)
         ) {
-            const res: string | void = await command.execute(
-                sender,
-                commandParts.filter((a) => a !== null && a !== undefined)
-            );
+            try {
+                const res: string | void = await command.execute(
+                    sender,
+                    commandParts.filter((a) => a !== null && a !== undefined)
+                );
 
-            const chat = new Chat(
-                this.server.getConsole(),
-                `§o§7[${sender.getUsername()}: ${
-                    res ?? `issued server command: ${commandInput}`
-                }]§r`,
-                '*.ops'
-            );
-            await this.server.getChatManager().send(chat);
-            return;
+                const chat = new Chat(
+                    this.server.getConsole(),
+                    `§o§7[${sender.getUsername()}: ${
+                        res ?? `issued server command: ${commandInput}`
+                    }]§r`,
+                    '*.ops'
+                );
+                await this.server.getChatManager().send(chat);
+                return;
+            } catch (err) {
+                this.server
+                    .getLogger()
+                    .error(err, 'CommandManager/dispatchCommand');
+                this.server
+                    .getLogger()
+                    .silly(err.stack, 'CommandManager/dispatchCommand');
+                return;
+            }
         }
 
         sender.sendMessage(

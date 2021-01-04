@@ -146,7 +146,9 @@ export default class Server {
         );
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
-            await this.getQueryManager().onRaw(buffer, inetAddr);
+            try {
+                await this.getQueryManager().onRaw(buffer, inetAddr);
+            } catch {}
         });
 
         this.logger.info(
@@ -162,7 +164,7 @@ export default class Server {
                 // TODO: Get last world by player data
                 // and if it doesn't exists, return the default one
                 const time = Date.now();
-                const world = this.getWorldManager().getDefaultWorld() as World;
+                const world = this.getWorldManager().getDefaultWorld()!;
 
                 const player = new Player(connection, world, this);
 

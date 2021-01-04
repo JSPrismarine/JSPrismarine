@@ -177,14 +177,13 @@ export default class TpCommand extends Command {
 
         switch (args.length) {
             case 1:
+                if (!sender.isPlayer()) {
+                    sender.sendMessage(
+                        "§cYou can't use this command in the console!"
+                    );
+                    return;
+                }
                 if (player) {
-                    if (sender instanceof Console) {
-                        sender.sendMessage(
-                            "§cYou can't use this command in the console!"
-                        );
-                        return;
-                    }
-
                     const target = player;
                     player = sender as Player;
 
@@ -195,7 +194,7 @@ export default class TpCommand extends Command {
                     this.getCoord((sender as Player).getY(), args[0]) ||
                     this.getCoord((sender as Player).getY(), args[0]) === 0
                 ) {
-                    if (sender instanceof Console) {
+                    if (!sender.isPlayer()) {
                         sender.sendMessage(
                             "§cYou can't use this command in the console!"
                         );
@@ -221,7 +220,7 @@ export default class TpCommand extends Command {
                     (this.getCoord((sender as Player).getZ(), args[1]) ||
                         this.getCoord((sender as Player).getZ(), args[1]))
                 ) {
-                    if (sender instanceof Console) {
+                    if (!sender.isPlayer()) {
                         sender.sendMessage(
                             "§cYou can't use this command in the console!"
                         );
@@ -276,7 +275,7 @@ export default class TpCommand extends Command {
                     (this.getCoord((sender as Player).getZ(), args[2]) ||
                         this.getCoord((sender as Player).getZ(), args[2]) === 0)
                 ) {
-                    if (sender instanceof Console) {
+                    if (!sender.isPlayer()) {
                         sender.sendMessage(
                             "§cYou can't use this command in the console!"
                         );

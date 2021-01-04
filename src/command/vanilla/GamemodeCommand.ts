@@ -92,7 +92,7 @@ export default class GamemodeCommand extends Command {
             return sender.sendMessage('§cNo player was found');
         }
 
-        if (!(sender instanceof Player)) {
+        if (!sender.isPlayer()) {
             return target.sendMessage(
                 '§cYou have to run this command in-game!'
             );
