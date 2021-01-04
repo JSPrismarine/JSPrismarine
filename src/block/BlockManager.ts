@@ -1,3 +1,4 @@
+import BedrockData from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Block from './Block';
 import { BlockIdsType } from './BlockIdsType';
@@ -8,8 +9,6 @@ import NBTTagCompound from '../nbt/NBTTagCompound';
 import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
-
-const BedrockData = require('@jsprismarine/bedrock-data'); // TODO: convert to import
 
 export default class BlockManager {
     private readonly server: Server;

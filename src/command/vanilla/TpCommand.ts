@@ -4,7 +4,6 @@ import CommandParameter, {
 
 import Command from '../Command';
 import CommandExecuter from '../CommandExecuter';
-import Console from '../../Console';
 import MovementType from '../../network/type/MovementType';
 import Player from '../../player/Player';
 
