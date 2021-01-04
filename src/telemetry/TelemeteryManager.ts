@@ -41,11 +41,11 @@ export default class TelemetryManager {
                 "To find out exactly what we're collecting please visit the following url(s):",
                 'TelemetryManager/onEnable'
             );
-        this.urls.forEach((url) =>
+        this.urls.forEach((url) => {
             this.server
                 .getLogger()
-                .info(`- ${url}/id/${this.id}`, 'TelemetryManager/onEnable')
-        );
+                .info(`- ${url}/id/${this.id}`, 'TelemetryManager/onEnable');
+        });
 
         await this.tick();
         this.ticker = setInterval(this.tick, 5 * 60 * 1000);
