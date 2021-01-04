@@ -27,4 +27,4 @@ export default class ConsumeRequest implements ItemActionRequest {
     public getTypeId(): number {
         return ItemRequests.CONSUME;
     }
-}   
+}
