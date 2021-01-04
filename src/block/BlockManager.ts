@@ -45,7 +45,7 @@ export default class BlockManager {
      * Get block by namespaced  id
      */
     public getBlock(name: string): Block {
-        if (this.blocks.has(name))
+        if (!this.blocks.has(name))
             throw new Error(`invalid block with id ${name}`);
 
         return this.blocks.get(name);
