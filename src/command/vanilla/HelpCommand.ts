@@ -1,3 +1,4 @@
+import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 import Command from '../Command';
 import type Player from '../../player/Player';
 
@@ -10,18 +11,27 @@ export default class HelpCommand extends Command {
         } as any);
     }
 
-    public async execute(sender: Player, args: Array<string | number>) {
-        const commands: string[] = [];
-        sender
-            .getServer()
-            .getCommandManager()
-            .getCommands()
-            .forEach((command) => {
-                commands.push(
-                    `§e${command.id.split(':')[1]}§r: §7${command.description}`
-                );
-            });
+    public async register(dispatcher: CommandDispatcher<any>) {
+        const execute = async (context: any) => {
+            const source: Player = context.getSource();
 
-        await sender.sendMessage(commands.join('\n'));
+            const commands: string[] = [];
+            source
+                .getServer()
+                .getCommandManager()
+                .getCommands()
+                .forEach((command) => {
+                    commands.push(
+                        `§e${command.id.split(':')[1]}§r: §7${
+                            command.description
+                        }`
+                    );
+                });
+
+            await source.sendMessage(commands.join('\n'));
+        };
+
+        dispatcher.register(literal('help').executes(execute as any));
+        dispatcher.register(literal('?').executes(execute as any));
     }
 }

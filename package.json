@@ -143,6 +143,7 @@
     "dependencies": {
         "@beenotung/level-ts": "^1.14.1",
         "@jsprismarine/bedrock-data": "1.16.100",
+        "@jsprismarine/brigadier": "git+https://github.com/JSPrismarine/brigadier.git",
         "@jsprismarine/jsbinaryutils": "2.1.7",
         "async": "^3.2.0",
         "d3-interpolate": "^2.0.1",
