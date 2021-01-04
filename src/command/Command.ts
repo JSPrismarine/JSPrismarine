@@ -1,46 +1,32 @@
-import CommandExecuter from './CommandExecuter';
-import CommandParameter from '../network/type/CommandParameter';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
 
 interface CommandProps {
     id: string;
     description?: string;
-    aliases?: string[];
-    flags?: number;
     permission?: string;
-    parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
+    aliases?: string[];
 }
 
 export default abstract class Command {
     id: string;
     description?: string;
-    aliases?: string[];
-    flags?: number;
     permission?: string;
-    parameters?: Array<Set<CommandParameter>> | Set<CommandParameter>;
+    aliases?: string[];
 
     constructor({
         id = '',
         description = '',
-        flags = 0,
         permission = '',
-        aliases = [],
-        parameters
+        aliases = []
     }: CommandProps) {
         this.id = id;
         this.description = description;
-        this.flags = flags;
         this.permission = permission;
         this.aliases = aliases;
-        this.parameters = parameters;
     }
 
     /**
      * Called when the command is executed.
      */
-    public abstract execute(
-        sender: CommandExecuter,
-        args: Array<string | number>
-    ): string | void | Promise<string | void>;
-
-    public abstract handle(): Promise<string>;
+    public abstract register(dispatcher: CommandDispatcher<any>): Promise<void>;
 }
