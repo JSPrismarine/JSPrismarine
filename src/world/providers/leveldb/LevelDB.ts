@@ -5,8 +5,12 @@ import Generator from '../../Generator';
 import SharedSeedRandom from '../../util/SharedSeedRandom';
 
 export default class LevelDB extends BaseProvider {
-
-    public readChunk(cx: number, cz: number, seed: SharedSeedRandom, generator: Generator): Chunk {
+    public readChunk(
+        cx: number,
+        cz: number,
+        seed: SharedSeedRandom,
+        generator: Generator
+    ): Chunk {
         // TODO
         return generator.generateChunk(cx, cz, seed);
     }
