@@ -190,7 +190,12 @@ export default class BlockManager {
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             await Promise.all(
                 blocks.map(async (id: string) => {
-                    if (id.includes('.test.') || id.includes('.d.ts')) return; // Exclude test files
+                    if (
+                        id.includes('.test.') ||
+                        id.includes('.d.ts') ||
+                        id.includes('.map')
+                    )
+                        return; // Exclude test files
 
                     const block = require(`./blocks/${id}`).default;
                     try {
