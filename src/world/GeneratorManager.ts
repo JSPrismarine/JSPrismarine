@@ -1,15 +1,17 @@
+import Generator from './Generator';
+import type Server from '../Server';
 import fs from 'fs';
 import path from 'path';
-import type Server from '../Server';
 
 export default class GeneratorManager {
-    private readonly generators: Map<string, any> = new Map();
+    private readonly generators: Map<string, Generator> = new Map();
 
     public constructor(server: Server) {
         const generators = fs.readdirSync(path.join(__dirname, '/generators'));
         generators.forEach((generator) => {
-            if (generator.includes('.test.') || generator.includes('.d.ts'))
+            if (generator.includes('.test.') || generator.includes('.d.ts')) {
                 return;
+            }
             this.registerClassGenerator(generator.split('.')[0], server);
         });
         server
@@ -26,7 +28,7 @@ export default class GeneratorManager {
         ));
         this.generators.set(
             id.toLowerCase(),
-            new (generator.default || generator)()
+            new (generator.default ?? generator)()
         );
         server
             .getLogger()
@@ -36,7 +38,7 @@ export default class GeneratorManager {
             );
     }
 
-    public getGenerator(id: string): any {
-        return this.generators.get(id);
+    public getGenerator(id: string): Generator | null {
+        return this.generators.get(id) ?? null;
     }
 }

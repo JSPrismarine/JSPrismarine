@@ -1,30 +1,25 @@
 import Chunk from '../chunk/Chunk';
+import Generator from '../Generator';
 import Noise from '../synth/Noise';
-import type Random from '../util/Random';
-import type Server from '../../Server';
-import type Vector3 from '../../math/Vector3';
+import Server from '../../Server';
+import SharedSeedRandom from '../util/SharedSeedRandom';
 
 const CHUNK_WIDTH = 16;
 // Const CHUNK_HEIGHT = 256; 1.17: 16?
 const CHUNK_LENGTH = 16;
 const SEA_LEVEL = 62;
 
-export default class Overworld {
-    noise?: Noise;
+export default class Overworld implements Generator {
+    private noise: Noise | null = null;
 
-    async getChunk({
-        pos,
-        seed,
-        server
-    }: {
-        pos: Vector3;
-        seed: Random;
-        server: Server;
-    }) {
-        if (!this.noise) this.noise = new Noise(seed);
+    public generateChunk(cx: number, cz: number, seed: SharedSeedRandom): Chunk {
+        if (!this.noise) {
+            this.noise = new Noise(seed);
+        } 
 
         const noise = this.noise;
-        const chunk = new Chunk(pos.getX(), pos.getZ());
+        const chunk = new Chunk(cx, cz);
+        const server = Server.instance;  // Temp solution
 
         const bedrock = server.getBlockManager().getBlock('minecraft:bedrock')!;
         const stone = server.getBlockManager().getBlock('minecraft:stone')!;
@@ -34,8 +29,8 @@ export default class Overworld {
         for (let x = 0; x < CHUNK_WIDTH; x++) {
             for (let z = 0; z < CHUNK_LENGTH; z++) {
                 const noise_height = noise.perlin2(
-                    (pos.getX() * CHUNK_WIDTH + x) * 0.04,
-                    (pos.getZ() * CHUNK_WIDTH + z) * 0.04
+                    (cx * CHUNK_WIDTH + x) * 0.04,
+                    (cz * CHUNK_WIDTH + z) * 0.04
                 );
                 const height = Math.floor(60 + 20 * noise_height);
 
@@ -56,7 +51,6 @@ export default class Overworld {
             }
         }
 
-        // chunk.recalculateHeightMap();
         return chunk;
     }
 }

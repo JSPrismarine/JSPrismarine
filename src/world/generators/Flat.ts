@@ -1,18 +1,12 @@
 import Chunk from '../chunk/Chunk';
-import type Server from '../../Server';
-import type Vector3 from '../../math/Vector3';
+import Generator from '../Generator';
+import Server from '../../Server';
 
-export default class Flat {
-    public getChunk({
-        pos,
-        seed,
-        server
-    }: {
-        pos: Vector3;
-        seed: number;
-        server: Server;
-    }) {
-        const chunk = new Chunk(pos.getX(), pos.getZ());
+export default class Flat implements Generator {
+
+    public generateChunk(cx: number, cz: number): Chunk {
+        const chunk = new Chunk(cx, cz);
+        const server = Server.instance;
 
         const bedrock = server.getBlockManager().getBlock('minecraft:bedrock')!;
         const dirt = server.getBlockManager().getBlock('minecraft:dirt')!;
@@ -30,4 +24,5 @@ export default class Flat {
 
         return chunk;
     }
+    
 }

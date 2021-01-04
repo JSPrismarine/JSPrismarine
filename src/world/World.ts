@@ -6,9 +6,11 @@ import CoordinateUtils from './CoordinateUtils';
 import DataPacket from '../network/packet/DataPacket';
 import Entity from '../entity/entity';
 import Gamemode from './Gamemode';
+import Generator from './Generator';
 import Item from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import Player from '../player/Player';
+import Provider from './Provider';
 import Server from '../Server';
 import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/UUID';
@@ -23,7 +25,7 @@ interface WorldData {
     server: Server;
     provider: any;
     seed: number;
-    generator?: string;
+    generator: Generator;
 }
 
 export interface WorldPlayerData {
@@ -53,18 +55,18 @@ export default class World {
     private readonly chunks: Map<string, Chunk> = new Map();
     private readonly gameruleManager: GameruleManager;
     private currentTick = 0;
-    private readonly provider: any; // TODO: interface
+    private readonly provider: Provider; 
     private readonly server: Server;
     private readonly seed: SharedSeedRandom;
     private readonly originalSeed: number;
-    private readonly generator: any; // TODO: interface
+    private readonly generator: Generator; 
 
     constructor({
         name,
         server,
         provider,
         seed,
-        generator = 'overworld'
+        generator
     }: WorldData) {
         this.name = name;
         this.server = server;
@@ -109,6 +111,10 @@ export default class World {
             .info(`(took ${Date.now() - time} ms)`, 'World/onEnable');
     }
 
+    public getGenerator(): Generator {
+        return this.generator;
+    }
+
     /**
      * Called every tick.
      *
@@ -143,47 +149,30 @@ export default class World {
      */
     public async getChunk(
         x: number,
-        z: number,
-        generate = true
+        z: number
     ): Promise<Chunk> {
-        return this.loadChunk(x, z, generate);
+        return this.loadChunk(x, z);
     }
 
     /**
      * Loads a chunk in a given x and z and returns its.
      *
-     * @param x
-     * @param z
+     * @param cx
+     * @param cz
      */
     public async loadChunk(
-        x: number,
-        z: number,
-        _generate: boolean
+        cx: number,
+        cz: number
     ): Promise<Chunk> {
-        const index = CoordinateUtils.encodePos(x, z);
+        const index = CoordinateUtils.encodePos(cx, cz);
         if (!this.chunks.has(index)) {
-            const generator = this.server
-                .getWorldManager()
-                .getGeneratorManager()
-                .getGenerator(this.generator);
-            if (!generator) {
-                this.server
-                    .getLogger()
-                    .error(
-                        `Invalid generator §b${this.generator}§r!`,
-                        'World/loadChunk'
-                    );
-                throw new Error('invalid generator');
-            }
-
             // Try - catch for provider errors
-            const chunk = await this.provider.readChunk({
-                x,
-                z,
-                generator,
-                seed: this.seed,
-                server: this.server
-            });
+            const chunk = this.provider.readChunk(
+                cx,
+                cz,
+                this.seed,
+                this.generator
+            );
             this.chunks.set(index, chunk);
         }
 
@@ -445,7 +434,8 @@ export default class World {
     }
 
     public async close(): Promise<void> {
-        await this.getProvider().close();
+        // TODO: just with db
+        // await this.getProvider().close();
     }
 
     public getGameruleManager(): GameruleManager {

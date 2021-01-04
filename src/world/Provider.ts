@@ -1,32 +1,19 @@
-import fs from 'fs';
-import type Server from '../Server';
-import type Chunk from './chunk/Chunk';
+import Chunk from './chunk/Chunk';
+import Generator from './Generator';
+import SharedSeedRandom from './util/SharedSeedRandom';
 
-export default class Provider {
-    private path: string;
-
-    public constructor(path: string) {
-        this.path = path;
-        if (!fs.existsSync(path)) fs.mkdirSync(path);
-    }
-
-    public getPath(): string {
-        return this.path;
-    }
-
-    public async readChunk({
-        x,
-        z,
-        generator,
-        seed,
-        server
-    }: {
-        x: number;
-        z: number;
-        generator: any;
-        seed: number;
-        server: Server;
-    }): Promise<Chunk | null> {
-        return null;
-    }
+export default interface Provider {
+    /**
+     * Returns the path to the world folder.
+     */
+    getPath(): string;
+    
+    /**
+     * Returns the chunk decoded from the provider.
+     * @param cx - chunk x
+     * @param cz - chunk z
+     * @param seed - world seed
+     * @param generator - chunk generator
+     */
+    readChunk(cx: number, cz: number, seed: SharedSeedRandom, generator: Generator): Chunk;
 }

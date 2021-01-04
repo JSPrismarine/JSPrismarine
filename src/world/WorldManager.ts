@@ -1,9 +1,15 @@
-import fs from 'fs';
-import Server from '../Server';
+import Anvil from './providers/anvil/Anvil';
 import GeneratorManager from './GeneratorManager';
 import LevelDB from './providers/leveldb/LevelDB';
-import Anvil from './providers/anvil/Anvil';
+import Server from '../Server';
 import World from './World';
+import fs from 'fs';
+
+interface WorldData {
+    seed: number,
+    provider: string,
+    generator: string
+}
 
 export default class WorldManager {
     private readonly worlds: Map<string, World> = new Map();
@@ -52,7 +58,7 @@ export default class WorldManager {
     /**
      * Loads a world by its folder name.
      */
-    public async loadWorld(worldData: any, folderName: string): Promise<World> {
+    public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
         return new Promise((resolve, reject) => {
             if (this.isWorldLoaded(folderName)) {
                 this.server
@@ -66,8 +72,18 @@ export default class WorldManager {
 
             const levelPath = process.cwd() + `/worlds/${folderName}/`;
             const provider = this.providers.get(
-                worldData.provider || 'LevelDB'
+                worldData.provider ?? 'LevelDB'
             );
+            
+            const generator = this.server
+                .getWorldManager()
+                .getGeneratorManager()
+                .getGenerator(worldData.generator ?? 'overworld');
+            
+            if (!generator) {
+                this.server.getLogger().error(`Invalid generator §b${worldData.generator}§r!`, 'WorldManager/loadWorld');
+                reject();
+            }
 
             // TODO: figure out provider by data
             const world = new World({
@@ -76,7 +92,7 @@ export default class WorldManager {
                 provider: new provider(levelPath, this.server),
 
                 seed: worldData.seed,
-                generator: worldData.generator
+                generator: generator!
             });
             this.worlds.set(world.getUniqueId(), world);
 
