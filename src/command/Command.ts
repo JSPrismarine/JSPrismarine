@@ -1,5 +1,5 @@
-import CommandParameter from '../network/type/CommandParameter';
 import CommandExecuter from './CommandExecuter';
+import CommandParameter from '../network/type/CommandParameter';
 
 interface CommandProps {
     id: string;
