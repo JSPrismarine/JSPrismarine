@@ -55,19 +55,13 @@ export default class World {
     private readonly chunks: Map<string, Chunk> = new Map();
     private readonly gameruleManager: GameruleManager;
     private currentTick = 0;
-    private readonly provider: Provider; 
+    private readonly provider: Provider;
     private readonly server: Server;
     private readonly seed: SharedSeedRandom;
     private readonly originalSeed: number;
-    private readonly generator: Generator; 
+    private readonly generator: Generator;
 
-    constructor({
-        name,
-        server,
-        provider,
-        seed,
-        generator
-    }: WorldData) {
+    constructor({ name, server, provider, seed, generator }: WorldData) {
         this.name = name;
         this.server = server;
         this.provider = provider;
@@ -101,7 +95,7 @@ export default class World {
 
         for (let x = 0; x < 32; x++) {
             for (let z = 0; z < 32; z++) {
-                chunksToLoad.push(this.loadChunk(x, z, true));
+                chunksToLoad.push(this.loadChunk(x, z));
             }
         }
 
@@ -147,10 +141,7 @@ export default class World {
      * Returns the chunk in the specifies x and z, if the chunk doesn't exists
      * it is generated.
      */
-    public async getChunk(
-        x: number,
-        z: number
-    ): Promise<Chunk> {
+    public async getChunk(x: number, z: number): Promise<Chunk> {
         return this.loadChunk(x, z);
     }
 
@@ -160,10 +151,7 @@ export default class World {
      * @param cx
      * @param cz
      */
-    public async loadChunk(
-        cx: number,
-        cz: number
-    ): Promise<Chunk> {
+    public async loadChunk(cx: number, cz: number): Promise<Chunk> {
         const index = CoordinateUtils.encodePos(cx, cz);
         if (!this.chunks.has(index)) {
             // Try - catch for provider errors
@@ -207,12 +195,8 @@ export default class World {
     /**
      * Returns a chunk from minecraft block positions x and z.
      */
-    public async getChunkAt(
-        x: number,
-        z: number,
-        generate = false
-    ): Promise<Chunk> {
-        return this.getChunk(Math.floor(x / 16), Math.floor(z / 16), generate);
+    public async getChunkAt(x: number, z: number): Promise<Chunk> {
+        return this.getChunk(Math.floor(x / 16), Math.floor(z / 16));
     }
 
     /**

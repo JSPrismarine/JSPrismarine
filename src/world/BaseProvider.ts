@@ -23,9 +23,14 @@ export default abstract class BaseProvider implements Provider {
 
     /**
      * Returns a chunk decoded from the provider.
-     * 
+     *
      * @param cx - chunk x
      * @param cz - chunk z
      */
-    public abstract readChunk(cx: number, cz: number, seed: SharedSeedRandom, generator: Generator): Chunk;
+    public abstract readChunk(
+        cx: number,
+        cz: number,
+        seed: SharedSeedRandom,
+        generator: Generator
+    ): Chunk;
 }
