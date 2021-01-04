@@ -13,6 +13,6 @@ export default class CommandRequestHandler
         await player
             .getServer()
             .getCommandManager()
-            .dispatchCommand(player, packet.commandName);
+            .dispatchCommand(player, packet.commandName.slice(1));
     }
 }
