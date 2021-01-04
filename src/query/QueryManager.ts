@@ -1,8 +1,8 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import git from 'git-rev-sync';
 import type InetAddress from '../network/raknet/utils/InetAddress';
 import PluginFile from '../plugin/PluginFile';
 import Server from '../Server';
+import git from 'git-rev-sync';
 
 export enum QueryType {
     Handshake = 0,
@@ -145,7 +145,7 @@ export default class QueryManager {
                             rinfo.getPort()
                         );
 
-                    return resolve(res.getBuffer());
+                    resolve(res.getBuffer());
                 }
 
                 default:

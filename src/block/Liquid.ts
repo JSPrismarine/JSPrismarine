@@ -1,6 +1,6 @@
+import Block from './Block';
 import Item from '../item/Item';
 import Server from '../Server';
-import Block from './Block';
 
 /**
  * Liquid blocks (eg. Water, Still Water, Lava, Still Lava)

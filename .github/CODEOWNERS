@@ -1,0 +1,17 @@
+*           @JSPrismarine/admins
+package.json  @filfat
+.github**   @filfat
+/src/ban/**  @filfat
+/src/block/**  @filfat
+/src/permission/**  @filfat
+/src/plugin/**  @filfat
+/src/query/**  @filfat
+/src/telemetry/**  @filfat
+
+/src/nbt/**  @HerryYT
+/src/network/**  @HerryYT
+/src/world/**  @HerryYT
+
+/src/config/**  @TheArmagan
+
+/src/events/EventEmitterishMixin.ts  @garronej

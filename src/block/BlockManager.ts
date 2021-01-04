@@ -1,13 +1,13 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import fs from 'fs';
-import path from 'path';
+import Block from './Block';
+import { BlockIdsType } from './BlockIdsType';
 import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
 import { ByteOrder } from '../nbt/ByteOrder';
 import NBTReader from '../nbt/NBTReader';
 import NBTTagCompound from '../nbt/NBTTagCompound';
 import Server from '../Server';
-import Block from './Block';
-import { BlockIdsType } from './BlockIdsType';
+import fs from 'fs';
+import path from 'path';
 
 const BedrockData = require('@jsprismarine/bedrock-data'); // TODO: convert to import
 
@@ -44,38 +44,41 @@ export default class BlockManager {
     /**
      * Get block by namespaced  id
      */
-    public getBlock(name: string): Block | null {
-        return this.blocks.get(name) || null;
+    public getBlock(name: string): Block {
+        if (!this.blocks.has(name))
+            throw new Error(`invalid block with id ${name}`);
+
+        return this.blocks.get(name);
     }
 
     /**
      * Get block by numeric id
      */
-    public getBlockById(id: number): Block | null {
-        if (!BlockIdsType[id]) return null;
+    public getBlockById(id: number): Block {
+        if (!BlockIdsType[id])
+            throw new Error(`invalid block with numeric id ${id}`);
 
-        return (
-            this.getBlocks().find((a) => a.getId() === id && a.meta === 0) ??
-            null
-        );
+        return this.getBlocks().find((a) => a.getId() === id && a.meta === 0)!;
     }
 
     /**
      * Get block by numeric id and damage value
      */
-    public getBlockByIdAndMeta(id: number, meta: number): Block | null {
-        if (!BlockIdsType[id]) return null;
-
-        return (
-            this.getBlocks().find((a) => a.id === id && a.meta === meta) || null
+    public getBlockByIdAndMeta(id: number, meta: number): Block {
+        const block = this.getBlocks().find(
+            (a) => a.id === id && a.meta === meta
         );
+
+        if (!block)
+            throw new Error(`invalid block with numeric id ${id}:${meta}`);
+        return block;
     }
 
     /**
      * Get block by runtime id
      */
-    public getBlockByRuntimeId(id: number, meta = 0): Block | null {
-        return this.getBlockByIdAndMeta(this.runtimeIds[id], meta) || null;
+    public getBlockByRuntimeId(id: number, meta = 0): Block {
+        return this.getBlockByIdAndMeta(this.runtimeIds[id], meta);
     }
 
     /**
@@ -156,13 +159,16 @@ export default class BlockManager {
      * Registers block from block class
      */
     public async registerClassBlock(block: Block) {
-        if (
-            this.blocks.get(block.name) ||
-            this.getBlockByIdAndMeta(block.getId(), block.getMeta())
-        )
+        try {
+            this.blocks.get(block.name);
+            this.getBlockByIdAndMeta(block.getId(), block.getMeta());
+
             throw new Error(
                 `Block with id ${block.getName()} (${block.getId()}:${block.getMeta()}) already exists`
             );
+        } catch (error) {
+            if (!error.message.includes('invalid block with ')) throw error;
+        }
 
         const event = new BlockRegisterEvent(block);
         await this.server.getEventManager().emit('blockRegister', event);
