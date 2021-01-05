@@ -1,4 +1,4 @@
-import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 import Command from '../Command';
 import Player from '../../player/Player';
 

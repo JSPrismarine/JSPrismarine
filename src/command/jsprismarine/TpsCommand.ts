@@ -1,7 +1,8 @@
+import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 import Command from '../Command';
 import Player from '../../player/Player';
 
-export default class PluginsCommand extends Command {
+export default class TpsCommand extends Command {
     constructor() {
         super({ id: 'jsprismarine:tps', description: 'Get current TPS.' });
     }
@@ -15,16 +16,21 @@ export default class PluginsCommand extends Command {
         return `${color}${tps}§r`;
     }
 
-    public async execute(sender: Player, args: any[]): Promise<void> {
-        const tps = sender.getServer().getTPS();
-        const history = sender.getServer().getAverageTPS();
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('tps').executes(async (context) => {
+                const source = context.getSource() as Player;
+                const tps = source.getServer().getTPS();
+                const history = source.getServer().getAverageTPS();
 
-        await sender.sendMessage(
-            `TPS from last 0m, 1m, 5m, 10m: ${this.formatTPS(
-                tps
-            )}, ${this.formatTPS(history.one)}, ${this.formatTPS(
-                history.five
-            )}, ${this.formatTPS(history.ten)}`
+                await source.sendMessage(
+                    `TPS from last 0m, 1m, 5m, 10m: ${this.formatTPS(
+                        tps
+                    )}, ${this.formatTPS(history.one)}, ${this.formatTPS(
+                        history.five
+                    )}, ${this.formatTPS(history.ten)}`
+                );
+            })
         );
     }
 }

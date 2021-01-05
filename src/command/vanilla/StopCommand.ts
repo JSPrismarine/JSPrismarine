@@ -11,13 +11,13 @@ export default class StopCommand extends Command {
     }
 
     public async register(dispatcher: CommandDispatcher<any>) {
-        const execute = async (context: any) => {
-            const source: Player = context.getSource();
+        dispatcher.register(
+            literal('stop').executes(async (context) => {
+                const source = context.getSource() as Player;
 
-            await source.getServer().getServer().kill();
-            return 'Stopping the server...';
-        };
-
-        dispatcher.register(literal('stop').executes(execute as any));
+                await source.getServer().getServer().kill();
+                return 'Stopping the server...';
+            })
+        );
     }
 }
