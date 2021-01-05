@@ -6,9 +6,10 @@ import {
     string
 } from '@jsprismarine/brigadier';
 import Command from '../Command';
+import { FloatPosition } from '../CommandArguments';
 import Player from '../../player/Player';
 import Vector3 from '../../math/Vector3';
-import { FloatPosition } from '../CommandArguments';
+import MovementType from '../../network/type/MovementType';
 
 export default class TpCommand extends Command {
     constructor() {
@@ -33,12 +34,16 @@ export default class TpCommand extends Command {
                                     .getServer()
                                     .getPlayerByName(
                                         context.getArgument('player')
-                                    );
+                                    )!;
                                 const position = context.getArgument(
                                     'position'
                                 ) as Vector3;
 
-                                console.log(position);
+                                await target.setPosition(
+                                    position,
+                                    MovementType.Teleport
+                                );
+                                return `Teleported ${target.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
                             }
                         )
                     )
@@ -46,7 +51,7 @@ export default class TpCommand extends Command {
                         argument('target', new FloatPosition()).executes(
                             async (context) => {
                                 const source = context.getSource() as Player;
-                                const sourcetPlayert = source
+                                const sourcePlayer = source
                                     .getServer()
                                     .getPlayerByName(
                                         context.getArgument('player')
@@ -55,15 +60,37 @@ export default class TpCommand extends Command {
                                     .getServer()
                                     .getPlayerByName(
                                         context.getArgument('target')
-                                    );
-                                const position = context.getArgument(
-                                    'position'
-                                ) as Vector3;
+                                    )!;
+                                const position = new Vector3(
+                                    target.getX(),
+                                    target.getY(),
+                                    target.getZ()
+                                );
 
-                                console.log(position);
+                                await target.setPosition(
+                                    position,
+                                    MovementType.Teleport
+                                );
+                                return `Teleported ${target.getFormattedUsername()} to ${target.getUsername()}`;
                             }
                         )
                     )
+                    .executes(async (context) => {
+                        const source = context.getSource() as Player;
+                        const target = source
+                            .getServer()
+                            .getPlayerByName(context.getArgument('player'))!;
+
+                        await source.setPosition(
+                            new Vector3(
+                                target.getX(),
+                                target.getY(),
+                                target.getZ()
+                            ),
+                            MovementType.Teleport
+                        );
+                        return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;
+                    })
             )
         );
     }

@@ -329,8 +329,11 @@ export default class PlayerConnection {
 
     public async sendAvailableCommands() {
         const pk = new AvailableCommandsPacket();
-        for (const command of this.server.getCommandManager().getCommands()) {
-            if (!Array.isArray(command.parameters)) {
+        for (const command of this.server
+            .getCommandManager()
+            .getCommands()
+            .values()) {
+            /* if (!Array.isArray(command.parameters)) {
                 (pk as any).commandData.add({
                     ...command,
                     name: command.id.split(':')[1],
@@ -347,7 +350,7 @@ export default class PlayerConnection {
                         id: undefined
                     });
                 }
-            }
+            } */
         }
 
         await this.sendDataPacket(pk);

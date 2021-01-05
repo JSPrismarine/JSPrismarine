@@ -6,8 +6,10 @@ import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
 import ContainerEntry from '../inventory/ContainerEntry';
 import WindowManager from '../inventory/WindowManager';
+import Vector3 from '../math/Vector3';
 import Connection from '../network/raknet/Connection';
 import InetAddress from '../network/raknet/utils/InetAddress';
+import MovementType from '../network/type/MovementType';
 import Server from '../Server';
 import Device from '../utils/Device';
 import Skin from '../utils/skin/Skin';
@@ -271,5 +273,15 @@ export default class Player extends Human implements CommandExecuter {
     public async setOnGround(val: boolean) {
         this.onGround = val;
         await this.sendSettings();
+    }
+
+    public async setPosition(
+        position: Vector3,
+        type: MovementType = MovementType.Normal
+    ) {
+        this.setX(position.getX());
+        this.setY(position.getY());
+        this.setZ(position.getZ());
+        await this.getConnection().broadcastMove(this, type);
     }
 }
