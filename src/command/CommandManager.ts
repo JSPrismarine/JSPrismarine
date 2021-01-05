@@ -116,7 +116,8 @@ export default class CommandManager {
                 .flat(Number.POSITIVE_INFINITY);
         };
 
-        return Array.from(
+        // FIXME: this misses a few arguments??
+        const res = Array.from(
             this.server
                 .getCommandManager()
                 .getDispatcher()
@@ -126,10 +127,31 @@ export default class CommandManager {
             return [
                 command.getName(),
                 Array.from(command.getChildren()).map((node) => {
-                    return parseNode(node);
+                    return parseNode(node).reverse();
                 })
             ];
         });
+
+        res.toString = () => {
+            return `${this.getCommandsList()
+                .map((item) => {
+                    if (!item[1].length) return `/${item[0]}`;
+                    return item[1]
+                        .map((entries) => {
+                            return `/${item[0]} ${entries
+                                .flat(Number.POSITIVE_INFINITY)
+                                .map(
+                                    (argument: any) =>
+                                        argument.getReadableType?.() ??
+                                        argument.constructor.name
+                                )
+                                .join(' ')}`;
+                        })
+                        .join(`\n`);
+                })
+                .join('\n')}`;
+        };
+        return res as any;
     }
 
     /**
@@ -152,7 +174,7 @@ export default class CommandManager {
                 const chat = new Chat(
                     this.server.getConsole(),
                     `§o§7[${sender.getUsername()}: ${
-                        res ?? `issued server command: ${input}`
+                        res ?? `issued server command: /${input}`
                     }]§r`,
                     '*.ops'
                 );
