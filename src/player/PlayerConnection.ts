@@ -448,7 +448,7 @@ export default class PlayerConnection {
             xuid: this.player.xuid,
             platformChatId: '', // TODO: read this value from Login
             buildPlatform: -1,
-            skin: this.player.skin as Skin,
+            skin: this.player.skin!,
             isTeacher: false, // TODO: figure out where to read teacher and host
             isHost: false
         });
@@ -515,9 +515,10 @@ export default class PlayerConnection {
      */
     public async sendSpawn(player: Player) {
         if (!player.getUUID()) {
-            return this.server
+            this.server
                 .getLogger()
                 .error(`UUID for player=${player.getUsername()} is undefined`);
+            return;
         }
 
         const pk = new AddPlayerPacket();

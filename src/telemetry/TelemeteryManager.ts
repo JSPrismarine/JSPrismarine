@@ -159,10 +159,10 @@ export default class TelemetryManager {
                 'JSPrismarine has crashed, please report the following url(s) to the maintainers:',
                 'TelemetryManager/sendCrashLog'
             );
-        links.forEach((url) =>
+        links.forEach((url) => {
             this.server
                 .getLogger()
-                .error(`- ${url}`, 'TelemetryManager/sendCrashLog')
-        );
+                .error(`- ${url}`, 'TelemetryManager/sendCrashLog');
+        });
     }
 }

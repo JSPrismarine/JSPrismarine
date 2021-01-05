@@ -74,7 +74,9 @@ export default class Packet extends BinaryStream {
         address
             .getAddress()
             .split('.', 4)
-            .forEach((b) => this.writeByte(-b - 1));
+            .forEach((b) => {
+                this.writeByte(-b - 1);
+            });
         this.writeShort(address.getPort());
     }
 }
