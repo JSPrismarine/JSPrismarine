@@ -3,6 +3,7 @@ package.json  @filfat
 .github**   @filfat
 /src/ban/**  @filfat
 /src/block/**  @filfat
+/src/command/**  @filfat
 /src/permission/**  @filfat
 /src/plugin/**  @filfat
 /src/query/**  @filfat
