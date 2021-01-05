@@ -129,7 +129,7 @@ export default class CommandManager {
                 await this.server.getChatManager().send(chat);
             });
         } catch (err) {
-            sender.sendMessage(`§c${err.getContext()}`);
+            sender.sendMessage(`§c${err}`);
         }
     }
 }
