@@ -30,7 +30,10 @@ export default class QueryManager {
             const type: QueryType = stream.readByte();
             const sessionId = stream.readInt() & 0x0f0f0f0f;
 
-            if (magic !== 65277) return reject(new Error('Invalid magic'));
+            if (magic !== 65277) {
+                reject(new Error('Invalid magic'));
+                return;
+            }
 
             switch (type) {
                 case QueryType.Handshake: {
@@ -46,7 +49,8 @@ export default class QueryManager {
                             rinfo.getAddress(),
                             rinfo.getPort()
                         );
-                    return resolve(res.getBuffer());
+                    resolve(res.getBuffer());
+                    return;
                 }
 
                 case QueryType.Stats: {

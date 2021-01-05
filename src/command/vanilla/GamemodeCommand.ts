@@ -1,15 +1,10 @@
 /* eslint-disable promise/prefer-await-to-then */
 import {
-    CommandDispatcher,
-    argument,
-    literal,
-    string
-} from '@jsprismarine/brigadier';
-import Command from '../Command';
-import {
     CommandArgumentEntity,
     CommandArgumentGamemode
 } from '../CommandArguments';
+import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+import Command from '../Command';
 import Gamemode from '../../world/Gamemode';
 import Player from '../../player/Player';
 
