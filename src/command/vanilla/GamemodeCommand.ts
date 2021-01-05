@@ -4,6 +4,8 @@ import {
     CommandArgumentGamemode
 } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
 import Gamemode from '../../world/Gamemode';
 import Player from '../../player/Player';
@@ -23,14 +25,26 @@ export default class GamemodeCommand extends Command {
         gamemode: string
     ) {
         if (!target) {
-            await source.sendMessage(`Player is not online!`);
+            const event = new ChatEvent(
+                new Chat(
+                    source,
+                    `Player is not online!`,
+                    `*.player.${source.getUsername()}`
+                )
+            );
+            await source.getServer().getEventManager().emit('chat', event);
             return;
         }
 
         if (!target.isPlayer()) {
-            await source.sendMessage(
-                `Can't set ${source.getFormattedUsername()} to ${gamemode}`
+            const event = new ChatEvent(
+                new Chat(
+                    source,
+                    `Can't set ${source.getFormattedUsername()} to ${gamemode}`,
+                    `*.player.${source.getUsername()}`
+                )
             );
+            await source.getServer().getEventManager().emit('chat', event);
             return;
         }
 
