@@ -56,7 +56,7 @@ export default class UUID {
      * Generates a random UUIDv4 (string)
      */
     public static randomString(): string {
-        let dt = new Date().getTime();
+        let dt = Date.now();
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
             const r = Math.trunc((dt + Math.random() * 16) % 16);
             dt = Math.floor(dt / 16);

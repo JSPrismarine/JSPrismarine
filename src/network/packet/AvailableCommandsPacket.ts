@@ -41,10 +41,10 @@ export default class AvailableCommandsPacket extends DataPacket {
         for (const data of this.commandData) {
             // Command meta
             this.writeString(data.name);
-            this.writeString(data.description);
+            this.writeString(data.description ?? '');
 
             // Flags
-            this.writeByte(data.flags);
+            this.writeByte(data.flags ?? 0);
             this.writeByte(data.permission as any);
 
             // Alias enum indexes

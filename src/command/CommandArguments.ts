@@ -1,12 +1,11 @@
-import {
-    CommandSyntaxException,
-    StringReader,
-    Suggestions
-} from '@jsprismarine/brigadier';
-import Vector3 from '../math/Vector3';
+import { StringReader, Suggestions } from '@jsprismarine/brigadier';
 import Gamemode from '../world/Gamemode';
+import Server from '../Server';
+import Vector3 from '../math/Vector3';
 
-export class CommandArgumentGamemode {
+export abstract class CommandArgument {}
+
+export class CommandArgumentGamemode implements CommandArgument {
     parse(reader: StringReader) {
         const start = reader.getCursor();
         const gm = reader.readString();
@@ -18,16 +17,31 @@ export class CommandArgumentGamemode {
             reader.setCursor(start);
         }
     }
-    listSuggestions(context: any, builder: any) {
+    async listSuggestions(context: any, builder: any) {
         // TODO
         return Suggestions.empty();
     }
     getExamples() {
-        return 'survival';
+        return ['survival', 'creative', 'adventure', 'spectator'];
     }
 }
 
-export class FloatPosition extends Vector3 {
+export class CommandArgumentEntity implements CommandArgument {
+    parse(reader: StringReader) {
+        const start = reader.getCursor();
+        const player = reader.readString();
+
+        try {
+            return Server.instance.getPlayerByName(player);
+        } catch {
+            reader.setCursor(start);
+        }
+    }
+}
+
+export class CommandArgumentFloatPosition
+    extends Vector3
+    implements CommandArgument {
     constructor() {
         super();
     }
