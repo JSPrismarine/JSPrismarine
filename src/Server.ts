@@ -413,6 +413,7 @@ export default class Server {
             await this.worldManager.onDisable();
             await this.onDisable();
             await this.raknet?.kill(); // this.raknet might be undefined if we kill the server early
+            await this.console.onDisable();
             process.exit(0);
         } catch (error) {
             this.getLogger().error(error, 'Server/kill');
