@@ -248,12 +248,12 @@ export default class PacketBinaryStream extends BinaryStream {
      * Encodes a player list entry into the buffer.
      */
     public writePlayerListAddEntry(entry: PlayerListEntry): void {
-        this.writeVarLong(entry.getUniqueEntityId() as bigint);
-        this.writeString(entry.getName() as string);
+        this.writeVarLong(entry.getUniqueEntityId()!);
+        this.writeString(entry.getName()!);
         this.writeString(entry.getXUID());
-        this.writeString(entry.getPlatformChatId() as string);
-        this.writeLInt(entry.getBuildPlatform() as number);
-        this.writeSkin(entry.getSkin() as Skin);
+        this.writeString(entry.getPlatformChatId()!);
+        this.writeLInt(entry.getBuildPlatform()!);
+        this.writeSkin(entry.getSkin()!);
         this.writeBool(entry.isTeacher());
         this.writeBool(entry.isHost());
     }
@@ -411,7 +411,8 @@ export default class PacketBinaryStream extends BinaryStream {
         const itemstack = entry.getItem();
 
         if (itemstack.name === 'minecraft:air') {
-            return this.writeVarInt(0);
+            this.writeVarInt(0);
+            return;
         }
 
         this.writeVarInt(itemstack.getId());

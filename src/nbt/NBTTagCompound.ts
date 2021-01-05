@@ -46,19 +46,17 @@ export default class NBTTagCompound {
     }
 
     public addValue(name: string, value: any): void {
-        if (value instanceof NBTTagCompound) {
-            if (!(name === value.getName())) {
-                throw new Error(
-                    `Failed to add NBTTagCompound with name ${value.getName()} given name ${name}`
-                );
-            }
+        if (value instanceof NBTTagCompound && !(name === value.getName())) {
+            throw new Error(
+                `Failed to add NBTTagCompound with name ${value.getName()} given name ${name}`
+            );
         }
 
         this.children.set(name, value);
     }
 
     public addChild(tag: NBTTagCompound): void {
-        this.children.set(tag.getName() as string, tag);
+        this.children.set(tag.getName()!, tag);
     }
 
     public getList(name: string, insert: boolean): Set<any> | null {

@@ -1,12 +1,12 @@
 /* eslint-disable promise/prefer-await-to-then */
 import {
-    CommandDispatcher,
-    argument,
-    literal,
-    string
-} from '@jsprismarine/brigadier';
+    CommandArgumentEntity,
+    CommandArgumentGamemode
+} from '../CommandArguments';
+import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
-import { CommandArgumentGamemode } from '../CommandArguments';
 import Gamemode from '../../world/Gamemode';
 import Player from '../../player/Player';
 
@@ -25,14 +25,26 @@ export default class GamemodeCommand extends Command {
         gamemode: string
     ) {
         if (!target) {
-            await source.sendMessage(`Player is not online!`);
+            const event = new ChatEvent(
+                new Chat(
+                    source,
+                    `Player is not online!`,
+                    `*.player.${source.getUsername()}`
+                )
+            );
+            await source.getServer().getEventManager().emit('chat', event);
             return;
         }
 
         if (!target.isPlayer()) {
-            await source.sendMessage(
-                `Can't set ${source.getFormattedUsername()} to ${gamemode}`
+            const event = new ChatEvent(
+                new Chat(
+                    source,
+                    `Can't set ${source.getFormattedUsername()} to ${gamemode}`,
+                    `*.player.${source.getUsername()}`
+                )
             );
+            await source.getServer().getEventManager().emit('chat', event);
             return;
         }
 
@@ -44,26 +56,21 @@ export default class GamemodeCommand extends Command {
             literal('gamemode').then(
                 argument('gamemode', new CommandArgumentGamemode())
                     .then(
-                        argument('player', string()).executes(
-                            async (context) => {
-                                const source = context.getSource() as Player;
-                                const target = source
-                                    .getServer()
-                                    .getPlayerByName(
-                                        context.getArgument('player')
-                                    );
+                        argument(
+                            'player',
+                            new CommandArgumentEntity()
+                        ).executes(async (context) => {
+                            const source = context.getSource() as Player;
+                            const target = context.getArgument(
+                                'player'
+                            ) as Player;
 
-                                const gamemode = context.getArgument(
-                                    'gamemode'
-                                ) as string;
+                            const gamemode = context.getArgument(
+                                'gamemode'
+                            ) as string;
 
-                                await this.setGamemode(
-                                    source,
-                                    target!,
-                                    gamemode
-                                );
-                            }
-                        )
+                            await this.setGamemode(source, target, gamemode);
+                        })
                     )
                     .executes(async (context) => {
                         const source = context.getSource() as Player;
