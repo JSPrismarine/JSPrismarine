@@ -8,7 +8,7 @@ import path from 'path';
 export default class CommandManager {
     private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
-    private dispatcher!: CommandDispatcher<any>;
+    private dispatcher!: CommandDispatcher<CommandExecuter>;
 
     constructor(server: Server) {
         this.server = server;
@@ -114,20 +114,22 @@ export default class CommandManager {
      */
     public async dispatchCommand(sender: CommandExecuter, input = '') {
         try {
-            const res = await this.dispatcher.execute(
-                this.dispatcher.parse(input, sender)
+            const res = await Promise.all(
+                this.dispatcher.execute(this.dispatcher.parse(input, sender))
             );
 
-            const chat = new Chat(
-                this.server.getConsole(),
-                `§o§7[${sender.getUsername()}: ${
-                    res ?? `issued server command: ${input}`
-                }]§r`,
-                '*.ops'
-            );
-            await this.server.getChatManager().send(chat);
+            res.forEach(async (res: any) => {
+                const chat = new Chat(
+                    this.server.getConsole(),
+                    `§o§7[${sender.getUsername()}: ${
+                        res ?? `issued server command: ${input}`
+                    }]§r`,
+                    '*.ops'
+                );
+                await this.server.getChatManager().send(chat);
+            });
         } catch (err) {
-            sender.sendMessage(`${err}`);
+            sender.sendMessage(`§c${err.getContext()}`);
         }
     }
 }

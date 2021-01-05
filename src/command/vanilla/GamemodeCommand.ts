@@ -1,6 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
 import {
-    CommandContext,
     CommandDispatcher,
     argument,
     literal,
@@ -10,6 +9,7 @@ import Command from '../Command';
 import { CommandArgumentGamemode } from '../CommandArguments';
 import Gamemode from '../../world/Gamemode';
 import Player from '../../player/Player';
+
 export default class GamemodeCommand extends Command {
     constructor() {
         super({
