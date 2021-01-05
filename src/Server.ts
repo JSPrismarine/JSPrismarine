@@ -369,15 +369,14 @@ export default class Server {
      * Example getPlayerByName("John") may return
      * an user with username "John Doe"
      */
-    public getPlayerByName(name: string): Player | null {
-        return (
-            Array.from(this.players.values()).find((player) =>
-                player
-                    .getUsername()
-                    .toLowerCase()
-                    .startsWith(name.toLowerCase())
-            ) ?? null
+    public getPlayerByName(name: string): Player {
+        const player = Array.from(this.players.values()).find((player) =>
+            player.getUsername().toLowerCase().startsWith(name.toLowerCase())
         );
+
+        if (!player) throw new Error(`Can't find player ${name}`);
+
+        return player;
     }
 
     /**
