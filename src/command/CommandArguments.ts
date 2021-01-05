@@ -1,9 +1,11 @@
 import { StringReader, Suggestions } from '@jsprismarine/brigadier';
 import Gamemode from '../world/Gamemode';
-import Vector3 from '../math/Vector3';
 import Server from '../Server';
+import Vector3 from '../math/Vector3';
 
-export class CommandArgumentGamemode {
+export abstract class CommandArgument {}
+
+export class CommandArgumentGamemode implements CommandArgument {
     parse(reader: StringReader) {
         const start = reader.getCursor();
         const gm = reader.readString();
@@ -24,7 +26,7 @@ export class CommandArgumentGamemode {
     }
 }
 
-export class CommandArgumentEntity {
+export class CommandArgumentEntity implements CommandArgument {
     parse(reader: StringReader) {
         const start = reader.getCursor();
         const player = reader.readString();
@@ -37,7 +39,9 @@ export class CommandArgumentEntity {
     }
 }
 
-export class CommandArgumentFloatPosition extends Vector3 {
+export class CommandArgumentFloatPosition
+    extends Vector3
+    implements CommandArgument {
     constructor() {
         super();
     }

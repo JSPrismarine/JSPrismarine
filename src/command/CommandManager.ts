@@ -1,10 +1,15 @@
+import {
+    ArgumentCommandNode,
+    CommandDispatcher
+} from '@jsprismarine/brigadier';
 import Chat from '../chat/Chat';
 import Command from './Command';
-import { CommandDispatcher } from '@jsprismarine/brigadier';
 import CommandExecuter from './CommandExecuter';
+import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
+import { CommandArgument } from './CommandArguments';
 export default class CommandManager {
     private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
@@ -100,17 +105,42 @@ export default class CommandManager {
         return this.commands;
     }
 
+    public getCommandsList(): Array<[string, CommandArgument[][]]> {
+        const parseNode = (node: CommandNode<CommandExecuter>): any[] => {
+            if (node.getChildrenCount() <= 0) {
+                return [(node as ArgumentCommandNode<any, any>).getType()];
+            }
+
+            return Array.from(node.getChildren())
+                .map((node) => parseNode(node))
+                .flat(Number.POSITIVE_INFINITY);
+        };
+
+        return Array.from(
+            this.server
+                .getCommandManager()
+                .getDispatcher()
+                .getRoot()
+                .getChildren()
+        ).map((command) => {
+            return [
+                command.getName(),
+                Array.from(command.getChildren()).map((node) => {
+                    return parseNode(node);
+                })
+            ];
+        });
+    }
+
+    /**
+     * Get dispatcher
+     */
+    public getDispatcher(): CommandDispatcher<CommandExecuter> {
+        return this.dispatcher;
+    }
+
     /**
      * Dispatches a command and executes them.
-     *
-     * This should be refactored to supply the `command.execute` with
-     * an array of objects containing the value and type.
-     * We also need to start handling quotes.
-     *
-     * That will of course be a breaking change regarding plugins.
-     * We could bypass that by introducing a new `command.handle`
-     * function instead and deprecate the old `command.execute`.
-     * -FS
      */
     public async dispatchCommand(sender: CommandExecuter, input = '') {
         try {
