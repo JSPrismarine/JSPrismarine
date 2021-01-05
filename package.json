@@ -20,9 +20,9 @@
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
         "test:watch": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
         "eslint": "xo ./src/",
-        "eslint-format": "xo --fix ./src/",
+        "eslint:format": "xo --fix ./src/",
         "prettier": "prettier --config .prettierrc src/**/*.* --check",
-        "prettier-format": "prettier --config .prettierrc src/**/*.* --write",
+        "prettier:format": "prettier --config .prettierrc src/**/*.* --write",
         "coveralls": "jest --coverage --forceExit --testLocationInResults --silent && cat ./coverage/lcov.info | coveralls"
     },
     "repository": {
@@ -167,7 +167,7 @@
         "@types/jest": "26.0.19",
         "@types/jwt-decode": "3.1.0",
         "@types/mock-fs": "4.13.0",
-        "@types/node": "14.14.19",
+        "@types/node": "14.14.20",
         "@types/node-fetch": "2.5.7",
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.3",
@@ -181,7 +181,7 @@
         "prettier": "2.2.1",
         "ts-jest": "26.4.4",
         "ts-node": "9.1.1",
-        "typedoc": "0.20.10",
+        "typedoc": "0.20.12",
         "typescript": "4.1.3",
         "xo": "0.37.1",
         "yarnhook": "0.5.1"

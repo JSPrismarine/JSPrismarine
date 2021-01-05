@@ -145,7 +145,9 @@ export default class Server {
         );
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
-            await this.getQueryManager().onRaw(buffer, inetAddr);
+            try {
+                await this.getQueryManager().onRaw(buffer, inetAddr);
+            } catch {}
         });
 
         this.logger.info(

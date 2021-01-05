@@ -123,9 +123,12 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
         switch (header) {
             case Identifiers.Query:
-                return this.server
-                    .getQueryManager()
-                    .onRaw(buffer, new InetAddress(rinfo.address, rinfo.port));
+                this.emit(
+                    'raw',
+                    buffer,
+                    new InetAddress(rinfo.address, rinfo.port)
+                );
+                return buffer;
             case Identifiers.UnconnectedPing:
                 return this.handleUnconnectedPing(buffer);
             case Identifiers.OpenConnectionRequest1:
