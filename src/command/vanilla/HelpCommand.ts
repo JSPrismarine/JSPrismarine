@@ -32,6 +32,5 @@ export default class HelpCommand extends Command {
         };
 
         dispatcher.register(literal('help').executes(execute as any));
-        dispatcher.register(literal('?').executes(execute as any));
     }
 }

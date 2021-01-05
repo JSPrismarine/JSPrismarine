@@ -3,7 +3,11 @@ import Gamemode from '../world/Gamemode';
 import Server from '../Server';
 import Vector3 from '../math/Vector3';
 
-export abstract class CommandArgument {}
+export abstract class CommandArgument {
+    public getReadableType(): string {
+        return '';
+    }
+}
 
 export class CommandArgumentGamemode implements CommandArgument {
     parse(reader: StringReader) {
@@ -24,6 +28,10 @@ export class CommandArgumentGamemode implements CommandArgument {
     getExamples() {
         return ['survival', 'creative', 'adventure', 'spectator'];
     }
+
+    public getReadableType(): string {
+        return '<gamemode>';
+    }
 }
 
 export class CommandArgumentEntity implements CommandArgument {
@@ -36,6 +44,10 @@ export class CommandArgumentEntity implements CommandArgument {
         } catch {
             reader.setCursor(start);
         }
+    }
+
+    public getReadableType(): string {
+        return '<target>';
     }
 }
 
@@ -57,5 +69,9 @@ export class CommandArgumentFloatPosition
 
     getExamples() {
         return ['1 2 3'];
+    }
+
+    public getReadableType(): string {
+        return '[x] [y] [z]';
     }
 }
