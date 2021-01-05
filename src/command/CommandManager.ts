@@ -61,7 +61,7 @@ export default class CommandManager {
         this.server
             .getLogger()
             .debug(
-                `Registered §b${commands}§r commands(s) (took ${
+                `Registered §b${commands.length}§r commands(s) (took ${
                     Date.now() - time
                 } ms)!`,
                 'CommandManager/onEnable'
