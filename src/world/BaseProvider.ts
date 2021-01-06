@@ -32,5 +32,5 @@ export default abstract class BaseProvider implements Provider {
         cz: number,
         seed: SharedSeedRandom,
         generator: Generator
-    ): Chunk;
+    ): Promise<Chunk>;
 }

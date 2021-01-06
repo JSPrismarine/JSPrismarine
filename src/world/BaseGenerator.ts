@@ -21,7 +21,7 @@ export default abstract class BaseGenerator implements Generator {
         cx: number,
         cz: number,
         seed?: SharedSeedRandom
-    ): Chunk;
+    ): Promise<Chunk>;
 
     protected getBlockManager(): BlockManager {
         return this.blockManager;

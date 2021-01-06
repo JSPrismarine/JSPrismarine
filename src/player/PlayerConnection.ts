@@ -14,12 +14,14 @@ import Block from '../block/Block';
 import Chunk from '../world/chunk/Chunk';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
 import type Connection from '../network/raknet/Connection';
+import ContainerEntry from '../inventory/ContainerEntry';
 import CoordinateUtils from '../world/CoordinateUtils';
 import CreativeContentEntry from '../network/type/CreativeContentEntry';
 import CreativeContentPacket from '../network/packet/CreativeContentPacket';
 import DataPacket from '../network/packet/DataPacket';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
+import Gamemode from '../world/Gamemode';
 import InventoryContentPacket from '../network/packet/InventoryContentPacket';
 import Item from '../item/Item';
 import LevelChunkPacket from '../network/packet/LevelChunkPacket';
@@ -41,7 +43,6 @@ import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
 import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
 import { WindowIds } from '../inventory/WindowManager';
-import ContainerEntry from '../inventory/ContainerEntry';
 
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
@@ -93,17 +94,17 @@ export default class PlayerConnection {
     }
 
     public async sendSettings(player?: Player) {
-        const target = player || this.player;
+        const target = player ?? this.player;
         const pk = new AdventureSettingsPacket();
 
         pk.setFlag(
             AdventureSettingsFlags.WorldImmutable,
             target.gamemode === 3
         );
-        pk.setFlag(AdventureSettingsFlags.NoPvp, target.gamemode === 3);
+        pk.setFlag(AdventureSettingsFlags.NoPvp, target.gamemode === Gamemode.Spectator);
         pk.setFlag(AdventureSettingsFlags.AutoJump, true); // TODO
         pk.setFlag(AdventureSettingsFlags.AllowFlight, target.getAllowFlight());
-        pk.setFlag(AdventureSettingsFlags.NoClip, target.gamemode === 3);
+        pk.setFlag(AdventureSettingsFlags.NoClip, target.gamemode === Gamemode.Spectator);
         pk.setFlag(AdventureSettingsFlags.Flying, target.isFlying());
 
         pk.commandPermission = target.isOp()
@@ -137,10 +138,9 @@ export default class PlayerConnection {
                 sendZChunk <= viewDistance;
                 sendZChunk++
             ) {
-                const distance = Math.sqrt(
+                const chunkDistance = Math.round(Math.sqrt(
                     sendZChunk * sendZChunk + sendXChunk * sendXChunk
-                );
-                const chunkDistance = Math.round(distance);
+                ));
 
                 if (chunkDistance <= viewDistance) {
                     const newChunk = [

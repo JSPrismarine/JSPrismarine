@@ -90,7 +90,7 @@ export default class World {
                 `Preparing start region for dimension §b'${this.name}'/${this.generator}§r`,
                 'World/onEnable'
             );
-        const chunksToLoad: Array<Promise<Chunk>> = [];
+        const chunksToLoad: Array<Promise<void>> = [];
         const time = Date.now();
 
         for (let x = 0; x < 32; x++) {
@@ -141,8 +141,12 @@ export default class World {
      * Returns the chunk in the specifies x and z, if the chunk doesn't exists
      * it is generated.
      */
-    public async getChunk(x: number, z: number): Promise<Chunk> {
-        return this.loadChunk(x, z);
+    public async getChunk(cx: number, cz: number): Promise<Chunk> {
+        const index = CoordinateUtils.encodePos(cx, cz);
+        if (!this.chunks.has(index)) {
+            await this.loadChunk(cx, cz);
+        }
+        return this.chunks.get(index)!;
     }
 
     /**
@@ -151,20 +155,16 @@ export default class World {
      * @param cx
      * @param cz
      */
-    public async loadChunk(cx: number, cz: number): Promise<Chunk> {
+    public async loadChunk(cx: number, cz: number): Promise<void> {
         const index = CoordinateUtils.encodePos(cx, cz);
-        if (!this.chunks.has(index)) {
-            // Try - catch for provider errors
-            const chunk = this.provider.readChunk(
-                cx,
-                cz,
-                this.seed,
-                this.generator
-            );
-            this.chunks.set(index, chunk);
-        }
-
-        return this.chunks.get(index)!;
+        // Try - catch for provider errors
+        const chunk = await this.provider.readChunk(
+            cx,
+            cz,
+            this.seed,
+            this.generator
+        );
+        this.chunks.set(index, chunk);
     }
 
     /**
@@ -195,8 +195,8 @@ export default class World {
     /**
      * Returns a chunk from minecraft block positions x and z.
      */
-    public async getChunkAt(x: number, z: number): Promise<Chunk> {
-        return this.getChunk(Math.floor(x / 16), Math.floor(z / 16));
+    public async getChunkAt(bx: number, bz: number): Promise<Chunk> {
+        return await this.getChunk(bx >> 4, bz >> 4);
     }
 
     /**

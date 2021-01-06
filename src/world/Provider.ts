@@ -20,5 +20,5 @@ export default interface Provider {
         cz: number,
         seed: SharedSeedRandom,
         generator: Generator
-    ): Chunk;
+    ): Promise<Chunk>;
 }
