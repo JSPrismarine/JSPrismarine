@@ -3,7 +3,7 @@ import {
     CommandDispatcher,
     argument,
     literal,
-    string
+    greedyString
 } from '@jsprismarine/brigadier';
 import Command from '../Command';
 import Player from '../../player/Player';
@@ -21,16 +21,18 @@ export default class SayCommand extends Command {
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
             literal('say').then(
-                argument('message', string()).executes(async (context) => {
-                    const source = context.getSource() as Player;
-                    const message = context.getArgument('message');
+                argument('message', greedyString()).executes(
+                    async (context) => {
+                        const source = context.getSource() as Player;
+                        const message = context.getArgument('message');
 
-                    const chat = new Chat(
-                        source,
-                        `§5[${source.getUsername()}] ${message}`
-                    );
-                    await source.getServer().getChatManager().send(chat);
-                })
+                        const chat = new Chat(
+                            source,
+                            `§5[${source.getUsername()}] ${message}`
+                        );
+                        await source.getServer().getChatManager().send(chat);
+                    }
+                )
             )
         );
     }

@@ -7,9 +7,9 @@ interface CommandProps {
     aliases?: string[];
 }
 
-export default abstract class Command {
+export default class Command {
     id: string;
-    description?: string;
+    description: string;
     permission?: string;
     aliases?: string[];
 
@@ -25,8 +25,5 @@ export default abstract class Command {
         this.aliases = aliases;
     }
 
-    /**
-     * Called when the command is executed.
-     */
-    public abstract register(dispatcher: CommandDispatcher<any>): Promise<void>;
+    public async register(dispatcher: CommandDispatcher<any>): Promise<void> {}
 }

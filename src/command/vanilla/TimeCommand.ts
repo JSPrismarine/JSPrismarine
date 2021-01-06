@@ -1,43 +1,85 @@
+/* eslint-disable promise/prefer-await-to-then */
+import {
+    CommandDispatcher,
+    argument,
+    literal,
+    string,
+    integer
+} from '@jsprismarine/brigadier';
 import Command from '../Command';
 import Player from '../../player/Player';
 
-export default class GamemodeCommand extends Command {
-    public constructor() {
+export default class TimeCommand extends Command {
+    constructor() {
         super({
             id: 'minecraft:time',
             description: 'Get, set and add to the current time.',
             permission: 'minecraft.command.time'
-        } as any);
+        });
     }
 
-    public async execute(sender: Player, args: any[]) {
-        const world =
-            sender?.getWorld?.() ||
-            sender.getServer().getWorldManager().getDefaultWorld();
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('time')
+                .then(
+                    argument('action', string()).then(
+                        argument('value', integer()).executes(
+                            async (context) => {
+                                const source = context.getSource() as Player;
+                                const world =
+                                    source.getWorld?.() ||
+                                    source
+                                        .getServer()
+                                        .getWorldManager()
+                                        .getDefaultWorld();
 
-        if (args.length === 0) {
-            return sender.sendMessage(
-                `The current time is ${world.getTicks()}`
-            );
-        }
+                                switch (
+                                    context.getArgument('action').toLowerCase()
+                                ) {
+                                    case 'set':
+                                        world.setTicks(
+                                            context.getArgument('value')
+                                        );
+                                        break;
+                                    case 'add':
+                                        world.setTicks(
+                                            world.getTicks() +
+                                                context.getArgument('value')
+                                        );
+                                        break;
+                                    case 'sub':
+                                        world.setTicks(
+                                            world.getTicks() -
+                                                context.getArgument('value')
+                                        );
+                                        break;
+                                    default:
+                                        throw new Error(
+                                            `Invalid argument "${context.getArgument(
+                                                'action'
+                                            )}"`
+                                        );
+                                }
 
-        if (args.length === 2 && typeof args[1] === 'number') {
-            switch (args[0].toLowerCase()) {
-                case 'set':
-                    world.setTicks(args[1]);
-                    break;
-                case 'add':
-                    world.setTicks(world.getTicks() + args[1]);
-                    break;
-                case 'sub':
-                    world.setTicks(world.getTicks() - args[1]);
-                    break;
-                default:
-                    throw new Error(`Invalid argument "${args[0]}"`);
-            }
+                                await world.sendTime();
+                                await source.sendMessage(
+                                    `Set time to: ${world.getTicks()}`
+                                );
+                                return `Set time to: ${world.getTicks()}`;
+                            }
+                        )
+                    )
+                )
+                .executes(async (context) => {
+                    const source = context.getSource() as Player;
+                    const world =
+                        source.getWorld?.() ||
+                        source.getServer().getWorldManager().getDefaultWorld();
 
-            await world.sendTime();
-            await sender.sendMessage(`Set time to: ${world.getTicks()}`);
-        }
+                    await source.sendMessage(
+                        `The current time is ${world.getTicks()}`
+                    );
+                })
+        );
     }
 }
