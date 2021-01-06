@@ -74,7 +74,6 @@ export default class TpCommand extends Command {
                                 'position',
                                 new CommandArgumentFloatPosition()
                             ).executes(async (context) => {
-                                const source = context.getSource() as Player;
                                 const target = context.getArgument(
                                     'player'
                                 ) as Player;
@@ -95,7 +94,6 @@ export default class TpCommand extends Command {
                                 'target',
                                 new CommandArgumentEntity()
                             ).executes(async (context) => {
-                                const source = context.getSource() as Player;
                                 const sourcePlayer = context.getArgument(
                                     'player'
                                 ) as Player;

@@ -366,6 +366,17 @@ export default class PlayerConnection {
                 });
             }); */
 
+        this.server
+            .getCommandManager()
+            .getCommands()
+            .forEach((command) => {
+                pk.commandData.add({
+                    name: command.id.split(':')[0],
+                    description: command.description,
+                    parameters: new Set<CommandParameter>()
+                });
+            });
+
         await this.sendDataPacket(pk);
     }
 
@@ -399,7 +410,7 @@ export default class PlayerConnection {
         xuid = '',
         needsTranslation = false
     ) {
-        if (!message) return; // FIXME: throw error here
+        if (!message) throw new Error('A message is required');
 
         const pk = new TextPacket();
         pk.type = TextType.Raw;
