@@ -150,6 +150,7 @@ export default class QueryManager {
                         );
 
                     resolve(res.getBuffer());
+                    return;
                 }
 
                 default:
