@@ -46,7 +46,8 @@ export default class QueryManager {
                             rinfo.getAddress(),
                             rinfo.getPort()
                         );
-                    return resolve(res.getBuffer());
+                    resolve(res.getBuffer());
+                    return;
                 }
 
                 case QueryType.Stats: {
@@ -146,6 +147,7 @@ export default class QueryManager {
                         );
 
                     resolve(res.getBuffer());
+                    return;
                 }
 
                 default:
