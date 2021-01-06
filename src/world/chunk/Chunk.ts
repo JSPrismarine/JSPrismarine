@@ -20,8 +20,8 @@ export default class Chunk {
         this.z = chunkZ;
 
         // Initialize all empty subchunks
-        for (let i = 0; i < MAX_SUBCHUNKS; i++) {
-            this.subChunks.set(i, subChunks.get(i) ?? new SubChunk());
+        for (let y = 0; y < MAX_SUBCHUNKS; y++) {
+            this.subChunks.set(y, subChunks.get(y) ?? new SubChunk());
         }
     }
 
@@ -111,7 +111,7 @@ export default class Chunk {
     ): void {
         const runtimeId = Server.instance
             .getBlockManager()
-            .getRuntimeWithMeta(block.getId(), block.getMeta());
+            .getRuntime(block.getId(), block.getMeta()); 
         this.getSubChunk(by).setBlock(bx, by, bz, runtimeId, layer);
     }
 

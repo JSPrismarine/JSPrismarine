@@ -10,13 +10,18 @@ import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 
+interface LegacyBlock {
+    id: number,
+    meta: number
+}
+
 export default class BlockManager {
     private readonly server: Server;
     private readonly blocks: Map<string, Block> = new Map();
 
     private readonly legacyToRuntimeId: Map<number, number> = new Map();
-    private readonly runtimeIdToLegacy: Map<number, number> = new Map();
-    private runtimeIdAllocator = 0;
+    private readonly runtimeIdToLegacy: Map<number, LegacyBlock> = new Map();
+    private runtimeIdAlloc = 0;
 
     constructor(server: Server) {
         this.server = server;
@@ -74,10 +79,10 @@ export default class BlockManager {
     /**
      * Get block by runtime id
      */
-    public getBlockByRuntimeId(runtimeId: number, meta = 0): Block | null {
+    public getBlockByRuntimeId(runtimeId: number): Block | null {
         if (this.runtimeIdToLegacy.has(runtimeId)) {
-            const legacyId = this.runtimeIdToLegacy.get(runtimeId)!;
-            return this.getBlockByIdAndMeta(legacyId >> 6, meta);
+            const legacyBlock = this.runtimeIdToLegacy.get(runtimeId)!;
+            return this.getBlockByIdAndMeta(legacyBlock.id, legacyBlock.meta);
         }
         console.log(
             'Legacy ID mapping for Runtime ID=%d not found!',
@@ -108,7 +113,7 @@ export default class BlockManager {
 
         await Promise.all(
             Array.from(compound).map(async (state) => {
-                const runtimeId: number = this.runtimeIdAllocator++;
+                const runtimeId: number = this.runtimeIdAlloc++;
                 if (!state.has('LegacyStates')) return false;
 
                 const legacyStates: Set<NBTTagCompound> = state.getList(
@@ -118,10 +123,10 @@ export default class BlockManager {
 
                 const firstState: NBTTagCompound = legacyStates.values().next()
                     .value;
-                const legacyId: number =
-                    (firstState.getNumber('id', 0) << 6) |
-                    firstState.getShort('val', 0);
-                this.runtimeIdToLegacy.set(runtimeId, legacyId);
+                const id = firstState.getNumber('id', 0);
+                const meta = firstState.getShort('val', 0);
+                // const legacyId = (id << 6) | meta;
+                this.runtimeIdToLegacy.set(runtimeId, <LegacyBlock>{ id, meta });
 
                 Array.from(legacyStates).forEach((legacyState) => {
                     const legacyId: number =
@@ -133,27 +138,27 @@ export default class BlockManager {
         );
     }
 
-    // TODO: to clean up
-    // Also, block.getRuntimeId() should call this and return the value
-    public getRuntimeWithMeta(id: number, meta: number): number {
-        const legacyId = (id << 6) | meta;
-        let runtimeId = this.legacyToRuntimeId.get(legacyId);
-        if (!this.legacyToRuntimeId.has(legacyId)) {
-            runtimeId = this.legacyToRuntimeId.get(id << 6);
-            if (!this.legacyToRuntimeId.has(id << 6)) {
-                runtimeId = this.runtimeIdAllocator++;
-                this.legacyToRuntimeId.set(id << 6, runtimeId);
-                this.runtimeIdToLegacy.set(runtimeId, id << 6);
+    /**
+     * Returns the mapped block legacy Id from the runtime Id.
+     * 
+     * @param id 
+     * @param meta 
+     */
+    public getRuntime(id: number, meta: number): number {
+        const hashedLegacyId = id << 6;
+        if (!this.legacyToRuntimeId.has(hashedLegacyId | meta)) {
+            if (!this.legacyToRuntimeId.has(hashedLegacyId)) {
+                const runtimeId = this.runtimeIdAlloc++;
+                this.legacyToRuntimeId.set(hashedLegacyId, runtimeId);
+                this.runtimeIdToLegacy.set(runtimeId, <LegacyBlock>{ id: id, meta: meta });
+                return runtimeId;
             }
         }
-
-        if (typeof runtimeId === 'undefined') return 0;
-
-        return runtimeId;
+        return this.legacyToRuntimeId.get(hashedLegacyId | meta)!;
     }
 
     public getRuntimeWithId(legacyId: number): number {
-        return this.getRuntimeWithMeta(legacyId >> 4, legacyId & 0xf);
+        return this.getRuntime(legacyId >> 4, legacyId & 0xf);
     }
 
     /**
