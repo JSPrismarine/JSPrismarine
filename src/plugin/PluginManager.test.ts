@@ -87,7 +87,9 @@ describe.skip('plugin', () => {
                 })() as any
             });
         });
-        afterEach(() => mock.restore());
+        afterEach(() => {
+            mock.restore();
+        });
 
         it('onEnable() should succeed with 0 plugins', async (done) => {
             const pl = new PluginManager(server);

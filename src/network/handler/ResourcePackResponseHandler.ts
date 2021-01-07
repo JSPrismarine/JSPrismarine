@@ -86,9 +86,7 @@ export default class ResourcePackResponseHandler
             await player.getConnection().sendAvailableCommands();
             await player.getConnection().sendInventory();
 
-            await player
-                .getConnection()
-                .sendCreativeContents(player.gamemode !== Gamemode.Creative);
+            await player.getConnection().sendCreativeContents();
 
             // First add
             await player.getConnection().addToPlayerList();

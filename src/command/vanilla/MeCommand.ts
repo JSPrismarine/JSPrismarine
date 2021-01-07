@@ -1,7 +1,14 @@
-import Chat from '../../chat/Chat';
-import ChatEvent from '../../events/chat/ChatEvent';
+/* eslint-disable promise/prefer-await-to-then */
+import {
+    CommandDispatcher,
+    argument,
+    literal,
+    greedyString
+} from '@jsprismarine/brigadier';
 import Command from '../Command';
 import Player from '../../player/Player';
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
 
 export default class MeCommand extends Command {
     constructor() {
@@ -12,15 +19,25 @@ export default class MeCommand extends Command {
         });
     }
 
-    public async execute(sender: Player, args: Array<string | number>) {
-        if (!args[0]) {
-            return sender.sendMessage(`§cPlease specify a message.`);
-        }
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('say').then(
+                argument('message', greedyString()).executes(
+                    async (context) => {
+                        const source = context.getSource() as Player;
+                        const message = context.getArgument('message');
+                        const messageToSend = `*${source.getUsername()}: ${message}`;
 
-        const message = args.join(' ');
-        const messageToSend = `*${sender.getUsername()}: ${message}`;
-
-        const event = new ChatEvent(new Chat(sender, messageToSend));
-        await sender.getServer().getEventManager().emit('chat', event);
+                        const event = new ChatEvent(
+                            new Chat(source, messageToSend)
+                        );
+                        await source
+                            .getServer()
+                            .getEventManager()
+                            .emit('chat', event);
+                    }
+                )
+            )
+        );
     }
 }

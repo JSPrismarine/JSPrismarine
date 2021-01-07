@@ -25,12 +25,14 @@ export default class PlayerActionHandler
                     packet.z % 16
                 );
                 const block = server.getBlockManager().getBlockById(blockId);
-                if (!block)
-                    return server
+                if (!block) {
+                    server
                         .getLogger()
                         .warn(
                             `Block at ${packet.x} ${packet.y} ${packet.z} is undefined!`
                         );
+                    return;
+                }
 
                 const breakTime = Math.ceil(
                     block.getBreakTime(null, server) * 20
