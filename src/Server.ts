@@ -361,7 +361,7 @@ export default class Server {
      * Returns an online player by its runtime ID,
      * if it is not found, null is returned.
      */
-    public getPlayerById(id: bigint): Player | null {
+    public getPlayerById(id: bigint): Player {
         const player = this.getOnlinePlayers().find(
             (player) => player.runtimeId === id
         );
@@ -396,7 +396,7 @@ export default class Server {
      *
      * CASE SENSITIVE.
      */
-    public getPlayerByExactName(name: string): Player | null {
+    public getPlayerByExactName(name: string): Player {
         const player = this.getOnlinePlayers().find(
             (player) => player.getUsername() === name
         );
