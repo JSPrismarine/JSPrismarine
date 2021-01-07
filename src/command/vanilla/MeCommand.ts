@@ -21,7 +21,7 @@ export default class MeCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
-            literal('say').then(
+            literal('me').then(
                 argument('message', greedyString()).executes(
                     async (context) => {
                         const source = context.getSource() as Player;

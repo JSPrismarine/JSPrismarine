@@ -15,6 +15,7 @@ export default class AnimateHandler implements PacketHandler<AnimatePacket> {
 
         await Promise.all(
             server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .filter((onlinePlayer) => !(onlinePlayer === player))
                 .map(async (otherPlayer) =>

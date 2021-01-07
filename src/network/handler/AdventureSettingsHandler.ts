@@ -16,7 +16,7 @@ export default class AdventureSettingsHandler
             return;
         }
 
-        const target = server.getPlayerById(packet.entityId);
+        const target = server.getPlayerManager().getPlayerById(packet.entityId);
         if (!target) return;
 
         const flying = packet.getFlag(AdventureSettingsFlags.Flying);

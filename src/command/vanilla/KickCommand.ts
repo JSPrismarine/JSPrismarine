@@ -2,12 +2,11 @@
 import {
     CommandDispatcher,
     argument,
-    literal,
-    greedyString
+    greedyString,
+    literal
 } from '@jsprismarine/brigadier';
 import Command from '../Command';
 import { CommandArgumentEntity } from '../CommandArguments';
-import Player from '../../player/Player';
 
 export default class KickCommand extends Command {
     constructor() {
@@ -20,20 +19,15 @@ export default class KickCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
-            literal('op').then(
+            literal('kick').then(
                 argument('player', new CommandArgumentEntity())
                     .then(
                         argument('reason', greedyString()).executes(
                             async (context) => {
-                                const source = context.getSource() as Player;
                                 const reason = context.getArgument(
                                     'reason'
                                 ) as string;
-                                const target = source
-                                    .getServer()
-                                    .getPlayerByName(
-                                        context.getArgument('player')
-                                    );
+                                const target = context.getArgument('player');
 
                                 await target.kick(
                                     `You have been kicked from the server due to: \n\n${reason}!`
@@ -43,10 +37,7 @@ export default class KickCommand extends Command {
                         )
                     )
                     .executes(async (context) => {
-                        const source = context.getSource() as Player;
-                        const target = source
-                            .getServer()
-                            .getPlayerByName(context.getArgument('player'));
+                        const target = context.getArgument('player');
 
                         await target.kick(
                             'You have been kicked from the server'

@@ -90,8 +90,8 @@ export default class ResourcePackResponseHandler
 
             // First add
             await player.getConnection().addToPlayerList();
-            // Then retrive other players
-            if (server.getOnlinePlayers().length > 1) {
+            // Then retrieve other players
+            if (server.getPlayerManager().getOnlinePlayers().length > 1) {
                 await player.getConnection().sendPlayerList();
             }
 
