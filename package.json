@@ -141,7 +141,7 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
-        "@beenotung/level-ts": "1.14.1",
+        "@beenotung/level-ts": "1.15.0",
         "@jsprismarine/bedrock-data": "1.16.100",
         "@jsprismarine/brigadier": "0.1.0",
         "@jsprismarine/jsbinaryutils": "2.1.7",
