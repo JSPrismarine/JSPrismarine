@@ -82,8 +82,16 @@ export default class PacketRegistry {
 
     public constructor(server: Server) {
         this.logger = server.getLogger();
+    }
+
+    public async onEnable() {
         this.loadPackets();
         this.loadHandlers();
+    }
+
+    public async onDisable() {
+        this.handlers.clear();
+        this.packets.clear();
     }
 
     private registerPacket(packet: any): void {
