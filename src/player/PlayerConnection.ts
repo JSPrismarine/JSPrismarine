@@ -535,11 +535,15 @@ export default class PlayerConnection {
         pk.entries.push(entry);
 
         // Add to cached player list
-        this.server.getPlayerList().set(this.player.uuid, entry);
+        this.server
+            .getPlayerManager()
+            .getPlayerList()
+            .set(this.player.uuid, entry);
 
         // Add just this entry for every players on the server
         await Promise.all(
             this.server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .map(async (player) =>
                     player.getConnection().sendDataPacket(pk)
@@ -561,10 +565,11 @@ export default class PlayerConnection {
         });
         pk.entries.push(entry);
 
-        this.server.getPlayerList().delete(this.player.uuid);
+        this.server.getPlayerManager().getPlayerList().delete(this.player.uuid);
 
         await Promise.all(
             this.server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .map(async (player) =>
                     player.getConnection().sendDataPacket(pk)
@@ -581,11 +586,13 @@ export default class PlayerConnection {
         pk.type = PlayerListAction.TYPE_ADD;
 
         // Hack to not compute every time entries
-        Array.from(this.server.getPlayerList()).forEach(([uuid, entry]) => {
-            if (!(uuid === this.player.uuid)) {
-                pk.entries.push(entry);
+        Array.from(this.server.getPlayerManager().getPlayerList()).forEach(
+            ([uuid, entry]) => {
+                if (!(uuid === this.player.uuid)) {
+                    pk.entries.push(entry);
+                }
             }
-        });
+        );
 
         await this.sendDataPacket(pk);
     }

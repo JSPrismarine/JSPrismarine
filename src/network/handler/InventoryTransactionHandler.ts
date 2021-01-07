@@ -161,6 +161,7 @@ export default class InventoryTransactionHandler
 
                         await Promise.all(
                             server
+                                .getPlayerManager()
                                 .getOnlinePlayers()
                                 .map(async (player) =>
                                     player.getConnection().sendDataPacket(pk)
