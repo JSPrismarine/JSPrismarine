@@ -362,10 +362,13 @@ export default class Server {
      * if it is not found, null is returned.
      */
     public getPlayerById(id: bigint): Player | null {
-        return (
-            this.getOnlinePlayers().find((player) => player.runtimeId === id) ??
-            null
+        const player = this.getOnlinePlayers().find(
+            (player) => player.runtimeId === id
         );
+
+        if (!player) throw new Error(`Can't find player with id ${id}`);
+
+        return player;
     }
 
     /**
@@ -394,11 +397,13 @@ export default class Server {
      * CASE SENSITIVE.
      */
     public getPlayerByExactName(name: string): Player | null {
-        return (
-            this.getOnlinePlayers().find(
-                (player) => player.getUsername() === name
-            ) ?? null
+        const player = this.getOnlinePlayers().find(
+            (player) => player.getUsername() === name
         );
+
+        if (!player) throw new Error(`Can't find player ${name}`);
+
+        return player;
     }
 
     /**
