@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import InetAddress from '../network/raknet/utils/InetAddress';
-import Server from '../Server';
 import QueryManager from './QueryManager';
+import Server from '../Server';
 
 jest.mock('../Server', () => {
     return class Prismarine {
