@@ -17,13 +17,13 @@ export default class LoggerBuilder {
                         format.colorize(),
                         format.simple(),
                         printf(({ level, message, timestamp, namespace }) => {
-                            return `[${timestamp}] [${level}]${mcColors.minecraftToConsole(
+                            return `[${timestamp} ${level}${mcColors.minecraftToConsole(
                                 `${
                                     namespace &&
                                     ((global as any).log_level === 'silly' ||
                                         (global as any).log_level === 'debug')
-                                        ? ` [${namespace}]`
-                                        : ''
+                                        ? ` ${namespace}]`
+                                        : ']'
                                 }: ${message}`
                             )}`;
                         })

@@ -57,7 +57,7 @@ export default class Console implements CommandExecuter {
             return this.getServer().getEventManager().emit('chat', event);
         });
 
-        server.getEventManager().on('chat', (evt: ChatEvent) => {
+        server.getEventManager().on('chat', async (evt: ChatEvent) => {
             if (evt.cancelled) return;
 
             if (
@@ -65,7 +65,7 @@ export default class Console implements CommandExecuter {
                 evt.getChat().getChannel() === '*.ops' ||
                 evt.getChat().getChannel() === `*.console`
             )
-                this.sendMessage(evt.getChat().getMessage());
+                await this.sendMessage(evt.getChat().getMessage());
         });
     }
 
@@ -84,7 +84,7 @@ export default class Console implements CommandExecuter {
         return '[CONSOLE]';
     }
 
-    public sendMessage(message: string): void {
+    public async sendMessage(message: string): Promise<void> {
         this.getServer().getLogger().info(message, 'Console');
     }
 

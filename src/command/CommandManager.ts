@@ -166,9 +166,31 @@ export default class CommandManager {
      */
     public async dispatchCommand(sender: CommandExecuter, input = '') {
         try {
-            const res = await Promise.all(
-                this.dispatcher.execute(this.dispatcher.parse(input, sender))
+            const parsed = this.dispatcher.parse(input, sender);
+            const id = parsed.getReader().getString().split(' ')[0];
+
+            // Get command from parsed string
+            const command = Array.from(this.commands.values()).find(
+                (command) =>
+                    command.id.split(':')[0] === id ||
+                    command.aliases?.includes(id)
             );
+
+            if (
+                !this.server
+                    .getPermissionManager()
+                    .can(sender)
+                    .execute(command?.permission)
+            ) {
+                await sender.sendMessage(
+                    "I'm sorry, but you do not have permission to perform this command. " +
+                        'Please contact the server administrators if you believe that this is in error.'
+                );
+                return;
+            }
+
+            // FIXME: handle aliases
+            const res = await Promise.all(this.dispatcher.execute(parsed));
 
             res.forEach(async (res: any) => {
                 const chat = new Chat(
@@ -178,10 +200,21 @@ export default class CommandManager {
                     }]§r`,
                     '*.ops'
                 );
+
+                // TODO: should this be broadcasted to the executer?
                 await this.server.getChatManager().send(chat);
             });
-        } catch (err) {
-            sender.sendMessage(`§c${err}`);
+        } catch (error) {
+            await sender.sendMessage(`§c${error}`);
+            this.server
+                .getLogger()
+                .debug(
+                    `Player ${sender.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
+                    'CommandManager/dispatchCommand'
+                );
+            this.server
+                .getLogger()
+                .silly(`${error.stack}`, 'CommandManager/dispatchCommand');
         }
     }
 }

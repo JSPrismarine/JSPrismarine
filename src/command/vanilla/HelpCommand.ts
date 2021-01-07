@@ -1,6 +1,6 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 import Command from '../Command';
-import type Player from '../../player/Player';
+import CommandExecuter from '../CommandExecuter';
 
 export default class HelpCommand extends Command {
     constructor() {
@@ -13,22 +13,19 @@ export default class HelpCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<any>) {
         const execute = async (context: any) => {
-            const source: Player = context.getSource();
+            const source = context.getSource() as CommandExecuter;
 
-            const commands: string[] = [];
             source
                 .getServer()
                 .getCommandManager()
                 .getCommands()
-                .forEach((command) => {
-                    commands.push(
-                        `§e${command.id.split(':')[1]}§r: §7${
+                .forEach(async (command) => {
+                    await source.sendMessage(
+                        `§e/${command.id.split(':')[1]}:§r §7${
                             command.description
                         }`
                     );
                 });
-
-            await source.sendMessage(commands.join('\n'));
         };
 
         dispatcher.register(literal('help').executes(execute as any));
