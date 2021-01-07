@@ -1,6 +1,6 @@
+import type Server from '../Server';
 import fs from 'fs';
 import path from 'path';
-import type Server from '../Server';
 
 export default class GeneratorManager {
     private readonly generators: Map<string, any> = new Map();
