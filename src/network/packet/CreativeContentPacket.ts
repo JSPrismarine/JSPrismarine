@@ -9,9 +9,9 @@ export default class CreativeContentPacket extends DataPacket {
     public encodePayload() {
         this.writeUnsignedVarInt(this.entries.length);
 
-        for (let i = 0; i < this.entries.length; i++) {
-            this.writeCreativeContentEntry(this.entries[i]);
-        }
+        this.entries.forEach((entry) => {
+            this.writeCreativeContentEntry(entry);
+        });
     }
 
     public decodePayload() {

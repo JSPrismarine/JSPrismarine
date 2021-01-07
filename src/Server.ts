@@ -27,7 +27,6 @@ import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import TelemetryManager from './telemetry/TelemeteryManager';
-import World from './world/World';
 import WorldManager from './world/WorldManager';
 import pkg from '../package.json';
 import { setIntervalAsync } from 'set-interval-async/dynamic';
@@ -148,7 +147,13 @@ export default class Server {
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
             try {
                 await this.getQueryManager().onRaw(buffer, inetAddr);
-            } catch {}
+            } catch (error) {
+                this.getLogger().debug(
+                    `QueryManager failed with error: ${error}`,
+                    'Server/listen/raw'
+                );
+                this.getLogger().silly(error.stack, 'Server/listen/raw');
+            }
         });
 
         this.logger.info(
