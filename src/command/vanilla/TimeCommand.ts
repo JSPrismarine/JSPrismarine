@@ -2,9 +2,9 @@
 import {
     CommandDispatcher,
     argument,
+    integer,
     literal,
-    string,
-    integer
+    string
 } from '@jsprismarine/brigadier';
 import Command from '../Command';
 import Player from '../../player/Player';
