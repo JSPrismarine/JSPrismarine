@@ -84,8 +84,10 @@ export default class CommandManager {
      * Register a command into command manager by class.
      */
     public async registerClassCommand(command: Command, server: Server) {
-        if (!command.register)
-            throw new Error(`command is missing required "register" method`);
+        if (command.id.split(':').length !== 2)
+            throw new Error(
+                `command is missing required "namespace" part of id`
+            );
 
         await command.register(this.dispatcher);
         this.commands.set(command.id, command);
@@ -189,8 +191,36 @@ export default class CommandManager {
                 return;
             }
 
-            // FIXME: handle aliases
-            const res = await Promise.all(this.dispatcher.execute(parsed));
+            let res: string[] = [];
+            if (command?.register && (command as any).execute) {
+                // Legacy commands
+                this.server
+                    .getLogger()
+                    .warn(
+                        `${id} is using the legacy command format`,
+                        'CommandManager/dispatchCommand'
+                    );
+                res.push(
+                    await (command as any).execute(
+                        sender,
+                        parsed
+                            .getReader()
+                            .getString()
+                            .replace(`${id} `, '')
+                            .split(' ')
+                    )
+                );
+            } else {
+                // Handle aliases
+                if (command?.aliases?.includes(id)) {
+                    await this.dispatchCommand(
+                        sender,
+                        input.replace(id, command.id.split(':')[1])
+                    );
+                    return;
+                }
+                res = await Promise.all(this.dispatcher.execute(parsed));
+            }
 
             res.forEach(async (res: any) => {
                 const chat = new Chat(
@@ -205,6 +235,13 @@ export default class CommandManager {
                 await this.server.getChatManager().send(chat);
             });
         } catch (error) {
+            if (error?.type?.message?.toString?.() === 'Unknown command') {
+                await sender.sendMessage(
+                    `§cUnknown command. Type "/help" for help.`
+                );
+                return;
+            }
+
             await sender.sendMessage(`§c${error}`);
             this.server
                 .getLogger()
