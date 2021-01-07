@@ -21,7 +21,7 @@ export default class CommandParameter {
         optional: boolean;
     }) {
         const { name = 'args', type = 0x100000 | 0x22, optional = true } =
-            data || {};
+            data ?? {};
 
         this.name = name;
         this.type = type;
