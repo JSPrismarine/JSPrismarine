@@ -5,12 +5,12 @@ import NBTReader from '../nbt/NBTReader';
 import NBTTagCompound from '../nbt/NBTTagCompound';
 
 interface LegacyId {
-    id: number,
-    meta: number
+    id: number;
+    meta: number;
 }
 
 /**
- * Class used to manage runtime Ids. 
+ * Class used to manage runtime Ids.
  */
 export default class BlockMappings {
     private static readonly legacyToRuntimeId: Map<number, number> = new Map();
@@ -38,16 +38,27 @@ export default class BlockMappings {
                 false
             )!;
 
-            const firstState = legacyStates.values().next().value as NBTTagCompound;
+            const firstState = legacyStates.values().next()
+                .value as NBTTagCompound;
             const legacyId = firstState.getNumber('id', 0);
             const legacyMeta = firstState.getShort('val', 0);
-            this.runtimeIdToLegacy.set(runtimeId, (legacyId << 4) | legacyMeta)
-        
-            legacyStates.forEach((legacyState: NBTTagCompound) => this.registerMapping(runtimeId, legacyState.getNumber('id', 0), legacyState.getShort('val', 0)));
+            this.runtimeIdToLegacy.set(runtimeId, (legacyId << 4) | legacyMeta);
+
+            legacyStates.forEach((legacyState: NBTTagCompound) => {
+                this.registerMapping(
+                    runtimeId,
+                    legacyState.getNumber('id', 0),
+                    legacyState.getShort('val', 0)
+                );
+            });
         });
     }
 
-    private static registerMapping(runtimeId: number, legacyId: number, legacyMeta: number): void {
+    private static registerMapping(
+        runtimeId: number,
+        legacyId: number,
+        legacyMeta: number
+    ): void {
         this.legacyToRuntimeId.set((legacyId << 4) | legacyMeta, runtimeId);
         this.runtimeIdToLegacy.set(runtimeId, (legacyId << 4) | legacyMeta);
     }
@@ -65,6 +76,6 @@ export default class BlockMappings {
 
     public static getLegacyId(runtimeId: number): LegacyId {
         const hashLegacyId = this.runtimeIdToLegacy.get(runtimeId)!;
-        return <LegacyId> { id: hashLegacyId >> 4, meta: hashLegacyId & 0xf };
+        return <LegacyId>{ id: hashLegacyId >> 4, meta: hashLegacyId & 0xf };
     }
 }

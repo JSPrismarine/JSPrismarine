@@ -3,7 +3,7 @@ import BlockMappings from '../../block/BlockMappings';
 
 export default class BlockStorage {
     private blocks: number[];
-    private palette: number[] = [ BlockMappings.getRuntimeId(0, 0) ];
+    private palette: number[] = [BlockMappings.getRuntimeId(0, 0)];
 
     public constructor(blocks?: number[]) {
         // this.palette = palette ?? [];
@@ -22,7 +22,7 @@ export default class BlockStorage {
     public getBlockId(bx: number, by: number, bz: number): number {
         const paletteIndex = this.blocks[BlockStorage.getIndex(bx, by, bz)];
         const runtimeId = this.palette[paletteIndex];
-        return BlockMappings.getLegacyId(runtimeId).id; 
+        return BlockMappings.getLegacyId(runtimeId).id;
     }
 
     public setBlock(
@@ -34,7 +34,9 @@ export default class BlockStorage {
         if (!this.palette.includes(runtimeId)) {
             this.palette.push(runtimeId);
         }
-        this.blocks[BlockStorage.getIndex(bx, by, bz)] = this.palette.indexOf(runtimeId);
+        this.blocks[BlockStorage.getIndex(bx, by, bz)] = this.palette.indexOf(
+            runtimeId
+        );
     }
 
     public networkSerialize(stream: BinaryStream): void {
@@ -80,7 +82,7 @@ export default class BlockStorage {
             }
             indexes[w] = word;
         }
-        
+
         for (const index of indexes) {
             stream.writeLInt(index);
         }
@@ -88,7 +90,7 @@ export default class BlockStorage {
         // Write palette entries as runtime ids
         stream.writeVarInt(this.palette.length);
         for (const val of this.palette) {
-           stream.writeVarInt(val);
+            stream.writeVarInt(val);
         }
     }
 }

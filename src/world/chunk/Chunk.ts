@@ -63,7 +63,9 @@ export default class Chunk {
     public getSubChunk(by: number): SubChunk {
         const index = by >> 4; // Block to SubChunk index
         if (!this.subChunks.has(index)) {
-            throw new Error(`Invalid subchunk height: ${index}, block height: ${by}`);
+            throw new Error(
+                `Invalid subchunk height: ${index}, block height: ${by}`
+            );
         }
         return this.subChunks.get(index)!;
     }
@@ -111,7 +113,13 @@ export default class Chunk {
         block: Block,
         layer = 0
     ): void {
-        this.getSubChunk(by).setBlock(bx, by, bz, BlockMappings.getRuntimeId(block.getId(), block.getMeta()), layer);
+        this.getSubChunk(by).setBlock(
+            bx,
+            by,
+            bz,
+            BlockMappings.getRuntimeId(block.getId(), block.getMeta()),
+            layer
+        );
     }
 
     public networkSerialize(): Buffer {

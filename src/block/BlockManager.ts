@@ -61,7 +61,6 @@ export default class BlockManager {
         return block;
     }
 
-
     /**
      * Get all blocks
      */
