@@ -20,7 +20,7 @@ import PacketRegistry from './network/PacketRegistry';
 import PermissionManager from './permission/PermissionManager';
 import Player from './player/Player';
 import PlayerConnectEvent from './events/player/PlayerConnectEvent';
-import { PlayerListEntry } from './network/packet/PlayerListPacket';
+import PlayerManager from './player/PlayerManager';
 import PluginManager from './plugin/PluginManager';
 import QueryManager from './query/QueryManager';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
@@ -30,7 +30,6 @@ import TelemetryManager from './telemetry/TelemeteryManager';
 import WorldManager from './world/WorldManager';
 import pkg from '../package.json';
 import { setIntervalAsync } from 'set-interval-async/dynamic';
-import PlayerManager from './player/PlayerManager';
 
 export default class Server {
     private raknet!: Listener;
