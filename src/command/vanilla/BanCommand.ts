@@ -33,6 +33,7 @@ export default class BanCommand extends Command {
                                 try {
                                     const target = source
                                         .getServer()
+                                        .getPlayerManager()
                                         .getPlayerByName(
                                             context.getArgument('player')
                                         );
@@ -60,6 +61,7 @@ export default class BanCommand extends Command {
                         try {
                             const target = source
                                 .getServer()
+                                .getPlayerManager()
                                 .getPlayerByName(context.getArgument('player'));
                             await target.kick(`You have been banned!`);
                         } catch {}

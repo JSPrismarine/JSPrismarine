@@ -360,6 +360,7 @@ export default class World {
 
         await Promise.all(
             this.server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .map(async (onlinePlayer) =>
                     onlinePlayer.getConnection().sendDataPacket(blockUpdate)

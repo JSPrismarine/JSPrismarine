@@ -16,9 +16,12 @@ export default class SetDefaultGameTypeHandler
 
         server.getConfig().setGamemode(packet.gamemode);
         await Promise.all(
-            server.getOnlinePlayers().map(async (player) => {
-                await player.setGamemode(packet.gamemode);
-            })
+            server
+                .getPlayerManager()
+                .getOnlinePlayers()
+                .map(async (player) => {
+                    await player.setGamemode(packet.gamemode);
+                })
         );
     }
 }
