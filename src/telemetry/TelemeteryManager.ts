@@ -1,7 +1,7 @@
 import fetch, { Headers } from 'node-fetch';
-import { machineIdSync } from 'node-machine-id';
 import PluginFile from '../plugin/PluginFile';
 import Server from '../Server';
+import { machineIdSync } from 'node-machine-id';
 
 export default class TelemetryManager {
     private readonly id = this.generateAnonomizedId();

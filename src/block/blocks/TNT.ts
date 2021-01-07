@@ -1,5 +1,5 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
+import Solid from '../Solid';
 
 export default class TNT extends Solid {
     constructor() {

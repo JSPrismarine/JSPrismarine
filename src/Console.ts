@@ -71,7 +71,9 @@ export default class Console implements CommandExecuter {
 
     public async onDisable(): Promise<void> {
         return new Promise((resolve) => {
-            this.cli.on('close', () => resolve());
+            this.cli.on('close', () => {
+                resolve();
+            });
             this.cli.close();
         });
     }

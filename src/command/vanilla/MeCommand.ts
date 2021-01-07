@@ -2,13 +2,13 @@
 import {
     CommandDispatcher,
     argument,
-    literal,
-    greedyString
+    greedyString,
+    literal
 } from '@jsprismarine/brigadier';
-import Command from '../Command';
-import Player from '../../player/Player';
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
+import Command from '../Command';
+import Player from '../../player/Player';
 
 export default class MeCommand extends Command {
     constructor() {
