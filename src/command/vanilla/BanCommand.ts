@@ -44,7 +44,10 @@ export default class BanCommand extends Command {
                                 await source
                                     .getServer()
                                     .getBanManager()
-                                    .setBanned(context.getArgument('player'));
+                                    .setBanned(
+                                        context.getArgument('player'),
+                                        reason
+                                    );
 
                                 return `Banned ${context.getArgument(
                                     'player'
