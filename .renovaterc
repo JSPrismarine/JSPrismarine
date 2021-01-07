@@ -1,4 +1,8 @@
 {
-  "extends": ["@bigmichi1"],
+  "extends": [
+    "@bigmichi1"
+    ":automergePatch",
+    ":automergeMinor"
+  ],
   "ignoreDeps": ["@jsprismarine/bedrock-data"]
 }
