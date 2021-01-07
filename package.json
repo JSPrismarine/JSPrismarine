@@ -147,7 +147,7 @@
         "@jsprismarine/jsbinaryutils": "2.1.7",
         "async": "3.2.0",
         "d3-interpolate": "2.0.1",
-        "evt": "1.9.1",
+        "evt": "1.9.12",
         "git-rev-sync": "3.0.1",
         "glob": "7.1.6",
         "jwt-decode": "3.1.1",
