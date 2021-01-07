@@ -147,7 +147,8 @@ export default class InventoryTransactionHandler
                             return server
                                 .getLogger()
                                 .warn(
-                                    `Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`
+                                    `Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`,
+                                    'InventoryTransactionHandler/handle/BreakBlock'
                                 );
 
                         const pk = new UpdateBlockPacket();

@@ -213,7 +213,7 @@ export default class Server {
                 const time = Date.now();
                 const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
                 if (this.players.has(token)) {
-                    const player = this.players.get(token) as Player;
+                    const player = this.players.get(token)!;
 
                     // Despawn the player to all online players
                     await player.getConnection().removeFromPlayerList();
@@ -301,7 +301,7 @@ export default class Server {
                     await (handler as PacketHandler<any>).handle(
                         packet,
                         this,
-                        player as Player
+                        player!
                     );
                 } catch (error) {
                     this.logger.error(
@@ -332,11 +332,13 @@ export default class Server {
             if (finishTime - startTime < 50) return;
             startTime = finishTime;
 
-            if (this.tps > 20)
-                return this.getLogger().debug(
+            if (this.tps > 20) {
+                this.getLogger().debug(
                     `TPS is ${this.tps} which is greater than 20!`,
                     'Server/listen/setIntervalAsync'
                 );
+                return;
+            }
 
             const promises: Array<Promise<void>> = [];
             for (const world of this.getWorldManager().getWorlds()) {
@@ -358,11 +360,14 @@ export default class Server {
      * Returns an online player by its runtime ID,
      * if it is not found, null is returned.
      */
-    public getPlayerById(id: bigint): Player | null {
-        return (
-            this.getOnlinePlayers().find((player) => player.runtimeId === id) ??
-            null
+    public getPlayerById(id: bigint): Player {
+        const player = this.getOnlinePlayers().find(
+            (player) => player.runtimeId === id
         );
+
+        if (!player) throw new Error(`Can't find player with id ${id}`);
+
+        return player;
     }
 
     /**
@@ -374,15 +379,14 @@ export default class Server {
      * Example getPlayerByName("John") may return
      * an user with username "John Doe"
      */
-    public getPlayerByName(name: string): Player | null {
-        return (
-            Array.from(this.players.values()).find((player) =>
-                player
-                    .getUsername()
-                    .toLowerCase()
-                    .startsWith(name.toLowerCase())
-            ) ?? null
+    public getPlayerByName(name: string): Player {
+        const player = Array.from(this.players.values()).find((player) =>
+            player.getUsername().toLowerCase().startsWith(name.toLowerCase())
         );
+
+        if (!player) throw new Error(`Can't find player ${name}`);
+
+        return player;
     }
 
     /**
@@ -391,12 +395,14 @@ export default class Server {
      *
      * CASE SENSITIVE.
      */
-    public getPlayerByExactName(name: string): Player | null {
-        return (
-            this.getOnlinePlayers().find(
-                (player) => player.getUsername() === name
-            ) ?? null
+    public getPlayerByExactName(name: string): Player {
+        const player = this.getOnlinePlayers().find(
+            (player) => player.getUsername() === name
         );
+
+        if (!player) throw new Error(`Can't find player ${name}`);
+
+        return player;
     }
 
     /**
