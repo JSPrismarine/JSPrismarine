@@ -2,12 +2,12 @@
 import {
     CommandDispatcher,
     argument,
-    literal,
-    greedyString
+    greedyString,
+    literal
 } from '@jsprismarine/brigadier';
+import Chat from '../../chat/Chat';
 import Command from '../Command';
 import Player from '../../player/Player';
-import Chat from '../../chat/Chat';
 
 export default class SayCommand extends Command {
     constructor() {
