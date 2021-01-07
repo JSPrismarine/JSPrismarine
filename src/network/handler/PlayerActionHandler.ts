@@ -120,8 +120,9 @@ export default class PlayerActionHandler
                 break;
             }
 
-            case PlayerActionType.Jump:
+            case PlayerActionType.Jump: {
                 break;
+            }
 
             case PlayerActionType.StartSprint: {
                 await player.setSprinting(true);
@@ -140,6 +141,11 @@ export default class PlayerActionHandler
 
             case PlayerActionType.StopSneak: {
                 await player.setSneaking(false);
+                break;
+            }
+
+            case PlayerActionType.CreativeDestroyBlock: {
+                // Handled in InventoryTransactionHandler
                 break;
             }
 
