@@ -36,7 +36,9 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
 
         // Player with same name is already online
         try {
-            const oldPlayer = server.getPlayerByExactName(packet.displayName)!;
+            const oldPlayer = server
+                .getPlayerManager()
+                .getPlayerByExactName(packet.displayName);
             await oldPlayer.kick('Logged in from another location');
         } catch {}
 

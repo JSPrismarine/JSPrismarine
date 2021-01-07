@@ -54,7 +54,7 @@ export default class PermissionManager {
     }
 
     public async setOp(username: string, op: boolean): Promise<boolean> {
-        const target = this.server.getPlayerByName(username);
+        const target = this.server.getPlayerManager().getPlayerByName(username);
         if (target) {
             const event = new playerToggleOperatorEvent(target, op);
             this.server.getEventManager().post(['playerToggleOperator', event]);

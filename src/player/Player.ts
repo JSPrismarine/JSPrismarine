@@ -140,6 +140,7 @@ export default class Player extends Human implements CommandExecuter {
     public async sendSettings(): Promise<void> {
         await Promise.all(
             this.getServer()
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .map(async (target) => {
                     await target.getConnection().sendSettings(this);
@@ -151,6 +152,7 @@ export default class Player extends Human implements CommandExecuter {
     // TODO: move to world
     public getPlayersInChunk(): Player[] {
         return this.server
+            .getPlayerManager()
             .getOnlinePlayers()
             .filter((player) => player.currentChunk === this.currentChunk);
     }

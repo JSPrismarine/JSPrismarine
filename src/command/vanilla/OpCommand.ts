@@ -26,6 +26,7 @@ export default class OpCommand extends Command {
                     const source = context.getSource() as Player;
                     const target = source
                         .getServer()
+                        .getPlayerManager()
                         .getPlayerByName(context.getArgument('player'));
 
                     await source

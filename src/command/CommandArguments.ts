@@ -42,7 +42,7 @@ export class CommandArgumentEntity implements CommandArgument {
 
         try {
             // TODO: correctly throw
-            return Server.instance.getPlayerByName(player);
+            return Server.instance.getPlayerManager().getPlayerByName(player);
         } catch {
             reader.setCursor(start);
         }

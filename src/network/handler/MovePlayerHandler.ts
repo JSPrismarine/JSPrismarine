@@ -66,7 +66,9 @@ export default class MovePlayerHandler
         // We still have some fields
         // at the moment we don't need them
 
-        for (const onlinePlayer of server.getOnlinePlayers()) {
+        for (const onlinePlayer of server
+            .getPlayerManager()
+            .getOnlinePlayers()) {
             if (onlinePlayer === player) continue;
             await onlinePlayer
                 .getConnection()
