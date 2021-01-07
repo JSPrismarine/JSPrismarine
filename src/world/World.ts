@@ -2,6 +2,7 @@ import GameruleManager, { GameRules } from './GameruleManager';
 
 import Block from '../block/Block';
 import BlockManager from '../block/BlockManager';
+import BlockMappings from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
 import DataPacket from '../network/packet/DataPacket';
@@ -323,7 +324,10 @@ export default class World {
             return;
         }
 
-        const runtimeId = 0;
+        const runtimeId = BlockMappings.getRuntimeId(
+            block.getId(),
+            block.getMeta()
+        );
 
         const blockUpdate = new UpdateBlockPacket();
         blockUpdate.x = placedPosition.getX();

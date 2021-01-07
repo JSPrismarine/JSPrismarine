@@ -5,7 +5,6 @@ import Generator from '../../Generator';
 import SharedSeedRandom from '../../util/SharedSeedRandom';
 
 export default class LevelDB extends BaseProvider {
-    
     public async readChunk(
         cx: number,
         cz: number,
