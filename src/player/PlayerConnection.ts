@@ -1,5 +1,11 @@
+import IntegerArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/IntegerArgumentType';
+import StringArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/StringArgumentType';
 import Block from '../block/Block';
-import { CommandArgumentEntity } from '../command/CommandArguments';
+import {
+    CommandArgumentEntity,
+    CommandArgumentFloatPosition,
+    CommandArgumentGamemode
+} from '../command/CommandArguments';
 import { Attribute } from '../entity/attribute';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { WindowIds } from '../inventory/WindowManager';
@@ -335,36 +341,86 @@ export default class PlayerConnection {
         const pk = new AvailableCommandsPacket();
 
         // TODO
-        /* this.server
+        this.server
             .getCommandManager()
             .getCommandsList()
             .forEach((command) => {
                 command[1].forEach((arg) => {
+                    const classCommand = Array.from(
+                        this.server.getCommandManager().getCommands().values()
+                    ).find((cmd) => cmd.id.split(':')[1] === command[0])!;
+
+                    const parameters = arg
+                        .map((parameter) => {
+                            if (parameter instanceof CommandArgumentEntity)
+                                return [
+                                    new CommandParameter({
+                                        name: 'target',
+                                        type: CommandParameterType.Target,
+                                        optional: false
+                                    })
+                                ];
+
+                            if (
+                                parameter instanceof
+                                CommandArgumentFloatPosition
+                            )
+                                return [
+                                    new CommandParameter({
+                                        name: 'x',
+                                        type: CommandParameterType.Float,
+                                        optional: false
+                                    }),
+                                    new CommandParameter({
+                                        name: 'y',
+                                        type: CommandParameterType.Float,
+                                        optional: false
+                                    }),
+                                    new CommandParameter({
+                                        name: 'z',
+                                        type: CommandParameterType.Float,
+                                        optional: false
+                                    })
+                                ];
+                            if (parameter instanceof CommandArgumentGamemode)
+                                return [
+                                    new CommandParameter({
+                                        name: 'gamemode',
+                                        type: CommandParameterType.Value,
+                                        optional: false
+                                    })
+                                ];
+                            if (parameter instanceof StringArgumentType)
+                                return [
+                                    new CommandParameter({
+                                        name: 'value',
+                                        type: CommandParameterType.String,
+                                        optional: false
+                                    })
+                                ];
+                            if (parameter instanceof IntegerArgumentType)
+                                return [
+                                    new CommandParameter({
+                                        name: 'number',
+                                        type: CommandParameterType.Int,
+                                        optional: false
+                                    })
+                                ];
+
+                            throw new Error(
+                                `Invalid parameter ${parameter.constructor.name}`
+                            );
+                        })
+                        .filter((a) => a)
+                        .flat();
+
                     pk.commandData.add({
                         name: command[0],
-                        parameters: new Set<CommandParameter>(
-                            arg
-                                .map((parameter) => {
-                                    if (
-                                        parameter instanceof
-                                        CommandArgumentEntity
-                                    )
-                                        return new CommandParameter({
-                                            name: 'target',
-                                            type: CommandParameterType.Target,
-                                            optional: false
-                                        });
-
-                                    throw new Error(
-                                        `Invalid parameter ${parameter.constructor.name}`
-                                    );
-                                })
-                                .filter((a) => a)
-                        )
+                        description: classCommand.description,
+                        parameters: new Set<CommandParameter>(parameters as any)
                     });
-
                 });
-            }); */
+            });
 
         this.server
             .getCommandManager()
