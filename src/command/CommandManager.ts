@@ -107,6 +107,10 @@ export default class CommandManager {
         return this.commands;
     }
 
+    /**
+     * Get a list of all command variants
+     * EXCLUDING legacy commands
+     */
     public getCommandsList(): Array<[string, CommandArgument[][]]> {
         const parseNode = (node: CommandNode<CommandExecuter>): any[] => {
             if (node.getChildrenCount() <= 0) {
