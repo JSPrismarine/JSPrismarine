@@ -1,7 +1,6 @@
 import BaseGenerator from '../BaseGenerator';
 import Chunk from '../chunk/Chunk';
 import Noise from '../synth/Noise';
-import Server from '../../Server';
 import SharedSeedRandom from '../util/SharedSeedRandom';
 
 const CHUNK_WIDTH = 16;

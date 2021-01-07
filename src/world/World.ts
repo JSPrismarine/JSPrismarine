@@ -1,6 +1,7 @@
 import GameruleManager, { GameRules } from './GameruleManager';
 
 import Block from '../block/Block';
+import BlockManager from '../block/BlockManager';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
 import DataPacket from '../network/packet/DataPacket';
@@ -322,9 +323,7 @@ export default class World {
             return;
         }
 
-        const runtimeId = this.server
-            .getBlockManager()
-            .getRuntimeWithMeta(block.getId(), block.getMeta());
+        const runtimeId = 0;
 
         const blockUpdate = new UpdateBlockPacket();
         blockUpdate.x = placedPosition.getX();

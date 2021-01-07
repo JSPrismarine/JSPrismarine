@@ -3,6 +3,8 @@ import InventoryTransactionPacket, {
     InventoryTransactionUseItemActionType
 } from '../packet/InventoryTransactionPacket';
 
+import BlockMappings from '../../block/BlockMappings';
+import ContainerEntry from '../../inventory/ContainerEntry';
 import Gamemode from '../../world/Gamemode';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import PacketHandler from './PacketHandler';
@@ -10,7 +12,6 @@ import type Player from '../../player/Player';
 import type Server from '../../Server';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import Vector3 from '../../math/Vector3';
-import ContainerEntry from '../../inventory/ContainerEntry';
 
 export default class InventoryTransactionHandler
     implements PacketHandler<InventoryTransactionPacket> {
@@ -127,21 +128,20 @@ export default class InventoryTransactionHandler
 
                             // TODO: figure out why blockId sometimes === 0
                             const chunkPos = new Vector3(
-                                packet.blockPosition.getX() % 16,
+                                packet.blockPosition.getX(),
                                 packet.blockPosition.getY(),
-                                packet.blockPosition.getZ() % 16
+                                packet.blockPosition.getZ()
                             );
+                            
+                            console.log("Chunk X=%d, Chunk Z=%d", chunk.getX(), chunk.getZ());
+                            console.log(chunkPos)
 
                             const blockId = chunk.getBlockId(
                                 chunkPos.getX(),
                                 chunkPos.getY(),
                                 chunkPos.getZ()
                             );
-                            /* const blockMeta = chunk.getBlockMetadata(
-                                chunkPos.getX(),
-                                chunkPos.getY(),
-                                chunkPos.getZ()
-                            ); */
+
                             const block = server
                                 .getBlockManager()
                                 .getBlockById(blockId);
@@ -159,9 +159,7 @@ export default class InventoryTransactionHandler
                             pk.x = packet.blockPosition.getX();
                             pk.y = packet.blockPosition.getY();
                             pk.z = packet.blockPosition.getZ();
-                            pk.blockRuntimeId = server
-                                .getBlockManager()
-                                .getRuntimeWithId(0); // Air
+                            pk.blockRuntimeId = BlockMappings.getRuntimeId(0, 0); // Air
 
                             await Promise.all(
                                 server
@@ -189,14 +187,13 @@ export default class InventoryTransactionHandler
                             soundPk.positionY = player.getY();
                             soundPk.positionZ = player.getZ();
 
-                            soundPk.extraData = server
-                                .getBlockManager()
-                                .getRuntimeWithId(blockId); // In this case refers to block runtime Id
+                            // ? 0 or id & 0xf
+                            soundPk.extraData = BlockMappings.getRuntimeId(blockId, 0); // In this case refers to block runtime Id
                             soundPk.entityType = ':';
                             soundPk.isBabyMob = false;
                             soundPk.disableRelativeVolume = false;
 
-                            await Promise.all(
+                            /* await Promise.all(
                                 player
                                     .getPlayersInChunk()
                                     .map(async (narbyPlayer) =>
@@ -204,7 +201,7 @@ export default class InventoryTransactionHandler
                                             .getConnection()
                                             .sendDataPacket(soundPk)
                                     )
-                            );
+                            ); */
                         })();
 
                         break;

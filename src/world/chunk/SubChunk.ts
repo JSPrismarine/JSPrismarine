@@ -68,15 +68,13 @@ export default class SubChunk {
         this.getStorage(layer).setBlock(bx, by & 0xf, bz, runtimeId);
     }
 
-    public networkSerialize(): Buffer {
-        const stream = new BinaryStream();
+    public networkSerialize(stream: BinaryStream): void {
         // SubChunk version
         stream.writeByte(8);
         // Layer count
         stream.writeByte(this.storages.size);
         for (const storage of this.storages.values()) {
-            stream.append(storage.networkSerialize());
+            storage.networkSerialize(stream);
         }
-        return stream.getBuffer();
     }
 }

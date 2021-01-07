@@ -1,53 +1,13 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Palette from './Palette';
-import Server from '../../Server';
-
-export enum StorageType {
-    Paletted1 = 1, // 32 blocks per word
-    Paletted2, // 16 blocks per word
-    Paletted3, // 10 blocks and 2 bits of padding per word
-    Paletted4, // 8 blocks per word
-    Paletted5, // 6 blocks and 2 bits of padding per word
-    Paletted6, // 5 blocks and 2 bits of padding per word
-    Paletted8, // 4 blocks per word
-    Paletted16 // 2 blocks per word
-}
-
-// Maybe semplified with 32 / StorageTypeId
-export function getStorageBlocks(type: StorageType): number {
-    switch (type) {
-        case 0: // Fix it in future
-        case StorageType.Paletted1:
-            return 32;
-        case StorageType.Paletted2:
-            return 16;
-        case StorageType.Paletted3:
-            return 10;
-        case StorageType.Paletted4:
-            return 8;
-        case StorageType.Paletted5:
-            return 6;
-        case StorageType.Paletted6:
-            return 5;
-        case StorageType.Paletted8:
-            return 4;
-        case StorageType.Paletted16:
-            return 2;
-        default:
-            throw new Error(`Unknown storage type id: ${type}`);
-    }
-}
+import BlockMappings from '../../block/BlockMappings';
 
 export default class BlockStorage {
     private blocks: number[];
-    private palette = new Palette();
+    private palette: number[] = [ BlockMappings.getRuntimeId(0, 0) ];
 
     public constructor(blocks?: number[]) {
-        const blockManager = Server.instance.getBlockManager();
-        const AIR_RUNTIME_ID = blockManager.getRuntimeWithId(0);
-        const paletteAirIndex = this.palette.getRuntimeIndex(AIR_RUNTIME_ID);
-        // Fill the
-        this.blocks = blocks ?? new Array(4096).fill(paletteAirIndex);
+        // this.palette = palette ?? [];
+        this.blocks = blocks ?? new Array(4096).fill(this.palette[0]);
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {
@@ -61,13 +21,8 @@ export default class BlockStorage {
     // Move to return the block instead of Id
     public getBlockId(bx: number, by: number, bz: number): number {
         const paletteIndex = this.blocks[BlockStorage.getIndex(bx, by, bz)];
-        const runtimeId = this.palette.getRuntime(paletteIndex);
-
-        const block = Server.instance
-            .getBlockManager()
-            .getBlockByRuntimeId(runtimeId);
-
-        return block ? block.getId() : 0; // air id
+        const runtimeId = this.palette[paletteIndex];
+        return BlockMappings.getLegacyId(runtimeId).id; 
     }
 
     public setBlock(
@@ -76,19 +31,15 @@ export default class BlockStorage {
         bz: number,
         runtimeId: number
     ): void {
-        const runtimeIndex = this.palette.getRuntimeIndex(runtimeId);
-        this.blocks[BlockStorage.getIndex(bx, by, bz)] = runtimeIndex;
+        if (!this.palette.includes(runtimeId)) {
+            this.palette.push(runtimeId);
+        }
+        this.blocks[BlockStorage.getIndex(bx, by, bz)] = this.palette.indexOf(runtimeId);
     }
 
-    public getStorageId(): number {
-        // Returns the bits needed to store blocks
-        return Math.ceil(Math.log2(this.palette.size()));
-    }
-
-    public networkSerialize(): Buffer {
-        const stream = new BinaryStream();
+    public networkSerialize(stream: BinaryStream): void {
         // https://gist.github.com/Tomcc/a96af509e275b1af483b25c543cfbf37
-        let bitsPerBlock = Math.ceil(Math.log2(this.palette.size()));
+        let bitsPerBlock = Math.ceil(Math.log2(this.palette.length));
 
         switch (bitsPerBlock) {
             case 0:
@@ -129,17 +80,15 @@ export default class BlockStorage {
             }
             indexes[w] = word;
         }
-
+        
         for (const index of indexes) {
             stream.writeLInt(index);
         }
 
         // Write palette entries as runtime ids
-        stream.writeVarInt(this.palette.size());
-        for (const val of this.palette.getValues()) {
-            stream.writeVarInt(val);
+        stream.writeVarInt(this.palette.length);
+        for (const val of this.palette) {
+           stream.writeVarInt(val);
         }
-
-        return stream.getBuffer();
     }
 }

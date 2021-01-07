@@ -1,5 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Block from '../../block/Block';
+import BlockManager from '../../block/BlockManager';
+import BlockMappings from '../../block/BlockMappings';
 import Server from '../../Server';
 import SubChunk from './SubChunk';
 
@@ -59,11 +61,11 @@ export default class Chunk {
      * @param by - block y
      */
     public getSubChunk(by: number): SubChunk {
-        by >>= 4; // Block to SubChunk index
-        if (!this.subChunks.has(by)) {
-            throw new Error(`Invalid subchunk height: ${by}`);
+        const index = by >> 4; // Block to SubChunk index
+        if (!this.subChunks.has(index)) {
+            throw new Error(`Invalid subchunk height: ${index}, block height: ${by}`);
         }
-        return this.subChunks.get(by)!;
+        return this.subChunks.get(index)!;
     }
 
     public getSubChunks(): Map<number, SubChunk> {
@@ -109,10 +111,7 @@ export default class Chunk {
         block: Block,
         layer = 0
     ): void {
-        const runtimeId = Server.instance
-            .getBlockManager()
-            .getRuntime(block.getId(), block.getMeta()); 
-        this.getSubChunk(by).setBlock(bx, by, bz, runtimeId, layer);
+        this.getSubChunk(by).setBlock(bx, by, bz, BlockMappings.getRuntimeId(block.getId(), block.getMeta()), layer);
     }
 
     public networkSerialize(): Buffer {
@@ -120,7 +119,7 @@ export default class Chunk {
         // Encode sub chunks
         for (let i = 0; i < this.getTopEmpty(); i++) {
             const subChunk = this.subChunks.get(i)!;
-            stream.append(subChunk.networkSerialize());
+            subChunk.networkSerialize(stream);
         }
 
         // TODO: biomes

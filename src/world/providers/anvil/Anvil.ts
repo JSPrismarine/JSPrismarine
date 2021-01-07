@@ -4,12 +4,14 @@ import Generator from '../../Generator';
 import SharedSeedRandom from '../../util/SharedSeedRandom';
 
 export default class Anvil extends BaseProvider {
-    public readChunk(
+    
+    public async readChunk(
         cx: number,
         cz: number,
         _seed: SharedSeedRandom,
         _generator: Generator
-    ): Chunk {
+    ): Promise<Chunk> {
         return new Chunk(cx, cz);
     }
+    
 }

@@ -1,3 +1,4 @@
+import BlockMappings from '../../block/BlockMappings';
 import LevelEventType from '../type/LevelEventType';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
@@ -105,7 +106,7 @@ export default class PlayerActionHandler
                 pk.x = packet.x;
                 pk.y = packet.y;
                 pk.z = packet.z;
-                pk.data = server.getBlockManager().getRuntimeWithId(blockId);
+                pk.data = BlockMappings.getRuntimeId(blockId, 0);
 
                 await Promise.all(
                     player
