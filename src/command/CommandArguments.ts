@@ -15,6 +15,7 @@ export class CommandArgumentGamemode implements CommandArgument {
         const gm = reader.readString();
 
         try {
+            // TODO: correctly throw
             Gamemode.getGamemodeId(gm);
             return gm;
         } catch {
@@ -37,9 +38,10 @@ export class CommandArgumentGamemode implements CommandArgument {
 export class CommandArgumentEntity implements CommandArgument {
     parse(reader: StringReader) {
         const start = reader.getCursor();
-        const player = reader.readString();
+        const player = reader.readUnquotedString();
 
         try {
+            // TODO: correctly throw
             return Server.instance.getPlayerByName(player);
         } catch {
             reader.setCursor(start);
