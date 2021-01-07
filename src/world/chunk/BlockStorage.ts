@@ -7,7 +7,7 @@ export default class BlockStorage {
 
     public constructor(blocks?: number[]) {
         // this.palette = palette ?? [];
-        this.blocks = blocks ?? new Array(4096).fill(this.palette[0]);
+        this.blocks = blocks ?? new Array(4096).fill(0);
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {

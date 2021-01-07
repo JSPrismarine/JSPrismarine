@@ -1,8 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Block from '../../block/Block';
-import BlockManager from '../../block/BlockManager';
 import BlockMappings from '../../block/BlockMappings';
-import Server from '../../Server';
 import SubChunk from './SubChunk';
 
 const MAX_SUBCHUNKS = 16;
