@@ -86,14 +86,12 @@ export default class ResourcePackResponseHandler
             await player.getConnection().sendAvailableCommands();
             await player.getConnection().sendInventory();
 
-            await player
-                .getConnection()
-                .sendCreativeContents(player.gamemode !== Gamemode.Creative);
+            await player.getConnection().sendCreativeContents();
 
             // First add
             await player.getConnection().addToPlayerList();
-            // Then retrive other players
-            if (server.getOnlinePlayers().length > 1) {
+            // Then retrieve other players
+            if (server.getPlayerManager().getOnlinePlayers().length > 1) {
                 await player.getConnection().sendPlayerList();
             }
 

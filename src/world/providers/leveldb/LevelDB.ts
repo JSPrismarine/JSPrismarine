@@ -5,7 +5,6 @@ import Generator from '../../Generator';
 import SharedSeedRandom from '../../util/SharedSeedRandom';
 
 export default class LevelDB extends BaseProvider {
-
     public async readChunk(
         cx: number,
         cz: number,
@@ -13,7 +12,7 @@ export default class LevelDB extends BaseProvider {
         generator: Generator
     ): Promise<Chunk> {
         // TODO
-        return await generator.generateChunk(cx, cz, seed);
+        return generator.generateChunk(cx, cz, seed);
     }
 
     /**

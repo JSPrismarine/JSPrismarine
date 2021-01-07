@@ -1,5 +1,4 @@
 import fetch, { Headers } from 'node-fetch';
-
 import PluginFile from '../plugin/PluginFile';
 import Server from '../Server';
 import { machineIdSync } from 'node-machine-id';

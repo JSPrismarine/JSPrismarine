@@ -1,13 +1,19 @@
+import {
+    ArgumentCommandNode,
+    CommandDispatcher
+} from '@jsprismarine/brigadier';
 import Chat from '../chat/Chat';
 import Command from './Command';
 import CommandExecuter from './CommandExecuter';
+import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
-
+import { CommandArgument } from './CommandArguments';
 export default class CommandManager {
-    private readonly commands: Set<Command> = new Set();
+    private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
+    private dispatcher!: CommandDispatcher<CommandExecuter>;
 
     constructor(server: Server) {
         this.server = server;
@@ -18,29 +24,19 @@ export default class CommandManager {
      */
     public async onEnable() {
         const time = Date.now();
+        this.dispatcher = new CommandDispatcher();
 
-        // Register vanilla commands
-        const vanilla = fs.readdirSync(path.join(__dirname, 'vanilla'));
-        vanilla.forEach((id: string) => {
-            if (
-                id.includes('.test.') ||
-                id.includes('.d.ts') ||
-                id.includes('.map')
-            )
-                return; // Exclude test files
-
-            const command = require(`./vanilla/${id}`);
-            this.registerClassCommand(
-                new (command.default || command)(),
-                this.server
-            );
-        });
+        const commands = [
+            ...fs
+                .readdirSync(path.join(__dirname, 'vanilla'))
+                .map((a) => `/vanilla/${a}`),
+            ...fs
+                .readdirSync(path.join(__dirname, 'jsprismarine'))
+                .map((a) => `/jsprismarine/${a}`)
+        ];
 
         // Register jsprismarine commands
-        const jsprismarine = fs.readdirSync(
-            path.join(__dirname, 'jsprismarine')
-        );
-        jsprismarine.forEach((id: string) => {
+        commands.forEach(async (id: string) => {
             if (
                 id.includes('.test.') ||
                 id.includes('.d.ts') ||
@@ -54,19 +50,25 @@ export default class CommandManager {
             )
                 return;
 
-            const command = require(`./jsprismarine/${id}`);
-            this.registerClassCommand(
-                new (command.default || command)(),
+            const Command = require(`./${id}`);
+            const command: Command = new (Command.default || Command)();
+
+            try {
+                await this.registerClassCommand(command, this.server);
+            } catch (err) {
                 this.server
-            );
+                    .getLogger()
+                    .warn(`Failed to register command ${command.id}: ${err}`);
+                this.server.getLogger().silly(err.stack);
+            }
         });
 
         this.server
             .getLogger()
             .debug(
-                `Registered §b${
-                    vanilla.length + jsprismarine.length
-                }§r commands(s) (took ${Date.now() - time} ms)!`,
+                `Registered §b${commands.length}§r commands(s) (took ${
+                    Date.now() - time
+                } ms)!`,
                 'CommandManager/onEnable'
             );
     }
@@ -81,8 +83,15 @@ export default class CommandManager {
     /**
      * Register a command into command manager by class.
      */
-    public registerClassCommand(command: Command, server: Server) {
-        this.commands.add(command);
+    public async registerClassCommand(command: Command, server: Server) {
+        if (command.id.split(':').length !== 2)
+            throw new Error(
+                `command is missing required "namespace" part of id`
+            );
+
+        await command.register(this.dispatcher);
+        this.commands.set(command.id, command);
+
         server
             .getLogger()
             .silly(
@@ -92,110 +101,196 @@ export default class CommandManager {
     }
 
     /**
-     * Dispatches a command and executes them.
-     *
-     * This should be refactored to supply the `command.execute` with
-     * an array of objects containing the value and type.
-     * We also need to start handling quotes.
-     *
-     * That will of course be a breaking change regarding plugins.
-     * We could bypass that by introducing a new `command.handle`
-     * function instead and deprecate the old `command.execute`.
-     * -FS
+     * Get all enabled commands
      */
-    public async dispatchCommand(sender: CommandExecuter, commandInput = '') {
-        const commandParts: any[] = commandInput.split(' '); // Name + arguments array
-        const namespace: string =
-            commandParts[0].split(':').length === 2
-                ? commandParts[0].split(':')[0]
-                : null;
-        const commandName: string = commandParts[0].replace(
-            `${namespace}:`,
-            ''
-        );
-        commandParts.shift();
-
-        // Check for numbers and convert them
-        // FIXME: this should be an utility function
-        for (const argument of commandParts) {
-            if (
-                !Number.isNaN(Number.parseFloat(argument)) &&
-                argument.trim().length > 0
-            ) {
-                // Command argument parsing fixed
-                const argumentIndex = commandParts.indexOf(argument);
-                commandParts[argumentIndex] = Number(argument);
-            }
-        }
-
-        let command: Command | null = null;
-        if (namespace) {
-            for (const c of this.commands) {
-                if (
-                    c.id === `${namespace}:${commandName}` ||
-                    (c.id.split(':')[0] === namespace &&
-                        c.aliases?.includes(commandName))
-                )
-                    command = c;
-            }
-        } else {
-            // TODO: handle multiple commands with same identifier
-            // by prioritizing minecraft:->jsprismarine:->first hit
-            for (const c of this.commands) {
-                if (
-                    c.id.split(':')[1] === `${commandName}` ||
-                    c.aliases?.includes(commandName)
-                )
-                    command = c;
-            }
-        }
-
-        if (!command) {
-            sender.sendMessage('§cCannot find the desired command!');
-            return;
-        }
-
-        if (
-            await this.server
-                .getPermissionManager()
-                .can(sender)
-                .execute(command.permission)
-        ) {
-            try {
-                const res: string | void = await command.execute(
-                    sender,
-                    commandParts.filter((a) => a !== null && a !== undefined)
-                );
-
-                const chat = new Chat(
-                    this.server.getConsole(),
-                    `§o§7[${sender.getUsername()}: ${
-                        res ?? `issued server command: ${commandInput}`
-                    }]§r`,
-                    '*.ops'
-                );
-                await this.server.getChatManager().send(chat);
-                return;
-            } catch (err) {
-                this.server
-                    .getLogger()
-                    .error(err, 'CommandManager/dispatchCommand');
-                this.server
-                    .getLogger()
-                    .silly(err.stack, 'CommandManager/dispatchCommand');
-                return;
-            }
-        }
-
-        sender.sendMessage(
-            '§cYou do not have permission to perform this command!'
-        );
+    public getCommands(): Map<string, Command> {
+        return this.commands;
     }
 
     /**
-     * Get all enabled commands
+     * Get a list of all command variants
+     * EXCLUDING legacy commands
      */
-    public getCommands(): Set<Command> {
-        return this.commands;
+    public getCommandsList(): Array<[string, CommandArgument[][]]> {
+        const parseNode = (node: CommandNode<CommandExecuter>): any[] => {
+            if (node.getChildrenCount() <= 0) {
+                return [
+                    {
+                        item: (node as ArgumentCommandNode<any, any>).getType(),
+                        children: []
+                    }
+                ];
+            }
+
+            const res = Array.from(node.getChildren())
+                .map((node) => {
+                    return parseNode(node);
+                })
+                .reverse();
+
+            return [
+                node.getCommand()
+                    ? {
+                          item: (node as ArgumentCommandNode<
+                              any,
+                              any
+                          >).getType(),
+                          children: []
+                      }
+                    : undefined,
+                ...res.map((children: any) => ({
+                    item: (node as ArgumentCommandNode<any, any>).getType(),
+                    children: [...children]
+                }))
+            ].filter((a) => a);
+        };
+
+        const traverse = (node: any, path: any[] = [], result: any[] = []) => {
+            if (!node.children.length) result.push(path.concat(node.item));
+            for (const child of node.children)
+                traverse(child, path.concat(node.item), result);
+            return result;
+        };
+
+        const res = Array.from(
+            this.server
+                .getCommandManager()
+                .getDispatcher()
+                .getRoot()
+                .getChildren()
+        )
+            .map((command) => {
+                const branches: any[] = [];
+                Array.from(command.getChildren()).forEach((node) => {
+                    const parsed = parseNode(node);
+                    parsed.forEach((branch) => {
+                        branches.push(traverse(branch));
+                    });
+                });
+
+                return branches.map((branch) => [command.getName(), branch]);
+            })
+            .flat()
+            .filter((a) => a);
+
+        res.toString = () => {
+            return `${this.getCommandsList()
+                .map((item) => {
+                    if (!item[1].length) return `/${item[0]}`;
+                    return item[1]
+                        .map((entries) => {
+                            return `/${item[0]} ${entries
+                                .flat(Number.POSITIVE_INFINITY)
+                                .map(
+                                    (argument: any) =>
+                                        argument.getReadableType?.() ??
+                                        argument.constructor.name
+                                )
+                                .join(' ')}`;
+                        })
+                        .join(`\n`);
+                })
+                .join('\n')}`;
+        };
+        return res as any;
+    }
+
+    /**
+     * Get dispatcher
+     */
+    public getDispatcher(): CommandDispatcher<CommandExecuter> {
+        return this.dispatcher;
+    }
+
+    /**
+     * Dispatches a command and executes them.
+     */
+    public async dispatchCommand(sender: CommandExecuter, input = '') {
+        try {
+            const parsed = this.dispatcher.parse(input, sender);
+            const id = parsed.getReader().getString().split(' ')[0];
+
+            // Get command from parsed string
+            const command = Array.from(this.commands.values()).find(
+                (command) =>
+                    command.id.split(':')[0] === id ||
+                    command.aliases?.includes(id)
+            );
+
+            if (
+                !this.server
+                    .getPermissionManager()
+                    .can(sender)
+                    .execute(command?.permission)
+            ) {
+                await sender.sendMessage(
+                    "I'm sorry, but you do not have permission to perform this command. " +
+                        'Please contact the server administrators if you believe that this is in error.'
+                );
+                return;
+            }
+
+            let res: string[] = [];
+            if (command?.register && (command as any).execute) {
+                // Legacy commands
+                this.server
+                    .getLogger()
+                    .warn(
+                        `${id} is using the legacy command format`,
+                        'CommandManager/dispatchCommand'
+                    );
+                res.push(
+                    await (command as any).execute(
+                        sender,
+                        parsed
+                            .getReader()
+                            .getString()
+                            .replace(`${id} `, '')
+                            .split(' ')
+                    )
+                );
+            } else {
+                // Handle aliases
+                if (command?.aliases?.includes(id)) {
+                    await this.dispatchCommand(
+                        sender,
+                        input.replace(id, command.id.split(':')[1])
+                    );
+                    return;
+                }
+                res = await Promise.all(this.dispatcher.execute(parsed));
+            }
+
+            res.forEach(async (res: any) => {
+                const chat = new Chat(
+                    this.server.getConsole(),
+                    `§o§7[${sender.getUsername()}: ${
+                        res ?? `issued server command: /${input}`
+                    }]§r`,
+                    '*.ops'
+                );
+
+                // TODO: should this be broadcasted to the executer?
+                await this.server.getChatManager().send(chat);
+            });
+        } catch (error) {
+            if (error?.type?.message?.toString?.() === 'Unknown command') {
+                await sender.sendMessage(
+                    `§cUnknown command. Type "/help" for help.`
+                );
+                return;
+            }
+
+            await sender.sendMessage(`§c${error}`);
+            this.server
+                .getLogger()
+                .debug(
+                    `Player ${sender.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
+                    'CommandManager/dispatchCommand'
+                );
+            this.server
+                .getLogger()
+                .silly(`${error.stack}`, 'CommandManager/dispatchCommand');
+        }
     }
 }

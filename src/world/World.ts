@@ -197,7 +197,7 @@ export default class World {
      * Returns a chunk from minecraft block positions x and z.
      */
     public async getChunkAt(bx: number, bz: number): Promise<Chunk> {
-        return await this.getChunk(bx >> 4, bz >> 4);
+        return this.getChunk(bx >> 4, bz >> 4);
     }
 
     /**
@@ -333,6 +333,7 @@ export default class World {
 
         await Promise.all(
             this.server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .map(async (onlinePlayer) =>
                     onlinePlayer.getConnection().sendDataPacket(blockUpdate)

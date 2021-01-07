@@ -1,5 +1,5 @@
-import Tool from '../Tool';
 import { ItemIdsType } from '../ItemIdsType';
+import Tool from '../Tool';
 
 export default class Bow extends Tool {
     constructor() {

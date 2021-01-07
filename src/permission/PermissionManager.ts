@@ -54,7 +54,7 @@ export default class PermissionManager {
     }
 
     public async setOp(username: string, op: boolean): Promise<boolean> {
-        const target = this.server.getPlayerByName(username);
+        const target = this.server.getPlayerManager().getPlayerByName(username);
         if (target) {
             const event = new playerToggleOperatorEvent(target, op);
             this.server.getEventManager().post(['playerToggleOperator', event]);
@@ -89,14 +89,15 @@ export default class PermissionManager {
         return this.ops.has(username);
     }
 
-    public can(executer: CommandExecuter): any {
+    public can(executer: CommandExecuter) {
         return {
-            execute: async (permission?: string) => {
+            execute: (permission?: string) => {
                 if (!permission) return true;
                 if (this.isOp(executer.getUsername())) return true;
                 if (!executer.isPlayer()) return true;
 
                 // TODO: handle permissions
+                return false;
             }
         };
     }

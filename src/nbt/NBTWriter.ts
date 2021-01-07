@@ -115,9 +115,9 @@ export default class NBTWriter {
 
     private writeIntegerArrayValue(value: number[]) {
         this.writeIntegerValue(value.length);
-        for (const v of value) {
+        value.forEach((v) => {
             this.writeIntegerValue(v);
-        }
+        });
     }
 
     private writeListValue(value: Set<any>): void {

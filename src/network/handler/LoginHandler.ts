@@ -35,9 +35,12 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
         }
 
         // Player with same name is already online
-        let maybePlayer = null;
-        if ((maybePlayer = server.getPlayerByExactName(packet.displayName)))
-            await maybePlayer.kick('Logged in from another location');
+        try {
+            const oldPlayer = server
+                .getPlayerManager()
+                .getPlayerByExactName(packet.displayName);
+            await oldPlayer.kick('Logged in from another location');
+        } catch {}
 
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;

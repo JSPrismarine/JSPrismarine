@@ -134,6 +134,7 @@ export default class QueryManager {
                     res.append(
                         Buffer.from(
                             `${this.server
+                                .getPlayerManager()
                                 .getOnlinePlayers()
                                 .map(
                                     (player) => `${player.getUsername()}\0`

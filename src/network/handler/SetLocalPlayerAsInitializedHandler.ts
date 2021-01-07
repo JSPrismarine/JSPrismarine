@@ -13,6 +13,7 @@ export default class SetLocalPlayerAsInitializedHandler
         player: Player
     ): Promise<void> {
         for (const onlinePlayer of server
+            .getPlayerManager()
             .getOnlinePlayers()
             .filter((p) => !(p === player))) {
             await onlinePlayer.getConnection().sendSpawn(player);

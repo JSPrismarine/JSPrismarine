@@ -15,11 +15,13 @@ import Vector3 from '../../math/Vector3';
 
 export default class InventoryTransactionHandler
     implements PacketHandler<InventoryTransactionPacket> {
-    public handle(
+    public async handle(
         packet: InventoryTransactionPacket,
         server: Server,
         player: Player
-    ): void {
+    ): Promise<void> {
+        if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world
+
         switch (packet.type) {
             case InventoryTransactionType.Normal: {
                 // TODO: refactor this crap
@@ -94,117 +96,118 @@ export default class InventoryTransactionHandler
                 break;
             }
             case InventoryTransactionType.UseItem: {
-                if (player.gamemode !== Gamemode.Spectator) break;
                 switch (packet.actionType) {
                     case InventoryTransactionUseItemActionType.ClickBlock:
-                        (async () => {
-                            await player
-                                .getWorld()
-                                .useItemOn(
-                                    server
-                                        .getBlockManager()
-                                        .getBlockByIdAndMeta(
-                                            packet.itemInHand.id,
-                                            packet.itemInHand.meta
-                                        ),
-                                    packet.blockPosition,
-                                    packet.face,
-                                    packet.clickPosition,
-                                    player
-                                );
-                        })();
-
+                        await player
+                            .getWorld()
+                            .useItemOn(
+                                server
+                                    .getBlockManager()
+                                    .getBlockByIdAndMeta(
+                                        packet.itemInHand.id,
+                                        packet.itemInHand.meta
+                                    ),
+                                packet.blockPosition,
+                                packet.face,
+                                packet.clickPosition,
+                                player
+                            );
                         break;
                     case InventoryTransactionUseItemActionType.ClickAir:
                         break;
-                    case InventoryTransactionUseItemActionType.BreakBlock:
-                        (async () => {
-                            const chunk = await player
-                                .getWorld()
-                                .getChunkAt(
-                                    packet.blockPosition.getX(),
-                                    packet.blockPosition.getZ()
-                                );
-
-                            // TODO: figure out why blockId sometimes === 0
-                            const chunkPos = new Vector3(
+                    case InventoryTransactionUseItemActionType.BreakBlock: {
+                        const chunk = await player
+                            .getWorld()
+                            .getChunkAt(
                                 packet.blockPosition.getX(),
-                                packet.blockPosition.getY(),
                                 packet.blockPosition.getZ()
                             );
-                            
-                            console.log("Chunk X=%d, Chunk Z=%d", chunk.getX(), chunk.getZ());
-                            console.log(chunkPos)
 
-                            const blockId = chunk.getBlockId(
-                                chunkPos.getX(),
-                                chunkPos.getY(),
-                                chunkPos.getZ()
-                            );
+                        // TODO: figure out why blockId sometimes === 0
+                        const chunkPos = new Vector3(
+                            packet.blockPosition.getX(),
+                            packet.blockPosition.getY(),
+                            packet.blockPosition.getZ()
+                        );
 
-                            const block = server
-                                .getBlockManager()
-                                .getBlockById(blockId);
+                        const blockId = chunk.getBlockId(
+                            chunkPos.getX(),
+                            chunkPos.getY(),
+                            chunkPos.getZ()
+                        );
 
-                            if (!block) {
-                                server
-                                    .getLogger()
-                                    .warn(
-                                        `Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`
-                                    );
-                                return;
-                            }
+                        const block = server
+                            .getBlockManager()
+                            .getBlockById(blockId);
 
-                            const pk = new UpdateBlockPacket();
-                            pk.x = packet.blockPosition.getX();
-                            pk.y = packet.blockPosition.getY();
-                            pk.z = packet.blockPosition.getZ();
-                            pk.blockRuntimeId = BlockMappings.getRuntimeId(0, 0); // Air
+                        if (!block) {
+                            server
+                                .getLogger()
+                                .warn(
+                                    `Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`,
+                                    'InventoryTransactionHandler/handle'
+                                );
+                            return;
+                        }
 
-                            await Promise.all(
-                                server
-                                    .getOnlinePlayers()
-                                    .map(async (player) =>
-                                        player
-                                            .getConnection()
-                                            .sendDataPacket(pk)
-                                    )
-                            );
+                        const pk = new UpdateBlockPacket();
+                        pk.x = packet.blockPosition.getX();
+                        pk.y = packet.blockPosition.getY();
+                        pk.z = packet.blockPosition.getZ();
+                        pk.blockRuntimeId = BlockMappings.getRuntimeId(0, 0); // Air
 
-                            chunk.setBlock(
-                                chunkPos.getX(),
-                                chunkPos.getY(),
-                                chunkPos.getZ(),
-                                server
-                                    .getBlockManager()
-                                    .getBlock('minecraft:air')!
-                            );
+                        await Promise.all(
+                            server
+                                .getPlayerManager()
+                                .getOnlinePlayers()
+                                .map(async (player) =>
+                                    player.getConnection().sendDataPacket(pk)
+                                )
+                        );
 
-                            const soundPk = new LevelSoundEventPacket();
-                            soundPk.sound = 5; // TODO: enum
+                        chunk.setBlock(
+                            chunkPos.getX(),
+                            chunkPos.getY(),
+                            chunkPos.getZ(),
+                            server.getBlockManager().getBlock('minecraft:air')!
+                        );
 
-                            soundPk.positionX = player.getX();
-                            soundPk.positionY = player.getY();
-                            soundPk.positionZ = player.getZ();
+                        const soundPk = new LevelSoundEventPacket();
+                        soundPk.sound = 5; // TODO: enum
 
-                            // ? 0 or id & 0xf
-                            soundPk.extraData = BlockMappings.getRuntimeId(blockId, 0); // In this case refers to block runtime Id
-                            soundPk.entityType = ':';
-                            soundPk.isBabyMob = false;
-                            soundPk.disableRelativeVolume = false;
+                        soundPk.positionX = player.getX();
+                        soundPk.positionY = player.getY();
+                        soundPk.positionZ = player.getZ();
 
-                            /* await Promise.all(
-                                player
-                                    .getPlayersInChunk()
-                                    .map(async (narbyPlayer) =>
-                                        narbyPlayer
-                                            .getConnection()
-                                            .sendDataPacket(soundPk)
-                                    )
-                            ); */
-                        })();
+                        // ? 0 or id & 0xf
+                        soundPk.extraData = BlockMappings.getRuntimeId(
+                            blockId,
+                            0
+                        ); // In this case refers to block runtime Id
+                        soundPk.entityType = ':';
+                        soundPk.isBabyMob = false;
+                        soundPk.disableRelativeVolume = false;
 
+                        /* await Promise.all(
+                            player
+                                .getPlayersInChunk()
+                                .map(async (player) =>
+                                    player
+                                        .getConnection()
+                                        .sendDataPacket(soundPk)
+                                )
+                        ); */
+
+                        await Promise.all(
+                            server
+                                .getPlayerManager()
+                                .getOnlinePlayers()
+                                .map(async (player) =>
+                                    player.getConnection().sendDataPacket(pk)
+                                )
+                        );
                         break;
+                    }
                     default:
                         server
                             .getLogger()
