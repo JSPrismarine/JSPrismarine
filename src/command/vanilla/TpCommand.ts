@@ -48,27 +48,6 @@ export default class TpCommand extends Command {
                 )
                 .then(
                     argument('player', new CommandArgumentEntity())
-                        .executes(async (context) => {
-                            const source = context.getSource() as Player;
-                            const target = context.getArgument(
-                                'player'
-                            ) as Player;
-
-                            if (!source.isPlayer())
-                                throw new Error(
-                                    `This command can't be run from the console`
-                                );
-
-                            await source.setPosition(
-                                new Vector3(
-                                    target.getX(),
-                                    target.getY(),
-                                    target.getZ()
-                                ),
-                                MovementType.Teleport
-                            );
-                            return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;
-                        })
                         .then(
                             argument(
                                 'position',
@@ -112,9 +91,30 @@ export default class TpCommand extends Command {
                                     position,
                                     MovementType.Teleport
                                 );
-                                return `Teleported ${sourcePlayer.getFormattedUsername()} to ${target.getUsername()}`;
+                                return `Teleported ${sourcePlayer.getFormattedUsername()} to ${target.getFormattedUsername()}`;
                             })
                         )
+                        .executes(async (context) => {
+                            const source = context.getSource() as Player;
+                            const target = context.getArgument(
+                                'player'
+                            ) as Player;
+
+                            if (!source.isPlayer())
+                                throw new Error(
+                                    `This command can't be run from the console`
+                                );
+
+                            await source.setPosition(
+                                new Vector3(
+                                    target.getX(),
+                                    target.getY(),
+                                    target.getZ()
+                                ),
+                                MovementType.Teleport
+                            );
+                            return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;
+                        })
                 )
         );
     }

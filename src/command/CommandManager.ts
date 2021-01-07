@@ -110,29 +110,64 @@ export default class CommandManager {
     public getCommandsList(): Array<[string, CommandArgument[][]]> {
         const parseNode = (node: CommandNode<CommandExecuter>): any[] => {
             if (node.getChildrenCount() <= 0) {
-                return [(node as ArgumentCommandNode<any, any>).getType()];
+                return [
+                    {
+                        item: (node as ArgumentCommandNode<any, any>).getType(),
+                        children: []
+                    }
+                ];
             }
 
-            return Array.from(node.getChildren())
-                .map((node) => parseNode(node))
-                .flat(Number.POSITIVE_INFINITY);
+            const res = Array.from(node.getChildren())
+                .map((node) => {
+                    return parseNode(node);
+                })
+                .reverse();
+
+            return [
+                node.getCommand()
+                    ? {
+                          item: (node as ArgumentCommandNode<
+                              any,
+                              any
+                          >).getType(),
+                          children: []
+                      }
+                    : undefined,
+                ...res.map((children: any) => ({
+                    item: (node as ArgumentCommandNode<any, any>).getType(),
+                    children: [...children]
+                }))
+            ].filter((a) => a);
         };
 
-        // FIXME: this misses a few arguments??
+        const traverse = (node: any, path: any[] = [], result: any[] = []) => {
+            if (!node.children.length) result.push(path.concat(node.item));
+            for (const child of node.children)
+                traverse(child, path.concat(node.item), result);
+            return result;
+        };
+
         const res = Array.from(
             this.server
                 .getCommandManager()
                 .getDispatcher()
                 .getRoot()
                 .getChildren()
-        ).map((command) => {
-            return [
-                command.getName(),
-                Array.from(command.getChildren()).map((node) => {
-                    return parseNode(node).reverse();
-                })
-            ];
-        });
+        )
+            .map((command) => {
+                const branches: any[] = [];
+                Array.from(command.getChildren()).forEach((node) => {
+                    const parsed = parseNode(node);
+                    parsed.forEach((branch) => {
+                        branches.push(traverse(branch));
+                    });
+                });
+
+                return branches.map((branch) => [command.getName(), branch]);
+            })
+            .flat()
+            .filter((a) => a);
 
         res.toString = () => {
             return `${this.getCommandsList()
