@@ -1,4 +1,5 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import CommandExecuter from '../CommandExecuter';
 
@@ -7,6 +8,7 @@ export default class HelpCommand extends Command {
         super({
             id: 'minecraft:help',
             description: 'Get helpful information about commands.',
+            permission: 'minecraft.command.help',
             aliases: ['?']
         } as any);
     }

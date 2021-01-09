@@ -5,6 +5,7 @@ import {
     literal,
     string
 } from '@jsprismarine/brigadier';
+
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
@@ -15,13 +16,13 @@ export default class DeopCommand extends Command {
         super({
             id: 'minecraft:deop',
             description: `Remove a player's op status.`,
-            permission: 'minecraft.command.op'
+            permission: 'minecraft.command.deop'
         });
     }
 
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
-            literal('op').then(
+            literal('deop').then(
                 argument('player', string()).executes(async (context) => {
                     const source = context.getSource() as Player;
                     const target = source
