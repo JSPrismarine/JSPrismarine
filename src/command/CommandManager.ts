@@ -94,6 +94,15 @@ export default class CommandManager {
         await command.register(this.dispatcher);
         this.commands.set(command.id, command);
 
+        await Promise.all(
+            server
+                .getPlayerManager()
+                .getOnlinePlayers()
+                .map(async (player) => {
+                    await player.getConnection().sendAvailableCommands();
+                })
+        );
+
         server
             .getLogger()
             .silly(
@@ -223,7 +232,7 @@ export default class CommandManager {
             // Get command from parsed string
             const command = Array.from(this.commands.values()).find(
                 (command) =>
-                    command.id.split(':')[0] === id ||
+                    command.id.split(':')[1] === id ||
                     command.aliases?.includes(id)
             );
 
@@ -234,7 +243,7 @@ export default class CommandManager {
                     .execute(command?.permission)
             ) {
                 await sender.sendMessage(
-                    "I'm sorry, but you do not have permission to perform this command. " +
+                    "§cI'm sorry, but you do not have permission to perform this command. " +
                         'Please contact the server administrators if you believe that this is in error.'
                 );
                 return;

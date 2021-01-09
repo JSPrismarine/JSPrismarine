@@ -1,4 +1,5 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import Player from '../../player/Player';
 
@@ -6,7 +7,8 @@ export default class ListCommand extends Command {
     constructor() {
         super({
             id: 'minecraft:list',
-            description: 'Lists players on the server.'
+            description: 'Lists players on the server.',
+            permission: 'minecraft.command.list'
         });
     }
 
