@@ -1,4 +1,5 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import Player from '../../player/Player';
 import PluginFile from '../../plugin/PluginFile';
@@ -8,6 +9,7 @@ export default class PluginsCommand extends Command {
         super({
             id: 'jsprismarine:plugins',
             description: 'Lists all plugins that run on the server.',
+            permission: 'jsprismarine.command.plugins',
             aliases: ['pl']
         });
     }

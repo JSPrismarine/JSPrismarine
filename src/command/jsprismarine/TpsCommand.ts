@@ -1,10 +1,15 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class TpsCommand extends Command {
     constructor() {
-        super({ id: 'jsprismarine:tps', description: 'Get current TPS.' });
+        super({
+            id: 'jsprismarine:tps',
+            description: 'Get current TPS.',
+            permission: 'jsprismarine.command.tps'
+        });
     }
 
     private formatTPS(tps: number): string {
