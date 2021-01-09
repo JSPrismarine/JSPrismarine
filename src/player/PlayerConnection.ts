@@ -350,6 +350,15 @@ export default class PlayerConnection {
                     this.server.getCommandManager().getCommands().values()
                 ).find((cmd) => cmd.id.split(':')[1] === command[0])!;
 
+                if (
+                    !this.player
+                        .getServer()
+                        .getPermissionManager()
+                        .can(this.player)
+                        .execute(classCommand.permission)
+                )
+                    return;
+
                 if (command[1].getCommand())
                     pk.commandData.add({
                         name: command[0],

@@ -1,27 +1,28 @@
-import CommandExecuter from '../command/CommandExecuter';
-import Human from '../entity/Human';
 import ChatEvent from '../events/chat/ChatEvent';
+import Chunk from '../world/chunk/Chunk';
+import CommandExecuter from '../command/CommandExecuter';
+import Connection from '../network/raknet/Connection';
+import ContainerEntry from '../inventory/ContainerEntry';
+import Device from '../utils/Device';
+import Gamemode from '../world/Gamemode';
+import Human from '../entity/Human';
+import InetAddress from '../network/raknet/utils/InetAddress';
+import MovementType from '../network/type/MovementType';
+import PlayerConnection from './PlayerConnection';
 import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
-import ContainerEntry from '../inventory/ContainerEntry';
-import WindowManager from '../inventory/WindowManager';
-import Vector3 from '../math/Vector3';
-import Connection from '../network/raknet/Connection';
-import InetAddress from '../network/raknet/utils/InetAddress';
-import MovementType from '../network/type/MovementType';
 import Server from '../Server';
-import Device from '../utils/Device';
 import Skin from '../utils/skin/Skin';
-import Chunk from '../world/chunk/Chunk';
-import Gamemode from '../world/Gamemode';
+import Vector3 from '../math/Vector3';
+import WindowManager from '../inventory/WindowManager';
 import World from '../world/World';
-import PlayerConnection from './PlayerConnection';
 
 export default class Player extends Human implements CommandExecuter {
     private readonly server: Server;
     private readonly address: InetAddress;
     private readonly playerConnection: PlayerConnection;
+    private permissions: string[];
 
     // TODO: finish implementation
     private readonly windows: WindowManager;
@@ -69,6 +70,7 @@ export default class Player extends Human implements CommandExecuter {
         this.server = server;
         this.playerConnection = new PlayerConnection(server, connection, this);
         this.windows = new WindowManager();
+        this.permissions = [];
 
         // Handle chat messages
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
@@ -85,6 +87,10 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async onEnable() {
+        this.permissions = await this.server
+            .getPermissionManager()
+            .getPermissions(this);
+
         const playerData = await this.getWorld().getPlayerData(this);
 
         void this.setGamemode(Gamemode.getGamemodeId(playerData.gamemode));
@@ -200,6 +206,10 @@ export default class Player extends Human implements CommandExecuter {
 
     public getFormattedUsername(): string {
         return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
+    }
+
+    public getPermissions(): string[] {
+        return this.permissions;
     }
 
     public getUUID(): string {
