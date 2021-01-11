@@ -40,6 +40,16 @@ export default class PermissionManager {
         ];
     }
 
+    /**
+     * Set player permissions.
+     *
+     * NOTE: This will not be saved to the permissions.json
+     * file as that is to be handled by the plugin author in a plugin-specific file.
+     */
+    public setPermissions(player: Player, permissions: string[]) {
+        this.permissions.set(player.getUsername(), permissions ?? []);
+    }
+
     private async parsePermissions(): Promise<void> {
         try {
             if (!fs.existsSync(path.join(process.cwd(), '/permissions.json'))) {
