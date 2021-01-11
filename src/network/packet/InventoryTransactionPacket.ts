@@ -1,8 +1,8 @@
-import Vector3 from '../../math/Vector3';
-import Identifiers from '../Identifiers';
 import ChangeSlot from '../type/ChangeSlot';
-import NetworkTransaction from '../type/NetworkTransaction';
 import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import NetworkTransaction from '../type/NetworkTransaction';
+import Vector3 from '../../math/Vector3';
 
 export enum InventoryTransactionUseItemActionType {
     ClickBlock = 0,

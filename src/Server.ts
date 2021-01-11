@@ -359,6 +359,16 @@ export default class Server {
 
             await Promise.all(promises);
         }, 50);
+
+        setInterval(() => {
+            // TODO: Figure out how many ticks we're behind
+            const tps = this.getAverageTPS();
+            if (tps.one < 20)
+                this.getLogger().warn(
+                    `Can't keep up, is the server overloaded?`,
+                    'Server'
+                );
+        }, 5000);
     }
 
     /**
@@ -379,7 +389,7 @@ export default class Server {
 
             await this.worldManager.onDisable();
             await this.onDisable();
-            await this.raknet?.kill(); // this.raknet might be undefined if we kill the server early
+            await this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
             await this.console.onDisable();
             process.exit(0);
         } catch (error) {

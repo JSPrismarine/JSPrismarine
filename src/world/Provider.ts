@@ -1,6 +1,6 @@
-import fs from 'fs';
-import type Server from '../Server';
 import type Chunk from './chunk/Chunk';
+import type Server from '../Server';
+import fs from 'fs';
 
 export default class Provider {
     private path: string;

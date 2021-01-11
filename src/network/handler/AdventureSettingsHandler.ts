@@ -1,9 +1,10 @@
-import PacketHandler from './PacketHandler';
-import type Player from '../../player/Player';
-import type Server from '../../Server';
 import AdventureSettingsPacket, {
     AdventureSettingsFlags
 } from '../packet/AdventureSettingsPacket';
+
+import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Server from '../../Server';
 
 export default class AdventureSettingsHandler
     implements PacketHandler<AdventureSettingsPacket> {

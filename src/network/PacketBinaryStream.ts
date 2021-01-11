@@ -1,25 +1,25 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { Attribute } from '../entity/attribute';
-import { FlagType } from '../entity/metadata';
-import ContainerEntry from '../inventory/ContainerEntry';
-import Vector3 from '../math/Vector3';
-import Skin from '../utils/skin/Skin';
-import SkinImage from '../utils/skin/SkinImage';
-import UUID from '../utils/UUID';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import BlockPosition from '../world/BlockPosition';
-import { PlayerListEntry } from './packet/PlayerListPacket';
 import CommandOriginData from './type/CommandOriginData';
 import CommandOriginType from './type/CommandOriginType';
+import ContainerEntry from '../inventory/ContainerEntry';
 import CreativeContentEntry from './type/CreativeContentEntry';
+import { FlagType } from '../entity/metadata';
+import ItemStackRequest from './type/itemStackRequest/ItemStackRequest';
 import ItemStackRequestConsume from './type/itemStackRequest/ConsumeStack';
 import ItemStackRequestCreativeCreate from './type/itemStackRequest/CreativeCreate';
 import ItemStackRequestDestroy from './type/itemStackRequest/Destroy';
 import ItemStackRequestDrop from './type/itemStackRequest/Drop';
-import ItemStackRequest from './type/itemStackRequest/ItemStackRequest';
-import ItemStackRequestSlotInfo from './type/itemStackRequest/ItemStackRequestSlotInfo';
 import ItemStackRequestPlace from './type/itemStackRequest/Place';
+import ItemStackRequestSlotInfo from './type/itemStackRequest/ItemStackRequestSlotInfo';
 import ItemStackRequestSwap from './type/itemStackRequest/Swap';
 import ItemStackRequestTake from './type/itemStackRequest/Take';
+import { PlayerListEntry } from './packet/PlayerListPacket';
+import Skin from '../utils/skin/Skin';
+import SkinImage from '../utils/skin/SkinImage';
+import UUID from '../utils/UUID';
+import Vector3 from '../math/Vector3';
 export default class PacketBinaryStream extends BinaryStream {
     /**
      * Returns a string encoded into the buffer.

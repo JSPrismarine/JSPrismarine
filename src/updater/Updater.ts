@@ -1,8 +1,8 @@
-import fetch from 'node-fetch';
-import semver from 'semver';
-import pkg from '../../package.json';
 import Config from '../config/Config';
 import LoggerBuilder from '../utils/Logger';
+import fetch from 'node-fetch';
+import pkg from '../../package.json';
+import semver from 'semver';
 
 export default class Updater {
     private readonly logger: LoggerBuilder;

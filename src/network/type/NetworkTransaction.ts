@@ -1,5 +1,5 @@
-import type PacketBinaryStream from '../PacketBinaryStream';
 import NetworkTransactionSourceType from './NetworkTransactionSourceType';
+import type PacketBinaryStream from '../PacketBinaryStream';
 
 class NetworkTransaction {
     public sourceType!: number;

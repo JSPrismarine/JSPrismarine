@@ -1,9 +1,9 @@
-import fs from 'fs';
-import Server from '../Server';
+import Anvil from './providers/anvil/Anvil';
 import GeneratorManager from './GeneratorManager';
 import LevelDB from './providers/leveldb/LevelDB';
-import Anvil from './providers/anvil/Anvil';
+import Server from '../Server';
 import World from './World';
+import fs from 'fs';
 
 export default class WorldManager {
     private readonly worlds: Map<string, World> = new Map();

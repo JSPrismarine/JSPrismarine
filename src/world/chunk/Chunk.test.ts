@@ -1,3 +1,4 @@
+/* eslint-disable max-nested-callbacks */
 import Chunk from './Chunk';
 
 describe('world', () => {

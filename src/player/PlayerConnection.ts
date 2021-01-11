@@ -104,7 +104,7 @@ export default class PlayerConnection {
     }
 
     public async sendSettings(player?: Player) {
-        const target = player || this.player;
+        const target = player ?? this.player;
         const pk = new AdventureSettingsPacket();
 
         pk.setFlag(
@@ -632,7 +632,7 @@ export default class PlayerConnection {
         pk.yaw = this.player.yaw;
         pk.headYaw = this.player.headYaw;
 
-        pk.deviceId = this.player.device?.id || '';
+        pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager().getMetadata();
         await player.getConnection().sendDataPacket(pk);
         await this.sendSettings(player);
