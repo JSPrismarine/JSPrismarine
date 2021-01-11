@@ -175,29 +175,27 @@ export default class PermissionManager {
                 if (!executer.isPlayer()) return true;
                 // TODO: investigate if we should add a "defaultOpPermissions" instead
                 if (executer.isOp()) return true;
-
-                // TODO: Recursive check, because some permissions might have sub-actions
-                const [namespace, scope] = permission.split('.');
-
+                if ((executer as Player).getPermissions().includes(permission))
+                    return true;
                 if ((executer as Player).getPermissions().includes('*'))
                     return true;
 
-                if (
-                    (executer as Player)
-                        .getPermissions()
-                        .includes(`${namespace}.*`)
-                )
-                    return true;
-                if (
-                    (executer as Player)
-                        .getPermissions()
-                        .includes(`${namespace}.${scope}.*`)
-                )
-                    return true;
-                if ((executer as Player).getPermissions().includes(permission))
-                    return true;
+                const split = permission.split('.');
+                let scope = '';
+                for (const action of split) {
+                    if (scope) scope = `${scope}.${action}`;
+                    else scope = action;
 
-                // TODO: handle permissions
+                    if ((executer as Player).getPermissions().includes(scope))
+                        return true;
+                    if (
+                        (executer as Player)
+                            .getPermissions()
+                            .includes(`${scope}.*`)
+                    )
+                        return true;
+                }
+
                 return false;
             }
         };
