@@ -226,7 +226,12 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
             this.connections.set(
                 `${address.getAddress()}:${address.getPort()}`,
-                new Connection(this, decodedPacket.mtuSize, address)
+                new Connection(
+                    this,
+                    decodedPacket.mtuSize,
+                    address,
+                    !this.server.getConfig().getOnlineMode()
+                )
             );
 
             resolve(packet.getBuffer());
