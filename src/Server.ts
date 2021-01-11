@@ -330,8 +330,12 @@ export default class Server {
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
         // e.g. 1000 / 20 = 50
-        let startTime = Date.now();
-        setIntervalAsync(async () => {
+        const startTime = Date.now();
+        let lastTime = Date.now();
+        let ticks = 0;
+        const tick = async () => {
+            ticks += 1;
+
             // Calculate current tps
             const finishTime = Date.now();
             this.tps =
@@ -342,11 +346,11 @@ export default class Server {
 
             // Make sure we never execute more than once every 20th of a second
             if (finishTime - startTime < 50) return;
-            startTime = finishTime;
+            lastTime = finishTime;
 
             if (this.tps > 20) {
                 this.getLogger().debug(
-                    `TPS is ${this.tps} which is greater than 20!`,
+                    `TPS is ${this.tps} which is greater than 20! Are we recovering?`,
                     'Server/listen/setIntervalAsync'
                 );
                 return;
@@ -358,17 +362,29 @@ export default class Server {
             }
 
             await Promise.all(promises);
-        }, 50);
+        };
+        setIntervalAsync(tick, 1000 / 20);
 
-        setInterval(() => {
-            // TODO: Figure out how many ticks we're behind
-            const tps = this.getAverageTPS();
-            if (tps.one < 20)
-                this.getLogger().warn(
-                    `Can't keep up, is the server overloaded?`,
-                    'Server'
+        setInterval(async () => {
+            const correctTicks = Math.ceil((Date.now() - startTime) / 50);
+            const behindTicks = correctTicks - ticks;
+
+            if (behindTicks)
+                this.getLogger().silly(
+                    `We're behind with ${behindTicks} ticks. ${ticks}/${correctTicks}!`,
+                    'server'
                 );
-        }, 5000);
+
+            // TODO: try to recover
+            if (behindTicks < 20) return;
+
+            this.getLogger().warn(
+                `Can't keep up, is the server overloaded? (${behindTicks} tick(s) or ${
+                    behindTicks / 20
+                } second(s) behind)`,
+                'Server'
+            );
+        }, 60 * 1000);
     }
 
     /**
