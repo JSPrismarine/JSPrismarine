@@ -14,6 +14,9 @@ export default class Updater {
     }
 
     public async check(): Promise<void> {
+        // Don't check for updates in development to avoid rate-limiting
+        if (process.env.NODE_ENV === 'development') return;
+
         const release: {
             html_url: string;
             tag_name: string;

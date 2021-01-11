@@ -407,7 +407,10 @@ export default class PlayerConnection {
                                         optional: false
                                     })
                                 ];
-                            if (parameter instanceof StringArgumentType)
+                            if (
+                                parameter.constructor.name ===
+                                'StringArgumentType'
+                            )
                                 return [
                                     new CommandParameter({
                                         name: 'value',
@@ -415,7 +418,10 @@ export default class PlayerConnection {
                                         optional: false
                                     })
                                 ];
-                            if (parameter instanceof IntegerArgumentType)
+                            if (
+                                parameter.constructor.name ===
+                                'IntegerArgumentType'
+                            )
                                 return [
                                     new CommandParameter({
                                         name: 'number',
@@ -424,9 +430,18 @@ export default class PlayerConnection {
                                     })
                                 ];
 
-                            throw new Error(
-                                `Invalid parameter ${parameter.constructor.name}`
-                            );
+                            this.server
+                                .getLogger()
+                                .warn(
+                                    `Invalid parameter ${parameter.constructor.name}`
+                                );
+                            return [
+                                new CommandParameter({
+                                    name: 'value',
+                                    type: CommandParameterType.String,
+                                    optional: false
+                                })
+                            ];
                         })
                         .filter((a) => a)
                         .flat();
