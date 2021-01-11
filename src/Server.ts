@@ -88,21 +88,21 @@ export default class Server {
     private async onEnable(): Promise<void> {
         await this.packetRegistry.onEnable();
         await this.permissionManager.onEnable();
+        await this.pluginManager.onEnable();
         await this.banManager.onEnable();
         await this.itemManager.onEnable();
         await this.blockManager.onEnable();
         await this.commandManager.onEnable();
-        await this.pluginManager.onEnable();
         await this.telemetryManager.onEnable();
     }
 
     private async onDisable(): Promise<void> {
         await this.telemetryManager.onDisable();
-        await this.pluginManager.onDisable();
         await this.commandManager.onDisable();
         await this.blockManager.onDisable();
         await this.itemManager.onDisable();
         await this.banManager.onDisable();
+        await this.pluginManager.onDisable();
         await this.permissionManager.onDisable();
         await this.packetRegistry.onDisable();
     }

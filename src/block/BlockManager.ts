@@ -217,7 +217,7 @@ export default class BlockManager {
             this.server
                 .getLogger()
                 .debug(
-                    `Registered §b${blocks.length}§r block(s) (took ${
+                    `Registered §b${this.blocks.size}§r block(s) (took ${
                         Date.now() - time
                     } ms)!`,
                     'BlockManager/importBlocks'
@@ -233,7 +233,8 @@ export default class BlockManager {
     }
 
     private generateRuntimeIds() {
-        const blocks = this.getBlocks().sort(() => 0.5 - Math.random()); // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
+        // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
+        const blocks = this.getBlocks().sort(() => 0.5 - Math.random());
 
         for (const block of blocks) {
             this.runtimeIds.push(block.getId());
