@@ -56,7 +56,7 @@ export default class PermissionManager {
                 this.server
                     .getLogger()
                     .warn(
-                        `Failed to load operators list!`,
+                        `Failed to load permissions list!`,
                         'PermissionManager/parsePermissions'
                     );
                 fs.writeFileSync(
