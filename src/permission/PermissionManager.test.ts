@@ -12,6 +12,16 @@ describe('permission', () => {
                         isOp: () => false,
                         getPermissions: () => ['namespace.scope.action']
                     } as any)
+                    .execute('namespace.scope.action')
+            ).toBe(true);
+
+            expect(
+                pm
+                    .can({
+                        isPlayer: () => true,
+                        isOp: () => false,
+                        getPermissions: () => ['namespace.scope.action']
+                    } as any)
                     .execute('namespace.scope.action.subaction')
             ).toBe(true);
 
@@ -71,6 +81,12 @@ describe('permission', () => {
                     } as any)
                     .execute('namespace.scope.action.subaction')
             ).toBe(true);
+        });
+
+        it('can().execute() should handle no permission', () => {
+            const pm = new PermissionManager(null as any);
+
+            expect(pm.can({} as any).execute()).toBe(true);
         });
     });
 });

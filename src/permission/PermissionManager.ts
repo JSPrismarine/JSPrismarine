@@ -15,6 +15,7 @@ export default class PermissionManager {
     private readonly ops: Set<string> = new Set();
     private readonly permissions: Map<string, string[]> = new Map();
     private defaultPermissions: string[] = [];
+    private defaultOperatorPermissions: string[] = [];
 
     public constructor(server: Server) {
         this.server = server;
@@ -32,10 +33,11 @@ export default class PermissionManager {
     }
 
     public async getPermissions(player: Player): Promise<string[]> {
-        return (
-            this.permissions.get(player.getUsername()) ??
-            this.defaultPermissions
-        );
+        return [
+            ...this.defaultPermissions,
+            ...(this.permissions.get(player.getUsername()) ?? []),
+            ...(player.isOp() ? this.defaultOperatorPermissions : [])
+        ];
     }
 
     private async parsePermissions(): Promise<void> {
@@ -59,6 +61,7 @@ export default class PermissionManager {
                                 'jsprismarine.command.version',
                                 'jsprismarine.command.tps'
                             ],
+                            defaultOperatorPermissions: ['*'],
                             players: [
                                 {
                                     name: 'filfat',
@@ -75,6 +78,7 @@ export default class PermissionManager {
             const readFile = util.promisify(fs.readFile);
             const permissionsObject: {
                 defaultPermissions: string[];
+                defaultOperatorPermissions: string[];
                 players: Array<{
                     name: string;
                     permissions: string[];
@@ -87,13 +91,15 @@ export default class PermissionManager {
                 ).toString()
             );
 
-            this.defaultPermissions = permissionsObject.defaultPermissions;
+            this.defaultPermissions =
+                permissionsObject.defaultPermissions || [];
+            this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || [
+                '*'
+            ];
             permissionsObject.players.map((player) =>
                 this.permissions.set(
                     player.name,
-                    player.permissions.length <= 0
-                        ? this.defaultPermissions
-                        : player.permissions
+                    player.permissions.length <= 0 ? [] : player.permissions
                 )
             );
         } catch (error) {
@@ -173,7 +179,6 @@ export default class PermissionManager {
             execute: (permission?: string) => {
                 if (!permission) return true;
                 if (!executer.isPlayer()) return true;
-                // TODO: investigate if we should add a "defaultOpPermissions" instead
                 if (executer.isOp()) return true;
                 if ((executer as Player).getPermissions().includes(permission))
                     return true;
