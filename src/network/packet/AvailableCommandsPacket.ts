@@ -52,7 +52,7 @@ export default class AvailableCommandsPacket extends DataPacket {
 
             // Parameters and overloads
             this.writeUnsignedVarInt(1); // I don't get it, why ??
-            this.writeUnsignedVarInt(data?.parameters?.size || 0);
+            this.writeUnsignedVarInt(data?.parameters?.size ?? 0);
             if (data?.parameters)
                 for (const parameter of data.parameters) {
                     this.writeString(parameter.name);

@@ -34,7 +34,7 @@
         "prettier": true,
         "rules": {
             "sort-imports": [
-                "warn",
+                "error",
                 {
                     "ignoreCase": false,
                     "ignoreDeclarationSort": false,

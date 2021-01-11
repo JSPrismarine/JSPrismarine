@@ -1,10 +1,10 @@
-import type Player from '../../player/Player';
-import type Server from '../../Server';
-import type PlayerActionPacket from '../packet/PlayerActionPacket';
-import PlayerActionType from '../type/PlayerActionType';
-import WorldEventPacket from '../packet/WorldEventPacket';
 import LevelEventType from '../type/LevelEventType';
 import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type PlayerActionPacket from '../packet/PlayerActionPacket';
+import PlayerActionType from '../type/PlayerActionType';
+import type Server from '../../Server';
+import WorldEventPacket from '../packet/WorldEventPacket';
 
 export default class PlayerActionHandler
     implements PacketHandler<PlayerActionPacket> {

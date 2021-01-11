@@ -2,7 +2,7 @@ import PermissionManager from './PermissionManager';
 
 describe('permission', () => {
     describe('PermissionManager', () => {
-        it('can().execute() should handle sub-sub-actions', () => {
+        it('can().execute() should work', () => {
             const pm = new PermissionManager(null as any);
 
             expect(
@@ -56,6 +56,26 @@ describe('permission', () => {
                     } as any)
                     .execute('namespace.scope.action.subaction')
             ).toBe(true);
+
+            expect(
+                pm
+                    .can({
+                        isPlayer: () => true,
+                        isOp: () => false,
+                        getPermissions: () => ['othernamespace.scope.action']
+                    } as any)
+                    .execute('namespace.scope.action.subaction')
+            ).toBe(false);
+
+            expect(
+                pm
+                    .can({
+                        isPlayer: () => true,
+                        isOp: () => false,
+                        getPermissions: () => []
+                    } as any)
+                    .execute('namespace.scope.action.subaction')
+            ).toBe(false);
         });
 
         it('can().execute() should handle console', () => {

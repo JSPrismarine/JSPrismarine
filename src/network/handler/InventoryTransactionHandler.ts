@@ -3,6 +3,7 @@ import InventoryTransactionPacket, {
     InventoryTransactionUseItemActionType
 } from '../packet/InventoryTransactionPacket';
 
+import ContainerEntry from '../../inventory/ContainerEntry';
 import Gamemode from '../../world/Gamemode';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import PacketHandler from './PacketHandler';
@@ -10,7 +11,6 @@ import type Player from '../../player/Player';
 import type Server from '../../Server';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import Vector3 from '../../math/Vector3';
-import ContainerEntry from '../../inventory/ContainerEntry';
 
 export default class InventoryTransactionHandler
     implements PacketHandler<InventoryTransactionPacket> {
@@ -42,7 +42,7 @@ export default class InventoryTransactionHandler
                                 const id = action.oldItem.id;
                                 const meta = action.oldItem.meta;
                                 const item =
-                                    server.getItemManager().getItemById(id) ||
+                                    server.getItemManager().getItemById(id) ??
                                     server
                                         .getBlockManager()
                                         .getBlockByIdAndMeta(id, meta);

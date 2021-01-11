@@ -1,3 +1,4 @@
+/* eslint-disable max-params */
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class UUID {

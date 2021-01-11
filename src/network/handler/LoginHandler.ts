@@ -1,9 +1,9 @@
 import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
-import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
-import PlayStatusType from '../type/PlayStatusType';
 import PacketHandler from './PacketHandler';
+import PlayStatusType from '../type/PlayStatusType';
 import type Player from '../../player/Player';
+import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import type Server from '../../Server';
 
 export default class LoginHandler implements PacketHandler<LoginPacket> {

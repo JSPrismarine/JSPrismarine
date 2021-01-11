@@ -2,7 +2,6 @@ import Dgram, { RemoteInfo, Socket } from 'dgram';
 
 import Connection from './Connection';
 import Crypto from 'crypto';
-
 import { EventEmitter } from 'events';
 import Identifiers from './protocol/Identifiers';
 import IncompatibleProtocolVersion from './protocol/IncompatibleProtocolVersion';
@@ -11,8 +10,8 @@ import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
 import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
 import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
-import type Server from '../../Server';
 import RakNetListener from './RakNetListener';
+import type Server from '../../Server';
 import ServerName from './utils/ServerName';
 import UnconnectedPing from './protocol/UnconnectedPing';
 import UnconnectedPong from './protocol/UnconnectedPong';
