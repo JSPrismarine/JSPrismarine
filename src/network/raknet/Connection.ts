@@ -47,6 +47,8 @@ export default class Connection {
     // Queue holding packets to send
     private sendQueue = new DataPacket();
 
+    private offlineMode: boolean;
+
     // Map holding splits of split packets
     private readonly splitPackets: Map<
         number,
@@ -78,11 +80,13 @@ export default class Connection {
     constructor(
         listener: RakNetListener,
         mtuSize: number,
-        address: InetAddress
+        address: InetAddress,
+        offlineMode = false
     ) {
         this.listener = listener;
         this.mtuSize = mtuSize;
         this.address = address;
+        this.offlineMode = offlineMode;
 
         this.lastUpdate = Date.now();
 
@@ -422,7 +426,7 @@ export default class Connection {
                         dataPacket.decode();
 
                         // Client bots will work just in offline mode
-                        const offlineMode = false; // TODO: from config
+                        const offlineMode = this.offlineMode;
 
                         const serverPort = this.listener.getSocket().address()
                             .port;

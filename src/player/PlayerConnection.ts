@@ -647,6 +647,10 @@ export default class PlayerConnection {
         pk.yaw = this.player.yaw;
         pk.headYaw = this.player.headYaw;
 
+        pk.item =
+            this.player.getInventory()?.getItemInHand()?.getItem()?.getId() ??
+            0;
+
         pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager().getMetadata();
         await player.getConnection().sendDataPacket(pk);

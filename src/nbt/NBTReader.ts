@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import { Allocation } from './Allocation';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { ByteOrder } from './ByteOrder';
