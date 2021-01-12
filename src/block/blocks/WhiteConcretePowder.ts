@@ -22,7 +22,10 @@ export enum ConcretePowderColor {
 }
 
 export default class ConcretePowder extends Solid {
-    constructor(name = 'minecraft:white_concrete_powder', type: ConcretePowderColor = ConcretePowderColor.White) {
+    constructor(
+        name ='minecraft:white_concrete_powder',
+        type: ConcretePowderColor = ConcretePowderColor.White
+        ) {
         super({
             name,
             id: BlockIdsType.ConcretePowder,
