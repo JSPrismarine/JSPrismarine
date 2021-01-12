@@ -1,10 +1,10 @@
-import fs from 'fs';
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
-import path from 'path';
-import unzipper from 'unzipper';
-import Server from '../Server';
 import PluginApiVersion from './api/PluginApiVersion';
 import PluginFile from './PluginFile';
+import Server from '../Server';
+import fs from 'fs';
+import path from 'path';
+import unzipper from 'unzipper';
 
 export default class PluginManager {
     private readonly server: Server;
@@ -206,6 +206,9 @@ export default class PluginManager {
                     `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
                     'PluginManager/registerPlugin'
                 );
+            this.server
+                .getLogger()
+                .silly(error.stack, 'PluginManager/registerPlugin');
             return null;
         }
 

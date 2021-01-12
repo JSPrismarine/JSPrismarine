@@ -1,8 +1,8 @@
-import mock from 'mock-fs';
-import path from 'path';
-import Server from '../Server';
 import LoggerBuilder from '../utils/Logger';
 import PluginManager from './PluginManager';
+import Server from '../Server';
+import mock from 'mock-fs';
+import path from 'path';
 
 jest.mock('winston', () => ({
     format: {

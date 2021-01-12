@@ -1,9 +1,10 @@
+import MetadataManager, { FlagType, MetadataFlag } from './metadata';
+
 import AddActorPacket from '../network/packet/AddActorPacket';
+import AttributeManager from './attribute';
 import Player from '../player/Player';
 import Position from '../world/Position';
 import World from '../world/World';
-import AttributeManager from './attribute';
-import MetadataManager, { FlagType, MetadataFlag } from './metadata';
 
 // All entities will extend this base class
 export default class Entity extends Position {
@@ -22,7 +23,8 @@ export default class Entity extends Position {
      */
     constructor(world: World) {
         super({ world }); // TODO
-        this.runtimeId = Entity.runtimeIdCount += 1n;
+        Entity.runtimeIdCount += 1n;
+        this.runtimeId = Entity.runtimeIdCount;
 
         this.metadata.setLong(MetadataFlag.INDEX, 0n);
         this.metadata.setShort(MetadataFlag.MAX_AIR, 400);

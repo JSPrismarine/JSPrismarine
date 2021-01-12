@@ -1,28 +1,28 @@
-import IntegerArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/IntegerArgumentType';
-import StringArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/StringArgumentType';
-import Block from '../block/Block';
+import AdventureSettingsPacket, {
+    AdventureSettingsFlags
+} from '../network/packet/AdventureSettingsPacket';
 import {
     CommandArgumentEntity,
     CommandArgumentFloatPosition,
     CommandArgumentGamemode
 } from '../command/CommandArguments';
-import { Attribute } from '../entity/attribute';
-import ContainerEntry from '../inventory/ContainerEntry';
-import { WindowIds } from '../inventory/WindowManager';
-import Item from '../item/Item';
-import AddPlayerPacket from '../network/packet/AddPlayerPacket';
-import AdventureSettingsPacket, {
-    AdventureSettingsFlags
-} from '../network/packet/AdventureSettingsPacket';
+import CommandParameter, {
+    CommandParameterType
+} from '../network/type/CommandParameter';
 import PlayerListPacket, {
     PlayerListAction,
     PlayerListEntry
 } from '../network/packet/PlayerListPacket';
+
+import AddPlayerPacket from '../network/packet/AddPlayerPacket';
+import { Attribute } from '../entity/attribute';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
 import BatchPacket from '../network/packet/BatchPacket';
+import Block from '../block/Block';
 import Chunk from '../world/chunk/Chunk';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
 import type Connection from '../network/raknet/Connection';
+import ContainerEntry from '../inventory/ContainerEntry';
 import CoordinateUtils from '../world/CoordinateUtils';
 import CreativeContentEntry from '../network/type/CreativeContentEntry';
 import CreativeContentPacket from '../network/packet/CreativeContentPacket';
@@ -30,7 +30,9 @@ import DataPacket from '../network/packet/DataPacket';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import Gamemode from '../world/Gamemode';
+import IntegerArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/IntegerArgumentType';
 import InventoryContentPacket from '../network/packet/InventoryContentPacket';
+import Item from '../item/Item';
 import LevelChunkPacket from '../network/packet/LevelChunkPacket';
 import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
 import MovePlayerPacket from '../network/packet/MovePlayerPacket';
@@ -45,13 +47,13 @@ import type Server from '../Server';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import SetTimePacket from '../network/packet/SetTimePacket';
+import Skin from '../utils/skin/Skin';
+import StringArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/StringArgumentType';
 import TextPacket from '../network/packet/TextPacket';
-import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
-import CommandParameter, {
-    CommandParameterType
-} from '../network/type/CommandParameter';
 import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
+import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
+import { WindowIds } from '../inventory/WindowManager';
 
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
@@ -346,16 +348,41 @@ export default class PlayerConnection {
     public async sendAvailableCommands() {
         const pk = new AvailableCommandsPacket();
 
-        // TODO
         this.server
             .getCommandManager()
             .getCommandsList()
             .forEach((command) => {
-                command[1].forEach((arg) => {
-                    const classCommand = Array.from(
-                        this.server.getCommandManager().getCommands().values()
-                    ).find((cmd) => cmd.id.split(':')[1] === command[0])!;
+                const classCommand = Array.from(
+                    this.server.getCommandManager().getCommands().values()
+                ).find((cmd) => cmd.id.split(':')[1] === command[0])!;
 
+                if (!classCommand) {
+                    this.player
+                        .getServer()
+                        .getLogger()
+                        .warn(
+                            `Can't find corresponding command class for "${command[0]}"`
+                        );
+                    return;
+                }
+
+                if (
+                    !this.player
+                        .getServer()
+                        .getPermissionManager()
+                        .can(this.player)
+                        .execute(classCommand.permission)
+                )
+                    return;
+
+                if (command[1].getCommand())
+                    pk.commandData.add({
+                        name: command[0],
+                        description: classCommand.description,
+                        parameters: new Set<CommandParameter>()
+                    });
+
+                command[2].forEach((arg) => {
                     const parameters = arg
                         .map((parameter) => {
                             if (parameter instanceof CommandArgumentEntity)
@@ -392,11 +419,14 @@ export default class PlayerConnection {
                                 return [
                                     new CommandParameter({
                                         name: 'gamemode',
-                                        type: CommandParameterType.Value,
+                                        type: CommandParameterType.String,
                                         optional: false
                                     })
                                 ];
-                            if (parameter instanceof StringArgumentType)
+                            if (
+                                parameter.constructor.name ===
+                                'StringArgumentType'
+                            )
                                 return [
                                     new CommandParameter({
                                         name: 'value',
@@ -404,7 +434,10 @@ export default class PlayerConnection {
                                         optional: false
                                     })
                                 ];
-                            if (parameter instanceof IntegerArgumentType)
+                            if (
+                                parameter.constructor.name ===
+                                'IntegerArgumentType'
+                            )
                                 return [
                                     new CommandParameter({
                                         name: 'number',
@@ -413,9 +446,18 @@ export default class PlayerConnection {
                                     })
                                 ];
 
-                            throw new Error(
-                                `Invalid parameter ${parameter.constructor.name}`
-                            );
+                            this.server
+                                .getLogger()
+                                .warn(
+                                    `Invalid parameter ${parameter.constructor.name}`
+                                );
+                            return [
+                                new CommandParameter({
+                                    name: 'value',
+                                    type: CommandParameterType.String,
+                                    optional: false
+                                })
+                            ];
                         })
                         .filter((a) => a)
                         .flat();
@@ -425,17 +467,6 @@ export default class PlayerConnection {
                         description: classCommand.description,
                         parameters: new Set<CommandParameter>(parameters as any)
                     });
-                });
-            });
-
-        this.server
-            .getCommandManager()
-            .getCommands()
-            .forEach((command) => {
-                pk.commandData.add({
-                    name: command.id.split(':')[0],
-                    description: command.description,
-                    parameters: new Set<CommandParameter>()
                 });
             });
 
@@ -632,7 +663,11 @@ export default class PlayerConnection {
         pk.yaw = this.player.yaw;
         pk.headYaw = this.player.headYaw;
 
-        pk.deviceId = this.player.device?.id || '';
+        pk.item =
+            this.player.getInventory()?.getItemInHand()?.getItem()?.getId() ??
+            0;
+
+        pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager().getMetadata();
         await player.getConnection().sendDataPacket(pk);
         await this.sendSettings(player);

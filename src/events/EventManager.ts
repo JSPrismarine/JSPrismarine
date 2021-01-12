@@ -1,7 +1,7 @@
-import { Evt } from 'evt';
 import type BlockRegisterEvent from './block/BlockRegisterEvent';
 import type ChatEvent from './chat/ChatEvent';
 import { EventEmitterishMixin } from './EventEmitterishMixin';
+import { Evt } from 'evt';
 import type PlayerConnectEvent from './player/PlayerConnectEvent';
 import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
@@ -9,11 +9,11 @@ import type PlayerMoveEvent from './player/PlayerMoveEvent';
 import type PlayerSetGamemodeEvent from './player/PlayerSetGamemodeEvent';
 import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
 import type PlayerToggleFlightEvent from './player/PlayerToggleFlightEvent';
-import type playerToggleOperatorEvent from './player/PlayerToggleOperatorEvent';
 import type PlayerToggleSprintEvent from './player/PlayerToggleSprintEvent';
 import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
+import type playerToggleOperatorEvent from './player/PlayerToggleOperatorEvent';
 
 export type EventTypes =
     | ['blockRegister', BlockRegisterEvent]

@@ -442,6 +442,12 @@ export default class World {
 
     public async save(): Promise<void> {
         // Save chunks
+        this.server
+            .getPlayerManager()
+            .getOnlinePlayers()
+            .forEach(async (player) => {
+                await this.savePlayerData(player);
+            });
         await this.saveChunks();
     }
 

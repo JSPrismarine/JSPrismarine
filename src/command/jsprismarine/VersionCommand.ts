@@ -1,4 +1,5 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import Identifiers from '../../network/Identifiers';
 import Player from '../../player/Player';
@@ -9,6 +10,7 @@ export default class VersionCommand extends Command {
         super({
             id: 'jsprismarine:version',
             description: 'Displays general server information.',
+            permission: 'jsprismarine.command.version',
             aliases: ['about']
         });
     }

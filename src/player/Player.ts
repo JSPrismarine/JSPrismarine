@@ -22,6 +22,7 @@ export default class Player extends Human implements CommandExecuter {
     private readonly server: Server;
     private readonly address: InetAddress;
     private readonly playerConnection: PlayerConnection;
+    private permissions: string[];
 
     // TODO: finish implementation
     private readonly windows: WindowManager;
@@ -69,6 +70,7 @@ export default class Player extends Human implements CommandExecuter {
         this.server = server;
         this.playerConnection = new PlayerConnection(server, connection, this);
         this.windows = new WindowManager();
+        this.permissions = [];
 
         // Handle chat messages
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
@@ -85,6 +87,10 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async onEnable() {
+        this.permissions = await this.server
+            .getPermissionManager()
+            .getPermissions(this);
+
         const playerData = await this.getWorld().getPlayerData(this);
 
         void this.setGamemode(Gamemode.getGamemodeId(playerData.gamemode));
@@ -200,6 +206,10 @@ export default class Player extends Human implements CommandExecuter {
 
     public getFormattedUsername(): string {
         return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
+    }
+
+    public getPermissions(): string[] {
+        return this.permissions;
     }
 
     public getUUID(): string {

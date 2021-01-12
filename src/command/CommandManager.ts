@@ -2,14 +2,16 @@ import {
     ArgumentCommandNode,
     CommandDispatcher
 } from '@jsprismarine/brigadier';
+
 import Chat from '../chat/Chat';
 import Command from './Command';
+import { CommandArgument } from './CommandArguments';
 import CommandExecuter from './CommandExecuter';
 import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
-import { CommandArgument } from './CommandArguments';
+
 export default class CommandManager {
     private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
@@ -92,6 +94,15 @@ export default class CommandManager {
         await command.register(this.dispatcher);
         this.commands.set(command.id, command);
 
+        await Promise.all(
+            server
+                .getPlayerManager()
+                .getOnlinePlayers()
+                .map(async (player) => {
+                    await player.getConnection().sendAvailableCommands();
+                })
+        );
+
         server
             .getLogger()
             .silly(
@@ -111,7 +122,9 @@ export default class CommandManager {
      * Get a list of all command variants
      * EXCLUDING legacy commands
      */
-    public getCommandsList(): Array<[string, CommandArgument[][]]> {
+    public getCommandsList(): Array<
+        [string, CommandNode<CommandExecuter>, CommandArgument[][]]
+    > {
         const parseNode = (node: CommandNode<CommandExecuter>): any[] => {
             if (node.getChildrenCount() <= 0) {
                 return [
@@ -161,6 +174,8 @@ export default class CommandManager {
         )
             .map((command) => {
                 const branches: any[] = [];
+                if (command.getCommand()) branches.push([]);
+
                 Array.from(command.getChildren()).forEach((node) => {
                     const parsed = parseNode(node);
                     parsed.forEach((branch) => {
@@ -168,7 +183,11 @@ export default class CommandManager {
                     });
                 });
 
-                return branches.map((branch) => [command.getName(), branch]);
+                return branches.map((branch) => [
+                    command.getName(),
+                    command,
+                    branch
+                ]);
             })
             .flat()
             .filter((a) => a);
@@ -176,8 +195,8 @@ export default class CommandManager {
         res.toString = () => {
             return `${this.getCommandsList()
                 .map((item) => {
-                    if (!item[1].length) return `/${item[0]}`;
-                    return item[1]
+                    if (!item[2].length) return `/${item[0]}`;
+                    return item[2]
                         .map((entries) => {
                             return `/${item[0]} ${entries
                                 .flat(Number.POSITIVE_INFINITY)
@@ -213,7 +232,7 @@ export default class CommandManager {
             // Get command from parsed string
             const command = Array.from(this.commands.values()).find(
                 (command) =>
-                    command.id.split(':')[0] === id ||
+                    command.id.split(':')[1] === id ||
                     command.aliases?.includes(id)
             );
 
@@ -224,7 +243,7 @@ export default class CommandManager {
                     .execute(command?.permission)
             ) {
                 await sender.sendMessage(
-                    "I'm sorry, but you do not have permission to perform this command. " +
+                    "§cI'm sorry, but you do not have permission to perform this command. " +
                         'Please contact the server administrators if you believe that this is in error.'
                 );
                 return;

@@ -1,6 +1,6 @@
+import type ContainerEntry from '../../inventory/ContainerEntry';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import type ContainerEntry from '../../inventory/ContainerEntry';
 
 export default class InventoryContentPacket extends DataPacket {
     static NetID = Identifiers.InventoryContentPacket;

@@ -3,14 +3,14 @@ import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Gamemode from '../../world/Gamemode';
+import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
+import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import type Server from '../../Server';
 import StartGamePacket from '../packet/StartGamePacket';
-import ResourcePackStatusType from '../type/ResourcePackStatusType';
-import PacketHandler from './PacketHandler';
 import Vector3 from '../../math/Vector3';
 
 export default class ResourcePackResponseHandler

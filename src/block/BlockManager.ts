@@ -131,7 +131,7 @@ export default class BlockManager {
             this.server
                 .getLogger()
                 .debug(
-                    `Registered §b${blocks.length}§r block(s) (took ${
+                    `Registered §b${this.blocks.size}§r block(s) (took ${
                         Date.now() - time
                     } ms)!`,
                     'BlockManager/importBlocks'

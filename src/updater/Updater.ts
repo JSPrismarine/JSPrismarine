@@ -1,8 +1,8 @@
-import fetch from 'node-fetch';
-import semver from 'semver';
-import pkg from '../../package.json';
 import Config from '../config/Config';
 import LoggerBuilder from '../utils/Logger';
+import fetch from 'node-fetch';
+import pkg from '../../package.json';
+import semver from 'semver';
 
 export default class Updater {
     private readonly logger: LoggerBuilder;
@@ -14,6 +14,9 @@ export default class Updater {
     }
 
     public async check(): Promise<void> {
+        // Don't check for updates in development to avoid rate-limiting
+        if (process.env.NODE_ENV === 'development') return;
+
         const release: {
             html_url: string;
             tag_name: string;

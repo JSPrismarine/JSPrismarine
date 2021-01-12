@@ -1,5 +1,5 @@
 # Node.js things
-node_modules
+/node_modules/
 yarn.lock
 /coverage/
 
@@ -13,6 +13,7 @@ yarn.lock
 config.yaml
 ops.json
 banned-players.json
+permissions.json
 *.log
 
 # Text editors/IDE things

@@ -5,10 +5,11 @@ import {
     literal,
     string
 } from '@jsprismarine/brigadier';
+
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
 import Player from '../../player/Player';
-import ChatEvent from '../../events/chat/ChatEvent';
-import Chat from '../../chat/Chat';
 
 export default class OpCommand extends Command {
     constructor() {
