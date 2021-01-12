@@ -365,7 +365,7 @@ export default class Server {
         };
         setIntervalAsync(tick, 1000 / 20);
 
-        setInterval(async () => {
+        setInterval(() => {
             const correctTicks = Math.ceil((Date.now() - startTime) / 50);
             const behindTicks = correctTicks - ticks;
 
