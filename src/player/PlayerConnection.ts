@@ -350,6 +350,16 @@ export default class PlayerConnection {
                     this.server.getCommandManager().getCommands().values()
                 ).find((cmd) => cmd.id.split(':')[1] === command[0])!;
 
+                if (!classCommand) {
+                    this.player
+                        .getServer()
+                        .getLogger()
+                        .warn(
+                            `Can't find corresponding command class for "${command[0]}"`
+                        );
+                    return;
+                }
+
                 if (
                     !this.player
                         .getServer()
