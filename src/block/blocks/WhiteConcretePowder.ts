@@ -2,8 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
-export enum
-    ConcretePowderColorType {
+export enum ConcretePowderColorType {
     White = 0,
     Orange = 1,
     Magenta = 2,
