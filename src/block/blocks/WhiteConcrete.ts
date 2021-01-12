@@ -2,14 +2,14 @@ import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
-export enum ConcreteColor {
+export enum ConcreteColorType {
     White = 0,
     Orange = 1,
     Magenta = 2,
-    lightBlue = 3,
+    LightBlue = 3,
     Yellow = 4,
     Lime = 5,
-    pink = 6,
+    Pink = 6,
     Gray = 7,
     LightGray = 8,
     Cyan = 9,
@@ -21,10 +21,10 @@ export enum ConcreteColor {
     Black = 15
 }
 
-export default class Concrete extends Solid {
+export default class WhiteConcrete extends Solid {
     constructor(
         name = 'minecraft:white_concrete',
-        type: ConcreteColor = ConcreteColor.White
+        type: ConcreteColorType = ConcreteColorType.White
     ) {
         super({
             name,

@@ -1,7 +1,7 @@
-import Concrete, { ConcreteColor } from './WhiteConcrete';
+import WhiteConcrete, { ConcreteColorType } from './WhiteConcrete';
 
-export default class GreenConcrete extends Concrete {
+export default class GreenConcrete extends WhiteConcrete {
     constructor() {
-        super('minecraft:green_concrete', ConcreteColor.Green);
+        super('minecraft:green_concrete', ConcreteColorType.Green);
     }
 }
