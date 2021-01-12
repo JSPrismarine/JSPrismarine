@@ -314,9 +314,9 @@ export default class World {
                 );
 
                 chunk.setBlock(
-                    placedPosition.getX() % 16,
+                    placedPosition.getX(),
                     placedPosition.getY(),
-                    placedPosition.getZ() % 16,
+                    placedPosition.getZ(),
                     block
                 );
                 resolve(true);
@@ -387,9 +387,12 @@ export default class World {
     }
 
     public async sendTime(): Promise<void> {
-        for (const player of this.players.values()) {
-            await player.getConnection().sendTime(this.getTicks());
-        }
+        // Try to send it at the same time to all
+        await Promise.all(
+            Array.from(this.players.values()).map(async (player) =>
+                player.getConnection().sendTime(this.getTicks())
+            )
+        );
     }
 
     /**
