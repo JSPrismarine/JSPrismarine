@@ -331,21 +331,20 @@ export default class Server {
         // Tick worlds every 1/20 of a second (a minecraft tick)
         // e.g. 1000 / 20 = 50
         const startTime = Date.now();
-        let lastTime = Date.now();
-        let ticks = 0;
+        let lastTime = Date.now(),
+            ticks = 0;
         const tick = async () => {
             ticks += 1;
 
             // Calculate current tps
             const finishTime = Date.now();
-            this.tps =
-                Math.round((1000 / (finishTime - startTime)) * 100) / 100;
+            this.tps = Math.round((1000 / (finishTime - lastTime)) * 100) / 100;
 
             this.tpsHistory.push(this.tps);
             if (this.tpsHistory.length > 12000) this.tpsHistory.shift();
 
             // Make sure we never execute more than once every 20th of a second
-            if (finishTime - startTime < 50) return;
+            if (finishTime - lastTime < 50) return;
             lastTime = finishTime;
 
             if (this.tps > 20) {
@@ -358,7 +357,7 @@ export default class Server {
 
             const promises: Array<Promise<void>> = [];
             for (const world of this.getWorldManager().getWorlds()) {
-                promises.push(world.update(startTime));
+                promises.push(world.update(lastTime));
             }
 
             await Promise.all(promises);
