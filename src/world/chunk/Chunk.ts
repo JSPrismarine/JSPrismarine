@@ -1,6 +1,7 @@
+import BlockMappings, { LegacyId } from '../../block/BlockMappings';
+
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Block from '../../block/Block';
-import BlockMappings from '../../block/BlockMappings';
 import SubChunk from './SubChunk';
 
 const MAX_SUBCHUNKS = 16;
@@ -84,15 +85,16 @@ export default class Chunk {
     }
 
     /**
-     * Returns a block legacy id in the corresponding sub chunk.
+     * Returns block legacy id (DATA) in the corresponding sub chunk.
+     * Use world to get the actual block instance (this is to keep code clean)
      *
      * @param bx - block x
      * @param by - block y
      * @param bz - block z
      * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
-    public getBlockId(bx: number, by: number, bz: number, layer = 0): number {
-        return this.getSubChunk(by).getBlockId(bx, by, bz, layer);
+    public getBlock(bx: number, by: number, bz: number, layer = 0): LegacyId {
+        return this.getSubChunk(by).getBlock(bx, by, bz, layer);
     }
 
     /**

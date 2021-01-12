@@ -58,7 +58,7 @@ export default class Overworld extends BaseGenerator {
                     }
 
                     for (let y = 0; y < SEA_LEVEL; y++) {
-                        if (chunk.getBlockId(x, y, z) === 0) {
+                        if (chunk.getBlock(x, y, z).id === 0) {
                             chunk.setBlock(x, y, z, water);
                         }
                     }

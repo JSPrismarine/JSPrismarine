@@ -43,16 +43,11 @@ export default class InventoryTransactionHandler
                                 const id = action.oldItem.id;
                                 const meta = action.oldItem.meta;
                                 const item =
-                                    server.getItemManager().getItemById(id) ||
+                                    server.getItemManager().getItemById(id) ??
                                     server
                                         .getBlockManager()
                                         .getBlockByIdAndMeta(id, meta);
                                 const count = 64;
-
-                                if (!item)
-                                    throw new Error(
-                                        `Invalid item ${id}:${meta}`
-                                    );
 
                                 movedItem = new ContainerEntry({
                                     item,
@@ -123,37 +118,24 @@ export default class InventoryTransactionHandler
                                 packet.blockPosition.getZ()
                             );
 
-                        // TODO: figure out why blockId sometimes === 0
                         const chunkPos = new Vector3(
                             packet.blockPosition.getX(),
                             packet.blockPosition.getY(),
                             packet.blockPosition.getZ()
                         );
 
-                        const blockId = chunk.getBlockId(
+                        const blockId = chunk.getBlock(
                             chunkPos.getX(),
                             chunkPos.getY(),
                             chunkPos.getZ()
                         );
 
-                        const block = server
-                            .getBlockManager()
-                            .getBlockById(blockId);
-
-                        if (!block) {
-                            server
-                                .getLogger()
-                                .warn(
-                                    `Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`,
-                                    'InventoryTransactionHandler/handle'
-                                );
-                            return;
-                        }
-
                         const pk = new UpdateBlockPacket();
                         pk.x = packet.blockPosition.getX();
                         pk.y = packet.blockPosition.getY();
                         pk.z = packet.blockPosition.getZ();
+                        // TODO: run a function from block.getBreakConsequences() because
+                        // the broken block may place more blocks or run block related code
                         pk.blockRuntimeId = BlockMappings.getRuntimeId(0, 0); // Air
 
                         await Promise.all(
@@ -181,31 +163,23 @@ export default class InventoryTransactionHandler
 
                         // ? 0 or id & 0xf
                         soundPk.extraData = BlockMappings.getRuntimeId(
-                            blockId,
-                            0
+                            blockId.id,
+                            blockId.meta
                         ); // In this case refers to block runtime Id
                         soundPk.entityType = ':';
                         soundPk.isBabyMob = false;
                         soundPk.disableRelativeVolume = false;
 
-                        /* await Promise.all(
-                            player
-                                .getPlayersInChunk()
-                                .map(async (player) =>
-                                    player
-                                        .getConnection()
-                                        .sendDataPacket(soundPk)
-                                )
-                        ); */
-
-                        await Promise.all(
-                            server
-                                .getPlayerManager()
-                                .getOnlinePlayers()
-                                .map(async (player) =>
-                                    player.getConnection().sendDataPacket(pk)
-                                )
-                        );
+                        await Promise.all([
+                            player.getPlayersInChunk().map(async (player) => {
+                                await player
+                                    .getConnection()
+                                    .sendDataPacket(soundPk);
+                            }),
+                            player.getPlayersInChunk().map(async (player) => {
+                                await player.getConnection().sendDataPacket(pk);
+                            })
+                        ]);
                         break;
                     }
                     default:

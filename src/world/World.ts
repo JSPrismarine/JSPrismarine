@@ -1,7 +1,6 @@
 import GameruleManager, { GameRules } from './GameruleManager';
 
 import Block from '../block/Block';
-import BlockManager from '../block/BlockManager';
 import BlockMappings from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
@@ -140,6 +139,31 @@ export default class World {
     }
 
     /**
+     * Returns a block instance in the given world position.
+     *
+     * @param bx - block x
+     * @param by - block y
+     * @param bz - block z
+     * @param layer - block storage layer (0 for blocks, 1 for liquids)
+     */
+    public async getBlock(
+        bx: number,
+        by: number,
+        bz: number,
+        layer = 0
+    ): Promise<Block> {
+        const blockId = (await this.getChunkAt(bx, bz)).getBlock(
+            bx,
+            by,
+            bz,
+            layer
+        );
+        return this.server
+            .getBlockManager()
+            .getBlockByIdAndMeta(blockId.id, blockId.meta);
+    }
+
+    /**
      * Returns the chunk in the specifies x and z, if the chunk doesn't exists
      * it is generated.
      */
@@ -233,20 +257,17 @@ export default class World {
         // TODO: canInteract
 
         const block = itemInHand; // TODO: get block from itemInHand
+        const blockId = (
+            await this.getChunkAt(blockPosition.getX(), blockPosition.getZ())
+        ).getBlock(
+            blockPosition.getX(),
+            blockPosition.getY(),
+            blockPosition.getZ()
+        );
+
         const clickedBlock = this.server
             .getBlockManager()
-            .getBlockById(
-                (
-                    await this.getChunkAt(
-                        blockPosition.getX(),
-                        blockPosition.getZ()
-                    )
-                ).getBlockId(
-                    blockPosition.getX() % 16,
-                    blockPosition.getY(),
-                    blockPosition.getZ() % 16
-                )
-            );
+            .getBlockByIdAndMeta(blockId.id, blockId.meta);
 
         if (!block || !clickedBlock) return;
         if (clickedBlock.getName() === 'minecraft:air' || !block.canBePlaced())

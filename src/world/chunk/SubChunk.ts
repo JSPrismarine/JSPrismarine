@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import BlockStorage from './BlockStorage';
+import { LegacyId } from '../../block/BlockMappings';
 
 export default class SubChunk {
     private storages: Map<number, BlockStorage> = new Map();
@@ -40,13 +41,13 @@ export default class SubChunk {
      * @param bz - block z
      * @param layer - block storage layer
      */
-    public getBlockId(
+    public getBlock(
         bx: number,
         by: number,
         bz: number,
         layer: number
-    ): number {
-        return this.getStorage(layer).getBlockId(bx, by & 0xf, bz);
+    ): LegacyId {
+        return this.getStorage(layer).getBlock(bx, by & 0xf, bz);
     }
 
     /**

@@ -4,7 +4,7 @@ import { ByteOrder } from '../nbt/ByteOrder';
 import NBTReader from '../nbt/NBTReader';
 import NBTTagCompound from '../nbt/NBTTagCompound';
 
-interface LegacyId {
+export interface LegacyId {
     id: number;
     meta: number;
 }

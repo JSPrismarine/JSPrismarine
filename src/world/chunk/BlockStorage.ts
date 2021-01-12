@@ -1,5 +1,6 @@
+import BlockMappings, { LegacyId } from '../../block/BlockMappings';
+
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BlockMappings from '../../block/BlockMappings';
 
 export default class BlockStorage {
     private blocks: number[];
@@ -17,12 +18,10 @@ export default class BlockStorage {
         return ((bx << 8) + (bz << 4)) | by;
     }
 
-    // Returns the block id, not runtime
-    // Move to return the block instead of Id
-    public getBlockId(bx: number, by: number, bz: number): number {
+    public getBlock(bx: number, by: number, bz: number): LegacyId {
         const paletteIndex = this.blocks[BlockStorage.getIndex(bx, by, bz)];
         const runtimeId = this.palette[paletteIndex];
-        return BlockMappings.getLegacyId(runtimeId).id;
+        return BlockMappings.getLegacyId(runtimeId);
     }
 
     public setBlock(
