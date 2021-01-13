@@ -1,7 +1,10 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BlockStorage from '../../chunk/BlockStorage';
 import { ByteOrder } from '../../../nbt/ByteOrder';
+import Chunk from '../../chunk/Chunk';
 import NBTReader from '../../../nbt/NBTReader';
 import NBTTagCompound from '../../../nbt/NBTTagCompound';
+import SubChunk from '../../chunk/SubChunk';
 import Zlib from 'zlib';
 
 enum AnvilChunkCompressionType {
@@ -13,7 +16,7 @@ enum AnvilChunkCompressionType {
 export default class Region {
     private chunks: Map<string, any> = new Map();
 
-    constructor(buffer: Buffer) {
+    public constructor(buffer: Buffer) {
         const stream = new BinaryStream(buffer);
 
         const locations: number[][] = [];
@@ -26,32 +29,52 @@ export default class Region {
 
         // TODO: timestamps
 
-        locations.forEach((location) => {
-            // FIXME: This should be replaced with stream.setOffset in the future
-            const stream = new BinaryStream(buffer, location[0] * 4096);
-            for (let i = 0; i < location[1]; i++) {
-                const sector = new BinaryStream(stream.read(4096));
+        for (const location of locations) {
+            (stream as any).offset = location[0] * 4096;
+            for (let j = 0; j < location[1]; j++) {
+                const size = stream.readInt();
+                const compression = stream.readByte();
+                const sector = stream.read(4091);
 
-                const size = sector.readInt();
-                const compression = sector.readByte();
                 let data;
                 switch (compression) {
                     case AnvilChunkCompressionType.Zlib:
-                        data = Zlib.unzipSync(sector.read(size - 1));
+                        data = Zlib.unzipSync(sector.slice(0, size - 1));
                         break;
                     case AnvilChunkCompressionType.Uncompressed:
-                        data = sector.read(size - 1);
+                        data = sector.slice(0, size - 1);
                         break;
                     default:
                         throw new Error(`Invalid compression type`);
                 }
 
                 const nbtStream = new BinaryStream(data);
-                const nbt = NBTTagCompound.readFromStream(
+                const regionNbt = NBTTagCompound.readFromStream(
                     nbtStream,
                     ByteOrder.BIG_ENDIAN
                 );
+
+                if (regionNbt.has('Level')) {
+                    const levelNbt = regionNbt.getCompound('Level', false)!;
+                    const xPos = levelNbt.getNumber('xPos', 0);
+                    const zPos = levelNbt.getNumber('zPos', 0);
+
+                    const storages: Map<number, BlockStorage> = new Map();
+                    const sections: Set<NBTTagCompound> = levelNbt.getList(
+                        'Sections',
+                        false
+                    )!;
+                    for (const section of sections) {
+                        const yIndex = section.getByte('Y', 0);
+                    }
+
+                    const storage = new BlockStorage();
+
+                    const subChunk = new SubChunk();
+
+                    const chunk = new Chunk(xPos, zPos);
+                }
             }
-        });
+        }
     }
 }
