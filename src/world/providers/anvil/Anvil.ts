@@ -30,6 +30,8 @@ export default class Anvil extends BaseProvider {
             );
             this.cachedRegions.set(id, region);
         }
-        return new Chunk(cx, cz);
+
+        const region = this.cachedRegions.get(id)!;
+        return region.getChunk(cx, cz);
     }
 }

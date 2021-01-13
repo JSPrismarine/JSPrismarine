@@ -30,8 +30,9 @@ export default class Region {
         // TODO: timestamps
 
         for (const location of locations) {
+            // FIXME: stream.setOffset
             (stream as any).offset = location[0] * 4096;
-            for (let j = 0; j < location[1]; j++) {
+            for (let i = 0; i < location[1]; i++) {
                 const size = stream.readInt();
                 const compression = stream.readByte();
                 const sector = stream.read(4091);
@@ -54,27 +55,31 @@ export default class Region {
                     ByteOrder.BIG_ENDIAN
                 );
 
-                if (regionNbt.has('Level')) {
-                    const levelNbt = regionNbt.getCompound('Level', false)!;
-                    const xPos = levelNbt.getNumber('xPos', 0);
-                    const zPos = levelNbt.getNumber('zPos', 0);
+                if (!regionNbt.has('Level'))
+                    throw new Error('region is missing Level tag');
 
-                    const storages: Map<number, BlockStorage> = new Map();
-                    const sections: Set<NBTTagCompound> = levelNbt.getList(
-                        'Sections',
-                        false
-                    )!;
-                    for (const section of sections) {
-                        const yIndex = section.getByte('Y', 0);
-                    }
+                const levelNbt = regionNbt.getCompound('Level', false)!;
+                const xPos = levelNbt.getNumber('xPos', 0);
+                const zPos = levelNbt.getNumber('zPos', 0);
 
-                    const storage = new BlockStorage();
-
-                    const subChunk = new SubChunk();
-
-                    const chunk = new Chunk(xPos, zPos);
+                const storages: Map<number, BlockStorage> = new Map();
+                const sections: Set<NBTTagCompound> = levelNbt.getList(
+                    'Sections',
+                    false
+                )!;
+                for (const section of sections) {
+                    const yIndex = section.getByte('Y', 0);
                 }
+
+                const storage = new BlockStorage();
+                const subChunk = new SubChunk();
+                const chunk = new Chunk(xPos, zPos);
+                this.chunks.set(`${xPos}.${zPos}`, chunk);
             }
         }
+    }
+
+    public getChunk(x: number, z: number): Chunk {
+        return this.chunks.get(`${x}.${z}`);
     }
 }
