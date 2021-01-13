@@ -1,7 +1,8 @@
 import { BlockIdsType } from '../BlockIdsType';
+import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
-export enum WoolType {
+export enum WoolColorType {
     White = 0,
     Orange = 1,
     Magenta = 2,
@@ -9,6 +10,7 @@ export enum WoolType {
     Yellow = 4,
     Lime = 5,
     Pink = 6,
+    Gray = 7,
     LightGray = 8,
     Cyan = 9,
     Purple = 10,
@@ -22,13 +24,17 @@ export enum WoolType {
 export default class WhiteWool extends Solid {
     constructor(
         name = 'minecraft:white_wool',
-        type: WoolType = WoolType.White
+        type: WoolColorType = WoolColorType.White
     ) {
         super({
             name,
             id: BlockIdsType.Wool,
-            hardness: 0.2
+            hardness: 0.8
         });
         this.meta = type;
+    }
+
+    getToolType() {
+        return BlockToolType.Shears;
     }
 }
