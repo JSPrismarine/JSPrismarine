@@ -1,7 +1,12 @@
-import ConcretePowder, { ConcretePowderColor } from './WhiteConcretePowder';
+import WhiteConcretePowder, {
+    ConcretePowderColorType
+} from './WhiteConcretePowder';
 
-export default class PurpleConcrete extends ConcretePowder {
+export default class PurpleConcrete extends WhiteConcretePowder {
     constructor() {
-        super('minecraft:purple_concrete_powder', ConcretePowderColor.Purple);
+        super(
+            'minecraft:purple_concrete_powder',
+            ConcretePowderColorType.Purple
+        );
     }
 }
