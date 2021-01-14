@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class PlayStatusPacket extends DataPacket {
-    static NetID = Identifiers.PlayStatusPacket;
+    public static NetID = Identifiers.PlayStatusPacket;
 
     public status!: number;
 

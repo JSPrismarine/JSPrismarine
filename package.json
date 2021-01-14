@@ -82,6 +82,7 @@
             "@typescript-eslint/lines-between-class-members": 0,
             "@typescript-eslint/no-confusing-void-expression": 1,
             "@typescript-eslint/non-nullable-type-assertion-style": 1,
+            "@typescript-eslint/explicit-member-accessibility": 1,
             "no-inferrable-types": 0,
             "prefer-destructuring": 0,
             "new-cap": 0,

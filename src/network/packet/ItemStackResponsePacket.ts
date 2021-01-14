@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class ItemStackResponsePacket extends DataPacket {
-    static NetID = Identifiers.ItemStackResponsePacket;
+    public static NetID = Identifiers.ItemStackResponsePacket;
 
     public responses = [];
 

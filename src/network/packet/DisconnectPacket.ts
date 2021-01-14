@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class DisconnectPacket extends DataPacket {
-    static NetID = Identifiers.DisconnectPacket;
+    public static NetID = Identifiers.DisconnectPacket;
 
     public hideDisconnectionWindow!: boolean;
     public message!: string;

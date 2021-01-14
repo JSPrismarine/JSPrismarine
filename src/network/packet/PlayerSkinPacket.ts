@@ -4,7 +4,7 @@ import type Skin from '../../utils/skin/Skin';
 import type UUID from '../../utils/UUID';
 
 export default class PlayerSkinPacket extends DataPacket {
-    static NetID = Identifiers.PlayerSkinPacket;
+    public static NetID = Identifiers.PlayerSkinPacket;
 
     public uuid!: UUID;
     public newSkinName!: string;

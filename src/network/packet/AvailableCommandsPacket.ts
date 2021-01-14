@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class AvailableCommandsPacket extends DataPacket {
-    static NetID = Identifiers.AvailableCommandsPacket;
+    public static NetID = Identifiers.AvailableCommandsPacket;
 
     public enumValues: Set<string> = new Set();
     public postFixes: Set<string> = new Set();

@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class PacketViolationWarningPacket extends DataPacket {
-    static NetID = Identifiers.PacketViolationWarningPacket;
+    public static NetID = Identifiers.PacketViolationWarningPacket;
 
     public type!: number;
     public severity!: number;

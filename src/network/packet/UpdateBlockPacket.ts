@@ -11,7 +11,7 @@ export enum UpdateBlockFlagsType {
 }
 
 export default class UpdateBlockPacket extends DataPacket {
-    static NetID = Identifiers.UpdateBlockPacket;
+    public static NetID = Identifiers.UpdateBlockPacket;
 
     public x!: number;
     public y!: number;

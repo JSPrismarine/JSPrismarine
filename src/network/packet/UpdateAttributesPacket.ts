@@ -3,7 +3,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class UpdateAttributesPacket extends DataPacket {
-    static NetID = Identifiers.UpdateAttributesPacket;
+    public static NetID = Identifiers.UpdateAttributesPacket;
 
     public runtimeEntityId!: bigint;
     public attributes: Attribute[] = [];

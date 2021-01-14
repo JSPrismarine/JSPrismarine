@@ -19,7 +19,7 @@ export enum InventoryTransactionType {
 }
 
 export default class InventoryTransactionPacket extends DataPacket {
-    static NetID = Identifiers.InventoryTransactionPacket;
+    public static NetID = Identifiers.InventoryTransactionPacket;
 
     public type!: InventoryTransactionType;
     public actions = new Map();

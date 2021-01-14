@@ -3,7 +3,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class InventoryContentPacket extends DataPacket {
-    static NetID = Identifiers.InventoryContentPacket;
+    public static NetID = Identifiers.InventoryContentPacket;
 
     public windowId!: number;
     public items: ContainerEntry[] = [];
