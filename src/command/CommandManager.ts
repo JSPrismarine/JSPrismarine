@@ -91,7 +91,15 @@ export default class CommandManager {
                 `command is missing required "namespace" part of id`
             );
 
-        await command.register(this.dispatcher);
+        if (!command?.register)
+            this.server
+                .getLogger()
+                .warn(
+                    `Command is missing "register" member. This is unsupported!`,
+                    'CommandManager/registerClassCommand'
+                );
+
+        await command?.register?.(this.dispatcher);
         this.commands.set(command.id, command);
 
         await Promise.all(
