@@ -26,7 +26,7 @@ export default class DataPacket extends PacketBinaryStream {
     }
 
     public decode() {
-        (this as any).offset = 0;
+        this.setOffset(0);
         this.decodeHeader();
         this.decodePayload();
 
