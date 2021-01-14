@@ -19,6 +19,7 @@ export default class CommandManager {
 
     constructor(server: Server) {
         this.server = server;
+        this.dispatcher = new CommandDispatcher();
     }
 
     /**
@@ -26,7 +27,6 @@ export default class CommandManager {
      */
     public async onEnable() {
         const time = Date.now();
-        this.dispatcher = new CommandDispatcher();
 
         const commands = [
             ...fs
@@ -80,6 +80,7 @@ export default class CommandManager {
      */
     public async onDisable() {
         this.commands.clear();
+        // TODO: clear commands in dispatcher
     }
 
     /**
@@ -99,7 +100,7 @@ export default class CommandManager {
                     'CommandManager/registerClassCommand'
                 );
 
-        await command?.register?.(this.dispatcher);
+        await command.register?.(this.dispatcher);
         this.commands.set(command.id, command);
 
         await Promise.all(
