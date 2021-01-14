@@ -30,8 +30,7 @@ export default class Region {
         // TODO: timestamps
 
         for (const location of locations) {
-            // FIXME: stream.setOffset
-            (stream as any).offset = location[0] * 4096;
+            stream.setOffset(location[0] * 4096);
             for (let i = 0; i < location[1]; i++) {
                 const size = stream.readInt();
                 const compression = stream.readByte();
