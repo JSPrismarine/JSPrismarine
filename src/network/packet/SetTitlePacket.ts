@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class SetTitlePacket extends DataPacket {
-    static NetID = Identifiers.SetTitlePacket;
+    public static NetID = Identifiers.SetTitlePacket;
 
     public type!: number;
     public text!: string;

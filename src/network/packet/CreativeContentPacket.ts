@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class CreativeContentPacket extends DataPacket {
-    static NetID = Identifiers.CreativeContentPacket;
+    public static NetID = Identifiers.CreativeContentPacket;
 
     public entries: any[] = [];
 

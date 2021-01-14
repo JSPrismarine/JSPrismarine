@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class SetDefaultGameTypePacket extends DataPacket {
-    static NetID = Identifiers.SetDefaultGameTypePacket;
+    public static NetID = Identifiers.SetDefaultGameTypePacket;
 
     public gamemode!: number;
 

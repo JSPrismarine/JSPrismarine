@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class TransferPacket extends DataPacket {
-    static NetID = Identifiers.TransferPacket;
+    public static NetID = Identifiers.TransferPacket;
 
     public address!: string;
     public port!: number;

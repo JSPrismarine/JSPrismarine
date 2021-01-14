@@ -5,17 +5,17 @@ import { ItemTieredToolType } from '../item/ItemTieredToolType';
 import Server from '../Server';
 
 export default class Block {
-    id: number;
-    runtimeId?: number;
-    name: string;
-    hardness: number;
-    meta = 0;
+    public id: number;
+    public runtimeId?: number;
+    public name: string;
+    public hardness: number;
+    public meta = 0;
 
     // TODO
-    nbt = null;
-    count = 1;
+    public nbt = null;
+    public count = 1;
 
-    constructor({
+    public constructor({
         id,
         name,
         hardness

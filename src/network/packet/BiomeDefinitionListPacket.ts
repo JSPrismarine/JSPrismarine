@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class BiomeDefinitionListPacket extends DataPacket {
-    static NetID = Identifiers.BiomeDefinitionListPacket;
+    public static NetID = Identifiers.BiomeDefinitionListPacket;
 
     private cachedNBT!: Buffer;
     private get hardcodedNBT() {
