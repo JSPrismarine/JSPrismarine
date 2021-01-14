@@ -1,15 +1,15 @@
 import Block from './Block';
 
 export default class Flowable extends Block {
-    getHardness() {
+    public getHardness() {
         return 0;
     }
 
-    isSolid() {
+    public isSolid() {
         return false;
     }
 
-    canBeFlowedInto() {
+    public canBeFlowedInto() {
         return true;
     }
 }

@@ -11,7 +11,7 @@ export default class SoulSand extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

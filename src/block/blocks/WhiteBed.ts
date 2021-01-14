@@ -31,7 +31,7 @@ export default class WhiteBed extends Solid {
         this.meta = type;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getItemManager().getItem('minecraft:bed')];
     }
 }

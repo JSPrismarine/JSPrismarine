@@ -12,7 +12,7 @@ export default class FlowingWater extends Liquid {
         });
     }
 
-    getLightFilter() {
+    public getLightFilter() {
         return 2;
     }
 }

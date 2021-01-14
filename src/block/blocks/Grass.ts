@@ -13,11 +13,11 @@ export default class Grass extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:dirt')];
     }
 }

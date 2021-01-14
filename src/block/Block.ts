@@ -169,27 +169,27 @@ export default class Block {
         return false;
     }
 
-    canBePlaced() {
+    public canBePlaced() {
         return true;
     }
 
-    canBeFlowedInto() {
+    public canBeFlowedInto() {
         return false;
     }
 
-    isTransparent() {
+    public isTransparent() {
         return false;
     }
 
-    isBreakable() {
+    public isBreakable() {
         return true;
     }
 
-    isSolid() {
+    public isSolid() {
         return false;
     }
 
-    isCompatibleWithTool(item: Item | null) {
+    public isCompatibleWithTool(item: Item | null) {
         if (!item) return false;
 
         if (this.getHardness() < 0) return false;
@@ -207,11 +207,11 @@ export default class Block {
         return false;
     }
 
-    isAffectedBySilkTouch() {
+    public isAffectedBySilkTouch() {
         return true;
     }
 
-    isPartOfCreativeInventory() {
+    public isPartOfCreativeInventory() {
         return true;
     }
 }

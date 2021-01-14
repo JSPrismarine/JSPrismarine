@@ -24,15 +24,15 @@ export default class Planks extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Axe;
     }
 
-    getFlammability() {
+    public getFlammability() {
         return 20;
     }
 
-    getFuelTime() {
+    public getFuelTime() {
         return 300;
     }
 }
