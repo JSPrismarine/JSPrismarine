@@ -11,7 +11,7 @@ export default class Clay extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

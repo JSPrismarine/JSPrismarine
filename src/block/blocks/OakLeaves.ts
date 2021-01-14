@@ -24,15 +24,15 @@ export default class Leaves extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shears;
     }
 
-    getFlammability() {
+    public getFlammability() {
         return 20;
     }
 
-    getFuelTime() {
+    public getFuelTime() {
         return 300;
     }
 }

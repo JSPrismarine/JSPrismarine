@@ -12,11 +12,11 @@ export default class NoteBlock extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Axe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Wood;
     }
 }

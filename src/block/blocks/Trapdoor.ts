@@ -11,11 +11,11 @@ export default class Trapdoor extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Axe;
     }
 
-    getFlammability() {
+    public getFlammability() {
         return 20;
     }
 
