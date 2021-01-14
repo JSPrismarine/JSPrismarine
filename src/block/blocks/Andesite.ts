@@ -7,7 +7,7 @@ export default class Andesite extends Stone {
         super('minecraft:andesite', StoneType.Andesite);
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:andesite')];
     }
 }

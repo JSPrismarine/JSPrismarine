@@ -34,7 +34,7 @@ export default class WhiteConcretePowder extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

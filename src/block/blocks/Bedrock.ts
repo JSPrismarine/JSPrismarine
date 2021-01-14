@@ -14,7 +14,7 @@ export default class Bedrock extends Solid {
         return false;
     }
 
-    getBlastResistance() {
+    public getBlastResistance() {
         return 18000000;
     }
 }

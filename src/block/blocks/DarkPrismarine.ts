@@ -12,7 +12,7 @@ export default class DarkPrismarine extends Solid {
         this.meta = 1;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 }

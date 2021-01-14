@@ -12,11 +12,11 @@ export default class EmeraldOre extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Iron;
     }
 }

@@ -12,15 +12,15 @@ export default class CryingObsidian extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Diamond;
     }
 
-    getBlastResistance() {
+    public getBlastResistance() {
         return 6000;
     }
 }

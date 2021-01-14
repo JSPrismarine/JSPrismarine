@@ -11,7 +11,7 @@ export default class IronTrapdoor extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
