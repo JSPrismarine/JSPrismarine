@@ -34,7 +34,7 @@ export default class WhiteConcrete extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 }

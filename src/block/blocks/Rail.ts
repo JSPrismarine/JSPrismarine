@@ -11,7 +11,7 @@ export default class Rail extends Transparent {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 }

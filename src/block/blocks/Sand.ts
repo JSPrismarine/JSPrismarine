@@ -17,7 +17,7 @@ export default class Sand extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

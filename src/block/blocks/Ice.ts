@@ -11,15 +11,15 @@ export default class Ice extends Solid {
         });
     }
 
-    isTransparent() {
+    public isTransparent() {
         return true;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    isAffectedBySilkTouch() {
+    public isAffectedBySilkTouch() {
         return true;
     }
 }

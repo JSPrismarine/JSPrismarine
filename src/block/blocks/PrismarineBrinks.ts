@@ -12,7 +12,7 @@ export default class PrismarineBricks extends Solid {
         this.meta = 2;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 }

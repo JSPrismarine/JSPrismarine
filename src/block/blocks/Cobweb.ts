@@ -11,7 +11,7 @@ export default class Cobweb extends Flowable {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         // FIXME: add sword
         return BlockToolType.Shears;
     }

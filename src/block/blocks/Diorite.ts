@@ -7,7 +7,7 @@ export default class Diorite extends Stone {
         super('minecraft:diorite', StoneType.Diorite);
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:diorite')];
     }
 }
