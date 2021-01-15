@@ -14,7 +14,7 @@ import StringVal from './types/StringVal';
 
 export default class NBTTagCompound {
     private name: string | null;
-    private readonly children: Map<string, any> = new Map();
+    public readonly children: Map<string, any> = new Map();
 
     public static readFromFile(
         path: string,
@@ -149,5 +149,73 @@ export default class NBTTagCompound {
 
     public size(): number {
         return this.children.size;
+    }
+
+    // Thanks stackoverflow! https://stackoverflow.com/questions/35948335/how-can-i-check-if-two-map-objects-are-equal
+    public equals(that: NBTTagCompound): boolean {
+        if (this.children.size !== that.children.size) {
+            return false;
+        }
+
+        for (const [key, val] of this.children) {
+            const testVal = that.children.get(key);
+
+            if (testVal === undefined && !that.children.has(key)) {
+                return false;
+            }
+
+            if (
+                val instanceof NBTTagCompound &&
+                testVal instanceof NBTTagCompound
+            ) {
+                if (!val.equals(testVal)) {
+                    return false;
+                }
+            }
+
+            if (val instanceof ByteVal && testVal instanceof ByteVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof DoubleVal && testVal instanceof DoubleVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof FloatVal && testVal instanceof FloatVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof LongVal && testVal instanceof LongVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof NumberVal && testVal instanceof NumberVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof ShortVal && testVal instanceof ShortVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof StringVal && testVal instanceof StringVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }
