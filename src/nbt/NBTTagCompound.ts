@@ -157,8 +157,8 @@ export default class NBTTagCompound {
             return false;
         }
 
-        for (let [key, val] of this.children) {
-            let testVal = that.children.get(key);
+        for (const [key, val] of this.children) {
+            const testVal = that.children.get(key);
 
             if (testVal === undefined && !that.children.has(key)) {
                 return false;
