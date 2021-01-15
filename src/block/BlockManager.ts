@@ -1,12 +1,12 @@
 import BedrockData from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Block from './Block';
-import R12ToCurrentBlockMapEntry from './R12ToCurrentBlockMapEntry';
 import { BlockIdsType } from './BlockIdsType';
 import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
 import { ByteOrder } from '../nbt/ByteOrder';
 import NBTReader from '../nbt/NBTReader';
 import NBTTagCompound from '../nbt/NBTTagCompound';
+import R12ToCurrentBlockMapEntry from './R12ToCurrentBlockMapEntry';
 import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
@@ -17,7 +17,7 @@ export default class BlockManager {
     private readonly runtimeIds: number[] = [];
     private readonly blockPalette: Buffer = Buffer.alloc(0);
 
-    private bedrockKnownStates: Array<NBTTagCompound> = [];
+    private bedrockKnownStates: NBTTagCompound[] = [];
     private readonly legacyToRuntimeId: Map<number, number> = new Map();
     private readonly runtimeIdToLegacy: Map<number, number> = new Map();
 
@@ -94,7 +94,7 @@ export default class BlockManager {
                 BedrockData.canonical_block_states // Vanilla states
             );
 
-            const list: Array<NBTTagCompound> = [];
+            const list: NBTTagCompound[] = [];
             while (!data.feof()) {
                 const reader: NBTReader = new NBTReader(
                     data,
@@ -108,7 +108,7 @@ export default class BlockManager {
             resolve(list);
         });
 
-        const legacyStateMap: Array<R12ToCurrentBlockMapEntry> = await new Promise(
+        const legacyStateMap: R12ToCurrentBlockMapEntry[] = await new Promise(
             (resolve) => {
                 const data: BinaryStream = new BinaryStream(
                     BedrockData.r12_to_current_block_map
@@ -120,7 +120,7 @@ export default class BlockManager {
                 );
                 reader.setUseVarint(true);
 
-                const list: Array<R12ToCurrentBlockMapEntry> = [];
+                const list: R12ToCurrentBlockMapEntry[] = [];
                 while (!data.feof()) {
                     const id: string = data
                         .read(data.readUnsignedVarInt())
@@ -136,12 +136,12 @@ export default class BlockManager {
             }
         );
 
-        let idToStatesMap: Map<string, Array<number>> = new Map<
+        const idToStatesMap: Map<string, number[]> = new Map<
             string,
-            Array<number>
+            number[]
         >();
 
-        for (let k: number = 0; k < this.bedrockKnownStates.length; k++) {
+        for (let k = 0; k < this.bedrockKnownStates.length; k++) {
             const name: string = this.bedrockKnownStates[k].getString(
                 'name',
                 ''
@@ -150,12 +150,11 @@ export default class BlockManager {
             if (!idToStatesMap.has(name)) {
                 idToStatesMap.set(name, [k]);
             } else {
-                // @ts-ignore
-                idToStatesMap.get(name).push(k);
+                idToStatesMap.get(name)!.push(k);
             }
         }
 
-        for (let pair of legacyStateMap) {
+        for (const pair of legacyStateMap) {
             const id: number = BedrockData.block_id_map[pair.getId()];
             const meta: number = pair.getMeta();
 
@@ -172,8 +171,7 @@ export default class BlockManager {
                 );
             }
 
-            // @ts-ignore
-            for (let runtimeId of idToStatesMap.get(mappedName)) {
+            for (const runtimeId of idToStatesMap.get(mappedName)!) {
                 const networkState = this.bedrockKnownStates[runtimeId];
 
                 if (mappedState.equals(networkState)) {
