@@ -287,14 +287,6 @@ export default class PlayerConnection {
             ...this.player.getServer().getItemManager().getItems()
         ];
 
-        console.log(
-            this.player
-                .getServer()
-                .getItemManager()
-                .getItems()
-                .find((value) => value.isArmorPiece())
-        );
-
         // Sort based on PmmP Bedrock-data
         creativeitems.forEach((item: any) => {
             pk.entries.push(
