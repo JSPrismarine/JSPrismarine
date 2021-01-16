@@ -15,6 +15,7 @@ import PlayerListPacket, {
 } from '../network/packet/PlayerListPacket';
 
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
+import Air from '../block/blocks/Air';
 import { Attribute } from '../entity/attribute';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
 import BatchPacket from '../network/packet/BatchPacket';
@@ -285,6 +286,14 @@ export default class PlayerConnection {
             ...this.player.getServer().getBlockManager().getBlocks(),
             ...this.player.getServer().getItemManager().getItems()
         ];
+
+        console.log(
+            this.player
+                .getServer()
+                .getItemManager()
+                .getItems()
+                .find((value) => value.isArmorPiece())
+        );
 
         // Sort based on PmmP Bedrock-data
         creativeitems.forEach((item: any) => {
@@ -658,8 +667,8 @@ export default class PlayerConnection {
         pk.headYaw = this.player.headYaw;
 
         pk.item =
-            this.player.getInventory()?.getItemInHand()?.getItem()?.getId() ??
-            0;
+            this.player.getInventory()?.getItemInHand() ??
+            new ContainerEntry({ item: new Air(), count: 0 });
 
         pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager().getMetadata();

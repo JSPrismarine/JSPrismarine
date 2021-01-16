@@ -1,3 +1,4 @@
+import ContainerEntry from '../../inventory/ContainerEntry';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import UUID from '../../utils/UUID';
@@ -23,7 +24,7 @@ export default class AddPlayerPacket extends DataPacket {
     public yaw!: number;
     public headYaw!: number;
 
-    public item!: number;
+    public item!: ContainerEntry;
 
     public deviceId!: string;
     public buildPlatform!: number;
@@ -52,7 +53,7 @@ export default class AddPlayerPacket extends DataPacket {
         this.writeLFloat(this.yaw);
         this.writeLFloat(this.headYaw);
 
-        this.writeVarInt(this.item ?? 0);
+        this.writeItemStack(this.item);
         this.writeEntityMetadata(this.metadata);
 
         for (let i = 0; i < 5; i++) {
