@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class ResourcePacksInfoPacket extends DataPacket {
-    static NetID = Identifiers.ResourcePacksInfoPacket;
+    public static NetID = Identifiers.ResourcePacksInfoPacket;
 
     public mustAccept!: boolean;
     public hasScripts!: boolean;

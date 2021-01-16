@@ -3,7 +3,7 @@ import Identifiers from '../Identifiers';
 import uuid from '../../utils/UUID';
 
 export default class EmoteListPacket extends DataPacket {
-    static NetID = Identifiers.EmoteListPacket;
+    public static NetID = Identifiers.EmoteListPacket;
 
     public runtimeId!: number;
     public emoteIds: Set<uuid> = new Set();

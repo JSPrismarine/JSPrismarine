@@ -3,7 +3,7 @@ import Identifiers from '../Identifiers';
 import UUID from '../../utils/UUID';
 
 export default class AddPlayerPacket extends DataPacket {
-    static NetID = Identifiers.AddPlayerPacket;
+    public static NetID = Identifiers.AddPlayerPacket;
 
     public uuid!: UUID;
     public name!: string;

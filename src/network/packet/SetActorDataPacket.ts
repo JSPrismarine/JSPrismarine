@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class SetActorDataPacket extends DataPacket {
-    static NetID = Identifiers.SetActorDataPacket;
+    public static NetID = Identifiers.SetActorDataPacket;
 
     public runtimeEntityId!: bigint;
     public metadata: Map<

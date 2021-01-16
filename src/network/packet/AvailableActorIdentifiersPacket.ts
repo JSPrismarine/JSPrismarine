@@ -5,7 +5,7 @@ const EntityIdentifiers = require('@jsprismarine/bedrock-data')
     .entity_identifiers;
 
 export default class AvailableActorIdentifiersPacket extends DataPacket {
-    static NetID = Identifiers.AvailableActorIdentifiersPacket;
+    public static NetID = Identifiers.AvailableActorIdentifiersPacket;
 
     private cachedNBT: any;
 

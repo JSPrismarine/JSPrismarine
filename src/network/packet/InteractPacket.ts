@@ -9,7 +9,7 @@ export enum InteractAction {
 }
 
 export default class InteractPacket extends DataPacket {
-    static NetID = Identifiers.InteractPacket;
+    public static NetID = Identifiers.InteractPacket;
 
     public action!: number;
     public target!: bigint;

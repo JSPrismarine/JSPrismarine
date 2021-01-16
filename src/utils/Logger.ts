@@ -1,6 +1,8 @@
 import { Logger, createLogger, format, transports } from 'winston';
+
+import mcColors from 'mccolorstoconsole';
+
 const { combine, timestamp, printf } = format;
-const mcColors = require('mccolorstoconsole');
 
 export default class LoggerBuilder {
     private readonly logger: Logger;

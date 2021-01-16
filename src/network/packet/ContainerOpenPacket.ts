@@ -3,7 +3,7 @@ import Identifiers from '../Identifiers';
 import Vector3 from '../../math/Vector3';
 
 export default class ContainerOpenPacket extends DataPacket {
-    static NetID = Identifiers.ContainerOpenPacket;
+    public static NetID = Identifiers.ContainerOpenPacket;
     public windowId!: number;
     public containerType!: number;
 

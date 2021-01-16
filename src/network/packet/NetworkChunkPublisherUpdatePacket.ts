@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class NetworkChunkPublisherUpdatePacket extends DataPacket {
-    static NetID = Identifiers.NetworkChunkPublisherUpdatePacket;
+    public static NetID = Identifiers.NetworkChunkPublisherUpdatePacket;
 
     public x!: number;
     public y!: number;

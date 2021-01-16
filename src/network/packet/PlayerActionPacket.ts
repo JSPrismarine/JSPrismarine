@@ -3,7 +3,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class PlayerActionPacket extends DataPacket {
-    static NetID = Identifiers.PlayerActionPacket;
+    public static NetID = Identifiers.PlayerActionPacket;
 
     public runtimeEntityId!: bigint;
     public action!: number;

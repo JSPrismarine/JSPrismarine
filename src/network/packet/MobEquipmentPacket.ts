@@ -3,7 +3,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class MobEquipmentPacket extends DataPacket {
-    static NetID = Identifiers.MobEquipmentPacket;
+    public static NetID = Identifiers.MobEquipmentPacket;
 
     public runtimeEntityId!: bigint;
     public item!: ContainerEntry;
