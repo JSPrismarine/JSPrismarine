@@ -1,4 +1,5 @@
 import fetch, { Headers } from 'node-fetch';
+
 import PluginFile from '../plugin/PluginFile';
 import Server from '../Server';
 import { machineIdSync } from 'node-machine-id';
@@ -10,7 +11,7 @@ export default class TelemetryManager {
     private readonly enabled: boolean;
     private readonly urls: string[];
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
         const { enabled, urls } = server.getConfig().getTelemetry();
         this.enabled = enabled;

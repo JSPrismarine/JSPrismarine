@@ -1,7 +1,7 @@
 import WhiteWool, { WoolColorType } from './WhiteWool';
 
 export default class BrownWool extends WhiteWool {
-    constructor() {
+    public constructor() {
         super('minecraft:brown_wool', WoolColorType.Brown);
     }
 }

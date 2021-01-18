@@ -1,7 +1,7 @@
 import WhiteWool, { WoolColorType } from './WhiteWool';
 
 export default class LimeWool extends WhiteWool {
-    constructor() {
+    public constructor() {
         super('minecraft:lime_wool', WoolColorType.Lime);
     }
 }

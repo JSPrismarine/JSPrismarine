@@ -6,7 +6,7 @@ import Server from '../../Server';
 import Solid from '../Solid';
 
 export default class CoalOre extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:coal_ore',
             id: BlockIdsType.CoalOre,

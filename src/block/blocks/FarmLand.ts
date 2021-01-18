@@ -5,7 +5,7 @@ import Server from '../../Server';
 import Solid from '../Solid';
 
 export default class Farmland extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:farmland',
             id: BlockIdsType.Farmland,

@@ -4,7 +4,7 @@ class Swap {
     public from: ItemStackRequestSlotInfo;
     public to: ItemStackRequestSlotInfo;
 
-    constructor({
+    public constructor({
         from,
         to
     }: {

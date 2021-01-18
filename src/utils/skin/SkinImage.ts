@@ -3,7 +3,7 @@ export default class SkinImage {
     public height: number;
     public data: Buffer;
 
-    constructor({
+    public constructor({
         width,
         height,
         data

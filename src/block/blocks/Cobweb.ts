@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Flowable from '../Flowable';
 
 export default class Cobweb extends Flowable {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:web', // Called cobweb in the Java Edition
             id: BlockIdsType.Cobweb,

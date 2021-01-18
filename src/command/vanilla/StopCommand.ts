@@ -1,8 +1,10 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import Player from '../../player/Player';
+
 export default class StopCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:stop',
             description: 'Stops a server.',

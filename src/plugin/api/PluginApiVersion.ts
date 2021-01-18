@@ -1,7 +1,7 @@
 export default class PluginApiVersion {
     private readonly version: string;
 
-    constructor(version: string) {
+    public constructor(version: string) {
         this.version = version;
     }
 

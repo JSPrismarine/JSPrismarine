@@ -2,7 +2,7 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class IronChestplate extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:iron_chestplate',
             id: ItemIdsType.IronChestplate

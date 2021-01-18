@@ -21,7 +21,7 @@ export default class Item {
     nbt = null;
     count = 1;
 
-    constructor({ id, name }: ItemProps) {
+    public constructor({ id, name }: ItemProps) {
         this.id = id;
         this.runtimeId = id;
         this.name = name;

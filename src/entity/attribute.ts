@@ -34,7 +34,7 @@ export class Attribute {
      * @param def - Attribute default value
      * @param value - Attribute current value
      */
-    constructor({
+    public constructor({
         name,
         min,
         max,

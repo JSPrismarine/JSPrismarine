@@ -7,7 +7,7 @@ export default class PlayerManager {
     private readonly players: Map<string, Player> = new Map();
     private readonly playerList: Map<string, PlayerListEntry> = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 

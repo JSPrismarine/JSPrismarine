@@ -27,7 +27,7 @@ export default class ConfigBuilder {
     /**
      * Config constructor.
      */
-    constructor(filePath: string) {
+    public constructor(filePath: string) {
         const pathSplitted = path.parse(filePath);
 
         this.type = pathSplitted.ext.slice(1);

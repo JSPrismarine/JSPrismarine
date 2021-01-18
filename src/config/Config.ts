@@ -24,7 +24,7 @@ export default class Config {
     private readonly updateRepo: string;
     private readonly updateChannel: string;
 
-    constructor() {
+    public constructor() {
         this.version = pkg.version;
 
         this.configBuilder = new ConfigBuilder(

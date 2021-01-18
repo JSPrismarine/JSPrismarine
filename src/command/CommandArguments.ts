@@ -1,4 +1,5 @@
 import { StringReader, Suggestions } from '@jsprismarine/brigadier';
+
 import Gamemode from '../world/Gamemode';
 import Server from '../Server';
 import Vector3 from '../math/Vector3';
@@ -56,7 +57,7 @@ export class CommandArgumentEntity implements CommandArgument {
 export class CommandArgumentFloatPosition
     extends Vector3
     implements CommandArgument {
-    constructor() {
+    public constructor() {
         super();
     }
 

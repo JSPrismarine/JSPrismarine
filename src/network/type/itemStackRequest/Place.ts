@@ -5,7 +5,7 @@ class Place {
     public from: ItemStackRequestSlotInfo;
     public to: ItemStackRequestSlotInfo;
 
-    constructor({
+    public constructor({
         count,
         from,
         to

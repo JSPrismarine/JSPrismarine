@@ -42,7 +42,7 @@ export default class Chunk {
      * @param {number[]} biomes
      * @param {number[]} heightMap
      */
-    constructor(
+    public constructor(
         chunkX: number,
         chunkZ: number,
         subChunks = new Map(),

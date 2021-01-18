@@ -2,7 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import Solid from '../Solid';
 
 export default class Bedrock extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:bedrock',
             id: BlockIdsType.Bedrock,

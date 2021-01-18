@@ -2,7 +2,7 @@ import SubChunk from './SubChunk';
 
 // Get rid of this
 export default class EmptySubChunk extends SubChunk {
-    constructor() {
+    public constructor() {
         super();
     }
 

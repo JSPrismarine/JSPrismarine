@@ -21,7 +21,7 @@ export default class Entity extends Position {
      * Entity constructor.
      *
      */
-    constructor(world: World) {
+    public constructor(world: World) {
         super({ world }); // TODO
         Entity.runtimeIdCount += 1n;
         this.runtimeId = Entity.runtimeIdCount;

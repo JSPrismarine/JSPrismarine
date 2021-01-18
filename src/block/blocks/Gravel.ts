@@ -5,7 +5,7 @@ import Server from '../../Server';
 import Solid from '../Solid';
 
 export default class Sand extends Solid {
-    constructor(name = 'minecraft:gravel') {
+    public constructor(name = 'minecraft:gravel') {
         super({
             name,
             id: BlockIdsType.Gravel,

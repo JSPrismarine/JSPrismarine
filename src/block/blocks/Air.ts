@@ -2,7 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import Transparent from '../Transparent';
 
 export default class Air extends Transparent {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:air',
             id: BlockIdsType.Air,

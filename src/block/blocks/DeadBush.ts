@@ -4,7 +4,7 @@ import Flowable from '../Flowable';
 export default class DeadBush extends Flowable {
     meta = 0;
 
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:dead_bush',
             id: BlockIdsType.DeadBush,

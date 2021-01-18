@@ -4,7 +4,7 @@ import Command from '../Command';
 import CommandExecuter from '../CommandExecuter';
 
 export default class HelpCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:help',
             description: 'Get helpful information about commands.',

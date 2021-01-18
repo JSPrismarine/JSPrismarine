@@ -9,7 +9,7 @@ export default class SkinCape {
     private readonly id: string;
     private readonly image: SkinImage;
 
-    constructor({ id, image }: SkinCapeData) {
+    public constructor({ id, image }: SkinCapeData) {
         this.id = id;
         this.image = image;
     }

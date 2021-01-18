@@ -13,7 +13,7 @@ export default class QueryManager {
     private readonly server: Server;
     public git_rev: string;
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
 
         try {

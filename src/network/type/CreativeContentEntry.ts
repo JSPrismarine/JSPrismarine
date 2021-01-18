@@ -5,7 +5,7 @@ class CreativeContentEntry {
     public entryId: number;
     public item: Item | Block;
 
-    constructor(entryId: number, item: Item | Block) {
+    public constructor(entryId: number, item: Item | Block) {
         this.entryId = entryId;
         this.item = item;
     }

@@ -17,7 +17,7 @@ export default class LevelDB extends Provider {
     private readonly server: Server;
     private readonly db: Level;
 
-    constructor(levelPath: string, server: Server) {
+    public constructor(levelPath: string, server: Server) {
         super(levelPath);
         this.db = new Level(path.join(levelPath, 'db'));
         this.server = server;

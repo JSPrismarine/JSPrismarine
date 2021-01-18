@@ -1,7 +1,7 @@
 import Planks, { PlanksType } from './OakPlanks';
 
 export default class BirchPlanks extends Planks {
-    constructor() {
+    public constructor() {
         super('minecraft:birch_planks', PlanksType.Birch);
     }
 }

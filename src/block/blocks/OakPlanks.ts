@@ -12,7 +12,7 @@ export enum PlanksType {
 }
 
 export default class Planks extends Solid {
-    constructor(
+    public constructor(
         name = 'minecraft:oak_planks',
         type: PlanksType = PlanksType.Oak
     ) {

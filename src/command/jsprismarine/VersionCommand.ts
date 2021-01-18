@@ -6,7 +6,7 @@ import Player from '../../player/Player';
 import packageFile from '../../../package.json';
 
 export default class VersionCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'jsprismarine:version',
             description: 'Displays general server information.',

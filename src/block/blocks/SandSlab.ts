@@ -1,7 +1,7 @@
 import StoneSlab, { SlabType } from './StoneSlab';
 
 export default class SandSlab extends StoneSlab {
-    constructor() {
+    public constructor() {
         super('minecraft:sand_slab', SlabType.Sand);
     }
 }

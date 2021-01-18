@@ -1,7 +1,7 @@
 import WhiteTerracotta, { TerracottaColorType } from './WhiteTerracotta';
 
 export default class GreenTerracotta extends WhiteTerracotta {
-    constructor() {
+    public constructor() {
         super('minecraft:green_terracotta', TerracottaColorType.Green);
     }
 }

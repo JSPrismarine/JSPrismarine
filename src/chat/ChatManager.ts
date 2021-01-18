@@ -5,7 +5,7 @@ import type Server from '../Server';
 export default class ChatManager {
     private readonly server: Server;
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 
