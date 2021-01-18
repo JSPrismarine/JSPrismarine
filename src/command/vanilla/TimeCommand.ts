@@ -34,24 +34,26 @@ export default class TimeCommand extends Command {
                                         .getWorldManager()
                                         .getDefaultWorld();
 
+                                const value = context.getArgument('value');
+                                if (value < 0)
+                                    throw new Error(
+                                        'value can not be less than 0'
+                                    );
+
                                 switch (
                                     context.getArgument('action').toLowerCase()
                                 ) {
                                     case 'set':
-                                        world.setTicks(
-                                            context.getArgument('value')
-                                        );
+                                        world.setTicks(value);
                                         break;
                                     case 'add':
                                         world.setTicks(
-                                            world.getTicks() +
-                                                context.getArgument('value')
+                                            world.getTicks() + value
                                         );
                                         break;
                                     case 'sub':
                                         world.setTicks(
-                                            world.getTicks() -
-                                                context.getArgument('value')
+                                            world.getTicks() - value
                                         );
                                         break;
                                     default:
