@@ -22,18 +22,26 @@ const ParseEntityArgument = ({
             .split(',')
             .map((arg) => ({
                 argument: arg.split('=')[0],
-                value: arg.split('=')[1].split('!')[0],
+                value: arg.split('=')[1].replace('!', ''),
                 reverse: arg.split('=')[1].startsWith('!')
             })) || [];
 
     args.forEach((filter) => {
         switch (filter.argument) {
-            case 'type':
-                targets = targets.filter((entity) =>
-                    filter.reverse
-                        ? entity.getType() !== filter.value
-                        : entity.getType() === filter.value
-                );
+            case 'type': {
+                if (filter.value.split(':').length === 1)
+                    targets = targets.filter((entity) =>
+                        filter.reverse
+                            ? entity.getType().split(':')[1] !== filter.value
+                            : entity.getType().split(':')[1] === filter.value
+                    );
+                else
+                    targets = targets.filter((entity) =>
+                        filter.reverse
+                            ? entity.getType() !== filter.value
+                            : entity.getType() === filter.value
+                    );
+            }
             default:
                 break;
         }

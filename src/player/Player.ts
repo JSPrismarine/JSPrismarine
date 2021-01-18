@@ -298,6 +298,6 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public getType(): string {
-        return 'player';
+        return 'minecraft:player';
     }
 }

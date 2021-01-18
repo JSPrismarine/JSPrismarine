@@ -80,12 +80,11 @@ export class CommandArgumentEntity implements CommandArgument {
                 return ParseEntityArgument({
                     input: player,
                     source: context.getSource(),
-                    entities: Server.instance
-                        .getPlayerManager()
-                        .getOnlinePlayers() // TODO: get all entities
+                    entities: context.getSource().getWorld().getEntities()
                 });
             } catch (error) {
                 if (!error.message.includes('no results')) throw error;
+                return [];
             }
 
         return [Server.instance.getPlayerManager().getPlayerByName(player)];

@@ -54,19 +54,32 @@ export default class TpCommand extends Command {
                                 'position',
                                 new CommandArgumentPosition()
                             ).executes(async (context) => {
-                                const target = context.getArgument(
+                                const targets = context.getArgument(
                                     'player'
-                                )?.[0] as Player;
+                                ) as Player[];
 
                                 const position = context.getArgument(
                                     'position'
                                 ) as Vector3;
 
-                                await target.setPosition(
-                                    position,
-                                    MovementType.Teleport
+                                if (!targets.length)
+                                    throw new Error(
+                                        `Cannot find specified player(s) & entit(y/ies)`
+                                    );
+                                targets.forEach(async (entity) =>
+                                    entity.setPosition(
+                                        position,
+                                        MovementType.Teleport
+                                    )
                                 );
-                                return `Teleported ${target.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
+
+                                return `Teleported ${targets
+                                    .map((entity) =>
+                                        entity.getFormattedUsername()
+                                    )
+                                    .join(
+                                        ', '
+                                    )} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
                             })
                         )
                         .then(
@@ -88,6 +101,10 @@ export default class TpCommand extends Command {
                                     target.getZ()
                                 );
 
+                                if (!sources.length)
+                                    throw new Error(
+                                        `Cannot find specified player(s) & entit(y/ies)`
+                                    );
                                 sources.forEach(async (entity) =>
                                     entity.setPosition(
                                         position,
