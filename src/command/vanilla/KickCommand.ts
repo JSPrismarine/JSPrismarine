@@ -8,6 +8,7 @@ import {
 
 import Command from '../Command';
 import { CommandArgumentEntity } from '../CommandArguments';
+import Player from '../../player/Player';
 
 export default class KickCommand extends Command {
     public constructor() {
@@ -28,22 +29,34 @@ export default class KickCommand extends Command {
                                 const reason = context.getArgument(
                                     'reason'
                                 ) as string;
-                                const target = context.getArgument('player');
+                                const targets = context.getArgument(
+                                    'player'
+                                ) as Player[];
 
-                                await target.kick(
-                                    `You have been kicked from the server due to: \n\n${reason}!`
+                                targets.forEach(async (target) =>
+                                    target.kick(
+                                        `You have been kicked from the server due to: \n\n${reason}!`
+                                    )
                                 );
-                                return `Kicked ${target.getFormattedUsername()} due to: ${reason}!`;
+                                return `Kicked ${targets
+                                    .map((target) =>
+                                        target.getFormattedUsername()
+                                    )
+                                    .join(', ')} due to: ${reason}!`;
                             }
                         )
                     )
                     .executes(async (context) => {
-                        const target = context.getArgument('player');
+                        const targets = context.getArgument(
+                            'player'
+                        ) as Player[];
 
-                        await target.kick(
-                            'You have been kicked from the server'
+                        targets.forEach(async (target) =>
+                            target.kick(`You have been kicked from the server!`)
                         );
-                        return `Kicked ${target.getFormattedUsername()}`;
+                        return `Kicked ${targets
+                            .map((target) => target.getFormattedUsername())
+                            .join(', ')}`;
                     })
             )
         );

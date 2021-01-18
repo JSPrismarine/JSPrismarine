@@ -62,15 +62,17 @@ export default class GamemodeCommand extends Command {
                             new CommandArgumentEntity()
                         ).executes(async (context) => {
                             const source = context.getSource() as Player;
-                            const target = context.getArgument(
+                            const targets = context.getArgument(
                                 'player'
-                            ) as Player;
+                            ) as Player[];
 
                             const gamemode = context.getArgument(
                                 'gamemode'
                             ) as string;
 
-                            await this.setGamemode(source, target, gamemode);
+                            targets.forEach(async (target) =>
+                                this.setGamemode(source, target, gamemode)
+                            );
                         })
                     )
                     .executes(async (context) => {
