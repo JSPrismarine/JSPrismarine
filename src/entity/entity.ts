@@ -102,4 +102,12 @@ export default class Entity extends Position {
         pk.motionZ = 0;
         await player.getConnection().sendDataPacket(pk);
     }
+
+    public isPlayer(): boolean {
+        return false;
+    }
+
+    public getType(): string {
+        throw new Error('getType is not overwritten by child class!');
+    }
 }

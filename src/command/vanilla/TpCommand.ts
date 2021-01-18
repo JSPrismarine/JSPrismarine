@@ -1,7 +1,7 @@
 /* eslint-disable promise/prefer-await-to-then */
 import {
     CommandArgumentEntity,
-    CommandArgumentFloatPosition
+    CommandArgumentPosition
 } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
@@ -27,7 +27,7 @@ export default class TpCommand extends Command {
                 .then(
                     argument(
                         'position',
-                        new CommandArgumentFloatPosition()
+                        new CommandArgumentPosition()
                     ).executes(async (context) => {
                         const source = context.getSource() as Player;
 
@@ -48,15 +48,15 @@ export default class TpCommand extends Command {
                     })
                 )
                 .then(
-                    argument('player', new CommandArgumentEntity())
+                    argument('player', new CommandArgumentEntity('source'))
                         .then(
                             argument(
                                 'position',
-                                new CommandArgumentFloatPosition()
+                                new CommandArgumentPosition()
                             ).executes(async (context) => {
                                 const target = context.getArgument(
                                     'player'
-                                )[0] as Player;
+                                )?.[0] as Player;
 
                                 const position = context.getArgument(
                                     'position'
@@ -72,7 +72,7 @@ export default class TpCommand extends Command {
                         .then(
                             argument(
                                 'target',
-                                new CommandArgumentEntity()
+                                new CommandArgumentEntity('target')
                             ).executes(async (context) => {
                                 const sources = context.getArgument(
                                     'player'
@@ -80,7 +80,7 @@ export default class TpCommand extends Command {
 
                                 const target = context.getArgument(
                                     'target'
-                                )[0] as Player;
+                                )?.[0] as Player;
 
                                 const position = new Vector3(
                                     target.getX(),
@@ -107,7 +107,7 @@ export default class TpCommand extends Command {
                             const source = context.getSource() as Player;
                             const target = context.getArgument(
                                 'player'
-                            )[0] as Player;
+                            )?.[0] as Player;
 
                             if (!source.isPlayer())
                                 throw new Error(
