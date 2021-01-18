@@ -9,15 +9,15 @@ export default class DiamondLeggins extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 495;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 6;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 2;
     }
 }

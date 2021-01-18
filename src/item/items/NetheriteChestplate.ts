@@ -9,15 +9,15 @@ export default class NetheriteChestplate extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 592;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 8;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 3;
     }
 }

@@ -5,11 +5,11 @@ export default class Armor extends Item {
         super(args);
     }
 
-    getMaxAmount() {
+    public getMaxAmount() {
         return 1;
     }
 
-    isArmorPiece() {
+    public isArmorPiece() {
         return true;
     }
 }

@@ -5,11 +5,11 @@ export default class Tool extends Item {
         super(args);
     }
 
-    getMaxAmount() {
+    public getMaxAmount() {
         return 1;
     }
 
-    isTool() {
+    public isTool() {
         return true;
     }
 }

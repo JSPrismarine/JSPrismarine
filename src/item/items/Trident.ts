@@ -9,7 +9,7 @@ export default class Trident extends Tool {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 250;
     }
 }

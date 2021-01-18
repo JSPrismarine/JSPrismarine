@@ -10,7 +10,7 @@ export default class Bedrock extends Solid {
         });
     }
 
-    isBreakable() {
+    public isBreakable() {
         return false;
     }
 

@@ -19,7 +19,7 @@ export default class Trapdoor extends Solid {
         return 20;
     }
 
-    isTransparent() {
+    public isTransparent() {
         return true;
     }
 }

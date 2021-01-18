@@ -9,11 +9,11 @@ export default class Crossbow extends Tool {
         });
     }
 
-    getBurntime() {
+    public getBurntime() {
         return 200;
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 326;
     }
 }

@@ -9,11 +9,11 @@ export default class LeatherLeggins extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 75;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

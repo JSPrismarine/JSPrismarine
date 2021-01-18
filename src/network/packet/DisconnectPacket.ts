@@ -7,13 +7,13 @@ export default class DisconnectPacket extends DataPacket {
     public hideDisconnectionWindow!: boolean;
     public message!: string;
 
-    encodePayload() {
+    public encodePayload() {
         this.writeBool(this.hideDisconnectionWindow);
 
         if (!this.hideDisconnectionWindow) this.writeString(this.message);
     }
 
-    decodePayload() {
+    public decodePayload() {
         this.hideDisconnectionWindow = this.readBool();
 
         if (!this.hideDisconnectionWindow) this.message = this.readString();

@@ -14,11 +14,11 @@ export default class GoldenSword extends TieredTool {
         );
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 33;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Sword;
     }
 }

@@ -14,11 +14,11 @@ export default class PlayerSetGamemodeEvent extends Event {
         this.gamemode = gamemode;
     }
 
-    getPlayer(): Player {
+    public getPlayer(): Player {
         return this.player;
     }
 
-    getGamemode(): number {
+    public getGamemode(): number {
         return this.gamemode;
     }
 }

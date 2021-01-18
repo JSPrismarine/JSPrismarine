@@ -9,11 +9,11 @@ export default class ChainBoots extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 195;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 1;
     }
 }

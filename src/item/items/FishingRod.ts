@@ -9,11 +9,11 @@ export default class FishingRod extends Tool {
         });
     }
 
-    getBurntime() {
+    public getBurntime() {
         return 300;
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 64;
     }
 }

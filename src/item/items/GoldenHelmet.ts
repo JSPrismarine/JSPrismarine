@@ -9,11 +9,11 @@ export default class GoldenHelmet extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 77;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

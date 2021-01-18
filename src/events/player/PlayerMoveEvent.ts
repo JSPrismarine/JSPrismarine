@@ -25,7 +25,7 @@ export default class PlayerMoveEvent extends Event {
         this.mode = mode;
     }
 
-    getPlayer(): Player {
+    public getPlayer(): Player {
         return this.player;
     }
 

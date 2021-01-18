@@ -9,11 +9,11 @@ export default class IronChestplate extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 240;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 6;
     }
 }

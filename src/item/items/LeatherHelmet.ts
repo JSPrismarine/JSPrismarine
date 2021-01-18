@@ -9,11 +9,11 @@ export default class LeatherHelmet extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 55;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 1;
     }
 }

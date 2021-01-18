@@ -2,7 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import Flowable from '../Flowable';
 
 export default class DeadShrub extends Flowable {
-    meta = 0;
+    public meta = 0;
 
     public constructor() {
         super({
