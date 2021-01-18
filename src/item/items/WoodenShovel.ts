@@ -14,15 +14,15 @@ export default class WoodenShovel extends TieredTool {
         );
     }
 
-    getBurntime() {
+    public getBurntime() {
         return 200;
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 60;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

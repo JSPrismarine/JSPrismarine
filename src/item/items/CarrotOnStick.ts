@@ -9,7 +9,7 @@ export default class CarrotOnStick extends Tool {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 25;
     }
 }

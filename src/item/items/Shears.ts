@@ -9,7 +9,7 @@ export default class Shears extends Tool {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 238;
     }
 }

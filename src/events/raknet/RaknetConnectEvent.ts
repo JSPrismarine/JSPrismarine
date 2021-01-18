@@ -12,7 +12,7 @@ export default class RaknetConnectEvent extends Event {
         this.connection = connection;
     }
 
-    getConnection(): Connection {
+    public getConnection(): Connection {
         return this.connection;
     }
 }

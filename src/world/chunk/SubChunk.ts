@@ -6,8 +6,8 @@ const Sizes = {
 };
 
 export default class SubChunk {
-    ids = Buffer.alloc(Sizes.BlockSize).fill(0x00);
-    metadata = Buffer.alloc(Sizes.Metadata).fill(0x00);
+    public ids = Buffer.alloc(Sizes.BlockSize).fill(0x00);
+    public metadata = Buffer.alloc(Sizes.Metadata).fill(0x00);
 
     public static getIndex(x: number, y: number, z: number) {
         const bx = x & 0x0f;

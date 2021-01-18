@@ -33,7 +33,7 @@ class EventManagerWithoutEventEmitterishMethods<
             Evt.asPostable(server.getEventManager().evtThirdParty)
     );
 
-    getCustomEventManager(): EventEmitterish<CustomEventTypes> {
+    public getCustomEventManager(): EventEmitterish<CustomEventTypes> {
         return new EventManagerWithoutEventEmitterishMethods.CustomEventManager(
             this.server
         );

@@ -14,11 +14,11 @@ export default class PlayerToggleSprintEvent extends Event {
         this.sprinting = sprinting;
     }
 
-    getPlayer(): Player {
+    public getPlayer(): Player {
         return this.player;
     }
 
-    getIsSprinting(): boolean {
+    public getIsSprinting(): boolean {
         return this.sprinting;
     }
 }

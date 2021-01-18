@@ -9,15 +9,15 @@ export default class NetheriteBoots extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 481;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 3;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 3;
     }
 }

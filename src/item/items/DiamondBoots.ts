@@ -9,15 +9,15 @@ export default class DiamondBoots extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 429;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 3;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 2;
     }
 }

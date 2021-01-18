@@ -9,7 +9,7 @@ export default class WarpedFungusOnStick extends Tool {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 100;
     }
 }

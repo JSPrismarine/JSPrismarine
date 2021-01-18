@@ -9,11 +9,11 @@ export default class LeatherChestplate extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 80;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 3;
     }
 }

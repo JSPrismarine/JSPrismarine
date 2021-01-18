@@ -14,11 +14,11 @@ export default class PlayerToggleFlightEvent extends Event {
         this.flying = flying;
     }
 
-    getPlayer(): Player {
+    public getPlayer(): Player {
         return this.player;
     }
 
-    getIsFlying(): boolean {
+    public getIsFlying(): boolean {
         return this.flying;
     }
 }

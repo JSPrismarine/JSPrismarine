@@ -9,7 +9,7 @@ export default class Elytra extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 432;
     }
 }

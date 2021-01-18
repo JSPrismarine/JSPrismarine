@@ -9,15 +9,15 @@ export default class NetheriteHelmet extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 407;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 3;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 3;
     }
 }

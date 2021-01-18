@@ -13,7 +13,7 @@ class NetworkTransaction {
     // 1.16
     public newItemStackId: any;
 
-    decode(buffer: PacketBinaryStream, hasItemStack = false) {
+    public decode(buffer: PacketBinaryStream, hasItemStack = false) {
         this.sourceType = buffer.readUnsignedVarInt();
 
         switch (this.sourceType) {

@@ -15,7 +15,7 @@ export default class IronTrapdoor extends Solid {
         return BlockToolType.Pickaxe;
     }
 
-    isTransparent() {
+    public isTransparent() {
         return true;
     }
 }

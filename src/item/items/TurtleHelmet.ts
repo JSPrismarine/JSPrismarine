@@ -9,11 +9,11 @@ export default class TurtleShell extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 275;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

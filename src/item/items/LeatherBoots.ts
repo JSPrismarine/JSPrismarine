@@ -9,11 +9,11 @@ export default class LeatherBoots extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 65;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 1;
     }
 }

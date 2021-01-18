@@ -9,11 +9,11 @@ export default class GoldenBoots extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 91;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

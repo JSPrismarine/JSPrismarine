@@ -10,11 +10,11 @@ export default class TieredTool extends Tool {
         this.tier = tier;
     }
 
-    getTier() {
+    public getTier() {
         return this.tier;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return this.getTier();
     }
 }

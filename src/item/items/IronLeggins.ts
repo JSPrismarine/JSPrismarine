@@ -9,11 +9,11 @@ export default class IronLeggins extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 225;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 5;
     }
 }

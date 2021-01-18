@@ -9,11 +9,11 @@ export default class GoldenLeggins extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 105;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 4;
     }
 }

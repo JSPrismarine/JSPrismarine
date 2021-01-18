@@ -2,7 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import Flowable from '../Flowable';
 
 export default class TallGrass extends Flowable {
-    meta = 1;
+    public meta = 1;
 
     public constructor() {
         super({

@@ -9,11 +9,11 @@ export default class GoldenChestplate extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 112;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 5;
     }
 }

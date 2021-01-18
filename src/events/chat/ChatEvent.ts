@@ -9,7 +9,7 @@ export default class ChatEvent extends Event {
         this.chat = chat;
     }
 
-    getChat(): Chat {
+    public getChat(): Chat {
         return this.chat;
     }
 }

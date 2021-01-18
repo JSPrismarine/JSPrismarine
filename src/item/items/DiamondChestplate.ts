@@ -9,15 +9,15 @@ export default class DiamondChestplate extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 528;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 8;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 2;
     }
 }

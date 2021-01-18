@@ -12,7 +12,7 @@ export default class PlayerSpawnEvent extends Event {
         this.player = player;
     }
 
-    getPlayer(): Player {
+    public getPlayer(): Player {
         return this.player;
     }
 }

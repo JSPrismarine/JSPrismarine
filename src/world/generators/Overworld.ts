@@ -10,9 +10,9 @@ const CHUNK_LENGTH = 16;
 const SEA_LEVEL = 62;
 
 export default class Overworld {
-    noise?: Noise;
+    private noise?: Noise;
 
-    async getChunk({
+    public async getChunk({
         pos,
         seed,
         server

@@ -9,11 +9,11 @@ export default class IronHelmet extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 165;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

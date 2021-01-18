@@ -9,11 +9,11 @@ export default class ChainChestplate extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 240;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 5;
     }
 }

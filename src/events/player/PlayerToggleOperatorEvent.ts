@@ -14,11 +14,11 @@ export default class playerToggleOperatorEvent extends Event {
         this.operator = operator;
     }
 
-    getPlayer(): Player {
+    public getPlayer(): Player {
         return this.player;
     }
 
-    getOperator(): boolean {
+    public getOperator(): boolean {
         return this.operator;
     }
 }

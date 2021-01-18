@@ -8,7 +8,7 @@ export default class AnimatePacket extends DataPacket {
     public runtimeEntityId!: bigint;
     public boatRowingTime!: number;
 
-    encodePayload() {
+    public encodePayload() {
         this.writeVarInt(this.action);
         this.writeUnsignedVarLong(this.runtimeEntityId);
         if ((this.action & 0x80) !== 0) {
@@ -16,7 +16,7 @@ export default class AnimatePacket extends DataPacket {
         }
     }
 
-    decodePayload() {
+    public decodePayload() {
         this.action = this.readVarInt();
         this.runtimeEntityId = this.readUnsignedVarLong();
         if ((this.action & 0x80) !== 0) {

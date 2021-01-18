@@ -9,11 +9,11 @@ export default class ChainLeggins extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 225;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 5;
     }
 }

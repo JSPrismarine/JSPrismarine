@@ -9,7 +9,7 @@ export default class FlintSteel extends Tool {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 64;
     }
 }

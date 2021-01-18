@@ -9,15 +9,15 @@ export default class NetheriteLeggins extends Armor {
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 555;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 6;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 3;
     }
 }
