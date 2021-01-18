@@ -79,16 +79,17 @@ export default class LevelDB extends Provider {
                                     .warn('Unsupported sub chunk version');
                             }
                         } catch (error) {
-                            this.server
-                                .getLogger()
-                                .warn(
-                                    `Failed to read chunk at ${x}.${z}: ${error}`,
-                                    'LevelDB/readChunk'
-                                );
-                            this.server
-                                .getLogger()
-                                .silly(error.stack, 'LevelDB/readChunk');
-                            // NO-OP
+                            if (!error.notFound) {
+                                this.server
+                                    .getLogger()
+                                    .warn(
+                                        `Failed to read chunk at ${x}.${z}: ${error}`,
+                                        'LevelDB/readChunk'
+                                    );
+                                this.server
+                                    .getLogger()
+                                    .silly(error.stack, 'LevelDB/readChunk');
+                            }
                         }
                     }
 

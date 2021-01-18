@@ -11,23 +11,17 @@ export abstract class CommandArgument {
 }
 
 export class CommandArgumentGamemode implements CommandArgument {
-    parse(reader: StringReader) {
-        const start = reader.getCursor();
+    public parse(reader: StringReader) {
         const gm = reader.readString();
 
-        try {
-            // TODO: correctly throw
-            Gamemode.getGamemodeId(gm);
-            return gm;
-        } catch {
-            reader.setCursor(start);
-        }
+        Gamemode.getGamemodeId(gm);
+        return gm;
     }
-    async listSuggestions(context: any, builder: any) {
+    public async listSuggestions(context: any, builder: any) {
         // TODO
         return Suggestions.empty();
     }
-    getExamples() {
+    public getExamples() {
         return ['survival', 'creative', 'adventure', 'spectator'];
     }
 
@@ -37,16 +31,28 @@ export class CommandArgumentGamemode implements CommandArgument {
 }
 
 export class CommandArgumentEntity implements CommandArgument {
-    parse(reader: StringReader) {
-        const start = reader.getCursor();
-        const player = reader.readUnquotedString();
+    public parse(reader: StringReader) {
+        let player = '';
+        while (true) {
+            const pos = reader.getCursor();
+            const char = reader.read();
+            if (char === ' ') {
+                reader.setCursor(pos);
+                break;
+            }
 
-        try {
-            // TODO: correctly throw
-            return Server.instance.getPlayerManager().getPlayerByName(player);
-        } catch {
-            reader.setCursor(start);
+            player += char;
         }
+
+        // FIXME: utility function
+        if (player.startsWith('@')) {
+            if (player === '@a')
+                return Server.instance.getPlayerManager().getOnlinePlayers();
+
+            throw new Error('TODO');
+        }
+
+        return [Server.instance.getPlayerManager().getPlayerByName(player)];
     }
 
     public getReadableType(): string {
@@ -61,7 +67,7 @@ export class CommandArgumentFloatPosition
         super();
     }
 
-    parse(reader: StringReader) {
+    public parse(reader: StringReader) {
         this.setX(reader.readFloat());
         reader.skip();
         this.setY(reader.readFloat());
@@ -70,7 +76,7 @@ export class CommandArgumentFloatPosition
         return this;
     }
 
-    getExamples() {
+    public getExamples() {
         return ['1 2 3'];
     }
 

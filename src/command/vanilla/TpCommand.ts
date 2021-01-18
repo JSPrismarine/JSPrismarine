@@ -56,7 +56,7 @@ export default class TpCommand extends Command {
                             ).executes(async (context) => {
                                 const target = context.getArgument(
                                     'player'
-                                ) as Player;
+                                )[0] as Player;
 
                                 const position = context.getArgument(
                                     'position'
@@ -74,13 +74,13 @@ export default class TpCommand extends Command {
                                 'target',
                                 new CommandArgumentEntity()
                             ).executes(async (context) => {
-                                const sourcePlayer = context.getArgument(
+                                const sources = context.getArgument(
                                     'player'
-                                ) as Player;
+                                ) as Player[];
 
                                 const target = context.getArgument(
                                     'target'
-                                ) as Player;
+                                )[0] as Player;
 
                                 const position = new Vector3(
                                     target.getX(),
@@ -88,18 +88,26 @@ export default class TpCommand extends Command {
                                     target.getZ()
                                 );
 
-                                await sourcePlayer.setPosition(
-                                    position,
-                                    MovementType.Teleport
+                                sources.forEach(async (entity) =>
+                                    entity.setPosition(
+                                        position,
+                                        MovementType.Teleport
+                                    )
                                 );
-                                return `Teleported ${sourcePlayer.getFormattedUsername()} to ${target.getFormattedUsername()}`;
+                                return `Teleported ${sources
+                                    .map((entity) =>
+                                        entity.getFormattedUsername()
+                                    )
+                                    .join(
+                                        ', '
+                                    )} to ${target.getFormattedUsername()}`;
                             })
                         )
                         .executes(async (context) => {
                             const source = context.getSource() as Player;
                             const target = context.getArgument(
                                 'player'
-                            ) as Player;
+                            )[0] as Player;
 
                             if (!source.isPlayer())
                                 throw new Error(
