@@ -34,6 +34,8 @@ export class CommandArgumentEntity implements CommandArgument {
     public parse(reader: StringReader) {
         let player = '';
         while (true) {
+            if (!reader.canRead()) break;
+
             const pos = reader.getCursor();
             const char = reader.read();
             if (char === ' ') {
