@@ -296,4 +296,8 @@ export default class Player extends Human implements CommandExecuter {
         this.setZ(position.getZ());
         await this.getConnection().broadcastMove(this, type);
     }
+
+    public getType(): string {
+        return 'minecraft:player';
+    }
 }
