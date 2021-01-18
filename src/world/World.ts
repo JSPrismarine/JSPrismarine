@@ -406,6 +406,19 @@ export default class World {
     }
 
     /**
+     * Returns all entities (including players)
+     *
+     * You can filter this by either using the entity.getType() or
+     * entity.isPlayer() functions.
+     */
+    public getEntities(): Entity[] {
+        return [
+            ...Array.from(this.entities.values()),
+            ...Array.from(this.players.values())
+        ];
+    }
+
+    /**
      * Adds a player into the level.
      */
     public addPlayer(player: Player): void {

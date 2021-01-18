@@ -3,8 +3,8 @@ import AdventureSettingsPacket, {
 } from '../network/packet/AdventureSettingsPacket';
 import {
     CommandArgumentEntity,
-    CommandArgumentFloatPosition,
-    CommandArgumentGamemode
+    CommandArgumentGamemode,
+    CommandArgumentPosition
 } from '../command/CommandArguments';
 import CommandParameter, {
     CommandParameterType
@@ -380,6 +380,10 @@ export default class PlayerConnection {
                 command[2].forEach((arg) => {
                     const parameters = arg
                         .map((parameter) => {
+                            const parameters = parameter?.getParameters?.();
+                            if (parameters)
+                                return Array.from(parameters.values());
+
                             if (parameter instanceof CommandArgumentEntity)
                                 return [
                                     new CommandParameter({
@@ -389,27 +393,6 @@ export default class PlayerConnection {
                                     })
                                 ];
 
-                            if (
-                                parameter instanceof
-                                CommandArgumentFloatPosition
-                            )
-                                return [
-                                    new CommandParameter({
-                                        name: 'x',
-                                        type: CommandParameterType.Float,
-                                        optional: false
-                                    }),
-                                    new CommandParameter({
-                                        name: 'y',
-                                        type: CommandParameterType.Float,
-                                        optional: false
-                                    }),
-                                    new CommandParameter({
-                                        name: 'z',
-                                        type: CommandParameterType.Float,
-                                        optional: false
-                                    })
-                                ];
                             if (parameter instanceof CommandArgumentGamemode)
                                 return [
                                     new CommandParameter({
