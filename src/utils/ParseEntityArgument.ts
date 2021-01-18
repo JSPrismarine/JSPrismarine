@@ -1,6 +1,5 @@
 import Entity from '../entity/entity';
 
-// TODO: source
 const ParseEntityArgument = ({
     input,
     entities,

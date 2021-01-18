@@ -23,7 +23,7 @@ export abstract class CommandArgument {
 }
 
 export class CommandArgumentGamemode implements CommandArgument {
-    public parse(reader: StringReader) {
+    public parse(reader: StringReader, context: CommandContext<Player>) {
         const gm = reader.readString();
 
         Gamemode.getGamemodeId(gm);
@@ -120,7 +120,7 @@ export class CommandArgumentPosition
         this.zName = zName;
     }
 
-    public parse(reader: StringReader) {
+    public parse(reader: StringReader, context: CommandContext<Player>) {
         this.setX(reader.readFloat());
         reader.skip();
         this.setY(reader.readFloat());
