@@ -70,6 +70,9 @@ export default class GamemodeCommand extends Command {
                                 'gamemode'
                             ) as string;
 
+                            if (!targets.length)
+                                throw new Error(`Cannot find player`);
+
                             targets.forEach(async (target) =>
                                 this.setGamemode(source, target, gamemode)
                             );
