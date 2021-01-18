@@ -7,6 +7,7 @@ import readline from 'readline';
 export default class Console implements CommandExecuter {
     private readonly server: Server;
     private cli: readline.Interface;
+    public runtimeId = -1;
 
     public constructor(server: Server) {
         this.server = server;
