@@ -1,7 +1,7 @@
 import Item, { ItemProps } from './Item';
 
 export default class Tool extends Item {
-    constructor(args: ItemProps) {
+    public constructor(args: ItemProps) {
         super(args);
     }
 

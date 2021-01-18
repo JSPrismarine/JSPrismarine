@@ -7,7 +7,7 @@ export default class ItemManager {
     private readonly server: Server;
     private readonly items = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 

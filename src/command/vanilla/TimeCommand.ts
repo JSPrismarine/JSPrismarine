@@ -6,11 +6,12 @@ import {
     literal,
     string
 } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class TimeCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:time',
             description: 'Get, set and add to the current time.',

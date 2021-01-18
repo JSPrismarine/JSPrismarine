@@ -1,4 +1,5 @@
 import { Evt, to } from 'evt';
+
 import type { VoidCtx } from 'evt';
 
 export interface EventEmitterish<EventTypes extends [string, any]> {
@@ -43,7 +44,7 @@ export function EventEmitterishMixin<
     >();
 
     return class extends Base implements EventEmitterish<EventTypes> {
-        constructor(...args: any[]) {
+        public constructor(...args: any[]) {
             super(...args);
 
             instanceProperties.set(this, {

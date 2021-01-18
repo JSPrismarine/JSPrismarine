@@ -1,7 +1,7 @@
 import WhiteConcrete, { ConcreteColorType } from './WhiteConcrete';
 
 export default class PurpleConcrete extends WhiteConcrete {
-    constructor() {
+    public constructor() {
         super('minecraft:purple_concrete', ConcreteColorType.Purple);
     }
 }

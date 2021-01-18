@@ -3,7 +3,7 @@ import WhiteConcretePowder, {
 } from './WhiteConcretePowder';
 
 export default class GreenConcrete extends WhiteConcretePowder {
-    constructor() {
+    public constructor() {
         super('minecraft:green_concrete_powder', ConcretePowderColorType.Green);
     }
 }

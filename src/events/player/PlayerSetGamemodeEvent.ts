@@ -8,7 +8,7 @@ export default class PlayerSetGamemodeEvent extends Event {
     private readonly player;
     private readonly gamemode: number;
 
-    constructor(player: Player, gamemode: number) {
+    public constructor(player: Player, gamemode: number) {
         super();
         this.player = player;
         this.gamemode = gamemode;

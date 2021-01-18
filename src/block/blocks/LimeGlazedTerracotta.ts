@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class LimeGlazedTerracotta extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:lime_glazed_terracotta',
             id: BlockIdsType.LimeGlazedTerracotta,

@@ -64,7 +64,7 @@ export default class Player extends Human implements CommandExecuter {
     /**
      * Player's constructor.
      */
-    constructor(connection: Connection, world: World, server: Server) {
+    public constructor(connection: Connection, world: World, server: Server) {
         super(world);
         this.address = connection.getAddress();
         this.server = server;

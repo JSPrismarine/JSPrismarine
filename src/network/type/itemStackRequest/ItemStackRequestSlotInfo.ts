@@ -3,7 +3,7 @@ class ItemStackRequestSlotInfo {
     public slot!: number;
     public stackNetworkId!: number;
 
-    constructor({
+    public constructor({
         containerId,
         slot,
         stackNetworkId

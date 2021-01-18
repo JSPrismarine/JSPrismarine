@@ -12,7 +12,7 @@ import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class DeopCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:deop',
             description: `Remove a player's op status.`,

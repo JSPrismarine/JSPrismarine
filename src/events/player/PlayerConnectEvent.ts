@@ -9,7 +9,7 @@ export default class PlayerConnectEvent extends Event {
     private readonly player;
     private readonly inetAddr;
 
-    constructor(player: Player, inetAddr: InetAddress) {
+    public constructor(player: Player, inetAddr: InetAddress) {
         super();
         this.player = player;
         this.inetAddr = inetAddr;

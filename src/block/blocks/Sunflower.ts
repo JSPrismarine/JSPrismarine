@@ -6,7 +6,7 @@ export enum DoubleFlowerType {
 }
 
 export default class Sunflower extends Flowable {
-    constructor(
+    public constructor(
         name = 'minecraft:sunflower', // Supposed to be "double_plant"
         type: DoubleFlowerType = DoubleFlowerType.Sunflower
     ) {

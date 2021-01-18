@@ -5,7 +5,7 @@ declare module 'level' {
     }
 
     export default class Level {
-        constructor(path: string);
+        public constructor(path: string);
 
         public open(): Promise<void>;
         public open(callback: () => void): void;

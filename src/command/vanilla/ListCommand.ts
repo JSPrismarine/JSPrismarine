@@ -4,7 +4,7 @@ import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class ListCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:list',
             description: 'Lists players on the server.',

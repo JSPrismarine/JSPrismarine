@@ -7,7 +7,7 @@ import type Player from '../../player/Player';
 export default class PlayerSpawnEvent extends Event {
     private readonly player;
 
-    constructor(player: Player) {
+    public constructor(player: Player) {
         super();
         this.player = player;
     }

@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class DarkPrismarine extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:dark_prismarine',
             id: BlockIdsType.Prismarine,

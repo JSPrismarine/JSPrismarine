@@ -1,6 +1,6 @@
 import Leaves, { LeavesType } from './OakLeaves';
 export default class DarkOakLeaves extends Leaves {
-    constructor() {
+    public constructor() {
         super('minecraft:dark_oak_leaves', LeavesType.DarkOak);
     }
 }

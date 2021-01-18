@@ -2,7 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import Solid from '../Solid';
 
 export default class Piston extends Solid {
-    constructor(
+    public constructor(
         name = 'minecraft:piston',
         id: BlockIdsType = BlockIdsType.Piston
     ) {

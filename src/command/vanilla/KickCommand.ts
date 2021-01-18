@@ -5,11 +5,12 @@ import {
     greedyString,
     literal
 } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import { CommandArgumentEntity } from '../CommandArguments';
 
 export default class KickCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:kick',
             description: 'Kicks a player off the server.',

@@ -17,7 +17,7 @@ export default class CommandManager {
     private readonly server: Server;
     private dispatcher!: CommandDispatcher<CommandExecuter>;
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
         this.dispatcher = new CommandDispatcher();
     }

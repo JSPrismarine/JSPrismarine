@@ -21,7 +21,7 @@ export default class BlockManager {
     private readonly legacyToRuntimeId: Map<number, number> = new Map();
     private readonly runtimeIdToLegacy: Map<number, number> = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 

@@ -2,7 +2,7 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class LeatherHelmet extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:leather_helmet',
             id: ItemIdsType.LeatherCap

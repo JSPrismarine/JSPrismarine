@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import Solid from '../Solid';
 
 export default class GoldOre extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:gold_ore',
             id: BlockIdsType.GoldOre,

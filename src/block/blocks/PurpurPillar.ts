@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class PurpurPillar extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:purpur_pillar',
             id: BlockIdsType.PurpurBlock,

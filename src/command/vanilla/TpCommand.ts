@@ -4,13 +4,14 @@ import {
     CommandArgumentFloatPosition
 } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import MovementType from '../../network/type/MovementType';
 import Player from '../../player/Player';
 import Vector3 from '../../math/Vector3';
 
 export default class TpCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:tp',
             description:

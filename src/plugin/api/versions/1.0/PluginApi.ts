@@ -10,7 +10,7 @@ export const PLUGIN_API_VERSION = '1.0';
 export default class PluginApi extends PluginApiVersion {
     private readonly pkg;
 
-    constructor(private readonly server: Server, pkg: any) {
+    public constructor(private readonly server: Server, pkg: any) {
         super(PLUGIN_API_VERSION);
         this.pkg = pkg;
     }

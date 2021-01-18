@@ -11,7 +11,7 @@ export default class PluginManager {
     private readonly pluginApiVersions = new Map();
     private readonly plugins = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 

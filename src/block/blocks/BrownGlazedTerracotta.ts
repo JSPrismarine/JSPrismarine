@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class BrownGlazedTerracotta extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:brown_glazed_terracotta',
             id: BlockIdsType.BrownGlazedTerracotta,

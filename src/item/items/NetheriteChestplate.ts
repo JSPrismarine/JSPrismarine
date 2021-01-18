@@ -2,7 +2,7 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class NetheriteChestplate extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:netherite_chestplate',
             id: ItemIdsType.NetheriteChestplate

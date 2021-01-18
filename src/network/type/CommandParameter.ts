@@ -15,7 +15,7 @@ export default class CommandParameter {
     /** @type {boolean} */
     optional;
 
-    constructor(data?: {
+    public constructor(data?: {
         name: string;
         type: CommandParameterType;
         optional: boolean;

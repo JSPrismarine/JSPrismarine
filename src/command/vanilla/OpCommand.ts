@@ -12,7 +12,7 @@ import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class OpCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:op',
             description: 'Grant player op status.',

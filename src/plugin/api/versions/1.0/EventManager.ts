@@ -23,11 +23,11 @@ const targetApiToCurrentApi: Operator.fλ<
 class EventManagerWithoutEventEmitterishMethods<
     CustomEventTypes extends [string, any]
 > {
-    constructor(private readonly server: Server) {}
+    public constructor(private readonly server: Server) {}
 
     private static readonly CustomEventManager = EventEmitterishMixin(
         class {
-            constructor(_server: Server) {}
+            public constructor(_server: Server) {}
         },
         ({ constructorArgs: [server] }) =>
             Evt.asPostable(server.getEventManager().evtThirdParty)

@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class Terracotta extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:terracotta',
             id: BlockIdsType.HardenedClay,

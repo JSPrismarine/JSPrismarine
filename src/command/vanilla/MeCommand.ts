@@ -5,13 +5,14 @@ import {
     greedyString,
     literal
 } from '@jsprismarine/brigadier';
+
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class MeCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:me',
             description: 'Displays custom message in chat.',

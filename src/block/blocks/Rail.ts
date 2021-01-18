@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Transparent from '../Transparent';
 
 export default class Rail extends Transparent {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:rail',
             id: BlockIdsType.Rail,

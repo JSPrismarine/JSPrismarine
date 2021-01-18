@@ -8,7 +8,7 @@ export default class RaknetDisconnectEvent extends Event {
     private readonly inetAddr: InetAddress;
     private readonly reason: string;
 
-    constructor(inetAddr: InetAddress, reason: string) {
+    public constructor(inetAddr: InetAddress, reason: string) {
         super();
         this.inetAddr = inetAddr;
         this.reason = reason;

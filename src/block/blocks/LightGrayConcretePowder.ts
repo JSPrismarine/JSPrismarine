@@ -3,7 +3,7 @@ import WhiteConcretePowder, {
 } from './WhiteConcretePowder';
 
 export default class LightGrayConcrete extends WhiteConcretePowder {
-    constructor() {
+    public constructor() {
         super(
             'minecraft:light_gray_concrete_powder',
             ConcretePowderColorType.LightGray

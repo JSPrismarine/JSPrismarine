@@ -1,9 +1,10 @@
 import Stone, { StoneType } from './Stone';
+
 import Item from '../../item/Item';
 import Server from '../../Server';
 
 export default class Diorite extends Stone {
-    constructor() {
+    public constructor() {
         super('minecraft:diorite', StoneType.Diorite);
     }
 

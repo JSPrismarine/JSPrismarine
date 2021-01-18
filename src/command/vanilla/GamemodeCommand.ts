@@ -4,6 +4,7 @@ import {
     CommandArgumentGamemode
 } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
@@ -11,7 +12,7 @@ import Gamemode from '../../world/Gamemode';
 import Player from '../../player/Player';
 
 export default class GamemodeCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:gamemode',
             description: 'Changes gamemode for a player.',

@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class Clay extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:clay',
             id: BlockIdsType.Clay,

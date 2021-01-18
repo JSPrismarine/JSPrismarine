@@ -22,7 +22,10 @@ export enum BedType {
 }
 
 export default class WhiteBed extends Solid {
-    constructor(name = 'minecraft:white_bed', type: BedType = BedType.White) {
+    public constructor(
+        name = 'minecraft:white_bed',
+        type: BedType = BedType.White
+    ) {
         super({
             name,
             id: BlockIdsType.Bed,

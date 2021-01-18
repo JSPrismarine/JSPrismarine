@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../ItemTieredToolType';
 import TieredTool from '../TieredTool';
 
 export default class WoodenShovel extends TieredTool {
-    constructor() {
+    public constructor() {
         super(
             {
                 name: 'minecraft:wooden_shovel',

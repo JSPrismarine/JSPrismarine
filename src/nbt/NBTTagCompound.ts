@@ -166,53 +166,66 @@ export default class NBTTagCompound {
 
             if (
                 val instanceof NBTTagCompound &&
-                testVal instanceof NBTTagCompound
+                testVal instanceof NBTTagCompound &&
+                !val.equals(testVal)
             ) {
-                if (!val.equals(testVal)) {
-                    return false;
-                }
+                return false;
             }
 
-            if (val instanceof ByteVal && testVal instanceof ByteVal) {
-                if (val.getValue() !== testVal.getValue()) {
-                    return false;
-                }
+            if (
+                val instanceof ByteVal &&
+                testVal instanceof ByteVal &&
+                val.getValue() !== testVal.getValue()
+            ) {
+                return false;
             }
 
-            if (val instanceof DoubleVal && testVal instanceof DoubleVal) {
-                if (val.getValue() !== testVal.getValue()) {
-                    return false;
-                }
+            if (
+                val instanceof DoubleVal &&
+                testVal instanceof DoubleVal &&
+                val.getValue() !== testVal.getValue()
+            ) {
+                return false;
             }
 
-            if (val instanceof FloatVal && testVal instanceof FloatVal) {
-                if (val.getValue() !== testVal.getValue()) {
-                    return false;
-                }
+            if (
+                val instanceof FloatVal &&
+                testVal instanceof FloatVal &&
+                val.getValue() !== testVal.getValue()
+            ) {
+                return false;
             }
 
-            if (val instanceof LongVal && testVal instanceof LongVal) {
-                if (val.getValue() !== testVal.getValue()) {
-                    return false;
-                }
+            if (
+                val instanceof LongVal &&
+                testVal instanceof LongVal &&
+                val.getValue() !== testVal.getValue()
+            ) {
+                return false;
             }
 
-            if (val instanceof NumberVal && testVal instanceof NumberVal) {
-                if (val.getValue() !== testVal.getValue()) {
-                    return false;
-                }
+            if (
+                val instanceof NumberVal &&
+                testVal instanceof NumberVal &&
+                val.getValue() !== testVal.getValue()
+            ) {
+                return false;
             }
 
-            if (val instanceof ShortVal && testVal instanceof ShortVal) {
-                if (val.getValue() !== testVal.getValue()) {
-                    return false;
-                }
+            if (
+                val instanceof ShortVal &&
+                testVal instanceof ShortVal &&
+                val.getValue() !== testVal.getValue()
+            ) {
+                return false;
             }
 
-            if (val instanceof StringVal && testVal instanceof StringVal) {
-                if (val.getValue() !== testVal.getValue()) {
-                    return false;
-                }
+            if (
+                val instanceof StringVal &&
+                testVal instanceof StringVal &&
+                val.getValue() !== testVal.getValue()
+            ) {
+                return false;
             }
         }
 

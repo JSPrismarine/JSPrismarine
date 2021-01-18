@@ -65,7 +65,7 @@ export default class PlayerConnection {
     private readonly loadedChunks: Set<string> = new Set();
     private readonly loadingChunks: Set<string> = new Set();
 
-    constructor(server: Server, connection: Connection, player: Player) {
+    public constructor(server: Server, connection: Connection, player: Player) {
         this.server = server;
         this.connection = connection;
         this.player = player;

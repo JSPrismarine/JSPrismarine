@@ -59,7 +59,7 @@ export default class World {
     private readonly originalSeed: number;
     private readonly generator: any; // TODO: interface
 
-    constructor({
+    public constructor({
         name,
         server,
         provider,

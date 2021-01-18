@@ -4,7 +4,7 @@ class Destroy {
     public count: number;
     public from: ItemStackRequestSlotInfo;
 
-    constructor({
+    public constructor({
         count,
         from
     }: {

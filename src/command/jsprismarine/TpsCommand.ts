@@ -4,7 +4,7 @@ import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class TpsCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'jsprismarine:tps',
             description: 'Get current TPS.',

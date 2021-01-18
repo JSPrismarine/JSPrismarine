@@ -5,7 +5,7 @@ import Server from '../Server';
 
 jest.mock('../Server', () => {
     return class Prismarine {
-        constructor({ logger, config }: any) {}
+        public constructor({ logger, config }: any) {}
 
         public getRaknet() {
             return new (class Raknet {

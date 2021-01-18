@@ -3,9 +3,9 @@ import Server from '../Server';
 import path from 'path';
 
 export class Plugin {
-    constructor(api: PluginApiVersion) {}
-    async onEnable() {}
-    async onDisable() {}
+    public constructor(api: PluginApiVersion) {}
+    public async onEnable() {}
+    public async onDisable() {}
 }
 
 export default class PluginFile {
@@ -18,7 +18,7 @@ export default class PluginFile {
     private readonly displayName: string;
     private readonly version: string;
 
-    constructor(
+    public constructor(
         server: Server,
         dir: string,
         pluginApiVersion: PluginApiVersion

@@ -22,7 +22,7 @@ export enum TerracottaColorType {
 }
 
 export default class WhiteTerracotta extends Solid {
-    constructor(
+    public constructor(
         name = 'minecraft:white_terracotta',
         type: TerracottaColorType = TerracottaColorType.White
     ) {

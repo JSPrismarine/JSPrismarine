@@ -7,7 +7,7 @@ const { combine, timestamp, printf } = format;
 export default class LoggerBuilder {
     private readonly logger: Logger;
 
-    constructor() {
+    public constructor() {
         this.logger = createLogger({
             transports: [
                 new transports.Console({

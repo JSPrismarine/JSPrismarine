@@ -2,7 +2,7 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class ChainChestplate extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:chainmail_chestplate',
             id: ItemIdsType.ChainChestplate

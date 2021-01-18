@@ -5,7 +5,7 @@ import Server from '../../Server';
 import Solid from '../Solid';
 
 export default class Grass extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:grass',
             id: BlockIdsType.Grass,
