@@ -1,15 +1,15 @@
+import BedrockData from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import fs from 'fs';
-import path from 'path';
+import Block from './Block';
+import { BlockIdsType } from './BlockIdsType';
 import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
 import { ByteOrder } from '../nbt/ByteOrder';
 import NBTReader from '../nbt/NBTReader';
 import NBTTagCompound from '../nbt/NBTTagCompound';
+import R12ToCurrentBlockMapEntry from './R12ToCurrentBlockMapEntry';
 import Server from '../Server';
-import Block from './Block';
-import { BlockIdsType } from './BlockIdsType';
-
-const BedrockData = require('@jsprismarine/bedrock-data'); // TODO: convert to import
+import fs from 'fs';
+import path from 'path';
 
 export default class BlockManager {
     private readonly server: Server;
@@ -17,9 +17,9 @@ export default class BlockManager {
     private readonly runtimeIds: number[] = [];
     private readonly blockPalette: Buffer = Buffer.alloc(0);
 
+    private bedrockKnownStates: NBTTagCompound[] = [];
     private readonly legacyToRuntimeId: Map<number, number> = new Map();
     private readonly runtimeIdToLegacy: Map<number, number> = new Map();
-    private runtimeIdAllocator = 0;
 
     constructor(server: Server) {
         this.server = server;
@@ -30,8 +30,8 @@ export default class BlockManager {
      */
     public async onEnable() {
         await this.importBlocks();
-        this.generateRuntimeIds();
         await this.generateBlockPalette();
+        this.generateRuntimeIds();
     }
 
     /**
@@ -44,38 +44,41 @@ export default class BlockManager {
     /**
      * Get block by namespaced  id
      */
-    public getBlock(name: string): Block | null {
-        return this.blocks.get(name) || null;
+    public getBlock(name: string): Block {
+        if (!this.blocks.has(name))
+            throw new Error(`invalid block with id ${name}`);
+
+        return this.blocks.get(name);
     }
 
     /**
      * Get block by numeric id
      */
-    public getBlockById(id: number): Block | null {
-        if (!BlockIdsType[id]) return null;
+    public getBlockById(id: number): Block {
+        if (!BlockIdsType[id])
+            throw new Error(`invalid block with numeric id ${id}`);
 
-        return (
-            this.getBlocks().find((a) => a.getId() === id && a.meta === 0) ??
-            null
-        );
+        return this.getBlocks().find((a) => a.getId() === id && a.meta === 0)!;
     }
 
     /**
      * Get block by numeric id and damage value
      */
-    public getBlockByIdAndMeta(id: number, meta: number): Block | null {
-        if (!BlockIdsType[id]) return null;
-
-        return (
-            this.getBlocks().find((a) => a.id === id && a.meta === meta) || null
+    public getBlockByIdAndMeta(id: number, meta: number): Block {
+        const block = this.getBlocks().find(
+            (a) => a.id === id && a.meta === meta
         );
+
+        if (!block)
+            throw new Error(`invalid block with numeric id ${id}:${meta}`);
+        return block;
     }
 
     /**
      * Get block by runtime id
      */
-    public getBlockByRuntimeId(id: number, meta = 0): Block | null {
-        return this.getBlockByIdAndMeta(this.runtimeIds[id], meta) || null;
+    public getBlockByRuntimeId(id: number, meta = 0): Block {
+        return this.getBlockByIdAndMeta(this.runtimeIds[id], meta);
     }
 
     /**
@@ -86,56 +89,109 @@ export default class BlockManager {
     }
 
     private async generateBlockPalette() {
-        const compound: Set<NBTTagCompound> = await new Promise((resolve) => {
+        this.bedrockKnownStates = await new Promise((resolve) => {
             const data: BinaryStream = new BinaryStream(
-                BedrockData.block_states // Vanilla states
+                BedrockData.canonical_block_states // Vanilla states
             );
 
-            const reader: NBTReader = new NBTReader(
-                data,
-                ByteOrder.LITTLE_ENDIAN
-            );
-            resolve(reader.parseList());
+            const list: NBTTagCompound[] = [];
+            while (!data.feof()) {
+                const reader: NBTReader = new NBTReader(
+                    data,
+                    ByteOrder.LITTLE_ENDIAN
+                );
+                reader.setUseVarint(true);
+
+                list.push(reader.parse());
+            }
+
+            resolve(list);
         });
 
-        await Promise.all(
-            Array.from(compound).map(async (state) => {
-                const runtimeId: number = this.runtimeIdAllocator++;
-                if (!state.has('LegacyStates')) return false;
+        const legacyStateMap: R12ToCurrentBlockMapEntry[] = await new Promise(
+            (resolve) => {
+                const data: BinaryStream = new BinaryStream(
+                    BedrockData.r12_to_current_block_map
+                );
 
-                const legacyStates: Set<NBTTagCompound> = state.getList(
-                    'LegacyStates',
-                    false
-                ) as Set<NBTTagCompound>;
+                const reader: NBTReader = new NBTReader(
+                    data,
+                    ByteOrder.LITTLE_ENDIAN
+                );
+                reader.setUseVarint(true);
 
-                const firstState: NBTTagCompound = legacyStates.values().next()
-                    .value;
-                const legacyId: number =
-                    (firstState.getNumber('id', 0) << 6) |
-                    firstState.getShort('val', 0);
-                this.runtimeIdToLegacy.set(runtimeId, legacyId);
+                const list: R12ToCurrentBlockMapEntry[] = [];
+                while (!data.feof()) {
+                    const id: string = data
+                        .read(data.readUnsignedVarInt())
+                        .toString('utf8'); // readString
+                    const meta: number = data.readLShort();
 
-                Array.from(legacyStates).forEach((legacyState) => {
-                    const legacyId: number =
-                        (legacyState.getNumber('id', 0) << 6) |
-                        legacyState.getShort('val', 0);
-                    this.legacyToRuntimeId.set(legacyId, runtimeId);
-                });
-            })
+                    const state: NBTTagCompound = reader.parse();
+
+                    list.push(new R12ToCurrentBlockMapEntry(id, meta, state));
+                }
+
+                resolve(list);
+            }
         );
+
+        const idToStatesMap: Map<string, number[]> = new Map<
+            string,
+            number[]
+        >();
+
+        for (let k = 0; k < this.bedrockKnownStates.length; k++) {
+            const name: string = this.bedrockKnownStates[k].getString(
+                'name',
+                ''
+            );
+
+            if (!idToStatesMap.has(name)) {
+                idToStatesMap.set(name, [k]);
+            } else {
+                idToStatesMap.get(name)!.push(k);
+            }
+        }
+
+        for (const pair of legacyStateMap) {
+            const id: number = BedrockData.block_id_map[pair.getId()];
+            const meta: number = pair.getMeta();
+
+            if (meta > 15) {
+                // We can't handle metadata with more than 4 bits
+                continue;
+            }
+
+            const mappedState: NBTTagCompound = pair.getBlockState();
+            const mappedName: string = mappedState.getString('name', '');
+            if (!idToStatesMap.has(mappedName)) {
+                throw new Error(
+                    `${mappedName} does not appear in network table`
+                );
+            }
+
+            for (const runtimeId of idToStatesMap.get(mappedName)!) {
+                const networkState = this.bedrockKnownStates[runtimeId];
+
+                if (mappedState.equals(networkState)) {
+                    this.legacyToRuntimeId.set((id << 4) | meta, runtimeId);
+                    this.runtimeIdToLegacy.set(runtimeId, (id << 4) | meta);
+                }
+            }
+        }
     }
 
     // TODO: to clean up
     // Also, block.getRuntimeId() should call this and return the value
     public getRuntimeWithMeta(id: number, meta: number): number {
-        const legacyId = (id << 6) | meta;
-        let runtimeId = this.legacyToRuntimeId.get(legacyId);
-        if (!this.legacyToRuntimeId.has(legacyId)) {
-            runtimeId = this.legacyToRuntimeId.get(id << 6);
-            if (!this.legacyToRuntimeId.has(id << 6)) {
-                runtimeId = this.runtimeIdAllocator++;
-                this.legacyToRuntimeId.set(id << 6, runtimeId);
-                this.runtimeIdToLegacy.set(runtimeId, id << 6);
+        let runtimeId = this.legacyToRuntimeId.get((id << 4) | meta);
+        if (!this.legacyToRuntimeId.has((id << 4) | meta)) {
+            runtimeId = this.legacyToRuntimeId.get(id << 4);
+            if (!this.legacyToRuntimeId.has(id << 4)) {
+                runtimeId = this.legacyToRuntimeId.get(
+                    BlockIdsType.InfoUpdate << 4
+                );
             }
         }
 
@@ -156,13 +212,16 @@ export default class BlockManager {
      * Registers block from block class
      */
     public async registerClassBlock(block: Block) {
-        if (
-            this.blocks.get(block.name) ||
-            this.getBlockByIdAndMeta(block.getId(), block.getMeta())
-        )
+        try {
+            this.blocks.get(block.name);
+            this.getBlockByIdAndMeta(block.getId(), block.getMeta());
+
             throw new Error(
                 `Block with id ${block.getName()} (${block.getId()}:${block.getMeta()}) already exists`
             );
+        } catch (error) {
+            if (!error.message.includes('invalid block with ')) throw error;
+        }
 
         const event = new BlockRegisterEvent(block);
         await this.server.getEventManager().emit('blockRegister', event);
@@ -213,7 +272,7 @@ export default class BlockManager {
             this.server
                 .getLogger()
                 .debug(
-                    `Registered §b${blocks.length}§r block(s) (took ${
+                    `Registered §b${this.blocks.size}§r block(s) (took ${
                         Date.now() - time
                     } ms)!`,
                     'BlockManager/importBlocks'
@@ -229,7 +288,8 @@ export default class BlockManager {
     }
 
     private generateRuntimeIds() {
-        const blocks = this.getBlocks().sort(() => 0.5 - Math.random()); // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
+        // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
+        const blocks = this.getBlocks().sort(() => 0.5 - Math.random());
 
         for (const block of blocks) {
             this.runtimeIds.push(block.getId());

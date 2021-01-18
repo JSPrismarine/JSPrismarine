@@ -3,14 +3,14 @@ import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Gamemode from '../../world/Gamemode';
+import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
+import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import type Server from '../../Server';
 import StartGamePacket from '../packet/StartGamePacket';
-import ResourcePackStatusType from '../type/ResourcePackStatusType';
-import PacketHandler from './PacketHandler';
 import Vector3 from '../../math/Vector3';
 
 export default class ResourcePackResponseHandler
@@ -86,14 +86,12 @@ export default class ResourcePackResponseHandler
             await player.getConnection().sendAvailableCommands();
             await player.getConnection().sendInventory();
 
-            await player
-                .getConnection()
-                .sendCreativeContents(player.gamemode !== Gamemode.Creative);
+            await player.getConnection().sendCreativeContents();
 
             // First add
             await player.getConnection().addToPlayerList();
-            // Then retrive other players
-            if (server.getOnlinePlayers().length > 1) {
+            // Then retrieve other players
+            if (server.getPlayerManager().getOnlinePlayers().length > 1) {
                 await player.getConnection().sendPlayerList();
             }
 

@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class AvailableCommandsPacket extends DataPacket {
-    static NetID = Identifiers.AvailableCommandsPacket;
+    public static NetID = Identifiers.AvailableCommandsPacket;
 
     public enumValues: Set<string> = new Set();
     public postFixes: Set<string> = new Set();
@@ -41,10 +41,10 @@ export default class AvailableCommandsPacket extends DataPacket {
         for (const data of this.commandData) {
             // Command meta
             this.writeString(data.name);
-            this.writeString(data.description);
+            this.writeString(data.description ?? '');
 
             // Flags
-            this.writeByte(data.flags);
+            this.writeByte(data.flags ?? 0);
             this.writeByte(data.permission as any);
 
             // Alias enum indexes
@@ -52,7 +52,7 @@ export default class AvailableCommandsPacket extends DataPacket {
 
             // Parameters and overloads
             this.writeUnsignedVarInt(1); // I don't get it, why ??
-            this.writeUnsignedVarInt(data?.parameters?.size || 0);
+            this.writeUnsignedVarInt(data?.parameters?.size ?? 0);
             if (data?.parameters)
                 for (const parameter of data.parameters) {
                     this.writeString(parameter.name);

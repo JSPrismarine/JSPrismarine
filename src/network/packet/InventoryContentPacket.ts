@@ -1,9 +1,9 @@
+import type ContainerEntry from '../../inventory/ContainerEntry';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import type ContainerEntry from '../../inventory/ContainerEntry';
 
 export default class InventoryContentPacket extends DataPacket {
-    static NetID = Identifiers.InventoryContentPacket;
+    public static NetID = Identifiers.InventoryContentPacket;
 
     public windowId!: number;
     public items: ContainerEntry[] = [];

@@ -1,6 +1,6 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
+import Solid from '../Solid';
 
 export enum SandType {
     Regular = 0,
@@ -17,7 +17,7 @@ export default class Sand extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

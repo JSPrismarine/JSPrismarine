@@ -34,13 +34,19 @@ export class Attribute {
      * @param def - Attribute default value
      * @param value - Attribute current value
      */
-    constructor(
-        name: string,
-        min: number,
-        max: number,
-        def: number,
-        value: number
-    ) {
+    constructor({
+        name,
+        min,
+        max,
+        def,
+        value
+    }: {
+        name: string;
+        min: number;
+        max: number;
+        def: number;
+        value: number;
+    }) {
         this.name = name;
         this.min = min;
         this.max = max;
@@ -78,29 +84,125 @@ export default class AttributeManager {
      */
     public getDefaults() {
         return [
-            new Attribute(AttributeIds.Absorption, 0, MAX_FLOAT32, 0, 0),
-            new Attribute(AttributeIds.PlayerSaturation, 0, 20, 20, 20),
-            new Attribute(AttributeIds.PlayerExhaustion, 0, 5, 0, 0),
-            new Attribute(AttributeIds.KnockbackResistence, 0, 1, 0, 0),
-            new Attribute(AttributeIds.Health, 0, 20, 20, 20),
-            new Attribute(AttributeIds.Movement, 0, MAX_FLOAT32, 0.1, 0.1),
-            new Attribute(AttributeIds.FollowRange, 0, 2048, 16, 16),
-            new Attribute(AttributeIds.PlayerHunger, 0, 20, 20, 20),
-            new Attribute(AttributeIds.AttackDamage, 0, MAX_FLOAT32, 1, 1),
-            new Attribute(AttributeIds.PlayerLevel, 0, 24791, 0, 0),
-            new Attribute(AttributeIds.PlayerExperience, 0, 1, 0, 0),
-            new Attribute(
-                AttributeIds.UnderwaterMovement,
-                0,
-                MAX_FLOAT32,
-                0.02,
-                0.02
-            ),
-            new Attribute(AttributeIds.Luck, -1024, 1024, 0, 0),
-            new Attribute(AttributeIds.FallDamage, 0, MAX_FLOAT32, 1, 1),
-            new Attribute(AttributeIds.HorseJumpStrength, 0, 2, 0.7, 0.7),
-            new Attribute(AttributeIds.ZombieSpawnReinforcements, 0, 1, 0, 0),
-            new Attribute(AttributeIds.LavaMovement, 0, MAX_FLOAT32, 0.02, 0.02)
+            new Attribute({
+                name: AttributeIds.Absorption,
+                min: 0,
+                max: MAX_FLOAT32,
+                def: 0,
+                value: 0
+            }),
+            new Attribute({
+                name: AttributeIds.PlayerSaturation,
+                min: 0,
+                max: 20,
+                def: 20,
+                value: 20
+            }),
+            new Attribute({
+                name: AttributeIds.PlayerExhaustion,
+                min: 0,
+                max: 5,
+                def: 0,
+                value: 0
+            }),
+            new Attribute({
+                name: AttributeIds.KnockbackResistence,
+                min: 0,
+                max: 1,
+                def: 0,
+                value: 0
+            }),
+            new Attribute({
+                name: AttributeIds.Health,
+                min: 0,
+                max: 20,
+                def: 20,
+                value: 20
+            }),
+            new Attribute({
+                name: AttributeIds.Movement,
+                min: 0,
+                max: MAX_FLOAT32,
+                def: 0.1,
+                value: 0.1
+            }),
+            new Attribute({
+                name: AttributeIds.FollowRange,
+                min: 0,
+                max: 2048,
+                def: 16,
+                value: 16
+            }),
+            new Attribute({
+                name: AttributeIds.PlayerHunger,
+                min: 0,
+                max: 20,
+                def: 20,
+                value: 20
+            }),
+            new Attribute({
+                name: AttributeIds.AttackDamage,
+                min: 0,
+                max: MAX_FLOAT32,
+                def: 1,
+                value: 1
+            }),
+            new Attribute({
+                name: AttributeIds.PlayerLevel,
+                min: 0,
+                max: 24791,
+                def: 0,
+                value: 0
+            }),
+            new Attribute({
+                name: AttributeIds.PlayerExperience,
+                min: 0,
+                max: 1,
+                def: 0,
+                value: 0
+            }),
+            new Attribute({
+                name: AttributeIds.UnderwaterMovement,
+                min: 0,
+                max: MAX_FLOAT32,
+                def: 0.02,
+                value: 0.02
+            }),
+            new Attribute({
+                name: AttributeIds.Luck,
+                min: -1024,
+                max: 1024,
+                def: 0,
+                value: 0
+            }),
+            new Attribute({
+                name: AttributeIds.FallDamage,
+                min: 0,
+                max: MAX_FLOAT32,
+                def: 1,
+                value: 1
+            }),
+            new Attribute({
+                name: AttributeIds.HorseJumpStrength,
+                min: 0,
+                max: 2,
+                def: 0.7,
+                value: 0.7
+            }),
+            new Attribute({
+                name: AttributeIds.ZombieSpawnReinforcements,
+                min: 0,
+                max: 1,
+                def: 0,
+                value: 0
+            }),
+            new Attribute({
+                name: AttributeIds.LavaMovement,
+                min: 0,
+                max: MAX_FLOAT32,
+                def: 0.02,
+                value: 0.02
+            })
         ];
     }
 

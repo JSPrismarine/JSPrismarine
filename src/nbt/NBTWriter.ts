@@ -1,11 +1,11 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { ByteOrder } from './ByteOrder';
-import { NBTDefinitions } from './NBTDefinitions';
-import NBTTagCompound from './NBTTagCompound';
 import ByteVal from './types/ByteVal';
 import DoubleVal from './types/DoubleVal';
 import FloatVal from './types/FloatVal';
 import LongVal from './types/LongVal';
+import { NBTDefinitions } from './NBTDefinitions';
+import NBTTagCompound from './NBTTagCompound';
 import NumberVal from './types/NumberVal';
 import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';
@@ -115,7 +115,9 @@ export default class NBTWriter {
 
     private writeIntegerArrayValue(value: number[]) {
         this.writeIntegerValue(value.length);
-        value.map((v) => this.writeIntegerValue(v));
+        value.forEach((v) => {
+            this.writeIntegerValue(v);
+        });
     }
 
     private writeListValue(value: Set<any>): void {

@@ -1,47 +1,60 @@
-import Block from '../block/Block';
-import { Attribute } from '../entity/attribute';
-import ContainerEntry from '../inventory/ContainerEntry';
-import { WindowIds } from '../inventory/WindowManager';
-import Item from '../item/Item';
-import AddPlayerPacket from '../network/packet/AddPlayerPacket';
 import AdventureSettingsPacket, {
     AdventureSettingsFlags
 } from '../network/packet/AdventureSettingsPacket';
-import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
-import BatchPacket from '../network/packet/BatchPacket';
-import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
-import CreativeContentPacket from '../network/packet/CreativeContentPacket';
-import DataPacket from '../network/packet/DataPacket';
-import DisconnectPacket from '../network/packet/DisconnectPacket';
-import InventoryContentPacket from '../network/packet/InventoryContentPacket';
-import LevelChunkPacket from '../network/packet/LevelChunkPacket';
-import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
-import MovePlayerPacket from '../network/packet/MovePlayerPacket';
-import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
+import {
+    CommandArgumentEntity,
+    CommandArgumentFloatPosition,
+    CommandArgumentGamemode
+} from '../command/CommandArguments';
+import CommandParameter, {
+    CommandParameterType
+} from '../network/type/CommandParameter';
 import PlayerListPacket, {
     PlayerListAction,
     PlayerListEntry
 } from '../network/packet/PlayerListPacket';
+
+import AddPlayerPacket from '../network/packet/AddPlayerPacket';
+import Air from '../block/blocks/Air';
+import { Attribute } from '../entity/attribute';
+import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
+import BatchPacket from '../network/packet/BatchPacket';
+import Block from '../block/Block';
+import Chunk from '../world/chunk/Chunk';
+import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
+import type Connection from '../network/raknet/Connection';
+import ContainerEntry from '../inventory/ContainerEntry';
+import CoordinateUtils from '../world/CoordinateUtils';
+import CreativeContentEntry from '../network/type/CreativeContentEntry';
+import CreativeContentPacket from '../network/packet/CreativeContentPacket';
+import DataPacket from '../network/packet/DataPacket';
+import DisconnectPacket from '../network/packet/DisconnectPacket';
+import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
+import IntegerArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/IntegerArgumentType';
+import InventoryContentPacket from '../network/packet/InventoryContentPacket';
+import Item from '../item/Item';
+import LevelChunkPacket from '../network/packet/LevelChunkPacket';
+import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
+import MovePlayerPacket from '../network/packet/MovePlayerPacket';
+import MovementType from '../network/type/MovementType';
+import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
+import PermissionType from '../network/type/PermissionType';
 import PlayStatusPacket from '../network/packet/PlayStatusPacket';
+import type Player from './Player';
+import PlayerPermissionType from '../network/type/PlayerPermissionType';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
+import type Server from '../Server';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import SetTimePacket from '../network/packet/SetTimePacket';
-import TextPacket from '../network/packet/TextPacket';
-import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
-import type Connection from '../network/raknet/Connection';
-import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
-import CreativeContentEntry from '../network/type/CreativeContentEntry';
-import MovementType from '../network/type/MovementType';
-import PermissionType from '../network/type/PermissionType';
-import PlayerPermissionType from '../network/type/PlayerPermissionType';
-import TextType from '../network/type/TextType';
-import type Server from '../Server';
 import Skin from '../utils/skin/Skin';
+import StringArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/StringArgumentType';
+import TextPacket from '../network/packet/TextPacket';
+import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
-import Chunk from '../world/chunk/Chunk';
-import CoordinateUtils from '../world/CoordinateUtils';
-import type Player from './Player';
+import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
+import { WindowIds } from '../inventory/WindowManager';
+
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
 export default class PlayerConnection {
@@ -92,7 +105,7 @@ export default class PlayerConnection {
     }
 
     public async sendSettings(player?: Player) {
-        const target = player || this.player;
+        const target = player ?? this.player;
         const pk = new AdventureSettingsPacket();
 
         pk.setFlag(
@@ -329,26 +342,128 @@ export default class PlayerConnection {
 
     public async sendAvailableCommands() {
         const pk = new AvailableCommandsPacket();
-        for (const command of this.server.getCommandManager().getCommands()) {
-            if (!Array.isArray(command.parameters)) {
-                (pk as any).commandData.add({
-                    ...command,
-                    name: command.id.split(':')[1],
-                    execute: undefined,
-                    id: undefined
-                });
-            } else {
-                for (let i = 0; i < command.parameters.length; i++) {
-                    (pk as any).commandData.add({
-                        ...command,
-                        name: command.id.split(':')[1],
-                        parameters: command.parameters[i],
-                        execute: undefined,
-                        id: undefined
-                    });
+
+        this.server
+            .getCommandManager()
+            .getCommandsList()
+            .forEach((command) => {
+                const classCommand = Array.from(
+                    this.server.getCommandManager().getCommands().values()
+                ).find((cmd) => cmd.id.split(':')[1] === command[0])!;
+
+                if (!classCommand) {
+                    this.player
+                        .getServer()
+                        .getLogger()
+                        .warn(
+                            `Can't find corresponding command class for "${command[0]}"`
+                        );
+                    return;
                 }
-            }
-        }
+
+                if (
+                    !this.player
+                        .getServer()
+                        .getPermissionManager()
+                        .can(this.player)
+                        .execute(classCommand.permission)
+                )
+                    return;
+
+                if (command[1].getCommand())
+                    pk.commandData.add({
+                        name: command[0],
+                        description: classCommand.description,
+                        parameters: new Set<CommandParameter>()
+                    });
+
+                command[2].forEach((arg) => {
+                    const parameters = arg
+                        .map((parameter) => {
+                            if (parameter instanceof CommandArgumentEntity)
+                                return [
+                                    new CommandParameter({
+                                        name: 'target',
+                                        type: CommandParameterType.Target,
+                                        optional: false
+                                    })
+                                ];
+
+                            if (
+                                parameter instanceof
+                                CommandArgumentFloatPosition
+                            )
+                                return [
+                                    new CommandParameter({
+                                        name: 'x',
+                                        type: CommandParameterType.Float,
+                                        optional: false
+                                    }),
+                                    new CommandParameter({
+                                        name: 'y',
+                                        type: CommandParameterType.Float,
+                                        optional: false
+                                    }),
+                                    new CommandParameter({
+                                        name: 'z',
+                                        type: CommandParameterType.Float,
+                                        optional: false
+                                    })
+                                ];
+                            if (parameter instanceof CommandArgumentGamemode)
+                                return [
+                                    new CommandParameter({
+                                        name: 'gamemode',
+                                        type: CommandParameterType.String,
+                                        optional: false
+                                    })
+                                ];
+                            if (
+                                parameter.constructor.name ===
+                                'StringArgumentType'
+                            )
+                                return [
+                                    new CommandParameter({
+                                        name: 'value',
+                                        type: CommandParameterType.String,
+                                        optional: false
+                                    })
+                                ];
+                            if (
+                                parameter.constructor.name ===
+                                'IntegerArgumentType'
+                            )
+                                return [
+                                    new CommandParameter({
+                                        name: 'number',
+                                        type: CommandParameterType.Int,
+                                        optional: false
+                                    })
+                                ];
+
+                            this.server
+                                .getLogger()
+                                .warn(
+                                    `Invalid parameter ${parameter.constructor.name}`
+                                );
+                            return [
+                                new CommandParameter({
+                                    name: 'value',
+                                    type: CommandParameterType.String,
+                                    optional: false
+                                })
+                            ];
+                        })
+                        .filter((a) => a)
+                        .flat();
+
+                    pk.commandData.add({
+                        name: command[0],
+                        description: classCommand.description,
+                        parameters: new Set<CommandParameter>(parameters as any)
+                    });
+                });
+            });
 
         await this.sendDataPacket(pk);
     }
@@ -383,7 +498,7 @@ export default class PlayerConnection {
         xuid = '',
         needsTranslation = false
     ) {
-        if (!message) return; // FIXME: throw error here
+        if (!message) throw new Error('A message is required');
 
         const pk = new TextPacket();
         pk.type = TextType.Raw;
@@ -445,18 +560,22 @@ export default class PlayerConnection {
             xuid: this.player.xuid,
             platformChatId: '', // TODO: read this value from Login
             buildPlatform: -1,
-            skin: this.player.skin as Skin,
+            skin: this.player.skin!,
             isTeacher: false, // TODO: figure out where to read teacher and host
             isHost: false
         });
         pk.entries.push(entry);
 
         // Add to cached player list
-        this.server.getPlayerList().set(this.player.uuid, entry);
+        this.server
+            .getPlayerManager()
+            .getPlayerList()
+            .set(this.player.uuid, entry);
 
         // Add just this entry for every players on the server
         await Promise.all(
             this.server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .map(async (player) =>
                     player.getConnection().sendDataPacket(pk)
@@ -478,10 +597,11 @@ export default class PlayerConnection {
         });
         pk.entries.push(entry);
 
-        this.server.getPlayerList().delete(this.player.uuid);
+        this.server.getPlayerManager().getPlayerList().delete(this.player.uuid);
 
         await Promise.all(
             this.server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .map(async (player) =>
                     player.getConnection().sendDataPacket(pk)
@@ -498,11 +618,13 @@ export default class PlayerConnection {
         pk.type = PlayerListAction.TYPE_ADD;
 
         // Hack to not compute every time entries
-        Array.from(this.server.getPlayerList()).forEach(([uuid, entry]) => {
-            if (!(uuid === this.player.uuid)) {
-                pk.entries.push(entry);
+        Array.from(this.server.getPlayerManager().getPlayerList()).forEach(
+            ([uuid, entry]) => {
+                if (!(uuid === this.player.uuid)) {
+                    pk.entries.push(entry);
+                }
             }
-        });
+        );
 
         await this.sendDataPacket(pk);
     }
@@ -512,9 +634,10 @@ export default class PlayerConnection {
      */
     public async sendSpawn(player: Player) {
         if (!player.getUUID()) {
-            return this.server
+            this.server
                 .getLogger()
                 .error(`UUID for player=${player.getUsername()} is undefined`);
+            return;
         }
 
         const pk = new AddPlayerPacket();
@@ -535,7 +658,11 @@ export default class PlayerConnection {
         pk.yaw = this.player.yaw;
         pk.headYaw = this.player.headYaw;
 
-        pk.deviceId = this.player.device?.id || '';
+        pk.item =
+            this.player.getInventory()?.getItemInHand() ??
+            new ContainerEntry({ item: new Air(), count: 0 });
+
+        pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager().getMetadata();
         await player.getConnection().sendDataPacket(pk);
         await this.sendSettings(player);

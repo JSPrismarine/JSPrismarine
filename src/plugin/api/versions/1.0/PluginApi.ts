@@ -25,26 +25,31 @@ export default class PluginApi extends PluginApiVersion {
         const name = this.pkg.prismarine?.displayName || this.pkg.name;
 
         return {
-            silly: (...args) =>
+            silly: (...args) => {
                 this.server
                     .getLogger()
-                    .silly(`[${name}] ${args}`, this.pkg.name),
-            debug: (...args) =>
+                    .silly(`[${name}] ${args}`, this.pkg.name);
+            },
+            debug: (...args) => {
                 this.server
                     .getLogger()
-                    .debug(`[${name}] ${args}`, this.pkg.name),
-            info: (...args) =>
+                    .debug(`[${name}] ${args}`, this.pkg.name);
+            },
+            info: (...args) => {
                 this.server
                     .getLogger()
-                    .info(`[${name}] ${args}`, this.pkg.name),
-            warn: (...args) =>
+                    .info(`[${name}] ${args}`, this.pkg.name);
+            },
+            warn: (...args) => {
                 this.server
                     .getLogger()
-                    .warn(`[${name}] ${args}`, this.pkg.name),
-            error: (...args) =>
+                    .warn(`[${name}] ${args}`, this.pkg.name);
+            },
+            error: (...args) => {
                 this.server
                     .getLogger()
-                    .error(`[${name}] ${args}`, this.pkg.name)
+                    .error(`[${name}] ${args}`, this.pkg.name);
+            }
         } as LoggerBuilder;
     }
 

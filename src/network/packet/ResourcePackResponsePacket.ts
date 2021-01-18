@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class ResourcePackResponsePacket extends DataPacket {
-    static NetID = Identifiers.ResourcePackResponsePacket;
+    public static NetID = Identifiers.ResourcePackResponsePacket;
 
     public status!: number;
     public packIds: string[] = [];
@@ -20,7 +20,8 @@ export default class ResourcePackResponsePacket extends DataPacket {
         this.writeLShort(0);
 
         this.writeLShort(this.packIds.length);
-        for (let i = 0; i < this.packIds.length; i++)
-            this.writeString(this.packIds[i]);
+        this.packIds.forEach((id) => {
+            this.writeString(id);
+        });
     }
 }

@@ -51,7 +51,7 @@ export default class ServerName {
     }
 
     public getOnlinePlayerCount(): number {
-        return this.server.getOnlinePlayers().length;
+        return this.server.getPlayerManager().getOnlinePlayers().length;
     }
 
     public getMaxPlayerCount(): number {

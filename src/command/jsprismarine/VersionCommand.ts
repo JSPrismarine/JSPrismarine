@@ -1,31 +1,34 @@
+import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import Identifiers from '../../network/Identifiers';
 import Player from '../../player/Player';
-
-const packageFile = require('../../../package.json');
+import packageFile from '../../../package.json';
 
 export default class VersionCommand extends Command {
     constructor() {
         super({
             id: 'jsprismarine:version',
             description: 'Displays general server information.',
+            permission: 'jsprismarine.command.version',
             aliases: ['about']
         });
     }
 
-    /**
-     * @param {Player} sender
-     * @param {Array} args
-     */
-    public async execute(sender: Player, args: any[]): Promise<void> {
-        const serverVersion = packageFile.version;
-        const protocolVersion = Identifiers.Protocol;
-        const minecraftVersion = Identifiers.MinecraftVersion;
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('version').executes(async (context) => {
+                const source = context.getSource() as Player;
+                const serverVersion = packageFile.version;
+                const protocolVersion = Identifiers.Protocol;
+                const minecraftVersion = Identifiers.MinecraftVersion;
 
-        await sender.sendMessage(
-            `This server is running on JSPrismarine ${serverVersion} (rev-${
-                sender.getServer().getQueryManager().git_rev
-            }) for Minecraft: Bedrock Edition v${minecraftVersion} (protocol version ${protocolVersion})`
+                await source.sendMessage(
+                    `This server is running on JSPrismarine ${serverVersion} (rev-${
+                        source.getServer().getQueryManager().git_rev
+                    }) for Minecraft: Bedrock Edition v${minecraftVersion} (protocol version ${protocolVersion})`
+                );
+            })
         );
     }
 }

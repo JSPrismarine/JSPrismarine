@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class SetTimePacket extends DataPacket {
-    static NetID = Identifiers.SetTimePacket;
+    public static NetID = Identifiers.SetTimePacket;
 
     public time!: number;
 

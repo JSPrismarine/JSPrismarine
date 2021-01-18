@@ -1,11 +1,11 @@
 import Block from './Block';
 
 export default class Transparent extends Block {
-    getLightFilter() {
+    public getLightFilter() {
         return 0;
     }
 
-    isTransparent() {
+    public isTransparent() {
         return true;
     }
 }

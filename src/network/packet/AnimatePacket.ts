@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class AnimatePacket extends DataPacket {
-    static NetID = Identifiers.AnimatePacket;
+    public static NetID = Identifiers.AnimatePacket;
 
     public action!: number;
     public runtimeEntityId!: bigint;

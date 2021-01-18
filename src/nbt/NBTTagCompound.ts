@@ -1,19 +1,20 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
 import * as fs from 'fs';
+
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { ByteOrder } from './ByteOrder';
-import NBTReader from './NBTReader';
-import NBTWriter from './NBTWriter';
 import ByteVal from './types/ByteVal';
 import DoubleVal from './types/DoubleVal';
 import FloatVal from './types/FloatVal';
 import LongVal from './types/LongVal';
+import NBTReader from './NBTReader';
+import NBTWriter from './NBTWriter';
 import NumberVal from './types/NumberVal';
 import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';
 
 export default class NBTTagCompound {
     private name: string | null;
-    private readonly children: Map<string, any> = new Map();
+    public readonly children: Map<string, any> = new Map();
 
     public static readFromFile(
         path: string,
@@ -46,19 +47,17 @@ export default class NBTTagCompound {
     }
 
     public addValue(name: string, value: any): void {
-        if (value instanceof NBTTagCompound) {
-            if (!(name === value.getName())) {
-                throw new Error(
-                    `Failed to add NBTTagCompound with name ${value.getName()} given name ${name}`
-                );
-            }
+        if (value instanceof NBTTagCompound && !(name === value.getName())) {
+            throw new Error(
+                `Failed to add NBTTagCompound with name ${value.getName()} given name ${name}`
+            );
         }
 
         this.children.set(name, value);
     }
 
     public addChild(tag: NBTTagCompound): void {
-        this.children.set(tag.getName() as string, tag);
+        this.children.set(tag.getName()!, tag);
     }
 
     public getList(name: string, insert: boolean): Set<any> | null {
@@ -150,5 +149,73 @@ export default class NBTTagCompound {
 
     public size(): number {
         return this.children.size;
+    }
+
+    // Thanks stackoverflow! https://stackoverflow.com/questions/35948335/how-can-i-check-if-two-map-objects-are-equal
+    public equals(that: NBTTagCompound): boolean {
+        if (this.children.size !== that.children.size) {
+            return false;
+        }
+
+        for (const [key, val] of this.children) {
+            const testVal = that.children.get(key);
+
+            if (testVal === undefined && !that.children.has(key)) {
+                return false;
+            }
+
+            if (
+                val instanceof NBTTagCompound &&
+                testVal instanceof NBTTagCompound
+            ) {
+                if (!val.equals(testVal)) {
+                    return false;
+                }
+            }
+
+            if (val instanceof ByteVal && testVal instanceof ByteVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof DoubleVal && testVal instanceof DoubleVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof FloatVal && testVal instanceof FloatVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof LongVal && testVal instanceof LongVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof NumberVal && testVal instanceof NumberVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof ShortVal && testVal instanceof ShortVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+
+            if (val instanceof StringVal && testVal instanceof StringVal) {
+                if (val.getValue() !== testVal.getValue()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

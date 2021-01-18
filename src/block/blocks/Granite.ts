@@ -7,7 +7,7 @@ export default class Granite extends Stone {
         super('minecraft:granite', StoneType.Granite);
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:granite')];
     }
 }

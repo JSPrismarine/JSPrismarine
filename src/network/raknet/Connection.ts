@@ -47,6 +47,8 @@ export default class Connection {
     // Queue holding packets to send
     private sendQueue = new DataPacket();
 
+    private offlineMode: boolean;
+
     // Map holding splits of split packets
     private readonly splitPackets: Map<
         number,
@@ -78,11 +80,13 @@ export default class Connection {
     constructor(
         listener: RakNetListener,
         mtuSize: number,
-        address: InetAddress
+        address: InetAddress,
+        offlineMode = false
     ) {
         this.listener = listener;
         this.mtuSize = mtuSize;
         this.address = address;
+        this.offlineMode = offlineMode;
 
         this.lastUpdate = Date.now();
 
@@ -183,7 +187,8 @@ export default class Connection {
             // Check if we already received packet and so we don't handle them
             // i still need to understand what are those window stuff
             if (this.receivedWindow.has(dataPacket.sequenceNumber)) {
-                return resolve();
+                resolve();
+                return;
             }
 
             // Check if the packet was a missing one, so in the nack queue
@@ -267,7 +272,7 @@ export default class Connection {
                     .getPackets()
                     .filter((seq) => this.recoveryQueue.has(seq))
                     .map(async (seq) => {
-                        const pk = this.recoveryQueue.get(seq) as DataPacket;
+                        const pk = this.recoveryQueue.get(seq)!;
                         pk.sequenceNumber = this.sendSequenceNumber++;
                         pk.sendTime = Date.now();
                         pk.encode();
@@ -384,7 +389,8 @@ export default class Connection {
         return new Promise(async (resolve) => {
             if (packet.splitCount > 0) {
                 await this.handleSplit(packet);
-                return resolve();
+                resolve();
+                return;
             }
 
             const id = packet.buffer.readUInt8();
@@ -420,7 +426,7 @@ export default class Connection {
                         dataPacket.decode();
 
                         // Client bots will work just in offline mode
-                        const offlineMode = false; // TODO: from config
+                        const offlineMode = this.offlineMode;
 
                         const serverPort = this.listener.getSocket().address()
                             .port;
@@ -495,10 +501,7 @@ export default class Connection {
      */
     public async handleSplit(packet: EncapsulatedPacket): Promise<void> {
         if (this.splitPackets.has(packet.splitId)) {
-            const value = this.splitPackets.get(packet.splitId) as Map<
-                number,
-                EncapsulatedPacket
-            >;
+            const value = this.splitPackets.get(packet.splitId)!;
             value.set(packet.splitIndex, packet);
             this.splitPackets.set(packet.splitId, value);
         } else {
@@ -509,16 +512,13 @@ export default class Connection {
         }
 
         // If we have all pieces, put them together
-        const localSplits = this.splitPackets.get(packet.splitId) as Map<
-            number,
-            EncapsulatedPacket
-        >;
+        const localSplits = this.splitPackets.get(packet.splitId)!;
         if (localSplits.size === packet.splitCount) {
             const pk = new EncapsulatedPacket();
             const stream = new BinaryStream();
-            Array.from(localSplits.values()).map((packet) =>
-                stream.append(packet.buffer)
-            );
+            Array.from(localSplits.values()).forEach((packet) => {
+                stream.append(packet.buffer);
+            });
             this.splitPackets.delete(packet.splitId);
 
             pk.buffer = stream.getBuffer();

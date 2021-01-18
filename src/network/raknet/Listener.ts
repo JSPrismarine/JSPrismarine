@@ -2,7 +2,6 @@ import Dgram, { RemoteInfo, Socket } from 'dgram';
 
 import Connection from './Connection';
 import Crypto from 'crypto';
-
 import { EventEmitter } from 'events';
 import Identifiers from './protocol/Identifiers';
 import IncompatibleProtocolVersion from './protocol/IncompatibleProtocolVersion';
@@ -11,8 +10,8 @@ import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
 import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
 import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
-import type Server from '../../Server';
 import RakNetListener from './RakNetListener';
+import type Server from '../../Server';
 import ServerName from './utils/ServerName';
 import UnconnectedPing from './protocol/UnconnectedPing';
 import UnconnectedPong from './protocol/UnconnectedPong';
@@ -54,9 +53,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
         this.socket.on('message', async (buffer: Buffer, rinfo: RemoteInfo) => {
             const token = `${rinfo.address}:${rinfo.port}`;
             if (this.connections.has(token)) {
-                return (this.connections.get(token) as Connection).receive(
-                    buffer
-                );
+                return this.connections.get(token)!.receive(buffer);
             }
 
             try {
@@ -76,7 +73,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
         });
 
         return new Promise((resolve, reject) => {
-            const failFn = (e: Error) => reject(e);
+            const failFn = (e: Error) => {
+                reject(e);
+            };
 
             this.socket.once('error', failFn);
             this.socket.bind(port, address, () => {
@@ -109,7 +108,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
                 if (packets.length <= 0) {
                     clearInterval(inter);
-                    return resolve();
+                    resolve();
                 }
             }, 50);
         });
@@ -123,9 +122,12 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
         switch (header) {
             case Identifiers.Query:
-                return this.server
-                    .getQueryManager()
-                    .onRaw(buffer, new InetAddress(rinfo.address, rinfo.port));
+                this.emit(
+                    'raw',
+                    buffer,
+                    new InetAddress(rinfo.address, rinfo.port)
+                );
+                return buffer;
             case Identifiers.UnconnectedPing:
                 return this.handleUnconnectedPing(buffer);
             case Identifiers.OpenConnectionRequest1:
@@ -191,7 +193,8 @@ export default class Listener extends EventEmitter implements RakNetListener {
                 packet.encode();
 
                 const buffer = packet.getBuffer();
-                return resolve(buffer);
+                resolve(buffer);
+                return;
             }
 
             const packet = new OpenConnectionReply1();
@@ -223,7 +226,12 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
             this.connections.set(
                 `${address.getAddress()}:${address.getPort()}`,
-                new Connection(this, decodedPacket.mtuSize, address)
+                new Connection(
+                    this,
+                    decodedPacket.mtuSize,
+                    address,
+                    !this.server.getConfig().getOnlineMode()
+                )
             );
 
             resolve(packet.getBuffer());

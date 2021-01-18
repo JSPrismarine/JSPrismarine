@@ -1,7 +1,7 @@
-import Solid from '../Solid';
-import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import Solid from '../Solid';
 
 export default class LapisOre extends Solid {
     constructor() {
@@ -12,11 +12,11 @@ export default class LapisOre extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Stone;
     }
 }

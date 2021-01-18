@@ -2,8 +2,8 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../../chunk/Chunk';
 import EmptySubChunk from '../../chunk/EmptySubChunk';
 import Level from '@beenotung/level-ts';
-import type Server from '../../../Server';
 import Provider from '../../Provider';
+import type Server from '../../../Server';
 import SubChunk from '../../chunk/SubChunk';
 import Vector3 from '../../../math/Vector3';
 import path from 'path';
@@ -84,12 +84,14 @@ export default class LevelDB extends Provider {
                     }
 
                     // Await this.db.get(index + '\x2d');
-                    return resolve(new Chunk(x, z, subChunks));
+                    resolve(new Chunk(x, z, subChunks));
+                    return;
                 }
             } catch (error) {
                 if (!error.notFound) {
                     // Something else went wrong
-                    return reject(error);
+                    reject(error);
+                    return;
                 }
 
                 // Chunk doesn't exist
@@ -120,7 +122,7 @@ export default class LevelDB extends Provider {
                         chunk.getBiomes()
                     ]);
                     await this.db.put(index + '\u002D', data);
-                    return resolve(chunk);
+                    resolve(chunk);
                 })();
             }
         });
@@ -153,9 +155,10 @@ export default class LevelDB extends Provider {
                     chunk.getBiomes()
                 ]);
                 await this.db.put(index + '\u002D', data);
-                return resolve();
+                resolve();
+                return;
             } catch (error) {
-                return reject(error);
+                reject(error);
             }
         });
     }

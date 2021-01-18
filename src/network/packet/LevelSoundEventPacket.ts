@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class LevelSoundEventPacket extends DataPacket {
-    static NetID = Identifiers.LevelSoundEventPacket;
+    public static NetID = Identifiers.LevelSoundEventPacket;
 
     public sound!: number;
 

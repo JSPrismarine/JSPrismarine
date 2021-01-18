@@ -20,14 +20,13 @@ import PacketRegistry from './network/PacketRegistry';
 import PermissionManager from './permission/PermissionManager';
 import Player from './player/Player';
 import PlayerConnectEvent from './events/player/PlayerConnectEvent';
-import { PlayerListEntry } from './network/packet/PlayerListPacket';
+import PlayerManager from './player/PlayerManager';
 import PluginManager from './plugin/PluginManager';
 import QueryManager from './query/QueryManager';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import TelemetryManager from './telemetry/TelemeteryManager';
-import World from './world/World';
 import WorldManager from './world/WorldManager';
 import pkg from '../package.json';
 import { setIntervalAsync } from 'set-interval-async/dynamic';
@@ -39,12 +38,10 @@ export default class Server {
     private tps = 20;
     private readonly tpsHistory: number[];
     private readonly console: Console;
-
-    private readonly players: Map<string, Player> = new Map();
-    private readonly playerList: Map<string, PlayerListEntry> = new Map();
     private readonly telemetryManager: TelemetryManager;
     private readonly eventManager = new EventManager();
     private packetRegistry: PacketRegistry;
+    private playerManager: PlayerManager;
     private readonly pluginManager: PluginManager;
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
@@ -75,6 +72,7 @@ export default class Server {
         this.telemetryManager = new TelemetryManager(this);
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
+        this.playerManager = new PlayerManager(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.worldManager = new WorldManager(this);
@@ -88,23 +86,25 @@ export default class Server {
     }
 
     private async onEnable(): Promise<void> {
+        await this.packetRegistry.onEnable();
         await this.permissionManager.onEnable();
+        await this.pluginManager.onEnable();
         await this.banManager.onEnable();
         await this.itemManager.onEnable();
         await this.blockManager.onEnable();
         await this.commandManager.onEnable();
-        await this.pluginManager.onEnable();
         await this.telemetryManager.onEnable();
     }
 
     private async onDisable(): Promise<void> {
         await this.telemetryManager.onDisable();
-        await this.pluginManager.onDisable();
         await this.commandManager.onDisable();
         await this.blockManager.onDisable();
         await this.itemManager.onDisable();
         await this.banManager.onDisable();
+        await this.pluginManager.onDisable();
         await this.permissionManager.onDisable();
+        await this.packetRegistry.onDisable();
     }
 
     public async reload(): Promise<void> {
@@ -146,7 +146,15 @@ export default class Server {
         );
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
-            await this.getQueryManager().onRaw(buffer, inetAddr);
+            try {
+                await this.getQueryManager().onRaw(buffer, inetAddr);
+            } catch (error) {
+                this.getLogger().debug(
+                    `QueryManager failed with error: ${error}`,
+                    'Server/listen/raw'
+                );
+                this.getLogger().silly(error.stack, 'Server/listen/raw');
+            }
         });
 
         this.logger.info(
@@ -162,7 +170,7 @@ export default class Server {
                 // TODO: Get last world by player data
                 // and if it doesn't exists, return the default one
                 const time = Date.now();
-                const world = this.getWorldManager().getDefaultWorld() as World;
+                const world = this.getWorldManager().getDefaultWorld()!;
 
                 const player = new Player(connection, world, this);
 
@@ -180,7 +188,7 @@ export default class Server {
                 if (playerConnectEvent.cancelled)
                     throw new Error('Event canceled');
 
-                this.players.set(
+                await this.playerManager.addPlayer(
                     `${player
                         .getAddress()
                         .getAddress()}:${player.getAddress().getPort()}`,
@@ -205,12 +213,12 @@ export default class Server {
 
                 const time = Date.now();
                 const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
-                if (this.players.has(token)) {
-                    const player = this.players.get(token) as Player;
+                try {
+                    const player = this.playerManager.getPlayer(token);
 
-                    // Despawn the player to all online players
+                    // De-spawn the player to all online players
                     await player.getConnection().removeFromPlayerList();
-                    for (const onlinePlayer of this.players.values()) {
+                    for (const onlinePlayer of this.playerManager.getOnlinePlayers()) {
                         await player.getConnection().sendDespawn(onlinePlayer);
                     }
 
@@ -228,10 +236,14 @@ export default class Server {
 
                     await player.onDisable();
                     player.getWorld().removePlayer(player);
-                    this.players.delete(token);
-                } else {
+                    await this.playerManager.removePlayer(token);
+                } catch (error) {
                     this.logger.debug(
                         `Cannot remove connection from non-existing player (${token})`,
+                        'Server/listen/raknetDisconnect'
+                    );
+                    this.logger.silly(
+                        error.stack,
                         'Server/listen/raknetDisconnect'
                     );
                 }
@@ -253,143 +265,125 @@ export default class Server {
             const inetAddr = event.getInetAddr();
 
             const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
-            if (!this.players.has(token)) return;
-            const player = this.players.get(token);
 
-            // Read batch content and handle them
-            const batched = new BatchPacket(raknetPacket.buffer);
-            batched.decode();
+            try {
+                const player = this.playerManager.getPlayer(token);
 
-            // Read all packets inside batch and handle them
-            for (const buf of batched.getPackets()) {
-                const pid = buf[0];
-                if (!this.packetRegistry.getPackets().has(pid)) {
-                    this.logger.error(
-                        `Packet 0x${pid.toString(16)} isn't implemented`,
-                        'Server/listen/raknetEncapsulatedPacket'
-                    );
-                    continue;
+                // Read batch content and handle them
+                const batched = new BatchPacket(raknetPacket.buffer);
+                batched.decode();
+
+                // Read all packets inside batch and handle them
+                for (const buf of batched.getPackets()) {
+                    const pid = buf[0];
+                    if (!this.packetRegistry.getPackets().has(pid)) {
+                        this.logger.error(
+                            `Packet 0x${pid.toString(16)} isn't implemented`,
+                            'Server/listen/raknetEncapsulatedPacket'
+                        );
+                        continue;
+                    }
+
+                    // Get packet from registry
+                    const packet = new (this.packetRegistry
+                        .getPackets()
+                        .get(buf[0]))(buf);
+
+                    try {
+                        packet.decode();
+                    } catch (error) {
+                        this.logger.error(
+                            `Error while decoding packet: ${packet.constructor.name}: ${error}`,
+                            'Server/listen/raknetEncapsulatedPacket'
+                        );
+                        continue;
+                    }
+
+                    try {
+                        const handler = this.packetRegistry.getPacketHandler(
+                            packet.getId()
+                        );
+
+                        await (handler as PacketHandler<any>).handle(
+                            packet,
+                            this,
+                            player
+                        );
+                    } catch (error) {
+                        this.logger.error(
+                            `Handler error ${packet.constructor.name}-handler: (${error})`,
+                            'Server/listen/raknetEncapsulatedPacket'
+                        );
+                        this.logger.debug(
+                            `${error.stack}`,
+                            'Server/listen/raknetEncapsulatedPacket'
+                        );
+                    }
                 }
-
-                // Get packet from registry
-                const packet = new (this.packetRegistry
-                    .getPackets()
-                    .get(buf[0]))(buf);
-
-                try {
-                    packet.decode();
-                } catch (error) {
-                    this.logger.error(
-                        `Error while decoding packet: ${packet.constructor.name}: ${error}`,
-                        'Server/listen/raknetEncapsulatedPacket'
-                    );
-                    continue;
-                }
-
-                try {
-                    const handler = this.packetRegistry.getPacketHandler(
-                        packet.getId()
-                    );
-
-                    await (handler as PacketHandler<any>).handle(
-                        packet,
-                        this,
-                        player as Player
-                    );
-                } catch (error) {
-                    this.logger.error(
-                        `Handler error ${packet.constructor.name}-handler: (${error})`,
-                        'Server/listen/raknetEncapsulatedPacket'
-                    );
-                    this.logger.debug(
-                        `${error.stack}`,
-                        'Server/listen/raknetEncapsulatedPacket'
-                    );
-                }
+            } catch (error) {
+                this.logger.error(
+                    error,
+                    'Server/listen/raknetEncapsulatedPacket'
+                );
             }
         });
 
         // Tick worlds every 1/20 of a second (a minecraft tick)
         // e.g. 1000 / 20 = 50
-        let startTime = Date.now();
-        setIntervalAsync(async () => {
+        const startTime = Date.now();
+        let lastTime = Date.now(),
+            ticks = 0;
+        const tick = async () => {
+            ticks += 1;
+
             // Calculate current tps
             const finishTime = Date.now();
-            this.tps =
-                Math.round((1000 / (finishTime - startTime)) * 100) / 100;
+            this.tps = Math.round((1000 / (finishTime - lastTime)) * 100) / 100;
 
             this.tpsHistory.push(this.tps);
             if (this.tpsHistory.length > 12000) this.tpsHistory.shift();
 
             // Make sure we never execute more than once every 20th of a second
-            if (finishTime - startTime < 50) return;
-            startTime = finishTime;
+            if (finishTime - lastTime < 50) return;
+            lastTime = finishTime;
 
-            if (this.tps > 20)
-                return this.getLogger().debug(
-                    `TPS is ${this.tps} which is greater than 20!`,
+            if (this.tps > 20) {
+                this.getLogger().debug(
+                    `TPS is ${this.tps} which is greater than 20! Are we recovering?`,
                     'Server/listen/setIntervalAsync'
                 );
+                return;
+            }
 
             const promises: Array<Promise<void>> = [];
             for (const world of this.getWorldManager().getWorlds()) {
-                promises.push(world.update(startTime));
+                promises.push(world.update(lastTime));
             }
 
             await Promise.all(promises);
-        }, 50);
-    }
+        };
+        setIntervalAsync(tick, 1000 / 20);
 
-    /**
-     * Returns an array containing all online players.
-     */
-    public getOnlinePlayers(): Player[] {
-        return Array.from(this.players.values());
-    }
+        setInterval(() => {
+            const correctTicks = Math.ceil((Date.now() - startTime) / 50);
+            const behindTicks = correctTicks - ticks;
 
-    /**
-     * Returns an online player by its runtime ID,
-     * if it is not found, null is returned.
-     */
-    public getPlayerById(id: bigint): Player | null {
-        return (
-            this.getOnlinePlayers().find((player) => player.runtimeId === id) ??
-            null
-        );
-    }
+            if (behindTicks)
+                this.getLogger().silly(
+                    `We're behind with ${behindTicks} ticks. ${ticks}/${correctTicks}!`,
+                    'server'
+                );
 
-    /**
-     * Returns an online player by its name,
-     * if it is not found, null is returned.
-     *
-     * CASE INSENSITIVE.
-     * MATCH IF STARTS WITH
-     * Example getPlayerByName("John") may return
-     * an user with username "John Doe"
-     */
-    public getPlayerByName(name: string): Player | null {
-        return (
-            Array.from(this.players.values()).find((player) =>
-                player
-                    .getUsername()
-                    .toLowerCase()
-                    .startsWith(name.toLowerCase())
-            ) ?? null
-        );
-    }
+            // TODO: try to recover
+            if (behindTicks < 20) return;
 
-    /**
-     * Returns an online player by its name,
-     * if it is not found, null is returned.
-     *
-     * CASE SENSITIVE.
-     */
-    public getPlayerByExactName(name: string): Player | null {
-        return (
-            this.getOnlinePlayers().find(
-                (player) => player.getUsername() === name
-            ) ?? null
-        );
+            this.getLogger().warn(
+                `Can't keep up, is the server overloaded? (${behindTicks} tick(s) or ${
+                    behindTicks / 20
+                } second(s) behind)`,
+                'Server'
+            );
+        }, 60 * 1000);
     }
 
     /**
@@ -398,7 +392,7 @@ export default class Server {
     public async kill(): Promise<void> {
         try {
             // Kick all online players
-            for (const player of this.getOnlinePlayers()) {
+            for (const player of this.getPlayerManager().getOnlinePlayers()) {
                 await player.kick('Server closed.');
             }
 
@@ -410,7 +404,8 @@ export default class Server {
 
             await this.worldManager.onDisable();
             await this.onDisable();
-            await this.raknet?.kill(); // this.raknet might be undefined if we kill the server early
+            await this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
+            await this.console.onDisable();
             process.exit(0);
         } catch (error) {
             this.getLogger().error(error, 'Server/kill');
@@ -430,6 +425,13 @@ export default class Server {
      */
     public getCommandManager(): CommandManager {
         return this.commandManager;
+    }
+
+    /**
+     * Returns the player manager
+     */
+    public getPlayerManager(): PlayerManager {
+        return this.playerManager;
     }
 
     /**
@@ -514,13 +516,6 @@ export default class Server {
      */
     public getPermissionManager(): PermissionManager {
         return this.permissionManager;
-    }
-
-    /**
-     * Returns the player list
-     */
-    public getPlayerList(): Map<string, PlayerListEntry> {
-        return this.playerList;
     }
 
     /**

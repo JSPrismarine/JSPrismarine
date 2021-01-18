@@ -1,6 +1,6 @@
-import type Server from '../../../Server';
 import type Chunk from '../../chunk/Chunk';
 import Provider from '../../Provider';
+import type Server from '../../../Server';
 // import path from 'path';
 /* import fs from 'fs';
 import util from 'util';

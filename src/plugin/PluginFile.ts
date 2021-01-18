@@ -1,6 +1,6 @@
-import path from 'path';
-import Server from '../Server';
 import PluginApiVersion from './api/PluginApiVersion';
+import Server from '../Server';
+import path from 'path';
 
 export class Plugin {
     constructor(api: PluginApiVersion) {}

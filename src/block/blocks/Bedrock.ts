@@ -1,5 +1,5 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
+import Solid from '../Solid';
 
 export default class Bedrock extends Solid {
     constructor() {
@@ -14,7 +14,7 @@ export default class Bedrock extends Solid {
         return false;
     }
 
-    getBlastResistance() {
+    public getBlastResistance() {
         return 18000000;
     }
 }

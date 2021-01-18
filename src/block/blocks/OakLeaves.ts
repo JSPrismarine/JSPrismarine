@@ -1,6 +1,6 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
+import Solid from '../Solid';
 
 export enum LeavesType {
     Oak = 0,
@@ -24,15 +24,15 @@ export default class Leaves extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shears;
     }
 
-    getFlammability() {
+    public getFlammability() {
         return 20;
     }
 
-    getFuelTime() {
+    public getFuelTime() {
         return 300;
     }
 }

@@ -1,25 +1,25 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { Attribute } from '../entity/attribute';
-import { FlagType } from '../entity/metadata';
-import ContainerEntry from '../inventory/ContainerEntry';
-import Vector3 from '../math/Vector3';
-import Skin from '../utils/skin/Skin';
-import SkinImage from '../utils/skin/SkinImage';
-import UUID from '../utils/UUID';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import BlockPosition from '../world/BlockPosition';
-import { PlayerListEntry } from './packet/PlayerListPacket';
 import CommandOriginData from './type/CommandOriginData';
 import CommandOriginType from './type/CommandOriginType';
+import ContainerEntry from '../inventory/ContainerEntry';
 import CreativeContentEntry from './type/CreativeContentEntry';
+import { FlagType } from '../entity/metadata';
+import ItemStackRequest from './type/itemStackRequest/ItemStackRequest';
 import ItemStackRequestConsume from './type/itemStackRequest/ConsumeStack';
 import ItemStackRequestCreativeCreate from './type/itemStackRequest/CreativeCreate';
 import ItemStackRequestDestroy from './type/itemStackRequest/Destroy';
 import ItemStackRequestDrop from './type/itemStackRequest/Drop';
-import ItemStackRequest from './type/itemStackRequest/ItemStackRequest';
-import ItemStackRequestSlotInfo from './type/itemStackRequest/ItemStackRequestSlotInfo';
 import ItemStackRequestPlace from './type/itemStackRequest/Place';
+import ItemStackRequestSlotInfo from './type/itemStackRequest/ItemStackRequestSlotInfo';
 import ItemStackRequestSwap from './type/itemStackRequest/Swap';
 import ItemStackRequestTake from './type/itemStackRequest/Take';
+import { PlayerListEntry } from './packet/PlayerListPacket';
+import Skin from '../utils/skin/Skin';
+import SkinImage from '../utils/skin/SkinImage';
+import UUID from '../utils/UUID';
+import Vector3 from '../math/Vector3';
 export default class PacketBinaryStream extends BinaryStream {
     /**
      * Returns a string encoded into the buffer.
@@ -248,12 +248,12 @@ export default class PacketBinaryStream extends BinaryStream {
      * Encodes a player list entry into the buffer.
      */
     public writePlayerListAddEntry(entry: PlayerListEntry): void {
-        this.writeVarLong(entry.getUniqueEntityId() as bigint);
-        this.writeString(entry.getName() as string);
+        this.writeVarLong(entry.getUniqueEntityId()!);
+        this.writeString(entry.getName()!);
         this.writeString(entry.getXUID());
-        this.writeString(entry.getPlatformChatId() as string);
-        this.writeLInt(entry.getBuildPlatform() as number);
-        this.writeSkin(entry.getSkin() as Skin);
+        this.writeString(entry.getPlatformChatId()!);
+        this.writeLInt(entry.getBuildPlatform()!);
+        this.writeSkin(entry.getSkin()!);
         this.writeBool(entry.isTeacher());
         this.writeBool(entry.isHost());
     }
@@ -411,7 +411,8 @@ export default class PacketBinaryStream extends BinaryStream {
         const itemstack = entry.getItem();
 
         if (itemstack.name === 'minecraft:air') {
-            return this.writeVarInt(0);
+            this.writeVarInt(0);
+            return;
         }
 
         this.writeVarInt(itemstack.getId());

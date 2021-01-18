@@ -1,6 +1,6 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
+import Solid from '../Solid';
 
 export enum DirtType {
     Regular = 0,
@@ -17,7 +17,7 @@ export default class Dirt extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

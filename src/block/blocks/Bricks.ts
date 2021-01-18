@@ -1,5 +1,5 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
+import Solid from '../Solid';
 
 export default class Bricks extends Solid {
     constructor() {
@@ -10,7 +10,7 @@ export default class Bricks extends Solid {
         });
     }
 
-    getBlastResistance() {
+    public getBlastResistance() {
         return 6;
     }
 }

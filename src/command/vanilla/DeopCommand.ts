@@ -1,6 +1,10 @@
-import CommandParameter, {
-    CommandParameterType
-} from '../../network/type/CommandParameter';
+/* eslint-disable promise/prefer-await-to-then */
+import {
+    CommandDispatcher,
+    argument,
+    literal,
+    string
+} from '@jsprismarine/brigadier';
 
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
@@ -12,52 +16,44 @@ export default class DeopCommand extends Command {
         super({
             id: 'minecraft:deop',
             description: `Remove a player's op status.`,
-            permission: 'minecraft.command.op'
-        } as any);
-
-        this.parameters = [new Set()];
-
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'target',
-                type: CommandParameterType.Target,
-                optional: true
-            })
-        );
+            permission: 'minecraft.command.deop'
+        });
     }
 
-    public async execute(
-        sender: Player,
-        args: any[]
-    ): Promise<string | undefined> {
-        if (args.length <= 0) {
-            const event = new ChatEvent(
-                new Chat(
-                    sender,
-                    '§cYou need to specify a player',
-                    `*.player.${sender.getUsername()}`
-                )
-            );
-            await sender.getServer().getEventManager().emit('chat', event);
-            return;
-        }
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('deop').then(
+                argument('player', string()).executes(async (context) => {
+                    const source = context.getSource() as Player;
+                    const target = source
+                        .getServer()
+                        .getPlayerManager()
+                        .getPlayerByName(context.getArgument('player'));
 
-        const target = sender.getServer().getPlayerByName(args[0]);
-        await sender.getServer().getPermissionManager().setOp(args[0], false);
+                    await source
+                        .getServer()
+                        .getPermissionManager()
+                        .setOp(context.getArgument('player'), false);
 
-        if (target) {
-            const event = new ChatEvent(
-                new Chat(
-                    sender,
-                    '§eYou are no longer op!',
-                    `*.player.${target.getUsername()}`
-                )
-            );
-            await sender.getServer().getEventManager().emit('chat', event);
-        }
+                    if (target) {
+                        const event = new ChatEvent(
+                            new Chat(
+                                source,
+                                '§eYou are no longer op!',
+                                `*.player.${target.getUsername()}`
+                            )
+                        );
+                        await target
+                            .getServer()
+                            .getEventManager()
+                            .emit('chat', event);
+                    }
 
-        return `Made ${
-            args[0] || sender.getUsername()
-        } no longer a server operator`;
+                    return `Made ${context.getArgument(
+                        'player'
+                    )} no longer a server operator`;
+                })
+            )
+        );
     }
 }

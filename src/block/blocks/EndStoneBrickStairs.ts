@@ -1,7 +1,7 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import Solid from '../Solid';
 
 export default class EndStoneBrickStairs extends Solid {
     constructor() {

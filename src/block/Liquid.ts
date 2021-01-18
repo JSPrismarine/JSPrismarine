@@ -1,32 +1,32 @@
+import Block from './Block';
 import Item from '../item/Item';
 import Server from '../Server';
-import Block from './Block';
 
 /**
  * Liquid blocks (eg. Water, Still Water, Lava, Still Lava)
  */
 export default class Liquid extends Block {
-    getHardness() {
+    public getHardness() {
         return 100;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [];
     }
 
-    canBeFlowedInto() {
+    public canBeFlowedInto() {
         return true;
     }
 
-    isBreakable() {
+    public isBreakable() {
         return false;
     }
 
-    isSolid() {
+    public isSolid() {
         return false;
     }
 
-    isPartOfCreativeInventory() {
+    public isPartOfCreativeInventory() {
         return false;
     }
 }

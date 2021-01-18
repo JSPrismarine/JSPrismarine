@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class TickSyncPacket extends DataPacket {
-    static NetID = Identifiers.TickSyncPacket;
+    public static NetID = Identifiers.TickSyncPacket;
 
     public clientRequestTimestamp!: bigint;
     public serverReceptionTimestamp!: bigint;

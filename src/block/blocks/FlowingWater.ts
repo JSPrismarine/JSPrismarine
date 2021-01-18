@@ -1,5 +1,5 @@
-import Liquid from '../Liquid';
 import { BlockIdsType } from '../BlockIdsType';
+import Liquid from '../Liquid';
 
 export default class FlowingWater extends Liquid {
     constructor(
@@ -12,7 +12,7 @@ export default class FlowingWater extends Liquid {
         });
     }
 
-    getLightFilter() {
+    public getLightFilter() {
         return 2;
     }
 }

@@ -1,8 +1,8 @@
+import type Player from '../player/Player';
+import type Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 import util from 'util';
-import type Player from '../player/Player';
-import type Server from '../Server';
 
 export default class BanManager {
     private readonly server: Server;
@@ -13,7 +13,7 @@ export default class BanManager {
         }
     > = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 
@@ -61,48 +61,35 @@ export default class BanManager {
         });
 
         const writeFile = util.promisify(fs.writeFile);
-        try {
-            await writeFile(
-                path.join(
-                    process.cwd(),
-                    '/banned-players.json',
-                    'BanManager/setBanned'
-                ),
-                JSON.stringify(
-                    Array.from(this.banned).map((entry) => ({
-                        name: entry[0],
-                        reason: entry[1].reason
-                    })),
-                    null,
-                    4
-                )
-            );
-            return true;
-        } catch {
-            return false;
-        }
+        await writeFile(
+            path.join(process.cwd(), '/banned-players.json'),
+            JSON.stringify(
+                Array.from(this.banned).map((entry) => ({
+                    name: entry[0],
+                    reason: entry[1].reason
+                })),
+                null,
+                4
+            )
+        );
+        return true;
     }
 
     public async setUnbanned(username: string) {
         this.banned.delete(username);
 
         const writeFile = util.promisify(fs.writeFile);
-        try {
-            await writeFile(
-                path.join(process.cwd(), '/banned-players.json'),
-                JSON.stringify(
-                    Array.from(this.banned).map((entry) => ({
-                        name: entry[0],
-                        reason: entry[1].reason
-                    })),
-                    null,
-                    4
-                )
-            );
-            return true;
-        } catch {
-            return false;
-        }
+        await writeFile(
+            path.join(process.cwd(), '/banned-players.json'),
+            JSON.stringify(
+                Array.from(this.banned).map((entry) => ({
+                    name: entry[0],
+                    reason: entry[1].reason
+                })),
+                null,
+                4
+            )
+        );
     }
 
     public isBanned(player: Player) {

@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import InetAddress from '../network/raknet/utils/InetAddress';
-import Server from '../Server';
 import QueryManager from './QueryManager';
+import Server from '../Server';
 
 jest.mock('../Server', () => {
     return class Prismarine {
@@ -27,7 +27,7 @@ describe('QueryManager', () => {
         stream.writeShort(65277);
         stream.writeByte(0);
         stream.writeInt(0);
-        (stream as any).offset = 0;
+        stream.setOffset(0);
 
         const buffer = await queryManager.onRaw(
             stream.getBuffer(),
