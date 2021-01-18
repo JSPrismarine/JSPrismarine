@@ -90,6 +90,10 @@ export default class Console implements CommandExecuter {
         this.getServer().getLogger().info(message, 'Console');
     }
 
+    public getWorld() {
+        return this.server.getWorldManager().getDefaultWorld();
+    }
+
     public getServer(): Server {
         return this.server;
     }
@@ -100,5 +104,15 @@ export default class Console implements CommandExecuter {
 
     public isOp(): boolean {
         return true;
+    }
+
+    public getX(): number {
+        return 0;
+    }
+    public getY(): number {
+        return 0;
+    }
+    public getZ(): number {
+        return 0;
     }
 }

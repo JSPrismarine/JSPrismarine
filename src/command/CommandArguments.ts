@@ -83,6 +83,7 @@ export class CommandArgumentEntity implements CommandArgument {
                     entities: context.getSource().getWorld().getEntities()
                 });
             } catch (error) {
+                console.error(error);
                 if (!error.message.includes('no results')) throw error;
                 return [];
             }

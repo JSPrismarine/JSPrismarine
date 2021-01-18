@@ -1,4 +1,32 @@
 import Entity from '../entity/entity';
+import Vector3 from '../math/Vector3';
+
+// This should probably be a part of the Entity class
+// Thanks to https://stackoverflow.com/a/63905383
+const getNearestEntity = (target: Entity, entities: Entity[]) => {
+    const pos = new Vector3(target.getX(), target.getY(), target.getZ());
+    const dist = (a: Vector3, b: Vector3) =>
+        Math.sqrt(
+            (b.getX() - a.getX()) ** 2 +
+                (b.getY() - a.getY()) ** 2 +
+                (b.getZ() - a.getZ()) ** 2
+        );
+
+    const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
+        const distances = points.map((e) =>
+            dist(target, new Vector3(e.getX(), e.getY(), e.getZ()))
+        );
+        const closest = Math.min(...distances);
+        return points.find((e, i) => distances[i] - closest < eps)!;
+    };
+
+    return [
+        closest(
+            pos,
+            entities.filter((a) => a.runtimeId !== target.runtimeId)
+        )
+    ].filter((a) => a);
+};
 
 const ParseEntityArgument = ({
     input,
@@ -47,13 +75,18 @@ const ParseEntityArgument = ({
         }
     });
 
-    if (targets.length <= 0) throw new Error('no results');
+    if (type !== 's' && targets.length <= 0) throw new Error('no results');
 
     switch (type) {
         case 'a':
             return targets.filter((entity) => entity.isPlayer());
         case 'e':
             return targets;
+        case 'p':
+            return getNearestEntity(
+                source,
+                targets.filter((entity) => entity.isPlayer())
+            );
         case 'r':
             return [targets[Math.floor(Math.random() * targets.length)]];
         case 's':
