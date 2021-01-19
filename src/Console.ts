@@ -1,13 +1,15 @@
 import Chat from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
 import CommandExecuter from './command/CommandExecuter';
+import type Entity from './entity/entity';
 import type Server from './Server';
+import Vector3 from './math/Vector3';
 import readline from 'readline';
 
 export default class Console implements CommandExecuter {
     private readonly server: Server;
     private cli: readline.Interface;
-    public runtimeId = -1;
+    public runtimeId = BigInt(-1);
 
     public constructor(server: Server) {
         this.server = server;
@@ -115,5 +117,41 @@ export default class Console implements CommandExecuter {
     }
     public getZ(): number {
         return 0;
+    }
+
+    /**
+     * Returns the nearest entity from the current entity
+     *
+     * TODO:
+     * - Customizable radius
+     */
+    public getNearestEntity(
+        entities: Entity[] = this.server
+            .getWorldManager()
+            .getDefaultWorld()
+            .getEntities()!
+    ) {
+        const pos = new Vector3(this.getX(), this.getY(), this.getZ());
+        const dist = (a: Vector3, b: Vector3) =>
+            Math.sqrt(
+                (b.getX() - a.getX()) ** 2 +
+                    (b.getY() - a.getY()) ** 2 +
+                    (b.getZ() - a.getZ()) ** 2
+            );
+
+        const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
+            const distances = points.map((e) =>
+                dist(target, new Vector3(e.getX(), e.getY(), e.getZ()))
+            );
+            const closest = Math.min(...distances);
+            return points.find((e, i) => distances[i] - closest < eps)!;
+        };
+
+        return [
+            closest(
+                pos,
+                entities.filter((a) => a.runtimeId !== this.runtimeId)
+            )
+        ].filter((a) => a);
     }
 }
