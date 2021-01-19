@@ -188,11 +188,11 @@ export default class PluginManager {
                         pluginsPath: path.join(dir, 'node_modules')
                     });
 
-                    if (dependency[0] === '@jsprismarine/prismarine') {
+                    if (['@jsprismarine/prismarine'].includes(dependency[0])) {
                         this.server
                             .getLogger()
                             .warn(
-                                `plugin §6${pkg.name}§r is trying to depend on "@jsprismarine/prismarine" which should be a dev-dependency!`,
+                                `plugin §b${pkg.name} ${pkg.version}§r is trying to depend on §5${dependency[0]}§r which should be a dev-dependency!`,
                                 'PluginManager/registerPlugin'
                             );
                         return;
