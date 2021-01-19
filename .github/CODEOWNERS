@@ -16,3 +16,5 @@ package.json  @filfat
 /src/config/**  @TheArmagan
 
 /src/events/EventEmitterishMixin.ts  @garronej
+
+/src/command/argument/** @bavfalcon9
