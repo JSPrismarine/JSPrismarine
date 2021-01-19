@@ -1,18 +1,61 @@
-/**
- * @author <TheArmagan> kiracarmaganonal@gmail.com
- * @author <HerryYT> enricoangelon.ea@gmail.com
- * @author <Filiph Sandström> filiph.sandstrom@filfatstudios.com
- */
-
 import YAML from 'yaml';
 import fs from 'fs';
 import path from 'path';
 
 const _ = {
-    get: require('lodash/get'),
-    set: require('lodash/set'),
-    has: require('lodash/has'),
-    del: require('lodash/unset')
+    get: (obj: any, path: string, defaultValue = undefined) => {
+        const travel = (regexp: any) =>
+            String.prototype.split
+                .call(path, regexp)
+                .filter(Boolean)
+                .reduce(
+                    (res, key) =>
+                        res !== null && res !== undefined ? res[key] : res,
+                    obj
+                );
+        const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/);
+        return result === undefined || result === obj ? defaultValue : result;
+    },
+    set: (obj: any, path: any, value: any) => {
+        if (Object(obj) !== obj) return obj;
+        if (!Array.isArray(path))
+            path = path.toString().match(/[^.[\]]+/g) || [];
+        path
+            .slice(0, -1)
+            .reduce(
+                (a: any, c: any, i: any) =>
+                    Object(a[c]) === a[c]
+                        ? a[c]
+                        : (a[c] =
+                              Math.abs(path[i + 1]) >> 0 === Number(path[i + 1])
+                                  ? []
+                                  : {}),
+                obj
+            )[path[path.length - 1]] = value;
+        return obj;
+    },
+    has: (obj: any, key: string): boolean => {
+        const keyParts = key.split('.');
+
+        return Boolean(
+            obj &&
+                (keyParts.length > 1
+                    ? _.has(obj[key.split('.')[0]], keyParts.slice(1).join('.'))
+                    : Object.hasOwnProperty.call(obj, key))
+        );
+    },
+    del: (obj: any, path: any) => {
+        const pathArray = Array.isArray(path)
+            ? path
+            : path.match(/([^[.\]])+/g);
+
+        pathArray.reduce((acc: any, key: any, i: number) => {
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            if (i === pathArray.length - 1) delete acc[key];
+            return acc[key];
+        }, obj);
+        return true;
+    }
 };
 
 const TypeDefaults = {

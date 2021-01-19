@@ -20,3 +20,4 @@ permissions.json
 .idea
 .vscode
 .DS_Store
+report.*.json

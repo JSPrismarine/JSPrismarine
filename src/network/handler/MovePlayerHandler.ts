@@ -1,3 +1,5 @@
+import * as d3 from 'd3-interpolate';
+
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
 import PacketHandler from './PacketHandler';
@@ -5,8 +7,6 @@ import type Player from '../../player/Player';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
-
-const d3 = require('d3-interpolate');
 
 export default class MovePlayerHandler
     implements PacketHandler<MovePlayerPacket> {
@@ -40,12 +40,7 @@ export default class MovePlayerHandler
 
         // Check if the position has been changed through an event listener
         // if so, reset the player position
-        // TODO: vector.equals(vec)
-        if (
-            immutableFrom.getX() !== resultantVector.getX() ||
-            immutableFrom.getY() !== resultantVector.getY() ||
-            immutableFrom.getZ() !== resultantVector.getZ()
-        ) {
+        if (!immutableFrom.equals(resultantVector)) {
             await player
                 .getConnection()
                 .broadcastMove(player, MovementType.Reset);

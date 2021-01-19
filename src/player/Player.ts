@@ -19,7 +19,6 @@ import WindowManager from '../inventory/WindowManager';
 import World from '../world/World';
 
 export default class Player extends Human implements CommandExecuter {
-    private readonly server: Server;
     private readonly address: InetAddress;
     private readonly playerConnection: PlayerConnection;
     private permissions: string[];
@@ -65,9 +64,8 @@ export default class Player extends Human implements CommandExecuter {
      * Player's constructor.
      */
     public constructor(connection: Connection, world: World, server: Server) {
-        super(world);
+        super(world, server);
         this.address = connection.getAddress();
-        this.server = server;
         this.playerConnection = new PlayerConnection(server, connection, this);
         this.windows = new WindowManager();
         this.permissions = [];
@@ -87,7 +85,7 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async onEnable() {
-        this.permissions = await this.server
+        this.permissions = await this.getServer()
             .getPermissionManager()
             .getPermissions(this);
 
@@ -102,8 +100,8 @@ export default class Player extends Human implements CommandExecuter {
 
         playerData.inventory.forEach((item) => {
             const entry =
-                this.server.getItemManager().getItem(item.id) ||
-                this.server.getBlockManager().getBlock(item.id);
+                this.getServer().getItemManager().getItem(item.id) ||
+                this.getServer().getBlockManager().getBlock(item.id);
 
             if (!entry) {
                 this.getServer()
@@ -157,7 +155,7 @@ export default class Player extends Human implements CommandExecuter {
     // Return all the players in the same chunk
     // TODO: move to world
     public getPlayersInChunk(): Player[] {
-        return this.server
+        return this.getServer()
             .getPlayerManager()
             .getOnlinePlayers()
             .filter((player) => player.currentChunk === this.currentChunk);
@@ -169,7 +167,7 @@ export default class Player extends Human implements CommandExecuter {
 
     public async setGamemode(mode: number): Promise<void> {
         const event = new PlayerSetGamemodeEvent(this, mode);
-        this.server.getEventManager().post(['playerSetGamemode', event]);
+        this.getServer().getEventManager().post(['playerSetGamemode', event]);
         if (event.cancelled) return;
 
         this.gamemode = event.getGamemode();
@@ -186,10 +184,6 @@ export default class Player extends Human implements CommandExecuter {
         }
 
         await this.sendSettings();
-    }
-
-    public getServer(): Server {
-        return this.server;
     }
 
     public getConnection(): PlayerConnection {
@@ -246,7 +240,7 @@ export default class Player extends Human implements CommandExecuter {
         if (sprinting === this.isSprinting()) return;
 
         const event = new PlayerToggleSprintEvent(this, sprinting);
-        this.server.getEventManager().post(['playerToggleSprint', event]);
+        this.getServer().getEventManager().post(['playerToggleSprint', event]);
         if (event.cancelled) return;
 
         this.sprinting = event.getIsSprinting();
@@ -264,7 +258,7 @@ export default class Player extends Human implements CommandExecuter {
         }
 
         const event = new PlayerToggleFlightEvent(this, flying);
-        this.server.getEventManager().post(['playerToggleFlight', event]);
+        this.getServer().getEventManager().post(['playerToggleFlight', event]);
         if (event.cancelled) return;
 
         this.flying = event.getIsFlying();
