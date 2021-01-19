@@ -305,7 +305,7 @@ export default class CommandManager {
             }
 
             let res: string[] = [];
-            if (command?.register && (command as any).execute) {
+            if (!command?.register && command?.execute) {
                 // Legacy commands
                 this.server
                     .getLogger()
@@ -314,8 +314,8 @@ export default class CommandManager {
                         'CommandManager/dispatchCommand'
                     );
                 res.push(
-                    await (command as any).execute(
-                        sender,
+                    await command.execute(
+                        sender as any,
                         parsed
                             .getReader()
                             .getString()
