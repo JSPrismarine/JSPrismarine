@@ -39,12 +39,7 @@ export default class MovePlayerHandler
 
         // Check if the position has been changed through an event listener
         // if so, reset the player position
-        // TODO: vector.equals(vec)
-        if (
-            immutableFrom.getX() !== resultantVector.getX() ||
-            immutableFrom.getY() !== resultantVector.getY() ||
-            immutableFrom.getZ() !== resultantVector.getZ()
-        ) {
+        if (!immutableFrom.equals(resultantVector)) {
             await player
                 .getConnection()
                 .broadcastMove(player, MovementType.Reset);
