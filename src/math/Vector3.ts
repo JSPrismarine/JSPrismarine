@@ -32,4 +32,9 @@ export default class Vector3 {
     public getZ(): number {
         return this.z;
     }
+
+    public equals(vector: Vector3): boolean {
+        if (JSON.stringify(this) !== JSON.stringify(vector)) return false;
+        return true;
+    }
 }
