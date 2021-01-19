@@ -59,7 +59,7 @@ export default class PluginApi extends PluginApiVersion {
     public getConfigBuilder(configFile: string): ConfigBuilder {
         if (configFile.startsWith('../../') || configFile.startsWith('/../../'))
             throw new Error(
-                `config files should be kept their respective plugin folder`
+                `config files should be kept in their respective plugin folder`
             );
 
         return new ConfigBuilder(
