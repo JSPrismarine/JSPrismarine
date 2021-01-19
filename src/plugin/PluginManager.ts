@@ -149,6 +149,13 @@ export default class PluginManager {
                 .createReadStream(path.join(process.cwd(), 'plugins/', id))
                 .pipe(unzipper.Extract({ path: dir }))
                 .promise();
+        } else {
+            this.server
+                .getLogger()
+                .warn(
+                    `${id} isn't packaged as .jspz and should NOT be used on production servers!`,
+                    `PluginManager/registerPlugin/${id}`
+                );
         }
 
         // Asset or config folder
