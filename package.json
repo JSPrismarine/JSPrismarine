@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.31",
+    "version": "0.1.0-rc.32",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
@@ -161,7 +161,7 @@
         "set-interval-async": "1.0.34",
         "unzipper": "0.10.11",
         "winston": "3.3.3",
-        "yaml": "1.10.0"
+        "yaml": "^2.0.0-1"
     },
     "devDependencies": {
         "@types/d3-interpolate": "2.0.0",
