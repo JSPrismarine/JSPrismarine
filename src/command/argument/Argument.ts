@@ -25,7 +25,8 @@ export default abstract class Argument<T = unknown> {
     public abstract parse(
         executer: CommandExecuter,
         arg: string,
-        currentStack: Argument[]
+        currentStack: Argument[],
+        strArgs?: string[]
     ): Promiseable<T | null>;
 
     public failed(

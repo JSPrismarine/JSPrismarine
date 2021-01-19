@@ -56,7 +56,11 @@ export default class CommandManager {
             const command: Command = new (Command.default || Command)();
 
             try {
-                await this.registerClassCommand(command, this.server);
+                if (command.api === 'rfc') {
+                    await this.registerCommand(command);
+                } else {
+                    await this.registerClassCommand(command, this.server);
+                }
             } catch (err) {
                 this.server
                     .getLogger()
@@ -134,7 +138,7 @@ export default class CommandManager {
         this.server
             .getLogger()
             .warn(
-                `Brigadier API being deprecated soon. Use registerCommand() instead.`
+                `Brigadier API being deprecated soon. Use registerCommand() for: ${command.constructor.name} instead.`
             );
         if (command.id.split(':').length !== 2)
             throw new Error(
@@ -284,72 +288,143 @@ export default class CommandManager {
      */
     public async dispatchCommand(sender: CommandExecuter, input = '') {
         try {
-            const parsed = this.dispatcher.parse(input.trim(), sender);
-            const id = parsed.getReader().getString().split(' ')[0];
-
-            // Get command from parsed string
-            const command = Array.from(this.commands.values()).find(
-                (command) =>
-                    command.id.split(':')[1] === id ||
-                    command.aliases?.includes(id)
+            // get the input command
+            let cmd = [...this.commands.values()].find(
+                (c) =>
+                    c.id.split(':')[1] === input.split(' ')[0] ||
+                    c?.aliases?.includes(input.split(' ')[0])
             );
 
-            if (
-                !this.server
-                    .getPermissionManager()
-                    .can(sender)
-                    .execute(command?.permission)
-            ) {
-                await sender.sendMessage(
-                    "§cI'm sorry, but you do not have permission to perform this command. " +
-                        'Please contact the server administrators if you believe that this is in error.'
-                );
-                return;
-            }
+            if (cmd?.api === 'rfc') {
+                // begin parsing
+                // todo: allow escaping qoutations, eg: \"
+                let args = [
+                    ...(input.match(/(\"([a-zA-Z0-9]|\s)+\"|\w+)/gi) ?? [])
+                ].filter((a) => a !== undefined || a === '' || a === ' ').map(a => {
+                    if (a[0] === '"') {
+                        return a.split('"')[1];
+                    } else {
+                        return a;
+                    }
+                });
 
-            let res: string[] = [];
-            if (!command?.register && command?.execute) {
-                // Legacy commands
-                this.server
-                    .getLogger()
-                    .warn(
-                        `${id} is using the legacy command format`,
-                        'CommandManager/dispatchCommand'
-                    );
-                res.push(
-                    await command.execute(
-                        sender as any,
-                        parsed
-                            .getReader()
-                            .getString()
-                            .replace(`${id} `, '')
-                            .split(' ')
-                    )
-                );
+                let argumentsp: any[] = [];
+
+                for (let i in args) {
+                    let arg = args[i];
+                    for (let [n, v] of cmd.arguments.getRegistered()) {
+                        if (v.length > 1) {
+                            for (let overflow of v) {
+                                try {
+                                    let argVal: any | null = overflow.parse(
+                                        sender,
+                                        arg,
+                                        argumentsp,
+                                        args
+                                    );
+                                    if (argVal === null) {
+                                        continue;
+                                    }
+                                    argumentsp.push(argVal);
+                                    break;
+                                } catch (e) {
+                                    cmd.fallback(sender, argumentsp, e, args);
+                                }
+                            }
+                        } else {
+                            try {
+                                let argVal: any | null = v[0]?.parse(
+                                    sender,
+                                    arg,
+                                    argumentsp,
+                                    args
+                                );
+                                if (argVal === null) {
+                                    // fail silently
+                                    continue;
+                                } else {
+                                    argumentsp.push(argVal);
+                                }
+                            } catch (e) {
+                                cmd.fallback(sender, argumentsp, e, args);
+                            }
+                        }
+
+                        if (!argumentsp[i]) {
+                            // todo: optional chain when an argument is not fulfilled.
+                            break;
+                        }
+                    }
+                }
+                return cmd.dispatch(sender, argumentsp, args);
             } else {
-                // Handle aliases
-                if (command?.aliases?.includes(id)) {
-                    await this.dispatchCommand(
-                        sender,
-                        input.replace(id, command.id.split(':')[1])
+                const parsed = this.dispatcher.parse(input.trim(), sender);
+                const id = parsed.getReader().getString().split(' ')[0];
+
+                // Get command from parsed string
+                const command = Array.from(this.commands.values()).find(
+                    (command) =>
+                        command.id.split(':')[1] === id ||
+                        command.aliases?.includes(id)
+                );
+
+                if (
+                    !this.server
+                        .getPermissionManager()
+                        .can(sender)
+                        .execute(command?.permission)
+                ) {
+                    await sender.sendMessage(
+                        "§cI'm sorry, but you do not have permission to perform this command. " +
+                            'Please contact the server administrators if you believe that this is in error.'
                     );
                     return;
                 }
-                res = await Promise.all(this.dispatcher.execute(parsed));
+
+                let res: string[] = [];
+                if (!command?.register && command?.execute) {
+                    // Legacy commands
+                    this.server
+                        .getLogger()
+                        .warn(
+                            `${id} is using the legacy command format`,
+                            'CommandManager/dispatchCommand'
+                        );
+                    res.push(
+                        await command.execute(
+                            sender as any,
+                            parsed
+                                .getReader()
+                                .getString()
+                                .replace(`${id} `, '')
+                                .split(' ')
+                        )
+                    );
+                } else {
+                    // Handle aliases
+                    if (command?.aliases?.includes(id)) {
+                        await this.dispatchCommand(
+                            sender,
+                            input.replace(id, command.id.split(':')[1])
+                        );
+                        return;
+                    }
+                    res = await Promise.all(this.dispatcher.execute(parsed));
+                }
+
+                res.forEach(async (res: any) => {
+                    const chat = new Chat(
+                        this.server.getConsole(),
+                        `§o§7[${sender.getUsername()}: ${
+                            res ?? `issued server command: /${input}`
+                        }]§r`,
+                        '*.ops'
+                    );
+
+                    // TODO: should this be broadcasted to the executer?
+                    await this.server.getChatManager().send(chat);
+                });
             }
-
-            res.forEach(async (res: any) => {
-                const chat = new Chat(
-                    this.server.getConsole(),
-                    `§o§7[${sender.getUsername()}: ${
-                        res ?? `issued server command: /${input}`
-                    }]§r`,
-                    '*.ops'
-                );
-
-                // TODO: should this be broadcasted to the executer?
-                await this.server.getChatManager().send(chat);
-            });
         } catch (error) {
             if (error?.type?.message?.toString?.() === 'Unknown command') {
                 await sender.sendMessage(
