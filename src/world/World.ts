@@ -440,7 +440,7 @@ export default class World {
         this.server.getLogger().info('saving chunks...', 'World/saveChunks');
         const promises: Array<Promise<void>> = [];
         for (const chunk of this.chunks.values()) {
-            if (chunk.hasChanged()) {
+            if (chunk?.hasChanged()) {
                 promises.push(this.provider.writeChunk(chunk));
                 chunk.setChanged(false);
             }
