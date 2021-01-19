@@ -235,7 +235,7 @@ export default class CommandManager {
      */
     public async dispatchCommand(sender: CommandExecuter, input = '') {
         try {
-            const parsed = this.dispatcher.parse(input, sender);
+            const parsed = this.dispatcher.parse(input.trim(), sender);
             const id = parsed.getReader().getString().split(' ')[0];
 
             // Get command from parsed string
