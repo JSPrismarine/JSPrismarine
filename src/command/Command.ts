@@ -36,8 +36,7 @@ export default abstract class Command {
     }
 
     /**
-     * This is new api, and should be used instead of dispatcher.
-     * @see https://github.com/JSPrismarine/JSPrismarine/pull/351
+     * Called on execution. Code that should be ran when a command is called by an executer.
      * @param executer
      * @param args
      * @param stringArgs
@@ -45,7 +44,8 @@ export default abstract class Command {
     public dispatch(executer: CommandExecuter, args: any[], stringArgs?: string[]): Promiseable<boolean | void> {};
 
     /**
-     * @deprecated
+     * @deprecated Use new api: `dispatcher` and Command Class instead.
+     * @see https://github.com/JSPrismarine/JSPrismarine/pull/351
      */
     public async register(dispatcher: CommandDispatcher<any>): Promise<void> {};
 
