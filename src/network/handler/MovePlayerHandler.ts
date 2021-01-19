@@ -1,3 +1,5 @@
+import * as d3 from 'd3-interpolate';
+
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
 import PacketHandler from './PacketHandler';
@@ -5,7 +7,6 @@ import type Player from '../../player/Player';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
-import d3 from 'd3-interpolate';
 
 export default class MovePlayerHandler
     implements PacketHandler<MovePlayerPacket> {

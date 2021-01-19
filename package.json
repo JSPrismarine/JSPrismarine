@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.32",
+    "version": "0.1.0-rc.33",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
@@ -159,6 +159,7 @@
         "pkg": "github:kkoomen/pkg",
         "semver": "7.3.4",
         "set-interval-async": "1.0.34",
+        "simplex-noise": "^2.4.0",
         "unzipper": "0.10.11",
         "winston": "3.3.3",
         "yaml": "^2.0.0-1"

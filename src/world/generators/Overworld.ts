@@ -1,6 +1,5 @@
 import Chunk from '../chunk/Chunk';
-import Noise from '../synth/Noise';
-import type Random from '../util/Random';
+import Noise from 'simplex-noise';
 import type Server from '../../Server';
 import type Vector3 from '../../math/Vector3';
 
@@ -18,10 +17,10 @@ export default class Overworld {
         server
     }: {
         pos: Vector3;
-        seed: Random;
+        seed: number;
         server: Server;
     }) {
-        if (!this.noise) this.noise = new Noise(seed);
+        if (!this.noise) this.noise = new Noise(`${seed}`);
 
         const noise = this.noise;
         const chunk = new Chunk(pos.getX(), pos.getZ());
@@ -33,7 +32,7 @@ export default class Overworld {
         const water = server.getBlockManager().getBlock('minecraft:water');
         for (let x = 0; x < CHUNK_WIDTH; x++) {
             for (let z = 0; z < CHUNK_LENGTH; z++) {
-                const noise_height = noise.perlin2(
+                const noise_height = noise.noise2D(
                     (pos.getX() * CHUNK_WIDTH + x) * 0.04,
                     (pos.getZ() * CHUNK_WIDTH + z) * 0.04
                 );

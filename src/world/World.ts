@@ -10,7 +10,6 @@ import Item from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import Player from '../player/Player';
 import Server from '../Server';
-import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/UUID';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import Vector3 from '../math/Vector3';
@@ -55,8 +54,7 @@ export default class World {
     private currentTick = 0;
     private readonly provider: any; // TODO: interface
     private readonly server: Server;
-    private readonly seed: SharedSeedRandom;
-    private readonly originalSeed: number;
+    private readonly seed: number;
     private readonly generator: any; // TODO: interface
 
     public constructor({
@@ -70,8 +68,7 @@ export default class World {
         this.server = server;
         this.provider = provider;
         this.gameruleManager = new GameruleManager(server);
-        this.seed = new SharedSeedRandom(seed);
-        this.originalSeed = seed;
+        this.seed = seed;
         this.generator = generator;
 
         // TODO: Load default gamrules
@@ -493,7 +490,7 @@ export default class World {
     }
 
     public getSeed(): number {
-        return this.originalSeed;
+        return this.seed;
     }
 
     public async getPlayerData(player: Player): Promise<WorldPlayerData> {
