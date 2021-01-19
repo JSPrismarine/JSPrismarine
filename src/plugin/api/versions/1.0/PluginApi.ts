@@ -10,7 +10,7 @@ export const PLUGIN_API_VERSION = '1.0';
 export default class PluginApi extends PluginApiVersion {
     private readonly pkg;
 
-    constructor(private readonly server: Server, pkg: any) {
+    public constructor(private readonly server: Server, pkg: any) {
         super(PLUGIN_API_VERSION);
         this.pkg = pkg;
     }
@@ -57,6 +57,11 @@ export default class PluginApi extends PluginApiVersion {
      * Returns an instance of the config builder class
      */
     public getConfigBuilder(configFile: string): ConfigBuilder {
+        if (configFile.startsWith('../../') || configFile.startsWith('/../../'))
+            throw new Error(
+                `config files should be kept in their respective plugin folder`
+            );
+
         return new ConfigBuilder(
             path.join(process.cwd(), '/plugins/', this.pkg.name, configFile)
         );

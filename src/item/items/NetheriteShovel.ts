@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../ItemTieredToolType';
 import TieredTool from '../TieredTool';
 
 export default class NetheriteShovel extends TieredTool {
-    constructor() {
+    public constructor() {
         super(
             {
                 name: 'minecraft:netherite_shovel',
@@ -14,11 +14,11 @@ export default class NetheriteShovel extends TieredTool {
         );
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 2032;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

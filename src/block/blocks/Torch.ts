@@ -2,7 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import Flowable from '../Flowable';
 
 export default class Torch extends Flowable {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:torch',
             id: BlockIdsType.Torch,

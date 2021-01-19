@@ -5,7 +5,7 @@ import Player from '../../player/Player';
 import PluginFile from '../../plugin/PluginFile';
 
 export default class PluginsCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'jsprismarine:plugins',
             description: 'Lists all plugins that run on the server.',

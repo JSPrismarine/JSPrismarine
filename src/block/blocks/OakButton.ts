@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Transparent from '../Transparent';
 
 export default class WoodenButton extends Transparent {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:oak_button',
             id: BlockIdsType.WoodenButton,
@@ -11,7 +11,7 @@ export default class WoodenButton extends Transparent {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Axe;
     }
 }

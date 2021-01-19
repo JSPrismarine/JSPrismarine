@@ -1,7 +1,6 @@
 import BaseGenerator from '../BaseGenerator';
 import Chunk from '../chunk/Chunk';
-import Noise from '../synth/Noise';
-import SharedSeedRandom from '../util/SharedSeedRandom';
+import Noise from 'simplex-noise';
 
 const CHUNK_WIDTH = 16;
 // Const CHUNK_HEIGHT = 256; 1.17: 16?
@@ -14,11 +13,11 @@ export default class Overworld extends BaseGenerator {
     public async generateChunk(
         cx: number,
         cz: number,
-        seed: SharedSeedRandom
+        seed: number
     ): Promise<Chunk> {
         return new Promise((resolve) => {
             if (!this.noise) {
-                this.noise = new Noise(seed);
+                this.noise = new Noise(`${seed}`);
             }
 
             const noise = this.noise;
@@ -37,7 +36,7 @@ export default class Overworld extends BaseGenerator {
                     const height = Math.floor(
                         60 +
                             20 *
-                                noise.perlin2(
+                                noise.noise2D(
                                     (cx * CHUNK_WIDTH + x) * 0.04,
                                     (cz * CHUNK_WIDTH + z) * 0.04
                                 )

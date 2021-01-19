@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import Solid from '../Solid';
 
 export default class BrickStairs extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:brick_stairs',
             id: BlockIdsType.BrickStairs,

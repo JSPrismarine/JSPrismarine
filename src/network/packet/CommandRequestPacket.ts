@@ -3,7 +3,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class CommandRequestPacket extends DataPacket {
-    static NetID = Identifiers.CommandRequestPacket;
+    public static NetID = Identifiers.CommandRequestPacket;
 
     public commandName!: string;
     public commandOriginData!: CommandOriginData | null;

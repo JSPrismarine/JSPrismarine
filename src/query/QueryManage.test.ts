@@ -5,7 +5,7 @@ import Server from '../Server';
 
 jest.mock('../Server', () => {
     return class Prismarine {
-        constructor({ logger, config }: any) {}
+        public constructor({ logger, config }: any) {}
 
         public getRaknet() {
             return new (class Raknet {
@@ -27,7 +27,7 @@ describe('QueryManager', () => {
         stream.writeShort(65277);
         stream.writeByte(0);
         stream.writeInt(0);
-        (stream as any).offset = 0;
+        stream.setOffset(0);
 
         const buffer = await queryManager.onRaw(
             stream.getBuffer(),

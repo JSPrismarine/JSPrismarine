@@ -13,7 +13,7 @@ export default class BanManager {
         }
     > = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 

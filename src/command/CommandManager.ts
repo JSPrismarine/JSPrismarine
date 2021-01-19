@@ -17,8 +17,9 @@ export default class CommandManager {
     private readonly server: Server;
     private dispatcher!: CommandDispatcher<CommandExecuter>;
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
+        this.dispatcher = new CommandDispatcher();
     }
 
     /**
@@ -26,7 +27,6 @@ export default class CommandManager {
      */
     public async onEnable() {
         const time = Date.now();
-        this.dispatcher = new CommandDispatcher();
 
         const commands = [
             ...fs
@@ -80,6 +80,7 @@ export default class CommandManager {
      */
     public async onDisable() {
         this.commands.clear();
+        // TODO: clear commands in dispatcher
     }
 
     /**
@@ -91,7 +92,15 @@ export default class CommandManager {
                 `command is missing required "namespace" part of id`
             );
 
-        await command.register(this.dispatcher);
+        if (!command?.register)
+            this.server
+                .getLogger()
+                .warn(
+                    `Command is missing "register" member. This is unsupported!`,
+                    'CommandManager/registerClassCommand'
+                );
+
+        await command.register?.(this.dispatcher);
         this.commands.set(command.id, command);
 
         await Promise.all(
@@ -226,7 +235,7 @@ export default class CommandManager {
      */
     public async dispatchCommand(sender: CommandExecuter, input = '') {
         try {
-            const parsed = this.dispatcher.parse(input, sender);
+            const parsed = this.dispatcher.parse(input.trim(), sender);
             const id = parsed.getReader().getString().split(' ')[0];
 
             // Get command from parsed string

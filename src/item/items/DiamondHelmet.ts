@@ -2,22 +2,22 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class DiamondHelmet extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:diamond_helmet',
             id: ItemIdsType.DiamondHelmet
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 363;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 3;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 2;
     }
 }

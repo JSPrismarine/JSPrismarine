@@ -22,7 +22,7 @@ export enum ConcretePowderColorType {
 }
 
 export default class WhiteConcretePowder extends Solid {
-    constructor(
+    public constructor(
         name = 'minecraft:white_concrete_powder',
         type: ConcretePowderColorType = ConcretePowderColorType.White
     ) {
@@ -34,7 +34,7 @@ export default class WhiteConcretePowder extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

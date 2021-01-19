@@ -6,11 +6,12 @@ import {
     literal,
     string
 } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class TimeCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:time',
             description: 'Get, set and add to the current time.',
@@ -33,24 +34,26 @@ export default class TimeCommand extends Command {
                                         .getWorldManager()
                                         .getDefaultWorld();
 
+                                const value = context.getArgument('value');
+                                if (value < 0)
+                                    throw new Error(
+                                        'value can not be less than 0'
+                                    );
+
                                 switch (
                                     context.getArgument('action').toLowerCase()
                                 ) {
                                     case 'set':
-                                        world.setTicks(
-                                            context.getArgument('value')
-                                        );
+                                        world.setTicks(value);
                                         break;
                                     case 'add':
                                         world.setTicks(
-                                            world.getTicks() +
-                                                context.getArgument('value')
+                                            world.getTicks() + value
                                         );
                                         break;
                                     case 'sub':
                                         world.setTicks(
-                                            world.getTicks() -
-                                                context.getArgument('value')
+                                            world.getTicks() - value
                                         );
                                         break;
                                     default:

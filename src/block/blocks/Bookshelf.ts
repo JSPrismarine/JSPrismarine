@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class Bookshelf extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:bookshelf',
             id: BlockIdsType.Bookshelf,

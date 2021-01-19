@@ -2,18 +2,18 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class IronChestplate extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:iron_chestplate',
             id: ItemIdsType.IronChestplate
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 240;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 6;
     }
 }

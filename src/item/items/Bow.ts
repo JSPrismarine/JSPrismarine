@@ -2,18 +2,18 @@ import { ItemIdsType } from '../ItemIdsType';
 import Tool from '../Tool';
 
 export default class Bow extends Tool {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:bow',
             id: ItemIdsType.Bow
         });
     }
 
-    getBurntime() {
+    public getBurntime() {
         return 300;
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 384;
     }
 }

@@ -2,18 +2,18 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class LeatherLeggins extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:leather_leggins',
             id: ItemIdsType.LeatherPants
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 75;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

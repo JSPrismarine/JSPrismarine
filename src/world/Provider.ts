@@ -1,6 +1,5 @@
 import Chunk from './chunk/Chunk';
 import Generator from './Generator';
-import SharedSeedRandom from './util/SharedSeedRandom';
 
 export default interface Provider {
     /**
@@ -18,7 +17,7 @@ export default interface Provider {
     readChunk(
         cx: number,
         cz: number,
-        seed: SharedSeedRandom,
+        seed: number,
         generator: Generator
     ): Promise<Chunk>;
 }

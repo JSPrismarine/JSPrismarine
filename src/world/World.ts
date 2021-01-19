@@ -13,7 +13,6 @@ import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import Player from '../player/Player';
 import Provider from './Provider';
 import Server from '../Server';
-import SharedSeedRandom from './util/SharedSeedRandom';
 import UUID from '../utils/UUID';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import Vector3 from '../math/Vector3';
@@ -58,8 +57,7 @@ export default class World {
     private currentTick = 0;
     private readonly provider: Provider;
     private readonly server: Server;
-    private readonly seed: SharedSeedRandom;
-    private readonly originalSeed: number;
+    private readonly seed: number;
     private readonly generator: Generator;
 
     constructor({ name, server, provider, seed, generator }: WorldData) {
@@ -67,8 +65,7 @@ export default class World {
         this.server = server;
         this.provider = provider;
         this.gameruleManager = new GameruleManager(server);
-        this.seed = new SharedSeedRandom(seed);
-        this.originalSeed = seed;
+        this.seed = seed;
         this.generator = generator;
 
         // TODO: Load default gamrules
@@ -406,6 +403,19 @@ export default class World {
     }
 
     /**
+     * Returns all entities (including players)
+     *
+     * You can filter this by either using the entity.getType() or
+     * entity.isPlayer() functions.
+     */
+    public getEntities(): Entity[] {
+        return [
+            ...Array.from(this.entities.values()),
+            ...Array.from(this.players.values())
+        ];
+    }
+
+    /**
      * Adds a player into the level.
      */
     public addPlayer(player: Player): void {
@@ -482,7 +492,7 @@ export default class World {
     }
 
     public getSeed(): number {
-        return this.originalSeed;
+        return this.seed;
     }
 
     public async getPlayerData(player: Player): Promise<WorldPlayerData> {

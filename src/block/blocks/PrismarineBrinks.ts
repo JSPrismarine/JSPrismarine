@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class PrismarineBricks extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:prismarine_bricks',
             id: BlockIdsType.Prismarine,
@@ -12,7 +12,7 @@ export default class PrismarineBricks extends Solid {
         this.meta = 2;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 }

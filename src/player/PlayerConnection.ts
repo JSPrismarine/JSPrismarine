@@ -3,8 +3,8 @@ import AdventureSettingsPacket, {
 } from '../network/packet/AdventureSettingsPacket';
 import {
     CommandArgumentEntity,
-    CommandArgumentFloatPosition,
-    CommandArgumentGamemode
+    CommandArgumentGamemode,
+    CommandArgumentPosition
 } from '../command/CommandArguments';
 import CommandParameter, {
     CommandParameterType
@@ -15,6 +15,7 @@ import PlayerListPacket, {
 } from '../network/packet/PlayerListPacket';
 
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
+import Air from '../block/blocks/Air';
 import { Attribute } from '../entity/attribute';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
 import BatchPacket from '../network/packet/BatchPacket';
@@ -65,7 +66,7 @@ export default class PlayerConnection {
     private readonly loadedChunks: Set<string> = new Set();
     private readonly loadingChunks: Set<string> = new Set();
 
-    constructor(server: Server, connection: Connection, player: Player) {
+    public constructor(server: Server, connection: Connection, player: Player) {
         this.server = server;
         this.connection = connection;
         this.player = player;
@@ -385,6 +386,10 @@ export default class PlayerConnection {
                 command[2].forEach((arg) => {
                     const parameters = arg
                         .map((parameter) => {
+                            const parameters = parameter?.getParameters?.();
+                            if (parameters)
+                                return Array.from(parameters.values());
+
                             if (parameter instanceof CommandArgumentEntity)
                                 return [
                                     new CommandParameter({
@@ -394,27 +399,6 @@ export default class PlayerConnection {
                                     })
                                 ];
 
-                            if (
-                                parameter instanceof
-                                CommandArgumentFloatPosition
-                            )
-                                return [
-                                    new CommandParameter({
-                                        name: 'x',
-                                        type: CommandParameterType.Float,
-                                        optional: false
-                                    }),
-                                    new CommandParameter({
-                                        name: 'y',
-                                        type: CommandParameterType.Float,
-                                        optional: false
-                                    }),
-                                    new CommandParameter({
-                                        name: 'z',
-                                        type: CommandParameterType.Float,
-                                        optional: false
-                                    })
-                                ];
                             if (parameter instanceof CommandArgumentGamemode)
                                 return [
                                     new CommandParameter({
@@ -664,8 +648,8 @@ export default class PlayerConnection {
         pk.headYaw = this.player.headYaw;
 
         pk.item =
-            this.player.getInventory()?.getItemInHand()?.getItem()?.getId() ??
-            0;
+            this.player.getInventory()?.getItemInHand() ??
+            new ContainerEntry({ item: new Air(), count: 0 });
 
         pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager().getMetadata();

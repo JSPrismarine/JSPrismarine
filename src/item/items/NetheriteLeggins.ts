@@ -2,22 +2,22 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class NetheriteLeggins extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:netherite_leggins',
             id: ItemIdsType.NetheriteLeggins
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 555;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 6;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 3;
     }
 }

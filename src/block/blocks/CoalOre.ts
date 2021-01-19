@@ -6,7 +6,7 @@ import Server from '../../Server';
 import Solid from '../Solid';
 
 export default class CoalOre extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:coal_ore',
             id: BlockIdsType.CoalOre,
@@ -14,15 +14,15 @@ export default class CoalOre extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Wood;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getItemManager().getItem('minecraft:coal')];
     }
 }

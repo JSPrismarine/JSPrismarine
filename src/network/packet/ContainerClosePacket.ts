@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class ContainerClosePacket extends DataPacket {
-    static NetID = Identifiers.ContainerClosePacket;
+    public static NetID = Identifiers.ContainerClosePacket;
 
     public windowId!: number;
 

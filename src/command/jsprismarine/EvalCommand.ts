@@ -2,7 +2,7 @@ import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class PluginsCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'jsprismarine:eval',
             description: 'Execute javascript code.',

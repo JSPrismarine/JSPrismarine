@@ -1,9 +1,10 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import type Player from '../../player/Player';
 
 export default class ReloadCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'jsprismarine:reload',
             description: 'Reloads the server.',

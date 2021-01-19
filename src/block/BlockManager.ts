@@ -1,15 +1,26 @@
+import BedrockData from '@jsprismarine/bedrock-data';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Block from './Block';
 import { BlockIdsType } from './BlockIdsType';
 import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
+import { ByteOrder } from '../nbt/ByteOrder';
+import NBTReader from '../nbt/NBTReader';
+import NBTTagCompound from '../nbt/NBTTagCompound';
+import R12ToCurrentBlockMapEntry from './R12ToCurrentBlockMapEntry';
 import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 
 export default class BlockManager {
     private readonly server: Server;
-    private readonly blocks: Map<string, Block> = new Map();
+    private readonly blocks = new Map();
+    private readonly blockPalette: Buffer = Buffer.alloc(0);
 
-    constructor(server: Server) {
+    private bedrockKnownStates: NBTTagCompound[] = [];
+    private readonly legacyToRuntimeId: Map<number, number> = new Map();
+    private readonly runtimeIdToLegacy: Map<number, number> = new Map();
+
+    public constructor(server: Server) {
         this.server = server;
     }
 
@@ -18,6 +29,7 @@ export default class BlockManager {
      */
     public async onEnable() {
         await this.importBlocks();
+        await this.generateBlockPalette();
     }
 
     /**
@@ -66,6 +78,126 @@ export default class BlockManager {
      */
     public getBlocks(): Block[] {
         return Array.from(this.blocks.values());
+    }
+
+    private async generateBlockPalette() {
+        this.bedrockKnownStates = await new Promise((resolve) => {
+            const data: BinaryStream = new BinaryStream(
+                BedrockData.canonical_block_states // Vanilla states
+            );
+
+            const list: NBTTagCompound[] = [];
+            while (!data.feof()) {
+                const reader: NBTReader = new NBTReader(
+                    data,
+                    ByteOrder.LITTLE_ENDIAN
+                );
+                reader.setUseVarint(true);
+
+                list.push(reader.parse());
+            }
+
+            resolve(list);
+        });
+
+        const legacyStateMap: R12ToCurrentBlockMapEntry[] = await new Promise(
+            (resolve) => {
+                const data: BinaryStream = new BinaryStream(
+                    BedrockData.r12_to_current_block_map
+                );
+
+                const reader: NBTReader = new NBTReader(
+                    data,
+                    ByteOrder.LITTLE_ENDIAN
+                );
+                reader.setUseVarint(true);
+
+                const list: R12ToCurrentBlockMapEntry[] = [];
+                while (!data.feof()) {
+                    const id: string = data
+                        .read(data.readUnsignedVarInt())
+                        .toString('utf8'); // readString
+                    const meta: number = data.readLShort();
+
+                    const state: NBTTagCompound = reader.parse();
+
+                    list.push(new R12ToCurrentBlockMapEntry(id, meta, state));
+                }
+
+                resolve(list);
+            }
+        );
+
+        const idToStatesMap: Map<string, number[]> = new Map<
+            string,
+            number[]
+        >();
+
+        for (let k = 0; k < this.bedrockKnownStates.length; k++) {
+            const name: string = this.bedrockKnownStates[k].getString(
+                'name',
+                ''
+            );
+
+            if (!idToStatesMap.has(name)) {
+                idToStatesMap.set(name, [k]);
+            } else {
+                idToStatesMap.get(name)!.push(k);
+            }
+        }
+
+        for (const pair of legacyStateMap) {
+            const id: number = BedrockData.block_id_map[pair.getId()];
+            const meta: number = pair.getMeta();
+
+            if (meta > 15) {
+                // We can't handle metadata with more than 4 bits
+                continue;
+            }
+
+            const mappedState: NBTTagCompound = pair.getBlockState();
+            const mappedName: string = mappedState.getString('name', '');
+            if (!idToStatesMap.has(mappedName)) {
+                throw new Error(
+                    `${mappedName} does not appear in network table`
+                );
+            }
+
+            for (const runtimeId of idToStatesMap.get(mappedName)!) {
+                const networkState = this.bedrockKnownStates[runtimeId];
+
+                if (mappedState.equals(networkState)) {
+                    this.legacyToRuntimeId.set((id << 4) | meta, runtimeId);
+                    this.runtimeIdToLegacy.set(runtimeId, (id << 4) | meta);
+                }
+            }
+        }
+    }
+
+    // TODO: to clean up
+    // Also, block.getRuntimeId() should call this and return the value
+    public getRuntimeWithMeta(id: number, meta: number): number {
+        let runtimeId = this.legacyToRuntimeId.get((id << 4) | meta);
+        if (!this.legacyToRuntimeId.has((id << 4) | meta)) {
+            runtimeId = this.legacyToRuntimeId.get(id << 4);
+            if (!this.legacyToRuntimeId.has(id << 4)) {
+                runtimeId = this.legacyToRuntimeId.get(
+                    BlockIdsType.InfoUpdate << 4
+                );
+            }
+        }
+
+        if (typeof runtimeId === 'undefined') return 0;
+
+        return runtimeId;
+    }
+
+    public getRuntimeWithId(legacyId: number): number {
+        return this.getRuntimeWithMeta(legacyId >> 4, legacyId & 0xf);
+    }
+
+    public getBlockPalette(): Buffer {
+        return this.blockPalette;
     }
 
     /**

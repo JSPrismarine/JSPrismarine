@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class LevelChunkPacket extends DataPacket {
-    static NetID = Identifiers.LevelChunkPacket;
+    public static NetID = Identifiers.LevelChunkPacket;
 
     public chunkX!: number;
     public chunkZ!: number;

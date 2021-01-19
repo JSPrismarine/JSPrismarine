@@ -2,18 +2,18 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class DisconnectPacket extends DataPacket {
-    static NetID = Identifiers.DisconnectPacket;
+    public static NetID = Identifiers.DisconnectPacket;
 
     public hideDisconnectionWindow!: boolean;
     public message!: string;
 
-    encodePayload() {
+    public encodePayload() {
         this.writeBool(this.hideDisconnectionWindow);
 
         if (!this.hideDisconnectionWindow) this.writeString(this.message);
     }
 
-    decodePayload() {
+    public decodePayload() {
         this.hideDisconnectionWindow = this.readBool();
 
         if (!this.hideDisconnectionWindow) this.message = this.readString();

@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import Solid from '../Solid';
 
 export default class LapisOre extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:lapis_ore',
             id: BlockIdsType.LapisOre,
@@ -12,11 +12,11 @@ export default class LapisOre extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Stone;
     }
 }

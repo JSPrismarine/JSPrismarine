@@ -5,16 +5,17 @@ import { ItemTieredToolType } from '../item/ItemTieredToolType';
 import Server from '../Server';
 
 export default class Block {
-    id: number;
-    name: string;
-    hardness: number;
-    meta = 0;
+    public id: number;
+    public runtimeId?: number;
+    public name: string;
+    public hardness: number;
+    public meta = 0;
 
     // TODO
-    nbt = null;
-    count = 1;
+    public nbt = null;
+    public count = 1;
 
-    constructor({
+    public constructor({
         id,
         name,
         hardness
@@ -152,27 +153,27 @@ export default class Block {
         return false;
     }
 
-    canBePlaced() {
+    public canBePlaced() {
         return true;
     }
 
-    canBeFlowedInto() {
+    public canBeFlowedInto() {
         return false;
     }
 
-    isTransparent() {
+    public isTransparent() {
         return false;
     }
 
-    isBreakable() {
+    public isBreakable() {
         return true;
     }
 
-    isSolid() {
+    public isSolid() {
         return false;
     }
 
-    isCompatibleWithTool(item: Item | null) {
+    public isCompatibleWithTool(item: Item | null) {
         if (!item) return false;
 
         if (this.getHardness() < 0) return false;
@@ -190,11 +191,11 @@ export default class Block {
         return false;
     }
 
-    isAffectedBySilkTouch() {
+    public isAffectedBySilkTouch() {
         return true;
     }
 
-    isPartOfCreativeInventory() {
+    public isPartOfCreativeInventory() {
         return true;
     }
 }

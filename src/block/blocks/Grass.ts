@@ -5,7 +5,7 @@ import Server from '../../Server';
 import Solid from '../Solid';
 
 export default class Grass extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:grass',
             id: BlockIdsType.Grass,
@@ -13,11 +13,11 @@ export default class Grass extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:dirt')];
     }
 }

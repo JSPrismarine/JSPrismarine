@@ -3,7 +3,7 @@ import Identifiers from '../Identifiers';
 import TextType from '../type/TextType';
 
 export default class TextPacket extends DataPacket {
-    static NetID = Identifiers.TextPacket;
+    public static NetID = Identifiers.TextPacket;
 
     public type!: TextType;
     public needsTranslation!: boolean;

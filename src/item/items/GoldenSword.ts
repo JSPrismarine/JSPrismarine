@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../ItemTieredToolType';
 import TieredTool from '../TieredTool';
 
 export default class GoldenSword extends TieredTool {
-    constructor() {
+    public constructor() {
         super(
             {
                 name: 'minecraft:golden_sword',
@@ -14,11 +14,11 @@ export default class GoldenSword extends TieredTool {
         );
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 33;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Sword;
     }
 }

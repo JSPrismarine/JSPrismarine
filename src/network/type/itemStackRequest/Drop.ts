@@ -5,7 +5,7 @@ class Drop {
     public from: ItemStackRequestSlotInfo;
     public randomly: boolean;
 
-    constructor({
+    public constructor({
         count,
         from,
         randomly

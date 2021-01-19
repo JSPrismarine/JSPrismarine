@@ -3,7 +3,7 @@ export default class Vector3 {
     private y: number;
     private z: number;
 
-    constructor(x = 0, y = 0, z = 0) {
+    public constructor(x = 0, y = 0, z = 0) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -31,5 +31,10 @@ export default class Vector3 {
 
     public getZ(): number {
         return this.z;
+    }
+
+    public equals(vector: Vector3): boolean {
+        if (JSON.stringify(this) !== JSON.stringify(vector)) return false;
+        return true;
     }
 }

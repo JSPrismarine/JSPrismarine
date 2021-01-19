@@ -5,7 +5,7 @@ const SENDER_SHIFT = 10;
 const RECEIVER_SHIFT = 12;
 const SUBCLIENT_MASK = 0x03;
 export default class DataPacket extends PacketBinaryStream {
-    static NetID: number;
+    public static NetID: number;
 
     private encoded = false;
 
@@ -26,7 +26,7 @@ export default class DataPacket extends PacketBinaryStream {
     }
 
     public decode() {
-        (this as any).offset = 0;
+        this.setOffset(0);
         this.decodeHeader();
         this.decodePayload();
 

@@ -2,7 +2,6 @@ import BaseProvider from '../../BaseProvider';
 import Chunk from '../../chunk/Chunk';
 import Generator from '../../Generator';
 import Region from './Region';
-import SharedSeedRandom from '../../util/SharedSeedRandom';
 import fs from 'fs';
 import path from 'path';
 
@@ -18,8 +17,8 @@ export default class Anvil extends BaseProvider {
     public async readChunk(
         cx: number,
         cz: number,
-        _seed: SharedSeedRandom,
-        _generator: Generator
+        seed: number,
+        generator: Generator
     ): Promise<Chunk> {
         const [rx, rz] = [cx >> 5, cz >> 5];
         const id = `r.${rx}.${rz}.mca`;

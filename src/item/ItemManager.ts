@@ -7,7 +7,7 @@ export default class ItemManager {
     private readonly server: Server;
     private readonly items = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 
@@ -54,7 +54,7 @@ export default class ItemManager {
     /**
      * Loops through ./src/item/items and register them
      */
-    importItems() {
+    private importItems() {
         try {
             const time = Date.now();
             const items = fs.readdirSync(path.join(__dirname, 'items'));

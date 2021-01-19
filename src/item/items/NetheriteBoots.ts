@@ -2,22 +2,22 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class NetheriteBoots extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:netherite_boots',
             id: ItemIdsType.NetheriteBoots
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 481;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 3;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 3;
     }
 }

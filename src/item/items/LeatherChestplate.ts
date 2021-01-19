@@ -2,18 +2,18 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class LeatherChestplate extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:leather_chestplate',
             id: ItemIdsType.LeatherTunic
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 80;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 3;
     }
 }

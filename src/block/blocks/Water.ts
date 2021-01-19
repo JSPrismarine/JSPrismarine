@@ -2,7 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import FlowingWater from './FlowingWater';
 
 export default class Water extends FlowingWater {
-    constructor() {
+    public constructor() {
         super('minecraft:water', BlockIdsType.Water);
     }
 }

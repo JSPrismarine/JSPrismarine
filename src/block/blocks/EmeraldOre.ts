@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import Solid from '../Solid';
 
 export default class EmeraldOre extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:emerald_ore',
             id: BlockIdsType.EmeraldOre,
@@ -12,11 +12,11 @@ export default class EmeraldOre extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Iron;
     }
 }

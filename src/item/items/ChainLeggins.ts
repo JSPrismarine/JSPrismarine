@@ -2,18 +2,18 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class ChainLeggins extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:chainmail_leggins',
             id: ItemIdsType.ChainLeggins
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 225;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 5;
     }
 }

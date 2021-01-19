@@ -11,7 +11,7 @@ export default class PluginManager {
     private readonly pluginApiVersions = new Map();
     private readonly plugins = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 
@@ -155,6 +155,14 @@ export default class PluginManager {
         if (!fs.existsSync(path.join(dir, 'package.json'))) {
             return null;
         }
+
+        if (dir.includes('.jspz'))
+            this.server
+                .getLogger()
+                .warn(
+                    `${id} isn't packaged as .jspz and should NOT be used on production servers!`,
+                    `PluginManager/registerPlugin/${id}`
+                );
 
         const pkg = require(path.join(dir, 'package.json'));
         if (!pkg) throw new Error(`package.json is missing!`);

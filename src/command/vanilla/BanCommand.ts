@@ -6,11 +6,12 @@ import {
     literal,
     string
 } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class BanCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:ban',
             description: 'Ban a player.',

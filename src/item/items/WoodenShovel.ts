@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../ItemTieredToolType';
 import TieredTool from '../TieredTool';
 
 export default class WoodenShovel extends TieredTool {
-    constructor() {
+    public constructor() {
         super(
             {
                 name: 'minecraft:wooden_shovel',
@@ -14,15 +14,15 @@ export default class WoodenShovel extends TieredTool {
         );
     }
 
-    getBurntime() {
+    public getBurntime() {
         return 200;
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 60;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

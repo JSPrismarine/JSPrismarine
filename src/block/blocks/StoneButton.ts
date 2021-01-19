@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Transparent from '../Transparent';
 
 export default class StoneButton extends Transparent {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:stone_button',
             id: BlockIdsType.StoneButton,
@@ -11,7 +11,7 @@ export default class StoneButton extends Transparent {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 }

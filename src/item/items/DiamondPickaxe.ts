@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../ItemTieredToolType';
 import TieredTool from '../TieredTool';
 
 export default class DiamondPickaxe extends TieredTool {
-    constructor() {
+    public constructor() {
         super(
             {
                 name: 'minecraft:diamond_pickaxe',
@@ -14,11 +14,11 @@ export default class DiamondPickaxe extends TieredTool {
         );
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 1562;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 }

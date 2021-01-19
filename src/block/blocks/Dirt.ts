@@ -8,7 +8,10 @@ export enum DirtType {
 }
 
 export default class Dirt extends Solid {
-    constructor(name = 'minecraft:dirt', type: DirtType = DirtType.Regular) {
+    public constructor(
+        name = 'minecraft:dirt',
+        type: DirtType = DirtType.Regular
+    ) {
         super({
             name,
             id: BlockIdsType.Dirt,
@@ -17,7 +20,7 @@ export default class Dirt extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

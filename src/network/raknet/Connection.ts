@@ -77,7 +77,7 @@ export default class Connection {
     private lastUpdate: number = Date.now();
     private active = false;
 
-    constructor(
+    public constructor(
         listener: RakNetListener,
         mtuSize: number,
         address: InetAddress,

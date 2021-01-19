@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class IronTrapdoor extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:iron_trapdoor',
             id: BlockIdsType.IronTrapdoor,
@@ -11,11 +11,11 @@ export default class IronTrapdoor extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    isTransparent() {
+    public isTransparent() {
         return true;
     }
 }

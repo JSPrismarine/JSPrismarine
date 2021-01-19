@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import Solid from '../Solid';
 
 export default class Dispenser extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:dispenser',
             id: BlockIdsType.Dispenser,
@@ -12,11 +12,11 @@ export default class Dispenser extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Wood;
     }
 }

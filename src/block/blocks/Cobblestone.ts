@@ -4,7 +4,7 @@ import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import Solid from '../Solid';
 
 export default class Cobblestone extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:cobblestone',
             id: BlockIdsType.Cobblestone,

@@ -6,7 +6,7 @@ export default class Chat {
     private readonly sender: Player | Console;
     private readonly message: string;
 
-    constructor(
+    public constructor(
         sender: Player | Console,
         message: string,
         channel = '*.everyone'

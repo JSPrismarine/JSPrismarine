@@ -21,7 +21,7 @@ export enum CarpetColorType {
 }
 
 export default class WhiteCarpet extends Solid {
-    constructor(
+    public constructor(
         name = 'minecraft:white_carpet',
         type: CarpetColorType = CarpetColorType.White
     ) {

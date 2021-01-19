@@ -1,16 +1,17 @@
 /* eslint-disable promise/prefer-await-to-then */
 import {
     CommandArgumentEntity,
-    CommandArgumentFloatPosition
+    CommandArgumentPosition
 } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
 import MovementType from '../../network/type/MovementType';
 import Player from '../../player/Player';
 import Vector3 from '../../math/Vector3';
 
 export default class TpCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:tp',
             description:
@@ -26,7 +27,7 @@ export default class TpCommand extends Command {
                 .then(
                     argument(
                         'position',
-                        new CommandArgumentFloatPosition()
+                        new CommandArgumentPosition()
                     ).executes(async (context) => {
                         const source = context.getSource() as Player;
 
@@ -47,39 +48,52 @@ export default class TpCommand extends Command {
                     })
                 )
                 .then(
-                    argument('player', new CommandArgumentEntity())
+                    argument('player', new CommandArgumentEntity('source'))
                         .then(
                             argument(
                                 'position',
-                                new CommandArgumentFloatPosition()
+                                new CommandArgumentPosition()
                             ).executes(async (context) => {
-                                const target = context.getArgument(
+                                const targets = context.getArgument(
                                     'player'
-                                ) as Player;
+                                ) as Player[];
 
                                 const position = context.getArgument(
                                     'position'
                                 ) as Vector3;
 
-                                await target.setPosition(
-                                    position,
-                                    MovementType.Teleport
+                                if (!targets.length)
+                                    throw new Error(
+                                        `Cannot find specified player(s) & entit(y/ies)`
+                                    );
+                                targets.forEach(async (entity) =>
+                                    entity.setPosition(
+                                        position,
+                                        MovementType.Teleport
+                                    )
                                 );
-                                return `Teleported ${target.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
+
+                                return `Teleported ${targets
+                                    .map((entity) =>
+                                        entity.getFormattedUsername()
+                                    )
+                                    .join(
+                                        ', '
+                                    )} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
                             })
                         )
                         .then(
                             argument(
                                 'target',
-                                new CommandArgumentEntity()
+                                new CommandArgumentEntity('target')
                             ).executes(async (context) => {
-                                const sourcePlayer = context.getArgument(
+                                const sources = context.getArgument(
                                     'player'
-                                ) as Player;
+                                ) as Player[];
 
                                 const target = context.getArgument(
                                     'target'
-                                ) as Player;
+                                )?.[0] as Player;
 
                                 const position = new Vector3(
                                     target.getX(),
@@ -87,18 +101,30 @@ export default class TpCommand extends Command {
                                     target.getZ()
                                 );
 
-                                await sourcePlayer.setPosition(
-                                    position,
-                                    MovementType.Teleport
+                                if (!sources.length)
+                                    throw new Error(
+                                        `Cannot find specified player(s) & entit(y/ies)`
+                                    );
+                                sources.forEach(async (entity) =>
+                                    entity.setPosition(
+                                        position,
+                                        MovementType.Teleport
+                                    )
                                 );
-                                return `Teleported ${sourcePlayer.getFormattedUsername()} to ${target.getFormattedUsername()}`;
+                                return `Teleported ${sources
+                                    .map((entity) =>
+                                        entity.getFormattedUsername()
+                                    )
+                                    .join(
+                                        ', '
+                                    )} to ${target.getFormattedUsername()}`;
                             })
                         )
                         .executes(async (context) => {
                             const source = context.getSource() as Player;
                             const target = context.getArgument(
                                 'player'
-                            ) as Player;
+                            )?.[0] as Player;
 
                             if (!source.isPlayer())
                                 throw new Error(

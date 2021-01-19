@@ -3,9 +3,9 @@ import Server from '../Server';
 import path from 'path';
 
 export class Plugin {
-    constructor(api: PluginApiVersion) {}
-    async onEnable() {}
-    async onDisable() {}
+    public constructor(api: PluginApiVersion) {}
+    public async onEnable() {}
+    public async onDisable() {}
 }
 
 export default class PluginFile {
@@ -18,7 +18,7 @@ export default class PluginFile {
     private readonly displayName: string;
     private readonly version: string;
 
-    constructor(
+    public constructor(
         server: Server,
         dir: string,
         pluginApiVersion: PluginApiVersion
@@ -41,7 +41,7 @@ export default class PluginFile {
                 );
 
         this.name = this.package.name;
-        this.displayName = this.package.prismarine?.name || this.name;
+        this.displayName = this.package.prismarine.name ?? this.name;
         this.version = this.package.version;
 
         const Plugin = require(path.join(this.path, this.package.main)).default;

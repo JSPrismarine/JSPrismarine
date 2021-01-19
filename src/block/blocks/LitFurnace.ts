@@ -6,7 +6,7 @@ import type Server from '../../Server';
 import Solid from '../Solid';
 
 export default class LitFurnace extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:lit_furnace',
             id: BlockIdsType.LitFurnace,

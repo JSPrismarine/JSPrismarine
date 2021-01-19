@@ -2,18 +2,18 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class LeatherHelmet extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:leather_helmet',
             id: ItemIdsType.LeatherCap
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 55;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 1;
     }
 }

@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Transparent from '../Transparent';
 
 export default class Lever extends Transparent {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:lever',
             id: BlockIdsType.Lever,
@@ -11,7 +11,7 @@ export default class Lever extends Transparent {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Axe;
     }
 }

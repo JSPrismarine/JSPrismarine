@@ -26,7 +26,7 @@ export default class GameruleManager {
     private readonly server: Server;
     private readonly rules: Map<string, any> = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 

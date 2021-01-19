@@ -4,6 +4,8 @@ import AddActorPacket from '../network/packet/AddActorPacket';
 import AttributeManager from './attribute';
 import Player from '../player/Player';
 import Position from '../world/Position';
+import Server from '../Server';
+import Vector3 from '../math/Vector3';
 import World from '../world/World';
 
 // All entities will extend this base class
@@ -13,6 +15,7 @@ export default class Entity extends Position {
 
     public runtimeId: bigint;
 
+    private server: Server;
     // TODO: do not expose and make API instead
     private readonly metadata: MetadataManager = new MetadataManager();
     private readonly attributes: AttributeManager = new AttributeManager();
@@ -21,10 +24,11 @@ export default class Entity extends Position {
      * Entity constructor.
      *
      */
-    constructor(world: World) {
+    public constructor(world: World, server: Server) {
         super({ world }); // TODO
         Entity.runtimeIdCount += 1n;
         this.runtimeId = Entity.runtimeIdCount;
+        this.server = server;
 
         this.metadata.setLong(MetadataFlag.INDEX, 0n);
         this.metadata.setShort(MetadataFlag.MAX_AIR, 400);
@@ -45,6 +49,10 @@ export default class Entity extends Position {
     // }
 
     public damage(): void {}
+
+    public getServer(): Server {
+        return this.server;
+    }
 
     public setNameTag(name: string) {
         this.metadata.setString(MetadataFlag.NAMETAG, name);
@@ -107,5 +115,72 @@ export default class Entity extends Position {
         pk.motionY = 0;
         pk.motionZ = 0;
         await player.getConnection().sendDataPacket(pk);
+    }
+
+    public async setPosition(position: Vector3) {
+        this.setX(position.getX());
+        this.setY(position.getY());
+        this.setZ(position.getZ());
+
+        // TODO: broadcast this
+    }
+
+    public isPlayer(): boolean {
+        return false;
+    }
+
+    public getType(): string {
+        return (this.constructor as any).MOB_ID;
+    }
+
+    public getFormattedUsername(): string {
+        return (
+            this.metadata.getString(MetadataFlag.NAMETAG) ??
+            // Replace all '_' with a ' ' and capitalize each word afterwards
+            ((this.constructor as any).MOB_ID as string)
+                .split(':')[1]
+                .replaceAll('_', ' ')
+                .split(' ')
+                .map(
+                    (word) => word[0].toUpperCase() + word.slice(1, word.length)
+                )
+                .join(' ')
+        );
+    }
+
+    /**
+     * Returns the nearest entity from the current entity
+     *
+     * TODO:
+     * - Customizable radius
+     */
+    public getNearestEntity(
+        entities: Entity[] = this.server
+            .getWorldManager()
+            .getDefaultWorld()
+            .getEntities()!
+    ) {
+        const pos = new Vector3(this.getX(), this.getY(), this.getZ());
+        const dist = (a: Vector3, b: Vector3) =>
+            Math.sqrt(
+                (b.getX() - a.getX()) ** 2 +
+                    (b.getY() - a.getY()) ** 2 +
+                    (b.getZ() - a.getZ()) ** 2
+            );
+
+        const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
+            const distances = points.map((e) =>
+                dist(target, new Vector3(e.getX(), e.getY(), e.getZ()))
+            );
+            const closest = Math.min(...distances);
+            return points.find((e, i) => distances[i] - closest < eps)!;
+        };
+
+        return [
+            closest(
+                pos,
+                entities.filter((a) => a.runtimeId !== this.runtimeId)
+            )
+        ].filter((a) => a);
     }
 }

@@ -2,9 +2,9 @@ import { BlockIdsType } from '../BlockIdsType';
 import Flowable from '../Flowable';
 
 export default class TallGrass extends Flowable {
-    meta = 1;
+    public meta = 1;
 
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:tall_grass',
             id: BlockIdsType.TallGrass,

@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Solid from '../Solid';
 
 export default class Trapdoor extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:trapdoor',
             id: BlockIdsType.Trapdoor,
@@ -11,15 +11,15 @@ export default class Trapdoor extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Axe;
     }
 
-    getFlammability() {
+    public getFlammability() {
         return 20;
     }
 
-    isTransparent() {
+    public isTransparent() {
         return true;
     }
 }

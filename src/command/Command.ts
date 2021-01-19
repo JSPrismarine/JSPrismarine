@@ -13,7 +13,7 @@ export default class Command {
     permission?: string;
     aliases?: string[];
 
-    constructor({
+    public constructor({
         id = '',
         description = '',
         permission = '',

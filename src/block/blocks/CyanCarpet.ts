@@ -1,7 +1,7 @@
 import WhiteCarpet, { CarpetColorType } from './WhiteCarpet';
 
 export default class CyanCarpet extends WhiteCarpet {
-    constructor() {
+    public constructor() {
         super('minecraft:cyan_carpet', CarpetColorType.Cyan);
     }
 }

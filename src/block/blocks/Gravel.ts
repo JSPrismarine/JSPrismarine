@@ -5,7 +5,7 @@ import Server from '../../Server';
 import Solid from '../Solid';
 
 export default class Sand extends Solid {
-    constructor(name = 'minecraft:gravel') {
+    public constructor(name = 'minecraft:gravel') {
         super({
             name,
             id: BlockIdsType.Gravel,
@@ -13,11 +13,11 @@ export default class Sand extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         if (Math.floor(Math.random() * 10) === 1) {
             return [server.getItemManager().getItem('minecraft:flint')];
         }

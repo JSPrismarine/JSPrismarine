@@ -3,7 +3,7 @@ import Identifiers from '../Identifiers';
 import MovementType from '../type/MovementType';
 
 export default class MovePlayerPacket extends DataPacket {
-    static NetID = Identifiers.MovePlayerPacket;
+    public static NetID = Identifiers.MovePlayerPacket;
 
     public runtimeEntityId!: bigint;
 

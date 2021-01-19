@@ -2,7 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import FlowingLava from './FlowingLava';
 
 export default class Lava extends FlowingLava {
-    constructor() {
+    public constructor() {
         super('minecraft:lava', BlockIdsType.Lava);
     }
 }

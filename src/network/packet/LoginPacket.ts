@@ -6,7 +6,7 @@ import Skin from '../../utils/skin/Skin';
 import jwt_decode from 'jwt-decode';
 
 export default class LoginPacket extends DataPacket {
-    static NetID = Identifiers.LoginPacket;
+    public static NetID = Identifiers.LoginPacket;
 
     public XUID!: string;
     public identity!: string;

@@ -8,7 +8,10 @@ export enum SandType {
 }
 
 export default class Sand extends Solid {
-    constructor(name = 'minecraft:sand', type: SandType = SandType.Regular) {
+    public constructor(
+        name = 'minecraft:sand',
+        type: SandType = SandType.Regular
+    ) {
         super({
             name,
             id: BlockIdsType.Sand,
@@ -17,7 +20,7 @@ export default class Sand extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

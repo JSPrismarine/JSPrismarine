@@ -48,6 +48,11 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
         player.uuid = packet.identity;
         player.xuid = packet.XUID;
 
+        if (!player.xuid && server?.getConfig?.().getOnlineMode?.()) {
+            await player.kick('Server is in online-mode!');
+            return;
+        }
+
         player.skin = packet.skin;
         player.device = packet.device;
 

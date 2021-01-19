@@ -5,12 +5,13 @@ import {
     greedyString,
     literal
 } from '@jsprismarine/brigadier';
+
 import Chat from '../../chat/Chat';
 import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class SayCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:say',
             description: 'Say something to all players.',

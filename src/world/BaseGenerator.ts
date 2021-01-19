@@ -1,7 +1,6 @@
 import BlockManager from '../block/BlockManager';
 import Chunk from './chunk/Chunk';
 import Generator from './Generator';
-import SharedSeedRandom from './util/SharedSeedRandom';
 
 export default abstract class BaseGenerator implements Generator {
     private readonly blockManager: BlockManager;
@@ -20,7 +19,7 @@ export default abstract class BaseGenerator implements Generator {
     public abstract generateChunk(
         cx: number,
         cz: number,
-        seed?: SharedSeedRandom
+        seed?: number
     ): Promise<Chunk>;
 
     protected getBlockManager(): BlockManager {

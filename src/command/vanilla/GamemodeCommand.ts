@@ -4,6 +4,7 @@ import {
     CommandArgumentGamemode
 } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
@@ -11,7 +12,7 @@ import Gamemode from '../../world/Gamemode';
 import Player from '../../player/Player';
 
 export default class GamemodeCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:gamemode',
             description: 'Changes gamemode for a player.',
@@ -61,15 +62,20 @@ export default class GamemodeCommand extends Command {
                             new CommandArgumentEntity()
                         ).executes(async (context) => {
                             const source = context.getSource() as Player;
-                            const target = context.getArgument(
+                            const targets = context.getArgument(
                                 'player'
-                            ) as Player;
+                            ) as Player[];
 
                             const gamemode = context.getArgument(
                                 'gamemode'
                             ) as string;
 
-                            await this.setGamemode(source, target, gamemode);
+                            if (!targets.length)
+                                throw new Error(`Cannot find player`);
+
+                            targets.forEach(async (target) =>
+                                this.setGamemode(source, target, gamemode)
+                            );
                         })
                     )
                     .executes(async (context) => {

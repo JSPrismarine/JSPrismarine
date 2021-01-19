@@ -2,18 +2,18 @@ import { ItemIdsType } from '../ItemIdsType';
 import Tool from '../Tool';
 
 export default class Crossbow extends Tool {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:crossbow',
             id: ItemIdsType.Crossbow
         });
     }
 
-    getBurntime() {
+    public getBurntime() {
         return 200;
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 326;
     }
 }

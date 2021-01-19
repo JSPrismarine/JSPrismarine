@@ -2,7 +2,7 @@ import { BlockIdsType } from '../BlockIdsType';
 import Transparent from '../Transparent';
 
 export default class Air extends Transparent {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:air',
             id: BlockIdsType.Air,
@@ -14,27 +14,27 @@ export default class Air extends Transparent {
         return 0;
     }
 
-    getBlastResistance() {
+    public getBlastResistance() {
         return 0;
     }
 
-    canPassThrough() {
+    public canPassThrough() {
         return true;
     }
 
-    canBePlaced() {
+    public canBePlaced() {
         return false;
     }
 
-    isBreakable() {
+    public isBreakable() {
         return false;
     }
 
-    isSolid() {
+    public isSolid() {
         return false;
     }
 
-    isPartOfCreativeInventory() {
+    public isPartOfCreativeInventory() {
         return false;
     }
 }

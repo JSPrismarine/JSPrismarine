@@ -13,7 +13,7 @@ interface WorldData {
 
 export default class WorldManager {
     private readonly worlds: Map<string, World> = new Map();
-    private defaultWorld: World | null = null;
+    private defaultWorld!: World;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
     private providers: Map<string, any> = new Map();
@@ -106,8 +106,7 @@ export default class WorldManager {
 
             // First level to be loaded is also the default one
             if (!this.defaultWorld) {
-                this.defaultWorld =
-                    this.worlds.get(world.getUniqueId()) ?? null;
+                this.defaultWorld = this.worlds.get(world.getUniqueId())!;
                 this.server
                     .getLogger()
                     .info(
@@ -197,7 +196,7 @@ export default class WorldManager {
         return Array.from(this.worlds.values());
     }
 
-    public getDefaultWorld(): World | null {
+    public getDefaultWorld(): World {
         return this.defaultWorld;
     }
 

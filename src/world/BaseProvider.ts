@@ -1,7 +1,6 @@
 import type Chunk from './chunk/Chunk';
 import Generator from './Generator';
 import Provider from './Provider';
-import SharedSeedRandom from './util/SharedSeedRandom';
 import fs from 'fs';
 
 export default abstract class BaseProvider implements Provider {
@@ -23,14 +22,11 @@ export default abstract class BaseProvider implements Provider {
 
     /**
      * Returns a chunk decoded from the provider.
-     *
-     * @param cx - chunk x
-     * @param cz - chunk z
      */
     public abstract readChunk(
         cx: number,
         cz: number,
-        seed: SharedSeedRandom,
+        seed: number,
         generator: Generator
     ): Promise<Chunk>;
 }

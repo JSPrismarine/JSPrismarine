@@ -8,7 +8,13 @@ export default class Updater {
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
 
-    constructor({ config, logger }: { config: Config; logger: LoggerBuilder }) {
+    public constructor({
+        config,
+        logger
+    }: {
+        config: Config;
+        logger: LoggerBuilder;
+    }) {
         this.config = config;
         this.logger = logger;
     }
