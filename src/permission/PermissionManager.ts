@@ -186,32 +186,36 @@ export default class PermissionManager {
 
     public can(executer: CommandExecuter) {
         return {
-            execute: (permission?: string) => {
+            execute: (permission?: string | string[]) => {
                 if (!permission) return true;
                 if (!executer.isPlayer()) return true;
                 if (executer.isOp()) return true;
-                if ((executer as Player).getPermissions().includes(permission))
-                    return true;
-                if ((executer as Player).getPermissions().includes('*'))
-                    return true;
 
-                const split = permission.split('.');
-                let scope = '';
-                for (const action of split) {
-                    if (scope) scope = `${scope}.${action}`;
-                    else scope = action;
+                permission = typeof permission === 'string' ? [ permission ] : permission;
+                for (let perm of permission) {
+                    if ((executer as Player).getPermissions().includes(perm))
+                    return true;
+                    if ((executer as Player).getPermissions().includes('*'))
+                        return true;
 
-                    if ((executer as Player).getPermissions().includes(scope))
-                        return true;
-                    if (
-                        (executer as Player)
-                            .getPermissions()
-                            .includes(`${scope}.*`)
-                    )
-                        return true;
+                    const split = perm.split('.');
+                    let scope = '';
+                    for (const action of split) {
+                        if (scope) scope = `${scope}.${action}`;
+                        else scope = action;
+
+                        if ((executer as Player).getPermissions().includes(scope))
+                            return true;
+                        if (
+                            (executer as Player)
+                                .getPermissions()
+                                .includes(`${scope}.*`)
+                        )
+                            return true;
+                    }
+
+                    return false;
                 }
-
-                return false;
             }
         };
     }

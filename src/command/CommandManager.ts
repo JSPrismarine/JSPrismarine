@@ -84,7 +84,53 @@ export default class CommandManager {
     }
 
     /**
+     * Register a command.
+     * @param command
+     */
+    public async registerCommand(command: Command) {
+        if (!(command instanceof Function)) {
+            throw new Error(
+                `Command must be a class that extends Command`
+            );
+        }
+
+        // hacky remove later
+        command.api = 'rfc';
+
+        if (command.id.split(':').length !== 2)
+            throw new Error(
+                `Failed to register command with name "${command.constructor.name}" as no namespace was found from the id.`
+            );
+
+        if (!command.dispatch)
+            throw new Error(
+                `Failed to register command with name "${command.constructor.name}" as no "execute" member was found.`
+            );
+
+        for (let [pos, argument] of command.arguments.getRegistered()) {
+            // TODO: Check arguments, and see if return types are valid.
+        }
+
+        await Promise.all(
+            this.server
+                .getPlayerManager()
+                .getOnlinePlayers()
+                .map(async (player) => {
+                    await player.getConnection().sendAvailableCommands();
+                })
+        );
+
+        this.server
+            .getLogger()
+            .silly(
+                `Command with id §b${command.id}§r registered`,
+                'CommandManager/registerClassCommand'
+            );
+    }
+
+    /**
      * Register a command into command manager by class.
+     * @deprecated Use `registerCommand` instead
      */
     public async registerClassCommand(command: Command, server: Server) {
         if (command.id.split(':').length !== 2)
