@@ -38,6 +38,13 @@ export default class ArgumentMap {
     }
 
     /**
+     * Gets a registered Map of arguments.
+     */
+    public getRegistered(): Map<number, Argument[]> {
+        return new Map(this.#_registered); // clone to prevent modification
+    }
+
+    /**
      * Removes a argument index, or specific argument at an index or a specific argument by name.
      * @param indexOrArg - Argument or index argument to remove.
      */

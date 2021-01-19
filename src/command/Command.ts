@@ -2,6 +2,8 @@ import CommandArgumentMap from "./argument/ArgumentMap";
 import Argument from "./argument/Argument";
 import CommandExecuter from "./CommandExecuter";
 
+type Promiseable<T> = Promise<T> | T;
+
 interface CommandProps {
     id: string;
     description?: string;
@@ -31,5 +33,9 @@ export default abstract class Command {
         this.arguments = new CommandArgumentMap(overflow);
     }
 
-    public abstract execute(executer: CommandExecuter, args: Argument[], stringArgs?: string[]): boolean | void;
+    public abstract execute(executer: CommandExecuter, args: any[], stringArgs?: string[]): Promiseable<boolean | void>;
+
+    public fallback(executer: CommandExecuter, args: any[], error: Error, stringArgs?: string[]): Promiseable<void> {
+        executer.getServer().getLogger().silly(`§cError[${error.name}] in when executing command "${this.constructor.name}":\n${error.stack || "- No stack"}\n\n${error.message}`);
+    };
 }
