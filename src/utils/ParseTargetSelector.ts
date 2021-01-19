@@ -3,18 +3,18 @@ import Player from '../player/Player';
 
 /**
  * A target selector is made up of 3 parts:
- * 
+ *
  * - First there's the `@` (at symbol) part,
  * notifying us that this is in fact a target selector
- * 
+ *
  * - Secondly there's the target selector type (`a`, `e`, `p`, `r`, `s`),
  * this specifies what kind of entities we should query for
  * and in what way.
- * 
+ *
 - Thirdly there's the arguments,
  * they are split up in a comma-separated list in the
  * argument=value format.
- * 
+ *
  * This results in an input similar to:
  * `@e[type=player,gamemode=creative,limit=3]`
  */
