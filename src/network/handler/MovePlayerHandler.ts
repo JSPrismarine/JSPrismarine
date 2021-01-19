@@ -5,8 +5,7 @@ import type Player from '../../player/Player';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
-
-const d3 = require('d3-interpolate');
+import d3 from 'd3-interpolate';
 
 export default class MovePlayerHandler
     implements PacketHandler<MovePlayerPacket> {
