@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.29",
+    "version": "0.1.0-rc.30",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
@@ -83,6 +83,7 @@
             "@typescript-eslint/no-confusing-void-expression": 1,
             "@typescript-eslint/non-nullable-type-assertion-style": 1,
             "@typescript-eslint/explicit-member-accessibility": 1,
+            "@typescript-eslint/no-unnecessary-type-assertion": 0,
             "no-inferrable-types": 0,
             "prefer-destructuring": 0,
             "new-cap": 0,
