@@ -133,6 +133,7 @@ export default class CommandManager {
      * @deprecated Use `registerCommand` instead
      */
     public async registerClassCommand(command: Command, server: Server) {
+        this.server.getLogger().warn(`Brigadier API being deprecated soon. Use registerCommand() instead.`);
         if (command.id.split(':').length !== 2)
             throw new Error(
                 `command is missing required "namespace" part of id`
