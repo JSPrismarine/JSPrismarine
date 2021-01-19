@@ -59,7 +59,7 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
 -   Which OSes can run JSPrismarine?
     -   Any platform supporting Node.js v14 or later.
 -   Does it support plugins?
-    -   Yes but JSPrismarine is in fast development-mode which means that currently SEMVER isn't strictly followed. We do however try to provide a deprecation warning one week ahead of removing an API function.
+    -   Yes but JSPrismarine is in fast development-mode which means that currently SEMVER isn't strictly followed. We do however try to provide a deprecation warning two weeks ahead of removing an API function.
 -   If my question isn't listed here where should I sak?
     -   You can join the [Discord server](https://discord.gg/fGkHZhu), ask on the [forums](https://prismarine.dev) or in case of a development-related question issue an open a [GitHub issue](https://github.com/HerryYT/JSPrismarine/issues/new).
 -   Why can't I join a JSPrismarine instance hosted on my Windows PC?
