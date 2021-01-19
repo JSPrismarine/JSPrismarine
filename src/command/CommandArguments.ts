@@ -9,6 +9,7 @@ import CommandParameter, {
 
 import Gamemode from '../world/Gamemode';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
+import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import Player from '../player/Player';
 import Server from '../Server';
 import Vector3 from '../math/Vector3';
@@ -120,11 +121,46 @@ export class CommandArgumentPosition
     }
 
     public parse(reader: StringReader, context: CommandContext<Player>) {
-        this.setX(reader.readFloat());
+        const getPos = () => {
+            let pos = '';
+            while (true) {
+                if (!reader.canRead()) break;
+
+                const cursor = reader.getCursor();
+                const char = reader.read();
+                if (char === ' ') {
+                    reader.setCursor(cursor);
+                    break;
+                }
+
+                pos += char;
+            }
+            return pos;
+        };
+
+        this.setX(
+            ParseTildeCaretNotation({
+                input: getPos(),
+                source: context.getSource(),
+                type: 'x'
+            })
+        );
         reader.skip();
-        this.setY(reader.readFloat());
+        this.setY(
+            ParseTildeCaretNotation({
+                input: getPos(),
+                source: context.getSource(),
+                type: 'y'
+            })
+        );
         reader.skip();
-        this.setZ(reader.readFloat());
+        this.setZ(
+            ParseTildeCaretNotation({
+                input: getPos(),
+                source: context.getSource(),
+                type: 'z'
+            })
+        );
         return this;
     }
 
