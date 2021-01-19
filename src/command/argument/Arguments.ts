@@ -1,28 +1,13 @@
-import {
-    CommandContext,
-    StringReader,
-    Suggestions
-} from '@jsprismarine/brigadier';
-import CommandParameter, {
-    CommandParameterType
-} from '../network/type/CommandParameter';
+import { CommandContext, StringReader, Suggestions } from "@jsprismarine/brigadier";
+import Server from "../../Server";
+import Vector3 from "../../math/Vector3";
+import CommandParameter, { CommandParameterType } from "../../network/type/CommandParameter";
+import Player from "../../player/Player";
+import ParseEntityArgument from "../../utils/ParseEntityArgument";
+import Gamemode from "../../world/Gamemode";
+import Argument from "./Argument";
 
-import Gamemode from '../world/Gamemode';
-import ParseEntityArgument from '../utils/ParseEntityArgument';
-import Player from '../player/Player';
-import Server from '../Server';
-import Vector3 from '../math/Vector3';
-
-export abstract class CommandArgument {
-    public getReadableType(): string {
-        return '';
-    }
-    public getParameters(): Set<CommandParameter> {
-        return new Set();
-    }
-}
-
-export class CommandArgumentGamemode implements CommandArgument {
+export class CommandArgumentGamemode implements Argument {
     public parse(reader: StringReader, context: CommandContext<Player>) {
         const gm = reader.readString();
 
@@ -53,7 +38,7 @@ export class CommandArgumentGamemode implements CommandArgument {
     }
 }
 
-export class CommandArgumentEntity implements CommandArgument {
+export class CommandArgumentEntity implements Argument {
     private targetName;
 
     public constructor(targetName = 'target') {
@@ -108,7 +93,7 @@ export class CommandArgumentEntity implements CommandArgument {
 
 export class CommandArgumentPosition
     extends Vector3
-    implements CommandArgument {
+    implements Argument {
     private xName;
     private yName;
     private zName;
