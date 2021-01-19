@@ -20,7 +20,7 @@ export default class ArgumentMap {
      */
     public add(index: number, arg: Argument): boolean {
         if (
-            (index !== 0 && index > this.lastIndex + 1) ||
+            (index != 0 && index > this.lastIndex + 1) ||
             (index === 0 && index !== this.lastIndex)
         ) {
             throw new Error(

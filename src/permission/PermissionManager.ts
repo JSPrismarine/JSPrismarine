@@ -193,7 +193,6 @@ export default class PermissionManager {
 
                 permission =
                     typeof permission === 'string' ? [permission] : permission;
-                /* eslint-disable no-unreachable-loop */
                 for (const perm of permission) {
                     if ((executer as Player).getPermissions().includes(perm))
                         return true;
@@ -222,7 +221,6 @@ export default class PermissionManager {
 
                     return false;
                 }
-                /* eslint-enable no-unreachable-loop */
             }
         };
     }

@@ -1,27 +1,10 @@
-export type GamemodeType =
-    | 'survival'
-    | 'creative'
-    | 'adventure'
-    | 'spectator'
-    | '0'
-    | '1'
-    | '2'
-    | '3';
-
-export enum Gamemodes {
-    Survival,
-    Creative,
-    Advencture,
-    Spectator
-}
-
 const Gamemode = {
     Survival: 0,
     Creative: 1,
     Adventure: 2,
     Spectator: 3,
 
-    getGamemodeName: (mode: Gamemodes) => {
+    getGamemodeName: (mode: number) => {
         switch (mode) {
             case Gamemode.Survival:
                 return 'Survival';
