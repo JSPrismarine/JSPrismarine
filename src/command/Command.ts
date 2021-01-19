@@ -1,4 +1,5 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import type Player from '../player/Player';
 
 interface CommandProps {
     id: string;
@@ -8,10 +9,10 @@ interface CommandProps {
 }
 
 export default class Command {
-    id: string;
-    description: string;
-    permission?: string;
-    aliases?: string[];
+    public id: string;
+    public description: string;
+    public permission?: string;
+    public aliases?: string[];
 
     public constructor({
         id = '',
@@ -26,4 +27,9 @@ export default class Command {
     }
 
     public async register(dispatcher: CommandDispatcher<any>): Promise<void> {}
+
+    /**
+     * @deprecated Replaced with "Command.register"
+     */
+    public async execute(sender: Player, args: any[]): Promise<any> {}
 }
