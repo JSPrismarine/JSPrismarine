@@ -187,10 +187,26 @@ export default class PluginManager {
                         cwd: dir,
                         pluginsPath: path.join(dir, 'node_modules')
                     });
-                    return moduleManager.installFromNpm(
-                        dependency[0],
-                        dependency[1] as string
-                    );
+
+                    try {
+                        await moduleManager.installFromNpm(
+                            dependency[0],
+                            dependency[1] as string
+                        );
+                    } catch (error) {
+                        this.server
+                            .getLogger()
+                            .debug(
+                                `moduleManager failed with: ${error}`,
+                                'PluginManager/registerPlugin'
+                            );
+                        this.server
+                            .getLogger()
+                            .silly(error.stack, 'PluginManager/registerPlugin');
+                        throw new Error(
+                            `Failed to install ${dependency[0]}: ${error}`
+                        );
+                    }
                 })
             );
 
