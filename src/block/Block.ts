@@ -6,7 +6,6 @@ import Server from '../Server';
 
 export default class Block {
     public id: number;
-    public runtimeId?: number;
     public name: string;
     public hardness: number;
     public meta = 0;
