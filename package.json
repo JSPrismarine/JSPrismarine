@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.30",
+    "version": "0.1.0-rc.31",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
@@ -12,7 +12,7 @@
     },
     "scripts": {
         "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
-        "dev": "cross-env NODE_ENV=development nodemon -I --watch ./src -e ts,js,json,yaml --exec 'ts-node --transpile-only --project ./tsconfig.json --files' ./src/Prismarine.ts",
+        "dev": "cross-env NODE_ENV=development nodemon --no-stdin --spawn --watch ./src -e ts,js,json,yaml --exec 'ts-node --transpile-only --project ./tsconfig.json --files' ./src/Prismarine.ts",
         "build": "tsc --build src",
         "clean": "rm -rf dist docs packages worlds plugins banned-players.json ops.json config.yaml jsprismarine.log",
         "docs": "typedoc --out ./docs --tsconfig ./tsconfig.json --exclude '!**/*.test.ts' src/**/*.ts",
@@ -151,7 +151,6 @@
         "d3-interpolate": "2.0.1",
         "evt": "1.9.12",
         "git-rev-sync": "3.0.1",
-        "glob": "7.1.6",
         "jwt-decode": "3.1.2",
         "live-plugin-manager": "0.15.1",
         "lodash": "4.17.20",
@@ -160,12 +159,12 @@
         "pkg": "github:kkoomen/pkg",
         "semver": "7.3.4",
         "set-interval-async": "1.0.34",
-        "silent": "0.1.2",
         "unzipper": "0.10.11",
         "winston": "3.3.3",
         "yaml": "1.10.0"
     },
     "devDependencies": {
+        "@types/d3-interpolate": "^2.0.0",
         "@types/git-rev-sync": "2.0.0",
         "@types/jest": "26.0.20",
         "@types/jwt-decode": "3.1.0",
