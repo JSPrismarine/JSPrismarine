@@ -185,15 +185,14 @@ export default class Server {
                     playerConnectEvent
                 );
 
-                if (playerConnectEvent.cancelled)
-                    throw new Error('Event canceled');
+                if (playerConnectEvent.cancelled) return;
 
-                await this.playerManager.addPlayer(
-                    `${player
-                        .getAddress()
-                        .getAddress()}:${player.getAddress().getPort()}`,
-                    player
-                );
+                const token = `${player
+                    .getAddress()
+                    .getAddress()}:${player.getAddress().getPort()}`;
+
+                await this.playerManager.removePlayer(token); // Try to remove player before creating it
+                await this.playerManager.addPlayer(token, player);
 
                 // Add the player into the world
                 world.addPlayer(player);
