@@ -41,7 +41,7 @@ export default class PluginFile {
                 );
 
         this.name = this.package.name;
-        this.displayName = this.package.prismarine?.name || this.name;
+        this.displayName = this.package.prismarine.name ?? this.name;
         this.version = this.package.version;
 
         const Plugin = require(path.join(this.path, this.package.main)).default;
