@@ -65,7 +65,7 @@ export default class PlayerManager {
     public getPlayerByName(name: string): Player {
         const player = Array.from(this.players.values()).find((player) => {
             return player
-                .getUsername()
+                .getName()
                 .toLowerCase()
                 .startsWith(name.toLowerCase());
         });
@@ -83,7 +83,7 @@ export default class PlayerManager {
      */
     public getPlayerByExactName(name: string): Player {
         const player = this.getOnlinePlayers().find(
-            (player) => player.getUsername() === name
+            (player) => player.getName() === name
         );
 
         if (!player) throw new Error(`Can't find player ${name}`);

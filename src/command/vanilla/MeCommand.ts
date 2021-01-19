@@ -27,7 +27,7 @@ export default class MeCommand extends Command {
                     async (context) => {
                         const source = context.getSource() as Player;
                         const message = context.getArgument('message');
-                        const messageToSend = `*${source.getUsername()}: ${message}`;
+                        const messageToSend = `*${source.getName()}: ${message}`;
 
                         const event = new ChatEvent(
                             new Chat(source, messageToSend)

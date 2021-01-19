@@ -7,7 +7,7 @@ export default interface CommandExecuter {
         xuid?: string,
         needTranslation?: string
     ): Promise<void>;
-    getUsername(): string;
+    getName(): string;
     getFormattedUsername(): string;
     isPlayer(): boolean;
     isOp(): boolean;

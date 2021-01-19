@@ -83,7 +83,7 @@ export default class Console implements CommandExecuter {
         });
     }
 
-    public getUsername(): string {
+    public getName(): string {
         return 'CONSOLE';
     }
 

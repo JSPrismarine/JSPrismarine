@@ -30,7 +30,7 @@ export default class GamemodeCommand extends Command {
                 new Chat(
                     source,
                     `Player is not online!`,
-                    `*.player.${source.getUsername()}`
+                    `*.player.${source.getName()}`
                 )
             );
             await source.getServer().getEventManager().emit('chat', event);
@@ -42,7 +42,7 @@ export default class GamemodeCommand extends Command {
                 new Chat(
                     source,
                     `Can't set ${source.getFormattedUsername()} to ${gamemode}`,
-                    `*.player.${source.getUsername()}`
+                    `*.player.${source.getName()}`
                 )
             );
             await source.getServer().getEventManager().emit('chat', event);

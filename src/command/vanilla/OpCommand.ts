@@ -40,7 +40,7 @@ export default class OpCommand extends Command {
                             new Chat(
                                 source,
                                 '§eYou are now op!',
-                                `*.player.${target.getUsername()}`
+                                `*.player.${target.getName()}`
                             )
                         );
                         await target

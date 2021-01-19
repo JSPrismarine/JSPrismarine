@@ -72,7 +72,7 @@ export default class ResourcePackResponseHandler
             server
                 .getLogger()
                 .info(
-                    `§b${player.getUsername()}§f is attempting to join with id §b${
+                    `§b${player.getName()}§f is attempting to join with id §b${
                         player.runtimeId
                     }§f from ${player
                         .getAddress()
@@ -80,7 +80,7 @@ export default class ResourcePackResponseHandler
                     'Handler/ResourcePackResponseHandler'
                 );
 
-            player.setNameTag(player.getUsername());
+            player.setNameTag(player.getName());
             // TODO: always visible nametag
             await player.getConnection().sendMetadata();
             await player.getConnection().sendAvailableCommands();
@@ -99,7 +99,7 @@ export default class ResourcePackResponseHandler
             const chatSpawnEvent = new ChatEvent(
                 new Chat(
                     server.getConsole(),
-                    `§e${player.getUsername()} joined the game`
+                    `§e${player.getName()} joined the game`
                 )
             );
             await server.getEventManager().emit('chat', chatSpawnEvent);

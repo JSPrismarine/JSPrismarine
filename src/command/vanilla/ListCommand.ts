@@ -28,7 +28,7 @@ export default class ListCommand extends Command {
                     .getMaxPlayerCount();
                 const counter = playerArray.length;
                 const answer = playerArray
-                    .map((player) => player.getUsername())
+                    .map((player) => player.getName())
                     .join(', ');
 
                 await source.sendMessage(

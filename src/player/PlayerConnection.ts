@@ -539,7 +539,7 @@ export default class PlayerConnection {
         const entry = new PlayerListEntry({
             uuid: UUID.fromString(this.player.uuid),
             uniqueEntityid: this.player.runtimeId,
-            name: this.player.getUsername(),
+            name: this.player.getName(),
             xuid: this.player.xuid,
             platformChatId: '', // TODO: read this value from Login
             buildPlatform: -1,
@@ -619,14 +619,14 @@ export default class PlayerConnection {
         if (!player.getUUID()) {
             this.server
                 .getLogger()
-                .error(`UUID for player=${player.getUsername()} is undefined`);
+                .error(`UUID for player ${player.getName()} is undefined`);
             return;
         }
 
         const pk = new AddPlayerPacket();
         pk.uuid = UUID.fromString(this.player.getUUID()); // TODO: temp solution
         pk.runtimeEntityId = BigInt(this.player.runtimeId);
-        pk.name = this.player.getUsername();
+        pk.name = this.player.getName();
 
         pk.positionX = this.player.getX();
         pk.positionY = this.player.getY();

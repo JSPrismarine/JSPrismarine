@@ -30,7 +30,7 @@ export default class AdventureSettingsHandler
 
             await server
                 .getPermissionManager()
-                .setOp(target.getUsername(), operator);
+                .setOp(target.getName(), operator);
         }
     }
 }

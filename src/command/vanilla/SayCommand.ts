@@ -29,7 +29,7 @@ export default class SayCommand extends Command {
 
                         const chat = new Chat(
                             source,
-                            `§5[${source.getUsername()}] ${message}`
+                            `§5[${source.getName()}] ${message}`
                         );
                         await source.getServer().getChatManager().send(chat);
                     }
