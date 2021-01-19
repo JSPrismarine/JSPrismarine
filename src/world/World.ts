@@ -242,12 +242,6 @@ export default class World {
         clickPosition: Vector3,
         player: Player
     ): Promise<void> {
-        if (!itemInHand) {
-            this.server
-                .getLogger()
-                .warn(`Block with runtimeId ${0} is invalid`);
-            return;
-        }
         if (itemInHand instanceof Item) return; // TODO
 
         // TODO: checks
