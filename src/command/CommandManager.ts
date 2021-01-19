@@ -89,9 +89,7 @@ export default class CommandManager {
      */
     public async registerCommand(command: Command) {
         if (!(command instanceof Function)) {
-            throw new Error(
-                `Command must be a class that extends Command`
-            );
+            throw new TypeError(`Command must be a class that extends Command`);
         }
 
         // hacky remove later
@@ -107,7 +105,7 @@ export default class CommandManager {
                 `Failed to register command with name "${command.constructor.name}" as no "execute" member was found.`
             );
 
-        for (let [pos, argument] of command.arguments.getRegistered()) {
+        for (const [pos, argument] of command.arguments.getRegistered()) {
             // TODO: Check arguments, and see if return types are valid.
         }
 
