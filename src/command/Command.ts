@@ -4,7 +4,7 @@ import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import CommandExecuter from './CommandExecuter';
 import type Player from '../player/Player';
 
-type Promiseable<T> = Promise<T> | T;
+export type Promiseable<T> = Promise<T> | T;
 
 interface CommandProps {
     id: string;
