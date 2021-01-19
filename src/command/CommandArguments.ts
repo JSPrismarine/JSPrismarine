@@ -13,6 +13,9 @@ import Player from '../player/Player';
 import Server from '../Server';
 import Vector3 from '../math/Vector3';
 
+/**
+ * @deprecated Use `Argument` class instead.
+ */
 export abstract class CommandArgument {
     public getReadableType(): string {
         return '';
@@ -22,6 +25,9 @@ export abstract class CommandArgument {
     }
 }
 
+/**
+ * @deprecated Use `GamemodeArgument` class instead.
+ */
 export class CommandArgumentGamemode implements CommandArgument {
     public parse(reader: StringReader, context: CommandContext<Player>) {
         const gm = reader.readString();
@@ -53,6 +59,9 @@ export class CommandArgumentGamemode implements CommandArgument {
     }
 }
 
+/**
+ * @deprecated Use `EntityArgument` class instead.
+ */
 export class CommandArgumentEntity implements CommandArgument {
     private targetName;
 
@@ -106,6 +115,9 @@ export class CommandArgumentEntity implements CommandArgument {
     }
 }
 
+/**
+ * @deprecated Use `PositionArgument` class instead.
+ */
 export class CommandArgumentPosition
     extends Vector3
     implements CommandArgument {
