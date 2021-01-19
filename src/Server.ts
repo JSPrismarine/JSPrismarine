@@ -365,17 +365,21 @@ export default class Server {
 
         setInterval(() => {
             const correctTicks = Math.ceil((Date.now() - startTime) / 50);
-            const behindTicks = correctTicks - ticks;
+            const behindTicks = correctTicks - (ticks + 1); // Add 1 to compensate for sometimes being off with a few ms
 
-            if (behindTicks)
+            if (behindTicks) {
                 this.getLogger().silly(
-                    `We're behind with ${behindTicks} ticks. ${ticks}/${correctTicks}!`,
+                    `We're behind with ${behindTicks} ticks. ${ticks}/${correctTicks}. Trying to recover!`,
                     'server'
                 );
 
-            // TODO: try to recover
-            if (behindTicks < 20) return;
+                // Try to recover,
+                // maybe we should handle this differently?
+                // (eg keep track of the correct timestamps)
+                for (let i = 0; i < behindTicks; i++) void tick();
+            }
 
+            if (behindTicks < 20) return;
             this.getLogger().warn(
                 `Can't keep up, is the server overloaded? (${behindTicks} tick(s) or ${
                     behindTicks / 20
