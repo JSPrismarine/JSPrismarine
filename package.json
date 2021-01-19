@@ -152,7 +152,7 @@
         "evt": "1.9.12",
         "git-rev-sync": "3.0.1",
         "glob": "7.1.6",
-        "jwt-decode": "3.1.1",
+        "jwt-decode": "3.1.2",
         "live-plugin-manager": "0.15.1",
         "lodash": "4.17.20",
         "mccolorstoconsole": "1.1.0",
