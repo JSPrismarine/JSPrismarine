@@ -48,16 +48,18 @@ export default class Console implements CommandExecuter {
             completer: process.stdin.isTTY ? completer : undefined
         });
 
-        this.cli.on('line', async (input: string) => {
-            if (input.startsWith('/'))
-                return this.getServer()
+        this.cli.on('line', (input: string) => {
+            if (input.startsWith('/')) {
+                void this.getServer()
                     .getCommandManager()
                     .dispatchCommand(this, input.slice(1));
+                return;
+            }
 
             const event = new ChatEvent(
                 new Chat(this, `${this.getFormattedUsername()} ${input}`)
             );
-            return this.getServer().getEventManager().emit('chat', event);
+            void this.getServer().getEventManager().emit('chat', event);
         });
 
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
