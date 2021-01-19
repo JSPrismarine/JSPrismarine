@@ -40,6 +40,9 @@ export default class PluginManager {
                             `§cFailed to load pluginApiVersion ${id}: ${error}`,
                             'PluginManager/onEnable'
                         );
+                    this.server
+                        .getLogger()
+                        .silly(error.stack, 'PluginManager/onEnable');
                     return null;
                 }
             })
@@ -68,6 +71,9 @@ export default class PluginManager {
                                 `§cFailed to load plugin ${id}: ${error}`,
                                 'PluginManager/onEnable'
                             );
+                        this.server
+                            .getLogger()
+                            .silly(error.stack, 'PluginManager/onEnable');
                     }
                 })
             )
