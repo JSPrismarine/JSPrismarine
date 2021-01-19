@@ -62,10 +62,11 @@ export default class TpCommand extends Command {
                                     'position'
                                 ) as Vector3;
 
-                                if (!targets.length)
+                                if (!targets?.length)
                                     throw new Error(
                                         `Cannot find specified player(s) & entit(y/ies)`
                                     );
+
                                 targets.forEach(async (entity) =>
                                     entity.setPosition(
                                         position,
@@ -101,7 +102,7 @@ export default class TpCommand extends Command {
                                     target.getZ()
                                 );
 
-                                if (!sources.length)
+                                if (!sources?.length)
                                     throw new Error(
                                         `Cannot find specified player(s) & entit(y/ies)`
                                     );

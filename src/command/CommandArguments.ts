@@ -8,7 +8,7 @@ import CommandParameter, {
 } from '../network/type/CommandParameter';
 
 import Gamemode from '../world/Gamemode';
-import ParseEntityArgument from '../utils/ParseEntityArgument';
+import ParseTargetSelector from '../utils/ParseTargetSelector';
 import Player from '../player/Player';
 import Server from '../Server';
 import Vector3 from '../math/Vector3';
@@ -77,13 +77,12 @@ export class CommandArgumentEntity implements CommandArgument {
 
         if (player.startsWith('@'))
             try {
-                return ParseEntityArgument({
+                return ParseTargetSelector({
                     input: player,
                     source: context.getSource(),
                     entities: context.getSource().getWorld().getEntities()
                 });
             } catch (error) {
-                console.error(error);
                 if (!error.message.includes('no results')) throw error;
                 return [];
             }

@@ -93,8 +93,8 @@ export default class BanManager {
     }
 
     public isBanned(player: Player) {
-        if (this.banned.has(player.getUsername()))
-            return this.banned.get(player.getUsername())?.reason;
+        if (this.banned.has(player.getName()))
+            return this.banned.get(player.getName())?.reason;
 
         return false;
     }

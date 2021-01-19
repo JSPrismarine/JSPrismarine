@@ -222,12 +222,12 @@ export default class Server {
                     }
 
                     // Sometimes we fail at decoding the username for whatever reason
-                    if (player.getUsername()) {
+                    if (player.getName()) {
                         // Announce disconnection
                         const event = new ChatEvent(
                             new Chat(
                                 this.getConsole(),
-                                `§e${player.getUsername()} left the game`
+                                `§e${player.getName()} left the game`
                             )
                         );
                         await this.getEventManager().emit('chat', event);

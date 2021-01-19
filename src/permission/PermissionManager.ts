@@ -35,7 +35,7 @@ export default class PermissionManager {
     public async getPermissions(player: Player): Promise<string[]> {
         return [
             ...this.defaultPermissions,
-            ...(this.permissions.get(player.getUsername()) ?? []),
+            ...(this.permissions.get(player.getName()) ?? []),
             ...(player.isOp() ? this.defaultOperatorPermissions : [])
         ];
     }
@@ -47,7 +47,7 @@ export default class PermissionManager {
      * file as that is to be handled by the plugin author in a plugin-specific file.
      */
     public setPermissions(player: Player, permissions: string[]) {
-        this.permissions.set(player.getUsername(), permissions ?? []);
+        this.permissions.set(player.getName(), permissions ?? []);
     }
 
     private async parsePermissions(): Promise<void> {

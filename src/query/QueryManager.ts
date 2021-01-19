@@ -136,9 +136,7 @@ export default class QueryManager {
                             `${this.server
                                 .getPlayerManager()
                                 .getOnlinePlayers()
-                                .map(
-                                    (player) => `${player.getUsername()}\0`
-                                )}\0`,
+                                .map((player) => `${player.getName()}\0`)}\0`,
                             'binary'
                         )
                     );

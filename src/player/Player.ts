@@ -78,7 +78,7 @@ export default class Player extends Human implements CommandExecuter {
             if (
                 evt.getChat().getChannel() === '*.everyone' ||
                 (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
-                evt.getChat().getChannel() === `*.player.${this.getUsername()}`
+                evt.getChat().getChannel() === `*.player.${this.getName()}`
             )
                 await this.sendMessage(evt.getChat().getMessage());
         });
@@ -185,6 +185,9 @@ export default class Player extends Human implements CommandExecuter {
 
         await this.sendSettings();
     }
+    public getGamemode(): string {
+        return Gamemode.getGamemodeName(this.gamemode).toLowerCase();
+    }
 
     public getConnection(): PlayerConnection {
         return this.playerConnection;
@@ -194,7 +197,7 @@ export default class Player extends Human implements CommandExecuter {
         return this.address;
     }
 
-    public getUsername(): string {
+    public getName(): string {
         return this.username.name;
     }
 
@@ -230,7 +233,7 @@ export default class Player extends Human implements CommandExecuter {
         return true;
     }
     public isOp(): boolean {
-        return this.getServer().getPermissionManager().isOp(this.getUsername());
+        return this.getServer().getPermissionManager().isOp(this.getName());
     }
 
     public isSprinting() {

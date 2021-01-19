@@ -292,7 +292,7 @@ export default class CommandManager {
             res.forEach(async (res: any) => {
                 const chat = new Chat(
                     this.server.getConsole(),
-                    `§o§7[${sender.getUsername()}: ${
+                    `§o§7[${sender.getName()}: ${
                         res ?? `issued server command: /${input}`
                     }]§r`,
                     '*.ops'
