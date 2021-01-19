@@ -2,18 +2,18 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class GoldenBoots extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:golden_boots',
             id: ItemIdsType.GoldenBoots
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 91;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

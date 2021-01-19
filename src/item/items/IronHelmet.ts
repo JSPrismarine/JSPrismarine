@@ -2,18 +2,18 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class IronHelmet extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:iron_helmet',
             id: ItemIdsType.IronHelmet
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 165;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

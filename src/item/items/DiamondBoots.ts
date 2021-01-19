@@ -2,22 +2,22 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class DiamondBoots extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:diamond_boots',
             id: ItemIdsType.DiamondBoots
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 429;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 3;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 2;
     }
 }

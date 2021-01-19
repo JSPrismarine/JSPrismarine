@@ -1,11 +1,13 @@
 import { Logger, createLogger, format, transports } from 'winston';
+
+import mcColors from 'mccolorstoconsole';
+
 const { combine, timestamp, printf } = format;
-const mcColors = require('mccolorstoconsole');
 
 export default class LoggerBuilder {
     private readonly logger: Logger;
 
-    constructor() {
+    public constructor() {
         this.logger = createLogger({
             transports: [
                 new transports.Console({
@@ -13,17 +15,21 @@ export default class LoggerBuilder {
                         /* Process.env.NODE_ENV !== 'development' && */ (global as any)
                             .log_level || 'info', // || 'silly',
                     format: combine(
-                        timestamp({ format: 'HH:mm:ss' }),
+                        timestamp({ format: 'HH:mm:ss.SS' }),
+                        format((info) => {
+                            info.level = info.level.toUpperCase();
+                            return info;
+                        })(),
                         format.colorize(),
                         format.simple(),
                         printf(({ level, message, timestamp, namespace }) => {
-                            return `[${timestamp}] [${level}]${mcColors.minecraftToConsole(
+                            return `[${timestamp} ${level}${mcColors.minecraftToConsole(
                                 `${
                                     namespace &&
                                     ((global as any).log_level === 'silly' ||
                                         (global as any).log_level === 'debug')
-                                        ? ` [${namespace}]`
-                                        : ''
+                                        ? ` ${namespace}]`
+                                        : ']'
                                 }: ${message}`
                             )}`;
                         })

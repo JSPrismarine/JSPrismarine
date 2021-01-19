@@ -1,9 +1,11 @@
+import MetadataManager, { FlagType, MetadataFlag } from './metadata';
+
 import AddActorPacket from '../network/packet/AddActorPacket';
+import AttributeManager from './attribute';
 import Player from '../player/Player';
 import Position from '../world/Position';
+import Vector3 from '../math/Vector3';
 import World from '../world/World';
-import AttributeManager from './attribute';
-import MetadataManager, { FlagType, MetadataFlag } from './metadata';
 
 // All entities will extend this base class
 export default class Entity extends Position {
@@ -20,9 +22,10 @@ export default class Entity extends Position {
      * Entity constructor.
      *
      */
-    constructor(world: World) {
+    public constructor(world: World) {
         super({ world }); // TODO
-        this.runtimeId = Entity.runtimeIdCount += 1n;
+        Entity.runtimeIdCount += 1n;
+        this.runtimeId = Entity.runtimeIdCount;
 
         this.metadata.setLong(MetadataFlag.INDEX, 0n);
         this.metadata.setShort(MetadataFlag.MAX_AIR, 400);
@@ -99,5 +102,36 @@ export default class Entity extends Position {
         pk.motionY = 0;
         pk.motionZ = 0;
         await player.getConnection().sendDataPacket(pk);
+    }
+
+    public async setPosition(position: Vector3) {
+        this.setX(position.getX());
+        this.setY(position.getY());
+        this.setZ(position.getZ());
+
+        // TODO: broadcast this
+    }
+
+    public isPlayer(): boolean {
+        return false;
+    }
+
+    public getType(): string {
+        return (this.constructor as any).MOB_ID;
+    }
+
+    public getFormattedUsername(): string {
+        return (
+            this.metadata.getString(MetadataFlag.NAMETAG) ??
+            // Replace all '_' with a ' ' and capitalize each word afterwards
+            ((this.constructor as any).MOB_ID as string)
+                .split(':')[1]
+                .replaceAll('_', ' ')
+                .split(' ')
+                .map(
+                    (word) => word[0].toUpperCase() + word.slice(1, word.length)
+                )
+                .join(' ')
+        );
     }
 }

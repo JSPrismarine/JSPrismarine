@@ -3,7 +3,7 @@ import Identifiers from '../Identifiers';
 import Vector3 from '../../math/Vector3';
 
 export default class ChangeDimensionPacket extends DataPacket {
-    static NetID = Identifiers.ChangeDimensionPacket;
+    public static NetID = Identifiers.ChangeDimensionPacket;
 
     public dimension!: number;
     public position!: Vector3;

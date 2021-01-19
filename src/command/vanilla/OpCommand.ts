@@ -1,6 +1,10 @@
-import CommandParameter, {
-    CommandParameterType
-} from '../../network/type/CommandParameter';
+/* eslint-disable promise/prefer-await-to-then */
+import {
+    CommandDispatcher,
+    argument,
+    literal,
+    string
+} from '@jsprismarine/brigadier';
 
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
@@ -8,54 +12,48 @@ import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class OpCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:op',
             description: 'Grant player op status.',
             permission: 'minecraft.command.op'
-        } as any);
-
-        this.parameters = [new Set()];
-
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'target',
-                type: CommandParameterType.Target,
-                optional: true
-            })
-        );
+        });
     }
 
-    public async execute(sender: Player, args: any[]) {
-        if (args.length <= 0) {
-            const event = new ChatEvent(
-                new Chat(
-                    sender,
-                    '§cYou need to specify a player',
-                    `*.player.${sender.getUsername()}`
-                )
-            );
-            await sender.getServer().getEventManager().emit('chat', event);
-            return;
-        }
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('op').then(
+                argument('player', string()).executes(async (context) => {
+                    const source = context.getSource() as Player;
+                    const target = source
+                        .getServer()
+                        .getPlayerManager()
+                        .getPlayerByName(context.getArgument('player'));
 
-        const target = sender.getServer().getPlayerByName(args[0]);
-        await sender
-            .getServer()
-            .getPermissionManager()
-            .setOp(target?.getUsername() ?? args[0], true);
+                    await source
+                        .getServer()
+                        .getPermissionManager()
+                        .setOp(context.getArgument('player'), true);
 
-        if (target) {
-            const event = new ChatEvent(
-                new Chat(
-                    sender,
-                    '§eYou are now op!',
-                    `*.player.${target.getUsername()}`
-                )
-            );
-            await sender.getServer().getEventManager().emit('chat', event);
-        }
+                    if (target) {
+                        const event = new ChatEvent(
+                            new Chat(
+                                source,
+                                '§eYou are now op!',
+                                `*.player.${target.getUsername()}`
+                            )
+                        );
+                        await target
+                            .getServer()
+                            .getEventManager()
+                            .emit('chat', event);
+                    }
 
-        return `Made ${args[0] || sender.getUsername()} a server operator`;
+                    return `Made ${context.getArgument(
+                        'player'
+                    )} a server operator`;
+                })
+            )
+        );
     }
 }

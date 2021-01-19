@@ -1,10 +1,10 @@
-import Solid from '../Solid';
-import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import Solid from '../Solid';
 
 export default class IronBlock extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:iron_block',
             id: BlockIdsType.IronBlock,

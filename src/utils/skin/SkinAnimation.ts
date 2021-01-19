@@ -6,7 +6,7 @@ export default class SkinAnimation {
     private readonly type: number;
     private readonly expression: number;
 
-    constructor({
+    public constructor({
         image,
         frames,
         type,

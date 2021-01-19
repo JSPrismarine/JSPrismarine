@@ -5,16 +5,16 @@ import Tool from './Tool';
 export default class TieredTool extends Tool {
     private readonly tier: ItemTieredToolType = ItemTieredToolType.None;
 
-    constructor(args: ItemProps, tier: ItemTieredToolType) {
+    public constructor(args: ItemProps, tier: ItemTieredToolType) {
         super(args);
         this.tier = tier;
     }
 
-    getTier() {
+    public getTier() {
         return this.tier;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return this.getTier();
     }
 }

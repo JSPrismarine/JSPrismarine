@@ -2,8 +2,8 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../../chunk/Chunk';
 import EmptySubChunk from '../../chunk/EmptySubChunk';
 import Level from '@beenotung/level-ts';
-import type Server from '../../../Server';
 import Provider from '../../Provider';
+import type Server from '../../../Server';
 import SubChunk from '../../chunk/SubChunk';
 import Vector3 from '../../../math/Vector3';
 import path from 'path';
@@ -17,7 +17,7 @@ export default class LevelDB extends Provider {
     private readonly server: Server;
     private readonly db: Level;
 
-    constructor(levelPath: string, server: Server) {
+    public constructor(levelPath: string, server: Server) {
         super(levelPath);
         this.db = new Level(path.join(levelPath, 'db'));
         this.server = server;
@@ -78,18 +78,30 @@ export default class LevelDB extends Provider {
                                     .getLogger()
                                     .warn('Unsupported sub chunk version');
                             }
-                        } catch {
-                            // NO-OP
+                        } catch (error) {
+                            if (!error.notFound) {
+                                this.server
+                                    .getLogger()
+                                    .warn(
+                                        `Failed to read chunk at ${x}.${z}: ${error}`,
+                                        'LevelDB/readChunk'
+                                    );
+                                this.server
+                                    .getLogger()
+                                    .silly(error.stack, 'LevelDB/readChunk');
+                            }
                         }
                     }
 
                     // Await this.db.get(index + '\x2d');
-                    return resolve(new Chunk(x, z, subChunks));
+                    resolve(new Chunk(x, z, subChunks));
+                    return;
                 }
             } catch (error) {
                 if (!error.notFound) {
                     // Something else went wrong
-                    return reject(error);
+                    reject(error);
+                    return;
                 }
 
                 // Chunk doesn't exist
@@ -120,7 +132,7 @@ export default class LevelDB extends Provider {
                         chunk.getBiomes()
                     ]);
                     await this.db.put(index + '\u002D', data);
-                    return resolve(chunk);
+                    resolve(chunk);
                 })();
             }
         });
@@ -129,7 +141,7 @@ export default class LevelDB extends Provider {
     /**
      * Serialize a chunk into the database asynchronously.
      */
-    async writeChunk(chunk: Chunk): Promise<void> {
+    public async writeChunk(chunk: Chunk): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 const index = LevelDB.chunkIndex(chunk.getX(), chunk.getZ());
@@ -153,9 +165,10 @@ export default class LevelDB extends Provider {
                     chunk.getBiomes()
                 ]);
                 await this.db.put(index + '\u002D', data);
-                return resolve();
+                resolve();
+                return;
             } catch (error) {
-                return reject(error);
+                reject(error);
             }
         });
     }
@@ -165,7 +178,7 @@ export default class LevelDB extends Provider {
      * x and z, used to indentify chunks
      * in the db.
      */
-    static chunkIndex(chunkX: number, chunkZ: number): string {
+    public static chunkIndex(chunkX: number, chunkZ: number): string {
         const stream = new BinaryStream();
         stream.writeLInt(chunkX);
         stream.writeLInt(chunkZ);

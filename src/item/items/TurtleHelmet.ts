@@ -2,18 +2,18 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class TurtleShell extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:turtle_shell',
             id: ItemIdsType.TurtleShell
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 275;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

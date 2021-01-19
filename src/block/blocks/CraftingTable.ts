@@ -1,9 +1,9 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
+import Solid from '../Solid';
 
 export default class CraftingTable extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:crafting_table',
             id: BlockIdsType.CraftingTable,

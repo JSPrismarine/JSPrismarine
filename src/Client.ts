@@ -56,11 +56,8 @@ export default class Client extends EventEmitter implements RakNetListener {
 
     public constructor() {
         super();
-        const address = (this.address = new InetAddress(
-            '0.0.0.0',
-            getRandomInt(46000, 49999)
-        ));
-        this.socket.bind(address.getPort(), address.getAddress());
+        this.address = new InetAddress('0.0.0.0', getRandomInt(46000, 49999));
+        this.socket.bind(this.address.getPort(), this.address.getAddress());
     }
 
     /**

@@ -1,8 +1,8 @@
-import Transparent from '../Transparent';
 import { BlockIdsType } from '../BlockIdsType';
+import Transparent from '../Transparent';
 
 export default class Glass extends Transparent {
-    constructor(
+    public constructor(
         name = 'minecraft:glass',
         id: BlockIdsType = BlockIdsType.Glass
     ) {

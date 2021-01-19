@@ -1,10 +1,10 @@
-import TieredTool from '../TieredTool';
 import { BlockToolType } from '../../block/BlockToolType';
 import { ItemIdsType } from '../ItemIdsType';
 import { ItemTieredToolType } from '../ItemTieredToolType';
+import TieredTool from '../TieredTool';
 
 export default class GoldenShovel extends TieredTool {
-    constructor() {
+    public constructor() {
         super(
             {
                 name: 'minecraft:golden_shovel',
@@ -14,11 +14,11 @@ export default class GoldenShovel extends TieredTool {
         );
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 33;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Shovel;
     }
 }

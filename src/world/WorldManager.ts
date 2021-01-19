@@ -1,9 +1,9 @@
-import fs from 'fs';
-import Server from '../Server';
+import Anvil from './providers/anvil/Anvil';
 import GeneratorManager from './GeneratorManager';
 import LevelDB from './providers/leveldb/LevelDB';
-import Anvil from './providers/anvil/Anvil';
+import Server from '../Server';
 import World from './World';
+import fs from 'fs';
 
 export default class WorldManager {
     private readonly worlds: Map<string, World> = new Map();
@@ -27,10 +27,12 @@ export default class WorldManager {
 
     public async onEnable(): Promise<void> {
         const defaultWorld = this.server.getConfig().getLevelName();
-        if (!defaultWorld)
-            return this.server
+        if (!defaultWorld) {
+            this.server
                 .getLogger()
                 .warn(`Invalid world!`, 'WorldManager/onEnable');
+            return;
+        }
 
         const world = await this.loadWorld(
             this.server.getConfig().getWorlds()[defaultWorld],
@@ -105,22 +107,24 @@ export default class WorldManager {
      */
     public async unloadWorld(folderName: string): Promise<void> {
         if (!this.isWorldLoaded(folderName)) {
-            return this.server
+            this.server
                 .getLogger()
                 .error(
                     `Cannot unload a not loaded world with name §b${folderName}`,
                     'WorldManager/unloadWorld'
                 );
+            return;
         }
 
         const world = this.getWorldByName(folderName);
         if (!world) {
-            return this.server
+            this.server
                 .getLogger()
                 .error(
                     `Cannot unload world ${folderName}`,
                     'WorldManager/unloadWorld'
                 );
+            return;
         }
 
         await world.close();

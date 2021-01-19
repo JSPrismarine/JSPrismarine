@@ -5,7 +5,7 @@ export default class SkinPersonaPiece {
     private readonly pieceType: string;
     private readonly productId: string;
 
-    constructor({
+    public constructor({
         def,
         packId,
         pieceId,

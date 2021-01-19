@@ -1,10 +1,10 @@
-import TieredTool from '../TieredTool';
 import { BlockToolType } from '../../block/BlockToolType';
 import { ItemIdsType } from '../ItemIdsType';
 import { ItemTieredToolType } from '../ItemTieredToolType';
+import TieredTool from '../TieredTool';
 
 export default class IronAxe extends TieredTool {
-    constructor() {
+    public constructor() {
         super(
             {
                 name: 'minecraft:iron_axe',
@@ -14,11 +14,11 @@ export default class IronAxe extends TieredTool {
         );
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 251;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Axe;
     }
 }

@@ -1,6 +1,6 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
+import Solid from '../Solid';
 
 export enum LogType {
     Oak = 0,
@@ -12,7 +12,10 @@ export enum LogType {
 }
 
 export default class Log extends Solid {
-    constructor(name = 'minecraft:oak_log', type: LogType = LogType.Oak) {
+    public constructor(
+        name = 'minecraft:oak_log',
+        type: LogType = LogType.Oak
+    ) {
         super({
             name,
             id: BlockIdsType.Log,

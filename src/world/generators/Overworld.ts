@@ -1,7 +1,7 @@
 import Chunk from '../chunk/Chunk';
 import Noise from '../synth/Noise';
-import type Server from '../../Server';
 import type Random from '../util/Random';
+import type Server from '../../Server';
 import type Vector3 from '../../math/Vector3';
 
 const CHUNK_WIDTH = 16;
@@ -10,9 +10,9 @@ const CHUNK_LENGTH = 16;
 const SEA_LEVEL = 62;
 
 export default class Overworld {
-    noise?: Noise;
+    private noise?: Noise;
 
-    async getChunk({
+    public async getChunk({
         pos,
         seed,
         server

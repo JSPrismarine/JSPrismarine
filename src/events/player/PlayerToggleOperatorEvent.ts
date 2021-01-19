@@ -8,17 +8,17 @@ export default class playerToggleOperatorEvent extends Event {
     private readonly player;
     private readonly operator: boolean;
 
-    constructor(player: Player, operator: boolean) {
+    public constructor(player: Player, operator: boolean) {
         super();
         this.player = player;
         this.operator = operator;
     }
 
-    getPlayer(): Player {
+    public getPlayer(): Player {
         return this.player;
     }
 
-    getOperator(): boolean {
+    public getOperator(): boolean {
         return this.operator;
     }
 }

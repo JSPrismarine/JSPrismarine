@@ -1,10 +1,10 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
-import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockToolType } from '../BlockToolType';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import Solid from '../Solid';
 
 export default class CryingObsidian extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:crying_obsidian',
             id: BlockIdsType.CryingObsidian,
@@ -12,15 +12,15 @@ export default class CryingObsidian extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Diamond;
     }
 
-    getBlastResistance() {
+    public getBlastResistance() {
         return 6000;
     }
 }

@@ -1,17 +1,17 @@
-import fs from 'fs';
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
-import path from 'path';
-import unzipper from 'unzipper';
-import Server from '../Server';
 import PluginApiVersion from './api/PluginApiVersion';
 import PluginFile from './PluginFile';
+import Server from '../Server';
+import fs from 'fs';
+import path from 'path';
+import unzipper from 'unzipper';
 
 export default class PluginManager {
     private readonly server: Server;
     private readonly pluginApiVersions = new Map();
     private readonly plugins = new Map();
 
-    constructor(server: Server) {
+    public constructor(server: Server) {
         this.server = server;
     }
 
@@ -149,6 +149,13 @@ export default class PluginManager {
                 .createReadStream(path.join(process.cwd(), 'plugins/', id))
                 .pipe(unzipper.Extract({ path: dir }))
                 .promise();
+        } else {
+            this.server
+                .getLogger()
+                .warn(
+                    `${id} isn't packaged as .jspz and should NOT be used on production servers!`,
+                    `PluginManager/registerPlugin/${id}`
+                );
         }
 
         // Asset or config folder
@@ -206,6 +213,9 @@ export default class PluginManager {
                     `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
                     'PluginManager/registerPlugin'
                 );
+            this.server
+                .getLogger()
+                .silly(error.stack, 'PluginManager/registerPlugin');
             return null;
         }
 

@@ -1,9 +1,10 @@
-import PacketHandler from './PacketHandler';
-import type Player from '../../player/Player';
-import type Server from '../../Server';
 import AdventureSettingsPacket, {
     AdventureSettingsFlags
 } from '../packet/AdventureSettingsPacket';
+
+import PacketHandler from './PacketHandler';
+import type Player from '../../player/Player';
+import type Server from '../../Server';
 
 export default class AdventureSettingsHandler
     implements PacketHandler<AdventureSettingsPacket> {
@@ -16,7 +17,7 @@ export default class AdventureSettingsHandler
             return;
         }
 
-        const target = server.getPlayerById(packet.entityId);
+        const target = server.getPlayerManager().getPlayerById(packet.entityId);
         if (!target) return;
 
         const flying = packet.getFlag(AdventureSettingsFlags.Flying);

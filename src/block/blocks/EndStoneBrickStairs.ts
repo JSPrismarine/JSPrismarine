@@ -1,10 +1,10 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import Solid from '../Solid';
 
 export default class EndStoneBrickStairs extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:end_stone_brick_stairs', // Should be "end_brick_stairs", but we match Java Edition
             id: BlockIdsType.EndStoneBrickStairs,

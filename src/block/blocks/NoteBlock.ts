@@ -1,10 +1,10 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
-import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import { BlockToolType } from '../BlockToolType';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import Solid from '../Solid';
 
 export default class NoteBlock extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:note_block',
             id: BlockIdsType.NoteBlock,
@@ -12,11 +12,11 @@ export default class NoteBlock extends Solid {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Axe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Wood;
     }
 }

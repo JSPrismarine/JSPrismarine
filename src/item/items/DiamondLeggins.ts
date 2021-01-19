@@ -2,22 +2,22 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class DiamondLeggins extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:diamond_Leggins',
             id: ItemIdsType.DiamondLeggins
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 495;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 6;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 2;
     }
 }

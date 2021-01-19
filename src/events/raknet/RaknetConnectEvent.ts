@@ -7,12 +7,12 @@ import Event from '../Event';
 export default class RaknetConnectEvent extends Event {
     private readonly connection: Connection;
 
-    constructor(connection: Connection) {
+    public constructor(connection: Connection) {
         super();
         this.connection = connection;
     }
 
-    getConnection(): Connection {
+    public getConnection(): Connection {
         return this.connection;
     }
 }

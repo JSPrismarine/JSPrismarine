@@ -91,7 +91,7 @@ export enum PlayerListAction {
 }
 
 export default class PlayerListPacket extends DataPacket {
-    static NetID = Identifiers.PlayerListPacket;
+    public static NetID = Identifiers.PlayerListPacket;
 
     public entries: PlayerListEntry[] = [];
     public type!: number;

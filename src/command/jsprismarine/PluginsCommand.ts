@@ -1,62 +1,39 @@
-import CommandParameter, {
-    CommandParameterType
-} from '../../network/type/CommandParameter';
+import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
 import Player from '../../player/Player';
 import PluginFile from '../../plugin/PluginFile';
 
 export default class PluginsCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'jsprismarine:plugins',
             description: 'Lists all plugins that run on the server.',
+            permission: 'jsprismarine.command.plugins',
             aliases: ['pl']
         });
-
-        this.parameters = [new Set()];
-
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'plugin',
-                type: CommandParameterType.String,
-                optional: true
-            })
-        );
     }
 
-    public async execute(
-        sender: Player,
-        args: Array<string | number>
-    ): Promise<void> {
-        const plugins = sender.getServer().getPluginManager().getPlugins();
-        let message = '';
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('plugins').executes(async (context) => {
+                const source = context.getSource() as Player;
+                const plugins = source
+                    .getServer()
+                    .getPluginManager()
+                    .getPlugins();
 
-        if (plugins.length === 0) {
-            await sender.sendMessage("§cCan't find any plugins.");
-            return;
-        }
+                let message = '';
+                message += `§7Plugins (${plugins.length}): `;
+                message += `§r ${plugins
+                    .map(
+                        (p: PluginFile) =>
+                            `§a${p.getDisplayName()} ${p.getVersion()}`
+                    )
+                    .join('§r, ')}`;
 
-        if (args[0]) {
-            plugins.filter((plugin) =>
-                plugin.getDisplayName().includes(args[0])
-            );
-            if (plugins.length === 0) {
-                await sender.sendMessage(
-                    `§cCan't find any plugins for '${args[0]}'.`
-                );
-                return;
-            }
-
-            message += `$7 Plugins found for '${args[0]}' (${plugins.length}): `;
-        } else {
-            message += `§7Plugins (${plugins.length}): `;
-        }
-
-        message += `§r ${plugins
-            .map((p: PluginFile) => `§a${p.getDisplayName()} ${p.getVersion()}`)
-            .join('§r, ')}`;
-
-        await sender.sendMessage(message);
+                await source.sendMessage(message);
+            })
+        );
     }
 }

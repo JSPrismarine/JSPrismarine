@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import Transparent from '../Transparent';
 
 export default class DetectorRail extends Transparent {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:detector_rail',
             id: BlockIdsType.DetectorRail,
@@ -11,7 +11,7 @@ export default class DetectorRail extends Transparent {
         });
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 }

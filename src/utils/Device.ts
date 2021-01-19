@@ -5,7 +5,7 @@ export default class Device {
     model = '';
     guiScale = 0;
 
-    constructor(args: {
+    public constructor(args: {
         id: string;
         model: string;
         os: number;

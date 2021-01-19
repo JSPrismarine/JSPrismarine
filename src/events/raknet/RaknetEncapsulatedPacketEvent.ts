@@ -6,7 +6,7 @@ export default class RaknetEncapsulatedPacketEvent extends Event {
     private readonly inetAddr: InetAddress;
     private readonly packet: EncapsulatedPacket;
 
-    constructor(inetAddr: InetAddress, packet: EncapsulatedPacket) {
+    public constructor(inetAddr: InetAddress, packet: EncapsulatedPacket) {
         super();
         this.inetAddr = inetAddr;
         this.packet = packet;

@@ -4,7 +4,7 @@ import Identifiers from '../Identifiers';
 import Vector3 from '../../math/Vector3';
 
 export default class StartGamePacket extends DataPacket {
-    static NetID = Identifiers.StartGamePacket;
+    public static NetID = Identifiers.StartGamePacket;
 
     public entityId!: bigint;
     public runtimeEntityId!: bigint;

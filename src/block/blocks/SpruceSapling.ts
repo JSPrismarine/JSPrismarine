@@ -1,7 +1,7 @@
 import OakSapling, { SaplingType } from './OakSapling';
 
 export default class SpruceSapling extends OakSapling {
-    constructor() {
+    public constructor() {
         super('minecraft:spruce_sapling', SaplingType.Spruce);
     }
 }

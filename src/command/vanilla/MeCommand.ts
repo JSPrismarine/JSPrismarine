@@ -1,10 +1,18 @@
+/* eslint-disable promise/prefer-await-to-then */
+import {
+    CommandDispatcher,
+    argument,
+    greedyString,
+    literal
+} from '@jsprismarine/brigadier';
+
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class MeCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:me',
             description: 'Displays custom message in chat.',
@@ -12,15 +20,25 @@ export default class MeCommand extends Command {
         });
     }
 
-    public async execute(sender: Player, args: Array<string | number>) {
-        if (!args[0]) {
-            return sender.sendMessage(`§cPlease specify a message.`);
-        }
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('me').then(
+                argument('message', greedyString()).executes(
+                    async (context) => {
+                        const source = context.getSource() as Player;
+                        const message = context.getArgument('message');
+                        const messageToSend = `*${source.getUsername()}: ${message}`;
 
-        const message = args.join(' ');
-        const messageToSend = `*${sender.getUsername()}: ${message}`;
-
-        const event = new ChatEvent(new Chat(sender, messageToSend));
-        await sender.getServer().getEventManager().emit('chat', event);
+                        const event = new ChatEvent(
+                            new Chat(source, messageToSend)
+                        );
+                        await source
+                            .getServer()
+                            .getEventManager()
+                            .emit('chat', event);
+                    }
+                )
+            )
+        );
     }
 }

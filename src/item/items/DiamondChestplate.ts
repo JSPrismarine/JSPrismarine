@@ -2,22 +2,22 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class DiamondChestplate extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:diamond_chestplate',
             id: ItemIdsType.DiamondChestplate
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 528;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 8;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 2;
     }
 }

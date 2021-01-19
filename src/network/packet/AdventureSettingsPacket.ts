@@ -22,7 +22,7 @@ export enum AdventureSettingsFlags {
 }
 
 export default class AdventureSettingsPacket extends DataPacket {
-    static NetID = Identifiers.AdventureSettingsPacket;
+    public static NetID = Identifiers.AdventureSettingsPacket;
 
     public flags!: number;
     public commandPermission!: number;

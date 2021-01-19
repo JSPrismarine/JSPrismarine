@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class SetHealthPacket extends DataPacket {
-    static NetID = Identifiers.SetHealthPacket;
+    public static NetID = Identifiers.SetHealthPacket;
 
     public health!: number;
 

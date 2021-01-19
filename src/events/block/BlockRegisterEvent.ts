@@ -1,10 +1,10 @@
-import Event from '../Event';
 import type Block from '../../block/Block';
+import Event from '../Event';
 
 export default class BlockRegisterEvent extends Event {
     private readonly block;
 
-    constructor(block: Block) {
+    public constructor(block: Block) {
         super();
         this.block = block;
     }

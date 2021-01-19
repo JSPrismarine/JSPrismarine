@@ -6,6 +6,8 @@ import readline from 'readline';
 
 export default class Console implements CommandExecuter {
     private readonly server: Server;
+    private cli: readline.Interface;
+    public runtimeId = -1;
 
     public constructor(server: Server) {
         this.server = server;
@@ -36,7 +38,7 @@ export default class Console implements CommandExecuter {
             ];
         };
 
-        const cli = readline.createInterface({
+        this.cli = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
             terminal: true,
@@ -44,11 +46,11 @@ export default class Console implements CommandExecuter {
             completer: process.stdin.isTTY ? completer : undefined
         });
 
-        cli.on('line', async (input: string) => {
+        this.cli.on('line', async (input: string) => {
             if (input.startsWith('/'))
                 return this.getServer()
                     .getCommandManager()
-                    .dispatchCommand(this, input);
+                    .dispatchCommand(this, input.slice(1));
 
             const event = new ChatEvent(
                 new Chat(this, `${this.getFormattedUsername()} ${input}`)
@@ -56,7 +58,7 @@ export default class Console implements CommandExecuter {
             return this.getServer().getEventManager().emit('chat', event);
         });
 
-        server.getEventManager().on('chat', (evt: ChatEvent) => {
+        server.getEventManager().on('chat', async (evt: ChatEvent) => {
             if (evt.cancelled) return;
 
             if (
@@ -64,7 +66,16 @@ export default class Console implements CommandExecuter {
                 evt.getChat().getChannel() === '*.ops' ||
                 evt.getChat().getChannel() === `*.console`
             )
-                this.sendMessage(evt.getChat().getMessage());
+                await this.sendMessage(evt.getChat().getMessage());
+        });
+    }
+
+    public async onDisable(): Promise<void> {
+        return new Promise((resolve) => {
+            this.cli.on('close', () => {
+                resolve();
+            });
+            this.cli.close();
         });
     }
 
@@ -76,8 +87,12 @@ export default class Console implements CommandExecuter {
         return '[CONSOLE]';
     }
 
-    public sendMessage(message: string): void {
+    public async sendMessage(message: string): Promise<void> {
         this.getServer().getLogger().info(message, 'Console');
+    }
+
+    public getWorld() {
+        return this.server.getWorldManager().getDefaultWorld();
     }
 
     public getServer(): Server {
@@ -90,5 +105,15 @@ export default class Console implements CommandExecuter {
 
     public isOp(): boolean {
         return true;
+    }
+
+    public getX(): number {
+        return 0;
+    }
+    public getY(): number {
+        return 0;
+    }
+    public getZ(): number {
+        return 0;
     }
 }

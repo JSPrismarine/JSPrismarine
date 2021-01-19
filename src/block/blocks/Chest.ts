@@ -1,9 +1,9 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
+import Solid from '../Solid';
 
 export default class Chest extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:chest',
             id: BlockIdsType.Chest,

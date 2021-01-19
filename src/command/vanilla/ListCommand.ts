@@ -1,34 +1,41 @@
+import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+
 import Command from '../Command';
-import type Player from '../../player/Player';
+import Player from '../../player/Player';
 
 export default class ListCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:list',
-            description: 'Lists players on the server.'
+            description: 'Lists players on the server.',
+            permission: 'minecraft.command.list'
         });
     }
 
-    /**
-     * @param {Player} sender
-     * @param {Array} args
-     */
-    public async execute(sender: Player, args: Array<string | number>) {
-        const players = sender.getServer().getOnlinePlayers();
-        const playerArray = Array.from(players);
-        const maxPlayers = sender
-            .getServer()
-            .getRaknet()
-            .getName()
-            .getMaxPlayerCount();
-        const counter = playerArray.length;
-        const answer = playerArray
-            .map((player) => player.getUsername())
-            .join(', ');
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('list').executes(async (context) => {
+                const source = context.getSource() as Player;
+                const players = source
+                    .getServer()
+                    .getPlayerManager()
+                    .getOnlinePlayers();
+                const playerArray = Array.from(players);
+                const maxPlayers = source
+                    .getServer()
+                    .getRaknet()
+                    .getName()
+                    .getMaxPlayerCount();
+                const counter = playerArray.length;
+                const answer = playerArray
+                    .map((player) => player.getUsername())
+                    .join(', ');
 
-        await sender.sendMessage(
-            `There are ${counter}/${maxPlayers} players online:`
+                await source.sendMessage(
+                    `There are ${counter}/${maxPlayers} players online:`
+                );
+                if (answer) await source.sendMessage(answer);
+            })
         );
-        if (answer) await sender.sendMessage(answer);
     }
 }

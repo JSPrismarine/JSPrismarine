@@ -1,15 +1,15 @@
 import Item, { ItemProps } from './Item';
 
 export default class Armor extends Item {
-    constructor(args: ItemProps) {
+    public constructor(args: ItemProps) {
         super(args);
     }
 
-    getMaxAmount() {
+    public getMaxAmount() {
         return 1;
     }
 
-    isArmorPiece() {
+    public isArmorPiece() {
         return true;
     }
 }

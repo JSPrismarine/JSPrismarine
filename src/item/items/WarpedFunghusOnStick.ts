@@ -1,15 +1,15 @@
-import Tool from '../Tool';
 import { ItemIdsType } from '../ItemIdsType';
+import Tool from '../Tool';
 
 export default class WarpedFungusOnStick extends Tool {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:warped_fungus_on_a_stick',
             id: ItemIdsType.WarpedFungusOnStick
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 100;
     }
 }

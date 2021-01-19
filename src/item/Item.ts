@@ -14,14 +14,14 @@ export default class Item {
     id: number;
     runtimeId: number;
     name: string;
-    meta = 0;
+    public meta = 0;
     durability: number = this.getMaxDurability();
 
     // TODO
     nbt = null;
     count = 1;
 
-    constructor({ id, name }: ItemProps) {
+    public constructor({ id, name }: ItemProps) {
         this.id = id;
         this.runtimeId = id;
         this.name = name;
@@ -48,11 +48,11 @@ export default class Item {
         this.runtimeId = id;
     }
 
-    getBurntime() {
+    public getBurntime() {
         return 0;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.None;
     }
 
@@ -60,11 +60,11 @@ export default class Item {
         return 0;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 0;
     }
 
-    getArmorToughness() {
+    public getArmorToughness() {
         return 0;
     }
 
@@ -76,7 +76,7 @@ export default class Item {
         return 0;
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 0;
     }
 

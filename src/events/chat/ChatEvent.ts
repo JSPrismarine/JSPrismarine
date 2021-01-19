@@ -4,12 +4,12 @@ import Event from '../Event';
 export default class ChatEvent extends Event {
     private readonly chat;
 
-    constructor(chat: Chat) {
+    public constructor(chat: Chat) {
         super();
         this.chat = chat;
     }
 
-    getChat(): Chat {
+    public getChat(): Chat {
         return this.chat;
     }
 }

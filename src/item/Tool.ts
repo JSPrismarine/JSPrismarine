@@ -1,15 +1,15 @@
 import Item, { ItemProps } from './Item';
 
 export default class Tool extends Item {
-    constructor(args: ItemProps) {
+    public constructor(args: ItemProps) {
         super(args);
     }
 
-    getMaxAmount() {
+    public getMaxAmount() {
         return 1;
     }
 
-    isTool() {
+    public isTool() {
         return true;
     }
 }

@@ -1,5 +1,5 @@
-import Glass from './Glass';
 import { BlockIdsType } from '../BlockIdsType';
+import Glass from './Glass';
 
 export enum StainedGlassType {
     White = 0,
@@ -21,7 +21,7 @@ export enum StainedGlassType {
 }
 
 export default class WhiteStainedGlass extends Glass {
-    constructor(
+    public constructor(
         name = 'minecraft:white_stained_glass',
         type: StainedGlassType = StainedGlassType.White
     ) {

@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class WorldEventPacket extends DataPacket {
-    static NetID = Identifiers.WorldEventPacket;
+    public static NetID = Identifiers.WorldEventPacket;
 
     public eventId!: number;
     public x!: number;

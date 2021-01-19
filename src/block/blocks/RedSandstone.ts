@@ -1,7 +1,7 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import Solid from '../Solid';
 
 export enum RedSandstoneType {
     Regular = 0,
@@ -10,7 +10,7 @@ export enum RedSandstoneType {
 }
 
 export default class RedSandstone extends Solid {
-    constructor(
+    public constructor(
         name = 'minecraft:red_sandstone',
         type: RedSandstoneType = RedSandstoneType.Regular
     ) {
@@ -22,11 +22,11 @@ export default class RedSandstone extends Solid {
         this.meta = type;
     }
 
-    getToolType() {
+    public getToolType() {
         return BlockToolType.Pickaxe;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return ItemTieredToolType.Wood;
     }
 }

@@ -4,7 +4,7 @@ import Server from '../../Server';
 import Zlib from 'zlib';
 
 export default class BatchPacket extends DataPacket {
-    static NetID = 0xfe;
+    public static NetID = 0xfe;
 
     private payload = Buffer.alloc(0);
     // Bigger compression level leads to more CPU usage and less network, and vice versa

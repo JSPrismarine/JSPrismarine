@@ -4,7 +4,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 
 export default class AvailableCommandsPacket extends DataPacket {
-    static NetID = Identifiers.AvailableCommandsPacket;
+    public static NetID = Identifiers.AvailableCommandsPacket;
 
     public enumValues: Set<string> = new Set();
     public postFixes: Set<string> = new Set();
@@ -41,25 +41,24 @@ export default class AvailableCommandsPacket extends DataPacket {
         for (const data of this.commandData) {
             // Command meta
             this.writeString(data.name);
-            this.writeString(data.description);
+            this.writeString(data.description ?? '');
 
             // Flags
-            this.writeByte(data.flags);
+            this.writeByte(data.flags ?? 0);
             this.writeByte(data.permission as any);
 
             // Alias enum indexes
             this.writeLInt(-1); // TODO
 
             // Parameters and overloads
-            this.writeUnsignedVarInt(1); // I don't get it, why ??
-            this.writeUnsignedVarInt(data?.parameters?.size || 0);
-            if (data?.parameters)
-                for (const parameter of data.parameters) {
-                    this.writeString(parameter.name);
-                    this.writeLInt(parameter.type);
-                    this.writeBool(parameter.optional);
-                    this.writeByte(0); // No idea
-                }
+            this.writeUnsignedVarInt(1); // TODO: amount of overloads, we need to handle this properly
+            this.writeUnsignedVarInt(data?.parameters?.size ?? 0);
+            data.parameters?.forEach((parameter) => {
+                this.writeString(parameter.name);
+                this.writeLInt(parameter.type);
+                this.writeBool(parameter.optional);
+                this.writeByte(parameter.flags); // Parameter flags
+            });
         }
 
         this.writeUnsignedVarInt(0);

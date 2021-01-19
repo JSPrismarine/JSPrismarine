@@ -2,18 +2,18 @@ import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class ChainHelmet extends Armor {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:chainmail_helmet',
             id: ItemIdsType.ChainHelmet
         });
     }
 
-    getMaxDurability() {
+    public getMaxDurability() {
         return 165;
     }
 
-    getArmorDefensePoints() {
+    public getArmorDefensePoints() {
         return 2;
     }
 }

@@ -1,13 +1,14 @@
 import Stone, { StoneType } from './Stone';
+
 import Item from '../../item/Item';
 import Server from '../../Server';
 
 export default class Andesite extends Stone {
-    constructor() {
+    public constructor() {
         super('minecraft:andesite', StoneType.Andesite);
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getBlockManager().getBlock('minecraft:andesite')];
     }
 }

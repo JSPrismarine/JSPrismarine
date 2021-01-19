@@ -18,7 +18,7 @@ export default class Random {
     #haveNextNextGaussian!: boolean;
     #nextNextGaussian!: number;
 
-    constructor(
+    public constructor(
         seed: number | bigint = Random._seedUniquifier() ^
             process.hrtime.bigint()
     ) {

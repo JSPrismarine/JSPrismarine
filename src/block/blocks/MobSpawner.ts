@@ -1,10 +1,10 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import Solid from '../Solid';
 
 export default class MobSpawner extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:mob_spawner',
             id: BlockIdsType.MobSpawner,

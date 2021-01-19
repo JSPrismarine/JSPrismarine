@@ -1,7 +1,7 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
 import type Item from '../../item/Item';
 import type Server from '../../Server';
+import Solid from '../Solid';
 
 export enum BedType {
     White = 0,
@@ -22,7 +22,10 @@ export enum BedType {
 }
 
 export default class WhiteBed extends Solid {
-    constructor(name = 'minecraft:white_bed', type: BedType = BedType.White) {
+    public constructor(
+        name = 'minecraft:white_bed',
+        type: BedType = BedType.White
+    ) {
         super({
             name,
             id: BlockIdsType.Bed,
@@ -31,7 +34,7 @@ export default class WhiteBed extends Solid {
         this.meta = type;
     }
 
-    getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(item: Item, server: Server) {
         return [server.getItemManager().getItem('minecraft:bed')];
     }
 }

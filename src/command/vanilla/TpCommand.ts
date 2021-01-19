@@ -1,15 +1,17 @@
-import CommandParameter, {
-    CommandParameterType
-} from '../../network/type/CommandParameter';
+/* eslint-disable promise/prefer-await-to-then */
+import {
+    CommandArgumentEntity,
+    CommandArgumentPosition
+} from '../CommandArguments';
+import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
-import CommandExecuter from '../CommandExecuter';
-import Console from '../../Console';
 import MovementType from '../../network/type/MovementType';
 import Player from '../../player/Player';
+import Vector3 from '../../math/Vector3';
 
 export default class TpCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:tp',
             description:
@@ -17,358 +19,129 @@ export default class TpCommand extends Command {
             aliases: ['teleport'],
             permission: 'minecraft.command.teleport'
         });
-
-        this.parameters = [
-            new Set(),
-            new Set(),
-            new Set(),
-            new Set(),
-            new Set(),
-            new Set(),
-            new Set(),
-            new Set()
-        ];
-
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'target',
-                type: CommandParameterType.Target,
-                optional: false
-            })
-        );
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'target',
-                type: CommandParameterType.Target,
-                optional: true
-            })
-        );
-
-        this.parameters[1].add(
-            new CommandParameter({
-                name: 'target',
-                type: CommandParameterType.Target,
-                optional: true
-            })
-        );
-        this.parameters[1].add(
-            new CommandParameter({
-                name: 'x',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-        this.parameters[1].add(
-            new CommandParameter({
-                name: 'y',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-        this.parameters[1].add(
-            new CommandParameter({
-                name: 'z',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-
-        this.parameters[2].add(
-            new CommandParameter({
-                name: 'target',
-                type: CommandParameterType.Target,
-                optional: true
-            })
-        );
-        this.parameters[2].add(
-            new CommandParameter({
-                name: 'x',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-        this.parameters[2].add(
-            new CommandParameter({
-                name: 'z',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-
-        this.parameters[3].add(
-            new CommandParameter({
-                name: 'target',
-                type: CommandParameterType.Target,
-                optional: true
-            })
-        );
-        this.parameters[3].add(
-            new CommandParameter({
-                name: 'y',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-
-        this.parameters[4].add(
-            new CommandParameter({
-                name: 'player',
-                type: CommandParameterType.Target,
-                optional: true
-            })
-        );
-
-        this.parameters[5].add(
-            new CommandParameter({
-                name: 'x',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-        this.parameters[5].add(
-            new CommandParameter({
-                name: 'y',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-        this.parameters[5].add(
-            new CommandParameter({
-                name: 'z',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-
-        this.parameters[6].add(
-            new CommandParameter({
-                name: 'x',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-        this.parameters[6].add(
-            new CommandParameter({
-                name: 'z',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
-
-        this.parameters[7].add(
-            new CommandParameter({
-                name: 'y',
-                type: CommandParameterType.Value,
-                optional: true
-            })
-        );
     }
 
-    public async execute(
-        sender: CommandExecuter,
-        args: Array<string | number>
-    ) {
-        if (args.length === 0) {
-            sender.sendMessage('§cYou have to specify <player> x y z.');
-            return;
-        }
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('tp')
+                .then(
+                    argument(
+                        'position',
+                        new CommandArgumentPosition()
+                    ).executes(async (context) => {
+                        const source = context.getSource() as Player;
 
-        let player = sender.getServer().getPlayerByName(`${args[0]}`);
+                        if (!source.isPlayer())
+                            throw new Error(
+                                `This command can't be run from the console`
+                            );
 
-        switch (args.length) {
-            case 1:
-                if (player) {
-                    if (sender instanceof Console) {
-                        sender.sendMessage(
-                            "§cYou can't use this command in the console!"
+                        const position = context.getArgument(
+                            'position'
+                        ) as Vector3;
+
+                        await source.setPosition(
+                            position,
+                            MovementType.Teleport
                         );
-                        return;
-                    }
+                        return `Teleported ${source.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
+                    })
+                )
+                .then(
+                    argument('player', new CommandArgumentEntity('source'))
+                        .then(
+                            argument(
+                                'position',
+                                new CommandArgumentPosition()
+                            ).executes(async (context) => {
+                                const targets = context.getArgument(
+                                    'player'
+                                ) as Player[];
 
-                    const target = player;
-                    player = sender as Player;
+                                const position = context.getArgument(
+                                    'position'
+                                ) as Vector3;
 
-                    player.setX(target.getX());
-                    player.setY(target.getY());
-                    player.setZ(target.getZ());
-                } else if (
-                    this.getCoord((sender as Player).getY(), args[0]) ||
-                    this.getCoord((sender as Player).getY(), args[0]) === 0
-                ) {
-                    if (sender instanceof Console) {
-                        sender.sendMessage(
-                            "§cYou can't use this command in the console!"
-                        );
-                        return;
-                    }
+                                if (!targets.length)
+                                    throw new Error(
+                                        `Cannot find specified player(s) & entit(y/ies)`
+                                    );
+                                targets.forEach(async (entity) =>
+                                    entity.setPosition(
+                                        position,
+                                        MovementType.Teleport
+                                    )
+                                );
 
-                    player = sender as Player;
+                                return `Teleported ${targets
+                                    .map((entity) =>
+                                        entity.getFormattedUsername()
+                                    )
+                                    .join(
+                                        ', '
+                                    )} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
+                            })
+                        )
+                        .then(
+                            argument(
+                                'target',
+                                new CommandArgumentEntity('target')
+                            ).executes(async (context) => {
+                                const sources = context.getArgument(
+                                    'player'
+                                ) as Player[];
 
-                    player.setY(
-                        this.getCoord((sender as Player).getZ(), args[0])
-                    );
-                } else {
-                    sender.sendMessage(`§c${args[0]} is not online!`);
-                    return;
-                }
+                                const target = context.getArgument(
+                                    'target'
+                                )?.[0] as Player;
 
-                break;
-            case 2:
-                if (
-                    (this.getCoord((sender as Player).getX(), args[0]) ||
-                        this.getCoord((sender as Player).getX(), args[0]) ===
-                            0) &&
-                    (this.getCoord((sender as Player).getZ(), args[1]) ||
-                        this.getCoord((sender as Player).getZ(), args[1]))
-                ) {
-                    if (sender instanceof Console) {
-                        sender.sendMessage(
-                            "§cYou can't use this command in the console!"
-                        );
-                        return;
-                    }
+                                const position = new Vector3(
+                                    target.getX(),
+                                    target.getY(),
+                                    target.getZ()
+                                );
 
-                    player = sender as Player;
+                                if (!sources.length)
+                                    throw new Error(
+                                        `Cannot find specified player(s) & entit(y/ies)`
+                                    );
+                                sources.forEach(async (entity) =>
+                                    entity.setPosition(
+                                        position,
+                                        MovementType.Teleport
+                                    )
+                                );
+                                return `Teleported ${sources
+                                    .map((entity) =>
+                                        entity.getFormattedUsername()
+                                    )
+                                    .join(
+                                        ', '
+                                    )} to ${target.getFormattedUsername()}`;
+                            })
+                        )
+                        .executes(async (context) => {
+                            const source = context.getSource() as Player;
+                            const target = context.getArgument(
+                                'player'
+                            )?.[0] as Player;
 
-                    player.setX(
-                        this.getCoord((sender as Player).getX(), args[0])
-                    );
-                    player.setZ(
-                        this.getCoord((sender as Player).getZ(), args[1])
-                    );
-                } else if (
-                    player &&
-                    (this.getCoord(player.getY(), args[1]) ||
-                        this.getCoord(player.getY(), args[1]) === 0)
-                ) {
-                    player.setY(this.getCoord(player.getY(), args[1]));
-                } else if (player) {
-                    const target = sender
-                        .getServer()
-                        .getPlayerByName(`${args[1]}`);
-                    if (!target) {
-                        sender.sendMessage(`§c${args[0]} is not online!`);
-                        return;
-                    }
+                            if (!source.isPlayer())
+                                throw new Error(
+                                    `This command can't be run from the console`
+                                );
 
-                    player.setX(target.getX());
-                    player.setY(target.getY());
-                    player.setZ(target.getZ());
-                } else if (!player) {
-                    sender.sendMessage(`§c${args[0]} is not online!`);
-                    return;
-                } else {
-                    sender.sendMessage(
-                        '§cYou have to specify /tp <player> <player>.'
-                    );
-                    return;
-                }
-
-                break;
-            case 3:
-                if (
-                    (this.getCoord((sender as Player).getX(), args[0]) ||
-                        this.getCoord((sender as Player).getX(), args[0]) ===
-                            0) &&
-                    (this.getCoord((sender as Player).getY(), args[1]) ||
-                        this.getCoord((sender as Player).getY(), args[1]) ===
-                            0) &&
-                    (this.getCoord((sender as Player).getZ(), args[2]) ||
-                        this.getCoord((sender as Player).getZ(), args[2]) === 0)
-                ) {
-                    if (sender instanceof Console) {
-                        sender.sendMessage(
-                            "§cYou can't use this command in the console!"
-                        );
-                        return;
-                    }
-
-                    player = sender as Player;
-
-                    player.setX(
-                        this.getCoord((sender as Player).getX(), args[0])
-                    );
-                    player.setY(
-                        this.getCoord((sender as Player).getY(), args[1])
-                    );
-                    player.setZ(
-                        this.getCoord((sender as Player).getZ(), args[2])
-                    );
-                } else if (
-                    player &&
-                    (this.getCoord(player.getX(), args[1]) ||
-                        this.getCoord(player.getX(), args[1]) === 0) &&
-                    (this.getCoord(player.getZ(), args[2]) ||
-                        this.getCoord(player.getZ(), args[2]) === 0)
-                ) {
-                    player.setX(this.getCoord(player.getX(), args[1]));
-                    player.setZ(this.getCoord(player.getZ(), args[2]));
-                } else if (!player) {
-                    sender.sendMessage(`§c${args[0]} is not online!`);
-                    return;
-                } else {
-                    sender.sendMessage(
-                        '§cYou have to specify /tp <player> x z.'
-                    );
-                    return;
-                }
-
-                break;
-            case 4:
-                if (
-                    player &&
-                    (this.getCoord(player.getX(), args[1]) ||
-                        this.getCoord(player.getX(), args[1]) === 0) &&
-                    (this.getCoord(player.getY(), args[2]) ||
-                        this.getCoord(player.getY(), args[2]) === 0) &&
-                    (this.getCoord(player.getZ(), args[3]) ||
-                        this.getCoord(player.getZ(), args[3]) === 0)
-                ) {
-                    player.setX(this.getCoord(player.getX(), args[1]));
-                    player.setY(this.getCoord(player.getY(), args[2]));
-                    player.setZ(this.getCoord(player.getZ(), args[3]));
-                } else if (!player) {
-                    sender.sendMessage(
-                        '§cYou have to specify /tp <player> x z.'
-                    );
-                    return;
-                } else {
-                    sender.sendMessage('§cYou have to specify <player> x y z.');
-                    return;
-                }
-
-                break;
-            default:
-                sender.sendMessage('$cYou passed to many arguments!');
-                return;
-        }
-
-        if (!player) {
-            sender.sendMessage(`§c${args[0]} is not online!`);
-            return;
-        }
-
-        await player
-            .getConnection()
-            .broadcastMove(player, MovementType.Teleport);
-        return `Teleported ${player.getUsername()} to ${player.getX()} ${player.getY()} ${player.getZ()}`;
-    }
-
-    private getCoord(
-        oldCord: number,
-        newCord: number | string
-    ): number | undefined {
-        if (typeof newCord === 'string' && newCord === '~') return oldCord;
-        if (
-            typeof newCord === 'string' &&
-            newCord.startsWith('~') &&
-            Number(newCord.slice(1))
-        ) {
-            return oldCord + Number(newCord.slice(1));
-        }
-
-        if (typeof newCord === 'number') {
-            return newCord;
-        }
+                            await source.setPosition(
+                                new Vector3(
+                                    target.getX(),
+                                    target.getY(),
+                                    target.getZ()
+                                ),
+                                MovementType.Teleport
+                            );
+                            return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;
+                        })
+                )
+        );
     }
 }

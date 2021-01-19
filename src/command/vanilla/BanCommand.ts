@@ -1,56 +1,80 @@
-import CommandParameter, {
-    CommandParameterType
-} from '../../network/type/CommandParameter';
+/* eslint-disable promise/prefer-await-to-then */
+import {
+    CommandDispatcher,
+    argument,
+    greedyString,
+    literal,
+    string
+} from '@jsprismarine/brigadier';
 
 import Command from '../Command';
 import Player from '../../player/Player';
 
 export default class BanCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:ban',
             description: 'Ban a player.',
             permission: 'minecraft.command.ban'
-        } as any);
-
-        this.parameters = [new Set()];
-
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'target',
-                type: CommandParameterType.Target,
-                optional: false
-            })
-        );
+        });
     }
 
-    public async execute(sender: Player, args: any[]): Promise<string | void> {
-        if (args.length <= 0) {
-            await sender.sendMessage('§cYou have to specify a target.');
-            return;
-        }
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('ban').then(
+                argument('player', string())
+                    .then(
+                        argument('reason', greedyString()).executes(
+                            async (context) => {
+                                const source = context.getSource() as Player;
+                                const reason = context.getArgument(
+                                    'reason'
+                                ) as string;
 
-        const target = sender.getServer().getPlayerByName(args[0]);
+                                try {
+                                    const target = source
+                                        .getServer()
+                                        .getPlayerManager()
+                                        .getPlayerByName(
+                                            context.getArgument('player')
+                                        );
+                                    await target.kick(
+                                        `You have been banned from the server due to: \n\n${reason}!`
+                                    );
+                                } catch {}
 
-        await sender
-            .getServer()
-            .getBanManager()
-            .setBanned(
-                args[0],
-                args.length > 1 ? args.slice(1).join(' ') : undefined
-            );
+                                await source
+                                    .getServer()
+                                    .getBanManager()
+                                    .setBanned(
+                                        context.getArgument('player'),
+                                        reason
+                                    );
 
-        if (target)
-            await target.kick(
-                `You have been banned${
-                    args.length > 1
-                        ? ` for reason: ${args.slice(1).join(' ')}`
-                        : ''
-                }!`
-            );
+                                return `Banned ${context.getArgument(
+                                    'player'
+                                )} due to: ${reason}!`;
+                            }
+                        )
+                    )
+                    .executes(async (context) => {
+                        const source = context.getSource() as Player;
+                        try {
+                            const target = source
+                                .getServer()
+                                .getPlayerManager()
+                                .getPlayerByName(context.getArgument('player'));
+                            await target.kick(`You have been banned!`);
+                        } catch {}
 
-        return `Banned ${args[0] || sender.getUsername()} ${
-            args.length > 1 ? `for reason ${args.slice(1).join(' ')}` : ''
-        }`;
+                        await source
+                            .getServer()
+                            .getBanManager()
+                            .setBanned(context.getArgument('player'));
+
+                        return `Banned ${context.getArgument('player')}`;
+                    })
+            )
+        );
     }
 }

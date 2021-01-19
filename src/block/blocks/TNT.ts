@@ -1,8 +1,8 @@
-import Solid from '../Solid';
 import { BlockIdsType } from '../BlockIdsType';
+import Solid from '../Solid';
 
 export default class TNT extends Solid {
-    constructor() {
+    public constructor() {
         super({
             name: 'minecraft:tnt',
             id: BlockIdsType.TNT,

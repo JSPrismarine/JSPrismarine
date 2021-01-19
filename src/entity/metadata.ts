@@ -69,6 +69,10 @@ export default class MetadataManager {
         this.setPropertyValue(key, FlagType.STRING, value);
     }
 
+    public getString(key: number): string {
+        return this.metadata.get(key)! as any;
+    }
+
     public setFloat(key: number, value: number): void {
         this.setPropertyValue(key, FlagType.FLOAT, value);
     }

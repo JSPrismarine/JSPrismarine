@@ -1,109 +1,92 @@
-import CommandParameter, {
-    CommandParameterType
-} from '../../network/type/CommandParameter';
+/* eslint-disable promise/prefer-await-to-then */
+import {
+    CommandArgumentEntity,
+    CommandArgumentGamemode
+} from '../CommandArguments';
+import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
 import Gamemode from '../../world/Gamemode';
 import Player from '../../player/Player';
 
 export default class GamemodeCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:gamemode',
             description: 'Changes gamemode for a player.',
             permission: 'minecraft.command.gamemode'
-        } as any);
-
-        this.parameters = [new Set()];
-
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'gamemode',
-                type: CommandParameterType.String,
-                optional: false
-            })
-        );
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'target',
-                type: CommandParameterType.Target,
-                optional: false
-            })
-        );
+        });
     }
 
-    public async execute(sender: Player, args: any[]) {
-        if (args.length === 0 || args.length > 2) {
-            await sender.sendMessage('§cYou have to specify a gamemode.');
+    private async setGamemode(
+        source: Player,
+        target: Player,
+        gamemode: string
+    ) {
+        if (!target) {
+            const event = new ChatEvent(
+                new Chat(
+                    source,
+                    `Player is not online!`,
+                    `*.player.${source.getUsername()}`
+                )
+            );
+            await source.getServer().getEventManager().emit('chat', event);
             return;
         }
 
-        let mode;
-        switch (args[0]) {
-            case 0:
-            case 's':
-            case 'survival':
-                mode = Gamemode.Survival;
-                break;
-            case 1:
-            case 'c':
-            case 'creative':
-                mode = Gamemode.Creative;
-                break;
-            case 2:
-            case 'adventure':
-                mode = Gamemode.Adventure;
-                break;
-            case 3:
-            case 'spectator':
-                mode = Gamemode.Spectator;
-                break;
-            default:
-                // TODO: Syntax validation utility class
-                await sender.sendMessage('§cIncorrect argument for command');
-                return sender.sendMessage(
-                    `§7/gamemode §c${args.join(' ')}<--[HERE]`
-                );
-        }
-
-        let target: Player | null = sender;
-        if (args.length > 1 && typeof args[1] === 'string') {
-            if ((target = sender.getServer().getPlayerByName(args[1])) === null)
-                return sender.sendMessage('§cNo player was found');
-
-            await target.setGamemode(mode);
-            if (mode === Gamemode.Creative)
-                await target.getConnection().sendCreativeContents();
-
-            await sender.sendMessage(
-                `Set ${target.getUsername()}'s game mode to ${Gamemode.getGamemodeName(
-                    mode
-                )} Mode`
+        if (!target.isPlayer()) {
+            const event = new ChatEvent(
+                new Chat(
+                    source,
+                    `Can't set ${source.getFormattedUsername()} to ${gamemode}`,
+                    `*.player.${source.getUsername()}`
+                )
             );
-            await target.sendMessage(
-                `Your game mode has been updated to ${Gamemode.getGamemodeName(
-                    mode
-                )} Mode`
-            );
+            await source.getServer().getEventManager().emit('chat', event);
             return;
         }
 
-        if (args.length > 1 && typeof args[1] === 'number') {
-            return sender.sendMessage('§cNo player was found');
-        }
+        await target.setGamemode(Gamemode.getGamemodeId(gamemode));
+    }
 
-        if (!(sender instanceof Player)) {
-            return target.sendMessage(
-                '§cYou have to run this command in-game!'
-            );
-        }
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('gamemode').then(
+                argument('gamemode', new CommandArgumentGamemode())
+                    .then(
+                        argument(
+                            'player',
+                            new CommandArgumentEntity()
+                        ).executes(async (context) => {
+                            const source = context.getSource() as Player;
+                            const targets = context.getArgument(
+                                'player'
+                            ) as Player[];
 
-        await target.setGamemode(mode);
-        if (mode === Gamemode.Creative)
-            await target.getConnection().sendCreativeContents();
+                            const gamemode = context.getArgument(
+                                'gamemode'
+                            ) as string;
 
-        return target.sendMessage(
-            `Set own game mode to ${Gamemode.getGamemodeName(mode)} Mode`
+                            if (!targets.length)
+                                throw new Error(`Cannot find player`);
+
+                            targets.forEach(async (target) =>
+                                this.setGamemode(source, target, gamemode)
+                            );
+                        })
+                    )
+                    .executes(async (context) => {
+                        const source = context.getSource() as Player;
+                        const gamemode = context.getArgument(
+                            'gamemode'
+                        ) as string;
+
+                        await this.setGamemode(source, source, gamemode);
+                    })
+            )
         );
     }
 }

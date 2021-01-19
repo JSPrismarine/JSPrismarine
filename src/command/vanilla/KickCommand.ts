@@ -1,52 +1,64 @@
+/* eslint-disable promise/prefer-await-to-then */
+import {
+    CommandDispatcher,
+    argument,
+    greedyString,
+    literal
+} from '@jsprismarine/brigadier';
+
 import Command from '../Command';
-import CommandParameter from '../../network/type/CommandParameter';
-import type Player from '../../player/Player';
+import { CommandArgumentEntity } from '../CommandArguments';
+import Player from '../../player/Player';
 
 export default class KickCommand extends Command {
-    constructor() {
+    public constructor() {
         super({
             id: 'minecraft:kick',
             description: 'Kicks a player off the server.',
             permission: 'minecraft.command.kick'
         });
-
-        this.parameters = [new Set()];
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'target',
-                type: 0x100000 | 0x06,
-                optional: false
-            })
-        );
-        this.parameters[0].add(
-            new CommandParameter({
-                name: 'message',
-                type: 0x100000 | 0x1d,
-                optional: true
-            })
-        );
     }
 
-    public async execute(
-        sender: Player,
-        args: Array<string | number>
-    ): Promise<string | void> {
-        if (!args[0]) {
-            return sender.sendMessage('§cYou have to specify a player.');
-        }
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('kick').then(
+                argument('player', new CommandArgumentEntity())
+                    .then(
+                        argument('reason', greedyString()).executes(
+                            async (context) => {
+                                const reason = context.getArgument(
+                                    'reason'
+                                ) as string;
+                                const targets = context.getArgument(
+                                    'player'
+                                ) as Player[];
 
-        const reason = args[1]
-            ? args.slice(1).join(' ')
-            : 'No reason specified.';
-        const target = sender.getServer().getPlayerByName(`${args[0]}`);
+                                targets.forEach(async (target) =>
+                                    target.kick(
+                                        `You have been kicked from the server due to: \n\n${reason}!`
+                                    )
+                                );
+                                return `Kicked ${targets
+                                    .map((target) =>
+                                        target.getFormattedUsername()
+                                    )
+                                    .join(', ')} due to: ${reason}!`;
+                            }
+                        )
+                    )
+                    .executes(async (context) => {
+                        const targets = context.getArgument(
+                            'player'
+                        ) as Player[];
 
-        if (!target) {
-            return sender.sendMessage("§cCan't find the selected player.");
-        }
-
-        await target.kick(
-            'You have been kicked from the server due to: \n\n' + reason
+                        targets.forEach(async (target) =>
+                            target.kick(`You have been kicked from the server!`)
+                        );
+                        return `Kicked ${targets
+                            .map((target) => target.getFormattedUsername())
+                            .join(', ')}`;
+                    })
+            )
         );
-        return `Kicked ${args[0]}`;
     }
 }

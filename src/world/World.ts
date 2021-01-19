@@ -1,21 +1,22 @@
+import GameruleManager, { GameRules } from './GameruleManager';
+
 import Block from '../block/Block';
-import Entity from '../entity/entity';
-import Item from '../item/Item';
-import Vector3 from '../math/Vector3';
-import DataPacket from '../network/packet/DataPacket';
-import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
-import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
-import WorldEventPacket from '../network/packet/WorldEventPacket';
-import Player from '../player/Player';
-import Server from '../Server';
-import UUID from '../utils/UUID';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
-import GameruleManager, { GameRules } from './GameruleManager';
+import DataPacket from '../network/packet/DataPacket';
+import Entity from '../entity/entity';
+import Gamemode from './Gamemode';
+import Item from '../item/Item';
+import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
+import Player from '../player/Player';
+import Server from '../Server';
 import SharedSeedRandom from './util/SharedSeedRandom';
+import UUID from '../utils/UUID';
+import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
+import Vector3 from '../math/Vector3';
+import WorldEventPacket from '../network/packet/WorldEventPacket';
 import fs from 'fs';
 import path from 'path';
-import Gamemode from './Gamemode';
 
 interface WorldData {
     name: string;
@@ -58,7 +59,7 @@ export default class World {
     private readonly originalSeed: number;
     private readonly generator: any; // TODO: interface
 
-    constructor({
+    public constructor({
         name,
         server,
         provider,
@@ -186,7 +187,7 @@ export default class World {
             this.chunks.set(index, chunk);
         }
 
-        return this.chunks.get(index) as Chunk;
+        return this.chunks.get(index)!;
     }
 
     /**
@@ -245,10 +246,12 @@ export default class World {
         clickPosition: Vector3,
         player: Player
     ): Promise<void> {
-        if (!itemInHand)
-            return this.server
+        if (!itemInHand) {
+            this.server
                 .getLogger()
                 .warn(`Block with runtimeId ${0} is invalid`);
+            return;
+        }
         if (itemInHand instanceof Item) return; // TODO
 
         // TODO: checks
@@ -320,7 +323,8 @@ export default class World {
                     placedPosition.getZ() % 16,
                     block
                 );
-                return resolve(true);
+                resolve(true);
+                return;
             } catch (error) {
                 player
                     .getServer()
@@ -330,7 +334,7 @@ export default class World {
                     );
                 await player.sendMessage(error?.message);
 
-                return resolve(false);
+                resolve(false);
             }
         });
 
@@ -357,6 +361,7 @@ export default class World {
 
         await Promise.all(
             this.server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .map(async (onlinePlayer) =>
                     onlinePlayer.getConnection().sendDataPacket(blockUpdate)
@@ -401,6 +406,19 @@ export default class World {
     }
 
     /**
+     * Returns all entities (including players)
+     *
+     * You can filter this by either using the entity.getType() or
+     * entity.isPlayer() functions.
+     */
+    public getEntities(): Entity[] {
+        return [
+            ...Array.from(this.entities.values()),
+            ...Array.from(this.players.values())
+        ];
+    }
+
+    /**
      * Adds a player into the level.
      */
     public addPlayer(player: Player): void {
@@ -436,6 +454,12 @@ export default class World {
 
     public async save(): Promise<void> {
         // Save chunks
+        this.server
+            .getPlayerManager()
+            .getOnlinePlayers()
+            .forEach(async (player) => {
+                await this.savePlayerData(player);
+            });
         await this.saveChunks();
     }
 
