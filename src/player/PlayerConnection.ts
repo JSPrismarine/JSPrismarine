@@ -361,9 +361,12 @@ export default class PlayerConnection {
                     return;
                 }
 
-                if (classCommand.api !== "rfc") {
+                if (classCommand.api !== 'rfc') {
                     // todo
-                    this.player.getServer().getLogger().warn("RFC implementation not complete.");
+                    this.player
+                        .getServer()
+                        .getLogger()
+                        .warn('RFC implementation not complete.');
                     pk.commandData.add({
                         name: command[0],
                         description: classCommand.description,

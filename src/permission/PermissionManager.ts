@@ -191,10 +191,11 @@ export default class PermissionManager {
                 if (!executer.isPlayer()) return true;
                 if (executer.isOp()) return true;
 
-                permission = typeof permission === 'string' ? [ permission ] : permission;
-                for (let perm of permission) {
+                permission =
+                    typeof permission === 'string' ? [permission] : permission;
+                for (const perm of permission) {
                     if ((executer as Player).getPermissions().includes(perm))
-                    return true;
+                        return true;
                     if ((executer as Player).getPermissions().includes('*'))
                         return true;
 
@@ -204,7 +205,11 @@ export default class PermissionManager {
                         if (scope) scope = `${scope}.${action}`;
                         else scope = action;
 
-                        if ((executer as Player).getPermissions().includes(scope))
+                        if (
+                            (executer as Player)
+                                .getPermissions()
+                                .includes(scope)
+                        )
                             return true;
                         if (
                             (executer as Player)
