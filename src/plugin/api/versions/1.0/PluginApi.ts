@@ -57,6 +57,11 @@ export default class PluginApi extends PluginApiVersion {
      * Returns an instance of the config builder class
      */
     public getConfigBuilder(configFile: string): ConfigBuilder {
+        if (configFile.startsWith('../../') || configFile.startsWith('/../../'))
+            throw new Error(
+                `config files should be kept their respective plugin folder`
+            );
+
         return new ConfigBuilder(
             path.join(process.cwd(), '/plugins/', this.pkg.name, configFile)
         );
