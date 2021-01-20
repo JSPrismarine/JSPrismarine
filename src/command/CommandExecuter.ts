@@ -1,5 +1,5 @@
-import withDeprecated from '../hoc/withDeprecated';
 import Server from '../Server';
+import withDeprecated from '../hoc/withDeprecated';
 
 export default interface CommandExecuter {
     getServer(): Server;
