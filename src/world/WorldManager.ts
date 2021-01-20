@@ -1,4 +1,5 @@
 import Anvil from './providers/anvil/Anvil';
+import type BaseProvider from './BaseProvider';
 import GeneratorManager from './GeneratorManager';
 import LevelDB from './providers/leveldb/LevelDB';
 import Server from '../Server';
@@ -16,7 +17,7 @@ export default class WorldManager {
     private defaultWorld!: World;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
-    private providers: Map<string, any> = new Map();
+    private providers: Map<string, typeof BaseProvider> = new Map(); // TODO: this should be a manager
 
     public constructor(server: Server) {
         this.server = server;
@@ -26,12 +27,12 @@ export default class WorldManager {
         if (!fs.existsSync(process.cwd() + '/worlds')) {
             fs.mkdirSync(process.cwd() + '/worlds');
         }
-
-        this.providers.set('LevelDB', LevelDB);
-        this.providers.set('Anvil', Anvil);
     }
 
     public async onEnable(): Promise<void> {
+        this.addProvider('LevelDB', LevelDB);
+        this.addProvider('Anvil', Anvil);
+
         const defaultWorld = this.server.getConfig().getLevelName();
         if (!defaultWorld) {
             this.server
@@ -53,10 +54,40 @@ export default class WorldManager {
                 this.unloadWorld(world.getName())
             )
         );
+        this.providers.clear();
     }
 
     /**
-     * Loads a world by its folder name.
+     * Add a provider to the internal providers map
+     *
+     * @param name the name of the provider CASE SENSITIVE
+     * @param provider the provider
+     */
+    public addProvider(name: string, provider: typeof BaseProvider) {
+        this.providers.set(name, provider);
+    }
+
+    /**
+     * Remove a provider from the internal providers map
+     *
+     * @param name the name of the provider CASE SENSITIVE
+     */
+    public removeProvider(name: string) {
+        this.providers.delete(name);
+    }
+
+    /**
+     * Get all providers
+     */
+    public getProviders(): Map<string, typeof BaseProvider> {
+        return this.providers;
+    }
+
+    /**
+     * Load a world
+     *
+     * @param worldData the world data including provider key, generator
+     * @param folderName the name of the folder containing the world
      */
     public async loadWorld(
         worldData: WorldData,
@@ -77,20 +108,25 @@ export default class WorldManager {
             const provider = this.providers.get(
                 worldData.provider ?? 'LevelDB'
             );
-
             const generator = this.server
                 .getWorldManager()
                 .getGeneratorManager()
                 .getGenerator(worldData.generator ?? 'overworld');
 
+            if (!provider) {
+                reject(
+                    new Error(`invalid provider with id ${worldData.provider}`)
+                );
+                return;
+            }
+
             if (!generator) {
-                this.server
-                    .getLogger()
-                    .error(
-                        `Invalid generator §b${worldData.generator}§r!`,
-                        'WorldManager/loadWorld'
-                    );
-                reject();
+                reject(
+                    new Error(
+                        `invalid generator with id ${worldData.generator}`
+                    )
+                );
+                return;
             }
 
             // TODO: figure out provider by data

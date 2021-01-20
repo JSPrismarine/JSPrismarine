@@ -1,12 +1,13 @@
 import type Chunk from './chunk/Chunk';
 import Generator from './Generator';
 import Provider from './Provider';
+import type Server from '../Server';
 import fs from 'fs';
 
-export default abstract class BaseProvider implements Provider {
+export default class BaseProvider implements Provider {
     private path: string;
 
-    public constructor(path: string) {
+    public constructor(path: string, server: Server) {
         this.path = path;
         if (!fs.existsSync(path)) {
             fs.mkdirSync(path);
@@ -23,10 +24,12 @@ export default abstract class BaseProvider implements Provider {
     /**
      * Returns a chunk decoded from the provider.
      */
-    public abstract readChunk(
+    public async readChunk(
         cx: number,
         cz: number,
         seed: number,
         generator: Generator
-    ): Promise<Chunk>;
+    ): Promise<Chunk> {
+        throw new Error('readChunk was not implemented by the child class!');
+    }
 }

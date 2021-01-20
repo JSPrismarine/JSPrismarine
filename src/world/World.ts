@@ -60,7 +60,7 @@ export default class World {
     private readonly seed: number;
     private readonly generator: Generator;
 
-    constructor({ name, server, provider, seed, generator }: WorldData) {
+    public constructor({ name, server, provider, seed, generator }: WorldData) {
         this.name = name;
         this.server = server;
         this.provider = provider;
@@ -85,7 +85,7 @@ export default class World {
         this.server
             .getLogger()
             .info(
-                `Preparing start region for dimension §b'${this.name}'/${this.generator}§r`,
+                `Preparing start region for dimension §b'${this.name}'/${this.generator.constructor.name}§r`,
                 'World/onEnable'
             );
         const chunksToLoad: Array<Promise<void>> = [];

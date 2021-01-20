@@ -2,6 +2,7 @@ import BaseProvider from '../../BaseProvider';
 import Chunk from '../../chunk/Chunk';
 import Generator from '../../Generator';
 import Region from './Region';
+import type Server from '../../../Server';
 import fs from 'fs';
 import path from 'path';
 
@@ -9,8 +10,8 @@ export default class Anvil extends BaseProvider {
     private regionsPath: string;
     private cachedRegions: Map<string, Region> = new Map();
 
-    public constructor(folderPath: string) {
-        super(folderPath);
+    public constructor(folderPath: string, server: Server) {
+        super(folderPath, server);
         this.regionsPath = path.join(this.getPath(), 'region');
     }
 

@@ -42,6 +42,7 @@ export default class InventoryTransactionHandler
 
                                 const id = action.oldItem.id;
                                 const meta = action.oldItem.meta;
+
                                 const item =
                                     server.getItemManager().getItemById(id) ??
                                     server

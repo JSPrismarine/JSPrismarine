@@ -42,15 +42,17 @@ export default class BlockMappings {
                 .value as NBTTagCompound;
             const legacyId = firstState.getNumber('id', 0);
             const legacyMeta = firstState.getShort('val', 0);
-            this.runtimeIdToLegacy.set(runtimeId, (legacyId << 4) | legacyMeta);
 
-            legacyStates.forEach((legacyState: NBTTagCompound) => {
+            this.registerMapping(runtimeId, legacyId, legacyMeta);
+
+            // TODO: blockstates or whatever this is
+            /* legacyStates.forEach((legacyState: NBTTagCompound) => {
                 this.registerMapping(
                     runtimeId,
                     legacyState.getNumber('id', 0),
                     legacyState.getShort('val', 0)
                 );
-            });
+            }); */
         });
     }
 
