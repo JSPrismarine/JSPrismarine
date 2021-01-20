@@ -1,5 +1,5 @@
-import BaseProvider from '../../BaseProvider';
-import Chunk from '../../chunk/Chunk';
+import BaseProvider from '../BaseProvider';
+import type Chunk from '../../chunk/Chunk';
 import Generator from '../../Generator';
 import Region from './Region';
 import type Server from '../../../Server';
@@ -34,4 +34,6 @@ export default class Anvil extends BaseProvider {
         const region = this.cachedRegions.get(id)!;
         return region.getChunk(cx, cz);
     }
+
+    public async writeChunk(chunk: Chunk) {}
 }

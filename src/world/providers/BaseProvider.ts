@@ -1,10 +1,10 @@
-import type Chunk from './chunk/Chunk';
-import Generator from './Generator';
+import type Chunk from '../chunk/Chunk';
+import Generator from '../Generator';
 import Provider from './Provider';
-import type Server from '../Server';
+import type Server from '../../Server';
 import fs from 'fs';
 
-export default class BaseProvider implements Provider {
+export default abstract class BaseProvider implements Provider {
     private path: string;
 
     public constructor(path: string, server: Server) {
@@ -27,21 +27,17 @@ export default class BaseProvider implements Provider {
      * @param cx the chunk x coordinate
      * @param cz the chunk y coordinate
      */
-    public async readChunk(
+    public abstract readChunk(
         cx: number,
         cz: number,
         seed: number,
         generator: Generator
-    ): Promise<Chunk> {
-        throw new Error('readChunk was not implemented by the child class!');
-    }
+    ): Promise<Chunk>;
 
     /**
      * Writes a chunk
      *
      * @param chunk the chunk data
      */
-    public async writeChunk(chunk: Chunk): Promise<void> {
-        throw new Error('writeChunk was not implemented by the child class!');
-    }
+    public abstract writeChunk(chunk: Chunk): Promise<void>;
 }

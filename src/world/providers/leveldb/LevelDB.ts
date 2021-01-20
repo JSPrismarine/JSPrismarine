@@ -1,4 +1,4 @@
-import BaseProvider from '../../BaseProvider';
+import BaseProvider from '../BaseProvider';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../../chunk/Chunk';
 import Generator from '../../Generator';
@@ -31,9 +31,10 @@ export default class LevelDB extends BaseProvider {
                     `version of chunk is either too new or too old (${version})`
                 );
 
-            return Chunk.networkDeserialize(
+            const buffer = Buffer.from(
                 await this.storage.get(LevelDB.chunkIndex(cx, cz))
             );
+            return Chunk.networkDeserialize(new BinaryStream(buffer));
         } catch (error) {
             if (!error.notFound) throw error;
 
@@ -44,7 +45,7 @@ export default class LevelDB extends BaseProvider {
     public async writeChunk(chunk: Chunk): Promise<void> {
         const index = LevelDB.chunkIndex(chunk.getX(), chunk.getZ());
         await this.storage.put(`${index}v`, 8);
-        await this.storage.put(index, chunk.networkSerialize());
+        await this.storage.put(index, chunk.networkSerialize(true));
     }
 
     /**

@@ -1,6 +1,6 @@
 import GameruleManager, { GameRules } from './GameruleManager';
 
-import BaseProvider from './BaseProvider';
+import BaseProvider from './providers/BaseProvider';
 import Block from '../block/Block';
 import BlockMappings from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';

@@ -78,4 +78,17 @@ export default class SubChunk {
             storage.networkSerialize(stream);
         }
     }
+
+    public static networkDeserialize(stream: BinaryStream): SubChunk {
+        const subChunk = new SubChunk();
+
+        const version = stream.readByte();
+        const layerCount = stream.readByte();
+
+        for (let i = 0; i < layerCount; i++) {
+            subChunk.storages.set(i, BlockStorage.networkDeserialize(stream));
+        }
+
+        return subChunk;
+    }
 }

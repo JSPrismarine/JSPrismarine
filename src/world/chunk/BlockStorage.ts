@@ -92,4 +92,28 @@ export default class BlockStorage {
             stream.writeVarInt(val);
         }
     }
+
+    public static networkDeserialize(stream: BinaryStream): BlockStorage {
+        const bitsPerBlock = stream.readByte() >> 1;
+        const blocksPerWord = Math.floor(32 / bitsPerBlock);
+        const wordsPerChunk = Math.ceil(4096 / blocksPerWord);
+
+        const indexes: number[] = [];
+        for (let i = 0; i < wordsPerChunk; i++) {
+            indexes.push(stream.readLInt());
+        }
+
+        // TODO: figure out how to RE blocks.....
+
+        const paletteCount = stream.readVarInt();
+        const palette: number[] = new Array(paletteCount);
+        for (let i = 0; i < paletteCount; i++) {
+            palette.push(stream.readVarInt());
+        }
+
+        const storage = new BlockStorage();
+        // storage.blocks = blocks;
+        storage.palette = palette;
+        return storage;
+    }
 }

@@ -1,5 +1,5 @@
-import Chunk from './chunk/Chunk';
-import Generator from './Generator';
+import type Chunk from '../chunk/Chunk';
+import type Generator from '../Generator';
 
 export default interface Provider {
     /**
@@ -20,4 +20,10 @@ export default interface Provider {
         seed: number,
         generator: Generator
     ): Promise<Chunk>;
+
+    /**
+     * Writes a chunk
+     * @param chunk - chunk x
+     */
+    writeChunk(chunk: Chunk): Promise<void>;
 }

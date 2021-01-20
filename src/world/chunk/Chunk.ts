@@ -122,10 +122,15 @@ export default class Chunk {
         );
     }
 
-    public networkSerialize(): Buffer {
+    public networkSerialize(forceAll = false): Buffer {
         const stream = new BinaryStream();
         // Encode sub chunks
-        for (let i = 0; i < this.getTopEmpty(); i++) {
+
+        for (
+            let i = 0;
+            i < (forceAll ? MAX_SUBCHUNKS : this.getTopEmpty());
+            i++
+        ) {
             const subChunk = this.subChunks.get(i)!;
             subChunk.networkSerialize(stream);
         }
@@ -144,9 +149,11 @@ export default class Chunk {
      *
      * @param buffer the network stream
      */
-    public static networkDeserialize(buffer: Buffer): Chunk {
+    public static networkDeserialize(stream: BinaryStream): Chunk {
         const chunk = new Chunk();
-        // TODO
+
+        for (let i = 0; i < MAX_SUBCHUNKS; i++)
+            chunk.subChunks.set(i, SubChunk.networkDeserialize(stream));
 
         return chunk;
     }

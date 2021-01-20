@@ -1,7 +1,7 @@
 import Anvil from './providers/anvil/Anvil';
-import type BaseProvider from './BaseProvider';
 import GeneratorManager from './GeneratorManager';
 import LevelDB from './providers/leveldb/LevelDB';
+import Provider from './providers/Provider';
 import Server from '../Server';
 import World from './World';
 import fs from 'fs';
@@ -17,7 +17,7 @@ export default class WorldManager {
     private defaultWorld!: World;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
-    private providers: Map<string, typeof BaseProvider> = new Map(); // TODO: this should be a manager
+    private providers: Map<string, any> = new Map(); // TODO: this should be a manager
 
     public constructor(server: Server) {
         this.server = server;
@@ -63,7 +63,7 @@ export default class WorldManager {
      * @param name the name of the provider CASE SENSITIVE
      * @param provider the provider
      */
-    public addProvider(name: string, provider: typeof BaseProvider) {
+    public addProvider(name: string, provider: any) {
         this.providers.set(name, provider);
     }
 
@@ -79,7 +79,7 @@ export default class WorldManager {
     /**
      * Get all providers
      */
-    public getProviders(): Map<string, typeof BaseProvider> {
+    public getProviders(): Map<string, Provider> {
         return this.providers;
     }
 
