@@ -317,7 +317,7 @@ export default class World {
                     .getServer()
                     .getLogger()
                     .warn(
-                        `${player.getUsername()} failed to place block due to ${error}`
+                        `${player.getName()} failed to place block due to ${error}`
                     );
                 await player.sendMessage(error?.message);
 
@@ -536,7 +536,7 @@ export default class World {
             JSON.stringify(
                 {
                     uuid: player.getUUID(),
-                    username: player.getUsername(),
+                    username: player.getName(),
                     gamemode: Gamemode.getGamemodeName(
                         player.gamemode
                     ).toLowerCase(),

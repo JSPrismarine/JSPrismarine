@@ -133,6 +133,10 @@ export default class Entity extends Position {
         return (this.constructor as any).MOB_ID;
     }
 
+    public getName(): string {
+        return this.getFormattedUsername();
+    }
+
     public getFormattedUsername(): string {
         return (
             this.metadata.getString(MetadataFlag.NAMETAG) ??
@@ -151,8 +155,10 @@ export default class Entity extends Position {
     /**
      * Returns the nearest entity from the current entity
      *
-     * TODO:
-     * - Customizable radius
+     * TODO: Customizable radius
+     * TODO: amount of results
+     *
+     * @param entities
      */
     public getNearestEntity(
         entities: Entity[] = this.server

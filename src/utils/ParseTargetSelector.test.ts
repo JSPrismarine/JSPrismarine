@@ -1,14 +1,14 @@
 import Entity from '../entity/entity';
-import ParseEntityArgument from './ParseEntityArgument';
+import ParseTargetSelector from './ParseTargetSelector';
 import Sheep from '../entity/passive/Sheep';
 
 describe('util', () => {
-    describe('ParseEntityArgument', () => {
+    describe('ParseTargetSelector', () => {
         it('returns source upon "@s"', () => {
             const source = new Entity(null as any, null as any);
 
             expect(
-                ParseEntityArgument({
+                ParseTargetSelector({
                     input: '@s',
                     entities: [source],
                     source
@@ -25,7 +25,7 @@ describe('util', () => {
             const entities = [source, ...players];
 
             expect(
-                ParseEntityArgument({
+                ParseTargetSelector({
                     input: '@a',
                     entities,
                     source
@@ -43,7 +43,7 @@ describe('util', () => {
             ];
 
             expect(
-                ParseEntityArgument({
+                ParseTargetSelector({
                     input: '@e',
                     entities,
                     source
@@ -64,7 +64,7 @@ describe('util', () => {
             ];
 
             expect(
-                ParseEntityArgument({
+                ParseTargetSelector({
                     input: '@e[type=!player]',
                     entities: [...entities, player],
                     source
@@ -72,7 +72,7 @@ describe('util', () => {
             ).toStrictEqual(entities);
 
             expect(
-                ParseEntityArgument({
+                ParseTargetSelector({
                     input: '@e[type=!minecraft:player]',
                     entities: [...entities, player],
                     source
@@ -93,7 +93,7 @@ describe('util', () => {
             ];
 
             expect(
-                ParseEntityArgument({
+                ParseTargetSelector({
                     input: '@e[type=player]',
                     entities: [...entities, player],
                     source
@@ -101,7 +101,7 @@ describe('util', () => {
             ).toStrictEqual([player]);
 
             expect(
-                ParseEntityArgument({
+                ParseTargetSelector({
                     input: '@e[type=minecraft:player]',
                     entities: [...entities, player],
                     source

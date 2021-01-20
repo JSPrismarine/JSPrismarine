@@ -40,7 +40,7 @@ export default class DeopCommand extends Command {
                             new Chat(
                                 source,
                                 '§eYou are no longer op!',
-                                `*.player.${target.getUsername()}`
+                                `*.player.${target.getName()}`
                             )
                         );
                         await target

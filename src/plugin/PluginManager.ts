@@ -40,6 +40,9 @@ export default class PluginManager {
                             `§cFailed to load pluginApiVersion ${id}: ${error}`,
                             'PluginManager/onEnable'
                         );
+                    this.server
+                        .getLogger()
+                        .silly(error.stack, 'PluginManager/onEnable');
                     return null;
                 }
             })
@@ -68,6 +71,9 @@ export default class PluginManager {
                                 `§cFailed to load plugin ${id}: ${error}`,
                                 'PluginManager/onEnable'
                             );
+                        this.server
+                            .getLogger()
+                            .silly(error.stack, 'PluginManager/onEnable');
                     }
                 })
             )
@@ -176,19 +182,45 @@ export default class PluginManager {
 
         if (pkg.dependencies)
             await Promise.all(
-                Object.entries(pkg?.dependencies)?.map(async (dependency) => {
+                Object.entries(pkg.dependencies).map(async (dependency) => {
                     const moduleManager = new ModuleManager({
                         cwd: dir,
                         pluginsPath: path.join(dir, 'node_modules')
                     });
-                    return moduleManager.installFromNpm(
-                        dependency[0],
-                        dependency[1] as string
-                    );
+
+                    if (['@jsprismarine/prismarine'].includes(dependency[0])) {
+                        this.server
+                            .getLogger()
+                            .warn(
+                                `plugin §b${pkg.name} ${pkg.version}§r is trying to depend on §5${dependency[0]}§r which should be a dev-dependency!`,
+                                'PluginManager/registerPlugin'
+                            );
+                        return;
+                    }
+
+                    try {
+                        await moduleManager.installFromNpm(
+                            dependency[0],
+                            dependency[1] as string
+                        );
+                    } catch (error) {
+                        this.server
+                            .getLogger()
+                            .debug(
+                                `moduleManager failed with: ${error}`,
+                                'PluginManager/registerPlugin'
+                            );
+                        this.server
+                            .getLogger()
+                            .silly(error.stack, 'PluginManager/registerPlugin');
+                        throw new Error(
+                            `Failed to install ${dependency[0]}: ${error}`
+                        );
+                    }
                 })
             );
 
-        if (!pkg?.prismarine?.apiVersion)
+        if (!pkg.prismarine?.apiVersion)
             throw new Error(`apiVersion is missing in package.json!`);
 
         const pluginApiVersion: any = this.getPluginApiVersion(
