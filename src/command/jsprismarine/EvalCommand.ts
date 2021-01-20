@@ -9,7 +9,7 @@ export default class EvalCommand extends Command {
         this.api = "rfc";
     }
 
-    public async dispatch(sender : CommandExecuter, args : any[]) {
+    public async dispatch(sender: CommandExecuter, args: any[]) {
         await sender.sendMessage(`Result: §e${
             eval(args[0])
         }`);
