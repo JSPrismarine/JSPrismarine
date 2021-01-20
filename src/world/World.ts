@@ -1,5 +1,6 @@
 import GameruleManager, { GameRules } from './GameruleManager';
 
+import BaseProvider from './BaseProvider';
 import Block from '../block/Block';
 import BlockMappings from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
@@ -11,7 +12,6 @@ import Generator from './Generator';
 import Item from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import Player from '../player/Player';
-import Provider from './Provider';
 import Server from '../Server';
 import UUID from '../utils/UUID';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
@@ -55,7 +55,7 @@ export default class World {
     private readonly chunks: Map<string, Chunk> = new Map();
     private readonly gameruleManager: GameruleManager;
     private currentTick = 0;
-    private readonly provider: Provider;
+    private readonly provider: BaseProvider;
     private readonly server: Server;
     private readonly seed: number;
     private readonly generator: Generator;
@@ -427,21 +427,17 @@ export default class World {
      * Saves changed chunks into disk.
      */
     public async saveChunks(): Promise<void> {
-        // const time = Date.now();
+        const time = Date.now();
         this.server.getLogger().debug('[World save] saving chunks...');
-        // const promises: Array<Promise<void>> = [];
-        // for (const chunk of this.chunks.values()) {
-        // console.log(chunk.getX());
-        // if (chunk.hasChanged()) {
-        //     promises.push(this.provider.writeChunk(chunk));
-        //     chunk.setChanged(false);
-        // }
-        // }
-
-        // await Promise.all(promises);
-        // this.server
-        //   .getLogger()
-        //   .debug('[World save] took ' + (Date.now() - time) + 'ms');
+        const promises: Array<Promise<void>> = [];
+        await Promise.all(
+            Array.from(this.chunks.values()).map(async (chunk) =>
+                this.provider.writeChunk(chunk)
+            )
+        );
+        this.server
+            .getLogger()
+            .debug('[World save] took ' + (Date.now() - time) + 'ms');
     }
 
     public async save(): Promise<void> {

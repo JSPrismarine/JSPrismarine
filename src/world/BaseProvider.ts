@@ -23,6 +23,9 @@ export default class BaseProvider implements Provider {
 
     /**
      * Returns a chunk decoded from the provider.
+     *
+     * @param cx the chunk x coordinate
+     * @param cz the chunk y coordinate
      */
     public async readChunk(
         cx: number,
@@ -31,5 +34,14 @@ export default class BaseProvider implements Provider {
         generator: Generator
     ): Promise<Chunk> {
         throw new Error('readChunk was not implemented by the child class!');
+    }
+
+    /**
+     * Writes a chunk
+     *
+     * @param chunk the chunk data
+     */
+    public async writeChunk(chunk: Chunk): Promise<void> {
+        throw new Error('writeChunk was not implemented by the child class!');
     }
 }

@@ -45,7 +45,7 @@ export default class Chunk {
         let topEmpty = MAX_SUBCHUNKS;
         for (let i = 0; i <= MAX_SUBCHUNKS; i++) {
             const subChunk = this.subChunks.get(i)!;
-            if (subChunk.isEmpty()) {
+            if (subChunk?.isEmpty?.()) {
                 topEmpty = i;
             } else {
                 break;
@@ -136,5 +136,18 @@ export default class Chunk {
         stream.append(biomeIds);
         stream.writeByte(0); // extra data (MIT)
         return stream.getBuffer();
+    }
+
+    /**
+     * Deserialize network stream into chunk
+     * useful for client applications and/or our leveldb impl
+     *
+     * @param buffer the network stream
+     */
+    public static networkDeserialize(buffer: Buffer): Chunk {
+        const chunk = new Chunk();
+        // TODO
+
+        return chunk;
     }
 }
