@@ -56,7 +56,7 @@ export default class CommandManager {
             const command: Command = new (Command.default || Command)();
 
             try {
-                await this.registerClassCommand(command, this.server);
+                await this.registerClassCommand(command);
             } catch (err) {
                 this.server
                     .getLogger()
@@ -86,7 +86,7 @@ export default class CommandManager {
     /**
      * Register a command into command manager by class.
      */
-    public async registerClassCommand(command: Command, server: Server) {
+    public async registerClassCommand(command: Command) {
         if (command.id.split(':').length !== 2)
             throw new Error(
                 `command is missing required "namespace" part of id`
@@ -104,15 +104,15 @@ export default class CommandManager {
         this.commands.set(command.id, command);
 
         await Promise.all(
-            server
+            this.server
                 .getPlayerManager()
                 .getOnlinePlayers()
-                .map(async (player) => {
-                    await player.getConnection().sendAvailableCommands();
-                })
+                .map(async (player) =>
+                    player.getConnection().sendAvailableCommands()
+                )
         );
 
-        server
+        this.server
             .getLogger()
             .silly(
                 `Command with id §b${command.id}§r registered`,
