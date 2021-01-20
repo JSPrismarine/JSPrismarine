@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.33",
+    "version": "0.1.0-rc.34",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
@@ -103,8 +103,7 @@
             "max-depth": 0,
             "capitalized-comments": 0,
             "no-lonely-if": 0,
-            "guard-for-in": 0,
-            "sort-keys": 1
+            "guard-for-in": 0
         }
     },
     "keywords": [
@@ -170,7 +169,7 @@
         "@types/jest": "26.0.20",
         "@types/jwt-decode": "3.1.0",
         "@types/mock-fs": "4.13.0",
-        "@types/node": "14.14.21",
+        "@types/node": "14.14.22",
         "@types/node-fetch": "2.5.8",
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.3",

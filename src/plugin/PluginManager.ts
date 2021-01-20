@@ -182,11 +182,21 @@ export default class PluginManager {
 
         if (pkg.dependencies)
             await Promise.all(
-                Object.entries(pkg?.dependencies)?.map(async (dependency) => {
+                Object.entries(pkg.dependencies).map(async (dependency) => {
                     const moduleManager = new ModuleManager({
                         cwd: dir,
                         pluginsPath: path.join(dir, 'node_modules')
                     });
+
+                    if (['@jsprismarine/prismarine'].includes(dependency[0])) {
+                        this.server
+                            .getLogger()
+                            .warn(
+                                `plugin §b${pkg.name} ${pkg.version}§r is trying to depend on §5${dependency[0]}§r which should be a dev-dependency!`,
+                                'PluginManager/registerPlugin'
+                            );
+                        return;
+                    }
 
                     try {
                         await moduleManager.installFromNpm(
@@ -210,7 +220,7 @@ export default class PluginManager {
                 })
             );
 
-        if (!pkg?.prismarine?.apiVersion)
+        if (!pkg.prismarine?.apiVersion)
             throw new Error(`apiVersion is missing in package.json!`);
 
         const pluginApiVersion: any = this.getPluginApiVersion(
