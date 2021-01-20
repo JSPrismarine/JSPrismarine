@@ -1,3 +1,4 @@
+import withDeprecated from '../hoc/withDeprecated';
 import Server from '../Server';
 
 export default interface CommandExecuter {
@@ -8,6 +9,10 @@ export default interface CommandExecuter {
         needTranslation?: string
     ): Promise<void>;
     getName(): string;
+    /**
+     * @deprecated use `getName()` instead.
+     */
+    getUsername(): string;
     getFormattedUsername(): string;
     isPlayer(): boolean;
     isOp(): boolean;
