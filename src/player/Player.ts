@@ -17,6 +17,7 @@ import Skin from '../utils/skin/Skin';
 import Vector3 from '../math/Vector3';
 import WindowManager from '../inventory/WindowManager';
 import World from '../world/World';
+import withDeprecated from '../hoc/withDeprecated';
 
 export default class Player extends Human implements CommandExecuter {
     private readonly address: InetAddress;
@@ -198,6 +199,14 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public getName(): string {
+        return this.username.name;
+    }
+
+    /**
+     * @deprecated Use `getName()` instead
+     */
+    @withDeprecated(new Date(1611177755753), 'getName')
+    public getUsername(): string {
         return this.username.name;
     }
 
