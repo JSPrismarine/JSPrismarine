@@ -82,6 +82,7 @@ export default class Server {
     }
 
     private async onEnable(): Promise<void> {
+        this.config.onEnable();
         await BlockMappings.initMappings();
         await this.packetRegistry.onEnable();
         await this.permissionManager.onEnable();
@@ -102,6 +103,7 @@ export default class Server {
         await this.pluginManager.onDisable();
         await this.permissionManager.onDisable();
         await this.packetRegistry.onDisable();
+        this.config.onDisable();
     }
 
     public async reload(): Promise<void> {

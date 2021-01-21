@@ -65,7 +65,10 @@ export default class Listener extends EventEmitter implements RakNetListener {
             } catch (error: any) {
                 this.server
                     .getLogger()
-                    .debug(`Failed to handle an offline packet: ${error}`, 'raknet/Listner/listen');
+                    .silly(
+                        `Failed to handle an offline packet: ${error}`,
+                        'raknet/Listener/listen'
+                    );
             }
         });
 
