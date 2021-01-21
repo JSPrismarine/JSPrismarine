@@ -29,7 +29,7 @@ export default class LevelDB extends BaseProvider {
                     this.getServer()
                         .getLogger()
                         .error(
-                            `please use an older build of JSPrismarine for v(${version}) chunks.`,
+                            `Please use an older build of JSPrismarine for v(${version}) chunks.`,
                             'providers/LevelDB/readChunk'
                         );
                     await this.getServer().kill({ withoutSaving: true });
