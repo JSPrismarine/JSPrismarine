@@ -549,7 +549,9 @@ export default class PlayerConnection {
     }
 
     /**
-     * Spawn the player to another player
+     * Spawn the player for another player
+     *
+     * @param player the player to send the AddPlayerPacket to
      */
     public async sendSpawn(player: Player) {
         if (!player.getUUID()) {
@@ -559,7 +561,7 @@ export default class PlayerConnection {
 
         const pk = new AddPlayerPacket();
         pk.uuid = UUID.fromString(this.player.getUUID()); // TODO: temp solution
-        pk.runtimeEntityId = BigInt(this.player.runtimeId);
+        pk.runtimeEntityId = this.player.runtimeId;
         pk.name = this.player.getName();
 
         pk.positionX = this.player.getX();
