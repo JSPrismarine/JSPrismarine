@@ -16,6 +16,8 @@ export default abstract class BaseProvider implements Provider {
         }
     }
 
+    public async close() {}
+
     public getServer(): Server {
         return this.server;
     }

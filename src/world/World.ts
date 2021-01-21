@@ -405,7 +405,7 @@ export default class World {
 
     public async close(): Promise<void> {
         // TODO: just with db
-        // await this.getProvider().close();
+        await this.getProvider().close();
     }
 
     public getGameruleManager(): GameruleManager {
