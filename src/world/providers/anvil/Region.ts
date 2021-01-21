@@ -70,7 +70,7 @@ export default class Region {
                     const yIndex = section.getByte('Y', 0);
                 }
 
-                const storage = new BlockStorage();
+                const storage = new BlockStorage({});
                 const subChunk = new SubChunk();
                 const chunk = new Chunk(xPos, zPos);
                 this.chunks.set(`${xPos}.${zPos}`, chunk);

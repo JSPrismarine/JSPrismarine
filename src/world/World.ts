@@ -521,50 +521,60 @@ export default class World {
     }
 
     public async savePlayerData(player: Player): Promise<void> {
-        fs.writeFileSync(
-            path.join(
-                process.cwd(),
-                'worlds',
-                this.getName(),
-                'players',
-                `${player.getXUID()}.json`
-            ),
-            JSON.stringify(
-                {
-                    uuid: player.getUUID(),
-                    username: player.getName(),
-                    gamemode: Gamemode.getGamemodeName(
-                        player.gamemode
-                    ).toLowerCase(),
-                    position: {
-                        x: player.getX(),
-                        y: player.getY(),
-                        z: player.getZ(),
-                        pitch: player.pitch,
-                        yaw: player.yaw
-                    },
-                    inventory: player
-                        .getInventory()
-                        .getItems(true)
-                        .map((entry, index) => {
-                            if (!entry) return;
+        try {
+            fs.writeFileSync(
+                path.join(
+                    process.cwd(),
+                    'worlds',
+                    this.getName(),
+                    'players',
+                    `${player.getXUID()}.json`
+                ),
+                JSON.stringify(
+                    {
+                        uuid: player.getUUID(),
+                        username: player.getName(),
+                        gamemode: Gamemode.getGamemodeName(
+                            player.gamemode
+                        ).toLowerCase(),
+                        position: {
+                            x: player.getX(),
+                            y: player.getY(),
+                            z: player.getZ(),
+                            pitch: player.pitch,
+                            yaw: player.yaw
+                        },
+                        inventory: player
+                            .getInventory()
+                            .getItems(true)
+                            .map((entry, index) => {
+                                if (!entry) return;
 
-                            const item = entry.getItem();
-                            const count = entry.getCount();
+                                const item = entry.getItem();
+                                const count = entry.getCount();
 
-                            return {
-                                id: item?.name,
-                                numeric_id: item?.getId(),
-                                numeric_meta: item?.meta,
-                                count,
-                                position: index
-                            };
-                        })
-                        .filter((a) => a && a.numeric_id > 0) as any
-                } as WorldPlayerData,
-                null,
-                4
-            )
-        );
+                                return {
+                                    id: item?.name,
+                                    numeric_id: item?.getId(),
+                                    numeric_meta: item?.meta,
+                                    count,
+                                    position: index
+                                };
+                            })
+                            .filter((a) => a && a.numeric_id > 0) as any
+                    } as WorldPlayerData,
+                    null,
+                    4
+                )
+            );
+        } catch (error) {
+            this.server
+                .getLogger()
+                .error(
+                    `Failed to save player data: ${error}`,
+                    'World/savePlayerData'
+                );
+            this.server.getLogger().silly(error.stack, 'World/savePlayerData');
+        }
     }
 }
