@@ -11,7 +11,7 @@ export default class EncapsulatedPacket {
     // Decoded Encapsulated content
     public buffer!: Buffer;
 
-    // Encapsulation decoded fields
+    // Packet reliability
     public reliability!: number;
 
     // Reliable message number, used to identify reliable messages on the network
@@ -35,13 +35,8 @@ export default class EncapsulatedPacket {
         const packet = new EncapsulatedPacket();
         const header = stream.readByte();
         packet.reliability = (header & 224) >> 5;
-        const split = (header & BitFlags.SPLIT) > 0;
-
-        let length = stream.readShort();
-        length >>= 3;
-        if (length === 0) {
-            throw new Error('Got an empty encapsulated packet');
-        }
+        // Length from bits to bytes
+        const length = stream.readShort() / 8;
 
         if (isReliable(packet.reliability)) {
             packet.messageIndex = stream.readLTriad();
@@ -56,15 +51,14 @@ export default class EncapsulatedPacket {
             packet.orderChannel = stream.readByte();
         }
 
+        const split = (header & BitFlags.SPLIT) > 0;
         if (split) {
             packet.splitCount = stream.readInt();
             packet.splitId = stream.readShort();
             packet.splitIndex = stream.readInt();
         }
 
-        packet.buffer = stream.getBuffer().slice(stream.getOffset());
-        stream.addOffset(length, true);
-
+        packet.buffer = stream.read(length);
         return packet;
     }
 
