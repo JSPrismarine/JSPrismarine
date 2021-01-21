@@ -1,57 +1,39 @@
+import BaseProvider from '../BaseProvider';
 import type Chunk from '../../chunk/Chunk';
-import Provider from '../../Provider';
+import Generator from '../../Generator';
+import Region from './Region';
 import type Server from '../../../Server';
-// import path from 'path';
-/* import fs from 'fs';
-import util from 'util';
-import Zlib from 'zlib';
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from '../../../nbt/ByteOrder';
-import NBTReader from '../../../nbt/NBTReader'; */
+import fs from 'fs';
+import path from 'path';
 
-// const ANVIL_FORMAT = 'mca';
-export default class Anvil extends Provider {
-    // private regionPath: string;
-    // private regions: Map<string, Buffer> = new Map();
+export default class Anvil extends BaseProvider {
+    private regionsPath: string;
+    private cachedRegions: Map<string, Region> = new Map();
 
-    public constructor(folderPath: string) {
-        super(folderPath);
-        // this.regionPath = path.join(this.getPath(), 'region');
+    public constructor(folderPath: string, server: Server) {
+        super(folderPath, server);
+        this.regionsPath = path.join(this.getPath(), 'region');
     }
 
-    public async readChunk({
-        x,
-        z,
-        generator,
-        seed,
-        server
-    }: {
-        x: number;
-        z: number;
-        generator: any;
-        seed: number;
-        server: Server;
-    }): Promise<Chunk | null> {
-        // const regionX = x >> 5,
-        //    regionZ = z >> 5;
-
-        try {
-            /* const regionFile = await fs.promises.readFile(
-                this.getRegionPath(regionX, regionZ)
+    public async readChunk(
+        cx: number,
+        cz: number,
+        seed: number,
+        generator: Generator
+    ): Promise<Chunk> {
+        const [rx, rz] = [cx >> 5, cz >> 5];
+        const id = `r.${rx}.${rz}.mca`;
+        if (!this.cachedRegions.has(id)) {
+            // https://minecraft.gamepedia.com/Region_file_format
+            const region = new Region(
+                await fs.promises.readFile(path.join(this.regionsPath, id))
             );
-            const str = new BinaryStream(regionFile);
-            const decodedFile = await util.promisify(Zlib.deflate)(regionFile);
-            const NBT = new NBTReader(str, ByteOrder.BIG_ENDIAN); */
-        } catch {
-            // TODO: generate new chunks
+            this.cachedRegions.set(id, region);
         }
-        return null;
+
+        const region = this.cachedRegions.get(id)!;
+        return region.getChunk(cx, cz);
     }
 
-    /* private getRegionPath(regionX: number, regionZ: number): string {
-        return path.join(
-            this.regionPath,
-            `r.${regionX}.${regionZ}.${ANVIL_FORMAT}`
-        );
-    } */
+    public async writeChunk(chunk: Chunk) {}
 }

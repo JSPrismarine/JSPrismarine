@@ -9,7 +9,6 @@ const ParseTildeCaretNotation = ({
     type: 'x' | 'y' | 'z';
     source: Entity;
 }): number => {
-    console.log(input);
     if (!input.startsWith('~') && !input.startsWith('^'))
         return Number.parseFloat(input);
 

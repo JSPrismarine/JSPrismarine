@@ -14,7 +14,6 @@ import path from 'path';
 export default class BlockManager {
     private readonly server: Server;
     private readonly blocks = new Map();
-    private readonly runtimeIds: number[] = [];
     private readonly blockPalette: Buffer = Buffer.alloc(0);
 
     private bedrockKnownStates: NBTTagCompound[] = [];
@@ -31,7 +30,6 @@ export default class BlockManager {
     public async onEnable() {
         await this.importBlocks();
         await this.generateBlockPalette();
-        this.generateRuntimeIds();
     }
 
     /**
@@ -45,18 +43,19 @@ export default class BlockManager {
      * Get block by namespaced  id
      */
     public getBlock(name: string): Block {
-        if (!this.blocks.has(name))
+        if (!this.blocks.has(name)) {
             throw new Error(`invalid block with id ${name}`);
-
-        return this.blocks.get(name);
+        }
+        return this.blocks.get(name)!;
     }
 
     /**
      * Get block by numeric id
      */
     public getBlockById(id: number): Block {
-        if (!BlockIdsType[id])
+        if (!BlockIdsType[id]) {
             throw new Error(`invalid block with numeric id ${id}`);
+        }
 
         return this.getBlocks().find((a) => a.getId() === id && a.meta === 0)!;
     }
@@ -72,13 +71,6 @@ export default class BlockManager {
         if (!block)
             throw new Error(`invalid block with numeric id ${id}:${meta}`);
         return block;
-    }
-
-    /**
-     * Get block by runtime id
-     */
-    public getBlockByRuntimeId(id: number, meta = 0): Block {
-        return this.getBlockByIdAndMeta(this.runtimeIds[id], meta);
     }
 
     /**
@@ -283,15 +275,6 @@ export default class BlockManager {
                     `Failed to register blocks: ${error}`,
                     'BlockManager/importBlocks'
                 );
-        }
-    }
-
-    private generateRuntimeIds() {
-        // Randomize runtimeIds to prevent plugin authors (or us) from using it directly.
-        const blocks = this.getBlocks().sort(() => 0.5 - Math.random());
-
-        for (const block of blocks) {
-            this.runtimeIds.push(block.getId());
         }
     }
 }

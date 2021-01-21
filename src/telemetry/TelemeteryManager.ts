@@ -110,6 +110,7 @@ export default class TelemetryManager {
     }
 
     public async sendCrashLog(crashlog: Error, urls: string[]) {
+        console.log(crashlog);
         this.server
             .getLogger()
             .error(

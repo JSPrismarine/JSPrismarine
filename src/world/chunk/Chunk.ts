@@ -1,240 +1,161 @@
-import type Block from '../../block/Block';
-import EmptySubChunk from './EmptySubChunk';
+import BlockMappings, { LegacyId } from '../../block/BlockMappings';
+
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Block from '../../block/Block';
 import SubChunk from './SubChunk';
 
-const BinaryStream = require('@jsprismarine/jsbinaryutils').default;
+const MAX_SUBCHUNKS = 16;
 
-const MaxSubChunks = 16;
 export default class Chunk {
-    /** @type {number} */
-    #x = 0;
-    /** @type {number} */
-    #z = 0;
+    private x: number;
+    private z: number;
 
-    /** @type {boolean} */
-    #hasChanged = false;
+    private subChunks: Map<number, SubChunk> = new Map();
 
-    /** @type {number} */
-    #height: number = MaxSubChunks;
-
-    /**
-     * @type {Map<number, SubChunk>}
-     */
-    #subChunks = new Map();
-
-    /** @type {number[]} */
-    #biomes: any = [];
-
-    // TODO: #tiles = []
-    /** @type {Set<Entity>} */
-    #entities: any = new Set();
-
-    #heightMap: any = [];
-
-    /**
-     * Chunk constructor.
-     *
-     * @param {number} chunkX
-     * @param {number} chunkZ
-     * @param {Map<Number, SubChunk>} subChunks
-     * @param {Entity[]} entities
-     * @param {undefined[]} tiles
-     * @param {number[]} biomes
-     * @param {number[]} heightMap
-     */
     public constructor(
-        chunkX: number,
-        chunkZ: number,
-        subChunks = new Map(),
-        entities: any[] = [],
-        tiles: any[] = [],
-        biomes: number[] = [],
-        heightMap: number[] = []
+        chunkX = 0,
+        chunkZ = 0,
+        subChunks: Map<number, SubChunk> = new Map()
     ) {
-        this.#x = chunkX;
-        this.#z = chunkZ;
+        this.x = chunkX;
+        this.z = chunkZ;
 
-        for (let y = 0; y < this.#height; y++) {
-            this.#subChunks.set(
-                y,
-                subChunks.has(y) ? subChunks.get(y) : new EmptySubChunk()
+        // Initialize all empty subchunks
+        for (let y = 0; y < MAX_SUBCHUNKS; y++) {
+            this.subChunks.set(y, subChunks.get(y) ?? new SubChunk());
+        }
+    }
+
+    public getX(): number {
+        return this.x;
+    }
+
+    public getZ(): number {
+        return this.z;
+    }
+
+    public getHeight(): number {
+        return this.subChunks.size;
+    }
+
+    /**
+     * Returns the highest empty sub chunk (so we don't send empty sub chunks).
+     */
+    public getTopEmpty(): number {
+        let topEmpty = MAX_SUBCHUNKS;
+        for (let i = 0; i <= MAX_SUBCHUNKS; i++) {
+            const subChunk = this.subChunks.get(i)!;
+            if (subChunk?.isEmpty?.()) {
+                topEmpty = i;
+            } else {
+                break;
+            }
+        }
+        return topEmpty;
+    }
+
+    /**
+     * Returns the Chunk slice at given block height.
+     *
+     * @param by - block y
+     */
+    public getSubChunk(by: number): SubChunk {
+        const index = by >> 4; // Block to SubChunk index
+        if (!this.subChunks.has(index)) {
+            throw new Error(
+                `Invalid subchunk height: ${index}, block height: ${by}`
             );
         }
-
-        if (heightMap.length === 256) {
-            this.#heightMap = heightMap;
-        } else {
-            if (heightMap.length !== 0)
-                throw new Error(
-                    `Wrong HeightMap value count, expected 256, got ${heightMap.length}`
-                );
-            this.#heightMap = new Array(256).fill(this.#height * 16);
-        }
-
-        if (biomes.length === 256) {
-            this.#biomes = biomes;
-        } else {
-            if (biomes.length !== 0)
-                throw new Error(
-                    `Wrong Biomes value count, expected 256, got ${biomes.length}`
-                );
-            this.#biomes = new Array(256).fill(0x00);
-        }
+        return this.subChunks.get(index)!;
     }
 
-    public getX() {
-        return this.#x;
+    public getSubChunks(): Map<number, SubChunk> {
+        return this.subChunks;
     }
 
-    public getZ() {
-        return this.#z;
-    }
-
-    public static getIdIndex(x: number, y: number, z: number) {
-        return (x << 12) | (z << 8) | y;
-    }
-
-    public static getBiomeIndex(x: number, z: number) {
-        return z % 16 | x;
-    }
-
-    public static getHeightMapIndex(x: number, z: number) {
-        return z % 16 | x;
-    }
-
-    public setBiomeId(x: number, z: number, biomeId: any) {
-        this.#biomes[Chunk.getBiomeIndex(x, z)] = biomeId & 0xff;
-        this.#hasChanged = true;
-    }
-
-    public getFullBlock(x: number, y: number, z: number) {
-        if (y < 0) throw new Error(`y can't be less than 0`);
-
-        return this.getSubChunk(y >> 4, true).getFullBlock(x, y & 0x0f, z);
-    }
-
-    public getBlockId(x: number, y: number, z: number) {
-        if (y < 0) throw new Error(`y can't be less than 0`);
-
-        return this.getSubChunk(y >> 4, true).getBlockId(x, y & 0x0f, z);
-    }
-
-    public getBlockMetadata(x: number, y: number, z: number) {
-        if (y < 0) throw new Error(`y can't be less than 0`);
-
-        return this.getSubChunk(y >> 4, true).getBlockMetadata(x, y & 0x0f, z);
-    }
-
-    public setBlockId(x: number, y: number, z: number, id: number) {
-        if (y < 0) throw new Error(`y can't be less than 0`);
-
-        this.getSubChunk(y >> 4, true).setBlockId(x, y & 0x0f, z, id);
-        this.#hasChanged = true;
-    }
-
-    public setBlock(x: number, y: number, z: number, block: Block | null) {
-        if (y < 0) throw new Error(`y can't be less than 0`);
-        if (!block) throw new Error(`block can't be undefined or null`);
-
-        this.getSubChunk(y >> 4, true).setBlock(x, y & 0x0f, z, block);
-        this.#hasChanged = true;
-    }
-
-    public getSubChunk(y: number, generateNew = false) {
-        if (y < 0 ?? y >= this.#height) return new EmptySubChunk();
-
-        if (generateNew && this.#subChunks.get(y) instanceof EmptySubChunk)
-            this.#subChunks.set(y, new SubChunk());
-
-        return this.#subChunks.get(y);
-    }
-
-    public getSubChunks() {
-        return this.#subChunks;
-    }
-
-    public setHeightMap(x: number, z: number, value: number) {
-        this.#heightMap[Chunk.getHeightMapIndex(x, z)] = value;
-    }
-
-    public getHighestSubChunkIndex() {
-        for (let y = this.#subChunks.size - 1; y >= 0; --y) {
-            if (this.#subChunks.get(y) instanceof EmptySubChunk) {
-                continue;
-            }
-            return y;
-        }
-
-        return -1;
-    }
-
-    public getHighestBlock(x: number, z: number) {
-        const index = this.getHighestSubChunkIndex();
-        if (index === -1) {
-            return -1;
-        }
-
-        for (let y = index; y >= 0; --y) {
-            const height =
-                this.getSubChunk(y).getHighestBlockAt(x, z) | (y << 4);
-            if (height !== -1) {
-                return height;
-            }
-        }
-
-        return -1;
-    }
-
-    public getSubChunkSendCount() {
-        return this.getHighestSubChunkIndex() + 1;
-    }
-
-    public recalculateHeightMap() {
-        for (let x = 0; x < 16; x++) {
-            for (let z = 0; z < 16; z++) {
-                this.setHeightMap(x, z, this.getHighestBlock(x, z) + 1);
-            }
-        }
+    public getHighestBlockAt(x: number, z: number): number {
+        return 100;
+        // for (let y = this.subChunks.size - 1; y >= 0; y--) {
+        //    const height = this.getSubChunk(y).getHighestBlockAt(x, z) | (y << 4);
+        //    if (height !== -1) {
+        //        return height;
+        //    }
+        // }
+        // return -1;
     }
 
     /**
-     * Returns true if the chunk has been modified.
-     */
-    public hasChanged(): boolean {
-        return this.#hasChanged;
-    }
-
-    public setChanged(bool = true) {
-        this.#hasChanged = bool;
-    }
-
-    /**
-     * Adds an entity into the chunk
+     * Returns block legacy id (DATA) in the corresponding sub chunk.
+     * Use world to get the actual block instance (this is to keep code clean)
      *
-     * @param {Entity} entity
+     * @param bx - block x
+     * @param by - block y
+     * @param bz - block z
+     * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
-    public addEntity(entity: any) {
-        this.#entities.push(entity);
+    public getBlock(bx: number, by: number, bz: number, layer = 0): LegacyId {
+        return this.getSubChunk(by).getBlock(bx, by, bz, layer);
     }
 
-    public getHeightMap() {
-        return this.#heightMap;
+    /**
+     * Sets a block into the chunk by its runtime Id.
+     *
+     * @param bx - block x
+     * @param by - block y
+     * @param bz - block z
+     * @param block - block to set
+     * @param layer - block storage layer (0 for blocks, 1 for liquids)
+     */
+    public setBlock(
+        bx: number,
+        by: number,
+        bz: number,
+        block: Block,
+        layer = 0
+    ): void {
+        this.getSubChunk(by).setBlock(
+            bx,
+            by,
+            bz,
+            BlockMappings.getRuntimeId(block.getId(), block.getMeta()),
+            layer
+        );
     }
 
-    public getBiomes() {
-        return this.#biomes;
-    }
-
-    public toBinary() {
+    public networkSerialize(forceAll = false): Buffer {
         const stream = new BinaryStream();
-        const subChunkCount = this.getSubChunkSendCount();
-        for (let y = 0; y < subChunkCount; ++y) {
-            stream.append(this.#subChunks.get(y).toBinary());
+        // Encode sub chunks
+
+        for (
+            let i = 0;
+            i < (forceAll ? MAX_SUBCHUNKS : this.getTopEmpty());
+            i++
+        ) {
+            const subChunk = this.subChunks.get(i)!;
+            subChunk.networkSerialize(stream);
         }
-        for (const biome of this.#biomes) {
-            stream.writeByte(biome);
+
+        // TODO: biomes
+        const biomeIds = Buffer.alloc(256).fill(0x00);
+        stream.writeUnsignedVarInt(biomeIds.byteLength);
+        stream.append(biomeIds);
+        stream.writeByte(0); // extra data (MIT)
+        return stream.getBuffer();
+    }
+
+    /**
+     * Deserialize network stream into chunk
+     * useful for client applications and/or our leveldb impl
+     *
+     * @param buffer the network stream
+     */
+    public static networkDeserialize(stream: BinaryStream): Chunk {
+        const subChunks: Map<number, SubChunk> = new Map();
+        for (let i = 0; i < MAX_SUBCHUNKS; i++) {
+            subChunks.set(i, SubChunk.networkDeserialize(stream));
         }
-        stream.writeByte(0);
-        return stream.buffer;
+
+        const chunk = new Chunk(undefined, undefined, subChunks);
+        return chunk;
     }
 }

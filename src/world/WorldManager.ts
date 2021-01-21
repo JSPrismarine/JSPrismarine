@@ -1,16 +1,23 @@
 import Anvil from './providers/anvil/Anvil';
 import GeneratorManager from './GeneratorManager';
 import LevelDB from './providers/leveldb/LevelDB';
+import Provider from './providers/Provider';
 import Server from '../Server';
 import World from './World';
 import fs from 'fs';
+
+interface WorldData {
+    seed: number;
+    provider: string;
+    generator: string;
+}
 
 export default class WorldManager {
     private readonly worlds: Map<string, World> = new Map();
     private defaultWorld!: World;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
-    private providers: Map<string, any> = new Map();
+    private providers: Map<string, any> = new Map(); // TODO: this should be a manager
 
     public constructor(server: Server) {
         this.server = server;
@@ -20,12 +27,12 @@ export default class WorldManager {
         if (!fs.existsSync(process.cwd() + '/worlds')) {
             fs.mkdirSync(process.cwd() + '/worlds');
         }
-
-        this.providers.set('LevelDB', LevelDB);
-        this.providers.set('Anvil', Anvil);
     }
 
     public async onEnable(): Promise<void> {
+        this.addProvider('LevelDB', LevelDB);
+        this.addProvider('Anvil', Anvil);
+
         const defaultWorld = this.server.getConfig().getLevelName();
         if (!defaultWorld) {
             this.server
@@ -47,12 +54,45 @@ export default class WorldManager {
                 this.unloadWorld(world.getName())
             )
         );
+        this.providers.clear();
     }
 
     /**
-     * Loads a world by its folder name.
+     * Add a provider to the internal providers map
+     *
+     * @param name the name of the provider CASE SENSITIVE
+     * @param provider the provider
      */
-    public async loadWorld(worldData: any, folderName: string): Promise<World> {
+    public addProvider(name: string, provider: any) {
+        this.providers.set(name, provider);
+    }
+
+    /**
+     * Remove a provider from the internal providers map
+     *
+     * @param name the name of the provider CASE SENSITIVE
+     */
+    public removeProvider(name: string) {
+        this.providers.delete(name);
+    }
+
+    /**
+     * Get all providers
+     */
+    public getProviders(): Map<string, Provider> {
+        return this.providers;
+    }
+
+    /**
+     * Load a world
+     *
+     * @param worldData the world data including provider key, generator
+     * @param folderName the name of the folder containing the world
+     */
+    public async loadWorld(
+        worldData: WorldData,
+        folderName: string
+    ): Promise<World> {
         return new Promise((resolve, reject) => {
             if (this.isWorldLoaded(folderName)) {
                 this.server
@@ -66,8 +106,28 @@ export default class WorldManager {
 
             const levelPath = process.cwd() + `/worlds/${folderName}/`;
             const provider = this.providers.get(
-                worldData.provider || 'LevelDB'
+                worldData.provider ?? 'LevelDB'
             );
+            const generator = this.server
+                .getWorldManager()
+                .getGeneratorManager()
+                .getGenerator(worldData.generator ?? 'overworld');
+
+            if (!provider) {
+                reject(
+                    new Error(`invalid provider with id ${worldData.provider}`)
+                );
+                return;
+            }
+
+            if (!generator) {
+                reject(
+                    new Error(
+                        `invalid generator with id ${worldData.generator}`
+                    )
+                );
+                return;
+            }
 
             // TODO: figure out provider by data
             const world = new World({
@@ -76,7 +136,7 @@ export default class WorldManager {
                 provider: new provider(levelPath, this.server),
 
                 seed: worldData.seed,
-                generator: worldData.generator
+                generator
             });
             this.worlds.set(world.getUniqueId(), world);
 

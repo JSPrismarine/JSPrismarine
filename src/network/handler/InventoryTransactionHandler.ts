@@ -3,6 +3,7 @@ import InventoryTransactionPacket, {
     InventoryTransactionUseItemActionType
 } from '../packet/InventoryTransactionPacket';
 
+import BlockMappings from '../../block/BlockMappings';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import Gamemode from '../../world/Gamemode';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
@@ -41,17 +42,13 @@ export default class InventoryTransactionHandler
 
                                 const id = action.oldItem.id;
                                 const meta = action.oldItem.meta;
+
                                 const item =
                                     server.getItemManager().getItemById(id) ??
                                     server
                                         .getBlockManager()
                                         .getBlockByIdAndMeta(id, meta);
                                 const count = 64;
-
-                                if (!item)
-                                    throw new Error(
-                                        `Invalid item ${id}:${meta}`
-                                    );
 
                                 movedItem = new ContainerEntry({
                                     item,
@@ -114,7 +111,7 @@ export default class InventoryTransactionHandler
                         break;
                     case InventoryTransactionUseItemActionType.ClickAir:
                         break;
-                    case InventoryTransactionUseItemActionType.BreakBlock:
+                    case InventoryTransactionUseItemActionType.BreakBlock: {
                         const chunk = await player
                             .getWorld()
                             .getChunkAt(
@@ -122,44 +119,25 @@ export default class InventoryTransactionHandler
                                 packet.blockPosition.getZ()
                             );
 
-                        // TODO: figure out why blockId sometimes === 0
                         const chunkPos = new Vector3(
-                            packet.blockPosition.getX() % 16,
+                            packet.blockPosition.getX(),
                             packet.blockPosition.getY(),
-                            packet.blockPosition.getZ() % 16
+                            packet.blockPosition.getZ()
                         );
 
-                        const blockId = chunk.getBlockId(
+                        const blockId = chunk.getBlock(
                             chunkPos.getX(),
                             chunkPos.getY(),
                             chunkPos.getZ()
                         );
-                        const blockMeta = chunk.getBlockMetadata(
-                            chunkPos.getX(),
-                            chunkPos.getY(),
-                            chunkPos.getZ()
-                        );
-                        const block = server
-                            .getBlockManager()
-                            .getBlockByIdAndMeta(blockId, blockMeta);
-
-                        if (!block) {
-                            server
-                                .getLogger()
-                                .warn(
-                                    `Block at ${packet.blockPosition.getX()} ${packet.blockPosition.getY()} ${packet.blockPosition.getZ()} is undefined!`,
-                                    'InventoryTransactionHandler/handle/BreakBlock'
-                                );
-                            return;
-                        }
 
                         const pk = new UpdateBlockPacket();
                         pk.x = packet.blockPosition.getX();
                         pk.y = packet.blockPosition.getY();
                         pk.z = packet.blockPosition.getZ();
-                        pk.blockRuntimeId = server
-                            .getBlockManager()
-                            .getRuntimeWithId(0); // Air
+                        // TODO: run a function from block.getBreakConsequences() because
+                        // the broken block may place more blocks or run block related code
+                        pk.blockRuntimeId = BlockMappings.getRuntimeId(0, 0); // Air
 
                         await Promise.all(
                             server
@@ -174,7 +152,7 @@ export default class InventoryTransactionHandler
                             chunkPos.getX(),
                             chunkPos.getY(),
                             chunkPos.getZ(),
-                            server.getBlockManager().getBlock('minecraft:air')
+                            server.getBlockManager().getBlock('minecraft:air')!
                         );
 
                         const soundPk = new LevelSoundEventPacket();
@@ -184,23 +162,27 @@ export default class InventoryTransactionHandler
                         soundPk.positionY = player.getY();
                         soundPk.positionZ = player.getZ();
 
-                        soundPk.extraData = server
-                            .getBlockManager()
-                            .getRuntimeWithMeta(blockId, blockMeta); // In this case refers to block runtime Id
+                        // ? 0 or id & 0xf
+                        soundPk.extraData = BlockMappings.getRuntimeId(
+                            blockId.id,
+                            blockId.meta
+                        ); // In this case refers to block runtime Id
                         soundPk.entityType = ':';
                         soundPk.isBabyMob = false;
                         soundPk.disableRelativeVolume = false;
 
-                        await Promise.all(
-                            player
-                                .getPlayersInChunk()
-                                .map(async (narbyPlayer) =>
-                                    narbyPlayer
-                                        .getConnection()
-                                        .sendDataPacket(soundPk)
-                                )
-                        );
+                        await Promise.all([
+                            player.getPlayersInChunk().map(async (player) => {
+                                await player
+                                    .getConnection()
+                                    .sendDataPacket(soundPk);
+                            }),
+                            player.getPlayersInChunk().map(async (player) => {
+                                await player.getConnection().sendDataPacket(pk);
+                            })
+                        ]);
                         break;
+                    }
                     default:
                         server
                             .getLogger()

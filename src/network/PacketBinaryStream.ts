@@ -1,6 +1,7 @@
 import { Attribute } from '../entity/attribute';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import BlockPosition from '../world/BlockPosition';
+import { ByteOrder } from '../nbt/ByteOrder';
 import CommandOriginData from './type/CommandOriginData';
 import CommandOriginType from './type/CommandOriginType';
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -15,11 +16,13 @@ import ItemStackRequestPlace from './type/itemStackRequest/Place';
 import ItemStackRequestSlotInfo from './type/itemStackRequest/ItemStackRequestSlotInfo';
 import ItemStackRequestSwap from './type/itemStackRequest/Swap';
 import ItemStackRequestTake from './type/itemStackRequest/Take';
+import NBTReader from '../nbt/NBTReader';
 import { PlayerListEntry } from './packet/PlayerListPacket';
 import Skin from '../utils/skin/Skin';
 import SkinImage from '../utils/skin/SkinImage';
 import UUID from '../utils/UUID';
 import Vector3 from '../math/Vector3';
+
 export default class PacketBinaryStream extends BinaryStream {
     /**
      * Returns a string encoded into the buffer.
@@ -348,7 +351,7 @@ export default class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    readItemStack() {
+    public readItemStack() {
         const id = this.readVarInt();
         if (id === 0) {
             // TODO: items
@@ -358,25 +361,23 @@ export default class PacketBinaryStream extends BinaryStream {
             };
         }
 
-        const temporary = this.readVarInt();
-        const meta = temporary >> 8;
+        const temp = this.readVarInt();
+        const amount = temp & 0xff;
+        const data = temp >> 8;
 
-        const extraLength = this.readLShort();
-        if (extraLength === 0xffff) {
-            this.readByte(); // ? nbt version
-            // As i cannot pass offset by reference, i keep it using this binary stream directly
-            /* let stream = new NetworkLittleEndianBinaryStream(
-                this.getBuffer(),
-                this.getOffset()
-            );
-            let decodedNBT = new NBT().readTag(stream, true, true);
-            if (!(decodedNBT instanceof CompoundTag)) {
-                throw new Error('Invalid NBT root tag for itemstack');
+        let nbt = null;
+        const extraLen = this.readLShort();
+        if (extraLen === -1) {
+            const version = this.readByte();
+
+            try {
+                const nbtReader = new NBTReader(this, ByteOrder.LITTLE_ENDIAN);
+                nbtReader.setUseVarint(true);
+                nbt = nbtReader.parse();
+            } catch (e) {
+                throw new Error(`Failed to parse item stack nbt: ${e}`);
+                // TODO: Just log and return AIR
             }
-            nbt = decodedNBT;
-            (this as any).offset = stream.getOffset(); */
-        } else if (extraLength !== 0) {
-            throw new Error(`Invalid NBT itemstack length ${extraLength}`);
         }
 
         const countPlaceOn = this.readVarInt();
@@ -389,18 +390,13 @@ export default class PacketBinaryStream extends BinaryStream {
             this.readString();
         }
 
-        // TODO: check if has other tags
-        /* if (nbt !== null) {
-            if (nbt.hasTag('Damage', IntTag)) {
-
-            }
-        } */
+        // TODO: check if has additional data
 
         // TODO: runtimeId
         // TODO: https://github.com/JSPrismarine/JSPrismarine/issues/106
         return {
             id,
-            meta
+            meta: data
         };
     }
 

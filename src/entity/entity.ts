@@ -44,6 +44,12 @@ export default class Entity extends Position {
         // TODO: level.addEntity(this)
     }
 
+    // public setHealth(health: number): void {
+    //    if (health === this.)
+    // }
+
+    public damage(): void {}
+
     public getServer(): Server {
         return this.server;
     }

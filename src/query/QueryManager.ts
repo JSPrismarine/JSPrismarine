@@ -151,7 +151,6 @@ export default class QueryManager {
                     resolve(res.getBuffer());
                     return;
                 }
-
                 default:
                     throw new Error('Invalid QueryType');
             }
