@@ -43,11 +43,7 @@ export default class PacketBinaryStream extends BinaryStream {
      * Returns a Vector3 encoded into the buffer.
      */
     public readVector3(): Vector3 {
-        return new Vector3(
-            this.readLFloat(),
-            this.readLFloat(),
-            this.readLFloat()
-        );
+        return new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
     }
 
     /**
@@ -69,11 +65,7 @@ export default class PacketBinaryStream extends BinaryStream {
     }
 
     public readBlockPosition(): BlockPosition {
-        return new BlockPosition(
-            this.readVarInt(),
-            this.readUnsignedVarInt(),
-            this.readVarInt()
-        );
+        return new BlockPosition(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt());
     }
 
     public writeBlockPosition(position: BlockPosition): void {
@@ -562,10 +554,7 @@ export default class PacketBinaryStream extends BinaryStream {
         data.uuid = this.readUUID();
         data.requestId = this.readString();
 
-        if (
-            data.type === CommandOriginType.DevConsole ||
-            data.type === CommandOriginType.Test
-        ) {
+        if (data.type === CommandOriginType.DevConsole || data.type === CommandOriginType.Test) {
             data.uniqueEntityId = this.readVarLong();
         }
 

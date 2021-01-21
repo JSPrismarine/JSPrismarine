@@ -5,13 +5,7 @@ export default class UUID {
     private readonly parts: number[] = [];
     private readonly version: number;
 
-    public constructor(
-        part1 = 0,
-        part2 = 0,
-        part3 = 0,
-        part4 = 0,
-        version = 4
-    ) {
+    public constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version = 4) {
         this.parts = [part1, part2, part3, part4];
         this.version = version ?? (this.parts[1] & 0xf000) >> 12;
     }
@@ -29,10 +23,7 @@ export default class UUID {
     public static fromString(uuid: string, version = 4): UUID {
         if (!uuid) throw new Error('uuid is null or undefined');
 
-        return UUID.fromBinary(
-            Buffer.from(uuid.trim().replace(/-/g, ''), 'hex'),
-            version
-        );
+        return UUID.fromBinary(Buffer.from(uuid.trim().replace(/-/g, ''), 'hex'), version);
     }
 
     /**

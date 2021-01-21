@@ -12,11 +12,7 @@ export default class Chunk {
 
     private subChunks: Map<number, SubChunk> = new Map();
 
-    public constructor(
-        chunkX = 0,
-        chunkZ = 0,
-        subChunks: Map<number, SubChunk> = new Map()
-    ) {
+    public constructor(chunkX = 0, chunkZ = 0, subChunks: Map<number, SubChunk> = new Map()) {
         this.x = chunkX;
         this.z = chunkZ;
 
@@ -62,9 +58,7 @@ export default class Chunk {
     public getSubChunk(by: number): SubChunk {
         const index = by >> 4; // Block to SubChunk index
         if (!this.subChunks.has(index)) {
-            throw new Error(
-                `Invalid subchunk height: ${index}, block height: ${by}`
-            );
+            throw new Error(`Invalid subchunk height: ${index}, block height: ${by}`);
         }
         return this.subChunks.get(index)!;
     }
@@ -106,13 +100,7 @@ export default class Chunk {
      * @param block - block to set
      * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
-    public setBlock(
-        bx: number,
-        by: number,
-        bz: number,
-        block: Block,
-        layer = 0
-    ): void {
+    public setBlock(bx: number, by: number, bz: number, block: Block, layer = 0): void {
         this.getSubChunk(by).setBlock(
             bx,
             by,
@@ -126,11 +114,7 @@ export default class Chunk {
         const stream = new BinaryStream();
         // Encode sub chunks
 
-        for (
-            let i = 0;
-            i < (forceAll ? MAX_SUBCHUNKS : this.getTopEmpty());
-            i++
-        ) {
+        for (let i = 0; i < (forceAll ? MAX_SUBCHUNKS : this.getTopEmpty()); i++) {
             const subChunk = this.subChunks.get(i)!;
             subChunk.networkSerialize(stream);
         }

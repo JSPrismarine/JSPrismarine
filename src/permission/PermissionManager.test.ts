@@ -30,9 +30,7 @@ describe('permission', () => {
                     .can({
                         isPlayer: () => true,
                         isOp: () => false,
-                        getPermissions: () => [
-                            'namespace.scope.action.subaction.whoop'
-                        ]
+                        getPermissions: () => ['namespace.scope.action.subaction.whoop']
                     } as any)
                     .execute('namespace.scope.action.subaction')
             ).toBe(false);

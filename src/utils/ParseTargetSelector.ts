@@ -27,8 +27,7 @@ const ParseTargetSelector = ({
     entities: Entity[];
     source: Entity;
 }): Entity[] => {
-    if (!input.startsWith('@'))
-        throw new Error('input does not start with "@"');
+    if (!input.startsWith('@')) throw new Error('input does not start with "@"');
 
     let targets: Entity[] = entities;
 
@@ -78,9 +77,7 @@ const ParseTargetSelector = ({
             targets = [source];
             break;
         default:
-            throw new Error(
-                `type "${type}" is invalid. Expected "a", "e", "p", "r" or "s"`
-            );
+            throw new Error(`type "${type}" is invalid. Expected "a", "e", "p", "r" or "s"`);
     }
 
     args.forEach((filter) => {
@@ -135,9 +132,7 @@ const ParseTargetSelector = ({
 
     switch (sort) {
         case 'nearest':
-            targets = source.getNearestEntity(
-                targets.filter((entity) => entity.isPlayer())
-            );
+            targets = source.getNearestEntity(targets.filter((entity) => entity.isPlayer()));
             break;
         case 'random':
             // FIXME: respect limit filter

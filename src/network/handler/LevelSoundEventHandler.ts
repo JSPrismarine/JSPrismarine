@@ -3,8 +3,7 @@ import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import type Server from '../../Server';
 
-export default class LevelSoundEventHandler
-    implements PacketHandler<LevelSoundEventPacket> {
+export default class LevelSoundEventHandler implements PacketHandler<LevelSoundEventPacket> {
     public async handle(
         packet: LevelSoundEventPacket,
         server: Server,

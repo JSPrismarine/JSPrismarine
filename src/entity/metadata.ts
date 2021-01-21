@@ -43,9 +43,7 @@ export default class MetadataManager {
         [number, bigint | number | boolean | string]
     > = new Map();
 
-    public getPropertyValue(
-        key: number
-    ): bigint | number | boolean | string | null {
+    public getPropertyValue(key: number): bigint | number | boolean | string | null {
         return this.metadata.has(key) ? this.metadata.get(key)![1] : null;
     }
 
@@ -77,10 +75,7 @@ export default class MetadataManager {
         this.setPropertyValue(key, FlagType.FLOAT, value);
     }
 
-    public getMetadata(): Map<
-        number,
-        [number, bigint | number | boolean | string]
-    > {
+    public getMetadata(): Map<number, [number, bigint | number | boolean | string]> {
         return this.metadata;
     }
 }

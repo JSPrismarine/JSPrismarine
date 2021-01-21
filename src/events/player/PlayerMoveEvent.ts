@@ -12,11 +12,7 @@ export default class PlayerMoveEvent extends Event {
     private readonly to: Vector3;
     private readonly mode: MovementType;
 
-    public constructor(
-        player: Player,
-        to: Vector3,
-        mode: MovementType = MovementType.Normal
-    ) {
+    public constructor(player: Player, to: Vector3, mode: MovementType = MovementType.Normal) {
         super();
         this.player = player;
 

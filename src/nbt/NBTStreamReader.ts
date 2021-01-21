@@ -126,11 +126,7 @@ export default class NBTStreamReader {
         return result;
     }
 
-    protected expectInput(
-        remaining: number,
-        message: string,
-        alterAllocationLimit = true
-    ): void {
+    protected expectInput(remaining: number, message: string, alterAllocationLimit = true): void {
         if (alterAllocationLimit) {
             this.alterAllocationLimit(remaining);
         }
@@ -145,9 +141,7 @@ export default class NBTStreamReader {
     public alterAllocationLimit(remaining: number): void {
         if (this.allocateLimit !== -1) {
             if (this.allocateLimit - remaining < 0) {
-                throw new Error(
-                    'Could not allocate more bytes due to reaching the set limit'
-                );
+                throw new Error('Could not allocate more bytes due to reaching the set limit');
             } else {
                 this.allocateLimit -= remaining;
             }

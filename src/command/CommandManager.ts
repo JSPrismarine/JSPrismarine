@@ -1,7 +1,4 @@
-import {
-    ArgumentCommandNode,
-    CommandDispatcher
-} from '@jsprismarine/brigadier';
+import { ArgumentCommandNode, CommandDispatcher } from '@jsprismarine/brigadier';
 
 import Chat from '../chat/Chat';
 import Command from './Command';
@@ -29,28 +26,15 @@ export default class CommandManager {
         const time = Date.now();
 
         const commands = [
-            ...fs
-                .readdirSync(path.join(__dirname, 'vanilla'))
-                .map((a) => `/vanilla/${a}`),
-            ...fs
-                .readdirSync(path.join(__dirname, 'jsprismarine'))
-                .map((a) => `/jsprismarine/${a}`)
+            ...fs.readdirSync(path.join(__dirname, 'vanilla')).map((a) => `/vanilla/${a}`),
+            ...fs.readdirSync(path.join(__dirname, 'jsprismarine')).map((a) => `/jsprismarine/${a}`)
         ];
 
         // Register jsprismarine commands
         commands.forEach(async (id: string) => {
-            if (
-                id.includes('.test.') ||
-                id.includes('.d.ts') ||
-                id.includes('.map')
-            )
-                return; // Exclude test files
+            if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) return; // Exclude test files
 
-            if (
-                !this.server.getConfig().getEnableEval() &&
-                id.includes('EvalCommand')
-            )
-                return;
+            if (!this.server.getConfig().getEnableEval() && id.includes('EvalCommand')) return;
 
             const Command = require(`./${id}`);
             const command: Command = new (Command.default || Command)();
@@ -58,9 +42,7 @@ export default class CommandManager {
             try {
                 await this.registerClassCommand(command);
             } catch (err) {
-                this.server
-                    .getLogger()
-                    .warn(`Failed to register command ${command.id}: ${err}`);
+                this.server.getLogger().warn(`Failed to register command ${command.id}: ${err}`);
                 this.server.getLogger().silly(err.stack);
             }
         });
@@ -68,9 +50,7 @@ export default class CommandManager {
         this.server
             .getLogger()
             .debug(
-                `Registered §b${commands.length}§r commands(s) (took ${
-                    Date.now() - time
-                } ms)!`,
+                `Registered §b${commands.length}§r commands(s) (took ${Date.now() - time} ms)!`,
                 'CommandManager/onEnable'
             );
     }
@@ -88,9 +68,7 @@ export default class CommandManager {
      */
     public async registerClassCommand(command: Command) {
         if (command.id.split(':').length !== 2)
-            throw new Error(
-                `command is missing required "namespace" part of id`
-            );
+            throw new Error(`command is missing required "namespace" part of id`);
 
         if (!command?.register)
             this.server
@@ -107,9 +85,7 @@ export default class CommandManager {
             this.server
                 .getPlayerManager()
                 .getOnlinePlayers()
-                .map(async (player) =>
-                    player.getConnection().sendAvailableCommands()
-                )
+                .map(async (player) => player.getConnection().sendAvailableCommands())
         );
 
         this.server
@@ -131,9 +107,7 @@ export default class CommandManager {
      * Get a list of all command variants
      * EXCLUDING legacy commands
      */
-    public getCommandsList(): Array<
-        [string, CommandNode<CommandExecuter>, CommandArgument[][]]
-    > {
+    public getCommandsList(): Array<[string, CommandNode<CommandExecuter>, CommandArgument[][]]> {
         const parseNode = (node: CommandNode<CommandExecuter>): any[] => {
             if (node.getChildrenCount() <= 0) {
                 return [
@@ -153,10 +127,7 @@ export default class CommandManager {
             return [
                 node.getCommand()
                     ? {
-                          item: (node as ArgumentCommandNode<
-                              any,
-                              any
-                          >).getType(),
+                          item: (node as ArgumentCommandNode<any, any>).getType(),
                           children: []
                       }
                     : undefined,
@@ -169,17 +140,12 @@ export default class CommandManager {
 
         const traverse = (node: any, path: any[] = [], result: any[] = []) => {
             if (!node.children.length) result.push(path.concat(node.item));
-            for (const child of node.children)
-                traverse(child, path.concat(node.item), result);
+            for (const child of node.children) traverse(child, path.concat(node.item), result);
             return result;
         };
 
         const res = Array.from(
-            this.server
-                .getCommandManager()
-                .getDispatcher()
-                .getRoot()
-                .getChildren()
+            this.server.getCommandManager().getDispatcher().getRoot().getChildren()
         )
             .map((command) => {
                 const branches: any[] = [];
@@ -192,11 +158,7 @@ export default class CommandManager {
                     });
                 });
 
-                return branches.map((branch) => [
-                    command.getName(),
-                    command,
-                    branch
-                ]);
+                return branches.map((branch) => [command.getName(), command, branch]);
             })
             .flat()
             .filter((a) => a);
@@ -211,8 +173,7 @@ export default class CommandManager {
                                 .flat(Number.POSITIVE_INFINITY)
                                 .map(
                                     (argument: any) =>
-                                        argument.getReadableType?.() ??
-                                        argument.constructor.name
+                                        argument.getReadableType?.() ?? argument.constructor.name
                                 )
                                 .join(' ')}`;
                         })
@@ -240,17 +201,10 @@ export default class CommandManager {
 
             // Get command from parsed string
             const command = Array.from(this.commands.values()).find(
-                (command) =>
-                    command.id.split(':')[1] === id ||
-                    command.aliases?.includes(id)
+                (command) => command.id.split(':')[1] === id || command.aliases?.includes(id)
             );
 
-            if (
-                !this.server
-                    .getPermissionManager()
-                    .can(sender)
-                    .execute(command?.permission)
-            ) {
+            if (!this.server.getPermissionManager().can(sender).execute(command?.permission)) {
                 await sender.sendMessage(
                     "§cI'm sorry, but you do not have permission to perform this command. " +
                         'Please contact the server administrators if you believe that this is in error.'
@@ -270,20 +224,13 @@ export default class CommandManager {
                 res.push(
                     await command.execute(
                         sender as any,
-                        parsed
-                            .getReader()
-                            .getString()
-                            .replace(`${id} `, '')
-                            .split(' ')
+                        parsed.getReader().getString().replace(`${id} `, '').split(' ')
                     )
                 );
             } else {
                 // Handle aliases
                 if (command?.aliases?.includes(id)) {
-                    await this.dispatchCommand(
-                        sender,
-                        input.replace(id, command.id.split(':')[1])
-                    );
+                    await this.dispatchCommand(sender, input.replace(id, command.id.split(':')[1]));
                     return;
                 }
                 res = await Promise.all(this.dispatcher.execute(parsed));
@@ -292,9 +239,7 @@ export default class CommandManager {
             res.forEach(async (res: any) => {
                 const chat = new Chat(
                     this.server.getConsole(),
-                    `§o§7[${sender.getName()}: ${
-                        res ?? `issued server command: /${input}`
-                    }]§r`,
+                    `§o§7[${sender.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
                     '*.ops'
                 );
 
@@ -303,9 +248,7 @@ export default class CommandManager {
             });
         } catch (error) {
             if (error?.type?.message?.toString?.() === 'Unknown command') {
-                await sender.sendMessage(
-                    `§cUnknown command. Type "/help" for help.`
-                );
+                await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
                 return;
             }
 
@@ -316,9 +259,7 @@ export default class CommandManager {
                     `Player ${sender.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
-            this.server
-                .getLogger()
-                .silly(`${error.stack}`, 'CommandManager/dispatchCommand');
+            this.server.getLogger().silly(`${error.stack}`, 'CommandManager/dispatchCommand');
         }
     }
 }

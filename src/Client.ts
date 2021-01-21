@@ -1,9 +1,6 @@
 import Connection, { Priority } from './network/raknet/Connection';
 import Dgram, { Socket } from 'dgram';
-import {
-    clearIntervalAsync,
-    setIntervalAsync
-} from 'set-interval-async/dynamic';
+import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
 import ConnectionRequest from './network/raknet/protocol/ConnectionRequest';
 import Crypto from 'crypto';
@@ -70,8 +67,7 @@ export default class Client extends EventEmitter implements RakNetListener {
             void this.handle(buffer);
         });
 
-        if (this.connection)
-            throw new Error('Already connected/connecting to server.');
+        if (this.connection) throw new Error('Already connected/connecting to server.');
 
         this.logger.info('JSPrismarine client is now attempting to connect...');
 
@@ -100,10 +96,7 @@ export default class Client extends EventEmitter implements RakNetListener {
                 sendPk.reliability = 0;
                 sendPk.buffer = pk.getBuffer();
 
-                await this.connection!.addEncapsulatedToQueue(
-                    sendPk,
-                    Priority.NORMAL
-                ); // Packet needs to be splitted
+                await this.connection!.addEncapsulatedToQueue(sendPk, Priority.NORMAL); // Packet needs to be splitted
                 this.loginHandled = true;
             }
 
@@ -133,10 +126,7 @@ export default class Client extends EventEmitter implements RakNetListener {
                 this.handleOpenConnectionReply2(buffer);
                 break;
             default:
-                this.logger.warn(
-                    `Unhandled offline packet ID: ${header}`,
-                    'Client/handle'
-                );
+                this.logger.warn(`Unhandled offline packet ID: ${header}`, 'Client/handle');
         }
     }
 
@@ -184,11 +174,7 @@ export default class Client extends EventEmitter implements RakNetListener {
         // Update session status
         this.connecting = true;
         // This.status = ConnectionStatus.Connected;
-        this.connection = new Connection(
-            this,
-            DEF_MTU_SIZE,
-            this.targetAddress
-        );
+        this.connection = new Connection(this, DEF_MTU_SIZE, this.targetAddress);
 
         return packet.getBuffer();
     }

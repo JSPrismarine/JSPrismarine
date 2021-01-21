@@ -8,13 +8,8 @@ import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 
-export default class MovePlayerHandler
-    implements PacketHandler<MovePlayerPacket> {
-    public async handle(
-        packet: MovePlayerPacket,
-        server: Server,
-        player: Player
-    ): Promise<void> {
+export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket> {
+    public async handle(packet: MovePlayerPacket, server: Server, player: Player): Promise<void> {
         // Update movement for every player & interpolate position to smooth it
         const interpolatedVector = d3.interpolateObject(
             { x: player.getX(), z: player.getZ() },
@@ -32,18 +27,14 @@ export default class MovePlayerHandler
         server.getEventManager().post(['playerMove', event]);
         if (event.cancelled) {
             // Reset the player position
-            await player
-                .getConnection()
-                .broadcastMove(player, MovementType.Reset);
+            await player.getConnection().broadcastMove(player, MovementType.Reset);
             return;
         }
 
         // Check if the position has been changed through an event listener
         // if so, reset the player position
         if (!immutableFrom.equals(resultantVector)) {
-            await player
-                .getConnection()
-                .broadcastMove(player, MovementType.Reset);
+            await player.getConnection().broadcastMove(player, MovementType.Reset);
         }
 
         // Position
@@ -61,20 +52,14 @@ export default class MovePlayerHandler
         // We still have some fields
         // at the moment we don't need them
 
-        for (const onlinePlayer of server
-            .getPlayerManager()
-            .getOnlinePlayers()) {
+        for (const onlinePlayer of server.getPlayerManager().getOnlinePlayers()) {
             if (onlinePlayer === player) continue;
-            await onlinePlayer
-                .getConnection()
-                .broadcastMove(player, MovementType.Normal);
+            await onlinePlayer.getConnection().broadcastMove(player, MovementType.Normal);
         }
 
         // TODO: hash
         (async () => {
-            const chunk = await player
-                .getWorld()
-                .getChunkAt(player.getX(), player.getZ());
+            const chunk = await player.getWorld().getChunkAt(player.getX(), player.getZ());
             if (player.currentChunk !== chunk) player.currentChunk = chunk;
         })();
     }

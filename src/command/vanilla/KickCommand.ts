@@ -1,10 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
-import {
-    CommandDispatcher,
-    argument,
-    greedyString,
-    literal
-} from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
 import { CommandArgumentEntity } from '../CommandArguments';
@@ -24,32 +19,22 @@ export default class KickCommand extends Command {
             literal('kick').then(
                 argument('player', new CommandArgumentEntity())
                     .then(
-                        argument('reason', greedyString()).executes(
-                            async (context) => {
-                                const reason = context.getArgument(
-                                    'reason'
-                                ) as string;
-                                const targets = context.getArgument(
-                                    'player'
-                                ) as Player[];
+                        argument('reason', greedyString()).executes(async (context) => {
+                            const reason = context.getArgument('reason') as string;
+                            const targets = context.getArgument('player') as Player[];
 
-                                targets.forEach(async (target) =>
-                                    target.kick(
-                                        `You have been kicked from the server due to: \n\n${reason}!`
-                                    )
-                                );
-                                return `Kicked ${targets
-                                    .map((target) =>
-                                        target.getFormattedUsername()
-                                    )
-                                    .join(', ')} due to: ${reason}!`;
-                            }
-                        )
+                            targets.forEach(async (target) =>
+                                target.kick(
+                                    `You have been kicked from the server due to: \n\n${reason}!`
+                                )
+                            );
+                            return `Kicked ${targets
+                                .map((target) => target.getFormattedUsername())
+                                .join(', ')} due to: ${reason}!`;
+                        })
                     )
                     .executes(async (context) => {
-                        const targets = context.getArgument(
-                            'player'
-                        ) as Player[];
+                        const targets = context.getArgument('player') as Player[];
 
                         targets.forEach(async (target) =>
                             target.kick(`You have been kicked from the server!`)

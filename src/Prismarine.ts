@@ -20,18 +20,16 @@ void updater.check().then(() => {
         logger
     });
 
-    Prismarine.listen(config.getServerIp(), config.getPort()).catch(
-        async (error) => {
-            Prismarine.getLogger().error(
-                `Cannot start the server, is it already running on the same port?`,
-                'Prismarine'
-            );
-            if (error) console.error(error);
+    Prismarine.listen(config.getServerIp(), config.getPort()).catch(async (error) => {
+        Prismarine.getLogger().error(
+            `Cannot start the server, is it already running on the same port?`,
+            'Prismarine'
+        );
+        if (error) console.error(error);
 
-            await Prismarine.kill();
-            process.exit(1);
-        }
-    );
+        await Prismarine.kill();
+        process.exit(1);
+    });
 
     // Kills the server when exiting process
     for (const interruptSignal of ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM']) {

@@ -1,8 +1,4 @@
-import {
-    isReliable,
-    isSequenced,
-    isSequencedOrOrdered
-} from './ReliabilityLayer';
+import { isReliable, isSequenced, isSequencedOrOrdered } from './ReliabilityLayer';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import BitFlags from './BitFlags';

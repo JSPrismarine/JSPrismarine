@@ -29,11 +29,9 @@ export default class TpsCommand extends Command {
                 const history = source.getServer().getAverageTPS();
 
                 await source.sendMessage(
-                    `TPS from last 0m, 1m, 5m, 10m: ${this.formatTPS(
-                        tps
-                    )}, ${this.formatTPS(history.one)}, ${this.formatTPS(
-                        history.five
-                    )}, ${this.formatTPS(history.ten)}`
+                    `TPS from last 0m, 1m, 5m, 10m: ${this.formatTPS(tps)}, ${this.formatTPS(
+                        history.one
+                    )}, ${this.formatTPS(history.five)}, ${this.formatTPS(history.ten)}`
                 );
             })
         );

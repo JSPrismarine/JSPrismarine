@@ -58,9 +58,7 @@ export function EventEmitterishMixin<
 
         on<T extends EventTypes, K extends T[0]>(
             id: K,
-            callback: (
-                event: T extends readonly [K, infer U] ? U : never
-            ) => void
+            callback: (event: T extends readonly [K, infer U] ? U : never) => void
         ): this {
             const { evt, ctx } = instanceProperties.get(this)!;
 
@@ -71,9 +69,7 @@ export function EventEmitterishMixin<
 
         once<T extends EventTypes, K extends T[0]>(
             id: K,
-            callback: (
-                event: T extends readonly [K, infer U] ? U : never
-            ) => void
+            callback: (event: T extends readonly [K, infer U] ? U : never) => void
         ): this {
             const { evt, ctx } = instanceProperties.get(this)!;
 
@@ -84,17 +80,12 @@ export function EventEmitterishMixin<
 
         removeListener<T extends EventTypes, K extends T[0]>(
             id: K,
-            callback: (
-                event: T extends readonly [K, infer U] ? U : never
-            ) => void
+            callback: (event: T extends readonly [K, infer U] ? U : never) => void
         ): this {
             const { ctx } = instanceProperties.get(this)!;
 
             ctx.getHandlers()
-                .filter(
-                    ({ handler }) =>
-                        handler.op === to(id) && handler.callback === callback
-                )
+                .filter(({ handler }) => handler.op === to(id) && handler.callback === callback)
                 .forEach(({ handler }) => handler.detach());
 
             return this;

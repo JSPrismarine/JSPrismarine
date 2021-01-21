@@ -18,21 +18,14 @@ export default class PluginFile {
     private readonly displayName: string;
     private readonly version: string;
 
-    public constructor(
-        server: Server,
-        dir: string,
-        pluginApiVersion: PluginApiVersion
-    ) {
+    public constructor(server: Server, dir: string, pluginApiVersion: PluginApiVersion) {
         this.server = server;
         this.path = dir;
         this.package = require(path.join(this.path, 'package.json'));
 
-        if (!this.package.name)
-            throw new Error('name is missing in package.json!');
-        else if (!this.package.version)
-            throw new Error('version is missing in package.json!');
-        else if (!this.package.main)
-            throw new Error('main is missing in package.json!');
+        if (!this.package.name) throw new Error('name is missing in package.json!');
+        else if (!this.package.version) throw new Error('version is missing in package.json!');
+        else if (!this.package.main) throw new Error('main is missing in package.json!');
         else if (!this.package.prismarine.displayName)
             this.server
                 .getLogger()

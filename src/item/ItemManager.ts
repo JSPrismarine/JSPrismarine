@@ -43,10 +43,7 @@ export default class ItemManager {
     public registerClassItem = (item: Item) => {
         this.server
             .getLogger()
-            .silly(
-                `Item with id §b${item.name}§r registered`,
-                'ItemManager/registerClassItem'
-            );
+            .silly(`Item with id §b${item.name}§r registered`, 'ItemManager/registerClassItem');
         item.setRuntimeId(this.items.size);
         this.items.set(item.name, item);
     };
@@ -59,12 +56,7 @@ export default class ItemManager {
             const time = Date.now();
             const items = fs.readdirSync(path.join(__dirname, 'items'));
             items.forEach((id: string) => {
-                if (
-                    id.includes('.test.') ||
-                    id.includes('.d.ts') ||
-                    id.includes('.map')
-                )
-                    return; // Exclude test files
+                if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) return; // Exclude test files
 
                 const item = require(`./items/${id}`).default;
                 try {
@@ -72,27 +64,19 @@ export default class ItemManager {
                 } catch {
                     this.server
                         .getLogger()
-                        .error(
-                            `${id} failed to register!`,
-                            'ItemManager/importItems'
-                        );
+                        .error(`${id} failed to register!`, 'ItemManager/importItems');
                 }
             });
             this.server
                 .getLogger()
                 .debug(
-                    `Registered §b${items.length}§r item(s) (took ${
-                        Date.now() - time
-                    } ms)!`,
+                    `Registered §b${items.length}§r item(s) (took ${Date.now() - time} ms)!`,
                     'ItemManager/importItems'
                 );
         } catch (error) {
             this.server
                 .getLogger()
-                .error(
-                    `Failed to register items: ${error}`,
-                    'ItemManager/importItems'
-                );
+                .error(`Failed to register items: ${error}`, 'ItemManager/importItems');
         }
     }
 }

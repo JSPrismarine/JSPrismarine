@@ -1,6 +1,4 @@
-import WhiteConcretePowder, {
-    ConcretePowderColorType
-} from './WhiteConcretePowder';
+import WhiteConcretePowder, { ConcretePowderColorType } from './WhiteConcretePowder';
 
 export default class CyanConcrete extends WhiteConcretePowder {
     public constructor() {

@@ -26,9 +26,7 @@ export default class PluginManager {
 
         // Register PluginApiVersion(s)
         let time = Date.now();
-        const pluginApiVersions = fs.readdirSync(
-            path.join(__dirname, 'api/versions')
-        );
+        const pluginApiVersions = fs.readdirSync(path.join(__dirname, 'api/versions'));
         await Promise.all(
             pluginApiVersions.map((id: string) => {
                 try {
@@ -40,9 +38,7 @@ export default class PluginManager {
                             `§cFailed to load pluginApiVersion ${id}: ${error}`,
                             'PluginManager/onEnable'
                         );
-                    this.server
-                        .getLogger()
-                        .silly(error.stack, 'PluginManager/onEnable');
+                    this.server.getLogger().silly(error.stack, 'PluginManager/onEnable');
                     return null;
                 }
             })
@@ -50,9 +46,9 @@ export default class PluginManager {
         this.server
             .getLogger()
             .debug(
-                `Registered §b${
-                    pluginApiVersions.length
-                }§r pluginApiVersion(s) (took ${Date.now() - time} ms)!`,
+                `Registered §b${pluginApiVersions.length}§r pluginApiVersion(s) (took ${
+                    Date.now() - time
+                } ms)!`,
                 'PluginManager/onEnable'
             );
 
@@ -71,9 +67,7 @@ export default class PluginManager {
                                 `§cFailed to load plugin ${id}: ${error}`,
                                 'PluginManager/onEnable'
                             );
-                        this.server
-                            .getLogger()
-                            .silly(error.stack, 'PluginManager/onEnable');
+                        this.server.getLogger().silly(error.stack, 'PluginManager/onEnable');
                     }
                 })
             )
@@ -81,9 +75,7 @@ export default class PluginManager {
         this.server
             .getLogger()
             .debug(
-                `Registered §b${res.length}§r plugin(s) (took ${
-                    Date.now() - time
-                } ms)!`,
+                `Registered §b${res.length}§r plugin(s) (took ${Date.now() - time} ms)!`,
                 'PluginManager/onEnable'
             );
     }
@@ -116,9 +108,7 @@ export default class PluginManager {
                     'PluginManager/registerPluginApiVersion'
                 );
         } catch (err) {
-            this.server
-                .getLogger()
-                .error(err, 'PluginManager/registerPluginApiVersion');
+            this.server.getLogger().error(err, 'PluginManager/registerPluginApiVersion');
             throw new Error('invalid PluginApiVersion');
         }
     }
@@ -137,9 +127,7 @@ export default class PluginManager {
                 return null;
             }
 
-            if (
-                !fs.existsSync(path.join(process.cwd(), '/plugins/.extracted/'))
-            ) {
+            if (!fs.existsSync(path.join(process.cwd(), '/plugins/.extracted/'))) {
                 fs.mkdirSync(path.join(process.cwd(), '/plugins/.extracted/'));
             }
 
@@ -147,10 +135,7 @@ export default class PluginManager {
 
             this.server
                 .getLogger()
-                .silly(
-                    `Extracting plugin with id §b${id}...`,
-                    'PluginManager/registerPlugin'
-                );
+                .silly(`Extracting plugin with id §b${id}...`, 'PluginManager/registerPlugin');
             await fs
                 .createReadStream(path.join(process.cwd(), 'plugins/', id))
                 .pipe(unzipper.Extract({ path: dir }))
@@ -173,8 +158,7 @@ export default class PluginManager {
         const pkg = require(path.join(dir, 'package.json'));
         if (!pkg) throw new Error(`package.json is missing!`);
 
-        if (!pkg.name || !pkg.prismarine)
-            throw new Error(`package.json is invalid!`);
+        if (!pkg.name || !pkg.prismarine) throw new Error(`package.json is invalid!`);
 
         if (!fs.existsSync(path.join(process.cwd(), '/plugins/', pkg.name))) {
             fs.mkdirSync(path.join(process.cwd(), '/plugins/', pkg.name));
@@ -199,10 +183,7 @@ export default class PluginManager {
                     }
 
                     try {
-                        await moduleManager.installFromNpm(
-                            dependency[0],
-                            dependency[1] as string
-                        );
+                        await moduleManager.installFromNpm(dependency[0], dependency[1] as string);
                     } catch (error) {
                         this.server
                             .getLogger()
@@ -210,32 +191,19 @@ export default class PluginManager {
                                 `moduleManager failed with: ${error}`,
                                 'PluginManager/registerPlugin'
                             );
-                        this.server
-                            .getLogger()
-                            .silly(error.stack, 'PluginManager/registerPlugin');
-                        throw new Error(
-                            `Failed to install ${dependency[0]}: ${error}`
-                        );
+                        this.server.getLogger().silly(error.stack, 'PluginManager/registerPlugin');
+                        throw new Error(`Failed to install ${dependency[0]}: ${error}`);
                     }
                 })
             );
 
-        if (!pkg.prismarine?.apiVersion)
-            throw new Error(`apiVersion is missing in package.json!`);
+        if (!pkg.prismarine?.apiVersion) throw new Error(`apiVersion is missing in package.json!`);
 
-        const pluginApiVersion: any = this.getPluginApiVersion(
-            pkg.prismarine.apiVersion
-        );
+        const pluginApiVersion: any = this.getPluginApiVersion(pkg.prismarine.apiVersion);
         if (!pluginApiVersion)
-            throw new Error(
-                `Invalid PluginApiVersion ${pkg.prismarine.apiVersion}!`
-            );
+            throw new Error(`Invalid PluginApiVersion ${pkg.prismarine.apiVersion}!`);
 
-        const plugin = new PluginFile(
-            this.server,
-            dir,
-            new pluginApiVersion(this.server, pkg)
-        );
+        const plugin = new PluginFile(this.server, dir, new pluginApiVersion(this.server, pkg));
 
         try {
             await plugin.onEnable();
@@ -246,9 +214,7 @@ export default class PluginManager {
                     `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
                     'PluginManager/registerPlugin'
                 );
-            this.server
-                .getLogger()
-                .silly(error.stack, 'PluginManager/registerPlugin');
+            this.server.getLogger().silly(error.stack, 'PluginManager/registerPlugin');
             return null;
         }
 
@@ -271,10 +237,7 @@ export default class PluginManager {
         return plugin;
     }
 
-    public async registerClassPlugin(
-        pkg: any,
-        plugin: PluginFile
-    ): Promise<PluginFile | null> {
+    public async registerClassPlugin(pkg: any, plugin: PluginFile): Promise<PluginFile | null> {
         const time = Date.now();
 
         try {

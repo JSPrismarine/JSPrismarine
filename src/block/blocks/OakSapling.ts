@@ -11,10 +11,7 @@ export enum SaplingType {
 }
 
 export default class OakSapling extends Flowable {
-    public constructor(
-        name = 'minecraft:oak_sapling',
-        type: SaplingType = SaplingType.Oak
-    ) {
+    public constructor(name = 'minecraft:oak_sapling', type: SaplingType = SaplingType.Oak) {
         super({
             name,
             id: BlockIdsType.Sapling

@@ -33,13 +33,9 @@ export default class BlockMappings {
             const runtimeId = BlockMappings.runtimeIdAlloc++;
             if (!state.has('LegacyStates')) return;
 
-            const legacyStates: Set<NBTTagCompound> = state.getList(
-                'LegacyStates',
-                false
-            )!;
+            const legacyStates: Set<NBTTagCompound> = state.getList('LegacyStates', false)!;
 
-            const firstState = legacyStates.values().next()
-                .value as NBTTagCompound;
+            const firstState = legacyStates.values().next().value as NBTTagCompound;
             const legacyId = firstState.getNumber('id', 0);
             const legacyMeta = firstState.getShort('val', 0);
 
@@ -56,11 +52,7 @@ export default class BlockMappings {
         });
     }
 
-    private static registerMapping(
-        runtimeId: number,
-        legacyId: number,
-        legacyMeta: number
-    ): void {
+    private static registerMapping(runtimeId: number, legacyId: number, legacyMeta: number): void {
         this.legacyToRuntimeId.set((legacyId << 4) | legacyMeta, runtimeId);
         this.runtimeIdToLegacy.set(runtimeId, (legacyId << 4) | legacyMeta);
     }

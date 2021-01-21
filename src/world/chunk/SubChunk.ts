@@ -41,12 +41,7 @@ export default class SubChunk {
      * @param bz - block z
      * @param layer - block storage layer
      */
-    public getBlock(
-        bx: number,
-        by: number,
-        bz: number,
-        layer: number
-    ): LegacyId {
+    public getBlock(bx: number, by: number, bz: number, layer: number): LegacyId {
         return this.getStorage(layer).getBlock(bx, by & 0xf, bz);
     }
 
@@ -59,13 +54,7 @@ export default class SubChunk {
      * @param runtimeId - block runtime Id
      * @param layer - block storage layer
      */
-    public setBlock(
-        bx: number,
-        by: number,
-        bz: number,
-        runtimeId: number,
-        layer: number
-    ): void {
+    public setBlock(bx: number, by: number, bz: number, runtimeId: number, layer: number): void {
         this.getStorage(layer).setBlock(bx, by & 0xf, bz, runtimeId);
     }
 

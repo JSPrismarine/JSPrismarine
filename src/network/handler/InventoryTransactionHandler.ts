@@ -36,18 +36,14 @@ export default class InventoryTransactionHandler
                             if (action.windowId === 124) {
                                 // from creative inventory
                                 if (player.gamemode !== 1)
-                                    throw new Error(
-                                        `Player isn't in creative mode`
-                                    );
+                                    throw new Error(`Player isn't in creative mode`);
 
                                 const id = action.oldItem.id;
                                 const meta = action.oldItem.meta;
 
                                 const item =
                                     server.getItemManager().getItemById(id) ??
-                                    server
-                                        .getBlockManager()
-                                        .getBlockByIdAndMeta(id, meta);
+                                    server.getBlockManager().getBlockByIdAndMeta(id, meta);
                                 const count = 64;
 
                                 movedItem = new ContainerEntry({
@@ -58,9 +54,7 @@ export default class InventoryTransactionHandler
                             }
 
                             if (action.newItem.id === 0) {
-                                movedItem = player
-                                    .getInventory()
-                                    .getItem(action.slot);
+                                movedItem = player.getInventory().getItem(action.slot);
                                 player.getInventory().removeItem(action.slot);
                                 return;
                             }
@@ -75,9 +69,7 @@ export default class InventoryTransactionHandler
                                 return;
                             }
 
-                            player
-                                .getInventory()
-                                .setItem(action.slot, movedItem);
+                            player.getInventory().setItem(action.slot, movedItem);
                             break;
                         }
                         default:
@@ -114,10 +106,7 @@ export default class InventoryTransactionHandler
                     case InventoryTransactionUseItemActionType.BreakBlock: {
                         const chunk = await player
                             .getWorld()
-                            .getChunkAt(
-                                packet.blockPosition.getX(),
-                                packet.blockPosition.getZ()
-                            );
+                            .getChunkAt(packet.blockPosition.getX(), packet.blockPosition.getZ());
 
                         const chunkPos = new Vector3(
                             packet.blockPosition.getX(),
@@ -143,9 +132,7 @@ export default class InventoryTransactionHandler
                             server
                                 .getPlayerManager()
                                 .getOnlinePlayers()
-                                .map(async (player) =>
-                                    player.getConnection().sendDataPacket(pk)
-                                )
+                                .map(async (player) => player.getConnection().sendDataPacket(pk))
                         );
 
                         chunk.setBlock(
@@ -163,19 +150,14 @@ export default class InventoryTransactionHandler
                         soundPk.positionZ = player.getZ();
 
                         // ? 0 or id & 0xf
-                        soundPk.extraData = BlockMappings.getRuntimeId(
-                            blockId.id,
-                            blockId.meta
-                        ); // In this case refers to block runtime Id
+                        soundPk.extraData = BlockMappings.getRuntimeId(blockId.id, blockId.meta); // In this case refers to block runtime Id
                         soundPk.entityType = ':';
                         soundPk.isBabyMob = false;
                         soundPk.disableRelativeVolume = false;
 
                         await Promise.all([
                             player.getPlayersInChunk().map(async (player) => {
-                                await player
-                                    .getConnection()
-                                    .sendDataPacket(soundPk);
+                                await player.getConnection().sendDataPacket(soundPk);
                             }),
                             player.getPlayersInChunk().map(async (player) => {
                                 await player.getConnection().sendDataPacket(pk);
@@ -197,10 +179,7 @@ export default class InventoryTransactionHandler
             default: {
                 server
                     .getLogger()
-                    .debug(
-                        `Unknown type: ${packet.type}`,
-                        'InventoryTransactionHandler/handle'
-                    );
+                    .debug(`Unknown type: ${packet.type}`, 'InventoryTransactionHandler/handle');
                 throw new Error('Invalid InventoryTransactionType');
             }
         }

@@ -27,9 +27,7 @@ export default class Config {
     public constructor() {
         this.version = pkg.version;
 
-        this.configBuilder = new ConfigBuilder(
-            path.join(process.cwd(), 'config.yaml')
-        );
+        this.configBuilder = new ConfigBuilder(path.join(process.cwd(), 'config.yaml'));
         (global as any).log_level = this.configBuilder.get('log-level', 'info');
 
         this.port = this.configBuilder.get('port', 19132);
@@ -44,10 +42,7 @@ export default class Config {
         });
         this.maxPlayers = this.configBuilder.get('max-players', 20);
         this.gamemode = this.configBuilder.get('gamemode', 'survival');
-        this.motd = this.configBuilder.get(
-            'motd',
-            'Another JSPrismarine server!'
-        );
+        this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!');
         this.viewDistance = this.configBuilder.get('view-distance', 10);
         this.onlineMode = this.configBuilder.get('online-mode', true);
         this.enableEval = this.configBuilder.get('enable-eval', false);
@@ -55,19 +50,10 @@ export default class Config {
         this.telemetryUrls = this.configBuilder.get('telemetry-urls', [
             'https://telemetry.prismarine.dev'
         ]);
-        this.packetCompressionLevel = this.configBuilder.get(
-            'packet-compression-level',
-            7
-        );
+        this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7);
 
-        this.updateRepo = this.configBuilder.get(
-            'update-repo',
-            'JSPrismarine/JSPrismarine'
-        );
-        this.updateChannel = this.configBuilder.get(
-            'update-channel',
-            'release'
-        );
+        this.updateRepo = this.configBuilder.get('update-repo', 'JSPrismarine/JSPrismarine');
+        this.updateChannel = this.configBuilder.get('update-channel', 'release');
     }
 
     public getVersion() {

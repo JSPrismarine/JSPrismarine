@@ -64,12 +64,9 @@ export default class BlockManager {
      * Get block by numeric id and damage value
      */
     public getBlockByIdAndMeta(id: number, meta: number): Block {
-        const block = this.getBlocks().find(
-            (a) => a.id === id && a.meta === meta
-        );
+        const block = this.getBlocks().find((a) => a.id === id && a.meta === meta);
 
-        if (!block)
-            throw new Error(`invalid block with numeric id ${id}:${meta}`);
+        if (!block) throw new Error(`invalid block with numeric id ${id}:${meta}`);
         return block;
     }
 
@@ -88,10 +85,7 @@ export default class BlockManager {
 
             const list: NBTTagCompound[] = [];
             while (!data.feof()) {
-                const reader: NBTReader = new NBTReader(
-                    data,
-                    ByteOrder.LITTLE_ENDIAN
-                );
+                const reader: NBTReader = new NBTReader(data, ByteOrder.LITTLE_ENDIAN);
                 reader.setUseVarint(true);
 
                 list.push(reader.parse());
@@ -100,44 +94,29 @@ export default class BlockManager {
             resolve(list);
         });
 
-        const legacyStateMap: R12ToCurrentBlockMapEntry[] = await new Promise(
-            (resolve) => {
-                const data: BinaryStream = new BinaryStream(
-                    BedrockData.r12_to_current_block_map
-                );
+        const legacyStateMap: R12ToCurrentBlockMapEntry[] = await new Promise((resolve) => {
+            const data: BinaryStream = new BinaryStream(BedrockData.r12_to_current_block_map);
 
-                const reader: NBTReader = new NBTReader(
-                    data,
-                    ByteOrder.LITTLE_ENDIAN
-                );
-                reader.setUseVarint(true);
+            const reader: NBTReader = new NBTReader(data, ByteOrder.LITTLE_ENDIAN);
+            reader.setUseVarint(true);
 
-                const list: R12ToCurrentBlockMapEntry[] = [];
-                while (!data.feof()) {
-                    const id: string = data
-                        .read(data.readUnsignedVarInt())
-                        .toString('utf8'); // readString
-                    const meta: number = data.readLShort();
+            const list: R12ToCurrentBlockMapEntry[] = [];
+            while (!data.feof()) {
+                const id: string = data.read(data.readUnsignedVarInt()).toString('utf8'); // readString
+                const meta: number = data.readLShort();
 
-                    const state: NBTTagCompound = reader.parse();
+                const state: NBTTagCompound = reader.parse();
 
-                    list.push(new R12ToCurrentBlockMapEntry(id, meta, state));
-                }
-
-                resolve(list);
+                list.push(new R12ToCurrentBlockMapEntry(id, meta, state));
             }
-        );
 
-        const idToStatesMap: Map<string, number[]> = new Map<
-            string,
-            number[]
-        >();
+            resolve(list);
+        });
+
+        const idToStatesMap: Map<string, number[]> = new Map<string, number[]>();
 
         for (let k = 0; k < this.bedrockKnownStates.length; k++) {
-            const name: string = this.bedrockKnownStates[k].getString(
-                'name',
-                ''
-            );
+            const name: string = this.bedrockKnownStates[k].getString('name', '');
 
             if (!idToStatesMap.has(name)) {
                 idToStatesMap.set(name, [k]);
@@ -158,9 +137,7 @@ export default class BlockManager {
             const mappedState: NBTTagCompound = pair.getBlockState();
             const mappedName: string = mappedState.getString('name', '');
             if (!idToStatesMap.has(mappedName)) {
-                throw new Error(
-                    `${mappedName} does not appear in network table`
-                );
+                throw new Error(`${mappedName} does not appear in network table`);
             }
 
             for (const runtimeId of idToStatesMap.get(mappedName)!) {
@@ -181,9 +158,7 @@ export default class BlockManager {
         if (!this.legacyToRuntimeId.has((id << 4) | meta)) {
             runtimeId = this.legacyToRuntimeId.get(id << 4);
             if (!this.legacyToRuntimeId.has(id << 4)) {
-                runtimeId = this.legacyToRuntimeId.get(
-                    BlockIdsType.InfoUpdate << 4
-                );
+                runtimeId = this.legacyToRuntimeId.get(BlockIdsType.InfoUpdate << 4);
             }
         }
 
@@ -224,10 +199,7 @@ export default class BlockManager {
         // starting from 0.
         this.server
             .getLogger()
-            .silly(
-                `Block with id §b${block.name}§r registered`,
-                'BlockManager/registerClassBlock'
-            );
+            .silly(`Block with id §b${block.name}§r registered`, 'BlockManager/registerClassBlock');
         this.blocks.set(block.name, block);
     }
 
@@ -240,11 +212,7 @@ export default class BlockManager {
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             await Promise.all(
                 blocks.map(async (id: string) => {
-                    if (
-                        id.includes('.test.') ||
-                        id.includes('.d.ts') ||
-                        id.includes('.map')
-                    )
+                    if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map'))
                         return; // Exclude test files
 
                     const block = require(`./blocks/${id}`).default;
@@ -253,28 +221,20 @@ export default class BlockManager {
                     } catch {
                         this.server
                             .getLogger()
-                            .error(
-                                `${id} failed to register!`,
-                                'BlockManager/importBlocks'
-                            );
+                            .error(`${id} failed to register!`, 'BlockManager/importBlocks');
                     }
                 })
             );
             this.server
                 .getLogger()
                 .debug(
-                    `Registered §b${this.blocks.size}§r block(s) (took ${
-                        Date.now() - time
-                    } ms)!`,
+                    `Registered §b${this.blocks.size}§r block(s) (took ${Date.now() - time} ms)!`,
                     'BlockManager/importBlocks'
                 );
         } catch (error) {
             this.server
                 .getLogger()
-                .error(
-                    `Failed to register blocks: ${error}`,
-                    'BlockManager/importBlocks'
-                );
+                .error(`Failed to register blocks: ${error}`, 'BlockManager/importBlocks');
         }
     }
 }

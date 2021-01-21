@@ -97,9 +97,7 @@ describe('network', () => {
                         }
                     }),
                     kick: (message: any) => {
-                        expect(message).toBe(
-                            'You have been banned for reason: a reason!'
-                        );
+                        expect(message).toBe('You have been banned for reason: a reason!');
                         done();
                     }
                 } as any;

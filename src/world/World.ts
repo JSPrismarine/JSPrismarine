@@ -74,9 +74,7 @@ export default class World {
         this.getGameruleManager().setGamerule(GameRules.ShowCoordinates, true);
 
         // Create player data folder
-        if (
-            !fs.existsSync(path.join(process.cwd(), 'worlds', name, '/players'))
-        ) {
+        if (!fs.existsSync(path.join(process.cwd(), 'worlds', name, '/players'))) {
             fs.mkdirSync(path.join(process.cwd(), 'worlds', name, '/players'));
         }
     }
@@ -98,9 +96,7 @@ export default class World {
         }
 
         await Promise.all(chunksToLoad);
-        this.server
-            .getLogger()
-            .info(`(took ${Date.now() - time} ms)`, 'World/onEnable');
+        this.server.getLogger().info(`(took ${Date.now() - time} ms)`, 'World/onEnable');
     }
 
     public getGenerator(): Generator {
@@ -143,21 +139,9 @@ export default class World {
      * @param bz - block z
      * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
-    public async getBlock(
-        bx: number,
-        by: number,
-        bz: number,
-        layer = 0
-    ): Promise<Block> {
-        const blockId = (await this.getChunkAt(bx, bz)).getBlock(
-            bx,
-            by,
-            bz,
-            layer
-        );
-        return this.server
-            .getBlockManager()
-            .getBlockByIdAndMeta(blockId.id, blockId.meta);
+    public async getBlock(bx: number, by: number, bz: number, layer = 0): Promise<Block> {
+        const blockId = (await this.getChunkAt(bx, bz)).getBlock(bx, by, bz, layer);
+        return this.server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
     }
 
     /**
@@ -181,12 +165,7 @@ export default class World {
     public async loadChunk(cx: number, cz: number): Promise<void> {
         const index = CoordinateUtils.encodePos(cx, cz);
         // Try - catch for provider errors
-        const chunk = await this.provider.readChunk(
-            cx,
-            cz,
-            this.seed,
-            this.generator
-        );
+        const chunk = await this.provider.readChunk(cx, cz, this.seed, this.generator);
         this.chunks.set(index, chunk);
     }
 
@@ -197,11 +176,7 @@ export default class World {
      * @param worldEvent - event identifier
      * @param data
      */
-    public sendWorldEvent(
-        position: Vector3 | null,
-        worldEvent: number,
-        data: number
-    ): void {
+    public sendWorldEvent(position: Vector3 | null, worldEvent: number, data: number): void {
         const worldEventPacket = new WorldEventPacket();
         worldEventPacket.eventId = worldEvent;
         worldEventPacket.data = data;
@@ -250,19 +225,14 @@ export default class World {
         const block = itemInHand; // TODO: get block from itemInHand
         const blockId = (
             await this.getChunkAt(blockPosition.getX(), blockPosition.getZ())
-        ).getBlock(
-            blockPosition.getX(),
-            blockPosition.getY(),
-            blockPosition.getZ()
-        );
+        ).getBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
 
         const clickedBlock = this.server
             .getBlockManager()
             .getBlockByIdAndMeta(blockId.id, blockId.meta);
 
         if (!block || !clickedBlock) return;
-        if (clickedBlock.getName() === 'minecraft:air' || !block.canBePlaced())
-            return;
+        if (clickedBlock.getName() === 'minecraft:air' || !block.canBePlaced()) return;
 
         const placedPosition = new Vector3(
             blockPosition.getX(),
@@ -299,10 +269,7 @@ export default class World {
 
         const success: boolean = await new Promise(async (resolve) => {
             try {
-                const chunk = await this.getChunkAt(
-                    placedPosition.getX(),
-                    placedPosition.getZ()
-                );
+                const chunk = await this.getChunkAt(placedPosition.getX(), placedPosition.getZ());
 
                 chunk.setBlock(
                     placedPosition.getX(),
@@ -316,9 +283,7 @@ export default class World {
                 player
                     .getServer()
                     .getLogger()
-                    .warn(
-                        `${player.getName()} failed to place block due to ${error}`
-                    );
+                    .warn(`${player.getName()} failed to place block due to ${error}`);
                 await player.sendMessage(error?.message);
 
                 resolve(false);
@@ -336,10 +301,7 @@ export default class World {
             return;
         }
 
-        const runtimeId = BlockMappings.getRuntimeId(
-            block.getId(),
-            block.getMeta()
-        );
+        const runtimeId = BlockMappings.getRuntimeId(block.getId(), block.getMeta());
 
         const blockUpdate = new UpdateBlockPacket();
         blockUpdate.x = placedPosition.getX();
@@ -371,9 +333,7 @@ export default class World {
         await Promise.all(
             player
                 .getPlayersInChunk()
-                .map(async (narbyPlayer) =>
-                    narbyPlayer.getConnection().sendDataPacket(pk)
-                )
+                .map(async (narbyPlayer) => narbyPlayer.getConnection().sendDataPacket(pk))
         );
     }
 
@@ -403,10 +363,7 @@ export default class World {
      * entity.isPlayer() functions.
      */
     public getEntities(): Entity[] {
-        return [
-            ...Array.from(this.entities.values()),
-            ...Array.from(this.players.values())
-        ];
+        return [...Array.from(this.entities.values()), ...Array.from(this.players.values())];
     }
 
     /**
@@ -431,13 +388,9 @@ export default class World {
         this.server.getLogger().debug('[World save] saving chunks...');
         const promises: Array<Promise<void>> = [];
         await Promise.all(
-            Array.from(this.chunks.values()).map(async (chunk) =>
-                this.provider.writeChunk(chunk)
-            )
+            Array.from(this.chunks.values()).map(async (chunk) => this.provider.writeChunk(chunk))
         );
-        this.server
-            .getLogger()
-            .debug('[World save] took ' + (Date.now() - time) + 'ms');
+        this.server.getLogger().debug('[World save] took ' + (Date.now() - time) + 'ms');
     }
 
     public async save(): Promise<void> {
@@ -534,9 +487,7 @@ export default class World {
                     {
                         uuid: player.getUUID(),
                         username: player.getName(),
-                        gamemode: Gamemode.getGamemodeName(
-                            player.gamemode
-                        ).toLowerCase(),
+                        gamemode: Gamemode.getGamemodeName(player.gamemode).toLowerCase(),
                         position: {
                             x: player.getX(),
                             y: player.getY(),
@@ -570,10 +521,7 @@ export default class World {
         } catch (error) {
             this.server
                 .getLogger()
-                .error(
-                    `Failed to save player data: ${error}`,
-                    'World/savePlayerData'
-                );
+                .error(`Failed to save player data: ${error}`, 'World/savePlayerData');
             this.server.getLogger().silly(error.stack, 'World/savePlayerData');
         }
     }

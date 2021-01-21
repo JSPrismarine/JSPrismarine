@@ -50,10 +50,7 @@ export default class Connection {
     private offlineMode: boolean;
 
     // Map holding splits of split packets
-    private readonly splitPackets: Map<
-        number,
-        Map<number, EncapsulatedPacket>
-    > = new Map();
+    private readonly splitPackets: Map<number, Map<number, EncapsulatedPacket>> = new Map();
 
     // Map holding out of order reliable packets
     // private reliableMissing: Map<number, EncapsulatedPacket> = new Map();
@@ -211,11 +208,7 @@ export default class Connection {
         // Check if the sequence has a hole due to a lost packet
         if (diff !== 1) {
             // As i said before, there we search for missing packets in the list of the recieved ones
-            for (
-                let i = this.lastSequenceNumber + 1;
-                i < dataPacket.sequenceNumber;
-                i++
-            ) {
+            for (let i = this.lastSequenceNumber + 1; i < dataPacket.sequenceNumber; i++) {
                 // Adding the packet sequence number to the NACK queue and then sending a NACK
                 // will make the Client sending again the lost packet
                 if (!this.receivedSeqNumbers.has(i)) {
@@ -297,10 +290,7 @@ export default class Connection {
         }
     }
 
-    public async addEncapsulatedToQueue(
-        packet: EncapsulatedPacket,
-        flags = Priority.NORMAL
-    ) {
+    public async addEncapsulatedToQueue(packet: EncapsulatedPacket, flags = Priority.NORMAL) {
         if (isReliable(packet.reliability)) {
             packet.messageIndex = this.sendReliableIndex++;
 
@@ -318,10 +308,7 @@ export default class Connection {
 
             while (index < packet.buffer.length) {
                 // Push format: [chunk index: int, chunk: buffer]
-                buffers.set(
-                    splitIndex++,
-                    packet.buffer.slice(index, (index += this.mtuSize))
-                );
+                buffers.set(splitIndex++, packet.buffer.slice(index, (index += this.mtuSize)));
             }
 
             for (const [index, buffer] of buffers) {
@@ -392,9 +379,7 @@ export default class Connection {
         if (id < 0x80) {
             if (this.state === Status.CONNECTING) {
                 if (id === Identifiers.ConnectionRequestAccepted) {
-                    const dataPacket = new ConnectionRequestAccepted(
-                        packet.buffer
-                    );
+                    const dataPacket = new ConnectionRequestAccepted(packet.buffer);
                     dataPacket.decode();
 
                     const pk = new NewIncomingConnection();
@@ -409,9 +394,7 @@ export default class Connection {
 
                     await this.addToQueue(sendPk, Priority.IMMEDIATE);
                 } else if (id === Identifiers.ConnectionRequest) {
-                    const encapsulated = await this.handleConnectionRequest(
-                        packet.buffer
-                    );
+                    const encapsulated = await this.handleConnectionRequest(packet.buffer);
                     await this.addToQueue(encapsulated, Priority.IMMEDIATE);
                 } else if (id === Identifiers.NewIncomingConnection) {
                     const dataPacket = new NewIncomingConnection(packet.buffer);
@@ -421,10 +404,7 @@ export default class Connection {
                     const offlineMode = this.offlineMode;
 
                     const serverPort = this.listener.getSocket().address().port;
-                    if (
-                        !offlineMode ??
-                        dataPacket.address.getPort() === serverPort
-                    ) {
+                    if (!offlineMode ?? dataPacket.address.getPort() === serverPort) {
                         this.state = Status.CONNECTED;
                         this.listener.emit('openConnection', this);
                     }
@@ -432,9 +412,7 @@ export default class Connection {
             } else if (id === Identifiers.DisconnectNotification) {
                 this.disconnect('client disconnect');
             } else if (id === Identifiers.ConnectedPing) {
-                const encapsulated = await this.handleConnectedPing(
-                    packet.buffer
-                );
+                const encapsulated = await this.handleConnectedPing(packet.buffer);
                 await this.addToQueue(encapsulated);
             }
         } else if (this.state === Status.CONNECTED) {
@@ -443,9 +421,7 @@ export default class Connection {
     }
 
     // Async encapsulated handlers
-    public async handleConnectionRequest(
-        buffer: Buffer
-    ): Promise<EncapsulatedPacket> {
+    public async handleConnectionRequest(buffer: Buffer): Promise<EncapsulatedPacket> {
         const dataPacket = new ConnectionRequest(buffer);
         dataPacket.decode();
 
@@ -462,9 +438,7 @@ export default class Connection {
         return sendPacket;
     }
 
-    public async handleConnectedPing(
-        buffer: Buffer
-    ): Promise<EncapsulatedPacket> {
+    public async handleConnectedPing(buffer: Buffer): Promise<EncapsulatedPacket> {
         const dataPacket = new ConnectedPing(buffer);
         dataPacket.decode();
 
@@ -489,10 +463,7 @@ export default class Connection {
             value.set(packet.splitIndex, packet);
             this.splitPackets.set(packet.splitId, value);
         } else {
-            this.splitPackets.set(
-                packet.splitId,
-                new Map([[packet.splitIndex, packet]])
-            );
+            this.splitPackets.set(packet.splitId, new Map([[packet.splitIndex, packet]]));
         }
 
         // If we have all pieces, put them together
@@ -515,10 +486,7 @@ export default class Connection {
             this.sendQueue.sequenceNumber = this.sendSequenceNumber++;
             await this.sendPacket(this.sendQueue);
             this.sendQueue.sendTime = Date.now();
-            this.recoveryQueue.set(
-                this.sendQueue.sequenceNumber,
-                this.sendQueue
-            );
+            this.recoveryQueue.set(this.sendQueue.sequenceNumber, this.sendQueue);
             this.sendQueue = new DataPacket();
         }
     }
@@ -534,9 +502,7 @@ export default class Connection {
     }
 
     public async close() {
-        const stream = new BinaryStream(
-            Buffer.from('\u0000\u0000\u0008\u0015', 'binary')
-        );
+        const stream = new BinaryStream(Buffer.from('\u0000\u0000\u0008\u0015', 'binary'));
         await this.addEncapsulatedToQueue(
             EncapsulatedPacket.fromBinary(stream),
             Priority.IMMEDIATE

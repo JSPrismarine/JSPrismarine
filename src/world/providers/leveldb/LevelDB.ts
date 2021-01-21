@@ -22,18 +22,12 @@ export default class LevelDB extends BaseProvider {
         generator: Generator
     ): Promise<Chunk> {
         try {
-            const version = Number(
-                await this.storage.get(`${LevelDB.chunkIndex(cx, cz)}v`)
-            );
+            const version = Number(await this.storage.get(`${LevelDB.chunkIndex(cx, cz)}v`));
 
             if (version !== 8)
-                throw new Error(
-                    `version of chunk is either too new or too old (${version})`
-                );
+                throw new Error(`version of chunk is either too new or too old (${version})`);
 
-            const buffer = Buffer.from(
-                await this.storage.get(LevelDB.chunkIndex(cx, cz))
-            );
+            const buffer = Buffer.from(await this.storage.get(LevelDB.chunkIndex(cx, cz)));
             const chunk = Chunk.networkDeserialize(new BinaryStream(buffer));
             (chunk as any).x = cx;
             (chunk as any).z = cz;

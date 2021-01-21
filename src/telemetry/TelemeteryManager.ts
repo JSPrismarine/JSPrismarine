@@ -43,9 +43,7 @@ export default class TelemetryManager {
                 'TelemetryManager/onEnable'
             );
         this.urls.forEach((url) => {
-            this.server
-                .getLogger()
-                .info(`- ${url}/id/${this.id}`, 'TelemetryManager/onEnable');
+            this.server.getLogger().info(`- ${url}/id/${this.id}`, 'TelemetryManager/onEnable');
         });
 
         await this.tick();
@@ -65,8 +63,7 @@ export default class TelemetryManager {
                 this.server.getQueryManager().git_rev
             }`,
             online_mode: this.server.getConfig().getOnlineMode(),
-            player_count:
-                this.server.getRaknet()?.getName().getOnlinePlayerCount() || 0,
+            player_count: this.server.getRaknet()?.getName().getOnlinePlayerCount() || 0,
             max_player_count: this.server.getConfig().getMaxPlayers(),
             plugins: this.server
                 .getPluginManager()
@@ -90,16 +87,11 @@ export default class TelemetryManager {
                             'Content-Type': 'application/json'
                         })
                     });
-                    this.server
-                        .getLogger()
-                        .silly('Sent heartbeat', 'TelemetryManager/tick');
+                    this.server.getLogger().silly('Sent heartbeat', 'TelemetryManager/tick');
                 } catch (error) {
                     this.server
                         .getLogger()
-                        .warn(
-                            `Failed to tick: ${url} (${error})`,
-                            'TelemetryManager/tick'
-                        );
+                        .warn(`Failed to tick: ${url} (${error})`, 'TelemetryManager/tick');
                 }
             })
         );
@@ -162,9 +154,7 @@ export default class TelemetryManager {
                 'TelemetryManager/sendCrashLog'
             );
         links.forEach((url) => {
-            this.server
-                .getLogger()
-                .error(`- ${url}`, 'TelemetryManager/sendCrashLog');
+            this.server.getLogger().error(`- ${url}`, 'TelemetryManager/sendCrashLog');
         });
     }
 }
