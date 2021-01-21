@@ -24,8 +24,21 @@ export default class LevelDB extends BaseProvider {
         try {
             const version = Number(await this.storage.get(`${LevelDB.chunkIndex(cx, cz)}v`));
 
-            if (version !== 8)
-                throw new Error(`version of chunk is either too new or too old (${version})`);
+            switch (version) {
+                case 7:
+                    this.getServer()
+                        .getLogger()
+                        .error(
+                            `please use an older build of JSPrismarine for v(${version}) chunks.`,
+                            'providers/LevelDB/readChunk'
+                        );
+                    await this.getServer().kill({ withoutSaving: true });
+                    break;
+                case 8:
+                    break;
+                default:
+                    throw new Error(`version of chunk is either too new or too old (${version})`);
+            }
 
             const buffer = Buffer.from(await this.storage.get(LevelDB.chunkIndex(cx, cz)));
             const chunk = Chunk.networkDeserialize(new BinaryStream(buffer));

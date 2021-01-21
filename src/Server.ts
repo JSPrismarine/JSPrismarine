@@ -351,7 +351,7 @@ export default class Server {
     /**
      * Kills the server asynchronously.
      */
-    public async kill(): Promise<void> {
+    public async kill(options?: { withoutSaving: boolean }): Promise<void> {
         try {
             // Kick all online players
             for (const player of this.getPlayerManager().getOnlinePlayers()) {
@@ -359,10 +359,11 @@ export default class Server {
             }
 
             // Save all worlds
-            for (const world of this.getWorldManager().getWorlds()) {
-                await world.save();
-                await world.close();
-            }
+            if (!options?.withoutSaving)
+                for (const world of this.getWorldManager().getWorlds()) {
+                    await world.save();
+                    await world.close();
+                }
 
             await this.worldManager.onDisable();
             await this.onDisable();
