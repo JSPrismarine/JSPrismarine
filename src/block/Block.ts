@@ -6,7 +6,6 @@ import Server from '../Server';
 
 export default class Block {
     public id: number;
-    public runtimeId?: number;
     public name: string;
     public hardness: number;
     public meta = 0;
@@ -48,22 +47,6 @@ export default class Block {
      */
     public getId() {
         return this.id;
-    }
-
-    /**
-     * Get the Block's runtime id
-     */
-    public getRuntimeId() {
-        return this.runtimeId;
-    }
-
-    /**
-     * Set the Block's runtime id
-     *
-     * WARNING: this should ONLY be used internally by the BlockManager class
-     */
-    public setRuntimeId(id: number) {
-        this.runtimeId = id;
     }
 
     /**

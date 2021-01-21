@@ -1,6 +1,7 @@
 import BanManager from './ban/BanManager';
 import BatchPacket from './network/packet/BatchPacket';
 import BlockManager from './block/BlockManager';
+import BlockMappings from './block/BlockMappings';
 import Chat from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
 import ChatManager from './chat/ChatManager';
@@ -82,10 +83,12 @@ export default class Server {
         this.chatManager = new ChatManager(this);
         this.permissionManager = new PermissionManager(this);
         this.banManager = new BanManager(this);
+
         Server.instance = this;
     }
 
     private async onEnable(): Promise<void> {
+        await BlockMappings.initMappings();
         await this.packetRegistry.onEnable();
         await this.permissionManager.onEnable();
         await this.pluginManager.onEnable();

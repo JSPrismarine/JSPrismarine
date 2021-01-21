@@ -30,6 +30,7 @@ import CreativeContentPacket from '../network/packet/CreativeContentPacket';
 import DataPacket from '../network/packet/DataPacket';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
+import Gamemode from '../world/Gamemode';
 import IntegerArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/IntegerArgumentType';
 import InventoryContentPacket from '../network/packet/InventoryContentPacket';
 import Item from '../item/Item';
@@ -112,10 +113,16 @@ export default class PlayerConnection {
             AdventureSettingsFlags.WorldImmutable,
             target.gamemode === 3
         );
-        pk.setFlag(AdventureSettingsFlags.NoPvp, target.gamemode === 3);
+        pk.setFlag(
+            AdventureSettingsFlags.NoPvp,
+            target.gamemode === Gamemode.Spectator
+        );
         pk.setFlag(AdventureSettingsFlags.AutoJump, true); // TODO
         pk.setFlag(AdventureSettingsFlags.AllowFlight, target.getAllowFlight());
-        pk.setFlag(AdventureSettingsFlags.NoClip, target.gamemode === 3);
+        pk.setFlag(
+            AdventureSettingsFlags.NoClip,
+            target.gamemode === Gamemode.Spectator
+        );
         pk.setFlag(AdventureSettingsFlags.Flying, target.isFlying());
 
         pk.commandPermission = target.isOp()
@@ -149,10 +156,9 @@ export default class PlayerConnection {
                 sendZChunk <= viewDistance;
                 sendZChunk++
             ) {
-                const distance = Math.sqrt(
-                    sendZChunk * sendZChunk + sendXChunk * sendXChunk
+                const chunkDistance = Math.round(
+                    Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk)
                 );
-                const chunkDistance = Math.round(distance);
 
                 if (chunkDistance <= viewDistance) {
                     const newChunk = [
@@ -496,8 +502,8 @@ export default class PlayerConnection {
         const pk = new LevelChunkPacket();
         pk.chunkX = chunk.getX();
         pk.chunkZ = chunk.getZ();
-        pk.subChunkCount = chunk.getSubChunkSendCount();
-        pk.data = chunk.toBinary();
+        pk.subChunkCount = chunk.getTopEmpty();
+        pk.data = chunk.networkSerialize();
         await this.sendDataPacket(pk);
 
         const hash = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
