@@ -386,7 +386,6 @@ export default class World {
     public async saveChunks(): Promise<void> {
         const time = Date.now();
         this.server.getLogger().debug('[World save] saving chunks...');
-        const promises: Array<Promise<void>> = [];
         await Promise.all(
             Array.from(this.chunks.values()).map(async (chunk) => this.provider.writeChunk(chunk))
         );

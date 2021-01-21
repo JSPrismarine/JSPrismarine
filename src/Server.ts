@@ -153,6 +153,14 @@ export default class Server {
             'raknetConnect',
             async (raknetConnectEvent: RaknetConnectEvent) => {
                 const connection = raknetConnectEvent.getConnection();
+                const token = `${connection
+                    .getAddress()
+                    .getAddress()}:${connection.getAddress().getPort()}`;
+
+                this.logger.debug(
+                    `${token} is attempting to connect`,
+                    'Server/listen/raknetDisconnect'
+                );
 
                 // TODO: Get last world by player data
                 // and if it doesn't exists, return the default one
@@ -167,10 +175,6 @@ export default class Server {
                 await this.getEventManager().emit('playerConnect', playerConnectEvent);
 
                 if (playerConnectEvent.cancelled) return;
-
-                const token = `${player
-                    .getAddress()
-                    .getAddress()}:${player.getAddress().getPort()}`;
 
                 await this.playerManager.removePlayer(token); // Try to remove player before creating it
                 await this.playerManager.addPlayer(token, player);
@@ -220,7 +224,7 @@ export default class Server {
                 this.logger.silly(error.stack, 'Server/listen/raknetDisconnect');
             }
 
-            this.logger.info(
+            this.logger.debug(
                 `${token} disconnected due to ${reason}`,
                 'Server/listen/raknetDisconnect'
             );

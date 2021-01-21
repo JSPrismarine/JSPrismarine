@@ -92,11 +92,11 @@ export default class Entity extends Position {
     public async sendSpawn(player: Player) {
         // Recursive import, find another way
         const pk = new AddActorPacket();
-        pk.runtimeEntityId = ++Entity.runtimeIdCount;
+        pk.runtimeEntityId = this.runtimeId;
         pk.type = (this.constructor as any).MOB_ID; // TODO
-        pk.x = player.getX();
-        pk.y = player.getY();
-        pk.z = player.getZ();
+        pk.x = this.getX();
+        pk.y = this.getY();
+        pk.z = this.getZ();
         // TODO: motion
         pk.motionX = 0;
         pk.motionY = 0;
@@ -110,6 +110,11 @@ export default class Entity extends Position {
         this.setZ(position.getZ());
 
         // TODO: broadcast this
+        /* this.getServer()
+            .getPlayerManager()
+            .getOnlinePlayers()
+            .filter((p) => p.getWorld().getUniqueId() === this.getWorld().getUniqueId())
+            .map(async (player) => player.getConnection().broadcastMove(this as any)); */
     }
 
     public isPlayer(): boolean {
@@ -130,7 +135,7 @@ export default class Entity extends Position {
             // Replace all '_' with a ' ' and capitalize each word afterwards
             ((this.constructor as any).MOB_ID as string)
                 .split(':')[1]
-                .replaceAll('_', ' ')
+                .replace(/_/g, ' ')
                 .split(' ')
                 .map((word) => word[0].toUpperCase() + word.slice(1, word.length))
                 .join(' ')
