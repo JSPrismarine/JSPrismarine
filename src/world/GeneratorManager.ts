@@ -20,26 +20,18 @@ export default class GeneratorManager {
         });
         server
             .getLogger()
-            .debug(
-                `Registered §b${generators.length}§r generator(s)!`,
-                'GeneratorManager'
-            );
+            .debug(`Registered §b${generators.length}§r generator(s)!`, 'GeneratorManager');
     }
 
     public registerClassGenerator(id: string, server: Server): void {
-        const generator = require(path.resolve(
-            path.join(__dirname, '/generators', id)
-        ));
+        const generator = require(path.resolve(path.join(__dirname, '/generators', id)));
         this.generators.set(
             id.toLowerCase(),
             new (generator.default ?? generator)(server.getBlockManager())
         );
         server
             .getLogger()
-            .silly(
-                `Generator with id §b${id}§r registered`,
-                'registerClassGenerator'
-            );
+            .silly(`Generator with id §b${id}§r registered`, 'registerClassGenerator');
     }
 
     public getGenerator(id: string): Generator {

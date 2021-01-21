@@ -12,8 +12,8 @@ export default class LoggerBuilder {
             transports: [
                 new transports.Console({
                     level:
-                        /* Process.env.NODE_ENV !== 'development' && */ (global as any)
-                            .log_level || 'info', // || 'silly',
+                        /* Process.env.NODE_ENV !== 'development' && */ (global as any).log_level ||
+                        'info', // || 'silly',
                     format: combine(
                         timestamp({ format: 'HH:mm:ss.SS' }),
                         format((info) => {
@@ -41,18 +41,14 @@ export default class LoggerBuilder {
                     format: combine(
                         timestamp({ format: 'HH:mm:ss' }),
                         format.simple(),
-                        printf(
-                            ({ level, message, timestamp, namespace }: any) => {
-                                return `[${timestamp}] [${level}]${mcColors.minecraftToConsole(
-                                    `${
-                                        namespace ? ` [${namespace}]` : ''
-                                    }: ${message}`
-                                )}`.replace(
-                                    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-                                    ''
-                                );
-                            }
-                        )
+                        printf(({ level, message, timestamp, namespace }: any) => {
+                            return `[${timestamp}] [${level}]${mcColors.minecraftToConsole(
+                                `${namespace ? ` [${namespace}]` : ''}: ${message}`
+                            )}`.replace(
+                                /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+                                ''
+                            );
+                        })
                     )
                 })
             ]

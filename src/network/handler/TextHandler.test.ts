@@ -14,9 +14,7 @@ describe('network', () => {
                     {
                         getChatManager: () => ({
                             send: (chat: any) => {
-                                expect(chat.getMessage()).toBe(
-                                    'runner hello world'
-                                );
+                                expect(chat.getMessage()).toBe('runner hello world');
                                 done();
                             }
                         })

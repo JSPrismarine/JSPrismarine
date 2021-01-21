@@ -9,8 +9,6 @@ export default class Granite extends Stone {
     }
 
     public getDropsForCompatibleTool(item: Item, server: Server) {
-        return [
-            server.getBlockManager().getBlock('minecraft:polished_granite')
-        ];
+        return [server.getBlockManager().getBlock('minecraft:polished_granite')];
     }
 }

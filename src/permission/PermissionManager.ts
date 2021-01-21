@@ -55,10 +55,7 @@ export default class PermissionManager {
             if (!fs.existsSync(path.join(process.cwd(), '/permissions.json'))) {
                 this.server
                     .getLogger()
-                    .warn(
-                        `Failed to load permissions list!`,
-                        'PermissionManager/parsePermissions'
-                    );
+                    .warn(`Failed to load permissions list!`, 'PermissionManager/parsePermissions');
                 fs.writeFileSync(
                     path.join(process.cwd(), '/permissions.json'),
                     JSON.stringify(
@@ -94,18 +91,11 @@ export default class PermissionManager {
                     permissions: string[];
                 }>;
             } = JSON.parse(
-                (
-                    await readFile(
-                        path.join(process.cwd(), '/permissions.json')
-                    )
-                ).toString()
+                (await readFile(path.join(process.cwd(), '/permissions.json'))).toString()
             );
 
-            this.defaultPermissions =
-                permissionsObject.defaultPermissions || [];
-            this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || [
-                '*'
-            ];
+            this.defaultPermissions = permissionsObject.defaultPermissions || [];
+            this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
             permissionsObject.players.map((player) =>
                 this.permissions.set(
                     player.name,
@@ -113,9 +103,7 @@ export default class PermissionManager {
                 )
             );
         } catch (error) {
-            this.server
-                .getLogger()
-                .error(error, 'PermissionManager/parsePermissions');
+            this.server.getLogger().error(error, 'PermissionManager/parsePermissions');
             throw new Error(`Invalid permissions.json file.`);
         }
     }
@@ -125,18 +113,13 @@ export default class PermissionManager {
             if (!fs.existsSync(path.join(process.cwd(), '/ops.json'))) {
                 this.server
                     .getLogger()
-                    .warn(
-                        `Failed to load operators list!`,
-                        'PermissionManager/parseOps'
-                    );
+                    .warn(`Failed to load operators list!`, 'PermissionManager/parseOps');
                 fs.writeFileSync(path.join(process.cwd(), '/ops.json'), '[]');
             }
 
             const readFile = util.promisify(fs.readFile);
             const ops: OpType[] = JSON.parse(
-                (
-                    await readFile(path.join(process.cwd(), '/ops.json'))
-                ).toString()
+                (await readFile(path.join(process.cwd(), '/ops.json'))).toString()
             );
 
             ops.map((op) => this.ops.add(op.name));
@@ -190,10 +173,8 @@ export default class PermissionManager {
                 if (!permission) return true;
                 if (!executer.isPlayer()) return true;
                 if (executer.isOp()) return true;
-                if ((executer as Player).getPermissions().includes(permission))
-                    return true;
-                if ((executer as Player).getPermissions().includes('*'))
-                    return true;
+                if ((executer as Player).getPermissions().includes(permission)) return true;
+                if ((executer as Player).getPermissions().includes('*')) return true;
 
                 const split = permission.split('.');
                 let scope = '';
@@ -201,14 +182,8 @@ export default class PermissionManager {
                     if (scope) scope = `${scope}.${action}`;
                     else scope = action;
 
-                    if ((executer as Player).getPermissions().includes(scope))
-                        return true;
-                    if (
-                        (executer as Player)
-                            .getPermissions()
-                            .includes(`${scope}.*`)
-                    )
-                        return true;
+                    if ((executer as Player).getPermissions().includes(scope)) return true;
+                    if ((executer as Player).getPermissions().includes(`${scope}.*`)) return true;
                 }
 
                 return false;

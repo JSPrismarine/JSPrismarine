@@ -18,18 +18,12 @@ export default class PluginsCommand extends Command {
         dispatcher.register(
             literal('plugins').executes(async (context) => {
                 const source = context.getSource() as Player;
-                const plugins = source
-                    .getServer()
-                    .getPluginManager()
-                    .getPlugins();
+                const plugins = source.getServer().getPluginManager().getPlugins();
 
                 let message = '';
                 message += `§7Plugins (${plugins.length}): `;
                 message += `§r ${plugins
-                    .map(
-                        (p: PluginFile) =>
-                            `§a${p.getDisplayName()} ${p.getVersion()}`
-                    )
+                    .map((p: PluginFile) => `§a${p.getDisplayName()} ${p.getVersion()}`)
                     .join('§r, ')}`;
 
                 await source.sendMessage(message);

@@ -39,9 +39,7 @@ export default class LoginPacket extends DataPacket {
             this.identityPublicKey = decodedChain.identityPublicKey;
         }
 
-        const decodedJWT = jwt_decode(
-            stream.read(stream.readLInt()).toString()
-        ) as any;
+        const decodedJWT = jwt_decode(stream.read(stream.readLInt()).toString()) as any;
         this.skin = Skin.fromJWT(decodedJWT);
         this.device = new Device({
             id: decodedJWT.DeviceId,

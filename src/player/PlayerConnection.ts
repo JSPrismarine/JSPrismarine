@@ -6,9 +6,7 @@ import {
     CommandArgumentGamemode,
     CommandArgumentPosition
 } from '../command/CommandArguments';
-import CommandParameter, {
-    CommandParameterType
-} from '../network/type/CommandParameter';
+import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
 import PlayerListPacket, {
     PlayerListAction,
     PlayerListEntry
@@ -89,10 +87,7 @@ export default class PlayerConnection {
     public async update(_tick: number) {
         if (this.chunkSendQueue.size > 0) {
             for (const chunk of this.chunkSendQueue) {
-                const encodedPos = CoordinateUtils.encodePos(
-                    chunk.getX(),
-                    chunk.getZ()
-                );
+                const encodedPos = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
                 if (!this.loadingChunks.has(encodedPos)) {
                     this.chunkSendQueue.delete(chunk);
                 }
@@ -109,25 +104,14 @@ export default class PlayerConnection {
         const target = player ?? this.player;
         const pk = new AdventureSettingsPacket();
 
-        pk.setFlag(
-            AdventureSettingsFlags.WorldImmutable,
-            target.gamemode === 3
-        );
-        pk.setFlag(
-            AdventureSettingsFlags.NoPvp,
-            target.gamemode === Gamemode.Spectator
-        );
+        pk.setFlag(AdventureSettingsFlags.WorldImmutable, target.gamemode === 3);
+        pk.setFlag(AdventureSettingsFlags.NoPvp, target.gamemode === Gamemode.Spectator);
         pk.setFlag(AdventureSettingsFlags.AutoJump, true); // TODO
         pk.setFlag(AdventureSettingsFlags.AllowFlight, target.getAllowFlight());
-        pk.setFlag(
-            AdventureSettingsFlags.NoClip,
-            target.gamemode === Gamemode.Spectator
-        );
+        pk.setFlag(AdventureSettingsFlags.NoClip, target.gamemode === Gamemode.Spectator);
         pk.setFlag(AdventureSettingsFlags.Flying, target.isFlying());
 
-        pk.commandPermission = target.isOp()
-            ? PermissionType.Operator
-            : PermissionType.Normal;
+        pk.commandPermission = target.isOp() ? PermissionType.Operator : PermissionType.Normal;
         pk.playerPermission = target.isOp()
             ? PlayerPermissionType.Operator
             : PlayerPermissionType.Member;
@@ -136,46 +120,25 @@ export default class PlayerConnection {
     }
 
     public async needNewChunks(forceResend = false) {
-        const currentXChunk = CoordinateUtils.fromBlockToChunk(
-            this.player.getX()
-        );
-        const currentZChunk = CoordinateUtils.fromBlockToChunk(
-            this.player.getZ()
-        );
+        const currentXChunk = CoordinateUtils.fromBlockToChunk(this.player.getX());
+        const currentZChunk = CoordinateUtils.fromBlockToChunk(this.player.getZ());
 
         const viewDistance = this.player.viewDistance;
         const chunksToSend: number[][] = [];
 
-        for (
-            let sendXChunk = -viewDistance;
-            sendXChunk <= viewDistance;
-            sendXChunk++
-        ) {
-            for (
-                let sendZChunk = -viewDistance;
-                sendZChunk <= viewDistance;
-                sendZChunk++
-            ) {
+        for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
+            for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
                 const chunkDistance = Math.round(
                     Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk)
                 );
 
                 if (chunkDistance <= viewDistance) {
-                    const newChunk = [
-                        currentXChunk + sendXChunk,
-                        currentZChunk + sendZChunk
-                    ];
-                    const hash = CoordinateUtils.encodePos(
-                        newChunk[0],
-                        newChunk[1]
-                    );
+                    const newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk];
+                    const hash = CoordinateUtils.encodePos(newChunk[0], newChunk[1]);
 
                     if (forceResend) {
                         chunksToSend.push(newChunk);
-                    } else if (
-                        !this.loadedChunks.has(hash) &&
-                        !this.loadingChunks.has(hash)
-                    ) {
+                    } else if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                         chunksToSend.push(newChunk);
                     }
                 }
@@ -208,16 +171,11 @@ export default class PlayerConnection {
         for (const chunk of chunksToSend) {
             const hash = CoordinateUtils.encodePos(chunk[0], chunk[1]);
             if (forceResend) {
-                if (
-                    !this.loadedChunks.has(hash) &&
-                    !this.loadingChunks.has(hash)
-                ) {
+                if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                     this.loadingChunks.add(hash);
                     await this.requestChunk(chunk[0], chunk[1]);
                 } else {
-                    const loadedChunk = await this.player
-                        .getWorld()
-                        .getChunk(chunk[0], chunk[1]);
+                    const loadedChunk = await this.player.getWorld().getChunk(chunk[0], chunk[1]);
                     await this.sendChunk(loadedChunk);
                 }
             } else {
@@ -297,10 +255,7 @@ export default class PlayerConnection {
         creativeitems.forEach((item: any) => {
             pk.entries.push(
                 ...entries.filter((entry: any) => {
-                    return (
-                        entry.meta === (item.damage || 0) &&
-                        entry.id === item.id
-                    );
+                    return entry.meta === (item.damage || 0) && entry.id === item.id;
                 })
             );
         });
@@ -361,9 +316,7 @@ export default class PlayerConnection {
                     this.player
                         .getServer()
                         .getLogger()
-                        .warn(
-                            `Can't find corresponding command class for "${command[0]}"`
-                        );
+                        .warn(`Can't find corresponding command class for "${command[0]}"`);
                     return;
                 }
 
@@ -387,8 +340,7 @@ export default class PlayerConnection {
                     const parameters = arg
                         .map((parameter) => {
                             const parameters = parameter?.getParameters?.();
-                            if (parameters)
-                                return Array.from(parameters.values());
+                            if (parameters) return Array.from(parameters.values());
 
                             if (parameter instanceof CommandArgumentEntity)
                                 return [
@@ -407,10 +359,7 @@ export default class PlayerConnection {
                                         optional: false
                                     })
                                 ];
-                            if (
-                                parameter.constructor.name ===
-                                'StringArgumentType'
-                            )
+                            if (parameter.constructor.name === 'StringArgumentType')
                                 return [
                                     new CommandParameter({
                                         name: 'value',
@@ -418,10 +367,7 @@ export default class PlayerConnection {
                                         optional: false
                                     })
                                 ];
-                            if (
-                                parameter.constructor.name ===
-                                'IntegerArgumentType'
-                            )
+                            if (parameter.constructor.name === 'IntegerArgumentType')
                                 return [
                                     new CommandParameter({
                                         name: 'number',
@@ -432,9 +378,7 @@ export default class PlayerConnection {
 
                             this.server
                                 .getLogger()
-                                .warn(
-                                    `Invalid parameter ${parameter.constructor.name}`
-                                );
+                                .warn(`Invalid parameter ${parameter.constructor.name}`);
                             return [
                                 new CommandParameter({
                                     name: 'value',
@@ -468,8 +412,7 @@ export default class PlayerConnection {
     public async sendAttributes(attributes: Attribute[]): Promise<void> {
         const pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.player.runtimeId;
-        pk.attributes =
-            attributes ?? this.player.getAttributeManager().getAttributes();
+        pk.attributes = attributes ?? this.player.getAttributeManager().getAttributes();
         pk.tick = BigInt(0); // TODO
         await this.sendDataPacket(pk);
     }
@@ -482,11 +425,7 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
-    public async sendMessage(
-        message: string,
-        xuid = '',
-        needsTranslation = false
-    ) {
+    public async sendMessage(message: string, xuid = '', needsTranslation = false) {
         if (!message) throw new Error('A message is required');
 
         const pk = new TextPacket();
@@ -556,19 +495,14 @@ export default class PlayerConnection {
         pk.entries.push(entry);
 
         // Add to cached player list
-        this.server
-            .getPlayerManager()
-            .getPlayerList()
-            .set(this.player.uuid, entry);
+        this.server.getPlayerManager().getPlayerList().set(this.player.uuid, entry);
 
         // Add just this entry for every players on the server
         await Promise.all(
             this.server
                 .getPlayerManager()
                 .getOnlinePlayers()
-                .map(async (player) =>
-                    player.getConnection().sendDataPacket(pk)
-                )
+                .map(async (player) => player.getConnection().sendDataPacket(pk))
         );
     }
 
@@ -592,9 +526,7 @@ export default class PlayerConnection {
             this.server
                 .getPlayerManager()
                 .getOnlinePlayers()
-                .map(async (player) =>
-                    player.getConnection().sendDataPacket(pk)
-                )
+                .map(async (player) => player.getConnection().sendDataPacket(pk))
         );
     }
 
@@ -607,13 +539,11 @@ export default class PlayerConnection {
         pk.type = PlayerListAction.TYPE_ADD;
 
         // Hack to not compute every time entries
-        Array.from(this.server.getPlayerManager().getPlayerList()).forEach(
-            ([uuid, entry]) => {
-                if (!(uuid === this.player.uuid)) {
-                    pk.entries.push(entry);
-                }
+        Array.from(this.server.getPlayerManager().getPlayerList()).forEach(([uuid, entry]) => {
+            if (!(uuid === this.player.uuid)) {
+                pk.entries.push(entry);
             }
-        );
+        });
 
         await this.sendDataPacket(pk);
     }
@@ -623,9 +553,7 @@ export default class PlayerConnection {
      */
     public async sendSpawn(player: Player) {
         if (!player.getUUID()) {
-            this.server
-                .getLogger()
-                .error(`UUID for player ${player.getName()} is undefined`);
+            this.server.getLogger().error(`UUID for player ${player.getName()} is undefined`);
             return;
         }
 

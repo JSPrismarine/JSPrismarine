@@ -1,11 +1,5 @@
-import {
-    CommandContext,
-    StringReader,
-    Suggestions
-} from '@jsprismarine/brigadier';
-import CommandParameter, {
-    CommandParameterType
-} from '../network/type/CommandParameter';
+import { CommandContext, StringReader, Suggestions } from '@jsprismarine/brigadier';
+import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
 
 import Gamemode from '../world/Gamemode';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
@@ -106,9 +100,7 @@ export class CommandArgumentEntity implements CommandArgument {
     }
 }
 
-export class CommandArgumentPosition
-    extends Vector3
-    implements CommandArgument {
+export class CommandArgumentPosition extends Vector3 implements CommandArgument {
     private xName;
     private yName;
     private zName;

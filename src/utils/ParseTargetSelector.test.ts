@@ -18,10 +18,7 @@ describe('util', () => {
 
         it('returns all players upon "@a"', () => {
             const source = new Entity(null as any, null as any);
-            const players = [
-                { isPlayer: () => true } as any,
-                { isPlayer: () => true } as any
-            ];
+            const players = [{ isPlayer: () => true } as any, { isPlayer: () => true } as any];
             const entities = [source, ...players];
 
             expect(

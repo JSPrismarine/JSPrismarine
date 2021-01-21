@@ -1,10 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
-import {
-    CommandDispatcher,
-    argument,
-    literal,
-    string
-} from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, literal, string } from '@jsprismarine/brigadier';
 
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
@@ -43,15 +38,10 @@ export default class DeopCommand extends Command {
                                 `*.player.${target.getName()}`
                             )
                         );
-                        await target
-                            .getServer()
-                            .getEventManager()
-                            .emit('chat', event);
+                        await target.getServer().getEventManager().emit('chat', event);
                     }
 
-                    return `Made ${context.getArgument(
-                        'player'
-                    )} no longer a server operator`;
+                    return `Made ${context.getArgument('player')} no longer a server operator`;
                 })
             )
         );

@@ -14,12 +14,7 @@ export default class Command {
     public permission?: string;
     public aliases?: string[];
 
-    public constructor({
-        id = '',
-        description = '',
-        permission = '',
-        aliases = []
-    }: CommandProps) {
+    public constructor({ id = '', description = '', permission = '', aliases = [] }: CommandProps) {
         this.id = id;
         this.description = description;
         this.permission = permission;

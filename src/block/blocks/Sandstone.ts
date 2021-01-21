@@ -10,10 +10,7 @@ export enum SandstoneType {
 }
 
 export default class Sandstone extends Solid {
-    public constructor(
-        name = 'minecraft:sandstone',
-        type: SandstoneType = SandstoneType.Regular
-    ) {
+    public constructor(name = 'minecraft:sandstone', type: SandstoneType = SandstoneType.Regular) {
         super({
             name,
             id: BlockIdsType.Sandstone,

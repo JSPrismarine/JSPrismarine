@@ -10,11 +10,7 @@ const SEA_LEVEL = 62;
 export default class Overworld extends BaseGenerator {
     private noise: Noise | null = null;
 
-    public async generateChunk(
-        cx: number,
-        cz: number,
-        seed: number
-    ): Promise<Chunk> {
+    public async generateChunk(cx: number, cz: number, seed: number): Promise<Chunk> {
         return new Promise((resolve) => {
             if (!this.noise) {
                 this.noise = new Noise(`${seed}`);
@@ -23,9 +19,7 @@ export default class Overworld extends BaseGenerator {
             const noise = this.noise;
             const chunk = new Chunk(cx, cz);
 
-            const bedrock = this.getBlockManager().getBlock(
-                'minecraft:bedrock'
-            );
+            const bedrock = this.getBlockManager().getBlock('minecraft:bedrock');
             const stone = this.getBlockManager().getBlock('minecraft:stone');
             const dirt = this.getBlockManager().getBlock('minecraft:dirt');
             const grass = this.getBlockManager().getBlock('minecraft:grass');

@@ -55,13 +55,7 @@ export default class Server {
 
     public static instance: Server;
 
-    public constructor({
-        logger,
-        config
-    }: {
-        logger: LoggerBuilder;
-        config: Config;
-    }) {
+    public constructor({ logger, config }: { logger: LoggerBuilder; config: Config }) {
         logger.info(
             `Starting JSPrismarine server version ${pkg.version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`,
             'Server'
@@ -126,25 +120,16 @@ export default class Server {
             await this.getEventManager().emit('raknetConnect', event);
         });
 
-        this.raknet.on(
-            'closeConnection',
-            async (inetAddr: InetAddress, reason: string) => {
-                const event = new RaknetDisconnectEvent(inetAddr, reason);
-                await this.getEventManager().emit('raknetDisconnect', event);
-            }
-        );
+        this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
+            const event = new RaknetDisconnectEvent(inetAddr, reason);
+            await this.getEventManager().emit('raknetDisconnect', event);
+        });
 
         this.raknet.on(
             'encapsulated',
             async (packet: EncapsulatedPacket, inetAddr: InetAddress) => {
-                const event = new RaknetEncapsulatedPacketEvent(
-                    inetAddr,
-                    packet
-                );
-                await this.getEventManager().emit(
-                    'raknetEncapsulatedPacket',
-                    event
-                );
+                const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
+                await this.getEventManager().emit('raknetEncapsulatedPacket', event);
             }
         );
 
@@ -160,10 +145,7 @@ export default class Server {
             }
         });
 
-        this.logger.info(
-            `JSPrismarine is now listening on port §b${port}`,
-            'Server/listen'
-        );
+        this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
 
         this.getEventManager().on(
             'raknetConnect',
@@ -178,15 +160,9 @@ export default class Server {
                 const player = new Player(connection, world, this);
 
                 // Emit playerConnect event
-                const playerConnectEvent = new PlayerConnectEvent(
-                    player,
-                    player.getAddress()
-                );
+                const playerConnectEvent = new PlayerConnectEvent(player, player.getAddress());
 
-                await this.getEventManager().emit(
-                    'playerConnect',
-                    playerConnectEvent
-                );
+                await this.getEventManager().emit('playerConnect', playerConnectEvent);
 
                 if (playerConnectEvent.cancelled) return;
 
@@ -207,60 +183,51 @@ export default class Server {
             }
         );
 
-        this.getEventManager().on(
-            'raknetDisconnect',
-            async (event: RaknetDisconnectEvent) => {
-                const inetAddr = event.getInetAddr();
-                const reason = event.getReason();
+        this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
+            const inetAddr = event.getInetAddr();
+            const reason = event.getReason();
 
-                const time = Date.now();
-                const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
-                try {
-                    const player = this.playerManager.getPlayer(token);
+            const time = Date.now();
+            const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
+            try {
+                const player = this.playerManager.getPlayer(token);
 
-                    // De-spawn the player to all online players
-                    await player.getConnection().removeFromPlayerList();
-                    for (const onlinePlayer of this.playerManager.getOnlinePlayers()) {
-                        await player.getConnection().sendDespawn(onlinePlayer);
-                    }
-
-                    // Sometimes we fail at decoding the username for whatever reason
-                    if (player.getName()) {
-                        // Announce disconnection
-                        const event = new ChatEvent(
-                            new Chat(
-                                this.getConsole(),
-                                `§e${player.getName()} left the game`
-                            )
-                        );
-                        await this.getEventManager().emit('chat', event);
-                    }
-
-                    await player.onDisable();
-                    player.getWorld().removePlayer(player);
-                    await this.playerManager.removePlayer(token);
-                } catch (error) {
-                    this.logger.debug(
-                        `Cannot remove connection from non-existing player (${token})`,
-                        'Server/listen/raknetDisconnect'
-                    );
-                    this.logger.silly(
-                        error.stack,
-                        'Server/listen/raknetDisconnect'
-                    );
+                // De-spawn the player to all online players
+                await player.getConnection().removeFromPlayerList();
+                for (const onlinePlayer of this.playerManager.getOnlinePlayers()) {
+                    await player.getConnection().sendDespawn(onlinePlayer);
                 }
 
-                this.logger.info(
-                    `${token} disconnected due to ${reason}`,
-                    'Server/listen/raknetDisconnect'
-                );
+                // Sometimes we fail at decoding the username for whatever reason
+                if (player.getName()) {
+                    // Announce disconnection
+                    const event = new ChatEvent(
+                        new Chat(this.getConsole(), `§e${player.getName()} left the game`)
+                    );
+                    await this.getEventManager().emit('chat', event);
+                }
 
-                this.logger.silly(
-                    `Player destruction took about ${Date.now() - time} ms`,
+                await player.onDisable();
+                player.getWorld().removePlayer(player);
+                await this.playerManager.removePlayer(token);
+            } catch (error) {
+                this.logger.debug(
+                    `Cannot remove connection from non-existing player (${token})`,
                     'Server/listen/raknetDisconnect'
                 );
+                this.logger.silly(error.stack, 'Server/listen/raknetDisconnect');
             }
-        );
+
+            this.logger.info(
+                `${token} disconnected due to ${reason}`,
+                'Server/listen/raknetDisconnect'
+            );
+
+            this.logger.silly(
+                `Player destruction took about ${Date.now() - time} ms`,
+                'Server/listen/raknetDisconnect'
+            );
+        });
 
         this.getEventManager().on('raknetEncapsulatedPacket', async (event) => {
             const raknetPacket = event.getPacket();
@@ -287,9 +254,7 @@ export default class Server {
                     }
 
                     // Get packet from registry
-                    const packet = new (this.packetRegistry
-                        .getPackets()
-                        .get(buf[0]))(buf);
+                    const packet = new (this.packetRegistry.getPackets().get(buf[0]))(buf);
 
                     try {
                         packet.decode();
@@ -302,15 +267,9 @@ export default class Server {
                     }
 
                     try {
-                        const handler = this.packetRegistry.getPacketHandler(
-                            packet.getId()
-                        );
+                        const handler = this.packetRegistry.getPacketHandler(packet.getId());
 
-                        await (handler as PacketHandler<any>).handle(
-                            packet,
-                            this,
-                            player
-                        );
+                        await (handler as PacketHandler<any>).handle(packet, this, player);
                     } catch (error) {
                         this.logger.error(
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
@@ -323,10 +282,7 @@ export default class Server {
                     }
                 }
             } catch (error) {
-                this.logger.error(
-                    error,
-                    'Server/listen/raknetEncapsulatedPacket'
-                );
+                this.logger.error(error, 'Server/listen/raknetEncapsulatedPacket');
             }
         });
 
@@ -550,18 +506,15 @@ export default class Server {
      */
     public getAverageTPS() {
         let one = 0;
-        for (let i = 10800; i < this.tpsHistory.length; i++)
-            one += this.tpsHistory[i];
+        for (let i = 10800; i < this.tpsHistory.length; i++) one += this.tpsHistory[i];
         one = Math.round(one / 1200);
 
         let five = 0;
-        for (let i = 6000; i < this.tpsHistory.length; i++)
-            five += this.tpsHistory[i];
+        for (let i = 6000; i < this.tpsHistory.length; i++) five += this.tpsHistory[i];
         five = Math.round(five / 6000);
 
         let ten = 0;
-        for (let i = 0; i < this.tpsHistory.length; i++)
-            ten += this.tpsHistory[i];
+        for (let i = 0; i < this.tpsHistory.length; i++) ten += this.tpsHistory[i];
         ten = Math.round(ten / 12000);
 
         return {

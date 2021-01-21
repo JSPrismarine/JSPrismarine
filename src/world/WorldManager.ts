@@ -35,9 +35,7 @@ export default class WorldManager {
 
         const defaultWorld = this.server.getConfig().getLevelName();
         if (!defaultWorld) {
-            this.server
-                .getLogger()
-                .warn(`Invalid world!`, 'WorldManager/onEnable');
+            this.server.getLogger().warn(`Invalid world!`, 'WorldManager/onEnable');
             return;
         }
 
@@ -49,11 +47,7 @@ export default class WorldManager {
     }
 
     public async onDisable(): Promise<void> {
-        await Promise.all(
-            this.getWorlds().map(async (world) =>
-                this.unloadWorld(world.getName())
-            )
-        );
+        await Promise.all(this.getWorlds().map(async (world) => this.unloadWorld(world.getName())));
         this.providers.clear();
     }
 
@@ -89,10 +83,7 @@ export default class WorldManager {
      * @param worldData the world data including provider key, generator
      * @param folderName the name of the folder containing the world
      */
-    public async loadWorld(
-        worldData: WorldData,
-        folderName: string
-    ): Promise<World> {
+    public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
         return new Promise((resolve, reject) => {
             if (this.isWorldLoaded(folderName)) {
                 this.server
@@ -105,27 +96,19 @@ export default class WorldManager {
             }
 
             const levelPath = process.cwd() + `/worlds/${folderName}/`;
-            const provider = this.providers.get(
-                worldData.provider ?? 'LevelDB'
-            );
+            const provider = this.providers.get(worldData.provider ?? 'LevelDB');
             const generator = this.server
                 .getWorldManager()
                 .getGeneratorManager()
                 .getGenerator(worldData.generator ?? 'overworld');
 
             if (!provider) {
-                reject(
-                    new Error(`invalid provider with id ${worldData.provider}`)
-                );
+                reject(new Error(`invalid provider with id ${worldData.provider}`));
                 return;
             }
 
             if (!generator) {
-                reject(
-                    new Error(
-                        `invalid generator with id ${worldData.generator}`
-                    )
-                );
+                reject(new Error(`invalid generator with id ${worldData.generator}`));
                 return;
             }
 
@@ -145,18 +128,12 @@ export default class WorldManager {
                 this.defaultWorld = this.worlds.get(world.getUniqueId())!;
                 this.server
                     .getLogger()
-                    .info(
-                        `Loaded §b${folderName}§r as default world!`,
-                        'WorldManager/loadWorld'
-                    );
+                    .info(`Loaded §b${folderName}§r as default world!`, 'WorldManager/loadWorld');
             }
 
             this.server
                 .getLogger()
-                .debug(
-                    `World §b${folderName}§r successfully loaded!`,
-                    'WorldManager/loadWorld'
-                );
+                .debug(`World §b${folderName}§r successfully loaded!`, 'WorldManager/loadWorld');
             resolve(world);
         });
     }
@@ -179,10 +156,7 @@ export default class WorldManager {
         if (!world) {
             this.server
                 .getLogger()
-                .error(
-                    `Cannot unload world ${folderName}`,
-                    'WorldManager/unloadWorld'
-                );
+                .error(`Cannot unload world ${folderName}`, 'WorldManager/unloadWorld');
             return;
         }
 
@@ -190,10 +164,7 @@ export default class WorldManager {
         this.worlds.delete(world.getUniqueId());
         this.server
             .getLogger()
-            .debug(
-                `Successfully unloaded world §b${folderName}§f!`,
-                'WorldManager/unloadWorld'
-            );
+            .debug(`Successfully unloaded world §b${folderName}§f!`, 'WorldManager/unloadWorld');
     }
 
     /**
@@ -219,8 +190,7 @@ export default class WorldManager {
     public getWorldByName(folderName: string): World | null {
         return (
             this.getWorlds().find(
-                (world) =>
-                    world.getName().toLowerCase() === folderName.toLowerCase()
+                (world) => world.getName().toLowerCase() === folderName.toLowerCase()
             ) ?? null
         );
     }

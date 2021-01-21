@@ -15,9 +15,7 @@ export default class BatchPacket extends DataPacket {
     public decodeHeader(): void {
         const pid = this.readByte();
         if (!pid === this.getId()) {
-            throw new Error(
-                `Batch ID mismatch: is ${this.getId()}, got ${pid}`
-            );
+            throw new Error(`Batch ID mismatch: is ${this.getId()}, got ${pid}`);
         }
     }
 
@@ -36,9 +34,7 @@ export default class BatchPacket extends DataPacket {
     }
 
     public encodePayload(): void {
-        this.append(
-            Zlib.deflateRawSync(this.payload, { level: this.compressionLevel })
-        );
+        this.append(Zlib.deflateRawSync(this.payload, { level: this.compressionLevel }));
     }
 
     public addPacket(packet: DataPacket): void {

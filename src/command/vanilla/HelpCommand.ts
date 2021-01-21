@@ -23,9 +23,7 @@ export default class HelpCommand extends Command {
                 .getCommands()
                 .forEach(async (command) => {
                     await source.sendMessage(
-                        `§e/${command.id.split(':')[1]}:§r §7${
-                            command.description
-                        }`
+                        `§e/${command.id.split(':')[1]}:§r §7${command.description}`
                     );
                 });
         };

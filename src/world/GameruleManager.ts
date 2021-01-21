@@ -49,10 +49,7 @@ export default class GameruleManager {
         if (!Object.values(GameRules).includes(name)) {
             this.server
                 .getLogger()
-                .error(
-                    `Unknown Gamerule with name ${name}`,
-                    'GameruleManager/getGamerule'
-                );
+                .error(`Unknown Gamerule with name ${name}`, 'GameruleManager/getGamerule');
         }
 
         this.rules.get(name);

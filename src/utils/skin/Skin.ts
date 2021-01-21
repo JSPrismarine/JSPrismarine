@@ -85,10 +85,7 @@ export default class Skin {
 
         // Read skin
         skin.id = jwt.SkinId;
-        skin.resourcePatch = Buffer.from(
-            jwt.SkinResourcePatch,
-            'base64'
-        ).toString();
+        skin.resourcePatch = Buffer.from(jwt.SkinResourcePatch, 'base64').toString();
         skin.image = new SkinImage({
             width: jwt.SkinImageWidth,
             height: jwt.SkinImageHeight,
@@ -127,10 +124,7 @@ export default class Skin {
         skin.geometry = Buffer.from(jwt.SkinGeometryData, 'base64').toString();
 
         // TODO: Most of the times is empty, figure out what is it
-        skin.animationData = Buffer.from(
-            jwt.SkinAnimationData,
-            'base64'
-        ).toString();
+        skin.animationData = Buffer.from(jwt.SkinAnimationData, 'base64').toString();
 
         // Read skin boolean properties
         skin.premium = jwt.PremiumSkin;

@@ -1,11 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
-import {
-    CommandDispatcher,
-    argument,
-    integer,
-    literal,
-    string
-} from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, integer, literal, string } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
 import Player from '../../player/Player';
@@ -24,53 +18,35 @@ export default class TimeCommand extends Command {
             literal('time')
                 .then(
                     argument('action', string()).then(
-                        argument('value', integer()).executes(
-                            async (context) => {
-                                const source = context.getSource() as Player;
-                                const world =
-                                    source.getWorld?.() ||
-                                    source
-                                        .getServer()
-                                        .getWorldManager()
-                                        .getDefaultWorld();
+                        argument('value', integer()).executes(async (context) => {
+                            const source = context.getSource() as Player;
+                            const world =
+                                source.getWorld?.() ||
+                                source.getServer().getWorldManager().getDefaultWorld();
 
-                                const value = context.getArgument('value');
-                                if (value < 0)
+                            const value = context.getArgument('value');
+                            if (value < 0) throw new Error('value can not be less than 0');
+
+                            switch (context.getArgument('action').toLowerCase()) {
+                                case 'set':
+                                    world.setTicks(value);
+                                    break;
+                                case 'add':
+                                    world.setTicks(world.getTicks() + value);
+                                    break;
+                                case 'sub':
+                                    world.setTicks(world.getTicks() - value);
+                                    break;
+                                default:
                                     throw new Error(
-                                        'value can not be less than 0'
+                                        `Invalid argument "${context.getArgument('action')}"`
                                     );
-
-                                switch (
-                                    context.getArgument('action').toLowerCase()
-                                ) {
-                                    case 'set':
-                                        world.setTicks(value);
-                                        break;
-                                    case 'add':
-                                        world.setTicks(
-                                            world.getTicks() + value
-                                        );
-                                        break;
-                                    case 'sub':
-                                        world.setTicks(
-                                            world.getTicks() - value
-                                        );
-                                        break;
-                                    default:
-                                        throw new Error(
-                                            `Invalid argument "${context.getArgument(
-                                                'action'
-                                            )}"`
-                                        );
-                                }
-
-                                await world.sendTime();
-                                await source.sendMessage(
-                                    `Set time to: ${world.getTicks()}`
-                                );
-                                return `Set time to: ${world.getTicks()}`;
                             }
-                        )
+
+                            await world.sendTime();
+                            await source.sendMessage(`Set time to: ${world.getTicks()}`);
+                            return `Set time to: ${world.getTicks()}`;
+                        })
                     )
                 )
                 .executes(async (context) => {
@@ -79,9 +55,7 @@ export default class TimeCommand extends Command {
                         source.getWorld?.() ||
                         source.getServer().getWorldManager().getDefaultWorld();
 
-                    await source.sendMessage(
-                        `The current time is ${world.getTicks()}`
-                    );
+                    await source.sendMessage(`The current time is ${world.getTicks()}`);
                 })
         );
     }

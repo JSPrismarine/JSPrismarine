@@ -11,9 +11,7 @@ export default class PluginsCommand extends Command {
     }
 
     public async execute(sender: Player, args: any[]) {
-        const res = await Object.getPrototypeOf(async () => {}).constructor(
-            args.join(' ')
-        )();
+        const res = await Object.getPrototypeOf(async () => {}).constructor(args.join(' '))();
         await sender.sendMessage(`Result: §e${res}`);
         return res;
     }

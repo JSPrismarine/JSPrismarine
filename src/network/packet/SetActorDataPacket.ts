@@ -5,10 +5,7 @@ export default class SetActorDataPacket extends DataPacket {
     public static NetID = Identifiers.SetActorDataPacket;
 
     public runtimeEntityId!: bigint;
-    public metadata: Map<
-        number,
-        [number, string | number | bigint | boolean]
-    > = new Map();
+    public metadata: Map<number, [number, string | number | bigint | boolean]> = new Map();
 
     public tick!: bigint;
 

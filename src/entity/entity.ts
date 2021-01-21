@@ -69,29 +69,16 @@ export default class Entity extends Position {
         // Check if the same value is already set
         if (this.getDataFlag(propertyId, flagId64) !== value) {
             const flags = this.metadata.getPropertyValue(propertyId) as bigint;
-            this.metadata.setPropertyValue(
-                propertyId,
-                propertyType,
-                flags ^ (1n << flagId64)
-            );
+            this.metadata.setPropertyValue(propertyId, propertyType, flags ^ (1n << flagId64));
         }
     }
 
     public getDataFlag(propertyId: number, flagId: bigint) {
-        return (
-            ((this.metadata.getPropertyValue(propertyId) as bigint) &
-                (1n << flagId)) >
-            0
-        );
+        return ((this.metadata.getPropertyValue(propertyId) as bigint) & (1n << flagId)) > 0;
     }
 
     public setGenericFlag(flagId: number, value = true) {
-        this.setDataFlag(
-            flagId >= 64 ? 94 : MetadataFlag.INDEX,
-            flagId % 64,
-            value,
-            FlagType.LONG
-        );
+        this.setDataFlag(flagId >= 64 ? 94 : MetadataFlag.INDEX, flagId % 64, value, FlagType.LONG);
     }
 
     public getAttributeManager(): AttributeManager {
@@ -145,9 +132,7 @@ export default class Entity extends Position {
                 .split(':')[1]
                 .replaceAll('_', ' ')
                 .split(' ')
-                .map(
-                    (word) => word[0].toUpperCase() + word.slice(1, word.length)
-                )
+                .map((word) => word[0].toUpperCase() + word.slice(1, word.length))
                 .join(' ')
         );
     }
@@ -161,17 +146,12 @@ export default class Entity extends Position {
      * @param entities
      */
     public getNearestEntity(
-        entities: Entity[] = this.server
-            .getWorldManager()
-            .getDefaultWorld()
-            .getEntities()!
+        entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!
     ) {
         const pos = new Vector3(this.getX(), this.getY(), this.getZ());
         const dist = (a: Vector3, b: Vector3) =>
             Math.sqrt(
-                (b.getX() - a.getX()) ** 2 +
-                    (b.getY() - a.getY()) ** 2 +
-                    (b.getZ() - a.getZ()) ** 2
+                (b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2
             );
 
         const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {

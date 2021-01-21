@@ -25,9 +25,7 @@ export default class Anvil extends BaseProvider {
         const id = `r.${rx}.${rz}.mca`;
         if (!this.cachedRegions.has(id)) {
             // https://minecraft.gamepedia.com/Region_file_format
-            const region = new Region(
-                await fs.promises.readFile(path.join(this.regionsPath, id))
-            );
+            const region = new Region(await fs.promises.readFile(path.join(this.regionsPath, id)));
             this.cachedRegions.set(id, region);
         }
 

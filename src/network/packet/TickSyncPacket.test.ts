@@ -6,9 +6,7 @@ describe('network', () => {
     describe('packet', () => {
         describe('TickSyncPacket', () => {
             const dump = Buffer.from(
-                fs.readFileSync(
-                    path.join(process.cwd(), '/.test/dumps/TickSyncPacket.dump')
-                )
+                fs.readFileSync(path.join(process.cwd(), '/.test/dumps/TickSyncPacket.dump'))
             );
 
             it('decode', () => {

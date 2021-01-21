@@ -10,33 +10,22 @@ import type Server from '../../../../Server';
 
 type EventTypes = CurrentVersionEventTypes;
 
-const currentApiToTargetApi: Operator.fλ<
-    CurrentVersionEventTypes,
-    EventTypes
-> = (data) => [data];
+const currentApiToTargetApi: Operator.fλ<CurrentVersionEventTypes, EventTypes> = (data) => [data];
 
-const targetApiToCurrentApi: Operator.fλ<
-    EventTypes,
-    CurrentVersionEventTypes
-> = (data) => [data];
+const targetApiToCurrentApi: Operator.fλ<EventTypes, CurrentVersionEventTypes> = (data) => [data];
 
-class EventManagerWithoutEventEmitterishMethods<
-    CustomEventTypes extends [string, any]
-> {
+class EventManagerWithoutEventEmitterishMethods<CustomEventTypes extends [string, any]> {
     public constructor(private readonly server: Server) {}
 
     private static readonly CustomEventManager = EventEmitterishMixin(
         class {
             public constructor(_server: Server) {}
         },
-        ({ constructorArgs: [server] }) =>
-            Evt.asPostable(server.getEventManager().evtThirdParty)
+        ({ constructorArgs: [server] }) => Evt.asPostable(server.getEventManager().evtThirdParty)
     );
 
     public getCustomEventManager(): EventEmitterish<CustomEventTypes> {
-        return new EventManagerWithoutEventEmitterishMethods.CustomEventManager(
-            this.server
-        );
+        return new EventManagerWithoutEventEmitterishMethods.CustomEventManager(this.server);
     }
 }
 
@@ -62,9 +51,7 @@ export default class EventManager<
 
         evtSrc.$attach(
             currentApiToTargetApi,
-            async (data) => (
-                internalEvents.add(data), evtProxy.postAndWait(data)
-            )
+            async (data) => (internalEvents.add(data), evtProxy.postAndWait(data))
         );
 
         evtProxy.$attachExtract(

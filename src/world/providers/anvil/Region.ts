@@ -49,23 +49,16 @@ export default class Region {
                 }
 
                 const nbtStream = new BinaryStream(data);
-                const regionNbt = NBTTagCompound.readFromStream(
-                    nbtStream,
-                    ByteOrder.BIG_ENDIAN
-                );
+                const regionNbt = NBTTagCompound.readFromStream(nbtStream, ByteOrder.BIG_ENDIAN);
 
-                if (!regionNbt.has('Level'))
-                    throw new Error('region is missing Level tag');
+                if (!regionNbt.has('Level')) throw new Error('region is missing Level tag');
 
                 const levelNbt = regionNbt.getCompound('Level', false)!;
                 const xPos = levelNbt.getNumber('xPos', 0);
                 const zPos = levelNbt.getNumber('zPos', 0);
 
                 const storages: Map<number, BlockStorage> = new Map();
-                const sections: Set<NBTTagCompound> = levelNbt.getList(
-                    'Sections',
-                    false
-                )!;
+                const sections: Set<NBTTagCompound> = levelNbt.getList('Sections', false)!;
                 for (const section of sections) {
                     const yIndex = section.getByte('Y', 0);
                 }

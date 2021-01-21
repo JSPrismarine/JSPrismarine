@@ -6,9 +6,7 @@ export default class Flat extends BaseGenerator {
         return new Promise((resolve) => {
             const chunk = new Chunk(cx, cz);
 
-            const bedrock = this.getBlockManager().getBlock(
-                'minecraft:bedrock'
-            );
+            const bedrock = this.getBlockManager().getBlock('minecraft:bedrock');
             const dirt = this.getBlockManager().getBlock('minecraft:dirt');
             const grass = this.getBlockManager().getBlock('minecraft:grass');
 

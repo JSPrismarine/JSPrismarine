@@ -14,12 +14,7 @@ export default interface Provider {
      * @param seed - world seed
      * @param generator - chunk generator
      */
-    readChunk(
-        cx: number,
-        cz: number,
-        seed: number,
-        generator: Generator
-    ): Promise<Chunk>;
+    readChunk(cx: number, cz: number, seed: number, generator: Generator): Promise<Chunk>;
 
     /**
      * Writes a chunk

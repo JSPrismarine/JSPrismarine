@@ -7,13 +7,8 @@ import PlayerActionType from '../type/PlayerActionType';
 import type Server from '../../Server';
 import WorldEventPacket from '../packet/WorldEventPacket';
 
-export default class PlayerActionHandler
-    implements PacketHandler<PlayerActionPacket> {
-    public async handle(
-        packet: PlayerActionPacket,
-        server: Server,
-        player: Player
-    ): Promise<void> {
+export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
+    public async handle(packet: PlayerActionPacket, server: Server, player: Player): Promise<void> {
         switch (packet.action) {
             case PlayerActionType.StartBreak: {
                 const block = await player
@@ -24,9 +19,7 @@ export default class PlayerActionHandler
                         packet.position.getZ()
                     );
 
-                const breakTime = Math.ceil(
-                    block.getBreakTime(null, server) * 20
-                ); // TODO: calculate with item in hand
+                const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
 
                 // TODO: world.sendEvent(type, position(Vector3), data) (?)
                 const pk = new WorldEventPacket();

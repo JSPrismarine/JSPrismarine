@@ -24,38 +24,27 @@ export default class BanCommand extends Command {
             literal('ban').then(
                 argument('player', string())
                     .then(
-                        argument('reason', greedyString()).executes(
-                            async (context) => {
-                                const source = context.getSource() as Player;
-                                const reason = context.getArgument(
-                                    'reason'
-                                ) as string;
+                        argument('reason', greedyString()).executes(async (context) => {
+                            const source = context.getSource() as Player;
+                            const reason = context.getArgument('reason') as string;
 
-                                try {
-                                    const target = source
-                                        .getServer()
-                                        .getPlayerManager()
-                                        .getPlayerByName(
-                                            context.getArgument('player')
-                                        );
-                                    await target.kick(
-                                        `You have been banned from the server due to: \n\n${reason}!`
-                                    );
-                                } catch {}
-
-                                await source
+                            try {
+                                const target = source
                                     .getServer()
-                                    .getBanManager()
-                                    .setBanned(
-                                        context.getArgument('player'),
-                                        reason
-                                    );
+                                    .getPlayerManager()
+                                    .getPlayerByName(context.getArgument('player'));
+                                await target.kick(
+                                    `You have been banned from the server due to: \n\n${reason}!`
+                                );
+                            } catch {}
 
-                                return `Banned ${context.getArgument(
-                                    'player'
-                                )} due to: ${reason}!`;
-                            }
-                        )
+                            await source
+                                .getServer()
+                                .getBanManager()
+                                .setBanned(context.getArgument('player'), reason);
+
+                            return `Banned ${context.getArgument('player')} due to: ${reason}!`;
+                        })
                     )
                     .executes(async (context) => {
                         const source = context.getSource() as Player;

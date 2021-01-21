@@ -16,11 +16,7 @@ export default abstract class BaseGenerator implements Generator {
      * @param cz - chunk z
      * @param seed - random seed
      */
-    public abstract generateChunk(
-        cx: number,
-        cz: number,
-        seed?: number
-    ): Promise<Chunk>;
+    public abstract generateChunk(cx: number, cz: number, seed?: number): Promise<Chunk>;
 
     protected getBlockManager(): BlockManager {
         return this.blockManager;

@@ -86,9 +86,7 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async onEnable() {
-        this.permissions = await this.getServer()
-            .getPermissionManager()
-            .getPermissions(this);
+        this.permissions = await this.getServer().getPermissionManager().getPermissions(this);
 
         const playerData = await this.getWorld().getPlayerData(this);
 
@@ -107,10 +105,7 @@ export default class Player extends Human implements CommandExecuter {
             if (!entry) {
                 this.getServer()
                     .getLogger()
-                    .debug(
-                        `Item/block with id ${item.id} is invalid`,
-                        'Player/onEnable'
-                    );
+                    .debug(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
                 return;
             }
 
@@ -135,10 +130,7 @@ export default class Player extends Human implements CommandExecuter {
     public async kick(reason = 'unknown reason'): Promise<void> {
         this.getServer()
             .getLogger()
-            .debug(
-                `Player with id §b${this.runtimeId}§r was kicked: ${reason}`,
-                'Player/kick'
-            );
+            .debug(`Player with id §b${this.runtimeId}§r was kicked: ${reason}`, 'Player/kick');
         await this.playerConnection.kick(reason);
     }
 
@@ -174,10 +166,7 @@ export default class Player extends Human implements CommandExecuter {
         this.gamemode = event.getGamemode();
         await this.playerConnection.sendGamemode(this.gamemode);
 
-        if (
-            this.gamemode === Gamemode.Creative ||
-            this.gamemode === Gamemode.Spectator
-        )
+        if (this.gamemode === Gamemode.Creative || this.gamemode === Gamemode.Spectator)
             this.allowFight = true;
         else {
             this.allowFight = false;
@@ -293,10 +282,7 @@ export default class Player extends Human implements CommandExecuter {
         await this.sendSettings();
     }
 
-    public async setPosition(
-        position: Vector3,
-        type: MovementType = MovementType.Normal
-    ) {
+    public async setPosition(position: Vector3, type: MovementType = MovementType.Normal) {
         this.setX(position.getX());
         this.setY(position.getY());
         this.setZ(position.getZ());

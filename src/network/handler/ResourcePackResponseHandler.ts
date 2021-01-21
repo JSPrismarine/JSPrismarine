@@ -36,18 +36,12 @@ export default class ResourcePackResponseHandler
             pk.entityId = player.runtimeId;
             pk.runtimeEntityId = player.runtimeId;
             pk.gamemode = player.gamemode;
-            pk.defaultGamemode = Gamemode.getGamemodeId(
-                server.getConfig().getGamemode()
-            );
+            pk.defaultGamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
 
             const worldSpawnPos = await world.getSpawnPosition();
             pk.worldSpawnPos = worldSpawnPos;
 
-            pk.playerPos = new Vector3(
-                player.getX(),
-                player.getY(),
-                player.getZ()
-            );
+            pk.playerPos = new Vector3(player.getX(), player.getY(), player.getZ());
             pk.pith = player.pitch;
             pk.pith = player.yaw;
 
@@ -57,26 +51,18 @@ export default class ResourcePackResponseHandler
             pk.gamerules = world.getGameruleManager().getGamerules();
             await player.getConnection().sendDataPacket(pk);
             await player.getConnection().sendTime(world.getTicks());
-            await player
-                .getConnection()
-                .sendDataPacket(new AvailableActorIdentifiersPacket());
+            await player.getConnection().sendDataPacket(new AvailableActorIdentifiersPacket());
 
-            await player
-                .getConnection()
-                .sendDataPacket(new BiomeDefinitionListPacket());
+            await player.getConnection().sendDataPacket(new BiomeDefinitionListPacket());
 
-            await player
-                .getConnection()
-                .sendAttributes(player.getAttributeManager().getDefaults());
+            await player.getConnection().sendAttributes(player.getAttributeManager().getDefaults());
 
             server
                 .getLogger()
                 .info(
                     `§b${player.getName()}§f is attempting to join with id §b${
                         player.runtimeId
-                    }§f from ${player
-                        .getAddress()
-                        .getAddress()}:${player.getAddress().getPort()}`,
+                    }§f from ${player.getAddress().getAddress()}:${player.getAddress().getPort()}`,
                     'Handler/ResourcePackResponseHandler'
                 );
 
@@ -97,10 +83,7 @@ export default class ResourcePackResponseHandler
 
             // Announce connection
             const chatSpawnEvent = new ChatEvent(
-                new Chat(
-                    server.getConsole(),
-                    `§e${player.getName()} joined the game`
-                )
+                new Chat(server.getConsole(), `§e${player.getName()} joined the game`)
             );
             await server.getEventManager().emit('chat', chatSpawnEvent);
         }

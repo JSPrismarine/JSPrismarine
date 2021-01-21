@@ -29,18 +29,11 @@ export default class BlockStorage {
         return BlockMappings.getLegacyId(runtimeId);
     }
 
-    public setBlock(
-        bx: number,
-        by: number,
-        bz: number,
-        runtimeId: number
-    ): void {
+    public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
         if (!this.palette.includes(runtimeId)) {
             this.palette.push(runtimeId);
         }
-        this.blocks[BlockStorage.getIndex(bx, by, bz)] = this.palette.indexOf(
-            runtimeId
-        );
+        this.blocks[BlockStorage.getIndex(bx, by, bz)] = this.palette.indexOf(runtimeId);
     }
 
     public networkSerialize(stream: BinaryStream): void {

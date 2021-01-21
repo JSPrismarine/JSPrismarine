@@ -3,11 +3,7 @@ import withDeprecated from '../hoc/withDeprecated';
 
 export default interface CommandExecuter {
     getServer(): Server;
-    sendMessage(
-        message: string,
-        xuid?: string,
-        needTranslation?: string
-    ): Promise<void>;
+    sendMessage(message: string, xuid?: string, needTranslation?: string): Promise<void>;
     getName(): string;
     /**
      * @deprecated use `getName()` instead.
