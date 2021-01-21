@@ -282,6 +282,9 @@ export default class Player extends Human implements CommandExecuter {
         await this.sendSettings();
     }
 
+    public getPosition(): Vector3 {
+        return new Vector3(this.getX(), this.getY(), this.getZ());
+    }
     public async setPosition(position: Vector3, type: MovementType = MovementType.Normal) {
         this.setX(position.getX());
         this.setY(position.getY());
