@@ -21,3 +21,4 @@ permissions.json
 .vscode
 .DS_Store
 report.*.json
+*.cpuprofile

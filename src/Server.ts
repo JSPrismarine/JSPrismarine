@@ -52,6 +52,7 @@ export default class Server {
     private readonly chatManager: ChatManager;
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
+    private stopping = false;
 
     public static instance: Server;
 
@@ -358,6 +359,9 @@ export default class Server {
      * Kills the server asynchronously.
      */
     public async kill(options?: { withoutSaving: boolean }): Promise<void> {
+        if (this.stopping) return;
+        this.stopping = true;
+
         try {
             // Kick all online players
             for (const player of this.getPlayerManager().getOnlinePlayers()) {

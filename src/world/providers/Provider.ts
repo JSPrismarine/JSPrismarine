@@ -2,6 +2,8 @@ import type Chunk from '../chunk/Chunk';
 import type Generator from '../Generator';
 
 export default interface Provider {
+    close(): Promise<void>;
+
     /**
      * Returns the path to the world folder.
      */

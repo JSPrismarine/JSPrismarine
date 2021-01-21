@@ -21,7 +21,6 @@ export default class TelemetryManager {
 
         process.on('uncaughtException', async (err) => {
             await this.sendCrashLog(err, urls);
-            console.error(err);
             this.server.getLogger().error(`${err}`, 'TelemetryManager');
             process.exit(1);
         });
@@ -92,6 +91,7 @@ export default class TelemetryManager {
                     this.server
                         .getLogger()
                         .warn(`Failed to tick: ${url} (${error})`, 'TelemetryManager/tick');
+                    this.server.getLogger().silly(error.stack, 'TelemetryManager/tick');
                 }
             })
         );
@@ -102,7 +102,6 @@ export default class TelemetryManager {
     }
 
     public async sendCrashLog(crashlog: Error, urls: string[]) {
-        console.log(crashlog);
         this.server
             .getLogger()
             .error(
@@ -130,8 +129,8 @@ export default class TelemetryManager {
                             })
                         });
                         return `${url}/error/${(await res.json()).id}`;
-                    } catch {
-                        return null;
+                    } catch (error) {
+                        this.server.getLogger().silly(error.stack, 'TelemetryManager/sendCrashLog');
                     }
                 })
             )

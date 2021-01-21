@@ -12,7 +12,17 @@ export default class LevelDB extends BaseProvider {
     public constructor(folderPath: string, server: Server) {
         super(folderPath, server);
 
-        this.storage = new Level(path.join(this.getPath(), 'db'));
+        try {
+            this.storage = new Level(path.join(this.getPath(), 'db'));
+        } catch (error) {
+            server.getLogger().silly(error.stack, 'providers/LevelDB');
+            throw new Error(`failed to open world for reading with id ${folderPath}`);
+        }
+    }
+
+    public async close() {
+        (this as any).storage?.DB?.close?.();
+        (this as any).storage = undefined;
     }
 
     public async readChunk(
