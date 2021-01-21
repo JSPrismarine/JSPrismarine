@@ -29,6 +29,7 @@ export default class DataPacket extends Packet {
     }
 
     public getLength(): number {
+        // header (1 byte) + triad (3 bytes)
         let length = 4;
         for (const packet of this.packets) {
             length += packet.getByteLength();
