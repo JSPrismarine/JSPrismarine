@@ -6,12 +6,18 @@ import fs from 'fs';
 
 export default abstract class BaseProvider implements Provider {
     private path: string;
+    private server: Server;
 
     public constructor(path: string, server: Server) {
+        this.server = server;
         this.path = path;
         if (!fs.existsSync(path)) {
             fs.mkdirSync(path);
         }
+    }
+
+    public getServer(): Server {
+        return this.server;
     }
 
     /**
