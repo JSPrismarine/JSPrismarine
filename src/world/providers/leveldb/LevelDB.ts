@@ -34,7 +34,10 @@ export default class LevelDB extends BaseProvider {
             const buffer = Buffer.from(
                 await this.storage.get(LevelDB.chunkIndex(cx, cz))
             );
-            return Chunk.networkDeserialize(new BinaryStream(buffer));
+            const chunk = Chunk.networkDeserialize(new BinaryStream(buffer));
+            (chunk as any).x = cx;
+            (chunk as any).z = cz;
+            return chunk;
         } catch (error) {
             if (!error.notFound) throw error;
 

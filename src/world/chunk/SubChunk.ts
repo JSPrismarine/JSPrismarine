@@ -21,7 +21,7 @@ export default class SubChunk {
             // Create all missing storage layers
             for (let i = 0; i <= index; i++) {
                 if (!this.storages.has(i)) {
-                    this.storages.set(i, new BlockStorage());
+                    this.storages.set(i, new BlockStorage({}));
                 }
             }
         }

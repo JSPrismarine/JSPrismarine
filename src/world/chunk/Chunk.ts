@@ -150,11 +150,12 @@ export default class Chunk {
      * @param buffer the network stream
      */
     public static networkDeserialize(stream: BinaryStream): Chunk {
-        const chunk = new Chunk();
+        const subChunks: Map<number, SubChunk> = new Map();
+        for (let i = 0; i < MAX_SUBCHUNKS; i++) {
+            subChunks.set(i, SubChunk.networkDeserialize(stream));
+        }
 
-        for (let i = 0; i < MAX_SUBCHUNKS; i++)
-            chunk.subChunks.set(i, SubChunk.networkDeserialize(stream));
-
+        const chunk = new Chunk(undefined, undefined, subChunks);
         return chunk;
     }
 }
