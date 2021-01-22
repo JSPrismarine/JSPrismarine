@@ -16,10 +16,15 @@ interface CommandProps {
 
 export default abstract class Command {
     public id: string;
+    public label?: string; // If you don't want to use a namespace, use this
     public description: string;
     public permission?: string[] | string;
     public aliases?: string[];
     public arguments: CommandArgumentMap;
+    /**
+     * This will only be here while supporting api deprecation and will be dropped later.
+     * Please do not depend on this for any plugins.
+     */
     public api: 'master' | 'rfc' = 'master';
 
     public constructor({

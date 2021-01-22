@@ -16,6 +16,7 @@ import PlayerListPacket, {
 
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
 import Air from '../block/blocks/Air';
+import type Argument from '../command/argument/Argument';
 import { Attribute } from '../entity/attribute';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
 import BatchPacket from '../network/packet/BatchPacket';
@@ -343,6 +344,30 @@ export default class PlayerConnection {
     public async sendAvailableCommands() {
         const pk = new AvailableCommandsPacket();
 
+        let commands = this.server.getCommandManager().getCommands().values();
+        for (let cmd of commands) {
+            if (cmd.api !== 'rfc') continue;
+            let parsedArgs = [...cmd.arguments.getRegistered().values()].map(
+                (args) => {
+                    if (args.length === 1) return args[0].getNetworkData();
+
+                    return new CommandParameter({
+                        name: args[0].getNetworkData().name,
+                        type: args[0].getNetworkData().type,
+                        optional: args[0].optional
+                    });
+                }
+            );
+            pk.commandData.add({
+                name: cmd.label || cmd.id.split(':')[1],
+                description: cmd.description,
+                aliases: cmd.aliases,
+                parameters: new Set(parsedArgs)
+            });
+        }
+
+        // register refactor
+
         this.server
             .getCommandManager()
             .getCommandsList()
@@ -362,11 +387,6 @@ export default class PlayerConnection {
                 }
 
                 if (classCommand.api !== 'rfc') {
-                    // todo
-                    this.player
-                        .getServer()
-                        .getLogger()
-                        .warn('RFC implementation not complete.');
                     pk.commandData.add({
                         name: command[0],
                         description: classCommand.description,

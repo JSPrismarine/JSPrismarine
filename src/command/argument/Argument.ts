@@ -9,6 +9,7 @@ export default abstract class Argument<T = unknown> {
     public name: string;
     public optional: boolean;
     public type: CommandParameterType;
+    public extendsTo?: number | boolean;
 
     constructor(name?: string, optional = true, type?: CommandParameterType) {
         this.name = name || this.constructor.name;
@@ -41,13 +42,11 @@ export default abstract class Argument<T = unknown> {
     /**
      * This is bound to change, if you override this, you will not be api protected.
      */
-    public getNetworkData(): Set<CommandParameter> {
-        return new Set([
-            new CommandParameter({
-                name: this.name,
-                type: this.type,
-                optional: this.optional
-            })
-        ]);
+    public getNetworkData(): CommandParameter {
+        return new CommandParameter({
+            name: this.name,
+            type: this.type,
+            optional: this.optional
+        });
     }
 }

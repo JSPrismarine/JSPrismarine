@@ -1,8 +1,6 @@
-import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
-
 import Command from '../Command';
-import Player from '../../player/Player';
 import PluginFile from '../../plugin/PluginFile';
+import CommandExecuter from '../CommandExecuter';
 
 export default class PluginsCommand extends Command {
     public constructor() {
@@ -12,28 +10,18 @@ export default class PluginsCommand extends Command {
             permission: 'jsprismarine.command.plugins',
             aliases: ['pl']
         });
+        this.api = 'rfc';
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
-        dispatcher.register(
-            literal('plugins').executes(async (context) => {
-                const source = context.getSource() as Player;
-                const plugins = source
-                    .getServer()
-                    .getPluginManager()
-                    .getPlugins();
+    public async dispatch(sender: CommandExecuter): Promise<void> {
+        const plugins = sender.getServer().getPluginManager().getPlugins();
 
-                let message = '';
-                message += `§7Plugins (${plugins.length}): `;
-                message += `§r ${plugins
-                    .map(
-                        (p: PluginFile) =>
-                            `§a${p.getDisplayName()} ${p.getVersion()}`
-                    )
-                    .join('§r, ')}`;
+        let message = '';
+        message += `§7Plugins (${plugins.length}): `;
+        message += `§r ${plugins
+            .map((p: PluginFile) => `§a${p.getDisplayName()} ${p.getVersion()}`)
+            .join('§r, ')}`;
 
-                await source.sendMessage(message);
-            })
-        );
+        await sender.sendMessage(message);
     }
 }

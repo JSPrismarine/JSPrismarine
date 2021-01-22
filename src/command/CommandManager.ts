@@ -1,4 +1,5 @@
 import {
+    argument,
     ArgumentCommandNode,
     CommandDispatcher
 } from '@jsprismarine/brigadier';
@@ -57,7 +58,7 @@ export default class CommandManager {
 
             try {
                 if (command.api === 'rfc') {
-                    await this.registerCommand(command);
+                    await this.registerCommand(command, false);
                 } else {
                     await this.registerClassCommand(command, this.server);
                 }
@@ -68,6 +69,7 @@ export default class CommandManager {
                 this.server.getLogger().silly(err.stack);
             }
         });
+        this.sendAvailableCommands();
 
         this.server
             .getLogger()
@@ -91,8 +93,11 @@ export default class CommandManager {
      * Register a command.
      * @param command
      */
-    public async registerCommand(command: Command) {
-        if (!(command instanceof Function)) {
+    public async registerCommand(
+        command: Command,
+        sendAvailableCommands: boolean = true
+    ) {
+        if (!(command instanceof Command)) {
             throw new TypeError(`Command must be a class that extends Command`);
         }
 
@@ -109,25 +114,18 @@ export default class CommandManager {
                 `Failed to register command with name "${command.constructor.name}" as no "execute" member was found.`
             );
 
-        for (const [pos, argument] of command.arguments.getRegistered()) {
-            // TODO: Check arguments, and see if return types are valid.
-        }
+        this.commands.set(command.id, command);
+        //for (const [pos, argument] of command.arguments.getRegistered()) {
+        //    // TODO: Check arguments, and see if return types are valid.
+        //}
 
-        await Promise.all(
-            this.server
-                .getPlayerManager()
-                .getOnlinePlayers()
-                .map(async (player) => {
-                    await player.getConnection().sendAvailableCommands();
-                })
-        );
+        if (sendAvailableCommands) {
+            this.sendAvailableCommands();
+        }
 
         this.server
             .getLogger()
-            .silly(
-                `Command with id §b${command.id}§r registered`,
-                'CommandManager/registerClassCommand'
-            );
+            .silly(`Command with id §b${command.id}§r registered`);
     }
 
     /**
@@ -156,6 +154,7 @@ export default class CommandManager {
         await command.register?.(this.dispatcher);
         this.commands.set(command.id, command);
 
+        // this is bad habit for registering.
         await Promise.all(
             server
                 .getPlayerManager()
@@ -181,8 +180,23 @@ export default class CommandManager {
     }
 
     /**
+     * Sends all registered commands to players.
+     */
+    public async sendAvailableCommands() {
+        Promise.all(
+            this.server
+                .getPlayerManager()
+                .getOnlinePlayers()
+                .map(async (player) => {
+                    await player.getConnection().sendAvailableCommands();
+                })
+        );
+    }
+
+    /**
      * Get a list of all command variants
      * EXCLUDING legacy commands
+     * @deprecated
      */
     public getCommandsList(): Array<
         [string, CommandNode<CommandExecuter>, CommandArgument[][]]
@@ -292,26 +306,40 @@ export default class CommandManager {
             let cmd = [...this.commands.values()].find(
                 (c) =>
                     c.id.split(':')[1] === input.split(' ')[0] ||
-                    c?.aliases?.includes(input.split(' ')[0])
+                    c?.aliases?.includes(input.split(' ')[0]) ||
+                    c.label === input.split(' ')[0]
             );
 
             if (cmd?.api === 'rfc') {
                 // begin parsing
                 // todo: allow escaping qoutations, eg: \"
                 let args = [
-                    ...(input.match(/(\"([a-zA-Z0-9]|\s)+\"|\w+)/gi) ?? [])
-                ].filter((a) => a !== undefined || a === '' || a === ' ').map(a => {
-                    if (a[0] === '"') {
-                        return a.split('"')[1];
-                    } else {
-                        return a;
-                    }
-                });
+                    ...(input
+                        .split(' ')
+                        .slice(1)
+                        .join(' ')
+                        .match(/(\"([a-zA-Z0-9]|[\s\S])+\"|[\S]+)/gi) ?? [])
+                ]
+                    .filter((a) => a !== undefined || a !== '' || a !== ' ')
+                    .map((a) => {
+                        if (a[0] === '"') {
+                            return a.split('"')[1];
+                        } else {
+                            return a;
+                        }
+                    });
 
                 let argumentsp: any[] = [];
+                let skipIndex: number = 0;
 
                 for (let i in args) {
                     let arg = args[i];
+
+                    if (skipIndex > 0) {
+                        skipIndex--;
+                        continue;
+                    }
+
                     for (let [n, v] of cmd.arguments.getRegistered()) {
                         if (v.length > 1) {
                             for (let overflow of v) {
@@ -324,6 +352,15 @@ export default class CommandManager {
                                     );
                                     if (argVal === null) {
                                         continue;
+                                    }
+                                    if (overflow.extendsTo === true) {
+                                        // skip all remaining
+                                        skipIndex = args.length;
+                                    }
+                                    if (
+                                        typeof overflow.extendsTo === 'number'
+                                    ) {
+                                        skipIndex = overflow.extendsTo;
                                     }
                                     argumentsp.push(argVal);
                                     break;
@@ -343,6 +380,13 @@ export default class CommandManager {
                                     // fail silently
                                     continue;
                                 } else {
+                                    if (v[0]?.extendsTo === true) {
+                                        // skip all remaining
+                                        skipIndex = args.length;
+                                    }
+                                    if (typeof v[0]?.extendsTo === 'number') {
+                                        skipIndex = v[0]?.extendsTo;
+                                    }
                                     argumentsp.push(argVal);
                                 }
                             } catch (e) {
@@ -356,7 +400,15 @@ export default class CommandManager {
                         }
                     }
                 }
-                return cmd.dispatch(sender, argumentsp, args);
+                try {
+                    await cmd.dispatch(sender, argumentsp, args);
+                } catch (e) {
+                    try {
+                        await cmd.fallback(sender, argumentsp, e, args);
+                    } catch (er) {
+                        this.server.getLogger().error(er);
+                    }
+                }
             } else {
                 const parsed = this.dispatcher.parse(input.trim(), sender);
                 const id = parsed.getReader().getString().split(' ')[0];
