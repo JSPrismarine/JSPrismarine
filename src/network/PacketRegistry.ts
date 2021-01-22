@@ -38,6 +38,7 @@ import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
 import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
+import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerHandler from './handler/MovePlayerHandler';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
@@ -142,6 +143,7 @@ export default class PacketRegistry {
         this.registerPacket(LoginPacket);
         this.registerPacket(MobEquipmentPacket);
         this.registerPacket(MovePlayerPacket);
+        this.registerPacket(MoveActorAbsolutePacket);
         this.registerPacket(NetworkChunkPublisherUpdatePacket);
         this.registerPacket(PacketViolationWarningPacket);
         this.registerPacket(PlayerActionPacket);
