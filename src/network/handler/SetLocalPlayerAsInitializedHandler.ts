@@ -12,12 +12,24 @@ export default class SetLocalPlayerAsInitializedHandler
         server: Server,
         player: Player
     ): Promise<void> {
-        for (const onlinePlayer of server
-            .getPlayerManager()
-            .getOnlinePlayers()
-            .filter((p) => !(p === player))) {
-            await onlinePlayer.getConnection().sendSpawn(player);
-            await player.getConnection().sendSpawn(onlinePlayer);
-        }
+        // Summon player(s)
+        await Promise.all(
+            server
+                .getPlayerManager()
+                .getOnlinePlayers()
+                .filter((p) => !(p === player))
+                .map(async (p) => {
+                    await p.getConnection().sendSpawn(player);
+                    await player.getConnection().sendSpawn(p);
+                })
+        );
+
+        // Summon entities
+        await Promise.all(
+            player
+                .getWorld()
+                .getEntities()
+                .map(async (entity) => entity.sendSpawn(player))
+        );
     }
 }
