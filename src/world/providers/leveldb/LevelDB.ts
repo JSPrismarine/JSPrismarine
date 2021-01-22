@@ -21,7 +21,7 @@ export default class LevelDB extends BaseProvider {
     }
 
     public async close() {
-        (this as any).storage?.DB?.close?.();
+        await (this as any).storage?.DB?.close?.();
         // Force garbage collector to destroy the LevelDB instance
         (this as any).storage = undefined;
     }
