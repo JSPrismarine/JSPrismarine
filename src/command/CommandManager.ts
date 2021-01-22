@@ -69,7 +69,7 @@ export default class CommandManager {
                 this.server.getLogger().silly(err.stack);
             }
         });
-        this.sendAvailableCommands();
+        await this.sendAvailableCommands();
 
         this.server
             .getLogger()
@@ -91,7 +91,6 @@ export default class CommandManager {
 
     /**
      * Register a command.
-     * @param command
      */
     public async registerCommand(
         command: Command,
@@ -120,7 +119,7 @@ export default class CommandManager {
         //}
 
         if (sendAvailableCommands) {
-            this.sendAvailableCommands();
+            await this.sendAvailableCommands();
         }
 
         this.server
@@ -318,7 +317,7 @@ export default class CommandManager {
                         .split(' ')
                         .slice(1)
                         .join(' ')
-                        .match(/(\"([a-zA-Z0-9]|[\s\S])+\"|[\S]+)/gi) ?? [])
+                        .match(/(\"([a-zA-Z0-9]|[\s\S])+"|[\S]+)/gi) ?? [])
                 ]
                     .filter((a) => a !== undefined || a !== '' || a !== ' ')
                     .map((a) => {
@@ -340,11 +339,11 @@ export default class CommandManager {
                         continue;
                     }
 
-                    for (let [n, v] of cmd.arguments.getRegistered()) {
+                    for (const [n, v] of cmd.arguments.getRegistered()) {
                         if (v.length > 1) {
                             for (let overflow of v) {
                                 try {
-                                    let argVal: any | null = overflow.parse(
+                                    const argVal: any | null = overflow.parse(
                                         sender,
                                         arg,
                                         argumentsp,
@@ -370,7 +369,7 @@ export default class CommandManager {
                             }
                         } else {
                             try {
-                                let argVal: any | null = v[0]?.parse(
+                                const argVal: any | null = v[0]?.parse(
                                     sender,
                                     arg,
                                     argumentsp,
