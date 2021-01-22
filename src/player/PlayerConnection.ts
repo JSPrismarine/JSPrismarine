@@ -1,11 +1,7 @@
 import AdventureSettingsPacket, {
     AdventureSettingsFlags
 } from '../network/packet/AdventureSettingsPacket';
-import {
-    CommandArgumentEntity,
-    CommandArgumentGamemode,
-    CommandArgumentPosition
-} from '../command/CommandArguments';
+import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
 import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
 import PlayerListPacket, {
     PlayerListAction,
@@ -29,11 +25,13 @@ import DataPacket from '../network/packet/DataPacket';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
 import EncapsulatedPacket from '../network/raknet/protocol/EncapsulatedPacket';
 import Gamemode from '../world/Gamemode';
-import IntegerArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/IntegerArgumentType';
+import IForm from '../form/IForm';
 import InventoryContentPacket from '../network/packet/InventoryContentPacket';
 import Item from '../item/Item';
 import LevelChunkPacket from '../network/packet/LevelChunkPacket';
 import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
+import ModalForm from '../form/ModalForm';
+import ModalFormRequestPacket from '../network/packet/ModalFormRequestPacket';
 import MovePlayerPacket from '../network/packet/MovePlayerPacket';
 import MovementType from '../network/type/MovementType';
 import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
@@ -46,8 +44,6 @@ import type Server from '../Server';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
 import SetGamemodePacket from '../network/packet/SetGamemodePacket';
 import SetTimePacket from '../network/packet/SetTimePacket';
-import Skin from '../utils/skin/Skin';
-import StringArgumentType from '@jsprismarine/brigadier/dist/lib/arguments/StringArgumentType';
 import TextPacket from '../network/packet/TextPacket';
 import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
@@ -60,6 +56,7 @@ export default class PlayerConnection {
     private player: Player;
     private readonly connection: Connection;
     private readonly server: Server;
+
     private readonly chunkSendQueue: Set<Chunk> = new Set();
     private readonly loadedChunks: Set<string> = new Set();
     private readonly loadingChunks: Set<string> = new Set();
@@ -84,7 +81,7 @@ export default class PlayerConnection {
         await this.connection.addEncapsulatedToQueue(sendPacket);
     }
 
-    public async update(_tick: number) {
+    public async update(_tick: number): Promise<void> {
         if (this.chunkSendQueue.size > 0) {
             for (const chunk of this.chunkSendQueue) {
                 const encodedPos = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
@@ -100,7 +97,7 @@ export default class PlayerConnection {
         await this.needNewChunks();
     }
 
-    public async sendSettings(player?: Player) {
+    public async sendSettings(player?: Player): Promise<void> {
         const target = player ?? this.player;
         const pk = new AdventureSettingsPacket();
 
@@ -119,7 +116,7 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
-    public async needNewChunks(forceResend = false) {
+    public async needNewChunks(forceResend = false): Promise<void> {
         const currentXChunk = CoordinateUtils.fromBlockToChunk(this.player.getX());
         const currentZChunk = CoordinateUtils.fromBlockToChunk(this.player.getZ());
 
@@ -214,12 +211,12 @@ export default class PlayerConnection {
         }
     }
 
-    public async requestChunk(x: number, z: number) {
+    public async requestChunk(x: number, z: number): Promise<void> {
         const chunk = await this.player.getWorld().getChunk(x, z);
         this.chunkSendQueue.add(chunk);
     }
 
-    public async sendInventory() {
+    public async sendInventory(): Promise<void> {
         const pk = new InventoryContentPacket();
         pk.items = this.player.getInventory().getItems(true);
         pk.windowId = WindowIds.INVENTORY; // Inventory window
@@ -239,7 +236,7 @@ export default class PlayerConnection {
         */
     }
 
-    public async sendCreativeContents(empty = false) {
+    public async sendCreativeContents(empty = false): Promise<void> {
         const pk = new CreativeContentPacket();
         if (empty) {
             await this.sendDataPacket(pk);
@@ -270,7 +267,7 @@ export default class PlayerConnection {
     /**
      * Sets the item in the player hand.
      */
-    public async sendHandItem(item: ContainerEntry) {
+    public async sendHandItem(item: ContainerEntry): Promise<void> {
         const pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.player.runtimeId;
         pk.item = item;
@@ -280,19 +277,27 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
-    public async sendTime(time: number) {
+    public async sendForm(form: IForm): Promise<void> {
+        const id = this.player.getFormManager().addForm(form);
+        const pk = new ModalFormRequestPacket();
+        pk.formId = id;
+        pk.formData = form.jsonSerialize();
+        await this.sendDataPacket(pk);
+    }
+
+    public async sendTime(time: number): Promise<void> {
         const pk = new SetTimePacket();
         pk.time = time;
         await this.sendDataPacket(pk);
     }
 
-    public async sendGamemode(mode: number) {
+    public async sendGamemode(mode: number): Promise<void> {
         const pk = new SetGamemodePacket();
         pk.gamemode = mode;
         await this.sendDataPacket(pk);
     }
 
-    public async sendNetworkChunkPublisher() {
+    public async sendNetworkChunkPublisher(): Promise<void> {
         const pk = new NetworkChunkPublisherUpdatePacket();
         pk.x = Math.floor(this.player.getX());
         pk.y = Math.floor(this.player.getY());
@@ -301,7 +306,7 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
-    public async sendAvailableCommands() {
+    public async sendAvailableCommands(): Promise<void> {
         const pk = new AvailableCommandsPacket();
 
         this.server
@@ -402,7 +407,7 @@ export default class PlayerConnection {
     }
 
     // Updates the player view distance
-    public async setViewDistance(distance: number) {
+    public async setViewDistance(distance: number): Promise<void> {
         this.player.viewDistance = distance;
         const pk = new ChunkRadiusUpdatedPacket();
         pk.radius = distance;
@@ -425,7 +430,7 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
-    public async sendMessage(message: string, xuid = '', needsTranslation = false) {
+    public async sendMessage(message: string, xuid = '', needsTranslation = false): Promise<void> {
         if (!message) throw new Error('A message is required');
 
         const pk = new TextPacket();
@@ -437,7 +442,7 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
-    public async sendChunk(chunk: Chunk) {
+    public async sendChunk(chunk: Chunk): Promise<void> {
         const pk = new LevelChunkPacket();
         pk.chunkX = chunk.getX();
         pk.chunkZ = chunk.getZ();
@@ -453,7 +458,7 @@ export default class PlayerConnection {
     /**
      * Broadcast the movement to a defined player
      */
-    public async broadcastMove(player: Player, mode = MovementType.Normal) {
+    public async broadcastMove(player: Player, mode = MovementType.Normal): Promise<void> {
         const pk = new MovePlayerPacket();
         pk.runtimeEntityId = player.runtimeId;
 
@@ -477,7 +482,7 @@ export default class PlayerConnection {
     /**
      * Add the player to the client player list
      */
-    public async addToPlayerList() {
+    public async addToPlayerList(): Promise<void> {
         const pk = new PlayerListPacket();
         pk.type = PlayerListAction.TYPE_ADD;
 
@@ -509,7 +514,7 @@ export default class PlayerConnection {
     /**
      * Removes a player from other players list
      */
-    public async removeFromPlayerList() {
+    public async removeFromPlayerList(): Promise<void> {
         if (!this.player.uuid) return;
 
         const pk = new PlayerListPacket();
@@ -534,7 +539,7 @@ export default class PlayerConnection {
      * Retrieve all other player in server
      * and add them to the player's in-game player list
      */
-    public async sendPlayerList() {
+    public async sendPlayerList(): Promise<void> {
         const pk = new PlayerListPacket();
         pk.type = PlayerListAction.TYPE_ADD;
 
@@ -553,7 +558,7 @@ export default class PlayerConnection {
      *
      * @param player the player to send the AddPlayerPacket to
      */
-    public async sendSpawn(player: Player) {
+    public async sendSpawn(player: Player): Promise<void> {
         if (!player.getUUID()) {
             this.server.getLogger().error(`UUID for player ${player.getName()} is undefined`);
             return;
@@ -590,13 +595,13 @@ export default class PlayerConnection {
     /**
      * Despawn the player entity from another player
      */
-    public async sendDespawn(player: Player) {
+    public async sendDespawn(player: Player): Promise<void> {
         const pk = new RemoveActorPacket();
         pk.uniqueEntityId = this.player.runtimeId; // We use runtime as unique
         await player.getConnection().sendDataPacket(pk);
     }
 
-    public async sendPlayStatus(status: number) {
+    public async sendPlayStatus(status: number): Promise<void> {
         const pk = new PlayStatusPacket();
         pk.status = status;
         await this.sendDataPacket(pk);

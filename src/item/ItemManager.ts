@@ -43,9 +43,11 @@ export default class ItemManager {
     public registerClassItem = (item: Item) => {
         this.server
             .getLogger()
-            .silly(`Item with id §b${item.name}§r registered`, 'ItemManager/registerClassItem');
-        item.setRuntimeId(this.items.size);
-        this.items.set(item.name, item);
+            .silly(
+                `Item with id §b${item.getName()}§r registered`,
+                'ItemManager/registerClassItem'
+            );
+        this.items.set(item.getName(), item);
     };
 
     /**
