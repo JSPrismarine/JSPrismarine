@@ -46,7 +46,7 @@ export default class TelemetryManager {
         });
 
         await this.tick();
-        this.ticker = setInterval(this.tick, 5 * 60 * 1000);
+        this.ticker = setInterval(async () => this.tick(), 60 * 1000);
     }
 
     public async onDisable() {
@@ -110,6 +110,9 @@ export default class TelemetryManager {
             );
         const body = {
             id: this.generateAnonomizedId(),
+            version: `${this.server.getConfig().getVersion()}:${
+                this.server.getQueryManager().git_rev
+            }`,
             error: {
                 name: crashlog.name,
                 message: crashlog.message,
