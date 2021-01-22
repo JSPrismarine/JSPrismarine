@@ -4,8 +4,10 @@ import CommandExecuter from '../command/CommandExecuter';
 import Connection from '../network/raknet/Connection';
 import ContainerEntry from '../inventory/ContainerEntry';
 import Device from '../utils/Device';
+import FormManager from '../form/FormManager';
 import Gamemode from '../world/Gamemode';
 import Human from '../entity/Human';
+import IForm from '../form/IForm';
 import InetAddress from '../network/raknet/utils/InetAddress';
 import MovementType from '../network/type/MovementType';
 import PlayerConnection from './PlayerConnection';
@@ -61,6 +63,8 @@ export default class Player extends Human implements CommandExecuter {
 
     public currentChunk: Chunk | null = null;
 
+    private readonly forms: FormManager;
+
     /**
      * Player's constructor.
      */
@@ -69,6 +73,7 @@ export default class Player extends Human implements CommandExecuter {
         this.address = connection.getAddress();
         this.playerConnection = new PlayerConnection(server, connection, this);
         this.windows = new WindowManager();
+        this.forms = new FormManager();
         this.permissions = [];
 
         // Handle chat messages
@@ -175,6 +180,7 @@ export default class Player extends Human implements CommandExecuter {
 
         await this.sendSettings();
     }
+
     public getGamemode(): string {
         return Gamemode.getGamemodeName(this.gamemode).toLowerCase();
     }
@@ -219,6 +225,10 @@ export default class Player extends Human implements CommandExecuter {
         return this.xuid;
     }
 
+    public getFormManager(): FormManager {
+        return this.forms;
+    }
+
     public getWindows(): WindowManager {
         return this.windows;
     }
@@ -237,6 +247,7 @@ export default class Player extends Human implements CommandExecuter {
     public isSprinting() {
         return this.sprinting;
     }
+
     public async setSprinting(sprinting: boolean) {
         if (sprinting === this.isSprinting()) return;
 
@@ -251,6 +262,7 @@ export default class Player extends Human implements CommandExecuter {
     public isFlying() {
         return this.flying;
     }
+
     public async setFlying(flying: boolean) {
         if (flying === this.isFlying()) return;
         if (!this.getAllowFlight()) {
@@ -269,6 +281,7 @@ export default class Player extends Human implements CommandExecuter {
     public isSneaking() {
         return this.sneaking;
     }
+
     public async setSneaking(val: boolean) {
         this.sneaking = val;
         await this.sendSettings();
@@ -277,6 +290,7 @@ export default class Player extends Human implements CommandExecuter {
     public isOnGround() {
         return this.onGround;
     }
+
     public async setOnGround(val: boolean) {
         this.onGround = val;
         await this.sendSettings();
@@ -285,6 +299,7 @@ export default class Player extends Human implements CommandExecuter {
     public getPosition(): Vector3 {
         return new Vector3(this.getX(), this.getY(), this.getZ());
     }
+
     public async setPosition(position: Vector3, type: MovementType = MovementType.Normal) {
         this.setX(position.getX());
         this.setY(position.getY());

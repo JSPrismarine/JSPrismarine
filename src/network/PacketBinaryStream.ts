@@ -398,7 +398,7 @@ export default class PacketBinaryStream extends BinaryStream {
     writeItemStack(entry: ContainerEntry) {
         const itemstack = entry.getItem();
 
-        if (itemstack.name === 'minecraft:air') {
+        if (itemstack.getName() === 'minecraft:air') {
             this.writeVarInt(0);
             return;
         }

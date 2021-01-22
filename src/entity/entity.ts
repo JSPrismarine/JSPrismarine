@@ -101,6 +101,9 @@ export default class Entity extends Position {
         pk.motionX = 0;
         pk.motionY = 0;
         pk.motionZ = 0;
+        pk.pitch = 0;
+        pk.yaw = 0;
+        pk.headYaw = 0;
         await player.getConnection().sendDataPacket(pk);
     }
 

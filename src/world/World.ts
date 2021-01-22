@@ -504,7 +504,7 @@ export default class World {
                                 const count = entry.getCount();
 
                                 return {
-                                    id: item?.name,
+                                    id: item?.getName(),
                                     numeric_id: item?.getId(),
                                     numeric_meta: item?.meta,
                                     count,

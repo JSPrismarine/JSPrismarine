@@ -36,6 +36,8 @@ import LoginHandler from './handler/LoginHandler';
 import LoginPacket from './packet/LoginPacket';
 import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
+import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
 import MovePlayerHandler from './handler/MovePlayerHandler';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
@@ -166,6 +168,7 @@ export default class PacketRegistry {
         this.registerPacket(UpdateAttributesPacket);
         this.registerPacket(UpdateBlockPacket);
         this.registerPacket(WorldEventPacket);
+        this.registerPacket(ModalFormResponsePacket);
 
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
@@ -210,6 +213,7 @@ export default class PacketRegistry {
         this.registerHandler(Identifiers.SetPlayerGameTypePacket, new SetPlayerGameTypeHandler());
         this.registerHandler(Identifiers.TextPacket, new TextHandler());
         this.registerHandler(Identifiers.TickSyncPacket, new TickSyncHandler());
+        this.registerHandler(Identifiers.ModalFormResponsePacket, new ModalFormResponseHandler());
 
         this.logger.debug(
             `Registered §b${this.handlers.size}§r packet handler(s) (took ${
