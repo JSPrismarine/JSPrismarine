@@ -1,10 +1,8 @@
-import { CommandParameterType } from '../../network/type/CommandParameter';
-import CommandExecuter from '../CommandExecuter';
 import Argument from './Argument';
-
+import CommandExecuter from '../CommandExecuter';
+import { CommandParameterType } from '../../network/type/CommandParameter';
 export default class TextArgument extends Argument<string> {
-    // whether or not the argument extends into the next one.
-    public constructor(name: string = 'text', extend: boolean = false) {
+    public constructor(name: string = 'text', extend?: boolean) {
         super(name);
         this.extendsTo = extend;
         this.type = CommandParameterType.Value;

@@ -343,11 +343,12 @@ export default class PlayerConnection {
 
     public async sendAvailableCommands() {
         const pk = new AvailableCommandsPacket();
+        const commands = this.server.getCommandManager().getCommands().values();
 
-        let commands = this.server.getCommandManager().getCommands().values();
+        // RFC
         for (let cmd of commands) {
             if (cmd.api !== 'rfc') continue;
-            let parsedArgs = [...cmd.arguments.getRegistered().values()].map(
+            const parsedArgs = [...cmd.arguments.getRegistered().values()].map(
                 (args) => {
                     if (args.length === 1) return args[0].getNetworkData();
 
@@ -365,8 +366,6 @@ export default class PlayerConnection {
                 parameters: new Set(parsedArgs)
             });
         }
-
-        // register refactor
 
         this.server
             .getCommandManager()

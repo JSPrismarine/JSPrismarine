@@ -303,7 +303,7 @@ export default class CommandManager {
     public async dispatchCommand(sender: CommandExecuter, input = '') {
         try {
             // get the input command
-            let cmd = [...this.commands.values()].find(
+            const cmd = [...this.commands.values()].find(
                 (c) =>
                     c.id.split(':')[1] === input.split(' ')[0] ||
                     c?.aliases?.includes(input.split(' ')[0]) ||
@@ -313,7 +313,7 @@ export default class CommandManager {
             if (cmd?.api === 'rfc') {
                 // begin parsing
                 // todo: allow escaping qoutations, eg: \"
-                let args = [
+                const args = [
                     ...(input
                         .split(' ')
                         .slice(1)
@@ -329,11 +329,11 @@ export default class CommandManager {
                         }
                     });
 
-                let argumentsp: any[] = [];
+                const argumentsp: any[] = [];
                 let skipIndex: number = 0;
 
                 for (let i in args) {
-                    let arg = args[i];
+                    const arg = args[i];
 
                     if (skipIndex > 0) {
                         skipIndex--;
