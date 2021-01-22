@@ -65,21 +65,17 @@ export default class TpCommand extends Command {
                             argument('target', new CommandArgumentEntity('target')).executes(
                                 async (context) => {
                                     const sources = context.getArgument('player') as Player[];
-
                                     const target = context.getArgument('target')?.[0] as Player;
-
-                                    const position = new Vector3(
-                                        target.getX(),
-                                        target.getY(),
-                                        target.getZ()
-                                    );
 
                                     if (!sources?.length)
                                         throw new Error(
                                             `Cannot find specified player(s) & entit(y/ies)`
                                         );
                                     sources.forEach(async (entity) =>
-                                        entity.setPosition(position, MovementType.Teleport)
+                                        entity.setPosition(
+                                            target.getPosition(),
+                                            MovementType.Teleport
+                                        )
                                     );
                                     return `Teleported ${sources
                                         .map((entity) => entity.getFormattedUsername())

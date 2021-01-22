@@ -29,6 +29,7 @@ export default class SetLocalPlayerAsInitializedHandler
             player
                 .getWorld()
                 .getEntities()
+                .filter((e) => !e.isPlayer())
                 .map(async (entity) => entity.sendSpawn(player))
         );
     }

@@ -3,7 +3,7 @@ import Identifiers from '../Identifiers';
 import type Vector3 from '../../math/Vector3';
 
 export default class MoveActorAbsolutePacket extends DataPacket {
-    public static NetID = Identifiers.MovePlayerPacket;
+    public static NetID = Identifiers.MoveActorAbsolutePacket;
 
     public runtimeEntityId!: bigint;
     public flags!: number;
