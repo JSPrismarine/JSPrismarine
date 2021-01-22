@@ -1,5 +1,4 @@
 import Command from '../Command';
-import StringArgument from '../argument/StringArgument';
 import type CommandExecuter from '../CommandExecuter';
 import TextArgument from '../argument/TextArgument';
 
@@ -23,7 +22,7 @@ export default class EvalCommand extends Command {
         await sender.sendMessage(`Result: §e${c}`);
     }
 
-    public async fallback(sender: CommandExecuter, args: any[], error: Error) {
+    public async fallback(sender: CommandExecuter, _args: any[], error: Error) {
         await sender.sendMessage(
             `§cError when executing script!\n"${error.name}":\n${
                 error.stack || '- No stack'

@@ -7,10 +7,11 @@ export default class TextArgument extends Argument<string> {
         this.extendsTo = extend;
         this.type = CommandParameterType.Value;
     }
+
     public parse(
-        executer: CommandExecuter,
+        _executer: CommandExecuter,
         arg: string,
-        currentStack: Argument<unknown>[],
+        _currentStack: Argument<unknown>[],
         strArgs: string[]
     ) {
         if (this.extendsTo) {

@@ -9,10 +9,11 @@ export default class StringArgument extends Argument<string> {
         this.extendsTo = extend;
         this.type = CommandParameterType.RawText;
     }
+
     public parse(
-        executer: CommandExecuter,
+        _executer: CommandExecuter,
         arg: string,
-        currentStack: Argument<unknown>[],
+        _currentStack: Argument<unknown>[],
         strArgs: string[]
     ) {
         if (this.extendsTo) {
