@@ -74,6 +74,12 @@ export default class PacketBinaryStream extends BinaryStream {
         this.writeVarInt(position.getZ());
     }
 
+    public writePosition(position: Vector3): void {
+        this.writeLFloat(position.getX());
+        this.writeLFloat(position.getY());
+        this.writeLFloat(position.getZ());
+    }
+
     /**
      * Encodes an UUID into the buffer.
      */

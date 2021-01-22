@@ -2,6 +2,7 @@ import MetadataManager, { FlagType, MetadataFlag } from './metadata';
 
 import AddActorPacket from '../network/packet/AddActorPacket';
 import AttributeManager from './attribute';
+import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
 import Player from '../player/Player';
 import Position from '../world/Position';
 import Server from '../Server';
@@ -112,12 +113,25 @@ export default class Entity extends Position {
         this.setY(position.getY());
         this.setZ(position.getZ());
 
-        // TODO: broadcast this
-        /* this.getServer()
+        this.getServer()
             .getPlayerManager()
             .getOnlinePlayers()
             .filter((p) => p.getWorld().getUniqueId() === this.getWorld().getUniqueId())
-            .map(async (player) => player.getConnection().broadcastMove(this as any)); */
+            .map(async (player) => {
+                const pk = new MoveActorAbsolutePacket();
+                pk.runtimeEntityId = this.runtimeId;
+                pk.position = this.getPosition();
+
+                // TODO
+                pk.rotationX = 0;
+                pk.rotationY = 0;
+                pk.rotationZ = 0;
+                await player.getConnection().sendDataPacket(pk);
+            });
+    }
+
+    public getPosition(): Vector3 {
+        return new Vector3(this.getX(), this.getY(), this.getZ());
     }
 
     public isPlayer(): boolean {
