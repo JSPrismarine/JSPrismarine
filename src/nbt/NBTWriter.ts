@@ -31,10 +31,7 @@ export default class NBTWriter {
     }
 
     public writeCompound(compound: NBTTagCompound): void {
-        this.writeTagHeader(
-            NBTDefinitions.TAG_COMPOUND,
-            compound.getName() ?? ''
-        );
+        this.writeTagHeader(NBTDefinitions.TAG_COMPOUND, compound.getName() ?? '');
         this.writeCompoundValue(compound);
     }
 
@@ -122,9 +119,7 @@ export default class NBTWriter {
 
     private writeListValue(value: Set<any>): void {
         if (value.size > 0) {
-            const listNbtType = this.getNBTTypeFromValue(
-                value.entries().next().value
-            );
+            const listNbtType = this.getNBTTypeFromValue(value.entries().next().value);
             this.writeByteValue(listNbtType);
             this.writeIntegerValue(value.size);
             for (const rawValue of value) {

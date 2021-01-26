@@ -4,8 +4,10 @@ import CommandExecuter from '../command/CommandExecuter';
 import Connection from '../network/raknet/Connection';
 import ContainerEntry from '../inventory/ContainerEntry';
 import Device from '../utils/Device';
+import FormManager from '../form/FormManager';
 import Gamemode from '../world/Gamemode';
 import Human from '../entity/Human';
+import IForm from '../form/IForm';
 import InetAddress from '../network/raknet/utils/InetAddress';
 import MovementType from '../network/type/MovementType';
 import PlayerConnection from './PlayerConnection';
@@ -17,6 +19,7 @@ import Skin from '../utils/skin/Skin';
 import Vector3 from '../math/Vector3';
 import WindowManager from '../inventory/WindowManager';
 import World from '../world/World';
+import withDeprecated from '../hoc/withDeprecated';
 
 export default class Player extends Human implements CommandExecuter {
     private readonly address: InetAddress;
@@ -60,6 +63,8 @@ export default class Player extends Human implements CommandExecuter {
 
     public currentChunk: Chunk | null = null;
 
+    private readonly forms: FormManager;
+
     /**
      * Player's constructor.
      */
@@ -68,6 +73,7 @@ export default class Player extends Human implements CommandExecuter {
         this.address = connection.getAddress();
         this.playerConnection = new PlayerConnection(server, connection, this);
         this.windows = new WindowManager();
+        this.forms = new FormManager();
         this.permissions = [];
 
         // Handle chat messages
@@ -78,16 +84,14 @@ export default class Player extends Human implements CommandExecuter {
             if (
                 evt.getChat().getChannel() === '*.everyone' ||
                 (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
-                evt.getChat().getChannel() === `*.player.${this.getUsername()}`
+                evt.getChat().getChannel() === `*.player.${this.getName()}`
             )
                 await this.sendMessage(evt.getChat().getMessage());
         });
     }
 
     public async onEnable() {
-        this.permissions = await this.getServer()
-            .getPermissionManager()
-            .getPermissions(this);
+        this.permissions = await this.getServer().getPermissionManager().getPermissions(this);
 
         const playerData = await this.getWorld().getPlayerData(this);
 
@@ -106,10 +110,7 @@ export default class Player extends Human implements CommandExecuter {
             if (!entry) {
                 this.getServer()
                     .getLogger()
-                    .debug(
-                        `Item/block with id ${item.id} is invalid`,
-                        'Player/onEnable'
-                    );
+                    .debug(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
                 return;
             }
 
@@ -134,10 +135,7 @@ export default class Player extends Human implements CommandExecuter {
     public async kick(reason = 'unknown reason'): Promise<void> {
         this.getServer()
             .getLogger()
-            .debug(
-                `Player with id §b${this.runtimeId}§r was kicked: ${reason}`,
-                'Player/kick'
-            );
+            .debug(`Player with id §b${this.runtimeId}§r was kicked: ${reason}`, 'Player/kick');
         await this.playerConnection.kick(reason);
     }
 
@@ -173,10 +171,7 @@ export default class Player extends Human implements CommandExecuter {
         this.gamemode = event.getGamemode();
         await this.playerConnection.sendGamemode(this.gamemode);
 
-        if (
-            this.gamemode === Gamemode.Creative ||
-            this.gamemode === Gamemode.Spectator
-        )
+        if (this.gamemode === Gamemode.Creative || this.gamemode === Gamemode.Spectator)
             this.allowFight = true;
         else {
             this.allowFight = false;
@@ -184,6 +179,10 @@ export default class Player extends Human implements CommandExecuter {
         }
 
         await this.sendSettings();
+    }
+
+    public getGamemode(): string {
+        return Gamemode.getGamemodeName(this.gamemode).toLowerCase();
     }
 
     public getConnection(): PlayerConnection {
@@ -194,6 +193,14 @@ export default class Player extends Human implements CommandExecuter {
         return this.address;
     }
 
+    public getName(): string {
+        return this.username.name;
+    }
+
+    /**
+     * @deprecated Use `getName()` instead
+     */
+    @withDeprecated(new Date(1611177755753), 'getName')
     public getUsername(): string {
         return this.username.name;
     }
@@ -218,6 +225,10 @@ export default class Player extends Human implements CommandExecuter {
         return this.xuid;
     }
 
+    public getFormManager(): FormManager {
+        return this.forms;
+    }
+
     public getWindows(): WindowManager {
         return this.windows;
     }
@@ -230,12 +241,13 @@ export default class Player extends Human implements CommandExecuter {
         return true;
     }
     public isOp(): boolean {
-        return this.getServer().getPermissionManager().isOp(this.getUsername());
+        return this.getServer().getPermissionManager().isOp(this.getName());
     }
 
     public isSprinting() {
         return this.sprinting;
     }
+
     public async setSprinting(sprinting: boolean) {
         if (sprinting === this.isSprinting()) return;
 
@@ -250,6 +262,7 @@ export default class Player extends Human implements CommandExecuter {
     public isFlying() {
         return this.flying;
     }
+
     public async setFlying(flying: boolean) {
         if (flying === this.isFlying()) return;
         if (!this.getAllowFlight()) {
@@ -268,6 +281,7 @@ export default class Player extends Human implements CommandExecuter {
     public isSneaking() {
         return this.sneaking;
     }
+
     public async setSneaking(val: boolean) {
         this.sneaking = val;
         await this.sendSettings();
@@ -276,15 +290,13 @@ export default class Player extends Human implements CommandExecuter {
     public isOnGround() {
         return this.onGround;
     }
+
     public async setOnGround(val: boolean) {
         this.onGround = val;
         await this.sendSettings();
     }
 
-    public async setPosition(
-        position: Vector3,
-        type: MovementType = MovementType.Normal
-    ) {
+    public async setPosition(position: Vector3, type: MovementType = MovementType.Normal) {
         this.setX(position.getX());
         this.setY(position.getY());
         this.setZ(position.getZ());

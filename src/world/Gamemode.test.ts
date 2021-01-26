@@ -10,9 +10,7 @@ describe('world', () => {
         });
 
         it('getGamemodeName() should throw on invalid gamemode', () => {
-            expect(() => Gamemode.getGamemodeName(-1)).toThrowError(
-                'Unknown gamemode'
-            );
+            expect(() => Gamemode.getGamemodeName(-1)).toThrowError('Unknown gamemode');
         });
 
         it('getGamemodeId() should return correct id', () => {
@@ -22,21 +20,15 @@ describe('world', () => {
             expect(Gamemode.getGamemodeId('creative')).toBe(Gamemode.Creative);
             expect(Gamemode.getGamemodeId('1')).toBe(Gamemode.Creative);
 
-            expect(Gamemode.getGamemodeId('adventure')).toBe(
-                Gamemode.Adventure
-            );
+            expect(Gamemode.getGamemodeId('adventure')).toBe(Gamemode.Adventure);
             expect(Gamemode.getGamemodeId('2')).toBe(Gamemode.Adventure);
 
-            expect(Gamemode.getGamemodeId('spectator')).toBe(
-                Gamemode.Spectator
-            );
+            expect(Gamemode.getGamemodeId('spectator')).toBe(Gamemode.Spectator);
             expect(Gamemode.getGamemodeId('3')).toBe(Gamemode.Spectator);
         });
 
         it('getGamemodeId() should throw on invalid gamemode', () => {
-            expect(() => Gamemode.getGamemodeId('unknown')).toThrowError(
-                'Unknown gamemode'
-            );
+            expect(() => Gamemode.getGamemodeId('unknown')).toThrowError('Unknown gamemode');
         });
     });
 });

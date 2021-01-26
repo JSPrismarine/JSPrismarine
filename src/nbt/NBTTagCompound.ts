@@ -16,20 +16,11 @@ export default class NBTTagCompound {
     private name: string | null;
     public readonly children: Map<string, any> = new Map();
 
-    public static readFromFile(
-        path: string,
-        byteOrder: ByteOrder
-    ): NBTTagCompound {
-        return NBTTagCompound.readFromStream(
-            new BinaryStream(fs.readFileSync(path)),
-            byteOrder
-        );
+    public static readFromFile(path: string, byteOrder: ByteOrder): NBTTagCompound {
+        return NBTTagCompound.readFromStream(new BinaryStream(fs.readFileSync(path)), byteOrder);
     }
 
-    public static readFromStream(
-        input: BinaryStream,
-        byteOrder: ByteOrder
-    ): NBTTagCompound {
+    public static readFromStream(input: BinaryStream, byteOrder: ByteOrder): NBTTagCompound {
         const reader: NBTReader = new NBTReader(input, byteOrder);
         return reader.parse();
     }

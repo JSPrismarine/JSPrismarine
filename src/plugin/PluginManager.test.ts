@@ -95,13 +95,10 @@ describe.skip('plugin', () => {
             const pl = new PluginManager(server);
             // Mock file-system
             mock({
-                'src/plugin/api': mock.load(
-                    path.resolve(process.cwd(), 'src/plugin/api'),
-                    { recursive: true }
-                ),
-                node_modules: mock.load(
-                    path.resolve(__dirname, '../../node_modules')
-                )
+                'src/plugin/api': mock.load(path.resolve(process.cwd(), 'src/plugin/api'), {
+                    recursive: true
+                }),
+                node_modules: mock.load(path.resolve(__dirname, '../../node_modules'))
             });
 
             await pl.onEnable();
@@ -114,16 +111,11 @@ describe.skip('plugin', () => {
 
             // Mock file-system
             mock({
-                plugins: mock.load(
-                    path.resolve(process.cwd(), '.test/plugins')
-                ),
-                'src/plugin/api': mock.load(
-                    path.resolve(process.cwd(), 'src/plugin/api'),
-                    { recursive: true }
-                ),
-                node_modules: mock.load(
-                    path.resolve(__dirname, '../../node_modules')
-                )
+                plugins: mock.load(path.resolve(process.cwd(), '.test/plugins')),
+                'src/plugin/api': mock.load(path.resolve(process.cwd(), 'src/plugin/api'), {
+                    recursive: true
+                }),
+                node_modules: mock.load(path.resolve(__dirname, '../../node_modules'))
             });
 
             await pl.onEnable();

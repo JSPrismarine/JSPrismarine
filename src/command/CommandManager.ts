@@ -30,28 +30,15 @@ export default class CommandManager {
         const time = Date.now();
 
         const commands = [
-            ...fs
-                .readdirSync(path.join(__dirname, 'vanilla'))
-                .map((a) => `/vanilla/${a}`),
-            ...fs
-                .readdirSync(path.join(__dirname, 'jsprismarine'))
-                .map((a) => `/jsprismarine/${a}`)
+            ...fs.readdirSync(path.join(__dirname, 'vanilla')).map((a) => `/vanilla/${a}`),
+            ...fs.readdirSync(path.join(__dirname, 'jsprismarine')).map((a) => `/jsprismarine/${a}`)
         ];
 
         // Register jsprismarine commands
         commands.forEach(async (id: string) => {
-            if (
-                id.includes('.test.') ||
-                id.includes('.d.ts') ||
-                id.includes('.map')
-            )
-                return; // Exclude test files
+            if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) return; // Exclude test files
 
-            if (
-                !this.server.getConfig().getEnableEval() &&
-                id.includes('EvalCommand')
-            )
-                return;
+            if (!this.server.getConfig().getEnableEval() && id.includes('EvalCommand')) return;
 
             const Command = require(`./${id}`);
             const command: Command = new (Command.default || Command)();
@@ -63,9 +50,7 @@ export default class CommandManager {
                     await this.registerClassCommand(command, this.server);
                 }
             } catch (err) {
-                this.server
-                    .getLogger()
-                    .warn(`Failed to register command ${command.id}: ${err}`);
+                this.server.getLogger().warn(`Failed to register command ${command.id}: ${err}`);
                 this.server.getLogger().silly(err.stack);
             }
         });
@@ -74,9 +59,7 @@ export default class CommandManager {
         this.server
             .getLogger()
             .debug(
-                `Registered §b${commands.length}§r commands(s) (took ${
-                    Date.now() - time
-                } ms)!`,
+                `Registered §b${commands.length}§r commands(s) (took ${Date.now() - time} ms)!`,
                 'CommandManager/onEnable'
             );
     }
@@ -138,9 +121,7 @@ export default class CommandManager {
                 `Brigadier API being deprecated soon. Use registerCommand() for: ${command.constructor.name} instead.`
             );
         if (command.id.split(':').length !== 2)
-            throw new Error(
-                `command is missing required "namespace" part of id`
-            );
+            throw new Error(`command is missing required "namespace" part of id`);
 
         if (!command?.register)
             this.server
@@ -155,15 +136,13 @@ export default class CommandManager {
 
         // this is bad habit for registering.
         await Promise.all(
-            server
+            this.server
                 .getPlayerManager()
                 .getOnlinePlayers()
-                .map(async (player) => {
-                    await player.getConnection().sendAvailableCommands();
-                })
+                .map(async (player) => player.getConnection().sendAvailableCommands())
         );
 
-        server
+        this.server
             .getLogger()
             .silly(
                 `Command with id §b${command.id}§r registered`,
@@ -197,9 +176,7 @@ export default class CommandManager {
      * EXCLUDING legacy commands
      * @deprecated
      */
-    public getCommandsList(): Array<
-        [string, CommandNode<CommandExecuter>, CommandArgument[][]]
-    > {
+    public getCommandsList(): Array<[string, CommandNode<CommandExecuter>, CommandArgument[][]]> {
         const parseNode = (node: CommandNode<CommandExecuter>): any[] => {
             if (node.getChildrenCount() <= 0) {
                 return [
@@ -219,10 +196,7 @@ export default class CommandManager {
             return [
                 node.getCommand()
                     ? {
-                          item: (node as ArgumentCommandNode<
-                              any,
-                              any
-                          >).getType(),
+                          item: (node as ArgumentCommandNode<any, any>).getType(),
                           children: []
                       }
                     : undefined,
@@ -235,17 +209,12 @@ export default class CommandManager {
 
         const traverse = (node: any, path: any[] = [], result: any[] = []) => {
             if (!node.children.length) result.push(path.concat(node.item));
-            for (const child of node.children)
-                traverse(child, path.concat(node.item), result);
+            for (const child of node.children) traverse(child, path.concat(node.item), result);
             return result;
         };
 
         const res = Array.from(
-            this.server
-                .getCommandManager()
-                .getDispatcher()
-                .getRoot()
-                .getChildren()
+            this.server.getCommandManager().getDispatcher().getRoot().getChildren()
         )
             .map((command) => {
                 const branches: any[] = [];
@@ -258,11 +227,7 @@ export default class CommandManager {
                     });
                 });
 
-                return branches.map((branch) => [
-                    command.getName(),
-                    command,
-                    branch
-                ]);
+                return branches.map((branch) => [command.getName(), command, branch]);
             })
             .flat()
             .filter((a) => a);
@@ -277,8 +242,7 @@ export default class CommandManager {
                                 .flat(Number.POSITIVE_INFINITY)
                                 .map(
                                     (argument: any) =>
-                                        argument.getReadableType?.() ??
-                                        argument.constructor.name
+                                        argument.getReadableType?.() ?? argument.constructor.name
                                 )
                                 .join(' ')}`;
                         })
@@ -478,9 +442,7 @@ export default class CommandManager {
             }
         } catch (error) {
             if (error?.type?.message?.toString?.() === 'Unknown command') {
-                await sender.sendMessage(
-                    `§cUnknown command. Type "/help" for help.`
-                );
+                await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
                 return;
             }
 
@@ -491,9 +453,7 @@ export default class CommandManager {
                     `Player ${sender.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
-            this.server
-                .getLogger()
-                .silly(`${error.stack}`, 'CommandManager/dispatchCommand');
+            this.server.getLogger().silly(`${error.stack}`, 'CommandManager/dispatchCommand');
         }
     }
 }

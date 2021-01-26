@@ -50,10 +50,7 @@ export default class Connection {
     private offlineMode: boolean;
 
     // Map holding splits of split packets
-    private readonly splitPackets: Map<
-        number,
-        Map<number, EncapsulatedPacket>
-    > = new Map();
+    private readonly splitPackets: Map<number, Map<number, EncapsulatedPacket>> = new Map();
 
     // Map holding out of order reliable packets
     // private reliableMissing: Map<number, EncapsulatedPacket> = new Map();
@@ -62,12 +59,15 @@ export default class Connection {
     private lastReliableIndex = 0;
 
     // Array containing received sequence numbers
-    private readonly receivedWindow: Set<number> = new Set();
+    private readonly receivedSeqNumbers: Set<number> = new Set();
     // Last received sequence number
     private lastSequenceNumber = -1;
     private sendSequenceNumber = 0;
 
-    private messageIndex = 0;
+    // Used just for reliable messages
+    private sendReliableIndex = 0;
+    // private readonly receivedReliableQueue: Map<number, EncapsulatedPacket> = new Map();
+
     private readonly channelIndex: number[] = [];
 
     // Internal split Id
@@ -100,60 +100,57 @@ export default class Connection {
     }
 
     public async update(timestamp: number): Promise<void> {
-        return new Promise(async (resolve) => {
-            if (!this.isActive() && this.lastUpdate + 10000 < timestamp) {
-                this.disconnect('timeout');
-                return;
+        if (!this.isActive() && this.lastUpdate + 10000 < timestamp) {
+            this.disconnect('timeout');
+            return;
+        }
+
+        this.active = false;
+
+        if (this.ackQueue.size > 0) {
+            const pk = new ACK();
+            pk.setPackets(Array.from(this.ackQueue));
+            await this.sendPacket(pk);
+            this.ackQueue.clear();
+        }
+
+        if (this.nackQueue.size > 0) {
+            const pk = new NACK();
+            pk.setPackets(Array.from(this.nackQueue));
+            await this.sendPacket(pk);
+            this.nackQueue.clear();
+        }
+
+        if (this.packetToSend.size > 0) {
+            let limit = 16;
+            await Promise.all(
+                Array.from(this.packetToSend).map(async (pk) => {
+                    pk.sendTime = timestamp;
+                    pk.encode();
+                    this.recoveryQueue.set(pk.sequenceNumber, pk);
+                    this.packetToSend.delete(pk);
+                    await this.sendPacket(pk);
+
+                    if (--limit <= 0) {
+                        return false;
+                    }
+                })
+            );
+
+            // Packet queue bigger than limit
+            if (this.packetToSend.size > 2048) {
+                this.packetToSend.clear();
             }
+        }
 
-            this.active = false;
-
-            if (this.ackQueue.size > 0) {
-                const pk = new ACK();
-                pk.setPackets(Array.from(this.ackQueue));
-                await this.sendPacket(pk);
-                this.ackQueue.clear();
+        Array.from(this.recoveryQueue.entries()).forEach(([seq, pk]) => {
+            if (pk.sendTime < Date.now() - 8000) {
+                this.packetToSend.add(pk);
+                this.recoveryQueue.delete(seq);
             }
-
-            if (this.nackQueue.size > 0) {
-                const pk = new NACK();
-                pk.setPackets(Array.from(this.nackQueue));
-                await this.sendPacket(pk);
-                this.nackQueue.clear();
-            }
-
-            if (this.packetToSend.size > 0) {
-                let limit = 16;
-                await Promise.all(
-                    Array.from(this.packetToSend).map(async (pk) => {
-                        pk.sendTime = timestamp;
-                        pk.encode();
-                        this.recoveryQueue.set(pk.sequenceNumber, pk);
-                        this.packetToSend.delete(pk);
-                        await this.sendPacket(pk);
-
-                        if (--limit <= 0) {
-                            return false;
-                        }
-                    })
-                );
-
-                // Packet queue bigger than limit
-                if (this.packetToSend.size > 2048) {
-                    this.packetToSend.clear();
-                }
-            }
-
-            Array.from(this.recoveryQueue.entries()).forEach(([seq, pk]) => {
-                if (pk.sendTime < Date.now() - 8000) {
-                    this.packetToSend.add(pk);
-                    this.recoveryQueue.delete(seq);
-                }
-            });
-
-            await this.sendPacketQueue();
-            resolve();
         });
+
+        await this.sendPacketQueue();
     }
 
     public disconnect(reason = 'unknown'): void {
@@ -180,109 +177,88 @@ export default class Connection {
     }
 
     public async handleDatagram(buffer: Buffer): Promise<void> {
-        return new Promise(async (resolve) => {
-            const dataPacket = new DataPacket(buffer);
-            dataPacket.decode();
+        const dataPacket = new DataPacket(buffer);
+        dataPacket.decode();
 
-            // Check if we already received packet and so we don't handle them
-            // i still need to understand what are those window stuff
-            if (this.receivedWindow.has(dataPacket.sequenceNumber)) {
-                resolve();
-                return;
-            }
+        // Check if we already received packet and so we don't handle them
+        if (this.receivedSeqNumbers.has(dataPacket.sequenceNumber)) {
+            return;
+        }
 
-            // Check if the packet was a missing one, so in the nack queue
-            // if it was missing, remove from the queue because we received it now
-            if (this.nackQueue.has(dataPacket.sequenceNumber)) {
-                // May not need condition, to check
-                this.nackQueue.delete(dataPacket.sequenceNumber);
-            }
+        // Check if the packet was a missing one, so in the nack queue
+        // if it was missing, remove from the queue because we received it now
+        if (this.nackQueue.has(dataPacket.sequenceNumber)) {
+            // May not need condition, to check
+            this.nackQueue.delete(dataPacket.sequenceNumber);
+        }
 
-            // Add the packet to the 'sent' queue
-            // to let know the game we sent the packet
-            this.ackQueue.add(dataPacket.sequenceNumber);
+        // Add the packet to the 'sent' queue
+        // to let know the game we sent the packet
+        this.ackQueue.add(dataPacket.sequenceNumber);
 
-            // Add the packet to the received window, a property that keeps
-            // all the sequence numbers of packets we received
-            // its function is to check if when we lost some packets
-            // check wich are really lost by searching if we received it there
-            this.receivedWindow.add(dataPacket.sequenceNumber);
+        // Add the packet to the received window, a property that keeps
+        // all the sequence numbers of packets we received
+        // its function is to check if when we lost some packets
+        // check wich are really lost by searching if we received it there
+        this.receivedSeqNumbers.add(dataPacket.sequenceNumber);
 
-            // Check if there are missing packets between the received packet and the last received one
-            const diff = dataPacket.sequenceNumber - this.lastSequenceNumber;
+        // Check if there are missing packets between the received packet and the last received one
+        const diff = dataPacket.sequenceNumber - this.lastSequenceNumber;
 
-            // Check if the sequence is broken due to a lost packet
-            if (diff !== 1) {
-                // As i said before, there we search for missing packets in the list of the recieved ones
-                for (
-                    let i = this.lastSequenceNumber + 1;
-                    i < dataPacket.sequenceNumber;
-                    i++
-                ) {
-                    // Adding the packet sequence number to the NACK queue and then sending a NACK
-                    // will make the Client sending again the lost packet
-                    if (!this.receivedWindow.has(i)) {
-                        this.nackQueue.add(i);
-                    }
+        // Check if the sequence has a hole due to a lost packet
+        if (diff !== 1) {
+            // As i said before, there we search for missing packets in the list of the recieved ones
+            for (let i = this.lastSequenceNumber + 1; i < dataPacket.sequenceNumber; i++) {
+                // Adding the packet sequence number to the NACK queue and then sending a NACK
+                // will make the Client sending again the lost packet
+                if (!this.receivedSeqNumbers.has(i)) {
+                    this.nackQueue.add(i);
                 }
             }
+        }
 
-            // If we received a lost packet we sent in NACK or a normal sequenced one
-            if (diff >= 1) {
-                this.lastSequenceNumber = dataPacket.sequenceNumber;
-            }
+        // If we received a lost packet we sent in NACK or a normal sequenced one
+        this.lastSequenceNumber = dataPacket.sequenceNumber;
 
-            // Handle encapsulated
-            // This is an array but soon
-            // will be converted to a porperty
-            // because there is alway one packet
-            for (const packet of dataPacket.packets) {
-                await this.receivePacket(packet);
-            }
-
-            resolve();
-        });
+        // Handle encapsulated
+        for (const packet of dataPacket.packets) {
+            await this.receivePacket(packet);
+        }
     }
 
     // Handles a ACK packet, this packet confirm that the other
     // end successfully received the datagram
     public async handleACK(buffer: Buffer): Promise<void> {
-        return new Promise((resolve) => {
-            const packet = new ACK(buffer);
-            packet.decode();
+        const packet = new ACK(buffer);
+        packet.decode();
 
-            // TODO: ping calculation
+        // TODO: ping calculation
 
+        await Promise.all(
             packet
                 .getPackets()
                 .filter((seq) => this.recoveryQueue.has(seq))
-                .map((seq) => this.recoveryQueue.delete(seq));
-
-            resolve();
-        });
+                .map((seq) => this.recoveryQueue.delete(seq))
+        );
     }
 
     public async handleNACK(buffer: Buffer): Promise<void> {
-        return new Promise(async (resolve) => {
-            const packet = new NACK(buffer);
-            packet.decode();
+        const packet = new NACK(buffer);
+        packet.decode();
 
-            await Promise.all(
-                packet
-                    .getPackets()
-                    .filter((seq) => this.recoveryQueue.has(seq))
-                    .map(async (seq) => {
-                        const pk = this.recoveryQueue.get(seq)!;
-                        pk.sequenceNumber = this.sendSequenceNumber++;
-                        pk.sendTime = Date.now();
-                        pk.encode();
-                        await this.sendPacket(pk);
-                        this.recoveryQueue.delete(seq);
-                    })
-            );
-
-            resolve();
-        });
+        await Promise.all(
+            packet
+                .getPackets()
+                .filter((seq) => this.recoveryQueue.has(seq))
+                .map(async (seq) => {
+                    const pk = this.recoveryQueue.get(seq)!;
+                    pk.sequenceNumber = this.sendSequenceNumber++;
+                    pk.sendTime = Date.now();
+                    pk.encode();
+                    await this.sendPacket(pk);
+                    this.recoveryQueue.delete(seq);
+                })
+        );
     }
 
     public async receivePacket(packet: EncapsulatedPacket): Promise<void> {
@@ -290,23 +266,33 @@ export default class Connection {
             // Handle the packet directly if it doesn't have a message index
             await this.handlePacket(packet);
         } else {
-            // TODO: Restore out of order packets first
             const holeCount = this.lastReliableIndex - packet.messageIndex;
-            // Console.log('[RAKNET] Waiting on reliableMessageIndex=%d missingDiff=%d datagramNumber=%d', packet.messageIndex, holeCount, this.lastSequenceNumber);
+            // console.log('[RAKNET] Waiting on reliableMessageIndex=%d missingDiff=%d datagramNumber=%d', packet.messageIndex, holeCount, this.lastSequenceNumber);
 
             if (holeCount === 0) {
                 await this.handlePacket(packet);
                 this.lastReliableIndex++;
+
+                // TODO: Handle the out of order reliable packets
+                // this.receivedReliableQueue.forEach(async (encapsualted) => {
+                //    if ((encapsualted.messageIndex - this.lastReliableIndex) != 1) {
+                //        return false;
+                //    }
+                //    await this.handlePacket(encapsualted);
+                //    console.log(encapsualted.messageIndex)
+                //    this.lastReliableIndex++;
+                // });
+                // this.receivedReliableQueue.clear();
             }
+
+            // Hold in a queue out of order reliable messages
+            // this.receivedReliableQueue.set(packet.messageIndex, packet);
         }
     }
 
-    public async addEncapsulatedToQueue(
-        packet: EncapsulatedPacket,
-        flags = Priority.NORMAL
-    ) {
+    public async addEncapsulatedToQueue(packet: EncapsulatedPacket, flags = Priority.NORMAL) {
         if (isReliable(packet.reliability)) {
-            packet.messageIndex = this.messageIndex++;
+            packet.messageIndex = this.sendReliableIndex++;
 
             if (packet.reliability === PacketReliability.RELIABLE_ORDERED) {
                 packet.orderIndex = this.channelIndex[packet.orderChannel]++;
@@ -322,10 +308,7 @@ export default class Connection {
 
             while (index < packet.buffer.length) {
                 // Push format: [chunk index: int, chunk: buffer]
-                buffers.set(
-                    splitIndex++,
-                    packet.buffer.slice(index, (index += this.mtuSize))
-                );
+                buffers.set(splitIndex++, packet.buffer.slice(index, (index += this.mtuSize)));
             }
 
             for (const [index, buffer] of buffers) {
@@ -337,7 +320,7 @@ export default class Connection {
                 pk.buffer = buffer;
 
                 if (index !== 0) {
-                    pk.messageIndex = this.messageIndex++;
+                    pk.messageIndex = this.sendReliableIndex++;
                 }
 
                 // Figure out if the message index differs
@@ -386,114 +369,89 @@ export default class Connection {
      * Encapsulated handling route
      */
     public async handlePacket(packet: EncapsulatedPacket): Promise<void> {
-        return new Promise(async (resolve) => {
-            if (packet.splitCount > 0) {
-                await this.handleSplit(packet);
-                resolve();
-                return;
-            }
+        if (packet.splitCount > 0) {
+            await this.handleSplit(packet);
+            return;
+        }
 
-            const id = packet.buffer.readUInt8();
+        const id = packet.buffer.readUInt8();
 
-            if (id < 0x80) {
-                if (this.state === Status.CONNECTING) {
-                    if (id === Identifiers.ConnectionRequestAccepted) {
-                        const dataPacket = new ConnectionRequestAccepted(
-                            packet.buffer
-                        );
-                        dataPacket.decode();
+        if (id < 0x80) {
+            if (this.state === Status.CONNECTING) {
+                if (id === Identifiers.ConnectionRequestAccepted) {
+                    const dataPacket = new ConnectionRequestAccepted(packet.buffer);
+                    dataPacket.decode();
 
-                        const pk = new NewIncomingConnection();
-                        pk.requestTimestamp = BigInt(Date.now());
-                        pk.acceptedTimestamp = BigInt(Date.now());
-                        pk.address = dataPacket.clientAddress;
-                        pk.encode();
+                    const pk = new NewIncomingConnection();
+                    pk.requestTimestamp = BigInt(Date.now());
+                    pk.acceptedTimestamp = BigInt(Date.now());
+                    pk.address = dataPacket.clientAddress;
+                    pk.encode();
 
-                        const sendPk = new EncapsulatedPacket();
-                        sendPk.reliability = 0;
-                        sendPk.buffer = pk.getBuffer();
+                    const sendPk = new EncapsulatedPacket();
+                    sendPk.reliability = 0;
+                    sendPk.buffer = pk.getBuffer();
 
-                        await this.addToQueue(sendPk, Priority.IMMEDIATE);
-                    } else if (id === Identifiers.ConnectionRequest) {
-                        const encapsulated = await this.handleConnectionRequest(
-                            packet.buffer
-                        );
-                        await this.addToQueue(encapsulated, Priority.IMMEDIATE);
-                    } else if (id === Identifiers.NewIncomingConnection) {
-                        const dataPacket = new NewIncomingConnection(
-                            packet.buffer
-                        );
-                        dataPacket.decode();
+                    await this.addToQueue(sendPk, Priority.IMMEDIATE);
+                } else if (id === Identifiers.ConnectionRequest) {
+                    const encapsulated = await this.handleConnectionRequest(packet.buffer);
+                    await this.addToQueue(encapsulated, Priority.IMMEDIATE);
+                } else if (id === Identifiers.NewIncomingConnection) {
+                    const dataPacket = new NewIncomingConnection(packet.buffer);
+                    dataPacket.decode();
 
-                        // Client bots will work just in offline mode
-                        const offlineMode = this.offlineMode;
+                    // Client bots will work just in offline mode
+                    const offlineMode = this.offlineMode;
 
-                        const serverPort = this.listener.getSocket().address()
-                            .port;
-                        if (
-                            !offlineMode ??
-                            dataPacket.address.getPort() === serverPort
-                        ) {
-                            this.state = Status.CONNECTED;
-                            this.listener.emit('openConnection', this);
-                        }
+                    const serverPort = this.listener.getSocket().address().port;
+                    if (!offlineMode ?? dataPacket.address.getPort() === serverPort) {
+                        this.state = Status.CONNECTED;
+                        this.listener.emit('openConnection', this);
                     }
-                } else if (id === Identifiers.DisconnectNotification) {
-                    this.disconnect('client disconnect');
-                } else if (id === Identifiers.ConnectedPing) {
-                    const encapsulated = await this.handleConnectedPing(
-                        packet.buffer
-                    );
-                    await this.addToQueue(encapsulated);
                 }
-            } else if (this.state === Status.CONNECTED) {
-                this.listener.emit('encapsulated', packet, this.address); // To fit in software needs later
+            } else if (id === Identifiers.DisconnectNotification) {
+                this.disconnect('client disconnect');
+            } else if (id === Identifiers.ConnectedPing) {
+                const encapsulated = await this.handleConnectedPing(packet.buffer);
+                await this.addToQueue(encapsulated);
             }
-
-            resolve();
-        });
+        } else if (this.state === Status.CONNECTED) {
+            this.listener.emit('encapsulated', packet, this.address); // To fit in software needs later
+        }
     }
 
     // Async encapsulated handlers
-    public async handleConnectionRequest(
-        buffer: Buffer
-    ): Promise<EncapsulatedPacket> {
-        return new Promise((resolve) => {
-            const dataPacket = new ConnectionRequest(buffer);
-            dataPacket.decode();
+    public async handleConnectionRequest(buffer: Buffer): Promise<EncapsulatedPacket> {
+        const dataPacket = new ConnectionRequest(buffer);
+        dataPacket.decode();
 
-            const pk = new ConnectionRequestAccepted();
-            pk.clientAddress = this.address;
-            pk.requestTimestamp = dataPacket.requestTimestamp;
-            pk.acceptedTimestamp = BigInt(Date.now());
-            pk.encode();
+        const pk = new ConnectionRequestAccepted();
+        pk.clientAddress = this.address;
+        pk.requestTimestamp = dataPacket.requestTimestamp;
+        pk.acceptedTimestamp = BigInt(Date.now());
+        pk.encode();
 
-            const sendPacket = new EncapsulatedPacket();
-            sendPacket.reliability = 0;
-            sendPacket.buffer = pk.getBuffer();
+        const sendPacket = new EncapsulatedPacket();
+        sendPacket.reliability = 0;
+        sendPacket.buffer = pk.getBuffer();
 
-            resolve(sendPacket);
-        });
+        return sendPacket;
     }
 
-    public async handleConnectedPing(
-        buffer: Buffer
-    ): Promise<EncapsulatedPacket> {
-        return new Promise((resolve) => {
-            const dataPacket = new ConnectedPing(buffer);
-            dataPacket.decode();
+    public async handleConnectedPing(buffer: Buffer): Promise<EncapsulatedPacket> {
+        const dataPacket = new ConnectedPing(buffer);
+        dataPacket.decode();
 
-            const pk = new ConnectedPong();
-            pk.clientTimestamp = dataPacket.clientTimestamp;
-            pk.serverTimestamp = BigInt(Date.now());
-            pk.encode();
+        const pk = new ConnectedPong();
+        pk.clientTimestamp = dataPacket.clientTimestamp;
+        pk.serverTimestamp = BigInt(Date.now());
+        pk.encode();
 
-            const sendPacket = new EncapsulatedPacket();
-            sendPacket.reliability = 0;
-            sendPacket.buffer = pk.getBuffer();
+        const sendPacket = new EncapsulatedPacket();
+        sendPacket.reliability = 0;
+        sendPacket.buffer = pk.getBuffer();
 
-            resolve(sendPacket);
-        });
+        return sendPacket;
     }
 
     /**
@@ -505,10 +463,7 @@ export default class Connection {
             value.set(packet.splitIndex, packet);
             this.splitPackets.set(packet.splitId, value);
         } else {
-            this.splitPackets.set(
-                packet.splitId,
-                new Map([[packet.splitIndex, packet]])
-            );
+            this.splitPackets.set(packet.splitId, new Map([[packet.splitIndex, packet]]));
         }
 
         // If we have all pieces, put them together
@@ -531,10 +486,7 @@ export default class Connection {
             this.sendQueue.sequenceNumber = this.sendSequenceNumber++;
             await this.sendPacket(this.sendQueue);
             this.sendQueue.sendTime = Date.now();
-            this.recoveryQueue.set(
-                this.sendQueue.sequenceNumber,
-                this.sendQueue
-            );
+            this.recoveryQueue.set(this.sendQueue.sequenceNumber, this.sendQueue);
             this.sendQueue = new DataPacket();
         }
     }
@@ -542,7 +494,7 @@ export default class Connection {
     public async sendPacket(packet: Packet): Promise<void> {
         packet.encode();
 
-        await (this.listener as any).sendBuffer(
+        await this.listener.sendBuffer(
             packet.getBuffer(),
             this.address.getAddress(),
             this.address.getPort()
@@ -550,9 +502,7 @@ export default class Connection {
     }
 
     public async close() {
-        const stream = new BinaryStream(
-            Buffer.from('\u0000\u0000\u0008\u0015', 'binary')
-        );
+        const stream = new BinaryStream(Buffer.from('\u0000\u0000\u0008\u0015', 'binary'));
         await this.addEncapsulatedToQueue(
             EncapsulatedPacket.fromBinary(stream),
             Priority.IMMEDIATE

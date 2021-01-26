@@ -7,23 +7,15 @@ import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import type Server from '../../Server';
 
 export default class LoginHandler implements PacketHandler<LoginPacket> {
-    public async handle(
-        packet: LoginPacket,
-        server: Server,
-        player: Player
-    ): Promise<void> {
+    public async handle(packet: LoginPacket, server: Server, player: Player): Promise<void> {
         // Check if player count >= max players
 
         // Kick client if has newer / older client version
         if (packet.protocol !== Identifiers.Protocol) {
             if (packet.protocol < Identifiers.Protocol) {
-                await player
-                    .getConnection()
-                    .sendPlayStatus(PlayStatusType.LoginFailedClient);
+                await player.getConnection().sendPlayStatus(PlayStatusType.LoginFailedClient);
             } else {
-                await player
-                    .getConnection()
-                    .sendPlayStatus(PlayStatusType.LoginFailedServer);
+                await player.getConnection().sendPlayStatus(PlayStatusType.LoginFailedServer);
             }
 
             return;
@@ -36,9 +28,7 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
 
         // Player with same name is already online
         try {
-            const oldPlayer = server
-                .getPlayerManager()
-                .getPlayerByExactName(packet.displayName);
+            const oldPlayer = server.getPlayerManager().getPlayerByExactName(packet.displayName);
             await oldPlayer.kick('Logged in from another location');
         } catch {}
 
@@ -57,15 +47,11 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
         player.device = packet.device;
 
         await player.onEnable();
-        await player
-            .getConnection()
-            .sendPlayStatus(PlayStatusType.LoginSuccess);
+        await player.getConnection().sendPlayStatus(PlayStatusType.LoginSuccess);
 
         const reason = server.getBanManager().isBanned(player);
         if (reason !== false) {
-            await player.kick(
-                `You have been banned${reason ? ` for reason: ${reason}` : ''}!`
-            );
+            await player.kick(`You have been banned${reason ? ` for reason: ${reason}` : ''}!`);
             return;
         }
 

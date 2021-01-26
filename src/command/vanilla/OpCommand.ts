@@ -1,10 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
-import {
-    CommandDispatcher,
-    argument,
-    literal,
-    string
-} from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, literal, string } from '@jsprismarine/brigadier';
 
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
@@ -37,21 +32,12 @@ export default class OpCommand extends Command {
 
                     if (target) {
                         const event = new ChatEvent(
-                            new Chat(
-                                source,
-                                '§eYou are now op!',
-                                `*.player.${target.getUsername()}`
-                            )
+                            new Chat(source, '§eYou are now op!', `*.player.${target.getName()}`)
                         );
-                        await target
-                            .getServer()
-                            .getEventManager()
-                            .emit('chat', event);
+                        await target.getServer().getEventManager().emit('chat', event);
                     }
 
-                    return `Made ${context.getArgument(
-                        'player'
-                    )} a server operator`;
+                    return `Made ${context.getArgument('player')} a server operator`;
                 })
             )
         );

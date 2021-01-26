@@ -8,13 +8,7 @@ export default class Updater {
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
 
-    public constructor({
-        config,
-        logger
-    }: {
-        config: Config;
-        logger: LoggerBuilder;
-    }) {
+    public constructor({ config, logger }: { config: Config; logger: LoggerBuilder }) {
         this.config = config;
         this.logger = logger;
     }
@@ -27,8 +21,7 @@ export default class Updater {
             html_url: string;
             tag_name: string;
         } =
-            this.config.getUpdateChannel() === 'release' &&
-            !semver.prerelease(pkg.version)?.length
+            this.config.getUpdateChannel() === 'release' && !semver.prerelease(pkg.version)?.length
                 ? await (
                       await fetch(
                           `https://api.github.com/repos/${this.config.getUpdateRepo()}/releases/latest`
@@ -45,10 +38,7 @@ export default class Updater {
         if (!release?.tag_name) {
             this.logger.debug('Failed to check for updates!', 'Updater/check');
             if ((release as any)?.message)
-                this.logger.debug(
-                    `Error: ${(release as any).message}`,
-                    'Updater/check'
-                );
+                this.logger.debug(`Error: ${(release as any).message}`, 'Updater/check');
             return;
         }
 
@@ -58,17 +48,11 @@ export default class Updater {
                     `§5There's a new version of JSPrismarine available, new version: §2${release.tag_name}`,
                     'Updater/check'
                 );
-                this.logger.info(
-                    `§5Download: §e${release.html_url}`,
-                    'Updater/check'
-                );
+                this.logger.info(`§5Download: §e${release.html_url}`, 'Updater/check');
                 return;
             }
 
-            this.logger.debug(
-                'No new version of JSPrismarine available',
-                'Updater/check'
-            );
+            this.logger.debug('No new version of JSPrismarine available', 'Updater/check');
         } catch (err) {
             this.logger.error(err, 'Updater/check');
         }

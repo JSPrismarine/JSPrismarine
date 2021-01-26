@@ -7,11 +7,7 @@ import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 
 export default class InteractHandler implements PacketHandler<InteractPacket> {
-    public async handle(
-        packet: InteractPacket,
-        server: Server,
-        player: Player
-    ): Promise<void> {
+    public async handle(packet: InteractPacket, server: Server, player: Player): Promise<void> {
         switch (packet.action) {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:
@@ -20,11 +16,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 const pk = new ContainerOpenPacket();
                 pk.windowId = 0; // TODO
                 pk.containerType = -1; // -> inventory (TODO)
-                pk.containerPos = new Vector3(
-                    player.getX(),
-                    player.getY(),
-                    player.getZ()
-                );
+                pk.containerPos = new Vector3(player.getX(), player.getY(), player.getZ());
                 pk.containerEntityId = player.runtimeId;
                 await player.getConnection().sendDataPacket(pk);
                 break;
@@ -32,10 +24,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
             default:
                 server
                     .getLogger()
-                    .debug(
-                        `Unknown interact action id ${packet.action}`,
-                        'InteractHandler/handle'
-                    );
+                    .debug(`Unknown interact action id ${packet.action}`, 'InteractHandler/handle');
         }
     }
 }

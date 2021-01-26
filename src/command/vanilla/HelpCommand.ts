@@ -22,10 +22,18 @@ export default class HelpCommand extends Command {
                 .getCommandManager()
                 .getCommands()
                 .forEach(async (command) => {
+                    if (
+                        !source
+                            .getServer()
+                            .getPermissionManager()
+                            .can(source)
+                            .execute(command.permission)
+                    )
+                        return;
+
+                    // TODO: handle multiple commands with the same id but different namespaces
                     await source.sendMessage(
-                        `§e/${command.id.split(':')[1]}:§r §7${
-                            command.description
-                        }`
+                        `§e/${command.id.split(':')[1]}:§r §7${command.description}`
                     );
                 });
         };

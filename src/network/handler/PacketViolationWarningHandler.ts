@@ -5,17 +5,9 @@ import Server from '../../Server';
 
 export default class PacketViolationWarningHandler
     implements PacketHandler<PacketViolationWarningPacket> {
-    public handle(
-        packet: PacketViolationWarningPacket,
-        server: Server,
-        player: Player
-    ): void {
+    public handle(packet: PacketViolationWarningPacket, server: Server, player: Player): void {
         server
             .getLogger()
-            .error(
-                `Packet violation 0x${packet.packetId.toString(16)}. ${
-                    packet.message
-                }`
-            );
+            .error(`Packet violation 0x${packet.packetId.toString(16)}. ${packet.message}`);
     }
 }

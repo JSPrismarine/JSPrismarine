@@ -35,7 +35,7 @@ export default class PermissionManager {
     public async getPermissions(player: Player): Promise<string[]> {
         return [
             ...this.defaultPermissions,
-            ...(this.permissions.get(player.getUsername()) ?? []),
+            ...(this.permissions.get(player.getName()) ?? []),
             ...(player.isOp() ? this.defaultOperatorPermissions : [])
         ];
     }
@@ -47,7 +47,7 @@ export default class PermissionManager {
      * file as that is to be handled by the plugin author in a plugin-specific file.
      */
     public setPermissions(player: Player, permissions: string[]) {
-        this.permissions.set(player.getUsername(), permissions ?? []);
+        this.permissions.set(player.getName(), permissions ?? []);
     }
 
     private async parsePermissions(): Promise<void> {
@@ -55,10 +55,7 @@ export default class PermissionManager {
             if (!fs.existsSync(path.join(process.cwd(), '/permissions.json'))) {
                 this.server
                     .getLogger()
-                    .warn(
-                        `Failed to load permissions list!`,
-                        'PermissionManager/parsePermissions'
-                    );
+                    .warn(`Failed to load permissions list!`, 'PermissionManager/parsePermissions');
                 fs.writeFileSync(
                     path.join(process.cwd(), '/permissions.json'),
                     JSON.stringify(
@@ -94,18 +91,11 @@ export default class PermissionManager {
                     permissions: string[];
                 }>;
             } = JSON.parse(
-                (
-                    await readFile(
-                        path.join(process.cwd(), '/permissions.json')
-                    )
-                ).toString()
+                (await readFile(path.join(process.cwd(), '/permissions.json'))).toString()
             );
 
-            this.defaultPermissions =
-                permissionsObject.defaultPermissions || [];
-            this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || [
-                '*'
-            ];
+            this.defaultPermissions = permissionsObject.defaultPermissions || [];
+            this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
             permissionsObject.players.map((player) =>
                 this.permissions.set(
                     player.name,
@@ -113,9 +103,7 @@ export default class PermissionManager {
                 )
             );
         } catch (error) {
-            this.server
-                .getLogger()
-                .error(error, 'PermissionManager/parsePermissions');
+            this.server.getLogger().error(error, 'PermissionManager/parsePermissions');
             throw new Error(`Invalid permissions.json file.`);
         }
     }
@@ -125,18 +113,13 @@ export default class PermissionManager {
             if (!fs.existsSync(path.join(process.cwd(), '/ops.json'))) {
                 this.server
                     .getLogger()
-                    .warn(
-                        `Failed to load operators list!`,
-                        'PermissionManager/parseOps'
-                    );
+                    .warn(`Failed to load operators list!`, 'PermissionManager/parseOps');
                 fs.writeFileSync(path.join(process.cwd(), '/ops.json'), '[]');
             }
 
             const readFile = util.promisify(fs.readFile);
             const ops: OpType[] = JSON.parse(
-                (
-                    await readFile(path.join(process.cwd(), '/ops.json'))
-                ).toString()
+                (await readFile(path.join(process.cwd(), '/ops.json'))).toString()
             );
 
             ops.map((op) => this.ops.add(op.name));

@@ -8,28 +8,20 @@ const _ = {
             String.prototype.split
                 .call(path, regexp)
                 .filter(Boolean)
-                .reduce(
-                    (res, key) =>
-                        res !== null && res !== undefined ? res[key] : res,
-                    obj
-                );
+                .reduce((res, key) => (res !== null && res !== undefined ? res[key] : res), obj);
         const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/);
         return result === undefined || result === obj ? defaultValue : result;
     },
     set: (obj: any, path: any, value: any) => {
         if (Object(obj) !== obj) return obj;
-        if (!Array.isArray(path))
-            path = path.toString().match(/[^.[\]]+/g) || [];
+        if (!Array.isArray(path)) path = path.toString().match(/[^.[\]]+/g) || [];
         path
             .slice(0, -1)
             .reduce(
                 (a: any, c: any, i: any) =>
                     Object(a[c]) === a[c]
                         ? a[c]
-                        : (a[c] =
-                              Math.abs(path[i + 1]) >> 0 === Number(path[i + 1])
-                                  ? []
-                                  : {}),
+                        : (a[c] = Math.abs(path[i + 1]) >> 0 === Number(path[i + 1]) ? [] : {}),
                 obj
             )[path[path.length - 1]] = value;
         return obj;
@@ -45,9 +37,7 @@ const _ = {
         );
     },
     del: (obj: any, path: any) => {
-        const pathArray = Array.isArray(path)
-            ? path
-            : path.match(/([^[.\]])+/g);
+        const pathArray = Array.isArray(path) ? path : path.match(/([^[.\]])+/g);
 
         pathArray.reduce((acc: any, key: any, i: number) => {
             // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -75,15 +65,11 @@ export default class ConfigBuilder {
 
         this.type = pathSplitted.ext.slice(1);
 
-        if (
-            !Object.keys(TypeDefaults).some(
-                (i) => i.toLowerCase() === this.type.toLowerCase()
-            )
-        ) {
+        if (!Object.keys(TypeDefaults).some((i) => i.toLowerCase() === this.type.toLowerCase())) {
             throw new Error(
-                `Unsupported config type. (Supported types: ${Object.keys(
-                    TypeDefaults
-                ).join(', ')})`
+                `Unsupported config type. (Supported types: ${Object.keys(TypeDefaults).join(
+                    ', '
+                )})`
             );
         }
 
@@ -92,11 +78,7 @@ export default class ConfigBuilder {
         }
 
         if (!fs.existsSync(filePath)) {
-            fs.writeFileSync(
-                filePath,
-                (TypeDefaults as any)[this.type],
-                'utf8'
-            );
+            fs.writeFileSync(filePath, (TypeDefaults as any)[this.type], 'utf8');
         }
 
         this.path = filePath;

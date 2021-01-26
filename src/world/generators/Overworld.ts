@@ -1,63 +1,66 @@
+import BaseGenerator from '../BaseGenerator';
 import Chunk from '../chunk/Chunk';
 import Noise from 'simplex-noise';
-import type Server from '../../Server';
-import type Vector3 from '../../math/Vector3';
 
 const CHUNK_WIDTH = 16;
 // Const CHUNK_HEIGHT = 256; 1.17: 16?
 const CHUNK_LENGTH = 16;
 const SEA_LEVEL = 62;
 
-export default class Overworld {
-    private noise?: Noise;
+export default class Overworld extends BaseGenerator {
+    private noise: Noise | null = null;
 
-    public async getChunk({
-        pos,
-        seed,
-        server
-    }: {
-        pos: Vector3;
-        seed: number;
-        server: Server;
-    }) {
-        if (!this.noise) this.noise = new Noise(`${seed}`);
-
-        const noise = this.noise;
-        const chunk = new Chunk(pos.getX(), pos.getZ());
-
-        const bedrock = server.getBlockManager().getBlock('minecraft:bedrock');
-        const stone = server.getBlockManager().getBlock('minecraft:stone');
-        const dirt = server.getBlockManager().getBlock('minecraft:dirt');
-        const grass = server.getBlockManager().getBlock('minecraft:grass');
-        const water = server.getBlockManager().getBlock('minecraft:water');
-        for (let x = 0; x < CHUNK_WIDTH; x++) {
-            for (let z = 0; z < CHUNK_LENGTH; z++) {
-                const noise_height = noise.noise2D(
-                    (pos.getX() * CHUNK_WIDTH + x) * 0.04,
-                    (pos.getZ() * CHUNK_WIDTH + z) * 0.04
-                );
-                const height = Math.floor(60 + 20 * noise_height);
-
-                for (let y = 0; y < height; y++) {
-                    if (y >= height - 4) chunk.setBlock(x, y, z, dirt);
-                    else chunk.setBlock(x, y, z, stone);
-                }
-
-                for (let y = 0; y < SEA_LEVEL; y++) {
-                    const subChunk = chunk.getSubChunk(y >> 4, false);
-                    if (subChunk.getBlockId(x, y & 0x0f, z) === 0) {
-                        subChunk.setBlock(x, y & 0x0f, z, water);
-                    }
-                }
-
-                if (height < SEA_LEVEL - 1) chunk.setBlock(x, height, z, dirt);
-                else chunk.setBlock(x, height, z, grass);
-
-                chunk.setBlock(x, 0, z, bedrock);
+    public async generateChunk(cx: number, cz: number, seed: number): Promise<Chunk> {
+        return new Promise((resolve) => {
+            if (!this.noise) {
+                this.noise = new Noise(`${seed}`);
             }
-        }
 
-        chunk.recalculateHeightMap();
-        return chunk;
+            const noise = this.noise;
+            const chunk = new Chunk(cx, cz);
+
+            const bedrock = this.getBlockManager().getBlock('minecraft:bedrock');
+            const stone = this.getBlockManager().getBlock('minecraft:stone');
+            const dirt = this.getBlockManager().getBlock('minecraft:dirt');
+            const grass = this.getBlockManager().getBlock('minecraft:grass');
+            const water = this.getBlockManager().getBlock('minecraft:water');
+
+            for (let x = 0; x < CHUNK_WIDTH; x++) {
+                for (let z = 0; z < CHUNK_LENGTH; z++) {
+                    const height = Math.floor(
+                        60 +
+                            20 *
+                                noise.noise2D(
+                                    (cx * CHUNK_WIDTH + x) * 0.04,
+                                    (cz * CHUNK_WIDTH + z) * 0.04
+                                )
+                    );
+
+                    for (let y = 0; y < height; y++) {
+                        if (y >= height - 4) {
+                            chunk.setBlock(x, y, z, dirt);
+                        } else {
+                            chunk.setBlock(x, y, z, stone);
+                        }
+                    }
+
+                    if (height < SEA_LEVEL - 1) {
+                        chunk.setBlock(x, height, z, dirt);
+                    } else {
+                        chunk.setBlock(x, height, z, grass);
+                    }
+
+                    for (let y = 0; y < SEA_LEVEL; y++) {
+                        if (chunk.getBlock(x, y, z).id === 0) {
+                            chunk.setBlock(x, y, z, water);
+                        }
+                    }
+
+                    chunk.setBlock(x, 0, z, bedrock);
+                }
+            }
+
+            resolve(chunk);
+        });
     }
 }

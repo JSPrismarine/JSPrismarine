@@ -12,10 +12,7 @@ export enum LogType {
 }
 
 export default class Log extends Solid {
-    public constructor(
-        name = 'minecraft:oak_log',
-        type: LogType = LogType.Oak
-    ) {
+    public constructor(name = 'minecraft:oak_log', type: LogType = LogType.Oak) {
         super({
             name,
             id: BlockIdsType.Log,

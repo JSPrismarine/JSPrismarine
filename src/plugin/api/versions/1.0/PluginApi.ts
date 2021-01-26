@@ -26,29 +26,19 @@ export default class PluginApi extends PluginApiVersion {
 
         return {
             silly: (...args) => {
-                this.server
-                    .getLogger()
-                    .silly(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger().silly(`[${name}] ${args}`, this.pkg.name);
             },
             debug: (...args) => {
-                this.server
-                    .getLogger()
-                    .debug(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger().debug(`[${name}] ${args}`, this.pkg.name);
             },
             info: (...args) => {
-                this.server
-                    .getLogger()
-                    .info(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger().info(`[${name}] ${args}`, this.pkg.name);
             },
             warn: (...args) => {
-                this.server
-                    .getLogger()
-                    .warn(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger().warn(`[${name}] ${args}`, this.pkg.name);
             },
             error: (...args) => {
-                this.server
-                    .getLogger()
-                    .error(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger().error(`[${name}] ${args}`, this.pkg.name);
             }
         } as LoggerBuilder;
     }
@@ -58,13 +48,9 @@ export default class PluginApi extends PluginApiVersion {
      */
     public getConfigBuilder(configFile: string): ConfigBuilder {
         if (configFile.startsWith('../../') || configFile.startsWith('/../../'))
-            throw new Error(
-                `config files should be kept in their respective plugin folder`
-            );
+            throw new Error(`config files should be kept in their respective plugin folder`);
 
-        return new ConfigBuilder(
-            path.join(process.cwd(), '/plugins/', this.pkg.name, configFile)
-        );
+        return new ConfigBuilder(path.join(process.cwd(), '/plugins/', this.pkg.name, configFile));
     }
 
     /**
@@ -82,9 +68,6 @@ export default class PluginApi extends PluginApiVersion {
     public getEventManager<
         CustomEventTypes extends [string, any] = [string, any]
     >(): EventManager<CustomEventTypes> {
-        return (
-            this.eventManager ??
-            (this.eventManager = new EventManager(this.server))
-        );
+        return this.eventManager ?? (this.eventManager = new EventManager(this.server));
     }
 }

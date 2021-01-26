@@ -6,7 +6,6 @@ import Server from '../Server';
 
 export default class Block {
     public id: number;
-    public runtimeId?: number;
     public name: string;
     public hardness: number;
     public meta = 0;
@@ -15,15 +14,7 @@ export default class Block {
     public nbt = null;
     public count = 1;
 
-    public constructor({
-        id,
-        name,
-        hardness
-    }: {
-        id: number;
-        name: string;
-        hardness?: number;
-    }) {
+    public constructor({ id, name, hardness }: { id: number; name: string; hardness?: number }) {
         this.id = id;
         this.name = name;
         this.hardness = hardness ?? 0;
@@ -48,22 +39,6 @@ export default class Block {
      */
     public getId() {
         return this.id;
-    }
-
-    /**
-     * Get the Block's runtime id
-     */
-    public getRuntimeId() {
-        return this.runtimeId;
-    }
-
-    /**
-     * Set the Block's runtime id
-     *
-     * WARNING: this should ONLY be used internally by the BlockManager class
-     */
-    public setRuntimeId(id: number) {
-        this.runtimeId = id;
     }
 
     /**
@@ -123,10 +98,7 @@ export default class Block {
     /**
      * Get the Block's drop(s) if the tool is compatible
      */
-    public getDropsForCompatibleTool(
-        item: Item,
-        server: Server
-    ): Array<Block | Item | null> {
+    public getDropsForCompatibleTool(item: Item, server: Server): Array<Block | Item | null> {
         return [this];
     }
 
@@ -135,10 +107,7 @@ export default class Block {
      */
     public getDrops(item: Item, server: Server): Array<Block | Item | null> {
         if (this.isCompatibleWithTool(item)) {
-            if (
-                this.isAffectedBySilkTouch() &&
-                item.hasEnchantment(ItemEnchantmentType.SilkTouch)
-            )
+            if (this.isAffectedBySilkTouch() && item.hasEnchantment(ItemEnchantmentType.SilkTouch))
                 return this.getSilkTouchDrops(item, server);
 
             return this.getDropsForCompatibleTool(item, server);
@@ -198,10 +167,7 @@ export default class Block {
         const harvestLevel = this.getToolHarvestLevel();
 
         if (toolType === BlockToolType.None || harvestLevel === 0) return true;
-        if (
-            toolType & item.getToolType() &&
-            item.getToolHarvestLevel() >= harvestLevel
-        )
+        if (toolType & item.getToolType() && item.getToolHarvestLevel() >= harvestLevel)
             return true;
 
         return false;

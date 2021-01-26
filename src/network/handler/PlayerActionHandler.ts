@@ -1,3 +1,4 @@
+import BlockMappings from '../../block/BlockMappings';
 import LevelEventType from '../type/LevelEventType';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
@@ -6,44 +7,26 @@ import PlayerActionType from '../type/PlayerActionType';
 import type Server from '../../Server';
 import WorldEventPacket from '../packet/WorldEventPacket';
 
-export default class PlayerActionHandler
-    implements PacketHandler<PlayerActionPacket> {
-    public async handle(
-        packet: PlayerActionPacket,
-        server: Server,
-        player: Player
-    ): Promise<void> {
+export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
+    public async handle(packet: PlayerActionPacket, server: Server, player: Player): Promise<void> {
         switch (packet.action) {
             case PlayerActionType.StartBreak: {
-                const chunk = await player
+                const block = await player
                     .getWorld()
-                    .getChunkAt(packet.x, packet.z);
+                    .getBlock(
+                        packet.position.getX(),
+                        packet.position.getY(),
+                        packet.position.getZ()
+                    );
 
-                const blockId = chunk.getBlockId(
-                    packet.x % 16,
-                    packet.y,
-                    packet.z % 16
-                );
-                const block = server.getBlockManager().getBlockById(blockId);
-                if (!block) {
-                    server
-                        .getLogger()
-                        .warn(
-                            `Block at ${packet.x} ${packet.y} ${packet.z} is undefined!`
-                        );
-                    return;
-                }
-
-                const breakTime = Math.ceil(
-                    block.getBreakTime(null, server) * 20
-                ); // TODO: calculate with item in hand
+                const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
 
                 // TODO: world.sendEvent(type, position(Vector3), data) (?)
                 const pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.BlockStartBreak;
-                pk.x = packet.x;
-                pk.y = packet.y;
-                pk.z = packet.z;
+                pk.x = packet.position.getX();
+                pk.y = packet.position.getY();
+                pk.z = packet.position.getZ();
                 pk.data = 65535 / breakTime;
 
                 await Promise.all(
@@ -62,9 +45,9 @@ export default class PlayerActionHandler
                 // to break the block
                 const pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.BlockStopBreak;
-                pk.x = packet.x;
-                pk.y = packet.y;
-                pk.z = packet.z;
+                pk.x = packet.position.getX();
+                pk.y = packet.position.getY();
+                pk.z = packet.position.getZ();
                 pk.data = 0;
 
                 await Promise.all(
@@ -86,28 +69,20 @@ export default class PlayerActionHandler
                 // This fires twice in creative.. wtf Mojang?
                 const chunk = await player
                     .getWorld()
-                    .getChunkAt(packet.x, packet.z);
+                    .getChunkAt(packet.position.getX(), packet.position.getZ());
 
-                const blockId = chunk.getBlockId(
-                    packet.x % 16,
-                    packet.y,
-                    packet.z % 16
-                );
-
-                const blockMeta = chunk.getBlockMetadata(
-                    packet.x % 16,
-                    packet.y,
-                    packet.z % 16
+                const blockId = chunk.getBlock(
+                    packet.position.getX(),
+                    packet.position.getY(),
+                    packet.position.getZ()
                 );
 
                 const pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.ParticlePunchBlock;
-                pk.x = packet.x;
-                pk.y = packet.y;
-                pk.z = packet.z;
-                pk.data = server
-                    .getBlockManager()
-                    .getRuntimeWithMeta(blockId, blockMeta);
+                pk.x = packet.position.getX();
+                pk.y = packet.position.getY();
+                pk.z = packet.position.getZ();
+                pk.data = BlockMappings.getRuntimeId(blockId.id, blockId.meta);
 
                 await Promise.all(
                     player

@@ -36,6 +36,9 @@ import LoginHandler from './handler/LoginHandler';
 import LoginPacket from './packet/LoginPacket';
 import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
+import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
+import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerHandler from './handler/MovePlayerHandler';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
@@ -140,6 +143,7 @@ export default class PacketRegistry {
         this.registerPacket(LoginPacket);
         this.registerPacket(MobEquipmentPacket);
         this.registerPacket(MovePlayerPacket);
+        this.registerPacket(MoveActorAbsolutePacket);
         this.registerPacket(NetworkChunkPublisherUpdatePacket);
         this.registerPacket(PacketViolationWarningPacket);
         this.registerPacket(PlayerActionPacket);
@@ -166,6 +170,7 @@ export default class PacketRegistry {
         this.registerPacket(UpdateAttributesPacket);
         this.registerPacket(UpdateBlockPacket);
         this.registerPacket(WorldEventPacket);
+        this.registerPacket(ModalFormResponsePacket);
 
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
@@ -178,71 +183,39 @@ export default class PacketRegistry {
     private loadHandlers(): void {
         const time = Date.now();
 
-        this.registerHandler(
-            Identifiers.AdventureSettingsPacket,
-            new AdventureSettingsHandler()
-        );
+        this.registerHandler(Identifiers.AdventureSettingsPacket, new AdventureSettingsHandler());
         this.registerHandler(Identifiers.AnimatePacket, new AnimateHandler());
-        this.registerHandler(
-            Identifiers.ClientCacheStatusPacket,
-            new ClientCacheStatusHandler()
-        );
-        this.registerHandler(
-            Identifiers.ContainerClosePacket,
-            new ContainerCloseHandler()
-        );
-        this.registerHandler(
-            Identifiers.CommandRequestPacket,
-            new CommandRequestHandler()
-        );
+        this.registerHandler(Identifiers.ClientCacheStatusPacket, new ClientCacheStatusHandler());
+        this.registerHandler(Identifiers.ContainerClosePacket, new ContainerCloseHandler());
+        this.registerHandler(Identifiers.CommandRequestPacket, new CommandRequestHandler());
         this.registerHandler(Identifiers.InteractPacket, new InteractHandler());
         this.registerHandler(
             Identifiers.InventoryTransactionPacket,
             new InventoryTransactionHandler()
         );
-        this.registerHandler(
-            Identifiers.LevelSoundEventPacket,
-            new LevelSoundEventHandler()
-        );
+        this.registerHandler(Identifiers.LevelSoundEventPacket, new LevelSoundEventHandler());
         this.registerHandler(Identifiers.LoginPacket, new LoginHandler());
-        this.registerHandler(
-            Identifiers.MobEquipmentPacket,
-            new MobEquipmentHandler()
-        );
-        this.registerHandler(
-            Identifiers.MovePlayerPacket,
-            new MovePlayerHandler()
-        );
+        this.registerHandler(Identifiers.MobEquipmentPacket, new MobEquipmentHandler());
+        this.registerHandler(Identifiers.MovePlayerPacket, new MovePlayerHandler());
         this.registerHandler(
             Identifiers.PacketViolationWarningPacket,
             new PacketViolationWarningHandler()
         );
-        this.registerHandler(
-            Identifiers.PlayerActionPacket,
-            new PlayerActionHandler()
-        );
-        this.registerHandler(
-            Identifiers.RequestChunkRadiusPacket,
-            new RequestChunkRadiusHandler()
-        );
+        this.registerHandler(Identifiers.PlayerActionPacket, new PlayerActionHandler());
+        this.registerHandler(Identifiers.RequestChunkRadiusPacket, new RequestChunkRadiusHandler());
         this.registerHandler(
             Identifiers.ResourcePackResponsePacket,
             new ResourcePackResponseHandler()
         );
-        this.registerHandler(
-            Identifiers.SetDefaultGameTypePacket,
-            new SetDefaultGameTypeHandler()
-        );
+        this.registerHandler(Identifiers.SetDefaultGameTypePacket, new SetDefaultGameTypeHandler());
         this.registerHandler(
             Identifiers.SetLocalPlayerAsInitializedPacket,
             new SetLocalPlayerAsInitializedHandler()
         );
-        this.registerHandler(
-            Identifiers.SetPlayerGameTypePacket,
-            new SetPlayerGameTypeHandler()
-        );
+        this.registerHandler(Identifiers.SetPlayerGameTypePacket, new SetPlayerGameTypeHandler());
         this.registerHandler(Identifiers.TextPacket, new TextHandler());
         this.registerHandler(Identifiers.TickSyncPacket, new TickSyncHandler());
+        this.registerHandler(Identifiers.ModalFormResponsePacket, new ModalFormResponseHandler());
 
         this.logger.debug(
             `Registered §b${this.handlers.size}§r packet handler(s) (took ${

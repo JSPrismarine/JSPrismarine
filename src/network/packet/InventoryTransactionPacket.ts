@@ -54,10 +54,7 @@ export default class InventoryTransactionPacket extends DataPacket {
 
         const actionsCount = this.readUnsignedVarInt();
         for (let i = 0; i < actionsCount; i++) {
-            const networkTransaction = new NetworkTransaction().decode(
-                this,
-                this.hasItemStackIds
-            );
+            const networkTransaction = new NetworkTransaction().decode(this, this.hasItemStackIds);
             this.actions.set(i, networkTransaction);
         }
 

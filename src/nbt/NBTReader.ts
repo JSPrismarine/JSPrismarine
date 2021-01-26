@@ -44,68 +44,37 @@ export default class NBTReader extends NBTStreamReader {
     private readTagCompoundValue(): NBTTagCompound {
         this.alterAllocationLimit(Allocation.COMPOUND);
         const compound: NBTTagCompound = new NBTTagCompound();
-        this.expectInput(
-            1,
-            'Invalid NBT Data: Expected Tag ID in compound tag',
-            false
-        );
+        this.expectInput(1, 'Invalid NBT Data: Expected Tag ID in compound tag', false);
 
         let tagID = this.readByteValue().getValue();
         while (tagID !== NBTDefinitions.TAG_END) {
             switch (tagID) {
                 case NBTDefinitions.TAG_BYTE:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readByteValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readByteValue());
                     break;
                 case NBTDefinitions.TAG_SHORT:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readShortValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readShortValue());
                     break;
                 case NBTDefinitions.TAG_INT:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readIntValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readIntValue());
                     break;
                 case NBTDefinitions.TAG_LONG:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readLongValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readLongValue());
                     break;
                 case NBTDefinitions.TAG_FLOAT:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readFloatValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readFloatValue());
                     break;
                 case NBTDefinitions.TAG_DOUBLE:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readDoubleValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readDoubleValue());
                     break;
                 case NBTDefinitions.TAG_BYTE_ARRAY:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readByteArrayValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readByteArrayValue());
                     break;
                 case NBTDefinitions.TAG_STRING:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readStringValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readStringValue());
                     break;
                 case NBTDefinitions.TAG_LIST:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readTagListValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readTagListValue());
                     break;
                 case NBTDefinitions.TAG_COMPOUND:
                     const name: string = this.readStringValue().getValue();
@@ -114,20 +83,13 @@ export default class NBTReader extends NBTStreamReader {
                     compound.addChild(child);
                     break;
                 case NBTDefinitions.TAG_INT_ARRAY:
-                    compound.addValue(
-                        this.readStringValue().getValue(),
-                        this.readIntArrayValue()
-                    );
+                    compound.addValue(this.readStringValue().getValue(), this.readIntArrayValue());
                     break;
                 default:
                     throw new Error(`Invalid NBT Data: Unknown tag <${tagID}>`);
             }
 
-            this.expectInput(
-                1,
-                'Invalid NBT Data: Expected tag ID in tag compound',
-                false
-            );
+            this.expectInput(1, 'Invalid NBT Data: Expected tag ID in tag compound', false);
             tagID = this.readByteValue().getValue();
         }
 
@@ -153,60 +115,42 @@ export default class NBTReader extends NBTStreamReader {
                 listLength = 0;
                 break;
             case NBTDefinitions.TAG_BYTE:
-                this.expectInput(
-                    listLength,
-                    'Invalid NBT Data: Expected bytes for list'
-                );
+                this.expectInput(listLength, 'Invalid NBT Data: Expected bytes for list');
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readShortValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_SHORT:
-                this.expectInput(
-                    2 * listLength,
-                    'Invalid NBT Data: Expected shorts for list'
-                );
+                this.expectInput(2 * listLength, 'Invalid NBT Data: Expected shorts for list');
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readShortValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_INT:
-                this.expectInput(
-                    4 * listLength,
-                    'Invalid NBT Data: Expected ints for list'
-                );
+                this.expectInput(4 * listLength, 'Invalid NBT Data: Expected ints for list');
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readIntValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_LONG:
-                this.expectInput(
-                    8 * listLength,
-                    'Invalid NBT Data: Expected longs for list'
-                );
+                this.expectInput(8 * listLength, 'Invalid NBT Data: Expected longs for list');
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readLongValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_FLOAT:
-                this.expectInput(
-                    4 * listLength,
-                    'Invalid NBT Data: Expected floats for list'
-                );
+                this.expectInput(4 * listLength, 'Invalid NBT Data: Expected floats for list');
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readFloatValue());
                 }
 
                 break;
             case NBTDefinitions.TAG_DOUBLE:
-                this.expectInput(
-                    8 * listLength,
-                    'Invalid NBT Data: Expected doubles for list'
-                );
+                this.expectInput(8 * listLength, 'Invalid NBT Data: Expected doubles for list');
                 for (let i = 0; i < listLength; i++) {
                     backingList.add(this.readDoubleValue());
                 }

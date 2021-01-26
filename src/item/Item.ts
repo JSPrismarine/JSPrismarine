@@ -11,41 +11,34 @@ export interface ItemProps {
 }
 
 export default class Item {
-    id: number;
-    runtimeId: number;
-    name: string;
+    private id: number;
+    private name: string;
     public meta = 0;
-    durability: number = this.getMaxDurability();
+    public durability: number = this.getMaxDurability();
 
     // TODO
-    nbt = null;
-    count = 1;
+    public nbt = null;
+    public count = 1;
 
     public constructor({ id, name }: ItemProps) {
         this.id = id;
-        this.runtimeId = id;
         this.name = name;
+    }
+
+    public getName(): string {
+        return this.name;
     }
 
     public getId() {
         return this.id;
     }
 
-    public getRuntimeId() {
-        // TODO: runtimeId
-        return this.id;
-    }
-
-    isTool() {
+    public isTool() {
         return false;
     }
 
-    isArmorPiece() {
+    public isArmorPiece() {
         return false;
-    }
-
-    setRuntimeId(id: number) {
-        this.runtimeId = id;
     }
 
     public getBurntime() {
@@ -56,7 +49,7 @@ export default class Item {
         return BlockToolType.None;
     }
 
-    getToolHarvestLevel() {
+    public getToolHarvestLevel() {
         return 0;
     }
 
@@ -68,11 +61,11 @@ export default class Item {
         return 0;
     }
 
-    hasEnchantment(enchantment: ItemEnchantmentType) {
+    public hasEnchantment(enchantment: ItemEnchantmentType) {
         return false;
     }
 
-    getEnchantability() {
+    public getEnchantability() {
         return 0;
     }
 
@@ -80,19 +73,19 @@ export default class Item {
         return 0;
     }
 
-    getDurability() {
+    public getDurability() {
         return this.durability;
     }
 
-    getMaxAmount() {
+    public getMaxAmount() {
         return 64;
     }
 
-    getAmount() {
+    public getAmount() {
         return this.count;
     }
 
-    isPartOfCreativeInventory() {
+    public isPartOfCreativeInventory() {
         return true;
     }
 }

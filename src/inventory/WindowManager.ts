@@ -23,9 +23,8 @@ export default class WindowManager {
 
     public getWindowId(inventory: Inventory): number {
         return (
-            Array.from(this.windows.keys()).find(
-                (key) => this.windows.get(key) === inventory
-            ) ?? WindowIds.UNKNOWN
+            Array.from(this.windows.keys()).find((key) => this.windows.get(key) === inventory) ??
+            WindowIds.UNKNOWN
         );
     }
 

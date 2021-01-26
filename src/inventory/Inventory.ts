@@ -25,10 +25,7 @@ export default class Inventory {
         }
 
         for (let i = 0; i < this.getSlotCount(); i++) {
-            this.setItem(
-                i,
-                items[i] ?? new ContainerEntry({ item: new Air() })
-            );
+            this.setItem(i, items[i] ?? new ContainerEntry({ item: new Air() }));
         }
     }
 
@@ -40,9 +37,7 @@ export default class Inventory {
             return Array.from(this.content.values());
         }
 
-        return Array.from(this.content.values()).filter(
-            (item) => !(item.getItem() instanceof Air)
-        );
+        return Array.from(this.content.values()).filter((item) => !(item.getItem() instanceof Air));
     }
 
     /**

@@ -20,22 +20,15 @@ export default class Console implements CommandExecuter {
         if (process.stdin.isTTY) process.stdin.setRawMode(true);
 
         const completer = (line: string) => {
-            const hits = Array.from(
-                this.getServer().getCommandManager().getCommands().values()
-            )
-                .filter((a) =>
-                    a.id.split(':')[1].startsWith(line.replace('/', ''))
-                )
+            const hits = Array.from(this.getServer().getCommandManager().getCommands().values())
+                .filter((a) => a.id.split(':')[1].startsWith(line.replace('/', '')))
                 .map((a) => '/' + a.id.split(':')[1]);
             return [
                 hits.length
                     ? hits
-                    : Array.from(
-                          this.getServer()
-                              .getCommandManager()
-                              .getCommands()
-                              .values()
-                      ).map((a) => '/' + a.id.split(':')[1]),
+                    : Array.from(this.getServer().getCommandManager().getCommands().values()).map(
+                          (a) => '/' + a.id.split(':')[1]
+                      ),
                 line
             ];
         };
@@ -50,15 +43,11 @@ export default class Console implements CommandExecuter {
 
         this.cli.on('line', (input: string) => {
             if (input.startsWith('/')) {
-                void this.getServer()
-                    .getCommandManager()
-                    .dispatchCommand(this, input.slice(1));
+                void this.getServer().getCommandManager().dispatchCommand(this, input.slice(1));
                 return;
             }
 
-            const event = new ChatEvent(
-                new Chat(this, `${this.getFormattedUsername()} ${input}`)
-            );
+            const event = new ChatEvent(new Chat(this, `${this.getFormattedUsername()} ${input}`));
             void this.getServer().getEventManager().emit('chat', event);
         });
 
@@ -83,6 +72,13 @@ export default class Console implements CommandExecuter {
         });
     }
 
+    public getName(): string {
+        return 'CONSOLE';
+    }
+
+    /**
+     * @deprecated Use `getName()` instead
+     */
     public getUsername(): string {
         return 'CONSOLE';
     }
@@ -128,17 +124,12 @@ export default class Console implements CommandExecuter {
      * - Customizable radius
      */
     public getNearestEntity(
-        entities: Entity[] = this.server
-            .getWorldManager()
-            .getDefaultWorld()
-            .getEntities()!
+        entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!
     ) {
         const pos = new Vector3(this.getX(), this.getY(), this.getZ());
         const dist = (a: Vector3, b: Vector3) =>
             Math.sqrt(
-                (b.getX() - a.getX()) ** 2 +
-                    (b.getY() - a.getY()) ** 2 +
-                    (b.getZ() - a.getZ()) ** 2
+                (b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2
             );
 
         const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {

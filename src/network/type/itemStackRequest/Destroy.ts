@@ -4,13 +4,7 @@ class Destroy {
     public count: number;
     public from: ItemStackRequestSlotInfo;
 
-    public constructor({
-        count,
-        from
-    }: {
-        count: number;
-        from: ItemStackRequestSlotInfo;
-    }) {
+    public constructor({ count, from }: { count: number; from: ItemStackRequestSlotInfo }) {
         this.count = count;
         this.from = from;
     }

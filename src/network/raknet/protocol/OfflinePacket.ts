@@ -9,10 +9,7 @@ export default class OfflinePacket extends Packet {
 
     // Used to read offline packets magic (needed to validate the packet)
     public readMagic(): void {
-        this.magic = this.getBuffer().slice(
-            this.getOffset(),
-            this.addOffset(16, true)
-        );
+        this.magic = this.getBuffer().slice(this.getOffset(), this.addOffset(16, true));
     }
 
     public writeMagic(): void {

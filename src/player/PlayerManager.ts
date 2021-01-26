@@ -13,8 +13,7 @@ export default class PlayerManager {
 
     public getPlayer(address: string): Player {
         const player = this.players.get(address);
-        if (!player)
-            throw new Error(`No player with with the key "${address}"`);
+        if (!player) throw new Error(`No player with with the key "${address}"`);
 
         return player;
     }
@@ -44,9 +43,7 @@ export default class PlayerManager {
      * if it is not found, null is returned.
      */
     public getPlayerById(id: bigint): Player {
-        const player = this.getOnlinePlayers().find(
-            (player) => player.runtimeId === id
-        );
+        const player = this.getOnlinePlayers().find((player) => player.runtimeId === id);
 
         if (!player) throw new Error(`Can't find player with id ${id}`);
 
@@ -64,10 +61,7 @@ export default class PlayerManager {
      */
     public getPlayerByName(name: string): Player {
         const player = Array.from(this.players.values()).find((player) => {
-            return player
-                .getUsername()
-                .toLowerCase()
-                .startsWith(name.toLowerCase());
+            return player.getName().toLowerCase().startsWith(name.toLowerCase());
         });
 
         if (!player) throw new Error(`Can't find player ${name}`);
@@ -82,9 +76,7 @@ export default class PlayerManager {
      * CASE SENSITIVE.
      */
     public getPlayerByExactName(name: string): Player {
-        const player = this.getOnlinePlayers().find(
-            (player) => player.getUsername() === name
-        );
+        const player = this.getOnlinePlayers().find((player) => player.getName() === name);
 
         if (!player) throw new Error(`Can't find player ${name}`);
 

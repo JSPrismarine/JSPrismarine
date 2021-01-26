@@ -2,6 +2,7 @@ import MetadataManager, { FlagType, MetadataFlag } from './metadata';
 
 import AddActorPacket from '../network/packet/AddActorPacket';
 import AttributeManager from './attribute';
+import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
 import Player from '../player/Player';
 import Position from '../world/Position';
 import Server from '../Server';
@@ -44,6 +45,12 @@ export default class Entity extends Position {
         // TODO: level.addEntity(this)
     }
 
+    // public setHealth(health: number): void {
+    //    if (health === this.)
+    // }
+
+    public damage(): void {}
+
     public getServer(): Server {
         return this.server;
     }
@@ -63,29 +70,16 @@ export default class Entity extends Position {
         // Check if the same value is already set
         if (this.getDataFlag(propertyId, flagId64) !== value) {
             const flags = this.metadata.getPropertyValue(propertyId) as bigint;
-            this.metadata.setPropertyValue(
-                propertyId,
-                propertyType,
-                flags ^ (1n << flagId64)
-            );
+            this.metadata.setPropertyValue(propertyId, propertyType, flags ^ (1n << flagId64));
         }
     }
 
     public getDataFlag(propertyId: number, flagId: bigint) {
-        return (
-            ((this.metadata.getPropertyValue(propertyId) as bigint) &
-                (1n << flagId)) >
-            0
-        );
+        return ((this.metadata.getPropertyValue(propertyId) as bigint) & (1n << flagId)) > 0;
     }
 
     public setGenericFlag(flagId: number, value = true) {
-        this.setDataFlag(
-            flagId >= 64 ? 94 : MetadataFlag.INDEX,
-            flagId % 64,
-            value,
-            FlagType.LONG
-        );
+        this.setDataFlag(flagId >= 64 ? 94 : MetadataFlag.INDEX, flagId % 64, value, FlagType.LONG);
     }
 
     public getAttributeManager(): AttributeManager {
@@ -99,15 +93,18 @@ export default class Entity extends Position {
     public async sendSpawn(player: Player) {
         // Recursive import, find another way
         const pk = new AddActorPacket();
-        pk.runtimeEntityId = ++Entity.runtimeIdCount;
+        pk.runtimeEntityId = this.runtimeId;
         pk.type = (this.constructor as any).MOB_ID; // TODO
-        pk.x = player.getX();
-        pk.y = player.getY();
-        pk.z = player.getZ();
+        pk.x = this.getX();
+        pk.y = this.getY();
+        pk.z = this.getZ();
         // TODO: motion
         pk.motionX = 0;
         pk.motionY = 0;
         pk.motionZ = 0;
+        pk.pitch = 0;
+        pk.yaw = 0;
+        pk.headYaw = 0;
         await player.getConnection().sendDataPacket(pk);
     }
 
@@ -116,7 +113,25 @@ export default class Entity extends Position {
         this.setY(position.getY());
         this.setZ(position.getZ());
 
-        // TODO: broadcast this
+        this.getServer()
+            .getPlayerManager()
+            .getOnlinePlayers()
+            .filter((p) => p.getWorld().getUniqueId() === this.getWorld().getUniqueId())
+            .map(async (player) => {
+                const pk = new MoveActorAbsolutePacket();
+                pk.runtimeEntityId = this.runtimeId;
+                pk.position = this.getPosition();
+
+                // TODO
+                pk.rotationX = 0;
+                pk.rotationY = 0;
+                pk.rotationZ = 0;
+                await player.getConnection().sendDataPacket(pk);
+            });
+    }
+
+    public getPosition(): Vector3 {
+        return new Vector3(this.getX(), this.getY(), this.getZ());
     }
 
     public isPlayer(): boolean {
@@ -127,17 +142,19 @@ export default class Entity extends Position {
         return (this.constructor as any).MOB_ID;
     }
 
+    public getName(): string {
+        return this.getFormattedUsername();
+    }
+
     public getFormattedUsername(): string {
         return (
             this.metadata.getString(MetadataFlag.NAMETAG) ??
             // Replace all '_' with a ' ' and capitalize each word afterwards
             ((this.constructor as any).MOB_ID as string)
                 .split(':')[1]
-                .replaceAll('_', ' ')
+                .replace(/_/g, ' ')
                 .split(' ')
-                .map(
-                    (word) => word[0].toUpperCase() + word.slice(1, word.length)
-                )
+                .map((word) => word[0].toUpperCase() + word.slice(1, word.length))
                 .join(' ')
         );
     }
@@ -145,21 +162,18 @@ export default class Entity extends Position {
     /**
      * Returns the nearest entity from the current entity
      *
-     * TODO:
-     * - Customizable radius
+     * TODO: Customizable radius
+     * TODO: amount of results
+     *
+     * @param entities
      */
     public getNearestEntity(
-        entities: Entity[] = this.server
-            .getWorldManager()
-            .getDefaultWorld()
-            .getEntities()!
+        entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!
     ) {
         const pos = new Vector3(this.getX(), this.getY(), this.getZ());
         const dist = (a: Vector3, b: Vector3) =>
             Math.sqrt(
-                (b.getX() - a.getX()) ** 2 +
-                    (b.getY() - a.getY()) ** 2 +
-                    (b.getZ() - a.getZ()) ** 2
+                (b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2
             );
 
         const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {

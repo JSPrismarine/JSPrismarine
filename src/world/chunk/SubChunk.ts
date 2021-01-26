@@ -1,97 +1,83 @@
-import Block from '../../block/Block';
-
-const Sizes = {
-    BlockSize: 16 * 16 * 16,
-    Metadata: (16 * 16 * 16) / 2
-};
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BlockStorage from './BlockStorage';
+import { LegacyId } from '../../block/BlockMappings';
 
 export default class SubChunk {
-    public ids = Buffer.alloc(Sizes.BlockSize).fill(0x00);
-    public metadata = Buffer.alloc(Sizes.Metadata).fill(0x00);
+    private storages: Map<number, BlockStorage> = new Map();
 
-    public static getIndex(x: number, y: number, z: number) {
-        const bx = x & 0x0f;
-        const by = y & 0x0f;
-        const bz = z & 0x0f;
-        return ((bx << 8) + (bz << 4)) | by;
+    public constructor(storages: Map<number, BlockStorage> = new Map()) {
+        this.storages = storages;
     }
 
     /**
-     * Sets a block in the subchunk block ids
+     * Returns if the SubChunk is all air (basically empty).
      */
-    public setBlockId(x: number, y: number, z: number, id: number): boolean {
-        if (y < 0) return false;
-
-        this.ids[SubChunk.getIndex(x, y, z)] = id;
-        return true;
+    public isEmpty(): boolean {
+        return this.storages.size === 0;
     }
 
-    public setBlockMetadata(
-        x: number,
-        y: number,
-        z: number,
-        metadata: number
-    ): boolean {
-        const bx = x & 0x0f;
-        const by = y & 0x0f;
-        const bz = z & 0x0f;
-        const index = (bx << 7) | (bz << 3) | (by >> 1);
-        const shift = (by & 1) << 2;
-        const byte = this.metadata[index];
-        this.metadata[index] =
-            (byte & ~(0xf << shift)) | ((metadata & 0xf) << shift);
-        return true;
-    }
-
-    public setBlock(x: number, y: number, z: number, block: Block): boolean {
-        if (!block) return false;
-
-        this.setBlockId(x, y, z, block.getId());
-        this.setBlockMetadata(x, y, z, block.getMeta());
-        return true;
-    }
-
-    public getFullBlock(x: number, y: number, z: number): number {
-        const index = SubChunk.getIndex(x, y, z);
-        return (
-            (this.ids[index] << 4) |
-            ((this.metadata[index >> 4] >> ((y & 1) << 2)) & 0x0f)
-        );
-    }
-
-    /**
-     * Returns the block ID in the given position
-     */
-    public getBlockId(x: number, y: number, z: number) {
-        return this.ids[SubChunk.getIndex(x, y, z)];
-    }
-
-    public getBlockMetadata(x: number, y: number, z: number) {
-        const bx = x & 0x0f;
-        const by = y & 0x0f;
-        const bz = z & 0x0f;
-        return (
-            (this.metadata[(bx << 7) | (bz << 3) | (by >> 1)] >>
-                ((by & 1) << 2)) &
-            0xf
-        );
-    }
-
-    public getHighestBlockAt(x: number, z: number) {
-        const low = (x << 8) | (z << 4);
-        let i = low | 0x0f;
-        for (; i >= low; --i) {
-            if (this.ids[i] !== 0x00) {
-                return i & 0x0f;
+    private getStorage(index: number): BlockStorage {
+        if (!this.storages.has(index)) {
+            // Create all missing storage layers
+            for (let i = 0; i <= index; i++) {
+                if (!this.storages.has(i)) {
+                    this.storages.set(i, new BlockStorage({}));
+                }
             }
         }
 
-        return -1;
+        return this.storages.get(index)!;
     }
 
-    public toBinary() {
-        const buffer = Buffer.alloc(1);
-        buffer.writeUInt8(0); // SubChunk version
-        return Buffer.concat([buffer, this.ids, this.metadata]);
+    public getStorages(): BlockStorage[] {
+        return Array.from(this.storages.values());
+    }
+
+    /**
+     * Returns the legacy block id in the given position.
+     *
+     * @param bx - block x
+     * @param by - block y
+     * @param bz - block z
+     * @param layer - block storage layer
+     */
+    public getBlock(bx: number, by: number, bz: number, layer: number): LegacyId {
+        return this.getStorage(layer).getBlock(bx, by & 0xf, bz);
+    }
+
+    /**
+     * Sets a block by runtime Id in the given storage layer.
+     *
+     * @param bx - block x
+     * @param by - block y
+     * @param bz - block z
+     * @param runtimeId - block runtime Id
+     * @param layer - block storage layer
+     */
+    public setBlock(bx: number, by: number, bz: number, runtimeId: number, layer: number): void {
+        this.getStorage(layer).setBlock(bx, by & 0xf, bz, runtimeId);
+    }
+
+    public networkSerialize(stream: BinaryStream): void {
+        // SubChunk version
+        stream.writeByte(8);
+        // Layer count
+        stream.writeByte(this.storages.size);
+        for (const storage of this.storages.values()) {
+            storage.networkSerialize(stream);
+        }
+    }
+
+    public static networkDeserialize(stream: BinaryStream): SubChunk {
+        const subChunk = new SubChunk();
+
+        const version = stream.readByte();
+        const layerCount = stream.readByte();
+
+        for (let i = 0; i < layerCount; i++) {
+            subChunk.storages.set(i, BlockStorage.networkDeserialize(stream));
+        }
+
+        return subChunk;
     }
 }

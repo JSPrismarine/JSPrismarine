@@ -27,9 +27,7 @@ export default class ConnectionRequestAccepted extends Packet {
         this.writeShort(0); // Unknown
         const sysAddresses = [new InetAddress('127.0.0.1', 0, 4)];
         for (let i = 0; i < 20; i++) {
-            this.writeAddress(
-                sysAddresses[i] ?? new InetAddress('0.0.0.0', 0, 4)
-            );
+            this.writeAddress(sysAddresses[i] ?? new InetAddress('0.0.0.0', 0, 4));
         }
 
         this.writeLong(this.requestTimestamp);

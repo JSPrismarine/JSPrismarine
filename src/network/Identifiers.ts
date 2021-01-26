@@ -1,7 +1,7 @@
 const Identifiers = {
     Protocol: 422,
 
-    MinecraftVersion: '1.16.200',
+    MinecraftVersion: '1.16.201',
 
     LoginPacket: 0x01,
     PlayStatusPacket: 0x02,
@@ -112,7 +112,7 @@ const Identifiers = {
     SetScorePacket: 0x6c,
     LabTablePacket: 0x6d,
     UpdateBlockSyncedPacket: 0x6e,
-    MovrActorDeltaPacket: 0x6f,
+    MoveActorDeltaPacket: 0x6f,
     SetScoreboardIdentityPacket: 0x70,
     SetLocalPlayerAsInitializedPacket: 0x71,
     UpdateSoftEnumPacket: 0x72,

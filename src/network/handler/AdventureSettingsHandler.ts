@@ -1,13 +1,10 @@
-import AdventureSettingsPacket, {
-    AdventureSettingsFlags
-} from '../packet/AdventureSettingsPacket';
+import AdventureSettingsPacket, { AdventureSettingsFlags } from '../packet/AdventureSettingsPacket';
 
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import type Server from '../../Server';
 
-export default class AdventureSettingsHandler
-    implements PacketHandler<AdventureSettingsPacket> {
+export default class AdventureSettingsHandler implements PacketHandler<AdventureSettingsPacket> {
     public async handle(
         packet: AdventureSettingsPacket,
         server: Server,
@@ -28,9 +25,7 @@ export default class AdventureSettingsHandler
         if (player.isOp()) {
             const operator = packet.getFlag(AdventureSettingsFlags.Operator);
 
-            await server
-                .getPermissionManager()
-                .setOp(target.getUsername(), operator);
+            await server.getPermissionManager().setOp(target.getName(), operator);
         }
     }
 }

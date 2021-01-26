@@ -22,10 +22,7 @@ export enum WoolColorType {
 }
 
 export default class WhiteWool extends Solid {
-    public constructor(
-        name = 'minecraft:white_wool',
-        type: WoolColorType = WoolColorType.White
-    ) {
+    public constructor(name = 'minecraft:white_wool', type: WoolColorType = WoolColorType.White) {
         super({
             name,
             id: BlockIdsType.Wool,

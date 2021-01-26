@@ -9,8 +9,6 @@ export default class PolishedDiorite extends Stone {
     }
 
     public getDropsForCompatibleTool(item: Item, server: Server) {
-        return [
-            server.getBlockManager().getBlock('minecraft:polished_diorite')
-        ];
+        return [server.getBlockManager().getBlock('minecraft:polished_diorite')];
     }
 }

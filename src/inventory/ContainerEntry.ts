@@ -5,13 +5,7 @@ export default class ContainerEntry {
     private item: Item | Block;
     private count: number;
 
-    public constructor({
-        item,
-        count = 0
-    }: {
-        item: Item | Block;
-        count?: number;
-    }) {
+    public constructor({ item, count = 0 }: { item: Item | Block; count?: number }) {
         this.item = item;
         this.count = count;
     }

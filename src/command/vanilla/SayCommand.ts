@@ -1,10 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
-import {
-    CommandDispatcher,
-    argument,
-    greedyString,
-    literal
-} from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
 import Chat from '../../chat/Chat';
 import Command from '../Command';
@@ -22,18 +17,13 @@ export default class SayCommand extends Command {
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
             literal('say').then(
-                argument('message', greedyString()).executes(
-                    async (context) => {
-                        const source = context.getSource() as Player;
-                        const message = context.getArgument('message');
+                argument('message', greedyString()).executes(async (context) => {
+                    const source = context.getSource() as Player;
+                    const message = context.getArgument('message');
 
-                        const chat = new Chat(
-                            source,
-                            `§5[${source.getUsername()}] ${message}`
-                        );
-                        await source.getServer().getChatManager().send(chat);
-                    }
-                )
+                    const chat = new Chat(source, `§5[${source.getName()}] ${message}`);
+                    await source.getServer().getChatManager().send(chat);
+                })
             )
         );
     }

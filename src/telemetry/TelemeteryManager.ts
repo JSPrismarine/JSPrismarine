@@ -21,7 +21,6 @@ export default class TelemetryManager {
 
         process.on('uncaughtException', async (err) => {
             await this.sendCrashLog(err, urls);
-            console.error(err);
             this.server.getLogger().error(`${err}`, 'TelemetryManager');
             process.exit(1);
         });
@@ -43,13 +42,11 @@ export default class TelemetryManager {
                 'TelemetryManager/onEnable'
             );
         this.urls.forEach((url) => {
-            this.server
-                .getLogger()
-                .info(`- ${url}/id/${this.id}`, 'TelemetryManager/onEnable');
+            this.server.getLogger().info(`- ${url}/id/${this.id}`, 'TelemetryManager/onEnable');
         });
 
         await this.tick();
-        this.ticker = setInterval(this.tick, 5 * 60 * 1000);
+        this.ticker = setInterval(async () => this.tick(), 60 * 1000);
     }
 
     public async onDisable() {
@@ -65,8 +62,7 @@ export default class TelemetryManager {
                 this.server.getQueryManager().git_rev
             }`,
             online_mode: this.server.getConfig().getOnlineMode(),
-            player_count:
-                this.server.getRaknet()?.getName().getOnlinePlayerCount() || 0,
+            player_count: this.server.getRaknet()?.getName().getOnlinePlayerCount() || 0,
             max_player_count: this.server.getConfig().getMaxPlayers(),
             plugins: this.server
                 .getPluginManager()
@@ -90,16 +86,12 @@ export default class TelemetryManager {
                             'Content-Type': 'application/json'
                         })
                     });
-                    this.server
-                        .getLogger()
-                        .silly('Sent heartbeat', 'TelemetryManager/tick');
+                    this.server.getLogger().silly('Sent heartbeat', 'TelemetryManager/tick');
                 } catch (error) {
                     this.server
                         .getLogger()
-                        .warn(
-                            `Failed to tick: ${url} (${error})`,
-                            'TelemetryManager/tick'
-                        );
+                        .warn(`Failed to tick: ${url} (${error})`, 'TelemetryManager/tick');
+                    this.server.getLogger().silly(error.stack, 'TelemetryManager/tick');
                 }
             })
         );
@@ -118,6 +110,9 @@ export default class TelemetryManager {
             );
         const body = {
             id: this.generateAnonomizedId(),
+            version: `${this.server.getConfig().getVersion()}:${
+                this.server.getQueryManager().git_rev
+            }`,
             error: {
                 name: crashlog.name,
                 message: crashlog.message,
@@ -137,8 +132,8 @@ export default class TelemetryManager {
                             })
                         });
                         return `${url}/error/${(await res.json()).id}`;
-                    } catch {
-                        return null;
+                    } catch (error) {
+                        this.server.getLogger().silly(error.stack, 'TelemetryManager/sendCrashLog');
                     }
                 })
             )
@@ -161,9 +156,7 @@ export default class TelemetryManager {
                 'TelemetryManager/sendCrashLog'
             );
         links.forEach((url) => {
-            this.server
-                .getLogger()
-                .error(`- ${url}`, 'TelemetryManager/sendCrashLog');
+            this.server.getLogger().error(`- ${url}`, 'TelemetryManager/sendCrashLog');
         });
     }
 }

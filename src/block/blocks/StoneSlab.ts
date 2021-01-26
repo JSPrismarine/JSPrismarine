@@ -13,10 +13,7 @@ export enum SlabType {
 }
 
 export default class StoneSlab extends Solid {
-    public constructor(
-        name = 'minecraft:stone_slab',
-        type: SlabType = SlabType.Stone
-    ) {
+    public constructor(name = 'minecraft:stone_slab', type: SlabType = SlabType.Stone) {
         super({
             name,
             id: BlockIdsType.StoneSlab,

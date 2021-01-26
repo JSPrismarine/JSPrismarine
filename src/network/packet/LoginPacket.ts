@@ -3,7 +3,7 @@ import DataPacket from './DataPacket';
 import Device from '../../utils/Device';
 import Identifiers from '../Identifiers';
 import Skin from '../../utils/skin/Skin';
-import jwt_decode from 'jwt-decode';
+import fastJWT from 'fast-jwt';
 
 export default class LoginPacket extends DataPacket {
     public static NetID = Identifiers.LoginPacket;
@@ -26,9 +26,10 @@ export default class LoginPacket extends DataPacket {
 
         const stream = new BinaryStream(this.read(this.readUnsignedVarInt()));
         const chainData = JSON.parse(stream.read(stream.readLInt()).toString());
+        const decode = fastJWT.createDecoder();
 
         for (const chain of chainData.chain) {
-            const decodedChain = jwt_decode(chain) as any;
+            const decodedChain = decode(chain);
 
             if (decodedChain.extraData) {
                 this.XUID = decodedChain.extraData.XUID;
@@ -39,9 +40,7 @@ export default class LoginPacket extends DataPacket {
             this.identityPublicKey = decodedChain.identityPublicKey;
         }
 
-        const decodedJWT = jwt_decode(
-            stream.read(stream.readLInt()).toString()
-        ) as any;
+        const decodedJWT = decode(stream.read(stream.readLInt()).toString());
         this.skin = Skin.fromJWT(decodedJWT);
         this.device = new Device({
             id: decodedJWT.DeviceId,
