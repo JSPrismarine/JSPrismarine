@@ -11,6 +11,7 @@ export enum BedType {
     Yellow = 4,
     Lime = 5,
     Pink = 6,
+    Gray = 7,
     LightGray = 8,
     Cyan = 9,
     Purple = 10,
