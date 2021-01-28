@@ -51,7 +51,7 @@ export default abstract class Command {
         executer: CommandExecuter,
         args: any[],
         stringArgs?: string[]
-    ): Promiseable<boolean | void> {}
+    ): Promiseable<boolean | any> {}
 
     /**
      * @deprecated Use new api: `dispatcher` and Command Class instead.
@@ -71,13 +71,12 @@ export default abstract class Command {
         error: Error,
         stringArgs?: string[]
     ): Promiseable<void> {
+        executer.sendMessage(`§cAn error when executing command "${this.constructor.name}": ${error.message}`);
         executer
             .getServer()
             .getLogger()
             .silly(
-                `§cError[${error.name}] in when executing command "${
-                    this.constructor.name
-                }":\n${error.stack || '- No stack'}\n\n${error.message}`
+                `§cAn error when executing command "${this.constructor.name}": ${error.message}`
             );
     }
 }

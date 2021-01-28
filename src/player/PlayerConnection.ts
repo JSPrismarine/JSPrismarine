@@ -644,6 +644,7 @@ export default class PlayerConnection {
         const pk = new DisconnectPacket();
         pk.hideDisconnectionWindow = false;
         pk.message = reason;
+        this.server.getPlayerManager().removePlayer(this.player.getAddress().getAddress());
         await this.sendDataPacket(pk);
     }
 }

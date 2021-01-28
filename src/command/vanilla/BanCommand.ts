@@ -1,14 +1,8 @@
 /* eslint-disable promise/prefer-await-to-then */
-import {
-    CommandDispatcher,
-    argument,
-    greedyString,
-    literal,
-    string
-} from '@jsprismarine/brigadier';
-
 import Command from '../Command';
-import Player from '../../player/Player';
+import OnlinePlayerArgument from '../argument/OnlinePlayerArgument';
+import TextArgument from '../argument/TextArgument';
+import CommandExecuter from '../CommandExecuter';
 
 export default class BanCommand extends Command {
     public constructor() {
@@ -17,53 +11,21 @@ export default class BanCommand extends Command {
             description: 'Ban a player.',
             permission: 'minecraft.command.ban'
         });
+        this.api = 'rfc';
+        this.arguments.add(0, new OnlinePlayerArgument());
+        this.arguments.add(1, new TextArgument('reason', true));
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
-        dispatcher.register(
-            literal('ban').then(
-                argument('player', string())
-                    .then(
-                        argument('reason', greedyString()).executes(async (context) => {
-                            const source = context.getSource() as Player;
-                            const reason = context.getArgument('reason') as string;
+    public async dispatch(sender: CommandExecuter, args: any[]) {
+        if (!args[0]) {
+            return sender.sendMessage(`§cCould not find a user with given name.`);
+        }
 
-                            try {
-                                const target = source
-                                    .getServer()
-                                    .getPlayerManager()
-                                    .getPlayerByName(context.getArgument('player'));
-                                await target.kick(
-                                    `You have been banned from the server due to: \n\n${reason}!`
-                                );
-                            } catch {}
+        const reason: string = args[1] || "No reason provided."
 
-                            await source
-                                .getServer()
-                                .getBanManager()
-                                .setBanned(context.getArgument('player'), reason);
+        await args[0].kick(`You have been banned from the server due to: \n\n${reason}`);
+        await sender.getServer().getBanManager().setBanned(args[0].getName());
 
-                            return `Banned ${context.getArgument('player')} due to: ${reason}!`;
-                        })
-                    )
-                    .executes(async (context) => {
-                        const source = context.getSource() as Player;
-                        try {
-                            const target = source
-                                .getServer()
-                                .getPlayerManager()
-                                .getPlayerByName(context.getArgument('player'));
-                            await target.kick(`You have been banned!`);
-                        } catch {}
-
-                        await source
-                            .getServer()
-                            .getBanManager()
-                            .setBanned(context.getArgument('player'));
-
-                        return `Banned ${context.getArgument('player')}`;
-                    })
-            )
-        );
+        return sender.sendMessage(`Banned ${args[0].getName()} due to: ${reason}`);
     }
 }
