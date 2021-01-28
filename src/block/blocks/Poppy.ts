@@ -16,7 +16,6 @@ export enum FlowerType {
     LilyOfTheValley = 11
 }
 
-
 export default class Poppy extends Flowable {
     public constructor(
         name = 'minecraft:poppy', // Supposed to be "red_flower"
