@@ -4,12 +4,12 @@ import Flowable from '../Flowable';
 export enum FlowerType {
     Poppy = 0,
     BlueOrchid,
-    Allium ,
-    AzureBluet ,
+    Allium,
+    AzureBluet,
     RedTulip,
     OrangeTulip,
     WhiteTulip,
-    PinkTulip ,
+    PinkTulip,
     OxeyeDaisy
 }
 
