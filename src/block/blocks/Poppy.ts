@@ -3,15 +3,19 @@ import Flowable from '../Flowable';
 
 export enum FlowerType {
     Poppy = 0,
-    BlueOrchid,
-    Allium,
-    AzureBluet,
-    RedTulip,
-    OrangeTulip,
-    WhiteTulip,
-    PinkTulip,
-    OxeyeDaisy
+    BlueOrchid = 1,
+    Allium = 2,
+    Houstonia = 3,
+    AzureBluet = 4,
+    RedTulip = 5,
+    OrangeTulip = 6,
+    WhiteTulip = 7,
+    PinkTulip = 8,
+    OxeyeDaisy = 9,
+    CornFlower = 10,
+    LilyOfTheValley = 11
 }
+
 
 export default class Poppy extends Flowable {
     public constructor(
