@@ -24,8 +24,7 @@ export default class VersionCommand extends Command {
                 const minecraftVersion = Identifiers.MinecraftVersion;
 
                 await source.sendMessage(
-                    `This server is running on JSPrismarine ${serverVersion} (rev-${
-                        source.getServer().getQueryManager().git_rev
+                    `This server is running on JSPrismarine ${serverVersion} (rev-${source.getServer().getQueryManager().git_rev
                     }) for Minecraft: Bedrock Edition v${minecraftVersion} (protocol version ${protocolVersion})`
                 );
             })

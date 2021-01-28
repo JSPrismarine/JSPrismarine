@@ -24,8 +24,7 @@ export default class EvalCommand extends Command {
 
     public async fallback(sender: CommandExecuter, _args: any[], error: Error) {
         await sender.sendMessage(
-            `§cError when executing script!\n"${error.name}":\n${
-                error.stack || '- No stack'
+            `§cError when executing script!\n"${error.name}":\n${error.stack || '- No stack'
             }\n\n${error.message}`
         );
     }
