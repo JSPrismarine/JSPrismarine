@@ -10,7 +10,7 @@ export enum FlowerType {
     OrangeTulip,
     WhiteTulip,
     PinkTulip ,
-    OxeyeDaisy 
+    OxeyeDaisy
 }
 
 export default class Poppy extends Flowable {
