@@ -50,6 +50,7 @@ import PlayerActionPacket from './packet/PlayerActionPacket';
 import PlayerListPacket from './packet/PlayerListPacket';
 import PlayerSkinPacket from './packet/PlayerSkinPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
+import RemoveObjectivePacket from './packet/RemoveObjectivePacket';
 import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
 import ResourcePackResponseHandler from './handler/ResourcePackResponseHandler';
@@ -61,11 +62,14 @@ import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
+import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
 import SetGamemodePacket from './packet/SetGamemodePacket';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
+import SetScorePacket from './packet/SetScorePacket';
+import SetScoreboardIdentityPacket from './packet/SetScoreboardIdentityPacket';
 import SetTimePacket from './packet/SetTimePacket';
 import SetTitlePacket from './packet/SetTitlePacket';
 import StartGamePacket from './packet/StartGamePacket';
@@ -171,6 +175,10 @@ export default class PacketRegistry {
         this.registerPacket(UpdateBlockPacket);
         this.registerPacket(WorldEventPacket);
         this.registerPacket(ModalFormResponsePacket);
+        this.registerPacket(SetDisplayObjectivePacket);
+        this.registerPacket(RemoveObjectivePacket);
+        this.registerPacket(SetScorePacket);
+        this.registerPacket(SetScoreboardIdentityPacket);
 
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
