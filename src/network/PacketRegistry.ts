@@ -77,6 +77,10 @@ import TransferPacket from './packet/TransferPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import WorldEventPacket from './packet/WorldEventPacket';
+import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
+import RemoveObjectivePacket from './packet/RemoveObjectivePacket';
+import SetScorePacket from './packet/SetScorePacket';
+import SetScoreboardIdentityPacket from './packet/SetScoreboardIdentityPacket';
 
 export default class PacketRegistry {
     private readonly logger: LoggerBuilder;
@@ -171,6 +175,10 @@ export default class PacketRegistry {
         this.registerPacket(UpdateBlockPacket);
         this.registerPacket(WorldEventPacket);
         this.registerPacket(ModalFormResponsePacket);
+        this.registerPacket(SetDisplayObjectivePacket);
+        this.registerPacket(RemoveObjectivePacket);
+        this.registerPacket(SetScorePacket);
+        this.registerPacket(SetScoreboardIdentityPacket);
 
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
