@@ -13,11 +13,11 @@ interface ScorePacketEntry {
 export default class SetScorePacket extends DataPacket {
     public static NetID = Identifiers.SetScorePacket;
 
-    public Action!: number;
-    public ScoreEntries!: ScorePacketEntry[];
+    public action!: number;
+    public scoreEntries!: scorePacketEntry[];
 
     public decodePayload() {
-        this.Action = this.readByte();
+        this.action = this.readByte();
         for (let i = 0, i2 = this.readUnsignedVarInt(); i < i2; ++i) {
             let entry: ScorePacketEntry;
             entry!.entryID = this.readVarLong();
@@ -31,14 +31,14 @@ export default class SetScorePacket extends DataPacket {
                     entry!.displayName = this.readString();
                 }
             }
-            this.ScoreEntries.push(entry!);
+            this.scoreEntries.push(entry!);
         }
     }
 
     public encodePayload() {
-        this.writeByte(this.Action);
-        this.writeUnsignedVarInt(this.ScoreEntries.length);
-        this.ScoreEntries.forEach((entry: ScorePacketEntry) => {
+        this.writeByte(this.action);
+        this.writeUnsignedVarInt(this.scoreEntries.length);
+        this.scoreEntries.forEach((entry: ScorePacketEntry) => {
             this.writeVarLong(entry.entryID);
             this.writeString(entry.objectiveName);
             this.writeLInt(entry.score);
