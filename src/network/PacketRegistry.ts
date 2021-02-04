@@ -62,14 +62,14 @@ import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
-import SetGamemodePacket from './packet/SetGamemodePacket';
 import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
+import SetGamemodePacket from './packet/SetGamemodePacket';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
-import SetScoreboardIdentityPacket from './packet/SetScoreboardIdentityPacket';
 import SetScorePacket from './packet/SetScorePacket';
+import SetScoreboardIdentityPacket from './packet/SetScoreboardIdentityPacket';
 import SetTimePacket from './packet/SetTimePacket';
 import SetTitlePacket from './packet/SetTitlePacket';
 import StartGamePacket from './packet/StartGamePacket';
@@ -181,7 +181,8 @@ export default class PacketRegistry {
         this.registerPacket(SetScoreboardIdentityPacket);
 
         this.logger.debug(
-            `Registered §b${this.packets.size}§r of §b${Array.from(Object.keys(Identifiers)).length - 2
+            `Registered §b${this.packets.size}§r of §b${
+                Array.from(Object.keys(Identifiers)).length - 2
             }§r packet(s) (took ${Date.now() - time} ms)!`,
             'PacketRegistry/loadPackets'
         );
@@ -225,7 +226,8 @@ export default class PacketRegistry {
         this.registerHandler(Identifiers.ModalFormResponsePacket, new ModalFormResponseHandler());
 
         this.logger.debug(
-            `Registered §b${this.handlers.size}§r packet handler(s) (took ${Date.now() - time
+            `Registered §b${this.handlers.size}§r packet handler(s) (took ${
+                Date.now() - time
             } ms)!`,
             'PacketRegistry/loadHandlers'
         );
