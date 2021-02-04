@@ -50,6 +50,7 @@ import PlayerActionPacket from './packet/PlayerActionPacket';
 import PlayerListPacket from './packet/PlayerListPacket';
 import PlayerSkinPacket from './packet/PlayerSkinPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
+import RemoveObjectivePacket from './packet/RemoveObjectivePacket';
 import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
 import ResourcePackResponseHandler from './handler/ResourcePackResponseHandler';
@@ -62,10 +63,13 @@ import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
 import SetGamemodePacket from './packet/SetGamemodePacket';
+import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
+import SetScoreboardIdentityPacket from './packet/SetScoreboardIdentityPacket';
+import SetScorePacket from './packet/SetScorePacket';
 import SetTimePacket from './packet/SetTimePacket';
 import SetTitlePacket from './packet/SetTitlePacket';
 import StartGamePacket from './packet/StartGamePacket';
@@ -77,10 +81,6 @@ import TransferPacket from './packet/TransferPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import WorldEventPacket from './packet/WorldEventPacket';
-import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
-import RemoveObjectivePacket from './packet/RemoveObjectivePacket';
-import SetScorePacket from './packet/SetScorePacket';
-import SetScoreboardIdentityPacket from './packet/SetScoreboardIdentityPacket';
 
 export default class PacketRegistry {
     private readonly logger: LoggerBuilder;
@@ -181,8 +181,7 @@ export default class PacketRegistry {
         this.registerPacket(SetScoreboardIdentityPacket);
 
         this.logger.debug(
-            `Registered §b${this.packets.size}§r of §b${
-                Array.from(Object.keys(Identifiers)).length - 2
+            `Registered §b${this.packets.size}§r of §b${Array.from(Object.keys(Identifiers)).length - 2
             }§r packet(s) (took ${Date.now() - time} ms)!`,
             'PacketRegistry/loadPackets'
         );
@@ -226,8 +225,7 @@ export default class PacketRegistry {
         this.registerHandler(Identifiers.ModalFormResponsePacket, new ModalFormResponseHandler());
 
         this.logger.debug(
-            `Registered §b${this.handlers.size}§r packet handler(s) (took ${
-                Date.now() - time
+            `Registered §b${this.handlers.size}§r packet handler(s) (took ${Date.now() - time
             } ms)!`,
             'PacketRegistry/loadHandlers'
         );
