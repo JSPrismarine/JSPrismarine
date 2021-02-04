@@ -10,7 +10,7 @@ export default class SetScoreboardIdentityPacket extends DataPacket {
     public static NetID = Identifiers.SetScoreboardIdentityPacket;
 
     public action!: number;
-    public scoreboardIdentityEntries!: ScoreboardIdentityPacketEntry[];
+    public scoreboardIdentityEntries: ScoreboardIdentityPacketEntry[] = [];
     // FIXME: Client crashes when sending this packet
     public decodePayload() {
         this.action = this.readByte();

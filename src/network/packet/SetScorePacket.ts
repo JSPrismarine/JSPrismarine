@@ -14,7 +14,7 @@ export default class SetScorePacket extends DataPacket {
     public static NetID = Identifiers.SetScorePacket;
 
     public action!: number;
-    public scoreEntries!: scorePacketEntry[];
+    public scoreEntries: ScorePacketEntry[] = [];
 
     public decodePayload() {
         this.action = this.readByte();
@@ -23,7 +23,7 @@ export default class SetScorePacket extends DataPacket {
             entry!.entryID = this.readVarLong();
             entry!.objectiveName = this.readString();
             entry!.score = this.readLInt();
-            if (this.Action !== 1) {
+            if (this.action !== 1) {
                 entry!.identityType = this.readByte();
                 if (entry!.identityType !== 3) {
                     entry!.entityUniqueID = this.readVarLong();
@@ -42,7 +42,7 @@ export default class SetScorePacket extends DataPacket {
             this.writeVarLong(entry.entryID);
             this.writeString(entry.objectiveName);
             this.writeLInt(entry.score);
-            if (this.Action !== 1) {
+            if (this.action !== 1) {
                 this.writeByte(entry.identityType);
                 if (entry.identityType !== 3) {
                     this.writeVarLong(entry.entityUniqueID ?? 0n);
