@@ -155,6 +155,7 @@ export default class PacketRegistry {
         this.registerPacket(PlayerSkinPacket);
         this.registerPacket(PlayStatusPacket);
         this.registerPacket(RemoveActorPacket);
+        this.registerPacket(RemoveObjectivePacket);
         this.registerPacket(RequestChunkRadiusPacket);
         this.registerPacket(ResourcePackResponsePacket);
         this.registerPacket(ResourcePacksInfoPacket);
@@ -162,9 +163,12 @@ export default class PacketRegistry {
         this.registerPacket(ServerSettingsRequestPacket);
         this.registerPacket(SetActorDataPacket);
         this.registerPacket(SetDefaultGameTypePacket);
+        this.registerPacket(SetDisplayObjectivePacket);
         this.registerPacket(SetGamemodePacket);
         this.registerPacket(SetLocalPlayerAsInitializedPacket);
         this.registerPacket(SetPlayerGameTypePacket);
+        this.registerPacket(SetScorePacket);
+        this.registerPacket(SetScoreboardIdentityPacket);
         this.registerPacket(SetTimePacket);
         this.registerPacket(SetTitlePacket);
         this.registerPacket(StartGamePacket);
@@ -175,10 +179,6 @@ export default class PacketRegistry {
         this.registerPacket(UpdateBlockPacket);
         this.registerPacket(WorldEventPacket);
         this.registerPacket(ModalFormResponsePacket);
-        this.registerPacket(SetDisplayObjectivePacket);
-        this.registerPacket(RemoveObjectivePacket);
-        this.registerPacket(SetScorePacket);
-        this.registerPacket(SetScoreboardIdentityPacket);
 
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
