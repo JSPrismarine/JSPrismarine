@@ -11,7 +11,7 @@ export default class SetScoreboardIdentityPacket extends DataPacket {
 
     public action!: number;
     public scoreboardIdentityEntries: ScoreboardIdentityPacketEntry[] = [];
-    // FIXME: Client crashes when sending this packet
+    // FIXME: Client crashes when removing a score identity.
     public decodePayload() {
         this.action = this.readByte();
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; ++i) {
