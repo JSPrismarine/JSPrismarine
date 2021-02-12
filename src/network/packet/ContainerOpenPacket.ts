@@ -25,11 +25,7 @@ export default class ContainerOpenPacket extends DataPacket {
         this.windowId = this.readByte();
         this.containerType = this.readByte();
 
-        this.containerPos = new Vector3(
-            this.readVarInt(),
-            this.readVarInt(),
-            this.readVarInt()
-        );
+        this.containerPos = new Vector3(this.readVarInt(), this.readVarInt(), this.readVarInt());
 
         this.containerEntityId = this.readVarLong();
     }
