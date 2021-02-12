@@ -9,7 +9,7 @@
     },
     "engines": {
         "node": ">=14.x",
-        "npm": "^5"
+        "npm": "^7.0.0"
     },
     "scripts": {
         "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
