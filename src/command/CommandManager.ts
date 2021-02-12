@@ -5,6 +5,7 @@ import Command from './Command';
 import { CommandArgument } from './CommandArguments';
 import CommandExecuter from './CommandExecuter';
 import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
+import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
 import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
@@ -38,6 +39,10 @@ export default class CommandManager {
 
             const Command = require(`./${id}`);
             const command: Command = new (Command.default || Command)();
+
+            const event = new CommandRegisterEvent(command);
+            await this.server.getEventManager().emit('commandRegister', event);
+            if (event.cancelled) return;
 
             try {
                 await this.registerClassCommand(command);
