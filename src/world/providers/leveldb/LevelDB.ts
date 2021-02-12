@@ -21,9 +21,21 @@ export default class LevelDB extends BaseProvider {
     }
 
     public async close() {
-        await (this as any).storage?.DB?.close?.();
-        // Force garbage collector to destroy the LevelDB instance
-        (this as any).storage = undefined;
+        return new Promise<void>(async (resolve) => {
+            await (this as any).storage?.DB?.close?.();
+
+            // Sometimes the database doesn't close even if we await it...
+            // don't look at me. idk?
+            const inter = setInterval(async () => {
+                if ((this.storage as any)?.DB?._db?.status === 'open') {
+                    await (this as any).storage?.DB?.close?.();
+                    return;
+                }
+
+                clearInterval(inter);
+                resolve();
+            }, 100);
+        });
     }
 
     public async readChunk(
