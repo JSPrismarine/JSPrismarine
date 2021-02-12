@@ -15,7 +15,7 @@ export default class ContainerOpenPacket extends DataPacket {
         this.writeByte(this.containerType);
 
         this.writeVarInt(this.containerPos.getX());
-        this.writeUnsignedVarInt(this.containerPos.getY());
+        this.writeVarInt(this.containerPos.getY());
         this.writeVarInt(this.containerPos.getZ());
 
         this.writeVarLong(this.containerEntityId);
@@ -27,7 +27,7 @@ export default class ContainerOpenPacket extends DataPacket {
 
         this.containerPos = new Vector3(
             this.readVarInt(),
-            this.readUnsignedVarInt(),
+            this.readVarInt(),
             this.readVarInt()
         );
 
