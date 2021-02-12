@@ -385,11 +385,11 @@ export default class World {
      */
     public async saveChunks(): Promise<void> {
         const time = Date.now();
-        this.server.getLogger().debug('[World save] saving chunks...');
+        this.server.getLogger().debug('Saving chunks...', 'World/saveChunks');
         await Promise.all(
             Array.from(this.chunks.values()).map(async (chunk) => this.provider.writeChunk(chunk))
         );
-        this.server.getLogger().debug('[World save] took ' + (Date.now() - time) + 'ms');
+        this.server.getLogger().debug(`(took ${Date.now() - time} ms)!`, 'World/saveChunks');
     }
 
     public async save(): Promise<void> {
@@ -404,7 +404,6 @@ export default class World {
     }
 
     public async close(): Promise<void> {
-        // TODO: just with db
         await this.getProvider().close();
     }
 
