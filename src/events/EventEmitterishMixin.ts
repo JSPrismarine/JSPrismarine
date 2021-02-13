@@ -24,10 +24,7 @@ export interface EventEmitterish<EventTypes extends [string, any]> {
     ): Promise<void>;
 }
 
-export function EventEmitterishMixin<
-    EventTypes extends [string, any],
-    TBase extends new (...args: any[]) => {}
->(
+export function EventEmitterishMixin<EventTypes extends [string, any], TBase extends new (...args: any[]) => {}>(
     Base: TBase,
     getEvt: (parameters: {
         constructorArgs: ConstructorParameters<TBase>;

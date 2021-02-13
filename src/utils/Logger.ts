@@ -11,9 +11,7 @@ export default class LoggerBuilder {
         this.logger = createLogger({
             transports: [
                 new transports.Console({
-                    level:
-                        /* Process.env.NODE_ENV !== 'development' && */ (global as any).log_level ||
-                        'info', // || 'silly',
+                    level: /* Process.env.NODE_ENV !== 'development' && */ (global as any).log_level || 'info', // || 'silly',
                     format: combine(
                         timestamp({ format: 'HH:mm:ss.SS' }),
                         format((info) => {
@@ -26,8 +24,7 @@ export default class LoggerBuilder {
                             return `[${timestamp} ${level}${mcColors.minecraftToConsole(
                                 `${
                                     namespace &&
-                                    ((global as any).log_level === 'silly' ||
-                                        (global as any).log_level === 'debug')
+                                    ((global as any).log_level === 'silly' || (global as any).log_level === 'debug')
                                         ? ` ${namespace}]`
                                         : ']'
                                 }: ${message}`

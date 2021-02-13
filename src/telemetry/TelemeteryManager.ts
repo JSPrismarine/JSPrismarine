@@ -2,7 +2,9 @@ import fetch, { Headers } from 'node-fetch';
 
 import PluginFile from '../plugin/PluginFile';
 import Server from '../Server';
+import fs from 'fs';
 import { machineIdSync } from 'node-machine-id';
+import path from 'path';
 
 export default class TelemetryManager {
     private readonly id = this.generateAnonomizedId();
@@ -19,11 +21,15 @@ export default class TelemetryManager {
 
         if (!this.enabled) return;
 
-        process.on('uncaughtException', async (err) => {
-            await this.sendCrashLog(err, urls);
-            this.server.getLogger().error(`${err}`, 'TelemetryManager');
-            process.exit(1);
-        });
+        ['uncaughtException', 'unhandledRejection'].forEach((interruptSignal) =>
+            process.on(interruptSignal, async (error) => {
+                await this.sendCrashLog(error, urls);
+                this.server.getLogger().error(error, 'TelemetryManager');
+                await this.server.kill({
+                    crash: true
+                });
+            })
+        );
     }
 
     public async onEnable() {
@@ -58,9 +64,7 @@ export default class TelemetryManager {
 
         const body = {
             id: this.id,
-            version: `${this.server.getConfig().getVersion()}:${
-                this.server.getQueryManager().git_rev
-            }`,
+            version: `${this.server.getConfig().getVersion()}:${this.server.getQueryManager().git_rev}`,
             online_mode: this.server.getConfig().getOnlineMode(),
             player_count: this.server.getRaknet()?.getName().getOnlinePlayerCount() || 0,
             max_player_count: this.server.getConfig().getMaxPlayers(),
@@ -88,9 +92,7 @@ export default class TelemetryManager {
                     });
                     this.server.getLogger().silly('Sent heartbeat', 'TelemetryManager/tick');
                 } catch (error) {
-                    this.server
-                        .getLogger()
-                        .warn(`Failed to tick: ${url} (${error})`, 'TelemetryManager/tick');
+                    this.server.getLogger().warn(`Failed to tick: ${url} (${error})`, 'TelemetryManager/tick');
                     this.server.getLogger().silly(error.stack, 'TelemetryManager/tick');
                 }
             })
@@ -108,15 +110,20 @@ export default class TelemetryManager {
                 "JSPrismarine has crashed, we're now submitting the error to the telemetry service...",
                 'TelemetryManager/sendCrashLog'
             );
+
+        let log: string | undefined;
+        try {
+            log = fs.readFileSync(path.join(process.cwd(), 'jsprismarine.log'), 'utf-8');
+        } catch {}
+
         const body = {
             id: this.generateAnonomizedId(),
-            version: `${this.server.getConfig().getVersion()}:${
-                this.server.getQueryManager().git_rev
-            }`,
+            version: `${this.server.getConfig().getVersion()}:${this.server.getQueryManager().git_rev}`,
             error: {
                 name: crashlog.name,
                 message: crashlog.message,
-                stack: crashlog.stack
+                stack: crashlog.stack,
+                log
             }
         };
 
@@ -142,10 +149,7 @@ export default class TelemetryManager {
         if (!links.length) {
             this.server
                 .getLogger()
-                .error(
-                    'Failed to submit error to telemetry service!',
-                    'TelemetryManager/sendCrashLog'
-                );
+                .error('Failed to submit error to telemetry service!', 'TelemetryManager/sendCrashLog');
             return;
         }
 

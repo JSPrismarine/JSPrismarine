@@ -38,12 +38,7 @@ export default class LevelDB extends BaseProvider {
         });
     }
 
-    public async readChunk(
-        cx: number,
-        cz: number,
-        seed: number,
-        generator: Generator
-    ): Promise<Chunk> {
+    public async readChunk(cx: number, cz: number, seed: number, generator: Generator): Promise<Chunk> {
         try {
             const version = Number(await this.storage.get(`${LevelDB.chunkIndex(cx, cz)}v`));
 
@@ -55,7 +50,7 @@ export default class LevelDB extends BaseProvider {
                             `Please use an older build of JSPrismarine for v(${version}) chunks.`,
                             'providers/LevelDB/readChunk'
                         );
-                    await this.getServer().kill({ withoutSaving: true });
+                    await this.getServer().kill({ withoutSaving: true, crash: true });
                     break;
                 case 8:
                     break;

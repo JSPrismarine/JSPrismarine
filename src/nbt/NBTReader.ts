@@ -12,11 +12,7 @@ export default class NBTReader extends NBTStreamReader {
     }
 
     public parseList(): Set<any> {
-        this.expectInput(
-            this.isUsingVarint() ? 2 : 3,
-            'Invalid NBT Data: Not enough data to read new tag',
-            false
-        );
+        this.expectInput(this.isUsingVarint() ? 2 : 3, 'Invalid NBT Data: Not enough data to read new tag', false);
         if (this.readByteValue().getValue() !== NBTDefinitions.TAG_LIST) {
             throw new Error('Invalid NBT Data: Not list tag found');
         }
@@ -26,11 +22,7 @@ export default class NBTReader extends NBTStreamReader {
     }
 
     public parse(): NBTTagCompound {
-        this.expectInput(
-            this.isUsingVarint() ? 2 : 3,
-            'Invalid NBT Data: Not enough data to read new tag',
-            false
-        );
+        this.expectInput(this.isUsingVarint() ? 2 : 3, 'Invalid NBT Data: Not enough data to read new tag', false);
         if (this.readByteValue().getValue() !== NBTDefinitions.TAG_COMPOUND) {
             throw new Error('Invalid NBT Data: No root tag found');
         }
@@ -97,11 +89,7 @@ export default class NBTReader extends NBTStreamReader {
     }
 
     private readTagListValue(): Set<any> {
-        this.expectInput(
-            this.isUsingVarint() ? 2 : 5,
-            'Invalid NBT Data: Expected TAGList header',
-            false
-        );
+        this.expectInput(this.isUsingVarint() ? 2 : 5, 'Invalid NBT Data: Expected TAGList header', false);
         const listType: number = this.readByteValue().getValue();
         let listLength: number = this.readIntValue().getValue();
 

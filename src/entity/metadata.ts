@@ -38,20 +38,13 @@ export enum FlagType {
 }
 
 export default class MetadataManager {
-    private readonly metadata: Map<
-        number,
-        [number, bigint | number | boolean | string]
-    > = new Map();
+    private readonly metadata: Map<number, [number, bigint | number | boolean | string]> = new Map();
 
     public getPropertyValue(key: number): bigint | number | boolean | string | null {
         return this.metadata.has(key) ? this.metadata.get(key)![1] : null;
     }
 
-    public setPropertyValue(
-        key: number,
-        type: number,
-        value: bigint | number | boolean | string
-    ): void {
+    public setPropertyValue(key: number, type: number, value: bigint | number | boolean | string): void {
         this.metadata.set(key, [type, value]);
     }
 

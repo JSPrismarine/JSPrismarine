@@ -108,9 +108,7 @@ export default class Player extends Human implements CommandExecuter {
                 this.getServer().getBlockManager().getBlock(item.id);
 
             if (!entry) {
-                this.getServer()
-                    .getLogger()
-                    .debug(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
+                this.getServer().getLogger().debug(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
                 return;
             }
 
@@ -125,7 +123,7 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async onDisable() {
-        await this.getWorld().savePlayerData(this);
+        if (this.xuid) await this.getWorld().savePlayerData(this);
     }
 
     public async update(tick: number): Promise<void> {
@@ -133,9 +131,7 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async kick(reason = 'unknown reason'): Promise<void> {
-        this.getServer()
-            .getLogger()
-            .debug(`Player with id §b${this.runtimeId}§r was kicked: ${reason}`, 'Player/kick');
+        this.getServer().getLogger().debug(`Player with id §b${this.runtimeId}§r was kicked: ${reason}`, 'Player/kick');
         await this.playerConnection.kick(reason);
     }
 
@@ -171,8 +167,7 @@ export default class Player extends Human implements CommandExecuter {
         this.gamemode = event.getGamemode();
         await this.playerConnection.sendGamemode(this.gamemode);
 
-        if (this.gamemode === Gamemode.Creative || this.gamemode === Gamemode.Spectator)
-            this.allowFight = true;
+        if (this.gamemode === Gamemode.Creative || this.gamemode === Gamemode.Spectator) this.allowFight = true;
         else {
             this.allowFight = false;
             await this.setFlying(false);

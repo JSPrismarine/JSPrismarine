@@ -12,8 +12,7 @@ export default class UUID {
 
     public equals(uuid: UUID): boolean {
         return (
-            this.parts.length === uuid.parts.length &&
-            this.parts.every((value, index) => value === uuid.parts[index])
+            this.parts.length === uuid.parts.length && this.parts.every((value, index) => value === uuid.parts[index])
         );
     }
 
@@ -35,13 +34,7 @@ export default class UUID {
         }
 
         const stream = new BinaryStream(uuid);
-        return new UUID(
-            stream.readInt(),
-            stream.readInt(),
-            stream.readInt(),
-            stream.readInt(),
-            version
-        );
+        return new UUID(stream.readInt(), stream.readInt(), stream.readInt(), stream.readInt(), version);
     }
 
     /**

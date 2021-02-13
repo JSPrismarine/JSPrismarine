@@ -42,9 +42,6 @@ class EventManagerWithoutEventEmitterishMethods extends Evt<EventTypes> {
     readonly evtThirdParty = Evt.asNonPostable(Evt.create<[string, any]>());
 }
 
-export const EventManager = EventEmitterishMixin(
-    EventManagerWithoutEventEmitterishMethods,
-    ({ instance }) => instance
-);
+export const EventManager = EventEmitterishMixin(EventManagerWithoutEventEmitterishMethods, ({ instance }) => instance);
 
 export type EventManager = InstanceType<typeof EventManager>;

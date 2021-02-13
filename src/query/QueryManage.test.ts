@@ -29,10 +29,7 @@ describe('QueryManager', () => {
         stream.writeInt(0);
         stream.setOffset(0);
 
-        const buffer = await queryManager.onRaw(
-            stream.getBuffer(),
-            new InetAddress('0.0.0.0', 19132)
-        );
+        const buffer = await queryManager.onRaw(stream.getBuffer(), new InetAddress('0.0.0.0', 19132));
         expect(buffer.toString()).toBe(
             Buffer.from(
                 '\u0009\u0000\u0000\u0000\u0000\u0039\u0035\u0031\u0033\u0033\u0030\u0037\u0000',

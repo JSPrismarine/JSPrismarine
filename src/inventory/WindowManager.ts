@@ -22,10 +22,7 @@ export default class WindowManager {
     }
 
     public getWindowId(inventory: Inventory): number {
-        return (
-            Array.from(this.windows.keys()).find((key) => this.windows.get(key) === inventory) ??
-            WindowIds.UNKNOWN
-        );
+        return Array.from(this.windows.keys()).find((key) => this.windows.get(key) === inventory) ?? WindowIds.UNKNOWN;
     }
 
     public getWindow(id: number): Inventory | null {

@@ -248,8 +248,6 @@ export default class NBTWriter {
             return NBTDefinitions.TAG_INT_ARRAY;
         }
 
-        throw new TypeError(
-            `Invalid NBT Data: Cannot deduce NBT type of class ${value.constructor.name} (${value})`
-        );
+        throw new TypeError(`Invalid NBT Data: Cannot deduce NBT type of class ${value.constructor.name} (${value})`);
     }
 }
