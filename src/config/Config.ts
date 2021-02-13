@@ -50,9 +50,7 @@ export default class Config {
         this.onlineMode = this.configBuilder.get('online-mode', true);
         this.enableEval = this.configBuilder.get('enable-eval', false);
         this.enableTelemetry = this.configBuilder.get('enable-telemetry', true);
-        this.telemetryUrls = this.configBuilder.get('telemetry-urls', [
-            'https://telemetry.prismarine.dev'
-        ]);
+        this.telemetryUrls = this.configBuilder.get('telemetry-urls', ['https://telemetry.prismarine.dev']);
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7);
 
         this.updateRepo = this.configBuilder.get('update-repo', 'JSPrismarine/JSPrismarine');

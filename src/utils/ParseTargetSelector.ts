@@ -91,17 +91,13 @@ const ParseTargetSelector = ({
                     );
                 else
                     targets = targets.filter((entity) =>
-                        filter.reverse
-                            ? entity.getType() !== filter.value
-                            : entity.getType() === filter.value
+                        filter.reverse ? entity.getType() !== filter.value : entity.getType() === filter.value
                     );
                 break;
 
             case 'name':
                 targets = targets.filter((entity) =>
-                    filter.reverse
-                        ? entity.getName() !== filter.value
-                        : entity.getName() === filter.value
+                    filter.reverse ? entity.getName() !== filter.value : entity.getName() === filter.value
                 );
                 break;
 

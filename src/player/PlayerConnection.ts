@@ -1,12 +1,7 @@
-import AdventureSettingsPacket, {
-    AdventureSettingsFlags
-} from '../network/packet/AdventureSettingsPacket';
+import AdventureSettingsPacket, { AdventureSettingsFlags } from '../network/packet/AdventureSettingsPacket';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
 import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
-import PlayerListPacket, {
-    PlayerListAction,
-    PlayerListEntry
-} from '../network/packet/PlayerListPacket';
+import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../network/packet/PlayerListPacket';
 
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
 import Air from '../block/blocks/Air';
@@ -109,9 +104,7 @@ export default class PlayerConnection {
         pk.setFlag(AdventureSettingsFlags.Flying, target.isFlying());
 
         pk.commandPermission = target.isOp() ? PermissionType.Operator : PermissionType.Normal;
-        pk.playerPermission = target.isOp()
-            ? PlayerPermissionType.Operator
-            : PlayerPermissionType.Member;
+        pk.playerPermission = target.isOp() ? PlayerPermissionType.Operator : PlayerPermissionType.Member;
         pk.entityId = target.runtimeId;
         await this.sendDataPacket(pk);
     }
@@ -125,9 +118,7 @@ export default class PlayerConnection {
 
         for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
             for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
-                const chunkDistance = Math.round(
-                    Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk)
-                );
+                const chunkDistance = Math.round(Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk));
 
                 if (chunkDistance <= viewDistance) {
                     const newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk];
@@ -186,10 +177,7 @@ export default class PlayerConnection {
         for (const hash of this.loadedChunks) {
             const [x, z] = CoordinateUtils.decodePos(hash);
 
-            if (
-                Math.abs(x - currentXChunk) > viewDistance ||
-                Math.abs(z - currentZChunk) > viewDistance
-            ) {
+            if (Math.abs(x - currentXChunk) > viewDistance || Math.abs(z - currentZChunk) > viewDistance) {
                 unloaded = true;
                 this.loadedChunks.delete(hash);
             }
@@ -198,10 +186,7 @@ export default class PlayerConnection {
         for (const hash of this.loadingChunks) {
             const [x, z] = CoordinateUtils.decodePos(hash);
 
-            if (
-                Math.abs(x - currentXChunk) > viewDistance ||
-                Math.abs(z - currentZChunk) > viewDistance
-            ) {
+            if (Math.abs(x - currentXChunk) > viewDistance || Math.abs(z - currentZChunk) > viewDistance) {
                 this.loadingChunks.delete(hash);
             }
         }
@@ -313,9 +298,9 @@ export default class PlayerConnection {
             .getCommandManager()
             .getCommandsList()
             .forEach((command) => {
-                const classCommand = Array.from(
-                    this.server.getCommandManager().getCommands().values()
-                ).find((cmd) => cmd.id.split(':')[1] === command[0])!;
+                const classCommand = Array.from(this.server.getCommandManager().getCommands().values()).find(
+                    (cmd) => cmd.id.split(':')[1] === command[0]
+                )!;
 
                 if (!classCommand) {
                     this.player
@@ -325,13 +310,7 @@ export default class PlayerConnection {
                     return;
                 }
 
-                if (
-                    !this.player
-                        .getServer()
-                        .getPermissionManager()
-                        .can(this.player)
-                        .execute(classCommand.permission)
-                )
+                if (!this.player.getServer().getPermissionManager().can(this.player).execute(classCommand.permission))
                     return;
 
                 if (command[1].getCommand())
@@ -381,9 +360,7 @@ export default class PlayerConnection {
                                     })
                                 ];
 
-                            this.server
-                                .getLogger()
-                                .warn(`Invalid parameter ${parameter.constructor.name}`);
+                            this.server.getLogger().warn(`Invalid parameter ${parameter.constructor.name}`);
                             return [
                                 new CommandParameter({
                                     name: 'value',
@@ -582,9 +559,7 @@ export default class PlayerConnection {
         pk.yaw = this.player.yaw;
         pk.headYaw = this.player.headYaw;
 
-        pk.item =
-            this.player.getInventory()?.getItemInHand() ??
-            new ContainerEntry({ item: new Air(), count: 0 });
+        pk.item = this.player.getInventory()?.getItemInHand() ?? new ContainerEntry({ item: new Air(), count: 0 });
 
         pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager().getMetadata();

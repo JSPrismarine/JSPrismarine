@@ -42,9 +42,7 @@ export default class QueryManager {
                     res.writeByte(9);
                     res.writeInt(sessionId);
                     res.append(Buffer.from(`9513307\0`, 'binary'));
-                    await this.server
-                        .getRaknet()
-                        .sendBuffer(res.getBuffer(), rinfo.getAddress(), rinfo.getPort());
+                    await this.server.getRaknet().sendBuffer(res.getBuffer(), rinfo.getAddress(), rinfo.getPort());
                     resolve(res.getBuffer());
                     return;
                 }
@@ -69,10 +67,7 @@ export default class QueryManager {
                     const plugins = this.server
                         .getPluginManager()
                         .getPlugins()
-                        .map(
-                            (plugin: PluginFile) =>
-                                `${plugin.getDisplayName()} ${plugin.getVersion()}`
-                        );
+                        .map((plugin: PluginFile) => `${plugin.getDisplayName()} ${plugin.getVersion()}`);
                     res.append(
                         Buffer.from(
                             `\0${[
@@ -85,9 +80,7 @@ export default class QueryManager {
                                 'version',
                                 this.server.getRaknet().getName().getVersion(),
                                 'plugins',
-                                `JSPrismarine on Prismarine ${this.server
-                                    .getConfig()
-                                    .getVersion()}-${this.git_rev}${
+                                `JSPrismarine on Prismarine ${this.server.getConfig().getVersion()}-${this.git_rev}${
                                     (plugins.length && ': ') || ''
                                 }${plugins.join('; ')}`, // TODO
                                 'map',
@@ -127,9 +120,7 @@ export default class QueryManager {
                             'binary'
                         )
                     );
-                    await this.server
-                        .getRaknet()
-                        .sendBuffer(res.getBuffer(), rinfo.getAddress(), rinfo.getPort());
+                    await this.server.getRaknet().sendBuffer(res.getBuffer(), rinfo.getAddress(), rinfo.getPort());
 
                     resolve(res.getBuffer());
                     return;

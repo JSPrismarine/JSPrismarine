@@ -5,13 +5,7 @@ export default class Device {
     model = '';
     guiScale = 0;
 
-    public constructor(args: {
-        id: string;
-        model: string;
-        os: number;
-        inputMode: number;
-        guiScale: number;
-    }) {
+    public constructor(args: { id: string; model: string; os: number; inputMode: number; guiScale: number }) {
         const { id, model, os, inputMode, guiScale } = args;
 
         this.id = id;

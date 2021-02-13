@@ -53,9 +53,7 @@ export default class PermissionManager {
     private async parsePermissions(): Promise<void> {
         try {
             if (!fs.existsSync(path.join(process.cwd(), '/permissions.json'))) {
-                this.server
-                    .getLogger()
-                    .warn(`Failed to load permissions list!`, 'PermissionManager/parsePermissions');
+                this.server.getLogger().warn(`Failed to load permissions list!`, 'PermissionManager/parsePermissions');
                 fs.writeFileSync(
                     path.join(process.cwd(), '/permissions.json'),
                     JSON.stringify(
@@ -90,17 +88,12 @@ export default class PermissionManager {
                     name: string;
                     permissions: string[];
                 }>;
-            } = JSON.parse(
-                (await readFile(path.join(process.cwd(), '/permissions.json'))).toString()
-            );
+            } = JSON.parse((await readFile(path.join(process.cwd(), '/permissions.json'))).toString());
 
             this.defaultPermissions = permissionsObject.defaultPermissions || [];
             this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
             permissionsObject.players.map((player) =>
-                this.permissions.set(
-                    player.name,
-                    player.permissions.length <= 0 ? [] : player.permissions
-                )
+                this.permissions.set(player.name, player.permissions.length <= 0 ? [] : player.permissions)
             );
         } catch (error) {
             this.server.getLogger().error(error, 'PermissionManager/parsePermissions');
@@ -111,16 +104,12 @@ export default class PermissionManager {
     private async parseOps(): Promise<void> {
         try {
             if (!fs.existsSync(path.join(process.cwd(), '/ops.json'))) {
-                this.server
-                    .getLogger()
-                    .warn(`Failed to load operators list!`, 'PermissionManager/parseOps');
+                this.server.getLogger().warn(`Failed to load operators list!`, 'PermissionManager/parseOps');
                 fs.writeFileSync(path.join(process.cwd(), '/ops.json'), '[]');
             }
 
             const readFile = util.promisify(fs.readFile);
-            const ops: OpType[] = JSON.parse(
-                (await readFile(path.join(process.cwd(), '/ops.json'))).toString()
-            );
+            const ops: OpType[] = JSON.parse((await readFile(path.join(process.cwd(), '/ops.json'))).toString());
 
             ops.map((op) => this.ops.add(op.name));
         } catch (error) {

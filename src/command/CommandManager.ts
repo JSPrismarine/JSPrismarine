@@ -72,8 +72,7 @@ export default class CommandManager {
      * Register a command into command manager by class.
      */
     public async registerClassCommand(command: Command) {
-        if (command.id.split(':').length !== 2)
-            throw new Error(`command is missing required "namespace" part of id`);
+        if (command.id.split(':').length !== 2) throw new Error(`command is missing required "namespace" part of id`);
 
         if (!command?.register)
             this.server
@@ -95,10 +94,7 @@ export default class CommandManager {
 
         this.server
             .getLogger()
-            .silly(
-                `Command with id §b${command.id}§r registered`,
-                'CommandManager/registerClassCommand'
-            );
+            .silly(`Command with id §b${command.id}§r registered`, 'CommandManager/registerClassCommand');
     }
 
     /**
@@ -149,9 +145,7 @@ export default class CommandManager {
             return result;
         };
 
-        const res = Array.from(
-            this.server.getCommandManager().getDispatcher().getRoot().getChildren()
-        )
+        const res = Array.from(this.server.getCommandManager().getDispatcher().getRoot().getChildren())
             .map((command) => {
                 const branches: any[] = [];
                 if (command.getCommand()) branches.push([]);
@@ -176,10 +170,7 @@ export default class CommandManager {
                         .map((entries) => {
                             return `/${item[0]} ${entries
                                 .flat(Number.POSITIVE_INFINITY)
-                                .map(
-                                    (argument: any) =>
-                                        argument.getReadableType?.() ?? argument.constructor.name
-                                )
+                                .map((argument: any) => argument.getReadableType?.() ?? argument.constructor.name)
                                 .join(' ')}`;
                         })
                         .join(`\n`);
@@ -222,10 +213,7 @@ export default class CommandManager {
                 // Legacy commands
                 this.server
                     .getLogger()
-                    .warn(
-                        `${id} is using the legacy command format`,
-                        'CommandManager/dispatchCommand'
-                    );
+                    .warn(`${id} is using the legacy command format`, 'CommandManager/dispatchCommand');
                 res.push(
                     await command.execute(
                         sender as any,

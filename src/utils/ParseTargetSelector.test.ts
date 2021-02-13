@@ -54,11 +54,7 @@ describe('util', () => {
                 isPlayer: () => true,
                 getType: () => 'minecraft:player'
             } as any;
-            const entities = [
-                source,
-                new Sheep(null as any, null as any),
-                new Sheep(null as any, null as any)
-            ];
+            const entities = [source, new Sheep(null as any, null as any), new Sheep(null as any, null as any)];
 
             expect(
                 ParseTargetSelector({
@@ -83,11 +79,7 @@ describe('util', () => {
                 isPlayer: () => true,
                 getType: () => 'minecraft:player'
             } as any;
-            const entities = [
-                source,
-                new Sheep(null as any, null as any),
-                new Sheep(null as any, null as any)
-            ];
+            const entities = [source, new Sheep(null as any, null as any), new Sheep(null as any, null as any)];
 
             expect(
                 ParseTargetSelector({

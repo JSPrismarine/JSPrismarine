@@ -73,9 +73,7 @@ export default class BlockManager {
             this.blocks.get(block.name);
             this.getBlockByIdAndMeta(block.getId(), block.getMeta());
 
-            throw new Error(
-                `Block with id ${block.getName()} (${block.getId()}:${block.getMeta()}) already exists`
-            );
+            throw new Error(`Block with id ${block.getName()} (${block.getId()}:${block.getMeta()}) already exists`);
         } catch (error) {
             if (!error.message.includes('invalid block with ')) throw error;
         }
@@ -84,9 +82,7 @@ export default class BlockManager {
         await this.server.getEventManager().emit('blockRegister', event);
         if (event.cancelled) return;
 
-        this.server
-            .getLogger()
-            .silly(`Block with id §b${block.name}§r registered`, 'BlockManager/registerClassBlock');
+        this.server.getLogger().silly(`Block with id §b${block.name}§r registered`, 'BlockManager/registerClassBlock');
         this.blocks.set(block.name, block);
     }
 
@@ -107,9 +103,7 @@ export default class BlockManager {
                     try {
                         await this.registerClassBlock(new block());
                     } catch {
-                        this.server
-                            .getLogger()
-                            .error(`${id} failed to register!`, 'BlockManager/importBlocks');
+                        this.server.getLogger().error(`${id} failed to register!`, 'BlockManager/importBlocks');
                     }
                 })
             );
@@ -120,9 +114,7 @@ export default class BlockManager {
                     'BlockManager/importBlocks'
                 );
         } catch (error) {
-            this.server
-                .getLogger()
-                .error(`Failed to register blocks: ${error}`, 'BlockManager/importBlocks');
+            this.server.getLogger().error(`Failed to register blocks: ${error}`, 'BlockManager/importBlocks');
         }
     }
 }

@@ -167,8 +167,7 @@ export default class Block {
         const harvestLevel = this.getToolHarvestLevel();
 
         if (toolType === BlockToolType.None || harvestLevel === 0) return true;
-        if (toolType & item.getToolType() && item.getToolHarvestLevel() >= harvestLevel)
-            return true;
+        if (toolType & item.getToolType() && item.getToolHarvestLevel() >= harvestLevel) return true;
 
         return false;
     }

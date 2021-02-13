@@ -59,12 +59,7 @@ export default class Entity extends Position {
         this.metadata.setString(MetadataFlag.NAMETAG, name);
     }
 
-    public setDataFlag(
-        propertyId: number,
-        flagId: number,
-        value = true,
-        propertyType = FlagType.LONG
-    ) {
+    public setDataFlag(propertyId: number, flagId: number, value = true, propertyType = FlagType.LONG) {
         // All generic flags are written as Longs (bigints) 64bit
         const flagId64 = BigInt(flagId);
         // Check if the same value is already set
@@ -167,19 +162,13 @@ export default class Entity extends Position {
      *
      * @param entities
      */
-    public getNearestEntity(
-        entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!
-    ) {
+    public getNearestEntity(entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!) {
         const pos = new Vector3(this.getX(), this.getY(), this.getZ());
         const dist = (a: Vector3, b: Vector3) =>
-            Math.sqrt(
-                (b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2
-            );
+            Math.sqrt((b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2);
 
         const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
-            const distances = points.map((e) =>
-                dist(target, new Vector3(e.getX(), e.getY(), e.getZ()))
-            );
+            const distances = points.map((e) => dist(target, new Vector3(e.getX(), e.getY(), e.getZ())));
             const closest = Math.min(...distances);
             return points.find((e, i) => distances[i] - closest < eps)!;
         };

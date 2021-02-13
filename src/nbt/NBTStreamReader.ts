@@ -38,9 +38,7 @@ export default class NBTStreamReader {
     }
 
     protected readStringValue(): StringVal {
-        const length: number = this.useVarint
-            ? this.input.readUnsignedVarInt()
-            : this.readShortValue().getValue();
+        const length: number = this.useVarint ? this.input.readUnsignedVarInt() : this.readShortValue().getValue();
         this.expectInput(length, 'Invalid NBT Data: Expected string bytes');
 
         const data: Buffer = this.input.read(length);
@@ -114,10 +112,7 @@ export default class NBTStreamReader {
 
     protected readIntArrayValue(): number[] {
         const size: number = this.readIntValue().getValue();
-        this.expectInput(
-            this.isUsingVarint() ? size : size * 4,
-            'Invalid NBT Data: Expected int array data'
-        );
+        this.expectInput(this.isUsingVarint() ? size : size * 4, 'Invalid NBT Data: Expected int array data');
         const result: number[] = [];
         for (let i = 0; i < size; i++) {
             result.push(this.readIntValue().getValue());

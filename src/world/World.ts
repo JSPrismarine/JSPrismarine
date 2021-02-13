@@ -223,22 +223,18 @@ export default class World {
         // TODO: canInteract
 
         const block = itemInHand; // TODO: get block from itemInHand
-        const blockId = (
-            await this.getChunkAt(blockPosition.getX(), blockPosition.getZ())
-        ).getBlock(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
-
-        const clickedBlock = this.server
-            .getBlockManager()
-            .getBlockByIdAndMeta(blockId.id, blockId.meta);
-
-        if (!block || !clickedBlock) return;
-        if (clickedBlock.getName() === 'minecraft:air' || !block.canBePlaced()) return;
-
-        const placedPosition = new Vector3(
+        const blockId = (await this.getChunkAt(blockPosition.getX(), blockPosition.getZ())).getBlock(
             blockPosition.getX(),
             blockPosition.getY(),
             blockPosition.getZ()
         );
+
+        const clickedBlock = this.server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
+
+        if (!block || !clickedBlock) return;
+        if (clickedBlock.getName() === 'minecraft:air' || !block.canBePlaced()) return;
+
+        const placedPosition = new Vector3(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
 
         // Only set correct face if the block can't be replaced
         if (!clickedBlock.canBeReplaced())
@@ -271,19 +267,11 @@ export default class World {
             try {
                 const chunk = await this.getChunkAt(placedPosition.getX(), placedPosition.getZ());
 
-                chunk.setBlock(
-                    placedPosition.getX(),
-                    placedPosition.getY(),
-                    placedPosition.getZ(),
-                    block
-                );
+                chunk.setBlock(placedPosition.getX(), placedPosition.getY(), placedPosition.getZ(), block);
                 resolve(true);
                 return;
             } catch (error) {
-                player
-                    .getServer()
-                    .getLogger()
-                    .warn(`${player.getName()} failed to place block due to ${error}`);
+                player.getServer().getLogger().warn(`${player.getName()} failed to place block due to ${error}`);
                 await player.sendMessage(error?.message);
 
                 resolve(false);
@@ -313,9 +301,7 @@ export default class World {
             this.server
                 .getPlayerManager()
                 .getOnlinePlayers()
-                .map(async (onlinePlayer) =>
-                    onlinePlayer.getConnection().sendDataPacket(blockUpdate)
-                )
+                .map(async (onlinePlayer) => onlinePlayer.getConnection().sendDataPacket(blockUpdate))
         );
 
         const pk = new LevelSoundEventPacket();
@@ -331,18 +317,14 @@ export default class World {
         pk.disableRelativeVolume = false;
 
         await Promise.all(
-            player
-                .getPlayersInChunk()
-                .map(async (narbyPlayer) => narbyPlayer.getConnection().sendDataPacket(pk))
+            player.getPlayersInChunk().map(async (narbyPlayer) => narbyPlayer.getConnection().sendDataPacket(pk))
         );
     }
 
     public async sendTime(): Promise<void> {
         // Try to send it at the same time to all
         await Promise.all(
-            Array.from(this.players.values()).map(async (player) =>
-                player.getConnection().sendTime(this.getTicks())
-            )
+            Array.from(this.players.values()).map(async (player) => player.getConnection().sendTime(this.getTicks()))
         );
     }
 
@@ -386,9 +368,7 @@ export default class World {
     public async saveChunks(): Promise<void> {
         const time = Date.now();
         this.server.getLogger().debug('Saving chunks...', 'World/saveChunks');
-        await Promise.all(
-            Array.from(this.chunks.values()).map(async (chunk) => this.provider.writeChunk(chunk))
-        );
+        await Promise.all(Array.from(this.chunks.values()).map(async (chunk) => this.provider.writeChunk(chunk)));
         this.server.getLogger().debug(`(took ${Date.now() - time} ms)!`, 'World/saveChunks');
     }
 
@@ -439,23 +419,14 @@ export default class World {
     public async getPlayerData(player: Player): Promise<WorldPlayerData> {
         try {
             const playerData = fs.readFileSync(
-                path.join(
-                    process.cwd(),
-                    'worlds',
-                    this.getName(),
-                    'players',
-                    `${player.getXUID()}.json`
-                )
+                path.join(process.cwd(), 'worlds', this.getName(), 'players', `${player.getXUID()}.json`)
             );
 
             return JSON.parse(playerData.toString('utf-8')) as WorldPlayerData;
         } catch {
             this.server
                 .getLogger()
-                .debug(
-                    `PlayerData is missing for player ${player.getXUID()}`,
-                    'World/getPlayerData'
-                );
+                .debug(`PlayerData is missing for player ${player.getXUID()}`, 'World/getPlayerData');
 
             return {
                 gamemode: this.server.getConfig().getGamemode(),
@@ -474,13 +445,7 @@ export default class World {
     public async savePlayerData(player: Player): Promise<void> {
         try {
             fs.writeFileSync(
-                path.join(
-                    process.cwd(),
-                    'worlds',
-                    this.getName(),
-                    'players',
-                    `${player.getXUID()}.json`
-                ),
+                path.join(process.cwd(), 'worlds', this.getName(), 'players', `${player.getXUID()}.json`),
                 JSON.stringify(
                     {
                         uuid: player.getUUID(),
@@ -517,9 +482,7 @@ export default class World {
                 )
             );
         } catch (error) {
-            this.server
-                .getLogger()
-                .error(`Failed to save player data: ${error}`, 'World/savePlayerData');
+            this.server.getLogger().error(`Failed to save player data: ${error}`, 'World/savePlayerData');
             this.server.getLogger().silly(error.stack, 'World/savePlayerData');
         }
     }

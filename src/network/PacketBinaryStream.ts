@@ -320,9 +320,7 @@ export default class PacketBinaryStream extends BinaryStream {
         return n % 1 !== 0;
     }
 
-    public writeEntityMetadata(
-        metadata: Map<number, [number, string | number | bigint | boolean]>
-    ) {
+    public writeEntityMetadata(metadata: Map<number, [number, string | number | bigint | boolean]>) {
         this.writeUnsignedVarInt(metadata.size);
         for (const [index, value] of metadata) {
             this.writeUnsignedVarInt(index);

@@ -128,67 +128,50 @@ export default class Server {
             await this.getEventManager().emit('raknetDisconnect', event);
         });
 
-        this.raknet.on(
-            'encapsulated',
-            async (packet: EncapsulatedPacket, inetAddr: InetAddress) => {
-                const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
-                await this.getEventManager().emit('raknetEncapsulatedPacket', event);
-            }
-        );
+        this.raknet.on('encapsulated', async (packet: EncapsulatedPacket, inetAddr: InetAddress) => {
+            const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
+            await this.getEventManager().emit('raknetEncapsulatedPacket', event);
+        });
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
             try {
                 await this.getQueryManager().onRaw(buffer, inetAddr);
             } catch (error) {
-                this.getLogger().debug(
-                    `QueryManager failed with error: ${error}`,
-                    'Server/listen/raw'
-                );
+                this.getLogger().debug(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
                 this.getLogger().silly(error.stack, 'Server/listen/raw');
             }
         });
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
 
-        this.getEventManager().on(
-            'raknetConnect',
-            async (raknetConnectEvent: RaknetConnectEvent) => {
-                const connection = raknetConnectEvent.getConnection();
-                const token = `${connection
-                    .getAddress()
-                    .getAddress()}:${connection.getAddress().getPort()}`;
+        this.getEventManager().on('raknetConnect', async (raknetConnectEvent: RaknetConnectEvent) => {
+            const connection = raknetConnectEvent.getConnection();
+            const token = `${connection.getAddress().getAddress()}:${connection.getAddress().getPort()}`;
 
-                this.logger.debug(
-                    `${token} is attempting to connect`,
-                    'Server/listen/raknetDisconnect'
-                );
+            this.logger.debug(`${token} is attempting to connect`, 'Server/listen/raknetDisconnect');
 
-                // TODO: Get last world by player data
-                // and if it doesn't exists, return the default one
-                const time = Date.now();
-                const world = this.getWorldManager().getDefaultWorld()!;
+            // TODO: Get last world by player data
+            // and if it doesn't exists, return the default one
+            const time = Date.now();
+            const world = this.getWorldManager().getDefaultWorld()!;
 
-                const player = new Player(connection, world, this);
+            const player = new Player(connection, world, this);
 
-                // Emit playerConnect event
-                const playerConnectEvent = new PlayerConnectEvent(player, player.getAddress());
+            // Emit playerConnect event
+            const playerConnectEvent = new PlayerConnectEvent(player, player.getAddress());
 
-                await this.getEventManager().emit('playerConnect', playerConnectEvent);
+            await this.getEventManager().emit('playerConnect', playerConnectEvent);
 
-                if (playerConnectEvent.cancelled) return;
+            if (playerConnectEvent.cancelled) return;
 
-                await this.playerManager.removePlayer(token); // Try to remove player before creating it
-                await this.playerManager.addPlayer(token, player);
+            await this.playerManager.removePlayer(token); // Try to remove player before creating it
+            await this.playerManager.addPlayer(token, player);
 
-                // Add the player into the world
-                world.addPlayer(player);
+            // Add the player into the world
+            world.addPlayer(player);
 
-                this.logger.silly(
-                    `Player creation took about ${Date.now() - time} ms`,
-                    'Server/listen/raknetConnect'
-                );
-            }
-        );
+            this.logger.silly(`Player creation took about ${Date.now() - time} ms`, 'Server/listen/raknetConnect');
+        });
 
         this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
             const inetAddr = event.getInetAddr();
@@ -208,9 +191,7 @@ export default class Server {
                 // Sometimes we fail at decoding the username for whatever reason
                 if (player.getName()) {
                     // Announce disconnection
-                    const event = new ChatEvent(
-                        new Chat(this.getConsole(), `§e${player.getName()} left the game`)
-                    );
+                    const event = new ChatEvent(new Chat(this.getConsole(), `§e${player.getName()} left the game`));
                     await this.getEventManager().emit('chat', event);
                 }
 
@@ -225,10 +206,7 @@ export default class Server {
                 this.logger.silly(error.stack, 'Server/listen/raknetDisconnect');
             }
 
-            this.logger.debug(
-                `${token} disconnected due to ${reason}`,
-                'Server/listen/raknetDisconnect'
-            );
+            this.logger.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
 
             this.logger.silly(
                 `Player destruction took about ${Date.now() - time} ms`,
@@ -282,10 +260,7 @@ export default class Server {
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
-                        this.logger.debug(
-                            `${error.stack}`,
-                            'Server/listen/raknetEncapsulatedPacket'
-                        );
+                        this.logger.debug(`${error.stack}`, 'Server/listen/raknetEncapsulatedPacket');
                     }
                 }
             } catch (error) {
@@ -358,7 +333,7 @@ export default class Server {
     /**
      * Kills the server asynchronously.
      */
-    public async kill(options?: { withoutSaving: boolean }): Promise<void> {
+    public async kill(options?: { withoutSaving?: boolean; crash?: boolean }): Promise<void> {
         if (this.stopping) return;
         this.stopping = true;
 
@@ -379,7 +354,7 @@ export default class Server {
             await this.onDisable();
             await this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
             await this.console.onDisable();
-            process.exit(0);
+            process.exit(options?.crash ? 1 : 0);
         } catch (error) {
             this.getLogger().error(error, 'Server/kill');
             process.exit(1);

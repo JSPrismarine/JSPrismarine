@@ -17,7 +17,13 @@ export default class Console implements CommandExecuter {
         // Console command reader
         readline.emitKeypressEvents(process.stdin);
         process.stdin.setEncoding('utf8');
-        if (process.stdin.isTTY) process.stdin.setRawMode(true);
+
+        try {
+            if (process.stdin.isTTY) process.stdin.setRawMode(true);
+        } catch (error) {
+            this.server.getLogger().warn(`Failed to enable stdin rawMode: ${error}!`);
+            this.server.getLogger().silly(error.stack);
+        }
 
         const completer = (line: string) => {
             const hits = Array.from(this.getServer().getCommandManager().getCommands().values())
@@ -64,12 +70,7 @@ export default class Console implements CommandExecuter {
     }
 
     public async onDisable(): Promise<void> {
-        return new Promise((resolve) => {
-            this.cli.on('close', () => {
-                resolve();
-            });
-            this.cli.close();
-        });
+        this.cli.close();
     }
 
     public getName(): string {
@@ -120,22 +121,16 @@ export default class Console implements CommandExecuter {
     /**
      * Returns the nearest entity from the current entity
      *
-     * TODO:
-     * - Customizable radius
+     * TODO: Customizable radius
+     * TODO: Generic?
      */
-    public getNearestEntity(
-        entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!
-    ) {
+    public getNearestEntity(entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!) {
         const pos = new Vector3(this.getX(), this.getY(), this.getZ());
         const dist = (a: Vector3, b: Vector3) =>
-            Math.sqrt(
-                (b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2
-            );
+            Math.sqrt((b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2);
 
         const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
-            const distances = points.map((e) =>
-                dist(target, new Vector3(e.getX(), e.getY(), e.getZ()))
-            );
+            const distances = points.map((e) => dist(target, new Vector3(e.getX(), e.getY(), e.getZ())));
             const closest = Math.min(...distances);
             return points.find((e, i) => distances[i] - closest < eps)!;
         };

@@ -14,8 +14,7 @@ const ParseTildeCaretNotation = ({
     switch (input[0]) {
         case '~':
             return (
-                (source as any)[`get${type.toUpperCase()}`]() +
-                Number.parseFloat(input.slice(1, input.length) || '0')
+                (source as any)[`get${type.toUpperCase()}`]() + Number.parseFloat(input.slice(1, input.length) || '0')
             );
         case '^':
             // FIXME:

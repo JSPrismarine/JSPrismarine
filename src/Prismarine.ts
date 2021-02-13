@@ -21,22 +21,35 @@ void updater.check().then(() => {
     });
 
     Prismarine.listen(config.getServerIp(), config.getPort()).catch(async (error) => {
-        Prismarine.getLogger().error(
-            `Cannot start the server, is it already running on the same port?`,
-            'Prismarine'
-        );
+        Prismarine.getLogger().error(`Cannot start the server, is it already running on the same port?`, 'Prismarine');
         if (error) console.error(error);
 
-        await Prismarine.kill();
-        process.exit(1);
+        await Prismarine.kill({
+            crash: true
+        });
     });
 
     // Kills the server when exiting process
-    for (const interruptSignal of ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM']) {
+    [
+        'uncaughtException',
+        'unhandledRejection',
+        'SIGHUP',
+        'SIGINT',
+        'SIGQUIT',
+        'SIGILL',
+        'SIGTRAP',
+        'SIGABRT',
+        'SIGBUS',
+        'SIGFPE',
+        'SIGUSR1',
+        'SIGSEGV',
+        'SIGUSR2',
+        'SIGTERM'
+    ].forEach((interruptSignal) =>
         process.on(interruptSignal, async () => {
             await Prismarine.kill();
-        });
-    }
+        })
+    );
 
     (global as any).Server = Prismarine;
 });
