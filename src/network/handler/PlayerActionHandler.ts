@@ -13,11 +13,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             case PlayerActionType.StartBreak: {
                 const block = await player
                     .getWorld()
-                    .getBlock(
-                        packet.position.getX(),
-                        packet.position.getY(),
-                        packet.position.getZ()
-                    );
+                    .getBlock(packet.position.getX(), packet.position.getY(), packet.position.getZ());
 
                 const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
 
@@ -32,9 +28,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 await Promise.all(
                     player
                         .getPlayersInChunk()
-                        .map(async (nearbyPlayer) =>
-                            nearbyPlayer.getConnection().sendDataPacket(pk)
-                        )
+                        .map(async (nearbyPlayer) => nearbyPlayer.getConnection().sendDataPacket(pk))
                 );
 
                 break;
@@ -53,9 +47,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 await Promise.all(
                     player
                         .getPlayersInChunk()
-                        .map(async (nearbyPlayer) =>
-                            nearbyPlayer.getConnection().sendDataPacket(pk)
-                        )
+                        .map(async (nearbyPlayer) => nearbyPlayer.getConnection().sendDataPacket(pk))
                 );
                 break;
             }
@@ -67,15 +59,9 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
             case PlayerActionType.ContinueBreak: {
                 // This fires twice in creative.. wtf Mojang?
-                const chunk = await player
-                    .getWorld()
-                    .getChunkAt(packet.position.getX(), packet.position.getZ());
+                const chunk = await player.getWorld().getChunkAt(packet.position.getX(), packet.position.getZ());
 
-                const blockId = chunk.getBlock(
-                    packet.position.getX(),
-                    packet.position.getY(),
-                    packet.position.getZ()
-                );
+                const blockId = chunk.getBlock(packet.position.getX(), packet.position.getY(), packet.position.getZ());
 
                 const pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.ParticlePunchBlock;
@@ -87,9 +73,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 await Promise.all(
                     player
                         .getPlayersInChunk()
-                        .map(async (nearbyPlayer) =>
-                            nearbyPlayer.getConnection().sendDataPacket(pk)
-                        )
+                        .map(async (nearbyPlayer) => nearbyPlayer.getConnection().sendDataPacket(pk))
                 );
 
                 break;
@@ -126,12 +110,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
             default: {
                 // This will get triggered even if an action is simply not handled
-                server
-                    .getLogger()
-                    .debug(
-                        `Unhandled player action: ${packet.action}`,
-                        'PlayerActionHandler/handle'
-                    );
+                server.getLogger().debug(`Unhandled player action: ${packet.action}`, 'PlayerActionHandler/handle');
             }
         }
     }

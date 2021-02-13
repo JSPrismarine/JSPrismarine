@@ -40,19 +40,14 @@ class EventManagerWithoutEventEmitterishMethods<CustomEventTypes extends [string
  * with the type alias InstanceType<typeof EventManager>. The reason we can't do the same
  * here is that InstanceType<> 'swallows' the type parameter.
  */
-export default class EventManager<
-    CustomEventTypes extends [string, any]
-> extends EventEmitterishMixin(
+export default class EventManager<CustomEventTypes extends [string, any]> extends EventEmitterishMixin(
     EventManagerWithoutEventEmitterishMethods,
     ({ constructorArgs: [server] }) => {
         const evtProxy = new Evt<EventTypes>();
         const evtSrc = server.getEventManager();
         const internalEvents = new WeakSet<EventTypes>();
 
-        evtSrc.$attach(
-            currentApiToTargetApi,
-            async (data) => (internalEvents.add(data), evtProxy.postAndWait(data))
-        );
+        evtSrc.$attach(currentApiToTargetApi, async (data) => (internalEvents.add(data), evtProxy.postAndWait(data)));
 
         evtProxy.$attachExtract(
             compose((data) => !internalEvents.has(data), targetApiToCurrentApi),

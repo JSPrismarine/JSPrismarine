@@ -5,11 +5,7 @@ import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
 import type Server from '../../Server';
 
 export default class RequestChunkRadiusHandler implements PacketHandler<RequestChunkRadiusPacket> {
-    public async handle(
-        packet: RequestChunkRadiusPacket,
-        server: Server,
-        player: Player
-    ): Promise<void> {
+    public async handle(packet: RequestChunkRadiusPacket, server: Server, player: Player): Promise<void> {
         const maxViewDistance = server.getConfig().getViewDistance();
         const viewDistance = packet.radius >= maxViewDistance ? maxViewDistance : packet.radius;
 

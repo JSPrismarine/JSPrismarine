@@ -18,10 +18,7 @@ export default class PardonCommand extends Command {
             literal('pardon').then(
                 argument('player', greedyString()).executes(async (context) => {
                     const source = context.getSource() as Player;
-                    await source
-                        .getServer()
-                        .getBanManager()
-                        .setUnbanned(context.getArgument('player'));
+                    await source.getServer().getBanManager().setUnbanned(context.getArgument('player'));
 
                     return `Unbanned ${context.getArgument('player')}`;
                 })

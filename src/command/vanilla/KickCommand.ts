@@ -24,9 +24,7 @@ export default class KickCommand extends Command {
                             const targets = context.getArgument('player') as Player[];
 
                             targets.forEach(async (target) =>
-                                target.kick(
-                                    `You have been kicked from the server due to: \n\n${reason}!`
-                                )
+                                target.kick(`You have been kicked from the server due to: \n\n${reason}!`)
                             );
                             return `Kicked ${targets
                                 .map((target) => target.getFormattedUsername())
@@ -36,12 +34,8 @@ export default class KickCommand extends Command {
                     .executes(async (context) => {
                         const targets = context.getArgument('player') as Player[];
 
-                        targets.forEach(async (target) =>
-                            target.kick(`You have been kicked from the server!`)
-                        );
-                        return `Kicked ${targets
-                            .map((target) => target.getFormattedUsername())
-                            .join(', ')}`;
+                        targets.forEach(async (target) => target.kick(`You have been kicked from the server!`));
+                        return `Kicked ${targets.map((target) => target.getFormattedUsername()).join(', ')}`;
                     })
             )
         );

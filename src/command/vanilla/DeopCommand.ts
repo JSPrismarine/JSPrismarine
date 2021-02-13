@@ -20,23 +20,13 @@ export default class DeopCommand extends Command {
             literal('deop').then(
                 argument('player', string()).executes(async (context) => {
                     const source = context.getSource() as Player;
-                    const target = source
-                        .getServer()
-                        .getPlayerManager()
-                        .getPlayerByName(context.getArgument('player'));
+                    const target = source.getServer().getPlayerManager().getPlayerByName(context.getArgument('player'));
 
-                    await source
-                        .getServer()
-                        .getPermissionManager()
-                        .setOp(context.getArgument('player'), false);
+                    await source.getServer().getPermissionManager().setOp(context.getArgument('player'), false);
 
                     if (target) {
                         const event = new ChatEvent(
-                            new Chat(
-                                source,
-                                '§eYou are no longer op!',
-                                `*.player.${target.getName()}`
-                            )
+                            new Chat(source, '§eYou are no longer op!', `*.player.${target.getName()}`)
                         );
                         await target.getServer().getEventManager().emit('chat', event);
                     }

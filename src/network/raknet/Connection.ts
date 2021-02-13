@@ -77,12 +77,7 @@ export default class Connection {
     private lastUpdate: number = Date.now();
     private active = false;
 
-    public constructor(
-        listener: RakNetListener,
-        mtuSize: number,
-        address: InetAddress,
-        offlineMode = false
-    ) {
+    public constructor(listener: RakNetListener, mtuSize: number, address: InetAddress, offlineMode = false) {
         this.listener = listener;
         this.mtuSize = mtuSize;
         this.address = address;
@@ -494,19 +489,12 @@ export default class Connection {
     public async sendPacket(packet: Packet): Promise<void> {
         packet.encode();
 
-        await this.listener.sendBuffer(
-            packet.getBuffer(),
-            this.address.getAddress(),
-            this.address.getPort()
-        );
+        await this.listener.sendBuffer(packet.getBuffer(), this.address.getAddress(), this.address.getPort());
     }
 
     public async close() {
         const stream = new BinaryStream(Buffer.from('\u0000\u0000\u0008\u0015', 'binary'));
-        await this.addEncapsulatedToQueue(
-            EncapsulatedPacket.fromBinary(stream),
-            Priority.IMMEDIATE
-        ); // Client discconect packet 0x15
+        await this.addEncapsulatedToQueue(EncapsulatedPacket.fromBinary(stream), Priority.IMMEDIATE); // Client discconect packet 0x15
     }
 
     public getState(): number {

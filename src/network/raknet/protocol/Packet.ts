@@ -47,9 +47,9 @@ export default class Packet extends BinaryStream {
         if (ver === 4) {
             // Read 4 bytes
             const ipBytes = this.getBuffer().slice(this.getOffset(), this.addOffset(4, true));
-            const addr = `${(-ipBytes[0] - 1) & 0xff}.${(-ipBytes[1] - 1) & 0xff}.${
-                (-ipBytes[2] - 1) & 0xff
-            }.${(-ipBytes[3] - 1) & 0xff}`;
+            const addr = `${(-ipBytes[0] - 1) & 0xff}.${(-ipBytes[1] - 1) & 0xff}.${(-ipBytes[2] - 1) & 0xff}.${
+                (-ipBytes[3] - 1) & 0xff
+            }`;
             const port = this.readShort();
             return new InetAddress(addr, port, ver);
         }

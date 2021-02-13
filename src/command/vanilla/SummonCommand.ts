@@ -27,10 +27,7 @@ export default class SummonCommand extends Command {
                             .getServer()
                             .getPlayerManager()
                             .getOnlinePlayers()
-                            .filter(
-                                (p) =>
-                                    p.getWorld().getUniqueId() === source.getWorld().getUniqueId()
-                            )
+                            .filter((p) => p.getWorld().getUniqueId() === source.getWorld().getUniqueId())
                             .map(async (player) => entity.sendSpawn(player))
                     );
                     const res = `Summoned ${(entity.constructor as any).MOB_ID}`;

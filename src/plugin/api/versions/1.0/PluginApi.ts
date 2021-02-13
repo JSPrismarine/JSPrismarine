@@ -65,9 +65,7 @@ export default class PluginApi extends PluginApiVersion {
     /**
      * Returns an instance of the event manager
      */
-    public getEventManager<
-        CustomEventTypes extends [string, any] = [string, any]
-    >(): EventManager<CustomEventTypes> {
+    public getEventManager<CustomEventTypes extends [string, any] = [string, any]>(): EventManager<CustomEventTypes> {
         return this.eventManager ?? (this.eventManager = new EventManager(this.server));
     }
 }

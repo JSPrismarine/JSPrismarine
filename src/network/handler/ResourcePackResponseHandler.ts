@@ -13,13 +13,8 @@ import type Server from '../../Server';
 import StartGamePacket from '../packet/StartGamePacket';
 import Vector3 from '../../math/Vector3';
 
-export default class ResourcePackResponseHandler
-    implements PacketHandler<ResourcePackResponsePacket> {
-    public async handle(
-        packet: ResourcePackResponsePacket,
-        server: Server,
-        player: Player
-    ): Promise<void> {
+export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
+    public async handle(packet: ResourcePackResponsePacket, server: Server, player: Player): Promise<void> {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
             const pk = new ResourcePackStackPacket();
             pk.experimentsAlreadyEnabled = false;

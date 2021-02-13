@@ -1,11 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
-import {
-    CommandDispatcher,
-    argument,
-    greedyString,
-    literal,
-    string
-} from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, greedyString, literal, string } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
 import Player from '../../player/Player';
@@ -33,15 +27,10 @@ export default class BanCommand extends Command {
                                     .getServer()
                                     .getPlayerManager()
                                     .getPlayerByName(context.getArgument('player'));
-                                await target.kick(
-                                    `You have been banned from the server due to: \n\n${reason}!`
-                                );
+                                await target.kick(`You have been banned from the server due to: \n\n${reason}!`);
                             } catch {}
 
-                            await source
-                                .getServer()
-                                .getBanManager()
-                                .setBanned(context.getArgument('player'), reason);
+                            await source.getServer().getBanManager().setBanned(context.getArgument('player'), reason);
 
                             return `Banned ${context.getArgument('player')} due to: ${reason}!`;
                         })
@@ -56,10 +45,7 @@ export default class BanCommand extends Command {
                             await target.kick(`You have been banned!`);
                         } catch {}
 
-                        await source
-                            .getServer()
-                            .getBanManager()
-                            .setBanned(context.getArgument('player'));
+                        await source.getServer().getBanManager().setBanned(context.getArgument('player'));
 
                         return `Banned ${context.getArgument('player')}`;
                     })

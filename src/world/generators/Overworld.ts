@@ -28,12 +28,7 @@ export default class Overworld extends BaseGenerator {
             for (let x = 0; x < CHUNK_WIDTH; x++) {
                 for (let z = 0; z < CHUNK_LENGTH; z++) {
                     const height = Math.floor(
-                        60 +
-                            20 *
-                                noise.noise2D(
-                                    (cx * CHUNK_WIDTH + x) * 0.04,
-                                    (cz * CHUNK_WIDTH + z) * 0.04
-                                )
+                        60 + 20 * noise.noise2D((cx * CHUNK_WIDTH + x) * 0.04, (cz * CHUNK_WIDTH + z) * 0.04)
                     );
 
                     for (let y = 0; y < height; y++) {

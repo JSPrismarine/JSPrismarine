@@ -58,9 +58,7 @@ export default class DataPacket extends PacketBinaryStream {
 
     public encodeHeader() {
         this.writeUnsignedVarInt(
-            this.getId() |
-                (this.senderSubId << SENDER_SHIFT) |
-                (this.receiverSubId << RECEIVER_SHIFT)
+            this.getId() | (this.senderSubId << SENDER_SHIFT) | (this.receiverSubId << RECEIVER_SHIFT)
         );
     }
 
