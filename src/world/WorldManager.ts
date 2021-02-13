@@ -74,6 +74,14 @@ export default class WorldManager {
         return this.providers;
     }
 
+    public async save(): Promise<void> {
+        this.server.getLogger().info('Saving worlds', 'WorldManager/save');
+        for (const world of this.getWorlds()) {
+            await world.save();
+            await world.close();
+        }
+    }
+
     /**
      * Load a world
      *
