@@ -337,6 +337,8 @@ export default class Server {
         if (this.stopping) return;
         this.stopping = true;
 
+        this.getLogger().info('Stopping server', 'Server/kill');
+
         try {
             // Kick all online players
             for (const player of this.getPlayerManager().getOnlinePlayers()) {
@@ -344,11 +346,7 @@ export default class Server {
             }
 
             // Save all worlds
-            if (!options?.withoutSaving)
-                for (const world of this.getWorldManager().getWorlds()) {
-                    await world.save();
-                    await world.close();
-                }
+            if (!options?.withoutSaving) await this.worldManager.save();
 
             await this.worldManager.onDisable();
             await this.onDisable();

@@ -367,7 +367,10 @@ export default class World {
      */
     public async saveChunks(): Promise<void> {
         const time = Date.now();
-        this.server.getLogger().debug('Saving chunks...', 'World/saveChunks');
+        this.server
+            .getLogger()
+            .info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`, 'World/saveChunks');
+
         await Promise.all(Array.from(this.chunks.values()).map(async (chunk) => this.provider.writeChunk(chunk)));
         this.server.getLogger().debug(`(took ${Date.now() - time} ms)!`, 'World/saveChunks');
     }
