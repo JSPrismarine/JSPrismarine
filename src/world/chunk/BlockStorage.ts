@@ -115,9 +115,7 @@ export default class BlockStorage {
         for (let w = 0; w < wordsPerChunk; w++) {
             const word = words[w];
             for (let block = 0; block < blocksPerWord; block++) {
-                const state =
-                    (word >> ((positon % blocksPerWord) * bitsPerBlock)) &
-                    ((1 << bitsPerBlock) - 1);
+                const state = (word >> ((positon % blocksPerWord) * bitsPerBlock)) & ((1 << bitsPerBlock) - 1);
 
                 const x = (positon >> 8) & 0xf;
                 const y = positon & 0xf;

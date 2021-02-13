@@ -5,11 +5,7 @@ import type Player from '../../player/Player';
 import type Server from '../../Server';
 
 export default class AdventureSettingsHandler implements PacketHandler<AdventureSettingsPacket> {
-    public async handle(
-        packet: AdventureSettingsPacket,
-        server: Server,
-        player: Player
-    ): Promise<void> {
+    public async handle(packet: AdventureSettingsPacket, server: Server, player: Player): Promise<void> {
         if (player.runtimeId !== packet.entityId && !player.isOp()) {
             return;
         }

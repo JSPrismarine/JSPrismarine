@@ -22,9 +22,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 break;
             }
             default:
-                server
-                    .getLogger()
-                    .debug(`Unknown interact action id ${packet.action}`, 'InteractHandler/handle');
+                server.getLogger().debug(`Unknown interact action id ${packet.action}`, 'InteractHandler/handle');
         }
     }
 }

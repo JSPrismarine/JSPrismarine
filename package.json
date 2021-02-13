@@ -188,8 +188,5 @@
         "write": "2.0.0",
         "xo": "0.37.1",
         "yarnhook": "0.5.1"
-    },
-    "optionalDependencies": {
-        "pkg": "github:kkoomen/pkg"
     }
 }

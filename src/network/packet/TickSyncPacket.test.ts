@@ -5,9 +5,7 @@ import path from 'path';
 describe('network', () => {
     describe('packet', () => {
         describe('TickSyncPacket', () => {
-            const dump = Buffer.from(
-                fs.readFileSync(path.join(process.cwd(), '/.test/dumps/TickSyncPacket.dump'))
-            );
+            const dump = Buffer.from(fs.readFileSync(path.join(process.cwd(), '/.test/dumps/TickSyncPacket.dump')));
 
             it('decode', () => {
                 const pk = new TickSyncPacket();

@@ -13,13 +13,8 @@ import type Server from '../../Server';
 import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import Vector3 from '../../math/Vector3';
 
-export default class InventoryTransactionHandler
-    implements PacketHandler<InventoryTransactionPacket> {
-    public async handle(
-        packet: InventoryTransactionPacket,
-        server: Server,
-        player: Player
-    ): Promise<void> {
+export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
+    public async handle(packet: InventoryTransactionPacket, server: Server, player: Player): Promise<void> {
         if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world
 
         switch (packet.type) {
@@ -35,8 +30,7 @@ export default class InventoryTransactionHandler
                             // FIXME: Hack for creative inventory
                             if (action.windowId === 124) {
                                 // from creative inventory
-                                if (player.gamemode !== 1)
-                                    throw new Error(`Player isn't in creative mode`);
+                                if (player.gamemode !== 1) throw new Error(`Player isn't in creative mode`);
 
                                 const id = action.oldItem.id;
                                 const meta = action.oldItem.meta;
@@ -62,10 +56,7 @@ export default class InventoryTransactionHandler
                             if (!movedItem) {
                                 server
                                     .getLogger()
-                                    .debug(
-                                        `movedItem is undefined`,
-                                        'InventoryTransactionHandler/handle/Normal'
-                                    );
+                                    .debug(`movedItem is undefined`, 'InventoryTransactionHandler/handle/Normal');
                                 return;
                             }
 
@@ -91,10 +82,7 @@ export default class InventoryTransactionHandler
                             .useItemOn(
                                 server
                                     .getBlockManager()
-                                    .getBlockByIdAndMeta(
-                                        packet.itemInHand.id,
-                                        packet.itemInHand.meta
-                                    ),
+                                    .getBlockByIdAndMeta(packet.itemInHand.id, packet.itemInHand.meta),
                                 packet.blockPosition,
                                 packet.face,
                                 packet.clickPosition,
@@ -114,11 +102,7 @@ export default class InventoryTransactionHandler
                             packet.blockPosition.getZ()
                         );
 
-                        const blockId = chunk.getBlock(
-                            chunkPos.getX(),
-                            chunkPos.getY(),
-                            chunkPos.getZ()
-                        );
+                        const blockId = chunk.getBlock(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
 
                         const pk = new UpdateBlockPacket();
                         pk.x = packet.blockPosition.getX();
@@ -168,18 +152,13 @@ export default class InventoryTransactionHandler
                     default:
                         server
                             .getLogger()
-                            .debug(
-                                `Unknown action type: ${packet.actionType}`,
-                                'InventoryTransactionHandler/handle'
-                            );
+                            .debug(`Unknown action type: ${packet.actionType}`, 'InventoryTransactionHandler/handle');
                 }
 
                 break;
             }
             default: {
-                server
-                    .getLogger()
-                    .debug(`Unknown type: ${packet.type}`, 'InventoryTransactionHandler/handle');
+                server.getLogger().debug(`Unknown type: ${packet.type}`, 'InventoryTransactionHandler/handle');
                 throw new Error('Invalid InventoryTransactionType');
             }
         }

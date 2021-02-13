@@ -214,13 +214,7 @@ export default class Client extends EventEmitter implements RakNetListener {
      * @param port
      */
     public async sendBuffer(buffer: Buffer): Promise<void> {
-        this.socket.send(
-            buffer,
-            0,
-            buffer.byteLength,
-            this.targetAddress.getPort(),
-            this.targetAddress.getAddress()
-        );
+        this.socket.send(buffer, 0, buffer.byteLength, this.targetAddress.getPort(), this.targetAddress.getAddress());
     }
 
     public getSocket(): Socket {

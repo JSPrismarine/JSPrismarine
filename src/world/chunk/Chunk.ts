@@ -101,13 +101,7 @@ export default class Chunk {
      * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
     public setBlock(bx: number, by: number, bz: number, block: Block, layer = 0): void {
-        this.getSubChunk(by).setBlock(
-            bx,
-            by,
-            bz,
-            BlockMappings.getRuntimeId(block.getId(), block.getMeta()),
-            layer
-        );
+        this.getSubChunk(by).setBlock(bx, by, bz, BlockMappings.getRuntimeId(block.getId(), block.getMeta()), layer);
     }
 
     public networkSerialize(forceAll = false): Buffer {

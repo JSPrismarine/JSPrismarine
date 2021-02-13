@@ -64,24 +64,12 @@ export default class InventoryTransactionPacket extends DataPacket {
                 break;
             case InventoryTransactionType.UseItem:
                 this.actionType = this.readUnsignedVarInt();
-                this.blockPosition = new Vector3(
-                    this.readVarInt(),
-                    this.readUnsignedVarInt(),
-                    this.readVarInt()
-                );
+                this.blockPosition = new Vector3(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt());
                 this.face = this.readVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = this.readItemStack();
-                this.playerPosition = new Vector3(
-                    this.readLFloat(),
-                    this.readLFloat(),
-                    this.readLFloat()
-                );
-                this.clickPosition = new Vector3(
-                    this.readLFloat(),
-                    this.readLFloat(),
-                    this.readLFloat()
-                );
+                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
+                this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 this.blockRuntimeId = this.readUnsignedVarInt();
                 break;
             case InventoryTransactionType.UseItemOnEntity:
@@ -89,26 +77,14 @@ export default class InventoryTransactionPacket extends DataPacket {
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = this.readItemStack();
-                this.playerPosition = new Vector3(
-                    this.readLFloat(),
-                    this.readLFloat(),
-                    this.readLFloat()
-                );
-                this.clickPosition = new Vector3(
-                    this.readLFloat(),
-                    this.readLFloat(),
-                    this.readLFloat()
-                );
+                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
+                this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 break;
             case InventoryTransactionType.ReleaseItem:
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = this.readItemStack();
-                this.playerPosition = new Vector3(
-                    this.readLFloat(),
-                    this.readLFloat(),
-                    this.readLFloat()
-                );
+                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 break;
             default:
                 break;

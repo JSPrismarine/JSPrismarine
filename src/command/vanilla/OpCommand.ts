@@ -20,15 +20,9 @@ export default class OpCommand extends Command {
             literal('op').then(
                 argument('player', string()).executes(async (context) => {
                     const source = context.getSource() as Player;
-                    const target = source
-                        .getServer()
-                        .getPlayerManager()
-                        .getPlayerByName(context.getArgument('player'));
+                    const target = source.getServer().getPlayerManager().getPlayerByName(context.getArgument('player'));
 
-                    await source
-                        .getServer()
-                        .getPermissionManager()
-                        .setOp(context.getArgument('player'), true);
+                    await source.getServer().getPermissionManager().setOp(context.getArgument('player'), true);
 
                     if (target) {
                         const event = new ChatEvent(

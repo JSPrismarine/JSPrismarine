@@ -15,11 +15,7 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
             { x: player.getX(), z: player.getZ() },
             { x: packet.positionX, z: packet.positionZ }
         )(0.5);
-        const resultantVector = new Vector3(
-            interpolatedVector.x,
-            packet.positionY,
-            interpolatedVector.z
-        );
+        const resultantVector = new Vector3(interpolatedVector.x, packet.positionY, interpolatedVector.z);
         const immutableFrom = Object.freeze(resultantVector);
 
         // Emit move event

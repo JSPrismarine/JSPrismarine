@@ -57,18 +57,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
             }
 
             try {
-                await this.sendBuffer(
-                    await this.handleUnconnected(buffer, rinfo),
-                    rinfo.address,
-                    rinfo.port
-                );
+                await this.sendBuffer(await this.handleUnconnected(buffer, rinfo), rinfo.address, rinfo.port);
             } catch (error: any) {
-                this.server
-                    .getLogger()
-                    .silly(
-                        `Failed to handle an offline packet: ${error}`,
-                        'raknet/Listener/listen'
-                    );
+                this.server.getLogger().silly(`Failed to handle an offline packet: ${error}`, 'raknet/Listener/listen');
             }
         });
 
@@ -84,9 +75,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
                 const timer = setInterval(async () => {
                     if (!this.shutdown) {
                         await Promise.all(
-                            Array.from(this.connections.values()).map(async (conn) =>
-                                conn.update(Date.now())
-                            )
+                            Array.from(this.connections.values()).map(async (conn) => conn.update(Date.now()))
                         );
                     } else {
                         clearInterval(timer);
@@ -191,10 +180,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
         });
     }
 
-    public async handleOpenConnectionRequest2(
-        buffer: Buffer,
-        address: InetAddress
-    ): Promise<Buffer> {
+    public async handleOpenConnectionRequest2(buffer: Buffer, address: InetAddress): Promise<Buffer> {
         return new Promise((resolve) => {
             const decodedPacket = new OpenConnectionRequest2(buffer);
             decodedPacket.decode();
@@ -211,12 +197,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
             this.connections.set(
                 `${address.getAddress()}:${address.getPort()}`,
-                new Connection(
-                    this,
-                    decodedPacket.mtuSize,
-                    address,
-                    !this.server.getConfig().getOnlineMode()
-                )
+                new Connection(this, decodedPacket.mtuSize, address, !this.server.getConfig().getOnlineMode())
             );
 
             resolve(packet.getBuffer());
