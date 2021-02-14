@@ -15,6 +15,7 @@ ops.json
 banned-players.json
 permissions.json
 *.log
+/logs/
 
 # Text editors/IDE things
 .idea

@@ -1,13 +1,32 @@
 import { Logger, createLogger, format, transports } from 'winston';
 
+import fs from 'fs';
 import mcColors from 'mccolorstoconsole';
+import path from 'path';
 
 const { combine, timestamp, printf } = format;
 
 export default class LoggerBuilder {
+    public static logFile: string;
     private readonly logger: Logger;
 
     public constructor() {
+        const date = new Date();
+        if (!LoggerBuilder.logFile)
+            // mmddyyyy-hh-mm-ss. yes American-style, sue me.
+            LoggerBuilder.logFile = `jsprismarine.${(date.getMonth() + 1)
+                .toString()
+                .padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}${date
+                .getFullYear()
+                .toString()
+                .padStart(2, '0')}-${date
+                .getHours()
+                .toString()
+                .padStart(2, '0')}${date
+                .getMinutes()
+                .toString()
+                .padStart(2, '0')}${date.getSeconds().toString().padStart(2, '0')}.log`;
+
         this.logger = createLogger({
             transports: [
                 new transports.Console({
@@ -34,7 +53,7 @@ export default class LoggerBuilder {
                 }),
                 new transports.File({
                     level: 'silly',
-                    filename: process.cwd() + '/jsprismarine.log',
+                    filename: path.join(process.cwd(), 'logs', `${LoggerBuilder.logFile}`),
                     format: combine(
                         timestamp({ format: 'HH:mm:ss' }),
                         format.simple(),
@@ -50,6 +69,14 @@ export default class LoggerBuilder {
                 })
             ]
         });
+    }
+
+    public getLog(): string | undefined {
+        try {
+            return fs.readFileSync(path.join(process.cwd(), 'logs', LoggerBuilder.logFile), 'utf-8');
+        } catch {
+            return undefined;
+        }
     }
 
     /**

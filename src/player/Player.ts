@@ -192,14 +192,6 @@ export default class Player extends Human implements CommandExecuter {
         return this.username.name;
     }
 
-    /**
-     * @deprecated Use `getName()` instead
-     */
-    @withDeprecated(new Date(1611177755753), 'getName')
-    public getUsername(): string {
-        return this.username.name;
-    }
-
     public getFormattedUsername(): string {
         return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
     }
