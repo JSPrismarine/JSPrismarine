@@ -8,7 +8,7 @@
         "prismarine": "dist/src/Prismarine.js"
     },
     "engines": {
-        "node": ">=14.x",
+        "node": "^14.0.0",
         "npm": "^7.0.0"
     },
     "scripts": {
