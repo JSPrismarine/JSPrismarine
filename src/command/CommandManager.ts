@@ -32,30 +32,32 @@ export default class CommandManager {
         ];
 
         // Register jsprismarine commands
-        commands.forEach(async (id: string) => {
-            if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) return; // Exclude test files
+        await Promise.all(
+            commands.map(async (id: string) => {
+                if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) return; // Exclude test files
 
-            if (!this.server.getConfig().getEnableEval() && id.includes('EvalCommand')) return;
+                if (!this.server.getConfig().getEnableEval() && id.includes('EvalCommand')) return;
 
-            const Command = require(`./${id}`);
-            const command: Command = new (Command.default || Command)();
+                const Command = require(`./${id}`);
+                const command: Command = new (Command.default || Command)();
 
-            const event = new CommandRegisterEvent(command);
-            await this.server.getEventManager().emit('commandRegister', event);
-            if (event.cancelled) return;
+                const event = new CommandRegisterEvent(command);
+                await this.server.getEventManager().emit('commandRegister', event);
+                if (event.cancelled) return;
 
-            try {
-                await this.registerClassCommand(command);
-            } catch (err) {
-                this.server.getLogger().warn(`Failed to register command ${command.id}: ${err}`);
-                this.server.getLogger().silly(err.stack);
-            }
-        });
+                try {
+                    await this.registerClassCommand(command);
+                } catch (err) {
+                    this.server.getLogger().warn(`Failed to register command ${command.id}: ${err}`);
+                    this.server.getLogger().silly(err.stack);
+                }
+            })
+        );
 
         this.server
             .getLogger()
             .debug(
-                `Registered §b${commands.length}§r commands(s) (took ${Date.now() - time} ms)!`,
+                `Registered §b${this.commands.size}§r commands(s) (took ${Date.now() - time} ms)!`,
                 'CommandManager/onEnable'
             );
     }
