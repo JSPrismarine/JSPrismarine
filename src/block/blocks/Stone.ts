@@ -19,6 +19,7 @@ export default class Stone extends Solid {
     public constructor(name = 'minecraft:stone', type: StoneType = StoneType.Stone) {
         super({
             name,
+            parentName: 'minecraft:stone',
             id: BlockIdsType.Stone,
             hardness: 1.5
         });

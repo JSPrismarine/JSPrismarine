@@ -25,6 +25,7 @@ export default class WhiteConcrete extends Solid {
     public constructor(name = 'minecraft:white_concrete', type: ConcreteColorType = ConcreteColorType.White) {
         super({
             name,
+            parentName: 'minecraft:concrete',
             id: BlockIdsType.Concrete,
             hardness: 1.8
         });

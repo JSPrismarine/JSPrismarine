@@ -1,16 +1,16 @@
 import Armor from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
-export default class DiamondLeggins extends Armor {
+export default class NetheriteLeggings extends Armor {
     public constructor() {
         super({
-            name: 'minecraft:diamond_Leggins',
-            id: ItemIdsType.DiamondLeggins
+            name: 'minecraft:netherite_leggings',
+            id: ItemIdsType.NetheriteLeggings
         });
     }
 
     public getMaxDurability() {
-        return 495;
+        return 555;
     }
 
     public getArmorDefensePoints() {
@@ -18,6 +18,6 @@ export default class DiamondLeggins extends Armor {
     }
 
     public getArmorToughness() {
-        return 2;
+        return 3;
     }
 }

@@ -24,6 +24,7 @@ export default class WhiteCarpet extends Solid {
     public constructor(name = 'minecraft:white_carpet', type: CarpetColorType = CarpetColorType.White) {
         super({
             name,
+            parentName: 'minecraft:carpet',
             id: BlockIdsType.Carpet,
             hardness: 0.1
         });

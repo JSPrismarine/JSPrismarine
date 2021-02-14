@@ -1,3 +1,4 @@
+import { block_id_map as BlockIdMap } from '@jsprismarine/bedrock-data';
 import { BlockToolType } from './BlockToolType';
 import Item from '../item/Item';
 import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
@@ -9,15 +10,30 @@ export default class Block {
     public name: string;
     public hardness: number;
     public meta = 0;
+    private networkId: number;
 
     // TODO
     public nbt = null;
     public count = 1;
 
-    public constructor({ id, name, hardness }: { id: number; name: string; hardness?: number }) {
+    public constructor({
+        id,
+        name,
+        parentName,
+        hardness
+    }: {
+        id: number;
+        name: string;
+        parentName?: string;
+        hardness?: number;
+    }) {
         this.id = id;
         this.name = name;
         this.hardness = hardness ?? 0;
+
+        this.networkId = BlockIdMap[parentName ?? name];
+        // if (!this.networkId)
+        //    console.log(name, id, this.networkId);
     }
 
     /**
@@ -39,6 +55,13 @@ export default class Block {
      */
     public getId() {
         return this.id;
+    }
+
+    /**
+     * Get the Block's network numeric id
+     */
+    public getNetworkId() {
+        return this.networkId ?? this.getId();
     }
 
     /**

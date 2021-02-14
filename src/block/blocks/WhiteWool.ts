@@ -25,6 +25,7 @@ export default class WhiteWool extends Solid {
     public constructor(name = 'minecraft:white_wool', type: WoolColorType = WoolColorType.White) {
         super({
             name,
+            parentName: 'minecraft:wool',
             id: BlockIdsType.Wool,
             hardness: 0.8
         });

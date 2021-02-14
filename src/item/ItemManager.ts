@@ -66,8 +66,9 @@ export default class ItemManager {
                     const item = require(`./items/${id}`).default;
                     try {
                         await this.registerClassItem(new item());
-                    } catch {
-                        this.server.getLogger().error(`${id} failed to register!`, 'ItemManager/importItems');
+                    } catch (error) {
+                        this.server.getLogger().error(`${id} failed to register: ${error}`, 'ItemManager/importItems');
+                        this.server.getLogger().silly(error.stack, 'ItemManager/importItems');
                     }
                 })
             );
