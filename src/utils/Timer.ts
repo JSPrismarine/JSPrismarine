@@ -9,6 +9,6 @@ export default class Timer {
     public stop() {
         this.endTime = process.hrtime(this.startTime);
 
-        return (this.endTime[1] / 1_000_000).toFixed(3);
+        return ((this.endTime[0] * 1e9 + this.endTime[1]) / 1_000_000).toFixed(3);
     }
 }
