@@ -19,6 +19,7 @@ import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import Vector3 from '../math/Vector3';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
 import fs from 'fs';
+import minifyJson from 'strip-json-comments';
 import path from 'path';
 
 interface WorldData {
@@ -426,7 +427,7 @@ export default class World {
                 path.join(process.cwd(), 'worlds', this.getName(), 'players', `${player.getXUID()}.json`)
             );
 
-            return JSON.parse(playerData.toString('utf-8')) as WorldPlayerData;
+            return JSON.parse(minifyJson(playerData.toString('utf-8'))) as WorldPlayerData;
         } catch {
             this.server
                 .getLogger()

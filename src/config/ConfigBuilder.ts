@@ -1,5 +1,6 @@
 import YAML from 'yaml';
 import fs from 'fs';
+import minifyJson from 'strip-json-comments';
 import path from 'path';
 
 const _ = {
@@ -109,7 +110,7 @@ export default class ConfigBuilder {
         const rawFileData = fs.readFileSync(this.path, 'utf8');
         switch (this.type) {
             case 'json':
-                resultData = JSON.parse(rawFileData);
+                resultData = JSON.parse(minifyJson(rawFileData));
                 break;
             case 'yaml':
                 resultData = YAML.parse(rawFileData, { indent: 2 });

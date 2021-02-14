@@ -1,6 +1,7 @@
 import type Player from '../player/Player';
 import type Server from '../Server';
 import fs from 'fs';
+import minifyJson from 'strip-json-comments';
 import path from 'path';
 import util from 'util';
 
@@ -34,7 +35,7 @@ export default class BanManager {
 
             const readFile = util.promisify(fs.readFile);
             const banned: any[] = JSON.parse(
-                (await readFile(path.join(process.cwd(), '/banned-players.json'))).toString()
+                minifyJson((await readFile(path.join(process.cwd(), '/banned-players.json'))).toString())
             );
 
             for (const player of banned) this.banned.set(player.name, player);

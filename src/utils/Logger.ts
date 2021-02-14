@@ -30,9 +30,9 @@ export default class LoggerBuilder {
         this.logger = createLogger({
             transports: [
                 new transports.Console({
-                    level: /* Process.env.NODE_ENV !== 'development' && */ (global as any).log_level || 'info', // || 'silly',
+                    level: (global as any).log_level || 'info',
                     format: combine(
-                        timestamp({ format: 'HH:mm:ss.SS' }),
+                        timestamp({ format: 'HH:mm:ss' }),
                         format((info) => {
                             info.level = info.level.toUpperCase();
                             return info;
@@ -55,7 +55,7 @@ export default class LoggerBuilder {
                     level: 'silly',
                     filename: path.join(process.cwd(), 'logs', `${LoggerBuilder.logFile}`),
                     format: combine(
-                        timestamp({ format: 'HH:mm:ss' }),
+                        timestamp({ format: 'HH:mm:ss.SS' }),
                         format.simple(),
                         printf(({ level, message, timestamp, namespace }: any) => {
                             return `[${timestamp}] [${level}]${mcColors.minecraftToConsole(
