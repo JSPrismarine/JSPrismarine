@@ -16,7 +16,7 @@ export default class ItemManager {
      * OnEnable hook
      */
     public async onEnable() {
-        this.importItems();
+        await this.importItems();
     }
 
     /**
@@ -41,7 +41,11 @@ export default class ItemManager {
         return Array.from(this.items.values());
     }
 
-    public registerClassItem = (item: Item) => {
+    public registerClassItem = async (item: Item) => {
+        const event = new ItemRegisterEvent(item);
+        await this.server.getEventManager().emit('itemRegister', event);
+        if (event.cancelled) return;
+
         this.server.getLogger().silly(`Item with id §b${item.getName()}§r registered`, 'ItemManager/registerClassItem');
         this.items.set(item.getName(), item);
     };
@@ -49,29 +53,26 @@ export default class ItemManager {
     /**
      * Loops through ./src/item/items and register them
      */
-    private importItems() {
+    private async importItems() {
         try {
             const time = Date.now();
             const items = fs.readdirSync(path.join(__dirname, 'items'));
-            items.forEach(async (id: string) => {
-                if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) return; // Exclude test files
+            await Promise.all(
+                items.map(async (id: string) => {
+                    if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) return; // Exclude test files
 
-                const item = require(`./items/${id}`).default;
-
-                const event = new ItemRegisterEvent(item);
-                await this.server.getEventManager().emit('itemRegister', event);
-                if (event.cancelled) return;
-
-                try {
-                    this.registerClassItem(new item());
-                } catch {
-                    this.server.getLogger().error(`${id} failed to register!`, 'ItemManager/importItems');
-                }
-            });
+                    const item = require(`./items/${id}`).default;
+                    try {
+                        await this.registerClassItem(new item());
+                    } catch {
+                        this.server.getLogger().error(`${id} failed to register!`, 'ItemManager/importItems');
+                    }
+                })
+            );
             this.server
                 .getLogger()
                 .debug(
-                    `Registered §b${items.length}§r item(s) (took ${Date.now() - time} ms)!`,
+                    `Registered §b${this.items.size}§r item(s) (took ${Date.now() - time} ms)!`,
                     'ItemManager/importItems'
                 );
         } catch (error) {
