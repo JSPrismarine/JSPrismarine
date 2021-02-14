@@ -103,8 +103,11 @@ export default class BlockManager {
                     const block = require(`./blocks/${id}`).default;
                     try {
                         await this.registerClassBlock(new block());
-                    } catch {
-                        this.server.getLogger().error(`${id} failed to register!`, 'BlockManager/importBlocks');
+                    } catch (error) {
+                        this.server
+                            .getLogger()
+                            .error(`${id} failed to register: ${error}`, 'BlockManager/importBlocks');
+                        this.server.getLogger().silly(error.stack, 'BlockManager/importBlocks');
                     }
                 })
             );

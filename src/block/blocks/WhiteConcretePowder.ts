@@ -28,6 +28,7 @@ export default class WhiteConcretePowder extends Solid {
     ) {
         super({
             name,
+            parentName: 'minecraft:concretePowder',
             id: BlockIdsType.ConcretePowder,
             hardness: 0.5
         });

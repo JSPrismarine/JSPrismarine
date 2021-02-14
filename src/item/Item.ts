@@ -1,5 +1,6 @@
 import { BlockToolType } from '../block/BlockToolType';
 import { ItemEnchantmentType } from './ItemEnchantmentType';
+import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 
 export interface ItemProps {
     id: number;
@@ -12,6 +13,7 @@ export interface ItemProps {
 
 export default class Item {
     private id: number;
+    private networkId: number;
     private name: string;
     public meta = 0;
     public durability: number = this.getMaxDurability();
@@ -23,6 +25,11 @@ export default class Item {
     public constructor({ id, name }: ItemProps) {
         this.id = id;
         this.name = name;
+
+        this.networkId = ItemIdMap[name];
+
+        // if (!this.networkId)
+        //    console.log(name, id, this.networkId);
     }
 
     public getName(): string {
@@ -31,6 +38,13 @@ export default class Item {
 
     public getId() {
         return this.id;
+    }
+
+    /**
+     * Get the Block's network numeric id
+     */
+    public getNetworkId() {
+        return this.networkId ?? this.getId();
     }
 
     public isTool() {
