@@ -77,13 +77,6 @@ export default class Console implements CommandExecuter {
         return 'CONSOLE';
     }
 
-    /**
-     * @deprecated Use `getName()` instead
-     */
-    public getUsername(): string {
-        return 'CONSOLE';
-    }
-
     public getFormattedUsername(): string {
         return '[CONSOLE]';
     }

@@ -2,9 +2,7 @@ import fetch, { Headers } from 'node-fetch';
 
 import PluginFile from '../plugin/PluginFile';
 import Server from '../Server';
-import fs from 'fs';
 import { machineIdSync } from 'node-machine-id';
-import path from 'path';
 
 export default class TelemetryManager {
     private readonly id = this.generateAnonomizedId();
@@ -111,11 +109,6 @@ export default class TelemetryManager {
                 'TelemetryManager/sendCrashLog'
             );
 
-        let log: string | undefined;
-        try {
-            log = fs.readFileSync(path.join(process.cwd(), 'jsprismarine.log'), 'utf-8');
-        } catch {}
-
         const body = {
             id: this.generateAnonomizedId(),
             version: `${this.server.getConfig().getVersion()}:${this.server.getQueryManager().git_rev}`,
@@ -123,7 +116,7 @@ export default class TelemetryManager {
                 name: crashlog.name,
                 message: crashlog.message,
                 stack: crashlog.stack,
-                log
+                log: this.server.getLogger().getLog()
             }
         };
 
