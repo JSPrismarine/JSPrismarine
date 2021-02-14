@@ -2,6 +2,7 @@ import CommandExecuter from '../command/CommandExecuter';
 import Player from '../player/Player';
 import type Server from '../Server';
 import fs from 'fs';
+import minifyJson from 'strip-json-comments';
 import path from 'path';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import util from 'util';
@@ -88,7 +89,7 @@ export default class PermissionManager {
                     name: string;
                     permissions: string[];
                 }>;
-            } = JSON.parse((await readFile(path.join(process.cwd(), '/permissions.json'))).toString());
+            } = JSON.parse(minifyJson((await readFile(path.join(process.cwd(), '/permissions.json'))).toString()));
 
             this.defaultPermissions = permissionsObject.defaultPermissions || [];
             this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
@@ -109,7 +110,9 @@ export default class PermissionManager {
             }
 
             const readFile = util.promisify(fs.readFile);
-            const ops: OpType[] = JSON.parse((await readFile(path.join(process.cwd(), '/ops.json'))).toString());
+            const ops: OpType[] = JSON.parse(
+                minifyJson((await readFile(path.join(process.cwd(), '/ops.json'))).toString())
+            );
 
             ops.map((op) => this.ops.add(op.name));
         } catch (error) {
