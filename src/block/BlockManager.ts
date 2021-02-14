@@ -2,6 +2,7 @@ import Block from './Block';
 import { BlockIdsType } from './BlockIdsType';
 import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
 import Server from '../Server';
+import Timer from '../utils/Timer';
 import fs from 'fs';
 import path from 'path';
 
@@ -91,7 +92,7 @@ export default class BlockManager {
      */
     private async importBlocks() {
         try {
-            const time = Date.now();
+            const timer = new Timer();
             const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
             await Promise.all(
                 blocks.map(async (id: string) => {
@@ -110,7 +111,7 @@ export default class BlockManager {
             this.server
                 .getLogger()
                 .debug(
-                    `Registered §b${this.blocks.size}§r block(s) (took ${Date.now() - time} ms)!`,
+                    `Registered §b${this.blocks.size}§r block(s) (took ${timer.stop()} ms)!`,
                     'BlockManager/importBlocks'
                 );
         } catch (error) {
