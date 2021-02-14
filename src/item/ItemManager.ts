@@ -1,4 +1,5 @@
 import Item from './Item';
+import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
 import Server from '../Server';
 import fs from 'fs';
 import path from 'path';
@@ -57,10 +58,15 @@ export default class ItemManager {
         try {
             const time = Date.now();
             const items = fs.readdirSync(path.join(__dirname, 'items'));
-            items.forEach((id: string) => {
+            items.forEach(async (id: string) => {
                 if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) return; // Exclude test files
 
                 const item = require(`./items/${id}`).default;
+
+                const event = new ItemRegisterEvent(item);
+                await this.server.getEventManager().emit('itemRegister', event);
+                if (event.cancelled) return;
+
                 try {
                     this.registerClassItem(new item());
                 } catch {
