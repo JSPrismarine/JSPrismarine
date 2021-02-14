@@ -78,6 +78,7 @@ import TextHandler from './handler/TextHandler';
 import TextPacket from './packet/TextPacket';
 import TickSyncHandler from './handler/TickSyncHandler';
 import TickSyncPacket from './packet/TickSyncPacket';
+import Timer from '../utils/Timer';
 import TransferPacket from './packet/TransferPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
@@ -116,7 +117,7 @@ export default class PacketRegistry {
     }
 
     private loadPackets(): void {
-        const time = Date.now();
+        const timer = new Timer();
 
         this.registerPacket(ActorFallPacket);
         this.registerPacket(AddActorPacket);
@@ -181,13 +182,13 @@ export default class PacketRegistry {
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
                 Array.from(Object.keys(Identifiers)).length - 2
-            }§r packet(s) (took ${Date.now() - time} ms)!`,
+            }§r packet(s) (took ${timer.stop()} ms)!`,
             'PacketRegistry/loadPackets'
         );
     }
 
     private loadHandlers(): void {
-        const time = Date.now();
+        const timer = new Timer();
 
         this.registerHandler(Identifiers.AdventureSettingsPacket, new AdventureSettingsHandler());
         this.registerHandler(Identifiers.AnimatePacket, new AnimateHandler());
@@ -213,7 +214,7 @@ export default class PacketRegistry {
         this.registerHandler(Identifiers.ModalFormResponsePacket, new ModalFormResponseHandler());
 
         this.logger.debug(
-            `Registered §b${this.handlers.size}§r packet handler(s) (took ${Date.now() - time} ms)!`,
+            `Registered §b${this.handlers.size}§r packet handler(s) (took ${timer.stop()} ms)!`,
             'PacketRegistry/loadHandlers'
         );
     }

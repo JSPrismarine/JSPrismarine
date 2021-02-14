@@ -13,6 +13,7 @@ import Item from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import Player from '../player/Player';
 import Server from '../Server';
+import Timer from '../utils/Timer';
 import UUID from '../utils/UUID';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import Vector3 from '../math/Vector3';
@@ -87,7 +88,7 @@ export default class World {
                 'World/onEnable'
             );
         const chunksToLoad: Array<Promise<void>> = [];
-        const time = Date.now();
+        const timer = new Timer();
 
         for (let x = 0; x < 32; x++) {
             for (let z = 0; z < 32; z++) {
@@ -96,7 +97,7 @@ export default class World {
         }
 
         await Promise.all(chunksToLoad);
-        this.server.getLogger().info(`(took ${Date.now() - time} ms)`, 'World/onEnable');
+        this.server.getLogger().debug(`(took ${timer.stop()} ms)`, 'World/onEnable');
     }
 
     public getGenerator(): Generator {
@@ -366,13 +367,13 @@ export default class World {
      * Saves changed chunks into disk.
      */
     public async saveChunks(): Promise<void> {
-        const time = Date.now();
+        const timer = new Timer();
         this.server
             .getLogger()
             .info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`, 'World/saveChunks');
 
         await Promise.all(Array.from(this.chunks.values()).map(async (chunk) => this.provider.writeChunk(chunk)));
-        this.server.getLogger().debug(`(took ${Date.now() - time} ms)!`, 'World/saveChunks');
+        this.server.getLogger().debug(`(took ${timer.stop()} ms)!`, 'World/saveChunks');
     }
 
     public async save(): Promise<void> {

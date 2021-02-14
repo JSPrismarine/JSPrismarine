@@ -28,6 +28,7 @@ import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import TelemetryManager from './telemetry/TelemeteryManager';
+import Timer from './utils/Timer';
 import WorldManager from './world/WorldManager';
 import pkg from '../package.json';
 import { setIntervalAsync } from 'set-interval-async/dynamic';
@@ -152,7 +153,7 @@ export default class Server {
 
             // TODO: Get last world by player data
             // and if it doesn't exists, return the default one
-            const time = Date.now();
+            const timer = new Timer();
             const world = this.getWorldManager().getDefaultWorld()!;
 
             const player = new Player(connection, world, this);
@@ -170,7 +171,7 @@ export default class Server {
             // Add the player into the world
             world.addPlayer(player);
 
-            this.logger.silly(`Player creation took about ${Date.now() - time} ms`, 'Server/listen/raknetConnect');
+            this.logger.silly(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
         });
 
         this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {

@@ -2,6 +2,7 @@ import { PluginManager as ModuleManager } from 'live-plugin-manager';
 import PluginApiVersion from './api/PluginApiVersion';
 import PluginFile from './PluginFile';
 import Server from '../Server';
+import Timer from '../utils/Timer';
 import fs from 'fs';
 import path from 'path';
 import unzipper from 'unzipper';
@@ -25,7 +26,8 @@ export default class PluginManager {
         }
 
         // Register PluginApiVersion(s)
-        let time = Date.now();
+        let timer = new Timer();
+
         const pluginApiVersions = fs.readdirSync(path.join(__dirname, 'api/versions'));
         await Promise.all(
             pluginApiVersions.map((id: string) => {
@@ -43,12 +45,13 @@ export default class PluginManager {
         this.server
             .getLogger()
             .debug(
-                `Registered §b${pluginApiVersions.length}§r pluginApiVersion(s) (took ${Date.now() - time} ms)!`,
+                `Registered §b${pluginApiVersions.length}§r pluginApiVersion(s) (took ${timer.stop()} ms)!`,
                 'PluginManager/onEnable'
             );
 
         // Register Plugin(s)
-        time = Date.now();
+        timer = new Timer();
+
         const plugins = fs.readdirSync(path.join(process.cwd(), 'plugins'));
         const res = (
             await Promise.all(
@@ -66,7 +69,7 @@ export default class PluginManager {
         ).filter((a) => a);
         this.server
             .getLogger()
-            .debug(`Registered §b${res.length}§r plugin(s) (took ${Date.now() - time} ms)!`, 'PluginManager/onEnable');
+            .debug(`Registered §b${res.length}§r plugin(s) (took ${timer.stop()} ms)!`, 'PluginManager/onEnable');
     }
 
     /**
@@ -105,7 +108,8 @@ export default class PluginManager {
     private async registerPlugin(id: string): Promise<PluginFile | null> {
         if (id === '.extracted') return null;
 
-        const time = Date.now();
+        const timer = new Timer();
+
         let dir = path.join(process.cwd(), 'plugins', id);
         if (!fs.lstatSync(dir).isDirectory()) {
             // Invalid file
@@ -209,16 +213,14 @@ export default class PluginManager {
         this.server
             .getLogger()
             .info(
-                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${
-                    Date.now() - time
-                } ms)!`,
+                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${timer.stop()} ms)!`,
                 'PluginManager/registerPlugin'
             );
         return plugin;
     }
 
     public async registerClassPlugin(pkg: any, plugin: PluginFile): Promise<PluginFile | null> {
-        const time = Date.now();
+        const timer = new Timer();
 
         try {
             await plugin.onEnable();
@@ -243,9 +245,7 @@ export default class PluginManager {
         this.server
             .getLogger()
             .info(
-                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${
-                    Date.now() - time
-                } ms)!`,
+                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${timer.stop()} ms)!`,
                 'PluginManager/registerPlugin'
             );
         return plugin;

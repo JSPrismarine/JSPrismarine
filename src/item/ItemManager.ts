@@ -1,6 +1,7 @@
 import Item from './Item';
 import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
 import Server from '../Server';
+import Timer from '../utils/Timer';
 import fs from 'fs';
 import path from 'path';
 
@@ -55,7 +56,8 @@ export default class ItemManager {
      */
     private async importItems() {
         try {
-            const time = Date.now();
+            const timer = new Timer();
+
             const items = fs.readdirSync(path.join(__dirname, 'items'));
             await Promise.all(
                 items.map(async (id: string) => {
@@ -72,7 +74,7 @@ export default class ItemManager {
             this.server
                 .getLogger()
                 .debug(
-                    `Registered §b${this.items.size}§r item(s) (took ${Date.now() - time} ms)!`,
+                    `Registered §b${this.items.size}§r item(s) (took ${timer.stop()} ms)!`,
                     'ItemManager/importItems'
                 );
         } catch (error) {

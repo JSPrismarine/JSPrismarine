@@ -7,6 +7,7 @@ import CommandExecuter from './CommandExecuter';
 import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
 import Server from '../Server';
+import Timer from '../utils/Timer';
 import fs from 'fs';
 import path from 'path';
 
@@ -24,7 +25,7 @@ export default class CommandManager {
      * OnEnable hook
      */
     public async onEnable() {
-        const time = Date.now();
+        const timer = new Timer();
 
         const commands = [
             ...fs.readdirSync(path.join(__dirname, 'vanilla')).map((a) => `/vanilla/${a}`),
@@ -57,7 +58,7 @@ export default class CommandManager {
         this.server
             .getLogger()
             .debug(
-                `Registered §b${this.commands.size}§r commands(s) (took ${Date.now() - time} ms)!`,
+                `Registered §b${this.commands.size}§r commands(s) (took ${timer.stop()} ms)!`,
                 'CommandManager/onEnable'
             );
     }
