@@ -232,8 +232,8 @@ export default class Connection {
         await Promise.all(
             packet
                 .getPackets()
-                .filter((seq) => this.recoveryQueue.has(seq))
-                .map((seq) => this.recoveryQueue.delete(seq))
+                .filter((seq: any) => this.recoveryQueue.has(seq))
+                .map((seq: any) => this.recoveryQueue.delete(seq))
         );
     }
 
@@ -244,8 +244,8 @@ export default class Connection {
         await Promise.all(
             packet
                 .getPackets()
-                .filter((seq) => this.recoveryQueue.has(seq))
-                .map(async (seq) => {
+                .filter((seq: any) => this.recoveryQueue.has(seq))
+                .map(async (seq: any) => {
                     const pk = this.recoveryQueue.get(seq)!;
                     pk.sequenceNumber = this.sendSequenceNumber++;
                     pk.sendTime = Date.now();

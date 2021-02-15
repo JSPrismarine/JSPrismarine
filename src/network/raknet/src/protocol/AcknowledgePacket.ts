@@ -1,6 +1,6 @@
 import Packet from './Packet';
 
-const MAX_ACK_PACKETS = 4096;
+// const MAX_ACK_PACKETS = 4096;
 export default class AcknowledgePacket extends Packet {
     // Array containing all sequence numbers of received (ACK)
     // or lost (NACK) packets

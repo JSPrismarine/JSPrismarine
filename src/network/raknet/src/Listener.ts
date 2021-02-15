@@ -11,7 +11,7 @@ import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
 import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
 import RakNetListener from './RakNetListener';
-import type Server from '../../Server';
+import type Server from '@jsprismarine/prismarine';
 import ServerName from './utils/ServerName';
 import UnconnectedPing from './protocol/UnconnectedPing';
 import UnconnectedPong from './protocol/UnconnectedPong';
