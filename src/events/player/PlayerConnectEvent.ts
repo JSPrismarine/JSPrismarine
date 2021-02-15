@@ -1,5 +1,5 @@
 import Event from '../Event';
-import type InetAddress from '@jsprismarine/raknet/src/dist/utils/InetAddress';
+import type InetAddress from '@jsprismarine/raknet/dist/utils/InetAddress';
 import type Player from '../../player/Player';
 
 /**

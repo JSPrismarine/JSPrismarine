@@ -13,7 +13,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install && npm install --prefix packages/*
-            - run: npm run build --prefix packages/* && npm run build
+            - run: npm run build
             - run: npm prune --production
             - run: npm install -g github:kkoomen/pkg
             - run: npm run package
@@ -29,7 +29,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install && npm install --prefix packages/*
-            - run: npm run build --prefix packages/* && npm run build
+            - run: npm run build
             - run: npm prune --production
             - run: npm install -g github:kkoomen/pkg
             - run: npm run package
@@ -46,7 +46,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install && npm install --prefix packages/*
-            - run: npm run build --prefix packages/* && npm run build
+            - run: npm run build
             - run: npm prune --production
             - run: npm install -g github:kkoomen/pkg
             - run: npm run package

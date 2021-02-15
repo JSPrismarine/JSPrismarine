@@ -1,9 +1,9 @@
 {
     "name": "@jsprismarine/raknet",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "description": "Basic RakNet implementation written in TypeScript",
-    "main": "./src/dist/Listener.js",
-    "types": "./src/dist/Listener.d.ts",
+    "main": "./dist/Listener.js",
+    "types": "./dist/Listener.d.ts",
     "scripts": {
         "build": "tsc --build src"
     },
@@ -16,8 +16,8 @@
         "raknet"
     ],
     "author": "JSPrismarine",
-    "license": "ISC",
-    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/src/network/raknet",
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/raknet",
     "dependencies": {
         "@jsprismarine/jsbinaryutils": "2.1.8"
     },

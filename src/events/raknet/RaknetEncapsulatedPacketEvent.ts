@@ -1,6 +1,6 @@
-import EncapsulatedPacket from '@jsprismarine/raknet/src/dist/protocol/EncapsulatedPacket';
+import EncapsulatedPacket from '@jsprismarine/raknet/dist/protocol/EncapsulatedPacket';
 import Event from '../Event';
-import type InetAddress from '@jsprismarine/raknet/src/dist/utils/InetAddress';
+import type InetAddress from '@jsprismarine/raknet/dist/utils/InetAddress';
 
 export default class RaknetEncapsulatedPacketEvent extends Event {
     private readonly inetAddr: InetAddress;

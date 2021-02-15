@@ -1,7 +1,7 @@
 import { Logger, createLogger, format, transports } from 'winston';
 
+import colorParser from '@jsprismarine/color-parser';
 import fs from 'fs';
-import mcColors from 'mccolorstoconsole';
 import path from 'path';
 
 const { combine, timestamp, printf } = format;
@@ -40,7 +40,7 @@ export default class LoggerBuilder {
                         format.colorize(),
                         format.simple(),
                         printf(({ level, message, timestamp, namespace }) => {
-                            return `[${timestamp} ${level}${mcColors.minecraftToConsole(
+                            return `[${timestamp} ${level}${colorParser(
                                 `${
                                     namespace &&
                                     ((global as any).log_level === 'silly' || (global as any).log_level === 'debug')
@@ -58,7 +58,7 @@ export default class LoggerBuilder {
                         timestamp({ format: 'HH:mm:ss.SS' }),
                         format.simple(),
                         printf(({ level, message, timestamp, namespace }: any) => {
-                            return `[${timestamp}] [${level}]${mcColors.minecraftToConsole(
+                            return `[${timestamp}] [${level}]${colorParser(
                                 `${namespace ? ` [${namespace}]` : ''}: ${message}`
                             )}`.replace(
                                 /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,

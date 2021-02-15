@@ -1,4 +1,4 @@
-import Connection from '@jsprismarine/raknet/src/dist/Connection';
+import Connection from '@jsprismarine/raknet/dist/Connection';
 import Event from '../Event';
 
 /**

@@ -21,7 +21,7 @@
         "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
         "dev": "cross-env NODE_ENV=development nodemon --delay 1.25 --quiet --no-stdin --watch ./src -e ts,js,json,yaml --exec 'ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts'",
         "dev:no-watch": "ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts",
-        "build": "tsc --build src",
+        "build": "tsc --build packages/**/src && tsc --build src",
         "clean": "rm -rf dist docs builds worlds plugins banned-players.json ops.json config.yaml jsprismarine.log",
         "package": "pkg package.json --out-path ./builds/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
@@ -129,9 +129,9 @@
     "husky": {
         "hooks": {
             "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test",
-            "post-checkout": "yarnhook && npm i --prefix packages/* && npm build --prefix packages/*",
-            "post-merge": "yarnhook && npm i --prefix packages/* && npm build --prefix packages/*",
-            "post-rewrite": "yarnhook && npm i --prefix packages/* && npm build --prefix packages/*"
+            "post-checkout": "yarnhook",
+            "post-merge": "yarnhook",
+            "post-rewrite": "yarnhook"
         }
     },
     "pkg": {
@@ -153,6 +153,7 @@
         "@beenotung/level-ts": "1.15.0",
         "@jsprismarine/bedrock-data": "1.16.204",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
+        "@jsprismarine/color-parser": "1.0.0",
         "@jsprismarine/jsbinaryutils": "2.1.8",
         "@jsprismarine/raknet": "2.0.0",
         "d3-interpolate": "2.0.1",
@@ -160,7 +161,6 @@
         "fast-jwt": "^1.0.0",
         "git-rev-sync": "3.0.1",
         "live-plugin-manager": "0.15.1",
-        "mccolorstoconsole": "1.1.0",
         "node-fetch": "2.6.1",
         "node-machine-id": "1.1.12",
         "semver": "7.3.4",
