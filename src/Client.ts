@@ -1,4 +1,4 @@
-import Connection, { Priority } from './network/raknet/Connection';
+import Connection, { Priority } from '@jsprismarine/raknet/src/dist/Connection';
 import Dgram, { Socket } from 'dgram';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 

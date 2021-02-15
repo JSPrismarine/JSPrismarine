@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import InetAddress from '@jsprismarine/raknet/src/dist/InetAddress';
+import InetAddress from '@jsprismarine/raknet/src/dist/utils/InetAddress';
 import QueryManager from './QueryManager';
 import Server from '../Server';
 

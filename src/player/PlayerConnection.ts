@@ -18,7 +18,7 @@ import CreativeContentEntry from '../network/type/CreativeContentEntry';
 import CreativeContentPacket from '../network/packet/CreativeContentPacket';
 import DataPacket from '../network/packet/DataPacket';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
-import EncapsulatedPacket from '../network/raknet/src/protocol/EncapsulatedPacket';
+import EncapsulatedPacket from '@jsprismarine/raknet/src/dist/protocol/EncapsulatedPacket';
 import Gamemode from '../world/Gamemode';
 import IForm from '../form/IForm';
 import InventoryContentPacket from '../network/packet/InventoryContentPacket';

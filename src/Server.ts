@@ -118,7 +118,7 @@ export default class Server {
         await this.onEnable();
         await this.worldManager.onEnable();
 
-        this.raknet = await new Listener(this).listen(serverIp, port);
+        this.raknet = await new Listener(this as any).listen(serverIp, port);
         this.raknet.on('openConnection', async (connection: Connection) => {
             const event = new RaknetConnectEvent(connection);
             await this.getEventManager().emit('raknetConnect', event);
