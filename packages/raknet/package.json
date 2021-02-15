@@ -15,7 +15,7 @@
         "nodejs",
         "raknet"
     ],
-    "author": "HerryYT",
+    "author": "JSPrismarine",
     "license": "ISC",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/src/network/raknet",
     "dependencies": {

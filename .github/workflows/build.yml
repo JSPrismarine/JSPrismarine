@@ -12,7 +12,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-            - run: npm install
+            - run: npm install && npm install --prefix packages/*
             - run: npm run build
             - run: npm prune --production
             - run: npm install -g github:kkoomen/pkg
@@ -28,7 +28,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-            - run: npm install
+            - run: npm install && npm install --prefix packages/*
             - run: npm run build
             - run: npm prune --production
             - run: npm install -g github:kkoomen/pkg
@@ -45,7 +45,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-            - run: npm install
+            - run: npm install && npm install --prefix packages/*
             - run: npm run build
             - run: npm prune --production
             - run: npm install -g github:kkoomen/pkg

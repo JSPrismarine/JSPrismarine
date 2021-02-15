@@ -11,7 +11,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-            - run: npm install
+            - run: npm install && npm install --prefix packages/*
             - run: npm run test
             - run: npm build
     linux-test:
@@ -21,7 +21,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-            - run: npm install
+            - run: npm install && npm install --prefix packages/*
             - run: npm run test
             - run: npm build
     windows-test:
@@ -31,6 +31,6 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-            - run: npm install
+            - run: npm install && npm install --prefix packages/*
             - run: npm run test
             - run: npm build
