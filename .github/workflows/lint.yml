@@ -11,6 +11,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: npm install -g npm@latest
             - run: npm install
             - run: npm run build
             - run: npm run eslint
@@ -21,6 +22,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: npm install -g npm@latest
             - run: npm install
             - run: npm run build
             - run: npm run prettier
@@ -31,6 +33,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: npm install -g npm@latest
             - run: npm install
             - run: npm run build
             - run: npm run coveralls
