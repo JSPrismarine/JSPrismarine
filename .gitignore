@@ -3,10 +3,10 @@ node_modules/
 yarn.lock
 coverage/
 
-# JSPRismarine things
+# JSPrismarine things
 dist/
-/packages/
 /plugins/
+/builds/
 /worlds/
 /src/resources/
 /docs/

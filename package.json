@@ -1,13 +1,15 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.37",
+    "version": "0.1.0-rc.38",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
     "funding": "https://github.com/sponsors/JSPrismarine",
-    "workspaces": [
-        "./src/network/raknet"
-    ],
+    "workspaces": {
+        "packages": [
+            "packages/*"
+        ]
+    },
     "bin": {
         "prismarine": "dist/src/Prismarine.js"
     },
@@ -20,9 +22,9 @@
         "dev": "cross-env NODE_ENV=development nodemon --delay 1.25 --quiet --no-stdin --watch ./src -e ts,js,json,yaml --exec 'ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts'",
         "dev:no-watch": "ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts",
         "build": "tsc --build src",
-        "clean": "rm -rf dist docs packages worlds plugins banned-players.json ops.json config.yaml jsprismarine.log",
+        "clean": "rm -rf dist docs builds worlds plugins banned-players.json ops.json config.yaml jsprismarine.log",
         "docs": "typedoc --out ./docs --tsconfig ./tsconfig.json --exclude '!**/*.test.ts' src/**/*.ts",
-        "package": "pkg package.json --out-path ./packages/",
+        "package": "pkg package.json --out-path ./builds/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
         "test:watch": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
         "eslint": "xo ./src/",
