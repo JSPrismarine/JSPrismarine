@@ -22,7 +22,7 @@
         "@jsprismarine/jsbinaryutils": "2.1.8"
     },
     "devDependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.37",
+        "@jsprismarine/prismarine": "0.1.0-rc.38",
         "typescript": "4.1.5"
     }
 }
