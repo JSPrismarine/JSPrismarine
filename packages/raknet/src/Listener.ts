@@ -126,7 +126,6 @@ export default class Listener extends EventEmitter implements RakNetListener {
     }
 
     // Async handlers
-
     private async handleUnconnectedPing(buffer: Buffer): Promise<Buffer> {
         return new Promise((resolve) => {
             const decodedPacket = new UnconnectedPing(buffer);
