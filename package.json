@@ -4,6 +4,7 @@
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/src/Server.js",
     "types": "./dist/src/Server.d.ts",
+    "funding": "https://github.com/sponsors/JSPrismarine",
     "bin": {
         "prismarine": "dist/src/Prismarine.js"
     },
