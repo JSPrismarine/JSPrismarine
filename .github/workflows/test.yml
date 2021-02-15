@@ -12,7 +12,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install
-            - run: npm run build --prefix packages/*
+            - run: npm run build
             - run: npm run test
             - run: npm build
     linux-test:
@@ -23,7 +23,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install
-            - run: npm run build --prefix packages/*
+            - run: npm run build
             - run: npm run test
             - run: npm build
     windows-test:
@@ -34,6 +34,6 @@ jobs:
               with:
                   node-version: 14
             - run: npm install
-            - run: npm run build --prefix packages/*
+            - run: npm run build
             - run: npm run test
             - run: npm build
