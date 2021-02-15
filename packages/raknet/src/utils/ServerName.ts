@@ -1,7 +1,5 @@
-import type Server from '@jsprismarine/prismarine';
-
 export default class ServerName {
-    private readonly server: Server;
+    private readonly server: any;
     private motd: string;
     private name = 'JSRakNet';
     private protocol;
@@ -10,7 +8,7 @@ export default class ServerName {
     private gamemode: string;
     private serverId = 0n;
 
-    public constructor(server: Server) {
+    public constructor(server: any) {
         this.server = server;
         this.motd = server.getConfig().getMotd();
         this.gamemode = server.getConfig().getGamemode();

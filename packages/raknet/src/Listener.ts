@@ -11,7 +11,6 @@ import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
 import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
 import RakNetListener from './RakNetListener';
-import type Server from '@jsprismarine/prismarine';
 import ServerName from './utils/ServerName';
 import UnconnectedPing from './protocol/UnconnectedPing';
 import UnconnectedPong from './protocol/UnconnectedPong';
@@ -19,7 +18,7 @@ import UnconnectedPong from './protocol/UnconnectedPong';
 // Minecraft related protocol
 const PROTOCOL = 10;
 
-// Raknet ticks 
+// Raknet ticks
 const RAKNET_TPS = 100;
 const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
@@ -33,9 +32,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
         return false;
     }
 
-    private readonly server: Server;
+    private readonly server: any;
 
-    public constructor(server: Server) {
+    public constructor(server: any) {
         super();
         this.server = server;
         this.name = new ServerName(server);
