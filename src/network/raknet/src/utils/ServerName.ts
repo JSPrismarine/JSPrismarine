@@ -1,12 +1,11 @@
-import Identifiers from '../../Identifiers';
-import type Server from '../../../Server';
+import type Server from '@jsprismarine/prismarine';
 
 export default class ServerName {
     private readonly server: Server;
     private motd: string;
     private name = 'JSRakNet';
-    private protocol = Identifiers.Protocol;
-    private version = Identifiers.MinecraftVersion;
+    private protocol;
+    private version;
     private maxPlayers: number;
     private gamemode: string;
     private serverId = 0n;
@@ -16,6 +15,8 @@ export default class ServerName {
         this.motd = server.getConfig().getMotd();
         this.gamemode = server.getConfig().getGamemode();
         this.maxPlayers = server.getConfig().getMaxPlayers();
+        this.protocol = (server as any).getIdentifiers().Protocol;
+        this.version = (server as any).getIdentifiers().MinecraftVersion;
     }
 
     public getMotd(): string {

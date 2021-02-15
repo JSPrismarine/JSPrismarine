@@ -2,21 +2,21 @@ import Connection, { Priority } from './network/raknet/Connection';
 import Dgram, { Socket } from 'dgram';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
-import ConnectionRequest from './network/raknet/protocol/ConnectionRequest';
+import ConnectionRequest from '@jsprismarine/raknet/src/dist/protocol/ConnectionRequest';
 import Crypto from 'crypto';
-import EncapsulatedPacket from './network/raknet/protocol/EncapsulatedPacket';
+import EncapsulatedPacket from '@jsprismarine/raknet/src/dist/protocol/EncapsulatedPacket';
 import { EventEmitter } from 'events';
-import Identifiers from './network/raknet/protocol/Identifiers';
-import InetAddress from './network/raknet/utils/InetAddress';
+import Identifiers from '@jsprismarine/raknet/src/dist/protocol/Identifiers';
+import InetAddress from '@jsprismarine/raknet/src/dist/utils/InetAddress';
 import LoggerBuilder from './utils/Logger';
 import LoginPacket from './network/packet/LoginPacket';
-import OpenConnectionReply1 from './network/raknet/protocol/OpenConnectionReply1';
-import OpenConnectionReply2 from './network/raknet/protocol/OpenConnectionReply2';
-import OpenConnectionRequest1 from './network/raknet/protocol/OpenConnectionRequest1';
-import OpenConnectionRequest2 from './network/raknet/protocol/OpenConnectionRequest2';
-import RakNetListener from './network/raknet/RakNetListener';
-import UnconnectedPing from './network/raknet/protocol/UnconnectedPing';
-import UnconnectedPong from './network/raknet/protocol/UnconnectedPong';
+import OpenConnectionReply1 from '@jsprismarine/raknet/src/dist/protocol/OpenConnectionReply1';
+import OpenConnectionReply2 from '@jsprismarine/raknet/src/dist/protocol/OpenConnectionReply2';
+import OpenConnectionRequest1 from '@jsprismarine/raknet/src/dist/protocol/OpenConnectionRequest1';
+import OpenConnectionRequest2 from '@jsprismarine/raknet/src/dist/protocol/OpenConnectionRequest2';
+import RakNetListener from '@jsprismarine/raknet/src/dist/RakNetListener';
+import UnconnectedPing from '@jsprismarine/raknet/src/dist/protocol/UnconnectedPing';
+import UnconnectedPong from '@jsprismarine/raknet/src/dist/protocol/UnconnectedPong';
 
 // https://stackoverflow.com/a/1527820/3142553
 const getRandomInt = (min: number, max: number) => {

@@ -1,4 +1,4 @@
-import type InetAddress from '../../network/raknet/utils/InetAddress';
+import type InetAddress from '../../network/raknet/src/utils/InetAddress';
 import type Player from '../../player/Player';
 import PlayerConnectEvent from './PlayerConnectEvent';
 

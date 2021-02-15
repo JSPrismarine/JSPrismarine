@@ -7,14 +7,14 @@ import ChatEvent from './events/chat/ChatEvent';
 import ChatManager from './chat/ChatManager';
 import CommandManager from './command/CommandManager';
 import type Config from './config/Config';
-import Connection from './network/raknet/Connection';
+import Connection from '@jsprismarine/raknet/src/dist/Connection';
 import Console from './Console';
-import EncapsulatedPacket from './network/raknet/protocol/EncapsulatedPacket';
+import EncapsulatedPacket from '@jsprismarine/raknet/src/dist/protocol/EncapsulatedPacket';
 import { EventManager } from './events/EventManager';
 import Identifiers from './network/Identifiers';
-import type InetAddress from './network/raknet/utils/InetAddress';
+import type InetAddress from '@jsprismarine/raknet/src/dist/utils/InetAddress';
 import ItemManager from './item/ItemManager';
-import Listener from './network/raknet/Listener';
+import Listener from '@jsprismarine/raknet';
 import type LoggerBuilder from './utils/Logger';
 import PacketHandler from './network/handler/PacketHandler';
 import PacketRegistry from './network/PacketRegistry';
@@ -358,6 +358,10 @@ export default class Server {
             this.getLogger().error(error, 'Server/kill');
             process.exit(1);
         }
+    }
+
+    public getIdentifiers() {
+        return Identifiers;
     }
 
     /**

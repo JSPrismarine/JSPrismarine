@@ -1,5 +1,5 @@
 import Event from '../Event';
-import type InetAddress from '../../network/raknet/utils/InetAddress';
+import type InetAddress from '../../network/raknet/src/utils/InetAddress';
 
 /**
  * Fired just as a client disconnects from the raknet instance
