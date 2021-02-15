@@ -20,7 +20,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install && npm install --prefix packages/*
-            - run: npm run build
+            - run: npm run build --prefix packages/* && npm run build
 
             - uses: JS-DevTools/npm-publish@v1
               with:
