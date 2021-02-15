@@ -128,7 +128,7 @@
     },
     "husky": {
         "hooks": {
-            "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test && npm run docs",
+            "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test",
             "post-checkout": "yarnhook",
             "post-merge": "yarnhook",
             "post-rewrite": "yarnhook"
