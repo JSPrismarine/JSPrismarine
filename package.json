@@ -7,7 +7,7 @@
     "funding": "https://github.com/sponsors/JSPrismarine",
     "workspaces": {
         "packages": [
-            "packages/*"
+            "packages/**"
         ]
     },
     "bin": {
@@ -19,8 +19,8 @@
     },
     "scripts": {
         "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
-        "dev": "cross-env NODE_ENV=development nodemon --delay 1.25 --quiet --no-stdin --watch ./src -e ts,js,json,yaml --exec 'ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts'",
-        "dev:no-watch": "ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts",
+        "dev": "nodemon --delay 1.25 --quiet --no-stdin --watch ./src --watch ./packages --ignore '**/*.d.ts' -e ts,js,json,yaml --exec 'tsc --build packages/**/src && ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts'",
+        "dev:no-watch": "tsc --build packages/**/src && ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts",
         "build": "tsc --build packages/**/src && tsc --build src",
         "clean": "rm -rf dist docs builds worlds plugins banned-players.json ops.json config.yaml jsprismarine.log",
         "package": "pkg package.json --out-path ./builds/",

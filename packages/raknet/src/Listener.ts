@@ -19,7 +19,7 @@ import UnconnectedPong from './protocol/UnconnectedPong';
 // Minecraft related protocol
 const PROTOCOL = 10;
 
-// Raknet ticks
+// Raknet ticks 
 const RAKNET_TPS = 100;
 const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
