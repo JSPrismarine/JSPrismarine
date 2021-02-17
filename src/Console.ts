@@ -44,6 +44,7 @@ export default class Console implements CommandExecuter {
             output: process.stdout,
             terminal: true,
             prompt: '',
+            crlfDelay: Number.POSITIVE_INFINITY,
             completer: process.stdin.isTTY ? completer : undefined
         });
 
