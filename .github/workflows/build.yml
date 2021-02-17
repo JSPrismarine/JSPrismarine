@@ -12,7 +12,6 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-            - run: npm install -g npm@latest
             - run: npm install
             - run: npm run build
             - run: npm prune --production
@@ -22,6 +21,7 @@ jobs:
               with:
                   name: prismarine-x64-linux
                   path: builds/prismarine-linux
+
     prismarine-x64-macos:
         runs-on: macos-latest
         steps:
@@ -29,7 +29,6 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-            - run: npm install -g npm@latest
             - run: npm install
             - run: npm run build
             - run: npm prune --production
@@ -47,7 +46,6 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
-            - run: npm install -g npm@latest
             - run: npm install
             - run: npm run build
             - run: npm prune --production
