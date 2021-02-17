@@ -40,7 +40,7 @@ A dedicated Minecraft Bedrock Edition server written in TypeScript with focus on
 
 Prebuilt binaries will be provided once a stable release is out, these will not require a node environment. For now however, you can either follow the steps bellow or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22) (which may or may not work).
 
--   Linux/MacOS/Unix based OS or Windows (which may require WSL)
+-   Linux/MacOS/Unix based OS or Windows (requires WSL)
     -   You need [Node.js](https://nodejs.org) v14.x and [npm](https://www.npmjs.com).
     -   Clone the repository `git clone https://github.com/JSPrismarine/JSPrismarine.git`.
     -   Go in the cloned repository `cd JSPrismarine`

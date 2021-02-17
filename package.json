@@ -18,10 +18,10 @@
         "npm": "^7.0.0"
     },
     "scripts": {
-        "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
+        "start": "NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
         "dev": "nodemon --delay 1.25 --quiet --no-stdin --watch ./src --watch ./packages --ignore '**/*.d.ts' -e ts,js,json,yaml --exec 'tsc --build packages/**/src && ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts'",
-        "dev:no-watch": "tsc --build packages/**/src && ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts",
-        "build": "tsc --build packages/**/src && tsc --build src",
+        "dev:no-watch": "tsc --build ./packages/**/src && ts-node --transpile-only --project ./tsconfig.json --files ./src/Prismarine.ts",
+        "build": "tsc --build ./packages/**/src && tsc --build ./src",
         "clean": "rm -rf dist docs builds worlds plugins banned-players.json ops.json config.yaml jsprismarine.log",
         "package": "pkg package.json --out-path ./builds/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
@@ -181,7 +181,6 @@
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.3",
         "coveralls": "3.1.0",
-        "cross-env": "7.0.3",
         "husky": "4.3.8",
         "jest": "26.6.3",
         "mock-fs": "4.13.0",
