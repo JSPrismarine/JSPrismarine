@@ -108,6 +108,7 @@ export default class TelemetryManager {
                 "JSPrismarine has crashed, we're now submitting the error to the telemetry service...",
                 'TelemetryManager/sendCrashLog'
             );
+        this.server.getLogger().silly(crashlog.stack, 'TelemetryManager/sendCrashLog');
 
         const body = {
             id: this.generateAnonomizedId(),

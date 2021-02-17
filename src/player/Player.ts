@@ -69,7 +69,7 @@ export default class Player extends Human implements CommandExecuter {
      */
     public constructor(connection: Connection, world: World, server: Server) {
         super(world, server);
-        this.address = connection.getAddress();
+        this.address = connection?.getAddress();
         this.playerConnection = new PlayerConnection(server, connection, this);
         this.windows = new WindowManager();
         this.forms = new FormManager();
@@ -155,6 +155,8 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async sendMessage(message: string): Promise<void> {
+        // TODO: Do this properly like java edition,
+        // in other words, the message should be JSON formatted.
         await this.playerConnection.sendMessage(message);
     }
 
