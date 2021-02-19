@@ -1,0 +1,27 @@
+{
+    "name": "@jsprismarine/color-parser",
+    "version": "0.1.0-rc.42",
+    "description": "Parse minecraft color codes",
+    "main": "./dist/Parser.js",
+    "types": "./dist/Parser.d.ts",
+    "scripts": {
+        "build": "tsc --build src"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "nodejs",
+        "raknet"
+    ],
+    "author": "JSPrismarine",
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/color-parser",
+    "devDependencies": {
+        "typescript": "4.1.5"
+    },
+    "dependencies": {
+        "chalk": "^4.1.0"
+    }
+}

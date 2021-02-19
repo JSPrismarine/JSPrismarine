@@ -1,18 +1,16 @@
-*           @JSPrismarine/admins
-package.json  @filfat
 .github**   @filfat
-/src/ban/**  @filfat
-/src/block/**  @filfat
-/src/command/**  @filfat
-/src/permission/**  @filfat
-/src/plugin/**  @filfat
-/src/query/**  @filfat
-/src/telemetry/**  @filfat
+/packages/prismarine/src/ban/**  @filfat
+/packages/prismarine/src/block/**  @filfat
+/packages/prismarine/src/command/**  @filfat
+/packages/prismarine/src/permission/**  @filfat
+/packages/prismarine/src/plugin/**  @filfat
+/packages/prismarine/src/query/**  @filfat
+/packages/prismarine/src/telemetry/**  @filfat
 
-/src/nbt/**  @HerryYT
-/src/network/**  @HerryYT
-/src/world/**  @HerryYT
+/packages/prismarine/src/nbt/**  @HerryYT
+/packages/prismarine/src/network/**  @HerryYT
+/packages/prismarine/src/world/**  @HerryYT
 
-/src/config/**  @TheArmagan
+/packages/prismarine/src/config/**  @TheArmagan
 
-/src/events/EventEmitterishMixin.ts  @garronej
+/packages/prismarine/src/events/EventEmitterishMixin.ts  @garronej

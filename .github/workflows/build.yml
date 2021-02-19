@@ -20,7 +20,8 @@ jobs:
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-linux
-                  path: packages/prismarine-linux
+                  path: builds/prismarine-linux
+
     prismarine-x64-macos:
         runs-on: macos-latest
         steps:
@@ -36,8 +37,8 @@ jobs:
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-macos
-                  path: packages/prismarine-macos
-                  
+                  path: builds/prismarine-macos
+
     prismarine-x64-win32:
         runs-on: windows-latest
         steps:
@@ -53,4 +54,4 @@ jobs:
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-win32
-                  path: packages/prismarine-win.exe
+                  path: builds/prismarine-win.exe

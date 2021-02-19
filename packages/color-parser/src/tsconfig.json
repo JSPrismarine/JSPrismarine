@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "outDir": "../dist/",
+        "outDir": "../dist",
         "target": "es2020",
         "rootDir": ".",
         "lib": ["es2020", "esnext"],
@@ -8,6 +8,7 @@
         "moduleResolution": "node",
         "allowJs": true,
         "strict": true,
+        "sourceMap": true,
         "forceConsistentCasingInFileNames": true,
         "isolatedModules": true,
         "esModuleInterop": true,
@@ -16,13 +17,9 @@
         "resolveJsonModule": true,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
-        "noUnusedLocals": true
+        "composite": true,
+        "pretty": true
     },
-    "references": [
-        {
-            "path": "../"
-        }
-    ],
     "exclude": ["**/*.test.*"],
-    "typeRoots": ["../node_modules/@types", "src/@types"]
+    "typeRoots": ["../node_modules/@types"]
 }

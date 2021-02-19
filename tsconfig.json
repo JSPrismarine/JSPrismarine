@@ -20,10 +20,7 @@
         "composite": true,
         "pretty": true
     },
-    "include": [
-        "src/**/*",
-        "package.json"
-    ],
+    "include": ["src/**/*", "package.json"],
     "exclude": ["src**/*.test.ts"],
     "typeRoots": ["src/@types", "node_modules/@types"]
 }
