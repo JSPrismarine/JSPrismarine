@@ -22,5 +22,5 @@
     },
     "include": ["src/**/*", "package.json"],
     "exclude": ["src**/*.test.ts"],
-    "typeRoots": ["src/@types", "node_modules/@types"]
+    "typeRoots": ["src/@types", "packages/**/src/@types", "node_modules/@types"]
 }
