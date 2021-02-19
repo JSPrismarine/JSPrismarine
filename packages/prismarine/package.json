@@ -1,38 +1,17 @@
 {
-    "name": "@jsprismarine/monorepo",
-    "version": "0.1.0-rc.40",
+    "name": "@jsprismarine/prismarine",
+    "version": "0.1.0-rc.42",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/Prismarine.js",
     "types": "./dist/Prismarine.d.ts",
     "funding": "https://github.com/sponsors/JSPrismarine",
-    "workspaces": {
-        "packages": [
-            "packages/**"
-        ]
-    },
-    "bin": {
-        "prismarine": "dist/Prismarine.js"
-    },
-    "engines": {
-        "node": ">=14.0.0",
-        "npm": "^7.0.0"
-    },
-    "scripts": {
-        "start": "NODE_ENV=production node ./dist/Prismarine.js --unhandled-rejections=strict",
-        "dev": "nodemon --delay .25 --quiet --no-stdin --watch ./src --watch ./packages --ignore '**/*.d.ts' -e ts,js,json,yaml --exec 'npm run build && npm run start'",
-        "build": "lerna run build && tsc --build ./src",
-        "package": "pkg package.json --out-path ./builds/",
-        "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
-        "test:watch": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
-        "eslint": "xo src/",
-        "eslint:format": "xo --fix src/",
-        "prettier": "prettier --config .prettierrc src/**/*.* --check",
-        "prettier:format": "prettier --config .prettierrc src/**/*.* --write",
-        "coveralls": "jest --coverage --forceExit --testLocationInResults --silent && cat ./coverage/lcov.info | coveralls"
-    },
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/prismarine",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "scripts": {
+        "build": "tsc --build src"
     },
     "xo": {
         "space": 4,
@@ -124,14 +103,6 @@
     "bugs": {
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
-    "husky": {
-        "hooks": {
-            "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test",
-            "post-checkout": "yarnhook",
-            "post-merge": "yarnhook",
-            "post-rewrite": "yarnhook"
-        }
-    },
     "pkg": {
         "scripts": [
             "dist/**/*.js",
@@ -146,9 +117,27 @@
             "./node_modules/leveldown/prebuilds/win32-x64/node.napi.node"
         ]
     },
-    "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.40"
+        "@beenotung/level-ts": "1.15.0",
+        "@jsprismarine/bedrock-data": "1.16.204",
+        "@jsprismarine/brigadier": "0.2.0-rc.1",
+        "@jsprismarine/color-parser": "^0.1.0-rc.42",
+        "@jsprismarine/jsbinaryutils": "2.1.8",
+        "@jsprismarine/raknet": "^0.1.0-rc.42",
+        "d3-interpolate": "2.0.1",
+        "evt": "1.9.12",
+        "fast-jwt": "^1.0.0",
+        "git-rev-sync": "3.0.1",
+        "live-plugin-manager": "0.15.1",
+        "node-fetch": "2.6.1",
+        "node-machine-id": "1.1.12",
+        "semver": "7.3.4",
+        "set-interval-async": "1.0.34",
+        "simplex-noise": "^2.4.0",
+        "strip-json-comments": "^3.1.1",
+        "unzipper": "0.10.11",
+        "winston": "3.3.3",
+        "yaml": "^2.0.0-1"
     },
     "devDependencies": {
         "@types/d3-interpolate": "2.0.0",
@@ -158,11 +147,6 @@
         "@types/node-fetch": "2.5.8",
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.3",
-        "coveralls": "3.1.0",
-        "husky": "4.3.8",
-        "jest": "26.6.3",
-        "lerna": "^3.22.1",
-        "nodemon": "2.0.7",
         "prettier": "2.2.1",
         "ts-jest": "26.5.1",
         "ts-node": "9.1.1",

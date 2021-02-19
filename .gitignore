@@ -1,12 +1,12 @@
 # Node.js things
-/node_modules/
+node_modules/
 yarn.lock
-/coverage/
+coverage/
 
-# JSPRismarine things
-/dist/
-/packages/
+# JSPrismarine things
+dist/
 /plugins/
+/builds/
 /worlds/
 /src/resources/
 /docs/

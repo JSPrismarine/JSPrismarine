@@ -1,0 +1,20 @@
+{
+    "version": "0.1.0-rc.42",
+    "npmClient": "npm",
+    "command": {
+        "publish": {
+            "ignoreChanges": [
+                "ignored-file",
+                "*.md"
+            ],
+            "message": "chore(release): publish",
+            "registry": "https://npm.pkg.github.com"
+        },
+        "bootstrap": {
+            "npmClientArgs": []
+        }
+    },
+    "packages": [
+        "packages/*"
+    ]
+}

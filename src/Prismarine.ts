@@ -1,23 +1,22 @@
-import Config from './config/Config';
-import Logger from './utils/Logger';
-import Server from './Server';
-import Updater from './updater/Updater';
+import { Config, Logger, Server, Updater } from '@jsprismarine/prismarine';
 
 // Process metadata
 process.title = 'Prismarine';
 
-const config = new Config();
+const config = new Config(process.env.npm_package_version!);
 const logger = new Logger();
 
 const updater = new Updater({
     config,
-    logger
+    logger,
+    version: process.env.npm_package_version!
 });
 
 void updater.check().then(() => {
     const Prismarine = new Server({
         config,
-        logger
+        logger,
+        version: process.env.npm_package_version!
     });
 
     Prismarine.listen(config.getServerIp(), config.getPort()).catch(async (error) => {

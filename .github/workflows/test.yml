@@ -11,7 +11,11 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: npm install -g npm@latest
+            - run: npm install -g lerna
             - run: npm install
+            - run: lerna bootstrap
+            - run: npm run build
             - run: npm run test
             - run: npm build
     linux-test:
@@ -21,16 +25,10 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: npm install -g npm@latest
+            - run: npm install -g lerna
             - run: npm install
-            - run: npm run test
-            - run: npm build
-    windows-test:
-        runs-on: windows-latest
-        steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v2
-              with:
-                  node-version: 14
-            - run: npm install
+            - run: lerna bootstrap
+            - run: npm run build
             - run: npm run test
             - run: npm build
