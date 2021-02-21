@@ -41,7 +41,7 @@ class EventManagerWithoutEventEmitterishMethods extends Evt<EventTypes> {
      * Also we can't have static typing for those as they are defined by
      * the plugin makers
      */
-    readonly evtThirdParty = Evt.asNonPostable(Evt.create<[string, any]>());
+    public readonly evtThirdParty = Evt.asNonPostable(Evt.create<[string, any]>());
 }
 
 export const EventManager = EventEmitterishMixin(EventManagerWithoutEventEmitterishMethods, ({ instance }) => instance);

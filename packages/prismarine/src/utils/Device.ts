@@ -1,9 +1,9 @@
 export default class Device {
-    inputMode = 0;
-    id = '';
-    os = 0;
-    model = '';
-    guiScale = 0;
+    public inputMode = 0;
+    public id = '';
+    public os = 0;
+    public model = '';
+    public guiScale = 0;
 
     public constructor(args: { id: string; model: string; os: number; inputMode: number; guiScale: number }) {
         const { id, model, os, inputMode, guiScale } = args;
