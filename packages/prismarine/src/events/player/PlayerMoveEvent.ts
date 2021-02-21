@@ -25,15 +25,15 @@ export default class PlayerMoveEvent extends Event {
         return this.player;
     }
 
-    getFrom(): Vector3 {
+    public getFrom(): Vector3 {
         return this.from;
     }
 
-    getTo(): Vector3 {
+    public getTo(): Vector3 {
         return this.to;
     }
 
-    getMode(): MovementType {
+    public getMode(): MovementType {
         return this.mode;
     }
 }

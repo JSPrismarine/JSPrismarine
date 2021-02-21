@@ -9,7 +9,7 @@ jest.mock('../Server', () => {
 
         public getRaknet() {
             return new (class Raknet {
-                sendBuffer(buffer: Buffer) {}
+                public sendBuffer(buffer: Buffer) {}
             })();
         }
     };

@@ -4,7 +4,7 @@ class ChangeSlot {
     public containerId!: number;
     public changedSlots!: Buffer;
 
-    decode(buffer: PacketBinaryStream) {
+    public decode(buffer: PacketBinaryStream) {
         this.containerId = buffer.readByte();
 
         const count = buffer.readUnsignedVarInt();
@@ -13,19 +13,19 @@ class ChangeSlot {
         return this;
     }
 
-    getContainerId() {
+    public getContainerId() {
         return this.containerId;
     }
 
-    setContainerId(id: number) {
+    public setContainerId(id: number) {
         this.containerId = id;
     }
 
-    getChangedSlots() {
+    public getChangedSlots() {
         return this.changedSlots;
     }
 
-    setChangedSlots(changedSlots: Buffer) {
+    public setChangedSlots(changedSlots: Buffer) {
         this.changedSlots = changedSlots;
     }
 }
