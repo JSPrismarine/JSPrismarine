@@ -1,13 +1,12 @@
+import { Connection, InetAddress } from '@jsprismarine/raknet';
 import ChatEvent from '../events/chat/ChatEvent';
 import Chunk from '../world/chunk/Chunk';
 import CommandExecuter from '../command/CommandExecuter';
-import Connection from '@jsprismarine/raknet/dist/Connection';
 import ContainerEntry from '../inventory/ContainerEntry';
 import Device from '../utils/Device';
 import FormManager from '../form/FormManager';
 import Gamemode from '../world/Gamemode';
 import Human from '../entity/Human';
-import InetAddress from '@jsprismarine/raknet/dist/utils/InetAddress';
 import MovementType from '../network/type/MovementType';
 import PlayerConnection from './PlayerConnection';
 import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';

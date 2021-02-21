@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/monorepo",
-    "version": "0.1.0-rc.41",
+    "version": "0.1.0-rc.42",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/Prismarine.js",
     "types": "./dist/Prismarine.d.ts",
@@ -18,9 +18,10 @@
         "npm": "^7.0.0"
     },
     "scripts": {
-        "start": "node ./dist/Prismarine.js --unhandled-rejections=strict",
-        "dev": "nodemon --delay .25 --quiet --no-stdin --watch ./src --watch ./packages --ignore '**/*.d.ts' -e ts,js,json,yaml --exec 'npm run build && npm run start'",
-        "build": "lerna run build && tsc --build ./src",
+        "start": "cross-env NODE_ENV=production node ./dist/Prismarine.js --unhandled-rejections=strict",
+        "start:dev": "cross-env NODE_ENV=development node ./dist/Prismarine.js --unhandled-rejections=strict",
+        "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch './src' --watch './packages' --ignore '**/*.d.ts' --ignore '**/*.js' -e ts,js,json --exec 'npm run build && npm run start:dev'",
+        "build": "lerna run build && tsc --project ./tsconfig.json",
         "package": "pkg package.json --out-path ./builds/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
         "test:watch": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
@@ -148,7 +149,7 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.41"
+        "@jsprismarine/prismarine": "0.1.0-rc.42"
     },
     "devDependencies": {
         "@types/d3-interpolate": "2.0.0",
@@ -159,6 +160,7 @@
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.3",
         "coveralls": "3.1.0",
+        "cross-env": "^7.0.3",
         "husky": "4.3.8",
         "jest": "26.6.3",
         "lerna": "3.22.1",
