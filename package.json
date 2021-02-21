@@ -18,7 +18,7 @@
         "npm": "^7.0.0"
     },
     "scripts": {
-        "start": "NODE_ENV=production node ./dist/Prismarine.js --unhandled-rejections=strict",
+        "start": "node ./dist/Prismarine.js --unhandled-rejections=strict",
         "dev": "nodemon --delay .25 --quiet --no-stdin --watch ./src --watch ./packages --ignore '**/*.d.ts' -e ts,js,json,yaml --exec 'npm run build && npm run start'",
         "build": "lerna run build && tsc --build ./src",
         "package": "pkg package.json --out-path ./builds/",
