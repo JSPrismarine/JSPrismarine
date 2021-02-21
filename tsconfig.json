@@ -18,7 +18,8 @@
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "composite": true,
-        "pretty": true
+        "pretty": true,
+        "incremental": true
     },
     "include": ["src/**/*", "package.json"],
     "exclude": ["src**/*.test.ts"],
