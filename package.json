@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/monorepo",
-    "version": "0.1.0-rc.40",
+    "version": "0.1.0-rc.41",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/Prismarine.js",
     "types": "./dist/Prismarine.d.ts",
@@ -148,7 +148,7 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.40"
+        "@jsprismarine/prismarine": "0.1.0-rc.41"
     },
     "devDependencies": {
         "@types/d3-interpolate": "2.0.0",
