@@ -4,8 +4,7 @@ import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic
 
 import Crypto from 'crypto';
 import { EventEmitter } from 'events';
-import LoggerBuilder from './utils/Logger';
-import LoginPacket from './network/packet/LoginPacket';
+import { Logger, Protocol as JSPProtocol } from '@jsprismarine/prismarine';
 
 // https://stackoverflow.com/a/1527820/3142553
 const getRandomInt = (min: number, max: number) => {
@@ -26,7 +25,7 @@ const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
 export default class Client extends EventEmitter implements RakNetListener {
     private clientGUID = Crypto.randomBytes(8).readBigInt64BE();
-    private readonly logger = new LoggerBuilder();
+    private readonly logger = new Logger();
     private readonly address: InetAddress;
     private targetAddress!: InetAddress;
     private connection: Connection | null = null;
@@ -78,7 +77,7 @@ export default class Client extends EventEmitter implements RakNetListener {
             }
 
             if (this.connected && !this.loginHandled) {
-                const pk = new LoginPacket();
+                const pk = new JSPProtocol.LoginPacket();
                 pk.encode();
 
                 const sendPk = new Protocol.EncapsulatedPacket();
