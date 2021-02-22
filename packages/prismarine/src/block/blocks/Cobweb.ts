@@ -5,14 +5,13 @@ import Flowable from '../Flowable';
 export default class Cobweb extends Flowable {
     public constructor() {
         super({
-            name: 'minecraft:web', // Called cobweb in the Java Edition
+            name: 'minecraft:cobweb',
             id: BlockIdsType.Cobweb,
             hardness: 4
         });
     }
 
     public getToolType() {
-        // FIXME: add sword
-        return BlockToolType.Shears;
+        return BlockToolType.Sword;
     }
 }
