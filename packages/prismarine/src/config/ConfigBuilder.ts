@@ -70,7 +70,7 @@ export default class ConfigBuilder {
             throw new Error(`Unsupported config type. (Supported types: ${Object.keys(TypeDefaults).join(', ')})`);
         }
 
-        if (fs.existsSync(pathSplitted.dir)) {
+        if (!fs.existsSync(pathSplitted.dir)) {
             fs.mkdirSync(pathSplitted.dir, { recursive: true });
         }
 

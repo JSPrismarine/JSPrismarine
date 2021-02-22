@@ -1,6 +1,7 @@
 import ConfigBuilder from './ConfigBuilder';
 import Gamemode from '../world/Gamemode';
 import { SeedGenerator } from '../utils/Seed';
+import cwd from '../utils/cwd';
 import path from 'path';
 
 export default class Config {
@@ -29,7 +30,7 @@ export default class Config {
     }
 
     public onEnable() {
-        this.configBuilder = new ConfigBuilder(path.join(process.cwd(), 'config.yaml'));
+        this.configBuilder = new ConfigBuilder(path.join(cwd(), 'config.yaml'));
         (global as any).log_level = this.configBuilder.get('log-level', 'info');
 
         this.port = this.configBuilder.get('port', 19132);

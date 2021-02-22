@@ -18,6 +18,7 @@ import UUID from '../utils/UUID';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import Vector3 from '../math/Vector3';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
+import cwd from '../utils/cwd';
 import fs from 'fs';
 import minifyJson from 'strip-json-comments';
 import path from 'path';
@@ -76,8 +77,8 @@ export default class World {
         this.getGameruleManager().setGamerule(GameRules.ShowCoordinates, true);
 
         // Create player data folder
-        if (!fs.existsSync(path.join(process.cwd(), 'worlds', name, '/players'))) {
-            fs.mkdirSync(path.join(process.cwd(), 'worlds', name, '/players'));
+        if (!fs.existsSync(path.join(cwd(), 'worlds', name, '/players'))) {
+            fs.mkdirSync(path.join(cwd(), 'worlds', name, '/players'));
         }
     }
 
@@ -424,7 +425,7 @@ export default class World {
     public async getPlayerData(player: Player): Promise<WorldPlayerData> {
         try {
             const playerData = fs.readFileSync(
-                path.join(process.cwd(), 'worlds', this.getName(), 'players', `${player.getXUID()}.json`)
+                path.join(cwd(), 'worlds', this.getName(), 'players', `${player.getXUID()}.json`)
             );
 
             return JSON.parse(minifyJson(playerData.toString('utf-8'))) as WorldPlayerData;
@@ -450,7 +451,7 @@ export default class World {
     public async savePlayerData(player: Player): Promise<void> {
         try {
             fs.writeFileSync(
-                path.join(process.cwd(), 'worlds', this.getName(), 'players', `${player.getXUID()}.json`),
+                path.join(cwd(), 'worlds', this.getName(), 'players', `${player.getXUID()}.json`),
                 JSON.stringify(
                     {
                         uuid: player.getUUID(),
