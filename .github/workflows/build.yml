@@ -12,6 +12,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: lerna bootstrap
             - run: npm install
             - run: npm run build
             - run: npm prune --production
@@ -29,6 +30,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: lerna bootstrap
             - run: npm install
             - run: npm run build
             - run: npm prune --production
@@ -46,6 +48,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: lerna bootstrap
             - run: npm install
             - run: npm run build
             - run: npm prune --production

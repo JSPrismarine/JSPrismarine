@@ -150,9 +150,12 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.42"
+        "@jsprismarine/prismarine": "0.1.0-rc.42",
+        "@jsprismarine/updater": "0.1.0-rc.42"
     },
     "devDependencies": {
+        "@jsprismarine/prismarine": "*",
+        "@jsprismarine/updater": "*",
         "@types/d3-interpolate": "2.0.0",
         "@types/git-rev-sync": "2.0.0",
         "@types/jest": "26.0.20",

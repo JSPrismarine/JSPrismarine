@@ -1,5 +1,6 @@
-import { Config, Logger, Server, Updater } from '@jsprismarine/prismarine';
+import { Config, Logger, Server } from '@jsprismarine/prismarine';
 
+import Updater from '@jsprismarine/updater';
 import fs from 'fs';
 import path from 'path';
 
