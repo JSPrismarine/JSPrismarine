@@ -19,14 +19,11 @@
     "author": "JSPrismarine",
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/updater",
-    "peerDependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.42"
-    },
     "devDependencies": {
-        "@jsprismarine/prismarine": "*",
         "typescript": "4.1.5"
     },
     "dependencies": {
+        "@jsprismarine/prismarine": "0.1.0-rc.42",
         "chalk": "^4.1.0",
         "node-fetch": "^2.6.1",
         "semver": "^7.3.4"

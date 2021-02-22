@@ -117,11 +117,9 @@
             "./node_modules/leveldown/prebuilds/win32-x64/node.napi.node"
         ]
     },
-    "peerDependencies": {
-        "@jsprismarine/color-parser": "^0.1.0-rc.42",
-        "@jsprismarine/raknet": "^0.1.0-rc.42"
-    },
     "dependencies": {
+        "@jsprismarine/color-parser": "^0.1.0-rc.42",
+        "@jsprismarine/raknet": "^0.1.0-rc.42",
         "@beenotung/level-ts": "1.15.0",
         "@jsprismarine/bedrock-data": "1.16.204",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
@@ -142,8 +140,6 @@
         "yaml": "^2.0.0-1"
     },
     "devDependencies": {
-        "@jsprismarine/color-parser": "*",
-        "@jsprismarine/raknet": "*",
         "@types/d3-interpolate": "2.0.0",
         "@types/git-rev-sync": "2.0.0",
         "@types/jest": "26.0.20",
