@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/client",
-    "version": "0.1.0-rc.42",
+    "version": "0.1.0-rc.43",
     "description": "Minecraft: Bedrock Edition RakNet client",
     "main": "./dist/Client.js",
     "types": "./dist/Client.d.ts",
@@ -23,7 +23,7 @@
         "typescript": "4.1.5"
     },
     "dependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.42",
-        "@jsprismarine/raknet": "0.1.0-rc.42"
+        "@jsprismarine/prismarine": "^0.1.0-rc.43",
+        "@jsprismarine/raknet": "^0.1.0-rc.43"
     }
 }
