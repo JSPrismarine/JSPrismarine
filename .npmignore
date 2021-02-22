@@ -6,6 +6,8 @@ src/
 docs/
 .test/
 .github/
+jsp/
+packages/
 /*.json
 jest*
 !package.json
