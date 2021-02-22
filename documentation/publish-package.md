@@ -9,3 +9,7 @@ Lerna is our monorepo manager of choice which can be installed with a simple `$ 
 ## 2. Bump version
 
 Run `$ lerna version {versionnumber}` to bump the whole monorepo to that version.
+
+## 3. Publish to npm
+
+run `$ lerna publish from-package`

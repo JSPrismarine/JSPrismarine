@@ -1,15 +1,14 @@
-// TODO: make this a separate mono-repo
-import Config from '../config/Config';
-import LoggerBuilder from '../utils/Logger';
+import { Config, Logger } from '@jsprismarine/prismarine';
+
 import fetch from 'node-fetch';
 import semver from 'semver';
 
 export default class Updater {
-    private readonly logger: LoggerBuilder;
+    private readonly logger: Logger;
     private readonly config: Config;
     private readonly version: string;
 
-    public constructor({ config, logger, version }: { config: Config; logger: LoggerBuilder; version: string }) {
+    public constructor({ config, logger, version }: { config: Config; logger: Logger; version: string }) {
         this.config = config;
         this.logger = logger;
         this.version = version;

@@ -13,14 +13,20 @@
         "isolatedModules": true,
         "esModuleInterop": true,
         "declaration": true,
+        "declarationMap": true,
         "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "composite": true,
-        "pretty": true
+        "pretty": true,
+        "incremental": true,
+        "paths": {
+            "@jsprismarine/*": ["./packages/*/src"]
+        }
     },
     "include": ["src/**/*", "package.json"],
-    "exclude": ["src**/*.test.ts"],
-    "typeRoots": ["src/@types", "packages/**/src/@types", "node_modules/@types"]
+    "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
+    "typeRoots": ["src/@types", "packages/**/src/@types", "node_modules/@types"],
+    "references": [{ "path": "packages/prismarine/src" }, { "path": "packages/updater/src" }]
 }

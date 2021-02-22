@@ -18,8 +18,9 @@
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "composite": true,
-        "pretty": true
+        "pretty": true,
+        "incremental": true
     },
     "exclude": ["**/*.test.*"],
-    "typeRoots": ["../node_modules/@types/", "../../../node_modules/@types/", "@types/"]
+    "typeRoots": ["../node_modules/@types", "../../../src/@types"]
 }

@@ -1,7 +1,14 @@
-import { Config, Logger, Server, Updater } from '@jsprismarine/prismarine';
+import { Config, Logger, Server } from '@jsprismarine/prismarine';
+
+import Updater from '@jsprismarine/updater';
+import fs from 'fs';
+import path from 'path';
 
 // Process metadata
 process.title = 'Prismarine';
+
+if (process.env.JSP_DIR && !fs.existsSync(path.join(process.cwd(), process.env.JSP_DIR)))
+    fs.mkdirSync(path.join(process.cwd(), process.env.JSP_DIR));
 
 const config = new Config(process.env.npm_package_version!);
 const logger = new Logger();

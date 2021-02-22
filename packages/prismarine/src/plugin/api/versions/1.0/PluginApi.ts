@@ -3,6 +3,7 @@ import EventManager from './EventManager';
 import LoggerBuilder from '../../../../utils/Logger';
 import PluginApiVersion from '../../PluginApiVersion';
 import Server from '../../../../Server';
+import cwd from '../../../../utils/cwd';
 import path from 'path';
 
 export const PLUGIN_API_VERSION = '1.0';
@@ -50,7 +51,7 @@ export default class PluginApi extends PluginApiVersion {
         if (configFile.startsWith('../../') || configFile.startsWith('/../../'))
             throw new Error(`config files should be kept in their respective plugin folder`);
 
-        return new ConfigBuilder(path.join(process.cwd(), '/plugins/', this.pkg.name, configFile));
+        return new ConfigBuilder(path.join(cwd(), '/plugins/', this.pkg.name, configFile));
     }
 
     /**

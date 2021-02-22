@@ -1,6 +1,7 @@
 import { Logger, createLogger, format, transports } from 'winston';
 
 import colorParser from '@jsprismarine/color-parser';
+import cwd from './cwd';
 import fs from 'fs';
 import path from 'path';
 
@@ -53,7 +54,7 @@ export default class LoggerBuilder {
                 }),
                 new transports.File({
                     level: 'silly',
-                    filename: path.join(process.cwd(), 'logs', `${LoggerBuilder.logFile}`),
+                    filename: path.join(cwd(), 'logs', `${LoggerBuilder.logFile}`),
                     format: combine(
                         timestamp({ format: 'HH:mm:ss.SS' }),
                         format.simple(),
@@ -73,7 +74,7 @@ export default class LoggerBuilder {
 
     public getLog(): string | undefined {
         try {
-            return fs.readFileSync(path.join(process.cwd(), 'logs', LoggerBuilder.logFile), 'utf-8');
+            return fs.readFileSync(path.join(cwd(), 'logs', LoggerBuilder.logFile), 'utf-8');
         } catch {
             return undefined;
         }

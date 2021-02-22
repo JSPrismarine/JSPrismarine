@@ -8,7 +8,7 @@ import type Server from '../../Server';
 
 export default class LoginHandler implements PacketHandler<LoginPacket> {
     public async handle(packet: LoginPacket, server: Server, player: Player): Promise<void> {
-        // Check if player count >= max players
+        // TODO: Check if player count >= max players
 
         // Kick client if has newer / older client version
         if (packet.protocol !== Identifiers.Protocol) {

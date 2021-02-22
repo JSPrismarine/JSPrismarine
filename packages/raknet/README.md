@@ -1,1 +1,1 @@
-# JSPrismarine/RakNet
+# JSPrismarine/raknet

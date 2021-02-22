@@ -35,7 +35,7 @@ export default class PlayerManager {
      * Returns an array containing all online players.
      */
     public getOnlinePlayers(): Player[] {
-        return Array.from(this.players.values());
+        return Array.from(this.players.values()).filter((p) => p.isOnline());
     }
 
     /**

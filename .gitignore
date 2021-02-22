@@ -16,6 +16,7 @@ banned-players.json
 permissions.json
 *.log
 /logs/
+/jsp/
 
 # Text editors/IDE things
 .idea

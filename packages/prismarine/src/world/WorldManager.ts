@@ -4,7 +4,9 @@ import LevelDB from './providers/leveldb/LevelDB';
 import Provider from './providers/Provider';
 import Server from '../Server';
 import World from './World';
+import cwd from '../utils/cwd';
 import fs from 'fs';
+import path from 'path';
 
 interface WorldData {
     seed: number;
@@ -24,8 +26,8 @@ export default class WorldManager {
         this.genManager = new GeneratorManager(server);
 
         // Create folders
-        if (!fs.existsSync(process.cwd() + '/worlds')) {
-            fs.mkdirSync(process.cwd() + '/worlds');
+        if (!fs.existsSync(path.join(cwd(), '/worlds'))) {
+            fs.mkdirSync(path.join(cwd(), '/worlds'));
         }
     }
 
@@ -97,7 +99,7 @@ export default class WorldManager {
                 reject();
             }
 
-            const levelPath = process.cwd() + `/worlds/${folderName}/`;
+            const levelPath = path.join(cwd(), `/worlds/${folderName}/`);
             const provider = this.providers.get(worldData.provider ?? 'LevelDB');
             const generator = this.server
                 .getWorldManager()

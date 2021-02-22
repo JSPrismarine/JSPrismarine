@@ -1,5 +1,6 @@
 import type Player from '../player/Player';
 import type Server from '../Server';
+import cwd from '../utils/cwd';
 import fs from 'fs';
 import minifyJson from 'strip-json-comments';
 import path from 'path';
@@ -28,14 +29,14 @@ export default class BanManager {
 
     private async parseBanned() {
         try {
-            if (!fs.existsSync(path.join(process.cwd(), '/banned-players.json'))) {
+            if (!fs.existsSync(path.join(cwd(), '/banned-players.json'))) {
                 this.server.getLogger().warn(`Failed to load ban list!`, 'BanManager/parseBanned');
-                fs.writeFileSync(path.join(process.cwd(), '/banned-players.json'), '[]');
+                fs.writeFileSync(path.join(cwd(), '/banned-players.json'), '[]');
             }
 
             const readFile = util.promisify(fs.readFile);
             const banned: any[] = JSON.parse(
-                minifyJson((await readFile(path.join(process.cwd(), '/banned-players.json'))).toString())
+                minifyJson((await readFile(path.join(cwd(), '/banned-players.json'))).toString())
             );
 
             for (const player of banned) this.banned.set(player.name, player);
@@ -52,7 +53,7 @@ export default class BanManager {
 
         const writeFile = util.promisify(fs.writeFile);
         await writeFile(
-            path.join(process.cwd(), '/banned-players.json'),
+            path.join(cwd(), '/banned-players.json'),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({
                     name: entry[0],
@@ -70,7 +71,7 @@ export default class BanManager {
 
         const writeFile = util.promisify(fs.writeFile);
         await writeFile(
-            path.join(process.cwd(), '/banned-players.json'),
+            path.join(cwd(), '/banned-players.json'),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({
                     name: entry[0],

@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import InetAddress from '@jsprismarine/raknet/dist/utils/InetAddress';
+import { InetAddress } from '@jsprismarine/raknet';
 import QueryManager from './QueryManager';
 import Server from '../Server';
 
@@ -9,7 +9,7 @@ jest.mock('../Server', () => {
 
         public getRaknet() {
             return new (class Raknet {
-                sendBuffer(buffer: Buffer) {}
+                public sendBuffer(buffer: Buffer) {}
             })();
         }
     };

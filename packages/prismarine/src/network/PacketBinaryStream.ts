@@ -270,12 +270,12 @@ export default class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    writeCreativeContentEntry(entry: CreativeContentEntry) {
+    public writeCreativeContentEntry(entry: CreativeContentEntry) {
         this.writeVarInt(entry.entryId);
         this.writeItemStack(new ContainerEntry({ item: entry.item, count: 1 }));
     }
 
-    readCreativeContentEntry() {
+    public readCreativeContentEntry() {
         return {
             entryId: this.readVarInt(),
             item: this.readItemStack()
@@ -285,7 +285,7 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Serializes gamerules into the buffer.
      */
-    writeGamerules(rules: any) {
+    public writeGamerules(rules: any) {
         this.writeUnsignedVarInt(rules.size);
         for (const [name, value] of rules) {
             this.writeString(name);
@@ -399,7 +399,7 @@ export default class PacketBinaryStream extends BinaryStream {
     /**
      * Serializes an item into the buffer.
      */
-    writeItemStack(entry: ContainerEntry) {
+    public writeItemStack(entry: ContainerEntry) {
         const itemstack = entry.getItem();
 
         if (itemstack.getName() === 'minecraft:air') {
@@ -430,7 +430,7 @@ export default class PacketBinaryStream extends BinaryStream {
         return null;
     }
 
-    readItemStackRequest() {
+    public readItemStackRequest() {
         const id = this.readVarInt();
         // This.#server.getLogger().debug(`Request ID: ${id}`);
 
@@ -445,14 +445,14 @@ export default class PacketBinaryStream extends BinaryStream {
         });
     }
 
-    writeItemStackRequest() {
+    public writeItemStackRequest() {
         // TODO
         this.writeBool(true);
         this.writeVarInt(0);
         this.writeVarInt(0);
     }
 
-    readItemStackRequestAction() {
+    public readItemStackRequestAction() {
         const id = this.readByte();
 
         // This.#server.getLogger().debug(`Action ${id}`);
@@ -544,7 +544,7 @@ export default class PacketBinaryStream extends BinaryStream {
         }
     }
 
-    readItemStackRequestSlotInfo() {
+    public readItemStackRequestSlotInfo() {
         return new ItemStackRequestSlotInfo({
             containerId: this.readByte(),
             slot: this.readByte(),
@@ -552,7 +552,7 @@ export default class PacketBinaryStream extends BinaryStream {
         });
     }
 
-    readCommandOriginData() {
+    public readCommandOriginData() {
         const data = new CommandOriginData();
         data.type = this.readUnsignedVarInt();
         data.uuid = this.readUUID();

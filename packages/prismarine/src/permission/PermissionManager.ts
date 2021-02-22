@@ -1,6 +1,7 @@
 import CommandExecuter from '../command/CommandExecuter';
 import Player from '../player/Player';
 import type Server from '../Server';
+import cwd from '../utils/cwd';
 import fs from 'fs';
 import minifyJson from 'strip-json-comments';
 import path from 'path';
@@ -53,10 +54,10 @@ export default class PermissionManager {
 
     private async parsePermissions(): Promise<void> {
         try {
-            if (!fs.existsSync(path.join(process.cwd(), '/permissions.json'))) {
+            if (!fs.existsSync(path.join(cwd(), '/permissions.json'))) {
                 this.server.getLogger().warn(`Failed to load permissions list!`, 'PermissionManager/parsePermissions');
                 fs.writeFileSync(
-                    path.join(process.cwd(), '/permissions.json'),
+                    path.join(cwd(), '/permissions.json'),
                     JSON.stringify(
                         {
                             defaultPermissions: [
@@ -89,7 +90,7 @@ export default class PermissionManager {
                     name: string;
                     permissions: string[];
                 }>;
-            } = JSON.parse(minifyJson((await readFile(path.join(process.cwd(), '/permissions.json'))).toString()));
+            } = JSON.parse(minifyJson((await readFile(path.join(cwd(), '/permissions.json'))).toString()));
 
             this.defaultPermissions = permissionsObject.defaultPermissions || [];
             this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
@@ -104,15 +105,13 @@ export default class PermissionManager {
 
     private async parseOps(): Promise<void> {
         try {
-            if (!fs.existsSync(path.join(process.cwd(), '/ops.json'))) {
+            if (!fs.existsSync(path.join(cwd(), '/ops.json'))) {
                 this.server.getLogger().warn(`Failed to load operators list!`, 'PermissionManager/parseOps');
-                fs.writeFileSync(path.join(process.cwd(), '/ops.json'), '[]');
+                fs.writeFileSync(path.join(cwd(), '/ops.json'), '[]');
             }
 
             const readFile = util.promisify(fs.readFile);
-            const ops: OpType[] = JSON.parse(
-                minifyJson((await readFile(path.join(process.cwd(), '/ops.json'))).toString())
-            );
+            const ops: OpType[] = JSON.parse(minifyJson((await readFile(path.join(cwd(), '/ops.json'))).toString()));
 
             ops.map((op) => this.ops.add(op.name));
         } catch (error) {
@@ -137,7 +136,7 @@ export default class PermissionManager {
         const writeFile = util.promisify(fs.writeFile);
         try {
             await writeFile(
-                path.join(process.cwd(), '/ops.json'),
+                path.join(cwd(), '/ops.json'),
                 JSON.stringify(
                     Array.from(this.ops.values()).map((name) => ({
                         name,

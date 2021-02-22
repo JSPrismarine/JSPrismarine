@@ -1,6 +1,7 @@
 import AdventureSettingsPacket, { AdventureSettingsFlags } from '../network/packet/AdventureSettingsPacket';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
 import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
+import { Connection, Protocol } from '@jsprismarine/raknet';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../network/packet/PlayerListPacket';
 
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
@@ -11,21 +12,18 @@ import BatchPacket from '../network/packet/BatchPacket';
 import Block from '../block/Block';
 import Chunk from '../world/chunk/Chunk';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
-import type Connection from '@jsprismarine/raknet/dist/Connection';
 import ContainerEntry from '../inventory/ContainerEntry';
 import CoordinateUtils from '../world/CoordinateUtils';
 import CreativeContentEntry from '../network/type/CreativeContentEntry';
 import CreativeContentPacket from '../network/packet/CreativeContentPacket';
 import DataPacket from '../network/packet/DataPacket';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
-import EncapsulatedPacket from '@jsprismarine/raknet/dist/protocol/EncapsulatedPacket';
 import Gamemode from '../world/Gamemode';
 import IForm from '../form/IForm';
 import InventoryContentPacket from '../network/packet/InventoryContentPacket';
 import Item from '../item/Item';
 import LevelChunkPacket from '../network/packet/LevelChunkPacket';
 import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
-import ModalForm from '../form/ModalForm';
 import ModalFormRequestPacket from '../network/packet/ModalFormRequestPacket';
 import MovePlayerPacket from '../network/packet/MovePlayerPacket';
 import MovementType from '../network/type/MovementType';
@@ -69,7 +67,7 @@ export default class PlayerConnection {
         batch.encode();
 
         // Add this in raknet
-        const sendPacket = new EncapsulatedPacket();
+        const sendPacket = new Protocol.EncapsulatedPacket();
         sendPacket.reliability = 0;
         sendPacket.buffer = batch.getBuffer();
 

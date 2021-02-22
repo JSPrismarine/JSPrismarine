@@ -1,13 +1,12 @@
+import { Connection, InetAddress } from '@jsprismarine/raknet';
 import ChatEvent from '../events/chat/ChatEvent';
 import Chunk from '../world/chunk/Chunk';
 import CommandExecuter from '../command/CommandExecuter';
-import Connection from '@jsprismarine/raknet/dist/Connection';
 import ContainerEntry from '../inventory/ContainerEntry';
 import Device from '../utils/Device';
 import FormManager from '../form/FormManager';
 import Gamemode from '../world/Gamemode';
 import Human from '../entity/Human';
-import InetAddress from '@jsprismarine/raknet/dist/utils/InetAddress';
 import MovementType from '../network/type/MovementType';
 import PlayerConnection from './PlayerConnection';
 import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
@@ -27,6 +26,7 @@ export default class Player extends Human implements CommandExecuter {
     // TODO: finish implementation
     private readonly windows: WindowManager;
 
+    private connected = false;
     public username = {
         prefix: '<',
         suffix: '>',
@@ -118,10 +118,18 @@ export default class Player extends Human implements CommandExecuter {
                 })
             );
         });
+
+        this.connected = true;
     }
 
     public async onDisable() {
-        if (this.xuid) await this.getWorld().savePlayerData(this);
+        if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
+
+        this.connected = false;
+    }
+
+    public isOnline() {
+        return this.connected;
     }
 
     public async update(tick: number): Promise<void> {

@@ -1,3 +1,5 @@
+import { Connection, InetAddress, Listener, Protocol } from '@jsprismarine/raknet';
+
 import BanManager from './ban/BanManager';
 import BatchPacket from './network/packet/BatchPacket';
 import BlockManager from './block/BlockManager';
@@ -7,14 +9,10 @@ import ChatEvent from './events/chat/ChatEvent';
 import ChatManager from './chat/ChatManager';
 import CommandManager from './command/CommandManager';
 import type Config from './config/Config';
-import Connection from '@jsprismarine/raknet/dist/Connection';
 import Console from './Console';
-import EncapsulatedPacket from '@jsprismarine/raknet/dist/protocol/EncapsulatedPacket';
 import { EventManager } from './events/EventManager';
 import Identifiers from './network/Identifiers';
-import type InetAddress from '@jsprismarine/raknet/dist/utils/InetAddress';
 import ItemManager from './item/ItemManager';
-import Listener from '@jsprismarine/raknet/dist/Listener';
 import type LoggerBuilder from './utils/Logger';
 import PacketHandler from './network/handler/PacketHandler';
 import PacketRegistry from './network/PacketRegistry';
@@ -130,7 +128,7 @@ export default class Server {
             await this.getEventManager().emit('raknetDisconnect', event);
         });
 
-        this.raknet.on('encapsulated', async (packet: EncapsulatedPacket, inetAddr: InetAddress) => {
+        this.raknet.on('encapsulated', async (packet: Protocol.EncapsulatedPacket, inetAddr: InetAddress) => {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             await this.getEventManager().emit('raknetEncapsulatedPacket', event);
         });
@@ -340,6 +338,7 @@ export default class Server {
         this.stopping = true;
 
         this.getLogger().info('Stopping server', 'Server/kill');
+        await this.console.onDisable();
 
         try {
             // Kick all online players
@@ -353,7 +352,6 @@ export default class Server {
             await this.worldManager.onDisable();
             await this.onDisable();
             await this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
-            await this.console.onDisable();
             process.exit(options?.crash ? 1 : 0);
         } catch (error) {
             this.getLogger().error(error, 'Server/kill');
