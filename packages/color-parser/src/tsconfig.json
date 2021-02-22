@@ -3,7 +3,6 @@
         "outDir": "../dist",
         "target": "es2020",
         "rootDir": ".",
-        "baseUrl": ".",
         "lib": ["es2020", "esnext"],
         "module": "commonjs",
         "moduleResolution": "node",
