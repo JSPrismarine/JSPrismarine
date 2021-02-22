@@ -15,7 +15,7 @@ jobs:
             - run: npm install -g lerna
             - run: lerna bootstrap
             - run: npm install
-            - run: npm run build --ignore @jsprismarine/client
+            - run: npm run build
             - run: npm run eslint
     lint-prettier:
         runs-on: ubuntu-latest
@@ -28,7 +28,7 @@ jobs:
             - run: npm install -g lerna
             - run: lerna bootstrap
             - run: npm install
-            - run: npm run build --ignore @jsprismarine/client
+            - run: npm run build
             - run: npm run prettier
     lint-coveralls:
         runs-on: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
             - run: npm install -g lerna
             - run: lerna bootstrap
             - run: npm install
-            - run: npm run build --ignore @jsprismarine/client
+            - run: npm run build
             - run: npm run coveralls
             - name: Coveralls
               uses: coverallsapp/github-action@master

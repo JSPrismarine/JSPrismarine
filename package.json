@@ -23,6 +23,7 @@
         "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch './src' --watch './packages' --ignore '**/*.d.ts' --ignore '**/*.js' -e ts,js,json --exec 'npm run build && npm run start:dev'",
         "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run build && npm run start:dev",
         "build": "lerna run build && tsc --project ./tsconfig.json",
+        "bootstrap": "lerna bootstrap",
         "package": "pkg package.json --out-path ./builds/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
         "test:watch": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
@@ -151,7 +152,8 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
         "@jsprismarine/prismarine": "0.1.0-rc.42",
-        "@jsprismarine/updater": "0.1.0-rc.42"
+        "@jsprismarine/updater": "0.1.0-rc.42",
+        "pkg": "github:kkoomen/pkg"
     },
     "devDependencies": {
         "@types/d3-interpolate": "2.0.0",

@@ -24,7 +24,6 @@
     },
     "dependencies": {
         "@jsprismarine/prismarine": "0.1.0-rc.42",
-        "@jsprismarine/raknet": "0.1.0-rc.42",
-        "chalk": "^4.1.0"
+        "@jsprismarine/raknet": "0.1.0-rc.42"
     }
 }
