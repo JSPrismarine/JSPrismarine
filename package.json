@@ -21,6 +21,7 @@
         "start": "cross-env NODE_ENV=production node ./dist/Prismarine.js --unhandled-rejections=strict",
         "start:dev": "cross-env NODE_ENV=development node ./dist/Prismarine.js --unhandled-rejections=strict",
         "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch './src' --watch './packages' --ignore '**/*.d.ts' --ignore '**/*.js' -e ts,js,json --exec 'npm run build && npm run start:dev'",
+        "dev:no-watch": "npm run build && npm run start:dev",
         "build": "lerna run build && tsc --project ./tsconfig.json",
         "package": "pkg package.json --out-path ./builds/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",

@@ -22,6 +22,5 @@
         "incremental": true
     },
     "exclude": ["**/*.test.*"],
-    "typeRoots": ["../node_modules/@types", "../../../node_modules/@types", "../../../src/@types"],
-    "references": [{ "path": "../../../" }]
+    "typeRoots": ["../node_modules/@types", "../../../src/@types"]
 }
