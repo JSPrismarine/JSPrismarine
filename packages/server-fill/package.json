@@ -1,12 +1,13 @@
 {
-    "name": "@jsprismarine/client",
+    "name": "@jsprismarine/server-fill",
     "version": "0.1.0-rc.42",
-    "description": "Minecraft: Bedrock Edition RakNet client",
+    "description": "Used to test server performance with x amount of players connected",
     "main": "./dist/Client.js",
     "types": "./dist/Client.d.ts",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
-        "build": "tsc --build src"
+        "build": "tsc --build src",
+        "start": "node ./dist/ServerFill.ts"
     },
     "repository": {
         "type": "git",
@@ -18,12 +19,12 @@
     ],
     "author": "JSPrismarine",
     "license": "MIT",
-    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/server-fill",
     "devDependencies": {
         "typescript": "4.1.5"
     },
     "dependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.42",
+        "@jsprismarine/client": "0.1.0-rc.42",
         "@jsprismarine/raknet": "0.1.0-rc.42",
         "chalk": "^4.1.0"
     }
