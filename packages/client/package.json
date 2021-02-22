@@ -19,12 +19,16 @@
     "author": "JSPrismarine",
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
+    "peerDependencies": {
+        "@jsprismarine/prismarine": "0.1.0-rc.42",
+        "@jsprismarine/raknet": "0.1.0-rc.42"
+    },
     "devDependencies": {
+        "@jsprismarine/prismarine": "*",
+        "@jsprismarine/raknet": "*",
         "typescript": "4.1.5"
     },
     "dependencies": {
-        "chalk": "^4.1.0",
-        "@jsprismarine/raknet": "0.1.0-rc.42",
-        "@jsprismarine/prismarine": "0.1.0-rc.42"
+        "chalk": "^4.1.0"
     }
 }

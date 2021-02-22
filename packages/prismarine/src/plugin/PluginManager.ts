@@ -3,6 +3,7 @@ import PluginApiVersion from './api/PluginApiVersion';
 import PluginFile from './PluginFile';
 import Server from '../Server';
 import Timer from '../utils/Timer';
+import cwd from '../utils/cwd';
 import fs from 'fs';
 import path from 'path';
 import unzipper from 'unzipper';
@@ -21,8 +22,8 @@ export default class PluginManager {
      */
     public async onEnable() {
         // Create plugin folder
-        if (!fs.existsSync(process.cwd() + '/plugins')) {
-            fs.mkdirSync(process.cwd() + '/plugins');
+        if (!fs.existsSync(cwd() + '/plugins')) {
+            fs.mkdirSync(cwd() + '/plugins');
         }
 
         // Register PluginApiVersion(s)
@@ -52,7 +53,7 @@ export default class PluginManager {
         // Register Plugin(s)
         timer = new Timer();
 
-        const plugins = fs.readdirSync(path.join(process.cwd(), 'plugins'));
+        const plugins = fs.readdirSync(path.join(cwd(), 'plugins'));
         const res = (
             await Promise.all(
                 plugins.map(async (id: string) => {
@@ -110,22 +111,22 @@ export default class PluginManager {
 
         const timer = new Timer();
 
-        let dir = path.join(process.cwd(), 'plugins', id);
+        let dir = path.join(cwd(), 'plugins', id);
         if (!fs.lstatSync(dir).isDirectory()) {
             // Invalid file
             if (!dir.includes('.jspz')) {
                 return null;
             }
 
-            if (!fs.existsSync(path.join(process.cwd(), '/plugins/.extracted/'))) {
-                fs.mkdirSync(path.join(process.cwd(), '/plugins/.extracted/'));
+            if (!fs.existsSync(path.join(cwd(), '/plugins/.extracted/'))) {
+                fs.mkdirSync(path.join(cwd(), '/plugins/.extracted/'));
             }
 
-            dir = path.join(process.cwd(), '/plugins/.extracted/', id);
+            dir = path.join(cwd(), '/plugins/.extracted/', id);
 
             this.server.getLogger().silly(`Extracting plugin with id §b${id}...`, 'PluginManager/registerPlugin');
             await fs
-                .createReadStream(path.join(process.cwd(), 'plugins/', id))
+                .createReadStream(path.join(cwd(), 'plugins/', id))
                 .pipe(unzipper.Extract({ path: dir }))
                 .promise();
         }
@@ -148,8 +149,8 @@ export default class PluginManager {
 
         if (!pkg.name || !pkg.prismarine) throw new Error(`package.json is invalid!`);
 
-        if (!fs.existsSync(path.join(process.cwd(), '/plugins/', pkg.name))) {
-            fs.mkdirSync(path.join(process.cwd(), '/plugins/', pkg.name));
+        if (!fs.existsSync(path.join(cwd(), '/plugins/', pkg.name))) {
+            fs.mkdirSync(path.join(cwd(), '/plugins/', pkg.name));
         }
 
         if (pkg.dependencies)

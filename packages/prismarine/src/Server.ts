@@ -1,4 +1,5 @@
 import { Connection, InetAddress, Listener, Protocol } from '@jsprismarine/raknet';
+
 import BanManager from './ban/BanManager';
 import BatchPacket from './network/packet/BatchPacket';
 import BlockManager from './block/BlockManager';
@@ -337,6 +338,7 @@ export default class Server {
         this.stopping = true;
 
         this.getLogger().info('Stopping server', 'Server/kill');
+        await this.console.onDisable();
 
         try {
             // Kick all online players
@@ -350,7 +352,6 @@ export default class Server {
             await this.worldManager.onDisable();
             await this.onDisable();
             await this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
-            await this.console.onDisable();
             process.exit(options?.crash ? 1 : 0);
         } catch (error) {
             this.getLogger().error(error, 'Server/kill');

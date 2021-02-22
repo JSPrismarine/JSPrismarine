@@ -3,6 +3,7 @@
         "outDir": "../dist",
         "target": "es2020",
         "rootDir": ".",
+        "baseUrl": ".",
         "lib": ["es2020", "esnext"],
         "module": "commonjs",
         "moduleResolution": "node",
@@ -22,5 +23,13 @@
         "incremental": true
     },
     "exclude": ["**/*.test.*"],
-    "typeRoots": ["../node_modules/@types", "../../../src/@types"]
+    "typeRoots": ["../node_modules/@types", "../../../src/@types"],
+    "references": [
+        {
+            "path": "../../color-parser/src"
+        },
+        {
+            "path": "../../raknet/src"
+        }
+    ]
 }
