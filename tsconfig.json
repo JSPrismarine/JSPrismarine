@@ -29,5 +29,5 @@
     "include": ["src/**/*", "package.json"],
     "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
     "typeRoots": ["src/@types", "packages/**/src/@types", "node_modules/@types"],
-    "references": [{ "path": "packages/prismarine/src" }]
+    "references": [{ "path": "packages/prismarine/src" }, { "path": "packages/updater/src" }]
 }

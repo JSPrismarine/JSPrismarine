@@ -13,8 +13,8 @@ jobs:
                   node-version: 14
             - run: npm install -g npm@latest
             - run: npm install -g lerna
-            - run: npm install
             - run: lerna bootstrap
+            - run: npm install
             - run: npm run build
             - run: npm run eslint
     lint-prettier:
@@ -26,8 +26,8 @@ jobs:
                   node-version: 14
             - run: npm install -g npm@latest
             - run: npm install -g lerna
-            - run: npm install
             - run: lerna bootstrap
+            - run: npm install
             - run: npm run build
             - run: npm run prettier
     lint-coveralls:
@@ -39,8 +39,8 @@ jobs:
                   node-version: 14
             - run: npm install -g npm@latest
             - run: npm install -g lerna
-            - run: npm install
             - run: lerna bootstrap
+            - run: npm install
             - run: npm run build
             - run: npm run coveralls
             - name: Coveralls

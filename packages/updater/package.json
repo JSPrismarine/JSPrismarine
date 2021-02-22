@@ -1,0 +1,34 @@
+{
+    "name": "@jsprismarine/updater",
+    "version": "0.1.0-rc.42",
+    "description": "JSPrismarine updater",
+    "main": "./dist/Updater.js",
+    "types": "./dist/Updater.d.ts",
+    "funding": "https://github.com/sponsors/JSPrismarine",
+    "scripts": {
+        "build": "tsc --build src"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "nodejs",
+        "raknet"
+    ],
+    "author": "JSPrismarine",
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/updater",
+    "peerDependencies": {
+        "@jsprismarine/prismarine": "0.1.0-rc.42"
+    },
+    "devDependencies": {
+        "@jsprismarine/prismarine": "*",
+        "typescript": "4.1.5"
+    },
+    "dependencies": {
+        "chalk": "^4.1.0",
+        "node-fetch": "^2.6.1",
+        "semver": "^7.3.4"
+    }
+}
