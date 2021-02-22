@@ -121,7 +121,7 @@
         "@beenotung/level-ts": "1.15.0",
         "@jsprismarine/bedrock-data": "1.16.204",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
-        "@jsprismarine/color-parser": "^0.1.0-rc.43",
+        "@jsprismarine/color-parser": "^1.0.0",
         "@jsprismarine/jsbinaryutils": "2.1.8",
         "@jsprismarine/raknet": "^0.1.0-rc.43",
         "d3-interpolate": "2.0.1",
