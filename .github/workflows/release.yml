@@ -23,7 +23,7 @@ jobs:
             - run: npm install -g lerna
             - run: lerna bootstrap
             - run: npm install
-            - run: npm run build --ignore client
+            - run: npm run build --ignore @jsprismarine/client
 
             - uses: JS-DevTools/npm-publish@v1
               with:
