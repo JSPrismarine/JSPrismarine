@@ -24,6 +24,6 @@
     },
     "dependencies": {
         "@jsprismarine/prismarine": "^0.1.0-rc.43",
-        "@jsprismarine/raknet": "^0.1.0-rc.43"
+        "@jsprismarine/raknet": "^2.0.0"
     }
 }
