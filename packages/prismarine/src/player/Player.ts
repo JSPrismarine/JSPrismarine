@@ -26,6 +26,7 @@ export default class Player extends Human implements CommandExecuter {
     // TODO: finish implementation
     private readonly windows: WindowManager;
 
+    private connected = false;
     public username = {
         prefix: '<',
         suffix: '>',
@@ -117,10 +118,18 @@ export default class Player extends Human implements CommandExecuter {
                 })
             );
         });
+
+        this.connected = true;
     }
 
     public async onDisable() {
-        if (this.xuid) await this.getWorld().savePlayerData(this);
+        if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
+
+        this.connected = false;
+    }
+
+    public isOnline() {
+        return this.connected;
     }
 
     public async update(tick: number): Promise<void> {

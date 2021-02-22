@@ -27,8 +27,8 @@
         "test:watch": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
         "eslint": "xo src/",
         "eslint:format": "xo --fix src/",
-        "prettier": "prettier --config .prettierrc src/**/*.* --check",
-        "prettier:format": "prettier --config .prettierrc src/**/*.* --write",
+        "prettier": "prettier --config .prettierrc src/**/*.* --check && prettier --config .prettierrc packages/**/src/**/*.* --check",
+        "prettier:format": "prettier --config .prettierrc src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write",
         "coveralls": "jest --coverage --forceExit --testLocationInResults --silent && cat ./coverage/lcov.info | coveralls"
     },
     "repository": {
