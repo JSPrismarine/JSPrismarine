@@ -5,15 +5,6 @@ import RakNetListener from './RakNetListener';
 import InetAddress from './utils/InetAddress';
 import ServerName from './utils/ServerName';
 
-export type {
-    RakNetListener
-}
+export type { RakNetListener };
 
-export {
-    Connection,
-    ConnectionPriority,
-    Protocol,
-    Listener,
-    InetAddress,
-    ServerName
-};
+export { Connection, ConnectionPriority, Protocol, Listener, InetAddress, ServerName };
