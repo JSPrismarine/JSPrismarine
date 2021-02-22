@@ -7,7 +7,7 @@
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "tsc --build src",
-        "start": "node ./dist/ServerFill.ts"
+        "start": "node ./dist/ServerFill.js"
     },
     "repository": {
         "type": "git",
@@ -26,6 +26,6 @@
     "dependencies": {
         "@jsprismarine/client": "0.1.0-rc.42",
         "@jsprismarine/raknet": "0.1.0-rc.42",
-        "chalk": "^4.1.0"
+        "@jsprismarine/prismarine": "0.1.0-rc.42"
     }
 }
