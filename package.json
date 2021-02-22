@@ -151,7 +151,7 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.42",
+        "@jsprismarine/prismarine": "0.1.0-rc.43",
         "@jsprismarine/updater": "0.1.0-rc.42",
         "pkg": "github:kkoomen/pkg"
     },
