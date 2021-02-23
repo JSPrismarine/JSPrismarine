@@ -136,7 +136,7 @@ export default class PluginManager {
             return null;
         }
 
-        if (dir.includes('.jspz'))
+        if (!dir.endsWith('.jspz'))
             this.server
                 .getLogger()
                 .warn(
