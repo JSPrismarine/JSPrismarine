@@ -6,7 +6,7 @@ import Solid from '../Solid';
 export enum RedSandstoneType {
     Regular = 0,
     Chiseled = 1,
-    Smooth
+    Cut = 2
 }
 
 export default class RedSandstone extends Solid {

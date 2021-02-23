@@ -4,7 +4,8 @@ import Solid from '../Solid';
 
 export enum DirtType {
     Regular = 0,
-    Coarse = 1
+    Coarse = 1,
+    Podzol = 2
 }
 
 export default class Dirt extends Solid {
