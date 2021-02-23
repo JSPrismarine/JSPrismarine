@@ -20,7 +20,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/color-parser",
     "devDependencies": {
-        "typescript": "4.1.5"
+        "typescript": "4.2.2"
     },
     "dependencies": {
         "chalk": "^4.1.0"
