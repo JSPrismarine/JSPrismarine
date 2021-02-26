@@ -130,9 +130,9 @@
     "husky": {
         "hooks": {
             "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test",
-            "post-checkout": "yarnhook",
-            "post-merge": "yarnhook",
-            "post-rewrite": "yarnhook"
+            "post-checkout": "lerna bootstrap && yarnhook",
+            "post-merge": "lerna bootstrap && yarnhook",
+            "post-rewrite": "lerna bootstrap && yarnhook"
         }
     },
     "pkg": {
@@ -152,8 +152,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
         "@jsprismarine/prismarine": "0.1.0-rc.42",
-        "@jsprismarine/updater": "0.1.0-rc.42",
-        "pkg": "github:kkoomen/pkg"
+        "@jsprismarine/updater": "0.1.0-rc.42"
     },
     "devDependencies": {
         "@types/d3-interpolate": "2.0.0",
