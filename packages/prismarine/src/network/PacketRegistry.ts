@@ -43,7 +43,7 @@ import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerHandler from './handler/MovePlayerHandler';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
-import OnScreenTextureAnimationPacket from './packet/OnScreenTextureAnimation';
+import OnScreenTextureAnimationPacket from './packet/OnScreenTextureAnimationPacket';
 import PacketViolationWarningHandler from './handler/PacketViolationWarningHandler';
 import PacketViolationWarningPacket from './packet/PacketViolationWarningPacket';
 import PlayStatusPacket from './packet/PlayStatusPacket';
