@@ -40,7 +40,21 @@ export default class Config {
             world: {
                 generator: 'overworld',
                 provider: 'LevelDB',
-                seed: SeedGenerator()
+                seed: SeedGenerator(),
+                layers: [
+                    {
+                        block: 'bedrock',
+                        size: 1
+                    },
+                    {
+                        block: 'dirt',
+                        size: 2
+                    },
+                    {
+                        block: 'grass',
+                        size: 1
+                    }
+                ]
             }
         });
         this.maxPlayers = this.configBuilder.get('max-players', 20);

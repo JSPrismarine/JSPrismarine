@@ -37,6 +37,7 @@ import LoginHandler from './handler/LoginHandler';
 import LoginPacket from './packet/LoginPacket';
 import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
 import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
 import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
 import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
@@ -153,6 +154,8 @@ export default class PacketRegistry {
         this.registerPacket(LoginPacket);
         this.registerPacket(MobEquipmentPacket);
         this.registerPacket(MovePlayerPacket);
+        this.registerPacket(ModalFormRequestPacket);
+        this.registerPacket(ModalFormResponsePacket);
         this.registerPacket(MoveActorAbsolutePacket);
         this.registerPacket(NetworkChunkPublisherUpdatePacket);
         this.registerPacket(OnScreenTextureAnimationPacket);
@@ -189,7 +192,6 @@ export default class PacketRegistry {
         this.registerPacket(UpdateAttributesPacket);
         this.registerPacket(UpdateBlockPacket);
         this.registerPacket(WorldEventPacket);
-        this.registerPacket(ModalFormResponsePacket);
 
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
