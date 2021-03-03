@@ -28,6 +28,9 @@ export default class TpCommand extends Command {
 
                         const position = context.getArgument('position') as Vector3;
 
+                        if (Number.isInteger(position.getX())) position.setX(position.getX() + 0.5);
+                        if (Number.isInteger(position.getZ())) position.setZ(position.getZ() + 0.5);
+
                         await source.setPosition(position, MovementType.Teleport);
                         return `Teleported ${source.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
                     })
