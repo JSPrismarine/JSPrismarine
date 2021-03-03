@@ -50,7 +50,7 @@ export default class TpCommand extends Command {
                                 const targets = context.getArgument('player') as Player[];
 
                                 const position = context.getArgument('position') as Vector3;
-                                
+
                                 if (Number.isInteger(position.getX())) {
                                     if (position.getX() > 0) {
                                         position.setX(position.getX() - 0.5);
