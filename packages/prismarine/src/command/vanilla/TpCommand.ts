@@ -28,14 +28,16 @@ export default class TpCommand extends Command {
 
                         const position = context.getArgument('position') as Vector3;
 
-                        if (!Number.isInteger(position.getX()))
-                            position.getX() > 0
-                                ? position.setX(position.getX() - 0.5)
-                                : position.setX(position.getX() + 0.5);
-                        if (!Number.isInteger(position.getZ()))
-                            position.getZ() > 0
-                                ? position.setZ(position.getZ() - 0.5)
-                                : position.setZ(position.getZ() + 0.5);
+                        if (Number.isInteger(position.getX())) {
+                            if (position.getX() > 0) {
+                                position.setX(position.getX() - 0.5);
+                            } else position.setX(position.getX() + 0.5);
+                        }
+                        if (Number.isInteger(position.getZ())) {
+                            if (position.getZ() > 0) {
+                                position.setZ(position.getZ() - 0.5);
+                            } else position.setZ(position.getZ() + 0.5);
+                        }
 
                         await source.setPosition(position, MovementType.Teleport);
                         return `Teleported ${source.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
@@ -49,14 +51,16 @@ export default class TpCommand extends Command {
 
                                 const position = context.getArgument('position') as Vector3;
                                 
-                                if (!Number.isInteger(position.getX()))
-                                    position.getX() > 0
-                                        ? position.setX(position.getX() - 0.5)
-                                        : position.setX(position.getX() + 0.5);
-                                if (!Number.isInteger(position.getZ()))
-                                    position.getZ() > 0
-                                        ? position.setZ(position.getZ() - 0.5)
-                                        : position.setZ(position.getZ() + 0.5);
+                                if (Number.isInteger(position.getX())) {
+                                    if (position.getX() > 0) {
+                                        position.setX(position.getX() - 0.5);
+                                    } else position.setX(position.getX() + 0.5);
+                                }
+                                if (Number.isInteger(position.getZ())) {
+                                    if (position.getZ() > 0) {
+                                        position.setZ(position.getZ() - 0.5);
+                                    } else position.setZ(position.getZ() + 0.5);
+                                }
 
                                 if (!targets?.length) throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
 
