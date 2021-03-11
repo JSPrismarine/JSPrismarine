@@ -34,6 +34,7 @@ interface JWT {
     SkinId: string;
     CapeId: string;
     SkinResourcePatch: string;
+    PlayFabId: string;
     SkinImageHeight: number;
     SkinImageWidth: number;
     SkinGeometryData: string;
@@ -54,6 +55,7 @@ interface JWT {
 
 export default class Skin {
     private id!: string;
+    private playFabId!: string;
     private resourcePatch!: string;
     private image!: SkinImage;
     private readonly animations: Set<SkinAnimation> = new Set();
@@ -91,6 +93,7 @@ export default class Skin {
             height: jwt.SkinImageHeight,
             data: Buffer.from(jwt.SkinData, 'base64')
         });
+        skin.playFabId = jwt.PlayFabId;
         skin.color = jwt.SkinColor;
         skin.armSize = jwt.ArmSize;
 
@@ -168,6 +171,10 @@ export default class Skin {
 
     public getFullId(): string {
         return this.fullId ?? this.getCape().getId() + this.getId();
+    }
+
+    public getPayFabId(): string {
+        return this.playFabId;
     }
 
     public getResourcePatch(): string {
