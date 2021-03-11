@@ -1,7 +1,7 @@
 const Identifiers = {
-    Protocol: 422,
+    Protocol: 428,
 
-    MinecraftVersion: '1.16.201',
+    MinecraftVersion: '1.16.210',
 
     LoginPacket: 0x01,
     PlayStatusPacket: 0x02,
@@ -162,7 +162,8 @@ const Identifiers = {
     PlayerFogPacket: 0xa0,
     CorrectPlayerMovePredictionPacket: 0xa1,
     ItemComponentPacket: 0xa2,
-    FilterTextPacket: 0xa3
+    FilterTextPacket: 0xa3,
+    ClientboundDebugRendererPacket: 0xa4
 };
 
 export default Identifiers;
