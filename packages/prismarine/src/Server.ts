@@ -252,6 +252,8 @@ export default class Server {
                     }
 
                     try {
+                        console.log(packet);
+
                         const handler = this.packetRegistry.getPacketHandler(packet.getId());
 
                         await (handler as PacketHandler<any>).handle(packet, this, player);

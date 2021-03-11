@@ -182,7 +182,7 @@ export default class PacketBinaryStream extends BinaryStream {
      */
     public writeSkin(skin: Skin): void {
         this.writeString(skin.getId());
-        this.writeString(skin.getPayFabId());
+        this.writeString(skin.getPlayFabId());
         this.writeString(skin.getResourcePatch());
 
         // Skin image

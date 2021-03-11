@@ -173,7 +173,7 @@ export default class Skin {
         return this.fullId ?? this.getCape().getId() + this.getId();
     }
 
-    public getPayFabId(): string {
+    public getPlayFabId(): string {
         return this.playFabId;
     }
 
