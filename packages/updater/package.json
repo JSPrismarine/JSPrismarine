@@ -27,5 +27,6 @@
         "chalk": "^4.1.0",
         "node-fetch": "^2.6.1",
         "semver": "^7.3.4"
-    }
+    },
+    "gitHead": "31574251de97a47da10e946fb5c1db1b68758e10"
 }

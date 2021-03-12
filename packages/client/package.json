@@ -25,5 +25,6 @@
     "dependencies": {
         "@jsprismarine/prismarine": "^0.1.0-rc.44",
         "@jsprismarine/raknet": "^0.1.0-rc.44"
-    }
+    },
+    "gitHead": "31574251de97a47da10e946fb5c1db1b68758e10"
 }
