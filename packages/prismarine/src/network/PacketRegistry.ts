@@ -1,11 +1,7 @@
-import ActorFallPacket from './packet/ActorFallPacket';
-import AddActorPacket from './packet/AddActorPacket';
-import AddPlayerPacket from './packet/AddPlayerPacket';
+import * as Packets from './Protocol';
+
 import AdventureSettingsHandler from './handler/AdventureSettingsHandler';
-import AdventureSettingsPacket from './packet/AdventureSettingsPacket';
 import AnimateHandler from './handler/AnimateHandler';
-import AnimatePacket from './packet/AnimatePacket';
-import AvailableActorIdentifiersPacket from './packet/AvailableActorIdentifiersPacket';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import BiomeDefinitionListPacket from './packet/BiomeDefinitionListPacket';
 import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
@@ -34,7 +30,6 @@ import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import LoggerBuilder from '../utils/Logger';
 import LoginHandler from './handler/LoginHandler';
-import LoginPacket from './packet/LoginPacket';
 import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
@@ -66,7 +61,6 @@ import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
 import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
-import SetGamemodePacket from './packet/SetGamemodePacket';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
@@ -81,9 +75,7 @@ import ShowStoreOfferPacket from './packet/ShowStoreOfferPacket';
 import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
 import StartGamePacket from './packet/StartGamePacket';
 import TextHandler from './handler/TextHandler';
-import TextPacket from './packet/TextPacket';
 import TickSyncHandler from './handler/TickSyncHandler';
-import TickSyncPacket from './packet/TickSyncPacket';
 import Timer from '../utils/Timer';
 import TransferPacket from './packet/TransferPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
@@ -100,8 +92,8 @@ export default class PacketRegistry {
     }
 
     public async onEnable() {
-        this.loadPackets();
-        this.loadHandlers();
+        await this.loadPackets();
+        await this.loadHandlers();
     }
 
     public async onDisable() {
@@ -109,12 +101,23 @@ export default class PacketRegistry {
         this.packets.clear();
     }
 
-    private registerPacket(packet: any): void {
+    public registerPacket(packet: any): void {
+        if (this.packets.has(packet.NetID))
+            throw new Error(
+                `Packet ${packet.name} is trying to use id ${packet.NetID.toString(16)} which already exists!`
+            );
+
         this.packets.set(packet.NetID, packet);
         this.logger.silly(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
     }
 
-    private registerHandler(id: number, handler: object): void {
+    public removePacket(id: number): void {
+        this.packets.delete(id);
+    }
+
+    public registerHandler(id: number, handler: object): void {
+        if (this.handlers.has(id)) throw new Error(`Handler with id ${id} already exists!`);
+
         this.handlers.set(id, handler);
         this.logger.silly(
             `Handler with id §b${handler.constructor.name}§r registered`,
@@ -122,21 +125,20 @@ export default class PacketRegistry {
         );
     }
 
-    private loadPackets(): void {
+    public removeHandler(id: number): void {
+        this.handlers.delete(id);
+    }
+
+    private async loadPackets(): Promise<void> {
         const timer = new Timer();
 
-        this.registerPacket(ActorFallPacket);
-        this.registerPacket(AddActorPacket);
-        this.registerPacket(AddPlayerPacket);
-        this.registerPacket(AdventureSettingsPacket);
-        this.registerPacket(AnimatePacket);
-        this.registerPacket(AvailableActorIdentifiersPacket);
-        this.registerPacket(AvailableCommandsPacket);
-        this.registerPacket(BiomeDefinitionListPacket);
-        this.registerPacket(ChangeDimensionPacket);
-        this.registerPacket(ChunkRadiusUpdatedPacket);
-        this.registerPacket(ClientCacheStatusPacket);
-        this.registerPacket(CommandBlockUpdatePacket);
+        // Dynamically register packets
+        // We need to manually ignore DataPacket & BatchPacket
+        Object.entries(Packets).map(
+            ([, value]) => value.name !== 'DataPacket' && value.name !== 'BatchPacket' && this.registerPacket(value)
+        );
+
+        // TODO: remove these
         this.registerPacket(CommandRequestPacket);
         this.registerPacket(ContainerClosePacket);
         this.registerPacket(ContainerOpenPacket);
@@ -150,7 +152,6 @@ export default class PacketRegistry {
         this.registerPacket(ItemStackResponsePacket);
         this.registerPacket(LevelChunkPacket);
         this.registerPacket(LevelSoundEventPacket);
-        this.registerPacket(LoginPacket);
         this.registerPacket(MobEquipmentPacket);
         this.registerPacket(MovePlayerPacket);
         this.registerPacket(MoveActorAbsolutePacket);
@@ -171,7 +172,6 @@ export default class PacketRegistry {
         this.registerPacket(SetActorDataPacket);
         this.registerPacket(SetDefaultGameTypePacket);
         this.registerPacket(SetDisplayObjectivePacket);
-        this.registerPacket(SetGamemodePacket);
         this.registerPacket(SetLocalPlayerAsInitializedPacket);
         this.registerPacket(SetPlayerGameTypePacket);
         this.registerPacket(SetScorePacket);
@@ -182,9 +182,6 @@ export default class PacketRegistry {
         this.registerPacket(ShowProfilePacket);
         this.registerPacket(ShowStoreOfferPacket);
         this.registerPacket(SpawnParticleEffectPacket);
-        this.registerPacket(StartGamePacket);
-        this.registerPacket(TextPacket);
-        this.registerPacket(TickSyncPacket);
         this.registerPacket(TransferPacket);
         this.registerPacket(UpdateAttributesPacket);
         this.registerPacket(UpdateBlockPacket);
@@ -199,7 +196,7 @@ export default class PacketRegistry {
         );
     }
 
-    private loadHandlers(): void {
+    private async loadHandlers(): Promise<void> {
         const timer = new Timer();
 
         this.registerHandler(Identifiers.AdventureSettingsPacket, new AdventureSettingsHandler());
