@@ -35,7 +35,7 @@ import PlayerPermissionType from '../network/type/PlayerPermissionType';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import type Server from '../Server';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
-import SetGamemodePacket from '../network/packet/SetGamemodePacket';
+import SetPlayerGameTypePacket from '../network/packet/SetPlayerGameTypePacket';
 import SetTimePacket from '../network/packet/SetTimePacket';
 import TextPacket from '../network/packet/TextPacket';
 import TextType from '../network/type/TextType';
@@ -275,7 +275,7 @@ export default class PlayerConnection {
     }
 
     public async sendGamemode(mode: number): Promise<void> {
-        const pk = new SetGamemodePacket();
+        const pk = new SetPlayerGameTypePacket();
         pk.gamemode = mode;
         await this.sendDataPacket(pk);
     }

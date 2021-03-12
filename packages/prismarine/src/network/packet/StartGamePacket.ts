@@ -103,7 +103,10 @@ export default class StartGamePacket extends DataPacket {
         this.writeString(''); // Template content identity
 
         this.writeByte(0); // Is trial
+
         this.writeUnsignedVarInt(0); // Server auth movement
+        this.writeVarInt(0); // Rewind History Size
+        this.writeBool(false); // Is Server Authoritative Block Breaking
 
         this.writeLLong(BigInt(0)); // World ticks (for time)
 

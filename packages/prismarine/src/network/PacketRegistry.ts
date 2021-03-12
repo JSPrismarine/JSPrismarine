@@ -1,11 +1,7 @@
-import ActorFallPacket from './packet/ActorFallPacket';
-import AddActorPacket from './packet/AddActorPacket';
-import AddPlayerPacket from './packet/AddPlayerPacket';
+import * as Packets from './Protocol';
+
 import AdventureSettingsHandler from './handler/AdventureSettingsHandler';
-import AdventureSettingsPacket from './packet/AdventureSettingsPacket';
 import AnimateHandler from './handler/AnimateHandler';
-import AnimatePacket from './packet/AnimatePacket';
-import AvailableActorIdentifiersPacket from './packet/AvailableActorIdentifiersPacket';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import BiomeDefinitionListPacket from './packet/BiomeDefinitionListPacket';
 import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
@@ -34,7 +30,6 @@ import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import LoggerBuilder from '../utils/Logger';
 import LoginHandler from './handler/LoginHandler';
-import LoginPacket from './packet/LoginPacket';
 import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
@@ -44,9 +39,11 @@ import MovePlayerHandler from './handler/MovePlayerHandler';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
 import OnScreenTextureAnimationPacket from './packet/OnScreenTextureAnimationPacket';
+import PacketHandler from './handler/PacketHandler';
 import PacketViolationWarningHandler from './handler/PacketViolationWarningHandler';
 import PacketViolationWarningPacket from './packet/PacketViolationWarningPacket';
 import PlayStatusPacket from './packet/PlayStatusPacket';
+import Player from '../player/Player';
 import PlayerActionHandler from './handler/PlayerActionHandler';
 import PlayerActionPacket from './packet/PlayerActionPacket';
 import PlayerListPacket from './packet/PlayerListPacket';
@@ -66,7 +63,6 @@ import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
 import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
-import SetGamemodePacket from './packet/SetGamemodePacket';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
@@ -81,9 +77,7 @@ import ShowStoreOfferPacket from './packet/ShowStoreOfferPacket';
 import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
 import StartGamePacket from './packet/StartGamePacket';
 import TextHandler from './handler/TextHandler';
-import TextPacket from './packet/TextPacket';
 import TickSyncHandler from './handler/TickSyncHandler';
-import TickSyncPacket from './packet/TickSyncPacket';
 import Timer from '../utils/Timer';
 import TransferPacket from './packet/TransferPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
@@ -92,16 +86,16 @@ import WorldEventPacket from './packet/WorldEventPacket';
 
 export default class PacketRegistry {
     private readonly logger: LoggerBuilder;
-    private readonly packets: Map<number, any> = new Map();
-    private readonly handlers: Map<number, any> = new Map();
+    private readonly packets: Map<number, Packets.DataPacket> = new Map();
+    private readonly handlers: Map<number, PacketHandler<any>> = new Map();
 
     public constructor(server: Server) {
         this.logger = server.getLogger();
     }
 
     public async onEnable() {
-        this.loadPackets();
-        this.loadHandlers();
+        await this.loadPackets();
+        await this.loadHandlers();
     }
 
     public async onDisable() {
@@ -109,12 +103,29 @@ export default class PacketRegistry {
         this.packets.clear();
     }
 
-    private registerPacket(packet: any): void {
+    public registerPacket(packet: any): void {
+        if (this.packets.has(packet.NetID))
+            throw new Error(
+                `Packet ${packet.name} is trying to use id ${packet.NetID.toString(16)} which already exists!`
+            );
+
         this.packets.set(packet.NetID, packet);
         this.logger.silly(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
     }
 
-    private registerHandler(id: number, handler: object): void {
+    public getPacket(id: number): any {
+        if (!this.packets.has(id)) throw new Error(`Invalid packet with id ${id}!`);
+
+        return this.packets.get(id)!;
+    }
+
+    public removePacket(id: number): void {
+        this.packets.delete(id);
+    }
+
+    public registerHandler(id: number, handler: PacketHandler<any>): void {
+        if (this.handlers.has(id)) throw new Error(`Handler with id ${id} already exists!`);
+
         this.handlers.set(id, handler);
         this.logger.silly(
             `Handler with id §b${handler.constructor.name}§r registered`,
@@ -122,21 +133,48 @@ export default class PacketRegistry {
         );
     }
 
-    private loadPackets(): void {
+    public getHandler(id: number): PacketHandler<any> {
+        if (!this.handlers.has(id)) throw new Error(`Invalid handler with id ${id.toString(16)}!`);
+
+        return this.handlers.get(id)!;
+    }
+
+    /**
+     * Merge two handlers.
+     * This is useful if you want to extend a handler without actually replacing it.
+     *
+     * @param handler the first handler, executed first
+     * @param handler2 the second handler
+     */
+    public appendHandler(handler: PacketHandler<any>, handler2: PacketHandler<any>): PacketHandler<any> {
+        const res = new (class Handler {
+            public async handle(packet: any, server: Server, player: Player) {
+                await handler.handle(packet, server, player);
+                await handler2.handle(packet, server, player);
+            }
+        })();
+
+        return res as PacketHandler<any>;
+    }
+
+    /**
+     * Remove a handler from the registry
+     * @param id the handler id
+     */
+    public removeHandler(id: number): void {
+        this.handlers.delete(id);
+    }
+
+    private async loadPackets(): Promise<void> {
         const timer = new Timer();
 
-        this.registerPacket(ActorFallPacket);
-        this.registerPacket(AddActorPacket);
-        this.registerPacket(AddPlayerPacket);
-        this.registerPacket(AdventureSettingsPacket);
-        this.registerPacket(AnimatePacket);
-        this.registerPacket(AvailableActorIdentifiersPacket);
-        this.registerPacket(AvailableCommandsPacket);
-        this.registerPacket(BiomeDefinitionListPacket);
-        this.registerPacket(ChangeDimensionPacket);
-        this.registerPacket(ChunkRadiusUpdatedPacket);
-        this.registerPacket(ClientCacheStatusPacket);
-        this.registerPacket(CommandBlockUpdatePacket);
+        // Dynamically register packets
+        // We need to manually ignore DataPacket & BatchPacket
+        Object.entries(Packets).map(
+            ([, value]) => value.name !== 'DataPacket' && value.name !== 'BatchPacket' && this.registerPacket(value)
+        );
+
+        // TODO: remove these
         this.registerPacket(CommandRequestPacket);
         this.registerPacket(ContainerClosePacket);
         this.registerPacket(ContainerOpenPacket);
@@ -150,7 +188,6 @@ export default class PacketRegistry {
         this.registerPacket(ItemStackResponsePacket);
         this.registerPacket(LevelChunkPacket);
         this.registerPacket(LevelSoundEventPacket);
-        this.registerPacket(LoginPacket);
         this.registerPacket(MobEquipmentPacket);
         this.registerPacket(MovePlayerPacket);
         this.registerPacket(MoveActorAbsolutePacket);
@@ -171,7 +208,6 @@ export default class PacketRegistry {
         this.registerPacket(SetActorDataPacket);
         this.registerPacket(SetDefaultGameTypePacket);
         this.registerPacket(SetDisplayObjectivePacket);
-        this.registerPacket(SetGamemodePacket);
         this.registerPacket(SetLocalPlayerAsInitializedPacket);
         this.registerPacket(SetPlayerGameTypePacket);
         this.registerPacket(SetScorePacket);
@@ -182,9 +218,6 @@ export default class PacketRegistry {
         this.registerPacket(ShowProfilePacket);
         this.registerPacket(ShowStoreOfferPacket);
         this.registerPacket(SpawnParticleEffectPacket);
-        this.registerPacket(StartGamePacket);
-        this.registerPacket(TextPacket);
-        this.registerPacket(TickSyncPacket);
         this.registerPacket(TransferPacket);
         this.registerPacket(UpdateAttributesPacket);
         this.registerPacket(UpdateBlockPacket);
@@ -199,7 +232,7 @@ export default class PacketRegistry {
         );
     }
 
-    private loadHandlers(): void {
+    private async loadHandlers(): Promise<void> {
         const timer = new Timer();
 
         this.registerHandler(Identifiers.AdventureSettingsPacket, new AdventureSettingsHandler());
@@ -233,11 +266,5 @@ export default class PacketRegistry {
 
     public getPackets(): Map<number, any> {
         return this.packets;
-    }
-
-    public getPacketHandler(id: number): object {
-        if (this.handlers.has(id)) return this.handlers.get(id);
-
-        throw new Error(`Missing handler for packet 0x${id.toString(16)}`);
     }
 }

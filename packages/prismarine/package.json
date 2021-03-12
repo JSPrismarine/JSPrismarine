@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/prismarine",
-    "version": "0.1.0-rc.43",
+    "version": "0.1.0-rc.44",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/Prismarine.js",
     "types": "./dist/Prismarine.d.ts",
@@ -12,83 +12,6 @@
     },
     "scripts": {
         "build": "tsc --build src"
-    },
-    "xo": {
-        "space": 4,
-        "prettier": true,
-        "rules": {
-            "sort-imports": [
-                "error",
-                {
-                    "ignoreCase": false,
-                    "ignoreDeclarationSort": false,
-                    "ignoreMemberSort": false,
-                    "memberSyntaxSortOrder": [
-                        "none",
-                        "all",
-                        "multiple",
-                        "single"
-                    ],
-                    "allowSeparatedGroups": false
-                }
-            ],
-            "unicorn/filename-case": 0,
-            "unicorn/prevent-abbreviations": 0,
-            "unicorn/no-process-exit": 0,
-            "unicorn/explicit-length-check": 0,
-            "unicorn/no-abusive-eslint-disable": 0,
-            "unicorn/prefer-math-trunc": 0,
-            "unicorn/prefer-ternary": 0,
-            "unicorn/better-regex": 0,
-            "unicorn/escape-case": 0,
-            "unicorn/catch-error-name": 0,
-            "unicorn/prefer-spread": 0,
-            "unicorn/prefer-date-now": 1,
-            "unicorn/no-lonely-if": 1,
-            "unicorn/no-array-reduce": 0,
-            "import/no-named-as-default": 0,
-            "@typescript-eslint/member-ordering": 0,
-            "@typescript-eslint/ban-types": 0,
-            "@typescript-eslint/no-implicit-any-catch": 0,
-            "@typescript-eslint/no-useless-constructor": 0,
-            "@typescript-eslint/restrict-template-expressions": 0,
-            "@typescript-eslint/no-var-requires": 0,
-            "@typescript-eslint/no-extraneous-class": 0,
-            "@typescript-eslint/no-empty-function": 0,
-            "@typescript-eslint/prefer-for-of": 1,
-            "@typescript-eslint/no-base-to-string": 0,
-            "@typescript-eslint/consistent-type-assertions": 0,
-            "@typescript-eslint/prefer-nullish-coalescing": 1,
-            "@typescript-eslint/prefer-literal-enum-member": 0,
-            "@typescript-eslint/restrict-plus-operands": 0,
-            "@typescript-eslint/prefer-readonly": 0,
-            "@typescript-eslint/prefer-ts-expect-error": 0,
-            "@typescript-eslint/lines-between-class-members": 0,
-            "@typescript-eslint/no-confusing-void-expression": 1,
-            "@typescript-eslint/non-nullable-type-assertion-style": 1,
-            "@typescript-eslint/explicit-member-accessibility": 1,
-            "@typescript-eslint/no-unnecessary-type-assertion": 0,
-            "no-inferrable-types": 0,
-            "prefer-destructuring": 0,
-            "new-cap": 0,
-            "one-var": 0,
-            "no-sequences": 0,
-            "no-multi-assign": 1,
-            "padding-line-between-statements": 0,
-            "prefer-exponentiation-operator": 0,
-            "no-return-assign": 0,
-            "no-control-regex": 0,
-            "no-async-promise-executor": 0,
-            "no-negated-condition": 0,
-            "no-promise-executor-return": 0,
-            "no-case-declarations": 0,
-            "no-fallthrough": 0,
-            "no-await-in-loop": 0,
-            "max-depth": 0,
-            "capitalized-comments": 0,
-            "no-lonely-if": 0,
-            "guard-for-in": 0
-        }
     },
     "keywords": [
         "javascript",
@@ -103,27 +26,13 @@
     "bugs": {
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
-    "pkg": {
-        "scripts": [
-            "dist/**/*.js",
-            "node_modules/leveldown/**/*.js"
-        ],
-        "assets": [
-            "./node_modules/**/*.exe",
-            "./node_modules/**/*.node",
-            "./node_modules/@jsprismarine/**/*",
-            "./node_modules/leveldown/prebuilds/linux-x64/node.napi.glibc.node",
-            "./node_modules/leveldown/prebuilds/darwin-x64/node.napi.node",
-            "./node_modules/leveldown/prebuilds/win32-x64/node.napi.node"
-        ]
-    },
     "dependencies": {
         "@beenotung/level-ts": "1.15.0",
         "@jsprismarine/bedrock-data": "1.16.204",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
-        "@jsprismarine/color-parser": "^0.1.0-rc.43",
+        "@jsprismarine/color-parser": "^0.1.0-rc.44",
         "@jsprismarine/jsbinaryutils": "2.1.8",
-        "@jsprismarine/raknet": "^0.1.0-rc.43",
+        "@jsprismarine/raknet": "^0.1.0-rc.44",
         "d3-interpolate": "2.0.1",
         "evt": "1.9.12",
         "fast-jwt": "^1.0.0",
@@ -143,19 +52,18 @@
         "@types/d3-interpolate": "2.0.0",
         "@types/git-rev-sync": "2.0.0",
         "@types/jest": "26.0.20",
-        "@types/node": "14.14.31",
+        "@types/node": "14.14.34",
         "@types/node-fetch": "2.5.8",
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.3",
         "prettier": "2.2.1",
-        "ts-jest": "26.5.2",
+        "ts-jest": "26.5.3",
         "ts-node": "9.1.1",
-        "typescript": "4.2.2",
-        "write": "2.0.0",
-        "xo": "0.37.1",
+        "typescript": "4.2.3",
         "yarnhook": "0.5.1"
     },
     "optionalDependencies": {
         "pkg": "github:kkoomen/pkg"
-    }
+    },
+    "gitHead": "31574251de97a47da10e946fb5c1db1b68758e10"
 }

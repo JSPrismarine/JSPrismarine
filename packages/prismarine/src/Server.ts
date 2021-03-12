@@ -252,9 +252,8 @@ export default class Server {
                     }
 
                     try {
-                        const handler = this.packetRegistry.getPacketHandler(packet.getId());
-
-                        await (handler as PacketHandler<any>).handle(packet, this, player);
+                        const handler = this.packetRegistry.getHandler(packet.getId());
+                        await handler.handle(packet, this, player);
                     } catch (error) {
                         this.logger.error(
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
