@@ -39,9 +39,11 @@ import MovePlayerHandler from './handler/MovePlayerHandler';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
 import OnScreenTextureAnimationPacket from './packet/OnScreenTextureAnimationPacket';
+import PacketHandler from './handler/PacketHandler';
 import PacketViolationWarningHandler from './handler/PacketViolationWarningHandler';
 import PacketViolationWarningPacket from './packet/PacketViolationWarningPacket';
 import PlayStatusPacket from './packet/PlayStatusPacket';
+import Player from '../player/Player';
 import PlayerActionHandler from './handler/PlayerActionHandler';
 import PlayerActionPacket from './packet/PlayerActionPacket';
 import PlayerListPacket from './packet/PlayerListPacket';
@@ -84,8 +86,8 @@ import WorldEventPacket from './packet/WorldEventPacket';
 
 export default class PacketRegistry {
     private readonly logger: LoggerBuilder;
-    private readonly packets: Map<number, any> = new Map();
-    private readonly handlers: Map<number, any> = new Map();
+    private readonly packets: Map<number, Packets.DataPacket> = new Map();
+    private readonly handlers: Map<number, PacketHandler<any>> = new Map();
 
     public constructor(server: Server) {
         this.logger = server.getLogger();
@@ -111,11 +113,17 @@ export default class PacketRegistry {
         this.logger.silly(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
     }
 
+    public getPacket(id: number): any {
+        if (!this.packets.has(id)) throw new Error(`Invalid packet with id ${id}!`);
+
+        return this.packets.get(id)!;
+    }
+
     public removePacket(id: number): void {
         this.packets.delete(id);
     }
 
-    public registerHandler(id: number, handler: object): void {
+    public registerHandler(id: number, handler: PacketHandler<any>): void {
         if (this.handlers.has(id)) throw new Error(`Handler with id ${id} already exists!`);
 
         this.handlers.set(id, handler);
@@ -125,6 +133,34 @@ export default class PacketRegistry {
         );
     }
 
+    public getHandler(id: number): PacketHandler<any> {
+        if (!this.handlers.has(id)) throw new Error(`Invalid handler with id ${id.toString(16)}!`);
+
+        return this.handlers.get(id)!;
+    }
+
+    /**
+     * Merge two handlers.
+     * This is useful if you want to extend a handler without actually replacing it.
+     *
+     * @param handler the first handler, executed first
+     * @param handler2 the second handler
+     */
+    public appendHandler(handler: PacketHandler<any>, handler2: PacketHandler<any>): PacketHandler<any> {
+        const res = new (class Handler {
+            public async handle(packet: any, server: Server, player: Player) {
+                await handler.handle(packet, server, player);
+                await handler2.handle(packet, server, player);
+            }
+        })();
+
+        return res as PacketHandler<any>;
+    }
+
+    /**
+     * Remove a handler from the registry
+     * @param id the handler id
+     */
     public removeHandler(id: number): void {
         this.handlers.delete(id);
     }
@@ -230,11 +266,5 @@ export default class PacketRegistry {
 
     public getPackets(): Map<number, any> {
         return this.packets;
-    }
-
-    public getPacketHandler(id: number): object {
-        if (this.handlers.has(id)) return this.handlers.get(id);
-
-        throw new Error(`Missing handler for packet 0x${id.toString(16)}`);
     }
 }
