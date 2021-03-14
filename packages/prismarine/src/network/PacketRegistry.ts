@@ -1,13 +1,10 @@
+import * as Handlers from './Handlers';
 import * as Packets from './Protocol';
 
-import AdventureSettingsHandler from './handler/AdventureSettingsHandler';
 import AnimateHandler from './handler/AnimateHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
 import ContainerCloseHandler from './handler/ContainerCloseHandler';
-import ContainerOpenPacket from './packet/ContainerOpenPacket';
-import CreativeContentPacket from './packet/CreativeContentPacket';
-import DisconnectPacket from './packet/DisconnectPacket';
 import EmoteListPacket from './packet/EmoteListPacket';
 import Identifiers from './Identifiers';
 import InteractHandler from './handler/InteractHandler';
@@ -77,7 +74,7 @@ import WorldEventPacket from './packet/WorldEventPacket';
 
 export default class PacketRegistry {
     private readonly logger: LoggerBuilder;
-    private readonly packets: Map<number, Packets.DataPacket> = new Map();
+    private readonly packets: Map<number, typeof Packets.DataPacket> = new Map();
     private readonly handlers: Map<number, PacketHandler<any>> = new Map();
 
     public constructor(server: Server) {
@@ -94,7 +91,11 @@ export default class PacketRegistry {
         this.packets.clear();
     }
 
-    public registerPacket(packet: any): void {
+    /**
+     * Register a packet.
+     * @param packet the packet.
+     */
+    public registerPacket(packet: typeof Packets.DataPacket): void {
         if (this.packets.has(packet.NetID))
             throw new Error(
                 `Packet ${packet.name} is trying to use id ${packet.NetID.toString(16)} which already exists!`
@@ -104,17 +105,26 @@ export default class PacketRegistry {
         this.logger.silly(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
     }
 
+    /**
+     * Get a packet by it's network ID.
+     * @param id the NetID.
+     */
     public getPacket(id: number): any {
         if (!this.packets.has(id)) throw new Error(`Invalid packet with id ${id}!`);
 
         return this.packets.get(id)!;
     }
 
+    /**
+     * Remove a packet from the registry.
+     * @param id the NetID.
+     */
     public removePacket(id: number): void {
         this.packets.delete(id);
     }
 
     public registerHandler(id: number, handler: PacketHandler<any>): void {
+        // TODO: get id from handler.NetID
         if (this.handlers.has(id)) throw new Error(`Handler with id ${id} already exists!`);
 
         this.handlers.set(id, handler);
@@ -134,8 +144,8 @@ export default class PacketRegistry {
      * Merge two handlers.
      * This is useful if you want to extend a handler without actually replacing it.
      *
-     * @param handler the first handler, executed first
-     * @param handler2 the second handler
+     * @param handler the first handler, executed first.
+     * @param handler2 the second handler.
      */
     public appendHandler(handler: PacketHandler<any>, handler2: PacketHandler<any>): PacketHandler<any> {
         const res = new (class Handler {
@@ -149,13 +159,16 @@ export default class PacketRegistry {
     }
 
     /**
-     * Remove a handler from the registry
-     * @param id the handler id
+     * Remove a handler from the registry.
+     * @param id the handler id.
      */
     public removeHandler(id: number): void {
         this.handlers.delete(id);
     }
 
+    /**
+     * Dynamically register all packets exported by './Protocol'.
+     */
     private async loadPackets(): Promise<void> {
         const timer = new Timer();
 
@@ -166,9 +179,6 @@ export default class PacketRegistry {
         );
 
         // TODO: remove these
-        this.registerPacket(ContainerOpenPacket);
-        this.registerPacket(CreativeContentPacket);
-        this.registerPacket(DisconnectPacket);
         this.registerPacket(EmoteListPacket);
         this.registerPacket(InteractPacket);
         this.registerPacket(InventoryContentPacket);
@@ -221,10 +231,16 @@ export default class PacketRegistry {
         );
     }
 
+    /**
+     * Dynamically register all handlers exported by './Handlers'.
+     */
     private async loadHandlers(): Promise<void> {
         const timer = new Timer();
 
-        this.registerHandler(Identifiers.AdventureSettingsPacket, new AdventureSettingsHandler());
+        // Dynamically register handlers
+        Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID as number, value as any));
+
+        // TODO: remove these
         this.registerHandler(Identifiers.AnimatePacket, new AnimateHandler());
         this.registerHandler(Identifiers.ClientCacheStatusPacket, new ClientCacheStatusHandler());
         this.registerHandler(Identifiers.ContainerClosePacket, new ContainerCloseHandler());
@@ -253,7 +269,17 @@ export default class PacketRegistry {
         );
     }
 
-    public getPackets(): Map<number, any> {
+    /**
+     * Get all packets from the registry.
+     */
+    public getPackets() {
         return this.packets;
+    }
+
+    /**
+     * Get all handlers from the registry.
+     */
+    public getHandlers() {
+        return this.handlers;
     }
 }
