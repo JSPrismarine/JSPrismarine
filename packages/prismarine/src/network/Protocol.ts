@@ -13,7 +13,10 @@ import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
 import CommandRequestPacket from './packet/CommandRequestPacket';
 import ContainerClosePacket from './packet/ContainerClosePacket';
+import ContainerOpenPacket from './packet/ContainerOpenPacket';
+import CreativeContentPacket from './packet/CreativeContentPacket';
 import DataPacket from './packet/DataPacket';
+import DisconnectPacket from './packet/DisconnectPacket';
 import LoginPacket from './packet/LoginPacket';
 import StartGamePacket from './packet/StartGamePacket';
 import TextPacket from './packet/TextPacket';
@@ -28,7 +31,7 @@ export {
     AnimatePacket,
     AvailableActorIdentifiersPacket,
     AvailableCommandsPacket,
-    BatchPacket,
+    BatchPacket, // Special packet
     BiomeDefinitionListPacket,
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
@@ -36,7 +39,10 @@ export {
     CommandBlockUpdatePacket,
     CommandRequestPacket,
     ContainerClosePacket,
-    DataPacket,
+    ContainerOpenPacket,
+    CreativeContentPacket,
+    DisconnectPacket,
+    DataPacket, // Special packet
     LoginPacket,
     StartGamePacket,
     TextPacket,
