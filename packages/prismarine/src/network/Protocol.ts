@@ -12,6 +12,7 @@ import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
 import CommandRequestPacket from './packet/CommandRequestPacket';
+import ContainerClosePacket from './packet/ContainerClosePacket';
 import DataPacket from './packet/DataPacket';
 import LoginPacket from './packet/LoginPacket';
 import StartGamePacket from './packet/StartGamePacket';
@@ -34,6 +35,7 @@ export {
     ClientCacheStatusPacket,
     CommandBlockUpdatePacket,
     CommandRequestPacket,
+    ContainerClosePacket,
     DataPacket,
     LoginPacket,
     StartGamePacket,

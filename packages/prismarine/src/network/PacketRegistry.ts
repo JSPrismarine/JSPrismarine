@@ -2,17 +2,9 @@ import * as Packets from './Protocol';
 
 import AdventureSettingsHandler from './handler/AdventureSettingsHandler';
 import AnimateHandler from './handler/AnimateHandler';
-import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
-import BiomeDefinitionListPacket from './packet/BiomeDefinitionListPacket';
-import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
-import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
-import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
-import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
 import CommandRequestHandler from './handler/CommandRequestHandler';
-import CommandRequestPacket from './packet/CommandRequestPacket';
 import ContainerCloseHandler from './handler/ContainerCloseHandler';
-import ContainerClosePacket from './packet/ContainerClosePacket';
 import ContainerOpenPacket from './packet/ContainerOpenPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
@@ -75,7 +67,6 @@ import ShowCreditsPacket from './packet/ShowCreditsPacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
 import ShowStoreOfferPacket from './packet/ShowStoreOfferPacket';
 import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
-import StartGamePacket from './packet/StartGamePacket';
 import TextHandler from './handler/TextHandler';
 import TickSyncHandler from './handler/TickSyncHandler';
 import Timer from '../utils/Timer';
@@ -175,8 +166,6 @@ export default class PacketRegistry {
         );
 
         // TODO: remove these
-        this.registerPacket(CommandRequestPacket);
-        this.registerPacket(ContainerClosePacket);
         this.registerPacket(ContainerOpenPacket);
         this.registerPacket(CreativeContentPacket);
         this.registerPacket(DisconnectPacket);
