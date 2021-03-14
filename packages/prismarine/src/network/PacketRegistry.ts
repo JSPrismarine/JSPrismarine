@@ -175,7 +175,7 @@ export default class PacketRegistry {
         );
 
         // TODO: remove these
-        this.registerPacket(CommandRequestPacket);
+        //this.registerPacket(CommandRequestPacket);
         this.registerPacket(ContainerClosePacket);
         this.registerPacket(ContainerOpenPacket);
         this.registerPacket(CreativeContentPacket);
