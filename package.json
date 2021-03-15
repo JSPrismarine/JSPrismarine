@@ -11,7 +11,7 @@
         ]
     },
     "bin": {
-        "prismarine": "dist/Prismarine.js"
+        "prismarine": "dist/src/Prismarine.js"
     },
     "engines": {
         "node": ">=14.0.0",
