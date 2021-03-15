@@ -15,13 +15,7 @@ export default class Anvil extends BaseProvider {
         this.regionsPath = path.join(this.getPath(), 'region');
     }
 
-    public async readChunk(
-        cx: number,
-        cz: number,
-        seed: number,
-        generator: Generator,
-        config?: object
-    ): Promise<Chunk> {
+    public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
         const [rx, rz] = [cx >> 5, cz >> 5];
         const id = `r.${rx}.${rz}.mca`;
         if (!this.cachedRegions.has(id)) {
