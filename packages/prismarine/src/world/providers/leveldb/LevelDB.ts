@@ -38,13 +38,7 @@ export default class LevelDB extends BaseProvider {
         });
     }
 
-    public async readChunk(
-        cx: number,
-        cz: number,
-        seed: number,
-        generator: Generator,
-        config?: object
-    ): Promise<Chunk> {
+    public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
         try {
             const version = Number(await this.storage.get(`${LevelDB.chunkIndex(cx, cz)}v`));
 
