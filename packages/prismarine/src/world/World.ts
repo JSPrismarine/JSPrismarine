@@ -29,6 +29,7 @@ interface WorldData {
     provider: any;
     seed: number;
     generator: Generator;
+    config?: object;
 }
 
 export interface WorldPlayerData {
@@ -62,14 +63,16 @@ export default class World {
     private readonly server: Server;
     private readonly seed: number;
     private readonly generator: Generator;
+    private readonly config: Object;
 
-    public constructor({ name, server, provider, seed, generator }: WorldData) {
+    public constructor({ name, server, provider, seed, generator, config }: WorldData) {
         this.name = name;
         this.server = server;
         this.provider = provider;
         this.gameruleManager = new GameruleManager(server);
         this.seed = seed;
         this.generator = generator;
+        this.config = config ?? {};
 
         // TODO: Load default gamrules
         // TODO: getGameruleManager().showCoordinates(true ?? false);
@@ -168,7 +171,7 @@ export default class World {
     public async loadChunk(cx: number, cz: number): Promise<void> {
         const index = CoordinateUtils.encodePos(cx, cz);
         // Try - catch for provider errors
-        const chunk = await this.provider.readChunk(cx, cz, this.seed, this.generator);
+        const chunk = await this.provider.readChunk(cx, cz, this.seed, this.generator, this.config);
         this.chunks.set(index, chunk);
     }
 

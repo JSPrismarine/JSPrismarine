@@ -2,7 +2,7 @@ import BaseGenerator from '../BaseGenerator';
 import Chunk from '../chunk/Chunk';
 
 export default class Flat extends BaseGenerator {
-    public async generateChunk(cx: number, cz: number): Promise<Chunk> {
+    public async generateChunk(cx: number, cz: number, seed?: number, config?: object): Promise<Chunk> {
         return new Promise((resolve) => {
             const chunk = new Chunk(cx, cz);
 

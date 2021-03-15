@@ -32,15 +32,21 @@ export default abstract class BaseProvider implements Provider {
     /**
      * Returns a chunk decoded from the provider.
      *
-     * @param cx the chunk x coordinate
-     * @param cz the chunk y coordinate
+     * @param cx the chunk x coordinate.
+     * @param cz the chunk y coordinate.
      */
-    public abstract readChunk(cx: number, cz: number, seed: number, generator: Generator): Promise<Chunk>;
+    public abstract readChunk(
+        cx: number,
+        cz: number,
+        seed: number,
+        generator: Generator,
+        config?: object
+    ): Promise<Chunk>;
 
     /**
-     * Writes a chunk
+     * Writes a chunk.
      *
-     * @param chunk the chunk data
+     * @param chunk the chunk data.
      */
     public abstract writeChunk(chunk: Chunk): Promise<void>;
 }
