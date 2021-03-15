@@ -29,7 +29,7 @@ interface WorldData {
     provider: any;
     seed: number;
     generator: Generator;
-    config?: object;
+    config?: any;
 }
 
 export interface WorldPlayerData {

@@ -17,7 +17,7 @@ export default interface Provider {
      * @param generator - chunk generator.
      * @param config - config object.
      */
-    readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: object): Promise<Chunk>;
+    readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk>;
 
     /**
      * Writes a chunk

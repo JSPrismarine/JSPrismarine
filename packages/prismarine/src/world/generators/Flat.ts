@@ -1,14 +1,28 @@
 import BaseGenerator from '../BaseGenerator';
 import type Block from '../../block/Block';
 import Chunk from '../chunk/Chunk';
-import Config from '../../config/Config';
 
 export default class Flat extends BaseGenerator {
-    public async generateChunk(cx: number, cz: number, seed?: number, config?: object): Promise<Chunk> {
+    public async generateChunk(cx: number, cz: number, seed?: number, config?: any): Promise<Chunk> {
         return new Promise((resolve) => {
             const chunk = new Chunk(cx, cz);
 
-            const layers = new Config('flat').getWorlds().world.layers;
+            // Default layers if none is provided
+            const layers = config?.layers ?? [
+                {
+                    block: 'bedrock',
+                    size: 1
+                },
+                {
+                    block: 'dirt',
+                    size: 2
+                },
+                {
+                    block: 'grass',
+                    size: 1
+                }
+            ];
+
             const blocks: Block[] = [];
             layers.forEach((layer: any) => {
                 let block: Block;
