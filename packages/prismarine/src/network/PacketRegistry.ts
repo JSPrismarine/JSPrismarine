@@ -238,7 +238,7 @@ export default class PacketRegistry {
         const timer = new Timer();
 
         // Dynamically register handlers
-        Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID as number, value as any));
+        Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID as number, new (value as any)()));
 
         // TODO: remove these
         this.registerHandler(Identifiers.AnimatePacket, new AnimateHandler());
