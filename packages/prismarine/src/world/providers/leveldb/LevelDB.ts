@@ -38,7 +38,13 @@ export default class LevelDB extends BaseProvider {
         });
     }
 
-    public async readChunk(cx: number, cz: number, seed: number, generator: Generator): Promise<Chunk> {
+    public async readChunk(
+        cx: number,
+        cz: number,
+        seed: number,
+        generator: Generator,
+        config?: object
+    ): Promise<Chunk> {
         try {
             const version = Number(await this.storage.get(`${LevelDB.chunkIndex(cx, cz)}v`));
 
@@ -66,7 +72,7 @@ export default class LevelDB extends BaseProvider {
         } catch (error) {
             if (!error.notFound) throw error;
 
-            return generator.generateChunk(cx, cz, seed);
+            return generator.generateChunk(cx, cz, seed, config);
         }
     }
 
