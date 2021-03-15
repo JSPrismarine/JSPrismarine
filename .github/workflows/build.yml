@@ -16,7 +16,7 @@ jobs:
             - run: npm install
             - run: npm run build
             - run: npm prune --production
-            - run: npm install -g github:kkoomen/pkg
+            - run: npm install -g github:vercel/pkg#55cda5f20d8550bfc34cea65d66f52f3ef6319f1
             - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
@@ -34,7 +34,7 @@ jobs:
             - run: npm install
             - run: npm run build
             - run: npm prune --production
-            - run: npm install -g github:kkoomen/pkg
+            - run: npm install -g github:vercel/pkg#55cda5f20d8550bfc34cea65d66f52f3ef6319f1
             - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
@@ -52,7 +52,7 @@ jobs:
             - run: npm install
             - run: npm run build
             - run: npm prune --production
-            - run: npm install -g github:kkoomen/pkg
+            - run: npm install -g github:vercel/pkg#55cda5f20d8550bfc34cea65d66f52f3ef6319f1
             - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
