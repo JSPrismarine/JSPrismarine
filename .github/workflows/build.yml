@@ -12,6 +12,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: npm install -g npm@latest
             - run: lerna bootstrap
             - run: npm install
             - run: npm run build
@@ -30,6 +31,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: npm install -g npm@latest
             - run: lerna bootstrap
             - run: npm install
             - run: npm run build
@@ -48,6 +50,7 @@ jobs:
             - uses: actions/setup-node@v2
               with:
                   node-version: 14
+            - run: npm install -g npm@latest
             - run: lerna bootstrap
             - run: npm install
             - run: npm run build
