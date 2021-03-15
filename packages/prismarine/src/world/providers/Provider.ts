@@ -11,12 +11,13 @@ export default interface Provider {
 
     /**
      * Returns the chunk decoded from the provider.
-     * @param cx - chunk x
-     * @param cz - chunk z
-     * @param seed - world seed
-     * @param generator - chunk generator
+     * @param cx - chunk x.
+     * @param cz - chunk z.
+     * @param seed - world seed.
+     * @param generator - chunk generator.
+     * @param config - config object.
      */
-    readChunk(cx: number, cz: number, seed: number, generator: Generator): Promise<Chunk>;
+    readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: object): Promise<Chunk>;
 
     /**
      * Writes a chunk

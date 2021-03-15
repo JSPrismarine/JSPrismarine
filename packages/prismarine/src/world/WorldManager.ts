@@ -123,7 +123,8 @@ export default class WorldManager {
                 provider: new provider(levelPath, this.server),
 
                 seed: worldData.seed,
-                generator
+                generator,
+                config: worldData
             });
             this.worlds.set(world.getUniqueId(), world);
 

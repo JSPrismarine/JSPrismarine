@@ -239,7 +239,7 @@ export default class Server {
                     }
 
                     // Get packet from registry
-                    const packet = new (this.packetRegistry.getPackets().get(buf[0]))(buf);
+                    const packet = new (this.packetRegistry.getPackets().get(buf[0])!)(buf);
 
                     try {
                         packet.decode();

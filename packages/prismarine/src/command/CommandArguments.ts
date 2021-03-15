@@ -184,3 +184,25 @@ export class CommandArgumentPosition extends Vector3 implements CommandArgument 
         ]);
     }
 }
+
+export class CommandArgumentCommand implements CommandArgument {
+    public parse(reader: StringReader, context: CommandContext<Player>) {
+        const command = reader.readString();
+
+        return command;
+    }
+
+    public getReadableType(): string {
+        return 'command';
+    }
+
+    public getParameters(): Set<CommandParameter> {
+        return new Set([
+            new CommandParameter({
+                name: 'command',
+                type: CommandParameterType.Command,
+                optional: false
+            })
+        ]);
+    }
+}

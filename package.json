@@ -155,8 +155,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "dependencies": {
         "@jsprismarine/prismarine": "0.1.0-rc.42",
-        "@jsprismarine/updater": "0.1.0-rc.42",
-        "pkg": "github:kkoomen/pkg"
+        "@jsprismarine/updater": "0.1.0-rc.42"
     },
     "devDependencies": {
         "@types/d3-interpolate": "2.0.0",
@@ -178,8 +177,5 @@
         "typescript": "4.2.3",
         "xo": "0.38.2",
         "yarnhook": "0.5.1"
-    },
-    "optionalDependencies": {
-        "pkg": "github:kkoomen/pkg"
     }
 }
