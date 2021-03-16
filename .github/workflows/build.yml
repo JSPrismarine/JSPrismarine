@@ -18,7 +18,7 @@ jobs:
             - run: npm install
             - run: npm run build
             - run: npm prune --production
-            - run: npm install -g github:vercel/pkg # TODO: Use npm version
+            - run: npm install -g pkg
             - run: npm run package
             - uses: actions/upload-artifact@v2
               with:
