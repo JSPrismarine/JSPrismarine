@@ -53,7 +53,7 @@ export function EventEmitterishMixin<EventTypes extends [string, any], TBase ext
             });
         }
 
-        public on<T extends EventTypes, K extends T[0]>(
+        on<T extends EventTypes, K extends T[0]>(
             id: K,
             callback: (event: T extends readonly [K, infer U] ? U : never) => void
         ): this {
@@ -64,7 +64,7 @@ export function EventEmitterishMixin<EventTypes extends [string, any], TBase ext
             return this;
         }
 
-        public once<T extends EventTypes, K extends T[0]>(
+        once<T extends EventTypes, K extends T[0]>(
             id: K,
             callback: (event: T extends readonly [K, infer U] ? U : never) => void
         ): this {
@@ -75,7 +75,7 @@ export function EventEmitterishMixin<EventTypes extends [string, any], TBase ext
             return this;
         }
 
-        public removeListener<T extends EventTypes, K extends T[0]>(
+        removeListener<T extends EventTypes, K extends T[0]>(
             id: K,
             callback: (event: T extends readonly [K, infer U] ? U : never) => void
         ): this {
@@ -88,7 +88,7 @@ export function EventEmitterishMixin<EventTypes extends [string, any], TBase ext
             return this;
         }
 
-        public removeAllListeners(id?: EventTypes[0]): this {
+        removeAllListeners(id?: EventTypes[0]): this {
             const { ctx } = instanceProperties.get(this)!;
 
             if (id === undefined) {
@@ -106,7 +106,7 @@ export function EventEmitterishMixin<EventTypes extends [string, any], TBase ext
          * Returns a promise that resolve after
          * each async callbacks have resolved.
          */
-        public async emit<T extends EventTypes, K extends T[0]>(
+        async emit<T extends EventTypes, K extends T[0]>(
             id: K,
             event: T extends readonly [K, infer U] ? U : never
         ): Promise<void> {

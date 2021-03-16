@@ -1,5 +1,5 @@
 {
-    "name": "@jsprismarine/monorepo",
+    "name": "@jsprismarine/jsprismarine",
     "version": "0.1.0-rc.45",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/Prismarine.js",

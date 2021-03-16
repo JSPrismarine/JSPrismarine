@@ -23,13 +23,13 @@ jobs:
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-linux
-                  path: builds/prismarine-linux
+                  path: builds/jsprismarine-linux
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-macos
-                  path: builds/prismarine-macos
+                  path: builds/jsprismarine-macos
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-win32
-                  path: builds/prismarine-win.exe
+                  path: builds/jsprismarine-win.exe
 
