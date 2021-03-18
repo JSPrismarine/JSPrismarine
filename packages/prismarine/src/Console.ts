@@ -1,7 +1,7 @@
 import Chat from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
 import CommandExecuter from './command/CommandExecuter';
-import type Entity from './entity/entity';
+import type Entity from './entity/Entity';
 import type Server from './Server';
 import Vector3 from './math/Vector3';
 import readline from 'readline';
@@ -111,6 +111,10 @@ export default class Console implements CommandExecuter {
     }
     public getZ(): number {
         return 0;
+    }
+
+    public getPosition(): Vector3 {
+        return new Vector3();
     }
 
     /**

@@ -23,6 +23,7 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
         );
 
         // Summon entities
+        // FIXME: broken
         await Promise.all(
             player
                 .getWorld()

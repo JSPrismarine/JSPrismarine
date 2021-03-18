@@ -42,7 +42,8 @@ export default class Entity extends Position {
         this.setGenericFlag(MetadataFlag.AFFECTED_BY_GRAVITY, true);
         this.setGenericFlag(MetadataFlag.HAS_COLLISION, true);
 
-        // TODO: level.addEntity(this)
+        // Add this entity to the world
+        void world?.addEntity(this);
     }
 
     // public setHealth(health: number): void {

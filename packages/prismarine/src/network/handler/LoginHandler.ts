@@ -23,6 +23,7 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
             return;
         }
 
+        // Kick the player if their username is invalid
         if (!packet.displayName) {
             await player.kick('Invalid username!');
             return;

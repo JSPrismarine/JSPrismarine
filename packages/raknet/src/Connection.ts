@@ -148,8 +148,12 @@ export default class Connection {
         await this.sendPacketQueue();
     }
 
-    public disconnect(reason = 'unknown'): void {
-        this.listener.removeConnection(this, reason);
+    /**
+     * Kick a client
+     * @param reason the reason message, optional
+     */
+    public disconnect(reason?: string): void {
+        this.listener.removeConnection(this, reason ?? '');
     }
 
     /**

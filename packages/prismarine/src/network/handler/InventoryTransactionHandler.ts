@@ -7,6 +7,7 @@ import BlockMappings from '../../block/BlockMappings';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
+import Item from '../../entity/passive/Item';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
@@ -106,6 +107,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         );
 
                         const blockId = chunk.getBlock(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
+                        const block = server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
 
                         const pk = new UpdateBlockPacket();
                         pk.x = packet.blockPosition.getX();
@@ -115,12 +117,29 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         // the broken block may place more blocks or run block related code
                         pk.blockRuntimeId = BlockMappings.getRuntimeId(0, 0); // Air
 
+                        // Send block-break packet to all players in the same world
                         await Promise.all(
                             server
                                 .getPlayerManager()
                                 .getOnlinePlayers()
+                                .filter((p) => p.getWorld().getUniqueId() === player.getWorld().getUniqueId())
                                 .map(async (player) => player.getConnection().sendDataPacket(pk))
                         );
+
+                        // Spawn item if player isn't in creative
+                        // TODO: do this properly
+                        if (player.getGamemode() !== 'creative') {
+                            const droppedItem = new Item(player.getWorld(), server, block);
+                            await droppedItem.setPosition(packet.blockPosition);
+                            await Promise.all(
+                                player
+                                    .getServer()
+                                    .getPlayerManager()
+                                    .getOnlinePlayers()
+                                    .filter((p) => p.getWorld().getUniqueId() === player.getWorld().getUniqueId())
+                                    .map(async (player) => droppedItem.sendSpawn(player))
+                            );
+                        }
 
                         chunk.setBlock(
                             chunkPos.getX(),

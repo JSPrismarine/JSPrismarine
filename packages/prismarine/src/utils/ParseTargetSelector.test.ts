@@ -1,4 +1,4 @@
-import Entity from '../entity/entity';
+import Entity from '../entity/Entity';
 import ParseTargetSelector from './ParseTargetSelector';
 import Sheep from '../entity/passive/Sheep';
 

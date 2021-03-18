@@ -6,6 +6,11 @@ export default class Timer {
         this.startTime = process.hrtime();
     }
 
+    public reset() {
+        this.startTime = process.hrtime();
+        this.endTime = null;
+    }
+
     public stop() {
         this.endTime = process.hrtime(this.startTime);
 
