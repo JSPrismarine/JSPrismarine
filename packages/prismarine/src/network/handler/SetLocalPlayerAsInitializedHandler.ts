@@ -1,9 +1,12 @@
+import Identifiers from '../Identifiers';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import type Server from '../../Server';
 import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
 
 export default class SetLocalPlayerAsInitializedHandler implements PacketHandler<SetLocalPlayerAsInitializedPacket> {
+    public static NetID = Identifiers.SetLocalPlayerAsInitializedPacket;
+
     // Login packet must be handled sync, if it takes longer to be handled
     // uuid may result null here probably... (response to a issue)
     public async handle(packet: SetLocalPlayerAsInitializedPacket, server: Server, player: Player): Promise<void> {

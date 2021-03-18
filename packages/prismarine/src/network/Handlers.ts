@@ -14,6 +14,12 @@ import PacketViolationWarningHandler from './handler/PacketViolationWarningHandl
 import PlayerActionHandler from './handler/PlayerActionHandler';
 import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
 import ResourcePackResponseHandler from './handler/ResourcePackResponseHandler';
+import ServerSettingsRequestHandler from './handler/ServerSettingsRequestHandler';
+import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
+import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
+import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
+import TextHandler from './handler/TextHandler';
+import TickSyncHandler from './handler/TickSyncHandler';
 
 export {
     AdventureSettingsHandler,
@@ -31,5 +37,11 @@ export {
     PacketViolationWarningHandler,
     PlayerActionHandler,
     RequestChunkRadiusHandler,
-    ResourcePackResponseHandler
+    ResourcePackResponseHandler,
+    ServerSettingsRequestHandler,
+    SetDefaultGameTypeHandler,
+    SetLocalPlayerAsInitializedHandler,
+    SetPlayerGameTypeHandler,
+    TextHandler,
+    TickSyncHandler
 };
