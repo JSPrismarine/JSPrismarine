@@ -82,8 +82,8 @@ export default class PacketRegistry {
     }
 
     public async onEnable() {
-        await this.loadPackets();
-        await this.loadHandlers();
+        await this.registerPackets();
+        await this.registerHandlers();
     }
 
     public async onDisable() {
@@ -169,7 +169,7 @@ export default class PacketRegistry {
     /**
      * Dynamically register all packets exported by './Protocol'.
      */
-    private async loadPackets(): Promise<void> {
+    private async registerPackets(): Promise<void> {
         const timer = new Timer();
 
         // Dynamically register packets
@@ -179,18 +179,6 @@ export default class PacketRegistry {
         );
 
         // TODO: remove these
-        this.registerPacket(EmoteListPacket);
-        this.registerPacket(InteractPacket);
-        this.registerPacket(InventoryContentPacket);
-        this.registerPacket(InventoryTransactionPacket);
-        this.registerPacket(ItemStackRequestPacket);
-        this.registerPacket(ItemStackResponsePacket);
-        this.registerPacket(LevelChunkPacket);
-        this.registerPacket(LevelSoundEventPacket);
-        this.registerPacket(MobEquipmentPacket);
-        this.registerPacket(MovePlayerPacket);
-        this.registerPacket(MoveActorAbsolutePacket);
-        this.registerPacket(NetworkChunkPublisherUpdatePacket);
         this.registerPacket(OnScreenTextureAnimationPacket);
         this.registerPacket(PacketViolationWarningPacket);
         this.registerPacket(PlayerActionPacket);
@@ -221,28 +209,25 @@ export default class PacketRegistry {
         this.registerPacket(UpdateAttributesPacket);
         this.registerPacket(UpdateBlockPacket);
         this.registerPacket(WorldEventPacket);
-        this.registerPacket(ModalFormResponsePacket);
 
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
                 Array.from(Object.keys(Identifiers)).length - 2
             }§r packet(s) (took ${timer.stop()} ms)!`,
-            'PacketRegistry/loadPackets'
+            'PacketRegistry/registerPackets'
         );
     }
 
     /**
      * Dynamically register all handlers exported by './Handlers'.
      */
-    private async loadHandlers(): Promise<void> {
+    private async registerHandlers(): Promise<void> {
         const timer = new Timer();
 
         // Dynamically register handlers
         Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID as number, new (value as any)()));
 
         // TODO: remove these
-        this.registerHandler(Identifiers.AnimatePacket, new AnimateHandler());
-        this.registerHandler(Identifiers.ClientCacheStatusPacket, new ClientCacheStatusHandler());
         this.registerHandler(Identifiers.ContainerClosePacket, new ContainerCloseHandler());
         this.registerHandler(Identifiers.CommandRequestPacket, new CommandRequestHandler());
         this.registerHandler(Identifiers.InteractPacket, new InteractHandler());
@@ -265,7 +250,7 @@ export default class PacketRegistry {
 
         this.logger.debug(
             `Registered §b${this.handlers.size}§r packet handler(s) (took ${timer.stop()} ms)!`,
-            'PacketRegistry/loadHandlers'
+            'PacketRegistry/registerHandlers'
         );
     }
 
