@@ -33,6 +33,10 @@ import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
 import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
+import OnScreenTextureAnimationPacket from './packet/OnScreenTextureAnimationPacket';
+import PacketViolationWarningPacket from './packet/PacketViolationWarningPacket';
+import PlayerActionPacket from './packet/PlayerActionPacket';
+import PlayerListPacket from './packet/PlayerListPacket';
 import StartGamePacket from './packet/StartGamePacket';
 import TextPacket from './packet/TextPacket';
 import TickSyncPacket from './packet/TickSyncPacket';
@@ -74,6 +78,10 @@ export {
     MovePlayerPacket,
     MoveActorAbsolutePacket,
     NetworkChunkPublisherUpdatePacket,
+    OnScreenTextureAnimationPacket,
+    PacketViolationWarningPacket,
+    PlayerActionPacket,
+    PlayerListPacket,
     StartGamePacket,
     TextPacket,
     TickSyncPacket

@@ -174,15 +174,11 @@ export default class PacketRegistry {
 
         // Dynamically register packets
         // We need to manually ignore DataPacket & BatchPacket
-        Object.entries(Packets).map(
-            ([, value]) => value.name !== 'DataPacket' && value.name !== 'BatchPacket' && this.registerPacket(value)
-        );
+        Object.entries(Packets)
+            .filter(([, value]) => value.name !== 'DataPacket' && value.name !== 'BatchPacket')
+            .map(([, value]) => this.registerPacket(value));
 
         // TODO: remove these
-        this.registerPacket(OnScreenTextureAnimationPacket);
-        this.registerPacket(PacketViolationWarningPacket);
-        this.registerPacket(PlayerActionPacket);
-        this.registerPacket(PlayerListPacket);
         this.registerPacket(PlayerSkinPacket);
         this.registerPacket(PlayStatusPacket);
         this.registerPacket(RemoveActorPacket);
@@ -225,11 +221,9 @@ export default class PacketRegistry {
         const timer = new Timer();
 
         // Dynamically register handlers
-        Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID as number, new (value as any)()));
+        Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID!, new (value as any)()));
 
         // TODO: remove these
-        this.registerHandler(Identifiers.ContainerClosePacket, new ContainerCloseHandler());
-        this.registerHandler(Identifiers.CommandRequestPacket, new CommandRequestHandler());
         this.registerHandler(Identifiers.InteractPacket, new InteractHandler());
         this.registerHandler(Identifiers.InventoryTransactionPacket, new InventoryTransactionHandler());
         this.registerHandler(Identifiers.LevelSoundEventPacket, new LevelSoundEventHandler());
