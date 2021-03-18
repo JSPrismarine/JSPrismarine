@@ -3,6 +3,7 @@ import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Gamemode from '../../world/Gamemode';
+import Identifiers from '../Identifiers';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
@@ -14,6 +15,8 @@ import StartGamePacket from '../packet/StartGamePacket';
 import Vector3 from '../../math/Vector3';
 
 export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
+    public static NetID = Identifiers.ResourcePackResponsePacket;
+
     public async handle(packet: ResourcePackResponsePacket, server: Server, player: Player): Promise<void> {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
             const pk = new ResourcePackStackPacket();
