@@ -14,7 +14,6 @@ import { EventManager } from './events/EventManager';
 import Identifiers from './network/Identifiers';
 import ItemManager from './item/ItemManager';
 import type LoggerBuilder from './utils/Logger';
-import PacketHandler from './network/handler/PacketHandler';
 import PacketRegistry from './network/PacketRegistry';
 import PermissionManager from './permission/PermissionManager';
 import Player from './player/Player';

@@ -34,6 +34,7 @@ export default class Vector3 {
     }
 
     public equals(vector: Vector3): boolean {
+        // There might be a way better way to do this?
         if (JSON.stringify(this) !== JSON.stringify(vector)) return false;
         return true;
     }
