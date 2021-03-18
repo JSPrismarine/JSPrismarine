@@ -133,9 +133,9 @@
     "husky": {
         "hooks": {
             "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test",
-            "post-checkout": "lerna bootstrap && yarnhook",
-            "post-merge": "lerna bootstrap && yarnhook",
-            "post-rewrite": "lerna bootstrap && yarnhook"
+            "post-checkout": "yarnhook && lerna bootstrap",
+            "post-merge": "yarnhook && lerna bootstrap",
+            "post-rewrite": "yarnhook && lerna bootstrap"
         }
     },
     "pkg": {
