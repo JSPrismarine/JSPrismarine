@@ -3,6 +3,7 @@ import AnimateHandler from './handler/AnimateHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
 import ContainerCloseHandler from './handler/ContainerCloseHandler';
+import EmoteListHandler from './handler/EmoteListHandler';
 import InteractHandler from './handler/InteractHandler';
 import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
 import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
@@ -27,6 +28,7 @@ export {
     ClientCacheStatusHandler,
     CommandRequestHandler,
     ContainerCloseHandler,
+    EmoteListHandler,
     InteractHandler,
     InventoryTransactionHandler,
     LevelSoundEventHandler,
