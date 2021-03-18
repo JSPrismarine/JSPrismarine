@@ -1,12 +1,15 @@
 import InteractPacket, { InteractAction } from '../packet/InteractPacket';
 
 import ContainerOpenPacket from '../packet/ContainerOpenPacket';
+import Identifiers from '../Identifiers';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 
 export default class InteractHandler implements PacketHandler<InteractPacket> {
+    public static NetID = Identifiers.InteractPacket;
+
     public async handle(packet: InteractPacket, server: Server, player: Player): Promise<void> {
         switch (packet.action) {
             case InteractAction.LeaveVehicle:

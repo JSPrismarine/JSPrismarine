@@ -1,4 +1,5 @@
 import BlockMappings from '../../block/BlockMappings';
+import Identifiers from '../Identifiers';
 import LevelEventType from '../type/LevelEventType';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
@@ -8,6 +9,8 @@ import type Server from '../../Server';
 import WorldEventPacket from '../packet/WorldEventPacket';
 
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
+    public static NetID = Identifiers.PlayerActionPacket;
+
     public async handle(packet: PlayerActionPacket, server: Server, player: Player): Promise<void> {
         switch (packet.action) {
             case PlayerActionType.StartBreak: {

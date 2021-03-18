@@ -6,6 +6,7 @@ import InventoryTransactionPacket, {
 import BlockMappings from '../../block/BlockMappings';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import Gamemode from '../../world/Gamemode';
+import Identifiers from '../Identifiers';
 import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
@@ -14,6 +15,8 @@ import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import Vector3 from '../../math/Vector3';
 
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
+    public static NetID = Identifiers.InventoryTransactionPacket;
+
     public async handle(packet: InventoryTransactionPacket, server: Server, player: Player): Promise<void> {
         if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world
 

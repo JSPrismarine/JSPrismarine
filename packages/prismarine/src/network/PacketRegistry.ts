@@ -12,44 +12,18 @@ import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
 import MovePlayerHandler from './handler/MovePlayerHandler';
 import PacketHandler from './handler/PacketHandler';
 import PacketViolationWarningHandler from './handler/PacketViolationWarningHandler';
-import PlayStatusPacket from './packet/PlayStatusPacket';
 import Player from '../player/Player';
 import PlayerActionHandler from './handler/PlayerActionHandler';
-import PlayerSkinPacket from './packet/PlayerSkinPacket';
-import RemoveActorPacket from './packet/RemoveActorPacket';
-import RemoveObjectivePacket from './packet/RemoveObjectivePacket';
 import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
-import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
 import ResourcePackResponseHandler from './handler/ResourcePackResponseHandler';
-import ResourcePackResponsePacket from './packet/ResourcePackResponsePacket';
-import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
-import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
 import type Server from '../Server';
 import ServerSettingsRequestHandler from './handler/ServerSettingsRequestHandler';
-import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
-import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
-import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
-import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
-import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
-import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
-import SetScorePacket from './packet/SetScorePacket';
-import SetScoreboardIdentityPacket from './packet/SetScoreboardIdentityPacket';
-import SetTimePacket from './packet/SetTimePacket';
-import SetTitlePacket from './packet/SetTitlePacket';
-import ShowCreditsPacket from './packet/ShowCreditsPacket';
-import ShowProfilePacket from './packet/ShowProfilePacket';
-import ShowStoreOfferPacket from './packet/ShowStoreOfferPacket';
-import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
 import TextHandler from './handler/TextHandler';
 import TickSyncHandler from './handler/TickSyncHandler';
 import Timer from '../utils/Timer';
-import TransferPacket from './packet/TransferPacket';
-import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
-import UpdateBlockPacket from './packet/UpdateBlockPacket';
-import WorldEventPacket from './packet/WorldEventPacket';
 
 export default class PacketRegistry {
     private readonly logger: LoggerBuilder;
@@ -103,7 +77,6 @@ export default class PacketRegistry {
     }
 
     public registerHandler(id: number, handler: PacketHandler<any>): void {
-        // TODO: get id from handler.NetID
         if (this.handlers.has(id)) throw new Error(`Handler with id ${id} already exists!`);
 
         this.handlers.set(id, handler);
@@ -157,34 +130,6 @@ export default class PacketRegistry {
             .filter(([, value]) => value.name !== 'DataPacket' && value.name !== 'BatchPacket')
             .map(([, value]) => this.registerPacket(value));
 
-        // TODO: remove these
-        this.registerPacket(PlayerSkinPacket);
-        this.registerPacket(PlayStatusPacket);
-        this.registerPacket(RemoveActorPacket);
-        this.registerPacket(RemoveObjectivePacket);
-        this.registerPacket(RequestChunkRadiusPacket);
-        this.registerPacket(ResourcePackResponsePacket);
-        this.registerPacket(ResourcePacksInfoPacket);
-        this.registerPacket(ResourcePackStackPacket);
-        this.registerPacket(ServerSettingsRequestPacket);
-        this.registerPacket(SetActorDataPacket);
-        this.registerPacket(SetDefaultGameTypePacket);
-        this.registerPacket(SetDisplayObjectivePacket);
-        this.registerPacket(SetLocalPlayerAsInitializedPacket);
-        this.registerPacket(SetPlayerGameTypePacket);
-        this.registerPacket(SetScorePacket);
-        this.registerPacket(SetScoreboardIdentityPacket);
-        this.registerPacket(SetTimePacket);
-        this.registerPacket(SetTitlePacket);
-        this.registerPacket(ShowCreditsPacket);
-        this.registerPacket(ShowProfilePacket);
-        this.registerPacket(ShowStoreOfferPacket);
-        this.registerPacket(SpawnParticleEffectPacket);
-        this.registerPacket(TransferPacket);
-        this.registerPacket(UpdateAttributesPacket);
-        this.registerPacket(UpdateBlockPacket);
-        this.registerPacket(WorldEventPacket);
-
         this.logger.debug(
             `Registered §b${this.packets.size}§r of §b${
                 Array.from(Object.keys(Identifiers)).length - 2
@@ -203,23 +148,12 @@ export default class PacketRegistry {
         Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID!, new (value as any)()));
 
         // TODO: remove these
-        this.registerHandler(Identifiers.InteractPacket, new InteractHandler());
-        this.registerHandler(Identifiers.InventoryTransactionPacket, new InventoryTransactionHandler());
-        this.registerHandler(Identifiers.LevelSoundEventPacket, new LevelSoundEventHandler());
-        this.registerHandler(Identifiers.LoginPacket, new LoginHandler());
-        this.registerHandler(Identifiers.MobEquipmentPacket, new MobEquipmentHandler());
-        this.registerHandler(Identifiers.MovePlayerPacket, new MovePlayerHandler());
-        this.registerHandler(Identifiers.PacketViolationWarningPacket, new PacketViolationWarningHandler());
-        this.registerHandler(Identifiers.PlayerActionPacket, new PlayerActionHandler());
-        this.registerHandler(Identifiers.RequestChunkRadiusPacket, new RequestChunkRadiusHandler());
-        this.registerHandler(Identifiers.ResourcePackResponsePacket, new ResourcePackResponseHandler());
         this.registerHandler(Identifiers.ServerSettingsRequestPacket, new ServerSettingsRequestHandler());
         this.registerHandler(Identifiers.SetDefaultGameTypePacket, new SetDefaultGameTypeHandler());
         this.registerHandler(Identifiers.SetLocalPlayerAsInitializedPacket, new SetLocalPlayerAsInitializedHandler());
         this.registerHandler(Identifiers.SetPlayerGameTypePacket, new SetPlayerGameTypeHandler());
         this.registerHandler(Identifiers.TextPacket, new TextHandler());
         this.registerHandler(Identifiers.TickSyncPacket, new TickSyncHandler());
-        this.registerHandler(Identifiers.ModalFormResponsePacket, new ModalFormResponseHandler());
 
         this.logger.debug(
             `Registered §b${this.handlers.size}§r packet handler(s) (took ${timer.stop()} ms)!`,

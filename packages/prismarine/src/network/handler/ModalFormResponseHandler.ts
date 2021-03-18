@@ -1,9 +1,12 @@
+import Identifiers from '../Identifiers';
 import ModalFormRequestPacket from '../packet/ModalFormRequestPacket';
 import PacketHandler from './PacketHandler';
 import Player from '../../player/Player';
 import Server from '../../Server';
 
 export default class ModalFormResponseHandler implements PacketHandler<ModalFormRequestPacket> {
+    public static NetID = Identifiers.ModalFormRequestPacket;
+
     public async handle(packet: ModalFormRequestPacket, _server: Server, player: Player): Promise<void> {
         const formId = packet.formId;
         const form = player.getFormManager().getForm(formId);
