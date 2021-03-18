@@ -91,7 +91,7 @@
             "@typescript-eslint/prefer-readonly": 0,
             "@typescript-eslint/prefer-ts-expect-error": 0,
             "@typescript-eslint/lines-between-class-members": 0,
-            "@typescript-eslint/no-confusing-void-expression": 1,
+            "@typescript-eslint/no-confusing-void-expression": 0,
             "@typescript-eslint/non-nullable-type-assertion-style": 1,
             "@typescript-eslint/explicit-member-accessibility": 1,
             "@typescript-eslint/no-unnecessary-type-assertion": 0,
@@ -158,13 +158,8 @@
         "@jsprismarine/updater": "latest"
     },
     "devDependencies": {
-        "@types/d3-interpolate": "2.0.0",
-        "@types/git-rev-sync": "2.0.0",
         "@types/jest": "26.0.21",
         "@types/node": "14.14.35",
-        "@types/node-fetch": "2.5.8",
-        "@types/set-interval-async": "1.0.0",
-        "@types/unzipper": "0.10.3",
         "coveralls": "3.1.0",
         "cross-env": "7.0.3",
         "husky": "4.3.8",

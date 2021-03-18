@@ -17,7 +17,22 @@ import ContainerOpenPacket from './packet/ContainerOpenPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
 import DataPacket from './packet/DataPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
+import EmoteListPacket from './packet/EmoteListPacket';
+import InteractPacket from './packet/InteractPacket';
+import InventoryContentPacket from './packet/InventoryContentPacket';
+import InventoryTransactionPacket from './packet/InventoryTransactionPacket';
+import ItemComponentPacket from './packet/ItemComponentPacket';
+import ItemStackRequestPacket from './packet/ItemStackRequestPacket';
+import ItemStackResponsePacket from './packet/ItemStackResponsePacket';
+import LevelChunkPacket from './packet/LevelChunkPacket';
+import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import LoginPacket from './packet/LoginPacket';
+import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
+import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
+import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
+import MovePlayerPacket from './packet/MovePlayerPacket';
+import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
 import StartGamePacket from './packet/StartGamePacket';
 import TextPacket from './packet/TextPacket';
 import TickSyncPacket from './packet/TickSyncPacket';
@@ -41,9 +56,24 @@ export {
     ContainerClosePacket,
     ContainerOpenPacket,
     CreativeContentPacket,
-    DisconnectPacket,
     DataPacket, // Special packet
+    DisconnectPacket,
+    EmoteListPacket,
+    InteractPacket,
+    InventoryContentPacket,
+    InventoryTransactionPacket,
+    ItemComponentPacket,
+    ItemStackRequestPacket,
+    ItemStackResponsePacket,
+    LevelChunkPacket,
+    LevelSoundEventPacket,
     LoginPacket,
+    MobEquipmentPacket,
+    ModalFormRequestPacket,
+    ModalFormResponsePacket,
+    MovePlayerPacket,
+    MoveActorAbsolutePacket,
+    NetworkChunkPublisherUpdatePacket,
     StartGamePacket,
     TextPacket,
     TickSyncPacket
