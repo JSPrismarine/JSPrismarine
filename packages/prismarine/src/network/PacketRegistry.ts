@@ -2,27 +2,10 @@ import * as Handlers from './Handlers';
 import * as Packets from './Packets';
 
 import Identifiers from './Identifiers';
-import InteractHandler from './handler/InteractHandler';
-import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
-import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
 import LoggerBuilder from '../utils/Logger';
-import LoginHandler from './handler/LoginHandler';
-import MobEquipmentHandler from './handler/MobEquipmentHandler';
-import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
-import MovePlayerHandler from './handler/MovePlayerHandler';
 import PacketHandler from './handler/PacketHandler';
-import PacketViolationWarningHandler from './handler/PacketViolationWarningHandler';
-import Player from '../player/Player';
-import PlayerActionHandler from './handler/PlayerActionHandler';
-import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
-import ResourcePackResponseHandler from './handler/ResourcePackResponseHandler';
+import type Player from '../player/Player';
 import type Server from '../Server';
-import ServerSettingsRequestHandler from './handler/ServerSettingsRequestHandler';
-import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
-import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
-import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
-import TextHandler from './handler/TextHandler';
-import TickSyncHandler from './handler/TickSyncHandler';
 import Timer from '../utils/Timer';
 
 export default class PacketRegistry {
@@ -146,14 +129,6 @@ export default class PacketRegistry {
 
         // Dynamically register handlers
         Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID!, new (value as any)()));
-
-        // TODO: remove these
-        this.registerHandler(Identifiers.ServerSettingsRequestPacket, new ServerSettingsRequestHandler());
-        this.registerHandler(Identifiers.SetDefaultGameTypePacket, new SetDefaultGameTypeHandler());
-        this.registerHandler(Identifiers.SetLocalPlayerAsInitializedPacket, new SetLocalPlayerAsInitializedHandler());
-        this.registerHandler(Identifiers.SetPlayerGameTypePacket, new SetPlayerGameTypeHandler());
-        this.registerHandler(Identifiers.TextPacket, new TextHandler());
-        this.registerHandler(Identifiers.TickSyncPacket, new TickSyncHandler());
 
         this.logger.debug(
             `Registered §b${this.handlers.size}§r packet handler(s) (took ${timer.stop()} ms)!`,
