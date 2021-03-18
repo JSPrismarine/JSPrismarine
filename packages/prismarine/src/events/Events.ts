@@ -1,6 +1,7 @@
 import BlockRegisterEvent from './block/BlockRegisterEvent';
 import ChatEvent from './chat/ChatEvent';
 import CommandRegisterEvents from './command/CommandRegisterEvents';
+import Event from './Event';
 import ItemRegisterEvent from './items/ItemRegisterEvent';
 import PlayerConnectEvent from './player/PlayerConnectEvent';
 import PlayerDespawnEvent from './player/PlayerDespawnEvent';
@@ -19,6 +20,7 @@ export {
     BlockRegisterEvent,
     ChatEvent,
     CommandRegisterEvents,
+    Event,
     ItemRegisterEvent,
     PlayerConnectEvent,
     PlayerDespawnEvent,
