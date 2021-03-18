@@ -1,10 +1,10 @@
 import { Connection, ConnectionPriority, InetAddress, Protocol, RakNetListener } from '@jsprismarine/raknet';
 import Dgram, { Socket } from 'dgram';
+import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
 import Crypto from 'crypto';
 import { EventEmitter } from 'events';
-import { Logger, Protocol as JSPProtocol } from '@jsprismarine/prismarine';
 
 // https://stackoverflow.com/a/1527820/3142553
 const getRandomInt = (min: number, max: number) => {
@@ -77,7 +77,7 @@ export default class Client extends EventEmitter implements RakNetListener {
             }
 
             if (this.connected && !this.loginHandled) {
-                const pk = new JSPProtocol.LoginPacket();
+                const pk = new JSPProtocol.Packets.LoginPacket();
                 pk.encode();
 
                 const sendPk = new Protocol.EncapsulatedPacket();
