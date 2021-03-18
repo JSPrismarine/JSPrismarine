@@ -1,5 +1,5 @@
 {
-    "version": "0.1.0-rc.45",
+    "version": "0.1.0-rc.46",
     "npmClient": "npm",
     "command": {
         "publish": {
