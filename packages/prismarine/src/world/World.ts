@@ -6,7 +6,7 @@ import BlockMappings from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
 import DataPacket from '../network/packet/DataPacket';
-import Entity from '../entity/entity';
+import Entity from '../entity/Entity';
 import Gamemode from './Gamemode';
 import Generator from './Generator';
 import Item from '../item/Item';

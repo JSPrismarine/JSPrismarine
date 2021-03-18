@@ -1,4 +1,5 @@
 import { Connection, InetAddress } from '@jsprismarine/raknet';
+
 import ChatEvent from '../events/chat/ChatEvent';
 import Chunk from '../world/chunk/Chunk';
 import CommandExecuter from '../command/CommandExecuter';
@@ -14,6 +15,7 @@ import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
 import Server from '../Server';
 import Skin from '../utils/skin/Skin';
+import Timer from '../utils/Timer';
 import Vector3 from '../math/Vector3';
 import WindowManager from '../inventory/WindowManager';
 import World from '../world/World';
@@ -22,6 +24,9 @@ export default class Player extends Human implements CommandExecuter {
     private readonly address: InetAddress;
     private readonly playerConnection: PlayerConnection;
     private permissions: string[];
+
+    // Only used for metrics
+    private joinTimer = new Timer();
 
     // TODO: finish implementation
     private readonly windows: WindowManager;
@@ -73,6 +78,7 @@ export default class Player extends Human implements CommandExecuter {
         this.windows = new WindowManager();
         this.forms = new FormManager();
         this.permissions = [];
+        this.joinTimer.reset();
 
         // Handle chat messages
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
@@ -106,7 +112,7 @@ export default class Player extends Human implements CommandExecuter {
                 this.getServer().getBlockManager().getBlock(item.id);
 
             if (!entry) {
-                this.getServer().getLogger().debug(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
+                this.getServer().getLogger().warn(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
                 return;
             }
 
@@ -120,6 +126,9 @@ export default class Player extends Human implements CommandExecuter {
         });
 
         this.connected = true;
+        this.getServer()
+            .getLogger()
+            .debug(`Complete player creation took ${this.joinTimer.stop()}ms`, 'Player/onEnable');
     }
 
     public async onDisable() {

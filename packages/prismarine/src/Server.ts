@@ -52,6 +52,9 @@ export default class Server {
     private readonly banManager: BanManager;
     private stopping = false;
 
+    /**
+     * @deprecated
+     */
     public static instance: Server;
 
     public constructor({ logger, config, version }: { logger: LoggerBuilder; config: Config; version: string }) {

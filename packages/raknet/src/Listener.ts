@@ -205,7 +205,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
     /**
      * Remove a connection from all connections.
      */
-    public async removeConnection(connection: Connection, reason: string): Promise<void> {
+    public async removeConnection(connection: Connection, reason?: string): Promise<void> {
         const inetAddr = connection.getAddress();
         const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
         if (this.connections.has(token)) {
