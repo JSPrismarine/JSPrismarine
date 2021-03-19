@@ -28,7 +28,7 @@
     },
     "dependencies": {
         "@beenotung/level-ts": "1.15.0",
-        "@jsprismarine/bedrock-data": "1.16.210-b",
+        "@jsprismarine/bedrock-data": "1.16.210-c",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
         "@jsprismarine/color-parser": "^0.1.0-rc.46",
         "@jsprismarine/jsbinaryutils": "2.1.8",
