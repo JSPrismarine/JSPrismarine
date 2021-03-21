@@ -30,12 +30,12 @@ import WorldManager from './world/WorldManager';
 import { setIntervalAsync } from 'set-interval-async/dynamic';
 
 export default class Server {
-    private version!: String;
+    private version!: string;
     private raknet!: Listener;
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
     private tps = 20;
-    private readonly tpsHistory: number[];
+    private tpsHistory!: number[];
     private readonly console: Console;
     private readonly telemetryManager: TelemetryManager;
     private readonly eventManager = new EventManager();
@@ -66,7 +66,6 @@ export default class Server {
         this.version = version;
         this.logger = logger;
         this.config = config;
-        this.tpsHistory = new Array(12000).fill(20);
         this.telemetryManager = new TelemetryManager(this);
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
@@ -143,8 +142,6 @@ export default class Server {
                 this.getLogger().silly(error.stack, 'Server/listen/raw');
             }
         });
-
-        this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
 
         this.getEventManager().on('raknetConnect', async (raknetConnectEvent: RaknetConnectEvent) => {
             const connection = raknetConnectEvent.getConnection();
@@ -269,66 +266,81 @@ export default class Server {
             }
         });
 
-        // Tick worlds every 1/20 of a second (a minecraft tick)
-        // e.g. 1000 / 20 = 50
-        const startTime = Date.now();
-        let lastTime = Date.now(),
-            ticks = 0;
-        const tick = async () => {
-            ticks += 1;
+        if (this.getConfig().getExperimentalFlags().includes('ticks')) {
+            // Initiate the tps history
+            this.tpsHistory = new Array(12000).fill(20);
 
-            // Calculate current tps
-            const finishTime = Date.now();
-            this.tps = Math.round((1000 / (finishTime - lastTime)) * 100) / 100;
+            // Tick worlds every 1/20 of a second (a minecraft tick)
+            // e.g. 1000 / 20 = 50
+            const startTime = Date.now();
+            let lastTime = Date.now(),
+                ticks = 0;
+            const tick = async () => {
+                ticks += 1;
 
-            this.tpsHistory.push(this.tps);
-            if (this.tpsHistory.length > 12000) this.tpsHistory.shift();
+                // Calculate current tps
+                const finishTime = Date.now();
+                this.tps = Math.round((1000 / (finishTime - lastTime)) * 100) / 100;
 
-            // Make sure we never execute more than once every 20th of a second
-            if (finishTime - lastTime < 50) return;
-            lastTime = finishTime;
+                this.tpsHistory.push(this.tps);
+                if (this.tpsHistory.length > 12000) this.tpsHistory.shift();
 
-            if (this.tps > 20) {
-                this.getLogger().debug(
-                    `TPS is ${this.tps} which is greater than 20! Are we recovering?`,
-                    'Server/listen/setIntervalAsync'
+                // Make sure we never execute more than once every 20th of a second
+                if (finishTime - lastTime < 50) return;
+                lastTime = finishTime;
+
+                if (this.tps > 20) {
+                    this.getLogger().debug(
+                        `TPS is ${this.tps} which is greater than 20! Are we recovering?`,
+                        'Server/listen/setIntervalAsync'
+                    );
+                    return;
+                }
+
+                const promises: Array<Promise<void>> = [];
+                for (const world of this.getWorldManager().getWorlds()) {
+                    promises.push(world.update(lastTime));
+                }
+
+                await Promise.all(promises);
+            };
+            setIntervalAsync(tick, 1000 / 20);
+
+            setInterval(() => {
+                const correctTicks = Math.ceil((Date.now() - startTime) / 50);
+                const behindTicks = correctTicks - (ticks + 1); // Add 1 to compensate for sometimes being off with a few ms
+
+                if (behindTicks) {
+                    this.getLogger().silly(
+                        `We're behind with ${behindTicks} ticks. ${ticks}/${correctTicks}. Trying to recover!`,
+                        'server'
+                    );
+
+                    // Try to recover,
+                    // maybe we should handle this differently?
+                    // (eg keep track of the correct timestamps)
+                    for (let i = 0; i < behindTicks; i++) void tick();
+                }
+
+                if (behindTicks < 20) return;
+                this.getLogger().warn(
+                    `Can't keep up, is the server overloaded? (${behindTicks} tick(s) or ${
+                        behindTicks / 20
+                    } second(s) behind)`,
+                    'Server'
                 );
-                return;
-            }
+            }, 60 * 1000);
+        }
 
-            const promises: Array<Promise<void>> = [];
-            for (const world of this.getWorldManager().getWorlds()) {
-                promises.push(world.update(lastTime));
-            }
+        // Log experimental flags
+        if (this.getConfig().getExperimentalFlags().length >= 1) {
+            this.logger.silly(`Enabled flags:`, 'Server/listen');
+            this.getConfig()
+                .getExperimentalFlags()
+                .forEach((flag) => this.logger.silly(`- ${flag}`, 'Server/listen'));
+        }
 
-            await Promise.all(promises);
-        };
-        setIntervalAsync(tick, 1000 / 20);
-
-        setInterval(() => {
-            const correctTicks = Math.ceil((Date.now() - startTime) / 50);
-            const behindTicks = correctTicks - (ticks + 1); // Add 1 to compensate for sometimes being off with a few ms
-
-            if (behindTicks) {
-                this.getLogger().silly(
-                    `We're behind with ${behindTicks} ticks. ${ticks}/${correctTicks}. Trying to recover!`,
-                    'server'
-                );
-
-                // Try to recover,
-                // maybe we should handle this differently?
-                // (eg keep track of the correct timestamps)
-                for (let i = 0; i < behindTicks; i++) void tick();
-            }
-
-            if (behindTicks < 20) return;
-            this.getLogger().warn(
-                `Can't keep up, is the server overloaded? (${behindTicks} tick(s) or ${
-                    behindTicks / 20
-                } second(s) behind)`,
-                'Server'
-            );
-        }, 60 * 1000);
+        this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
     }
 
     /**
@@ -360,7 +372,7 @@ export default class Server {
         }
     }
 
-    public getVersion() {
+    public getVersion(): string {
         return this.version;
     }
 
@@ -491,13 +503,26 @@ export default class Server {
      * Returns the current TPS
      */
     public getTPS(): number {
+        if (!this.getConfig().getExperimentalFlags().includes('ticks')) return 20;
+
         return this.tps;
     }
 
     /**
      * Returns the current TPS
      */
-    public getAverageTPS() {
+    public getAverageTPS(): {
+        one: number;
+        five: number;
+        ten: number;
+    } {
+        if (!this.getConfig().getExperimentalFlags().includes('ticks'))
+            return {
+                one: 20,
+                five: 20,
+                ten: 20
+            };
+
         let one = 0;
         for (let i = 10800; i < this.tpsHistory.length; i++) one += this.tpsHistory[i];
         one = Math.round(one / 1200);
