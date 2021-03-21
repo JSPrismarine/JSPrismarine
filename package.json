@@ -95,6 +95,7 @@
             "@typescript-eslint/non-nullable-type-assertion-style": 1,
             "@typescript-eslint/explicit-member-accessibility": 1,
             "@typescript-eslint/no-unnecessary-type-assertion": 0,
+            "@typescript-eslint/no-array-constructor": 0,
             "no-inferrable-types": 0,
             "prefer-destructuring": 0,
             "new-cap": 0,
