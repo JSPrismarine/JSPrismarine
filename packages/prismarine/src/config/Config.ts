@@ -53,7 +53,7 @@ export default class Config {
         this.enableTelemetry = this.configBuilder.get('enable-telemetry', true);
         this.telemetryUrls = this.configBuilder.get('telemetry-urls', ['https://telemetry.prismarine.dev']);
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7);
-        this.packetCompressionLevel = this.configBuilder.get('experimental-flags', []);
+        this.experimentalFlags = this.configBuilder.get('experimental-flags', []);
 
         this.updateRepo = this.configBuilder.get('update-repo', 'JSPrismarine/JSPrismarine');
         this.updateChannel = this.configBuilder.get('update-channel', 'release');
