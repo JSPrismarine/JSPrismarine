@@ -5,6 +5,7 @@ import Timer from '../utils/Timer';
 import fs from 'fs';
 import path from 'path';
 
+// TODO: Don't dynamically import, do it like ./network/Protocol etc
 export default class ItemManager {
     private readonly server: Server;
     private readonly items = new Map();

@@ -334,10 +334,10 @@ export default class Server {
 
         // Log experimental flags
         if (this.getConfig().getExperimentalFlags().length >= 1) {
-            this.logger.silly(`Enabled flags:`, 'Server/listen');
+            this.logger.debug(`Enabled flags:`, 'Server/listen');
             this.getConfig()
                 .getExperimentalFlags()
-                .forEach((flag) => this.logger.silly(`- ${flag}`, 'Server/listen'));
+                .forEach((flag) => this.logger.debug(`- ${flag}`, 'Server/listen'));
         }
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');

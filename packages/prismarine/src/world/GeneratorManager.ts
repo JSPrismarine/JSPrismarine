@@ -3,6 +3,7 @@ import type Server from '../Server';
 import fs from 'fs';
 import path from 'path';
 
+// TODO: Don't dynamically import, do it like ./network/Protocol etc
 export default class GeneratorManager {
     private readonly generators: Map<string, Generator> = new Map();
 
