@@ -82,7 +82,7 @@ export class CommandArgumentEntity implements CommandArgument {
                 return [];
             }
 
-        return [Server.instance.getPlayerManager().getPlayerByName(player)];
+        return [context.getSource().getServer().getPlayerManager().getPlayerByName(player)];
     }
 
     public getReadableType(): string {
