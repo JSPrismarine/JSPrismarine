@@ -1,6 +1,6 @@
+/* eslint-disable promise/prefer-await-to-then */
 import * as Entities from '../../entity/Entities';
 
-/* eslint-disable promise/prefer-await-to-then */
 import { CommandDispatcher, argument, literal, string } from '@jsprismarine/brigadier';
 
 import Command from '../Command';

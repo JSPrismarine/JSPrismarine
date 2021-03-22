@@ -22,6 +22,6 @@
         "incremental": true
     },
     "exclude": ["**/*.test.*"],
-    "references": [{ "path": "../../prismarine/src" }],
+    "references": [{ "path": "../../prismarine/src" }, { "path": "../../updater/src" }],
     "typeRoots": ["../node_modules/@types", "../../../src/@types"]
 }

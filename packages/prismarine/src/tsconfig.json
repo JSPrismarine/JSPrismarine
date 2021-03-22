@@ -22,5 +22,6 @@
         "incremental": true
     },
     "exclude": ["**/*.test.*"],
-    "typeRoots": ["../node_modules/@types", "../../../src/@types"]
+    "references": [{ "path": "../../raknet/src" }, { "path": "../../color-parser/src" }],
+    "typeRoots": ["../node_modules/@types", "./@types"]
 }
