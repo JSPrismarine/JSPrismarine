@@ -21,12 +21,9 @@
         "composite": true,
         "pretty": true,
         "incremental": true,
-        "paths": {
-            "@jsprismarine/*": ["./packages/*/src"]
-        }
+        "typeRoots": ["./packages/prismarine/src/@types", "./node_modules/@types"]
     },
     "include": ["src/**/*", "package.json"],
     "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
-    "typeRoots": ["src/@types", "packages/**/src/@types", "node_modules/@types"],
     "references": [{ "path": "packages/prismarine/src" }, { "path": "packages/updater/src" }]
 }

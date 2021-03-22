@@ -19,9 +19,9 @@
         "experimentalDecorators": true,
         "composite": true,
         "pretty": true,
-        "incremental": true
+        "incremental": true,
+        "typeRoots": ["../node_modules/@types", "./@types"]
     },
     "exclude": ["**/*.test.*"],
-    "references": [{ "path": "../../raknet/src" }, { "path": "../../color-parser/src" }],
-    "typeRoots": ["../node_modules/@types", "./@types"]
+    "references": [{ "path": "../../raknet/src" }, { "path": "../../color-parser/src" }]
 }
