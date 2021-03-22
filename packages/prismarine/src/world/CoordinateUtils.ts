@@ -1,3 +1,4 @@
+// TODO: move to ./utils
 export default class CoordinateUtils {
     public static fromBlockToChunk(v: number): number {
         return v >> 4;
