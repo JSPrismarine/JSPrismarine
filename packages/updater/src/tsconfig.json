@@ -19,8 +19,9 @@
         "experimentalDecorators": true,
         "composite": true,
         "pretty": true,
-        "incremental": true
+        "incremental": true,
+        "typeRoots": ["../node_modules/@types", "../../../src/@types"]
     },
     "exclude": ["**/*.test.*"],
-    "typeRoots": ["../node_modules/@types", "../../../src/@types"]
+    "references": [{ "path": "../../prismarine/src" }]
 }
