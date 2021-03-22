@@ -1,8 +1,9 @@
-import { argument, CommandDispatcher, literal } from '@jsprismarine/brigadier';
+/* eslint-disable promise/prefer-await-to-then */
+import { CommandArgumentCommand, CommandArgumentEntity } from '../CommandArguments';
+import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
 import type Player from '../../player/Player';
-import { CommandArgumentEntity, CommandArgumentCommand } from '../CommandArguments';
 
 export default class ExecuteCommand extends Command {
     public constructor() {
@@ -21,7 +22,7 @@ export default class ExecuteCommand extends Command {
                         const source = context.getSource() as Player;
                         const target = context.getArgument('player')[0] as Player;
                         const command = context.getArgument('command') as string;
-                        source.getServer().getCommandManager().dispatchCommand(target, command);
+                        await source.getServer().getCommandManager().dispatchCommand(target, command);
                     })
                 )
             )

@@ -1,9 +1,6 @@
 {
-    "name": "@jsprismarine/jsprismarine",
-    "version": "0.1.0-rc.48",
+    "name": "@jsprismarine/monorepo",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
-    "main": "./dist/Prismarine.js",
-    "types": "./dist/Prismarine.d.ts",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "workspaces": {
         "packages": [
@@ -11,26 +8,27 @@
         ]
     },
     "bin": {
-        "prismarine": "dist/src/Prismarine.js"
+        "prismarine": "packages/server/dist/Server.js"
     },
     "engines": {
         "node": ">=14.0.0",
         "npm": "^7.0.0"
     },
     "scripts": {
-        "start": "cross-env NODE_ENV=production node ./dist/src/Prismarine.js --unhandled-rejections=strict",
-        "start:dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./dist/src/Prismarine.js",
-        "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch './src' --watch './packages' --ignore '**/*.d.ts' --ignore '**/*.js' -e ts,js,json --exec 'npm run build && npm run start:dev'",
-        "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run build && npm run start:dev",
-        "build": "lerna run build && tsc --project ./tsconfig.json",
+        "start": "node ./packages/server/dist/Server.js",
+        "start:dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./packages/server/dist/Server.js",
+        "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run build:server && npm run start:dev\"",
+        "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run build:server && npm run start:dev",
+        "build": "lerna run build",
+        "build:server": "lerna run --scope=@jsprismarine/server build",
         "bootstrap": "lerna bootstrap",
         "package": "pkg package.json --out-path ./builds/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
         "test:watch": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
-        "eslint": "xo src/",
-        "eslint:format": "xo --fix src/",
-        "prettier": "prettier --config .prettierrc src/**/*.* --check && prettier --config .prettierrc packages/**/src/**/*.* --check",
-        "prettier:format": "prettier --config .prettierrc src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write",
+        "eslint": "xo packages/**/src/",
+        "eslint:format": "xo --fix packages/**/src/",
+        "prettier": "prettier --config .prettierrc packages/**/src/**/*.* --check && prettier --config .prettierrc packages/**/src/**/*.* --check",
+        "prettier:format": "prettier --config .prettierrc packages/**/src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write",
         "coveralls": "jest --coverage --forceExit --testLocationInResults --silent && cat ./coverage/lcov.info | coveralls"
     },
     "repository": {
@@ -141,8 +139,8 @@
     },
     "pkg": {
         "scripts": [
-            "dist/**/*.js",
-            "node_modules/leveldown/**/*.js"
+            "packages/server/dist/**/*.js",
+            "packages/prismarine/node_modules/leveldown/**/*.js"
         ],
         "assets": [
             "./node_modules/**/*.exe",
@@ -154,10 +152,6 @@
         ]
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
-    "dependencies": {
-        "@jsprismarine/prismarine": "latest",
-        "@jsprismarine/updater": "latest"
-    },
     "devDependencies": {
         "@types/jest": "26.0.21",
         "@types/node": "14.14.35",
