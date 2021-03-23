@@ -141,8 +141,7 @@
         "scripts": [
             "./packages/server/dist/**/*.js",
             "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/leveldown/**/*.js",
-            "./packages/server/node_modules/@jsprismarine/prismarine/dist/**/*.js",
-            "./node_modules/leveldown/**/*.js"
+            "./packages/server/node_modules/@jsprismarine/prismarine/dist/**/*.js"
         ],
         "assets": [
             "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/@jsprismarine/bedrock-data/resources/biome_definitions.nbt",
@@ -150,14 +149,11 @@
             "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/@jsprismarine/bedrock-data/resources/canonical_block_states.nbt",
             "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/@jsprismarine/bedrock-data/resources/r12_to_current_block_map.bin",
             "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/@jsprismarine/bedrock-data/block_states.dat",
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/leveldown/prebuilds/linux-x64/node.napi.glibc.node",
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/leveldown/prebuilds/linux-x64/node.napi.musl.node",
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/leveldown/prebuilds/darwin-x64/node.napi.node",
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/leveldown/prebuilds/win32-x64/node.napi.node",
-            "./packages/server/node_modules/leveldown/prebuilds/linux-x64/node.napi.glibc.node",
-            "./packages/server/node_modules/leveldown/prebuilds/linux-x64/node.napi.musl.node",
-            "./packages/server/node_modules/leveldown/prebuilds/darwin-x64/node.napi.node",
-            "./packages/server/node_modules/leveldown/prebuilds/win32-x64/node.napi.node"
+            "./node_modules/@jsprismarine/bedrock-data/resources/biome_definitions.nbt",
+            "./node_modules/@jsprismarine/bedrock-data/resources/entity_identifiers.nbt",
+            "./node_modules/@jsprismarine/bedrock-data/resources/canonical_block_states.nbt",
+            "./node_modules/@jsprismarine/bedrock-data/resources/r12_to_current_block_map.bin",
+            "./node_modules/@jsprismarine/bedrock-data/block_states.dat"
         ]
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",

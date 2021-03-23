@@ -27,7 +27,6 @@
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
     "dependencies": {
-        "@beenotung/level-ts": "1.15.0",
         "@jsprismarine/bedrock-data": "1.16.210-c",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
         "@jsprismarine/color-parser": "^0.1.0-rc.49",

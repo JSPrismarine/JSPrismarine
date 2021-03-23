@@ -40,7 +40,7 @@ export default class Config {
         this.worlds = this.configBuilder.get('worlds', {
             world: {
                 generator: 'overworld',
-                provider: 'LevelDB',
+                provider: 'Filesystem',
                 seed: SeedGenerator()
             }
         });
