@@ -54,6 +54,9 @@ export enum ItemIdsType {
     GoldenBoots = 317,
     Flint = 318,
 
+    Paper = 339,
+    Book = 340,
+
     FishingRod = 346,
 
     Shears = 359,

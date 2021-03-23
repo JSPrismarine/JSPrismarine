@@ -20,6 +20,7 @@ export default class Item extends Entity {
         const pk = new AddItemActorPacket();
         pk.runtimeEntityId = this.runtimeId;
         pk.position = new Vector3(this.getX(), this.getY(), this.getZ()); // We could just use 'this', but that would give the packet access to a lot of unnecessary data
+        pk.motion = new Vector3(0, 0.15, 0); // TODO, we don't actually calculate gravity yet
         pk.item = this.item;
 
         await player.getConnection().sendDataPacket(pk);
