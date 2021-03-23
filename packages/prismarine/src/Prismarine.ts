@@ -13,4 +13,18 @@ import PlayerConnection from './player/PlayerConnection';
 import PluginApi from './plugin/api/versions/1.0/PluginApi';
 import Server from './Server';
 
-export { Server, Logger, Chat, Config, ConfigBuilder, Math, Entities, Events, Protocol, Player, PlayerConnection, Utils, PluginApi };
+export {
+    Server,
+    Logger,
+    Chat,
+    Config,
+    ConfigBuilder,
+    Math,
+    Entities,
+    Events,
+    Protocol,
+    Player,
+    PlayerConnection,
+    Utils,
+    PluginApi
+};

@@ -23,13 +23,13 @@ jobs:
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-linux
-                  path: builds/jsprismarine-linux
+                  path: builds/monorepo-linux
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-macos
-                  path: builds/jsprismarine-macos
+                  path: builds/monorepo-macos
             - uses: actions/upload-artifact@v2
               with:
                   name: prismarine-x64-win32
-                  path: builds/jsprismarine-win.exe
+                  path: builds/monorepo-win.exe
 
