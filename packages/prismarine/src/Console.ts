@@ -22,7 +22,7 @@ export default class Console implements CommandExecuter {
             if (process.stdin.isTTY) process.stdin.setRawMode(true);
         } catch (error) {
             this.server.getLogger().warn(`Failed to enable stdin rawMode: ${error}!`);
-            this.server.getLogger().silly(error.stack);
+            this.server.getLogger().debug(error.stack);
         }
 
         const completer = (line: string) => {

@@ -113,7 +113,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
             default: {
                 // This will get triggered even if an action is simply not handled
-                server.getLogger().debug(`Unhandled player action: ${packet.action}`, 'PlayerActionHandler/handle');
+                server.getLogger().verbose(`Unhandled player action: ${packet.action}`, 'PlayerActionHandler/handle');
             }
         }
     }

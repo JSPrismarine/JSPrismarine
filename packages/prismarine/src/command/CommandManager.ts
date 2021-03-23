@@ -50,7 +50,7 @@ export default class CommandManager {
                     await this.registerClassCommand(command);
                 } catch (err) {
                     this.server.getLogger().warn(`Failed to register command ${command.id}: ${err}`);
-                    this.server.getLogger().silly(err.stack);
+                    this.server.getLogger().debug(err.stack);
                 }
             })
         );
@@ -97,7 +97,7 @@ export default class CommandManager {
 
         this.server
             .getLogger()
-            .silly(`Command with id §b${command.id}§r registered`, 'CommandManager/registerClassCommand');
+            .debug(`Command with id §b${command.id}§r registered`, 'CommandManager/registerClassCommand');
     }
 
     /**
@@ -255,7 +255,7 @@ export default class CommandManager {
                     `Player ${sender.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
-            this.server.getLogger().silly(`${error.stack}`, 'CommandManager/dispatchCommand');
+            this.server.getLogger().debug(`${error.stack}`, 'CommandManager/dispatchCommand');
         }
     }
 }

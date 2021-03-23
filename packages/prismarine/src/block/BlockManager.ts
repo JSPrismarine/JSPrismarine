@@ -84,7 +84,7 @@ export default class BlockManager {
         await this.server.getEventManager().emit('blockRegister', event);
         if (event.cancelled) return;
 
-        this.server.getLogger().silly(`Block with id §b${block.name}§r registered`, 'BlockManager/registerClassBlock');
+        this.server.getLogger().debug(`Block with id §b${block.name}§r registered`, 'BlockManager/registerClassBlock');
         this.blocks.set(block.name, block);
     }
 
@@ -108,7 +108,7 @@ export default class BlockManager {
                         this.server
                             .getLogger()
                             .error(`${id} failed to register: ${error}`, 'BlockManager/importBlocks');
-                        this.server.getLogger().silly(error.stack, 'BlockManager/importBlocks');
+                        this.server.getLogger().debug(error.stack, 'BlockManager/importBlocks');
                     }
                 })
             );

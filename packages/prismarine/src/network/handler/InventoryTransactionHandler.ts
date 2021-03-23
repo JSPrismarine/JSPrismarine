@@ -180,7 +180,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 break;
             }
             default: {
-                server.getLogger().debug(`Unknown type: ${packet.type}`, 'InventoryTransactionHandler/handle');
+                server.getLogger().verbose(`Unknown type: ${packet.type}`, 'InventoryTransactionHandler/handle');
                 throw new Error('Invalid InventoryTransactionType');
             }
         }

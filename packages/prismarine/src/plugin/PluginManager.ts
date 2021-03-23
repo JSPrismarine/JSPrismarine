@@ -38,7 +38,7 @@ export default class PluginManager {
                     this.server
                         .getLogger()
                         .error(`§cFailed to load pluginApiVersion ${id}: ${error}`, 'PluginManager/onEnable');
-                    this.server.getLogger().silly(error.stack, 'PluginManager/onEnable');
+                    this.server.getLogger().debug(error.stack, 'PluginManager/onEnable');
                     return null;
                 }
             })
@@ -63,7 +63,7 @@ export default class PluginManager {
                         this.server
                             .getLogger()
                             .error(`§cFailed to load plugin ${id}: ${error}`, 'PluginManager/onEnable');
-                        this.server.getLogger().silly(error.stack, 'PluginManager/onEnable');
+                        this.server.getLogger().debug(error.stack, 'PluginManager/onEnable');
                     }
                 })
             )
@@ -96,7 +96,7 @@ export default class PluginManager {
             this.pluginApiVersions.set(id, PluginVersion);
             this.server
                 .getLogger()
-                .silly(`PluginApiVersion with id §b${id}§r registered`, 'PluginManager/registerPluginApiVersion');
+                .debug(`PluginApiVersion with id §b${id}§r registered`, 'PluginManager/registerPluginApiVersion');
         } catch (err) {
             this.server.getLogger().error(err, 'PluginManager/registerPluginApiVersion');
             throw new Error('invalid PluginApiVersion');
@@ -124,7 +124,7 @@ export default class PluginManager {
 
             dir = path.join(cwd(), '/plugins/.extracted/', id);
 
-            this.server.getLogger().silly(`Extracting plugin with id §b${id}...`, 'PluginManager/registerPlugin');
+            this.server.getLogger().debug(`Extracting plugin with id §b${id}...`, 'PluginManager/registerPlugin');
             await fs
                 .createReadStream(path.join(cwd(), 'plugins/', id))
                 .pipe(unzipper.Extract({ path: dir }))
@@ -177,7 +177,7 @@ export default class PluginManager {
                         this.server
                             .getLogger()
                             .debug(`moduleManager failed with: ${error}`, 'PluginManager/registerPlugin');
-                        this.server.getLogger().silly(error.stack, 'PluginManager/registerPlugin');
+                        this.server.getLogger().debug(error.stack, 'PluginManager/registerPlugin');
                         throw new Error(`Failed to install ${dependency[0]}: ${error}`);
                     }
                 })
@@ -199,7 +199,7 @@ export default class PluginManager {
                     `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
                     'PluginManager/registerPlugin'
                 );
-            this.server.getLogger().silly(error.stack, 'PluginManager/registerPlugin');
+            this.server.getLogger().debug(error.stack, 'PluginManager/registerPlugin');
             return null;
         }
 
@@ -207,7 +207,7 @@ export default class PluginManager {
 
         this.server
             .getLogger()
-            .silly(
+            .debug(
                 `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`,
                 'PluginManager/registerPlugin'
             );
@@ -239,7 +239,7 @@ export default class PluginManager {
 
         this.server
             .getLogger()
-            .silly(
+            .debug(
                 `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`,
                 'PluginManager/registerPlugin'
             );

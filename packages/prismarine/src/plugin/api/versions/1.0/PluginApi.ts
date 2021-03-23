@@ -27,10 +27,10 @@ export default class PluginApi extends PluginApiVersion {
 
         return {
             silly: (...args) => {
-                this.server.getLogger().silly(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger().debug(`[${name}] ${args}`, this.pkg.name);
             },
             debug: (...args) => {
-                this.server.getLogger().debug(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger().verbose(`[${name}] ${args}`, this.pkg.name);
             },
             info: (...args) => {
                 this.server.getLogger().info(`[${name}] ${args}`, this.pkg.name);

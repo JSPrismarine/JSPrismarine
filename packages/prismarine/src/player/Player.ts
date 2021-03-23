@@ -146,7 +146,9 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async kick(reason = 'unknown reason'): Promise<void> {
-        this.getServer().getLogger().debug(`Player with id §b${this.runtimeId}§r was kicked: ${reason}`, 'Player/kick');
+        this.getServer()
+            .getLogger()
+            .verbose(`Player with id §b${this.runtimeId}§r was kicked: ${reason}`, 'Player/kick');
         await this.playerConnection.kick(reason);
     }
 
@@ -296,6 +298,8 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async setOnGround(val: boolean) {
+        if (val === this.onGround) return;
+
         this.onGround = val;
         await this.sendSettings();
     }

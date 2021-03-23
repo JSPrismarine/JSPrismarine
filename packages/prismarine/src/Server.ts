@@ -138,8 +138,8 @@ export default class Server {
             try {
                 await this.getQueryManager().onRaw(buffer, inetAddr);
             } catch (error) {
-                this.getLogger().debug(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
-                this.getLogger().silly(error.stack, 'Server/listen/raw');
+                this.getLogger().verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
+                this.getLogger().debug(error.stack, 'Server/listen/raw');
             }
         });
 
@@ -169,7 +169,7 @@ export default class Server {
             // Add the player into the world
             world.addPlayer(player);
 
-            this.logger.silly(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
+            this.logger.debug(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
         });
 
         this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
@@ -202,12 +202,12 @@ export default class Server {
                     `Cannot remove connection from non-existing player (${token})`,
                     'Server/listen/raknetDisconnect'
                 );
-                this.logger.silly(error.stack, 'Server/listen/raknetDisconnect');
+                this.logger.debug(error.stack, 'Server/listen/raknetDisconnect');
             }
 
             this.logger.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
 
-            this.logger.silly(
+            this.logger.debug(
                 `Player destruction took about ${Date.now() - time} ms`,
                 'Server/listen/raknetDisconnect'
             );
@@ -230,7 +230,7 @@ export default class Server {
                 for (const buf of batched.getPackets()) {
                     const pid = buf[0];
                     if (!this.packetRegistry.getPackets().has(pid)) {
-                        this.logger.error(
+                        this.logger.warn(
                             `Packet 0x${pid.toString(16)} isn't implemented`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
@@ -253,6 +253,10 @@ export default class Server {
                     try {
                         const handler = this.packetRegistry.getHandler(packet.getId());
                         await handler.handle(packet, this, player);
+                        this.logger.silly(
+                            `Received §b${packet.constructor.name}§r packet`,
+                            'Server/listen/raknetEncapsulatedPacket'
+                        );
                     } catch (error) {
                         this.logger.error(
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
@@ -290,7 +294,7 @@ export default class Server {
                 lastTime = finishTime;
 
                 if (this.tps > 20) {
-                    this.getLogger().debug(
+                    this.getLogger().verbose(
                         `TPS is ${this.tps} which is greater than 20! Are we recovering?`,
                         'Server/listen/setIntervalAsync'
                     );
@@ -311,7 +315,7 @@ export default class Server {
                 const behindTicks = correctTicks - (ticks + 1); // Add 1 to compensate for sometimes being off with a few ms
 
                 if (behindTicks) {
-                    this.getLogger().silly(
+                    this.getLogger().debug(
                         `We're behind with ${behindTicks} ticks. ${ticks}/${correctTicks}. Trying to recover!`,
                         'server'
                     );
@@ -330,6 +334,16 @@ export default class Server {
                     'Server'
                 );
             }, 60 * 1000);
+        } else {
+            // Make sure we actually send chunks if real ticks are disabled
+            setInterval(async () => {
+                const promises: Array<Promise<void>> = [];
+                for (const world of this.getWorldManager().getWorlds()) {
+                    promises.push(world.update(Date.now()));
+                }
+
+                await Promise.all(promises);
+            }, 50);
         }
 
         // Log experimental flags

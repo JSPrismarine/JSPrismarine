@@ -38,7 +38,7 @@ export default class PacketRegistry {
             );
 
         this.packets.set(packet.NetID, packet);
-        this.logger.silly(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
+        this.logger.debug(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
     }
 
     /**
@@ -63,7 +63,7 @@ export default class PacketRegistry {
         if (this.handlers.has(id)) throw new Error(`Handler with id ${id} already exists!`);
 
         this.handlers.set(id, handler);
-        this.logger.silly(
+        this.logger.debug(
             `Handler with id §b${handler.constructor.name}§r registered`,
             'PacketRegistry/registerHandler'
         );

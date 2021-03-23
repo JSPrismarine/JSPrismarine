@@ -48,7 +48,7 @@ export default class ItemManager {
         await this.server.getEventManager().emit('itemRegister', event);
         if (event.cancelled) return;
 
-        this.server.getLogger().silly(`Item with id §b${item.getName()}§r registered`, 'ItemManager/registerClassItem');
+        this.server.getLogger().debug(`Item with id §b${item.getName()}§r registered`, 'ItemManager/registerClassItem');
         this.items.set(item.getName(), item);
     };
 
@@ -69,7 +69,7 @@ export default class ItemManager {
                         await this.registerClassItem(new item());
                     } catch (error) {
                         this.server.getLogger().error(`${id} failed to register: ${error}`, 'ItemManager/importItems');
-                        this.server.getLogger().silly(error.stack, 'ItemManager/importItems');
+                        this.server.getLogger().debug(error.stack, 'ItemManager/importItems');
                     }
                 })
             );

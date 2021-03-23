@@ -433,7 +433,7 @@ export default class PacketBinaryStream extends BinaryStream {
 
     public readItemStackRequest() {
         const id = this.readVarInt();
-        // This.#server.getLogger().debug(`Request ID: ${id}`);
+        // This.#server.getLogger().verbose(`Request ID: ${id}`);
 
         const actions = [];
         for (let i = 0; i < this.readUnsignedVarInt(); i++) {
@@ -456,7 +456,7 @@ export default class PacketBinaryStream extends BinaryStream {
     public readItemStackRequestAction() {
         const id = this.readByte();
 
-        // This.#server.getLogger().debug(`Action ${id}`);
+        // This.#server.getLogger().verbose(`Action ${id}`);
         switch (id) {
             case 0: // TODO: enum
                 return new ItemStackRequestTake({
@@ -517,7 +517,7 @@ export default class PacketBinaryStream extends BinaryStream {
             case 12: // CRAFTING_NON_IMPLEMENTED_DEPRECATED, Deprecated so we'll just ignore it
                 /* this.#server
                     .getLogger()
-                    .silly(
+                    .debug(
                         'Deprecated readItemStackRequestAction: CRAFTING_NON_IMPLEMENTED_DEPRECATED (12)'
                     ); */
                 return {};
@@ -525,7 +525,7 @@ export default class PacketBinaryStream extends BinaryStream {
                 // CRAFTING_RESULTS_DEPRECATED, Deprecated so we'll just ignore it
                 /* this.#server
                     .getLogger()
-                    .silly(
+                    .debug(
                         'Deprecated readItemStackRequestAction: CRAFTING_RESULTS_DEPRECATED (13)'
                     ); */
                 // We still need to read it...
