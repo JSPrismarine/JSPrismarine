@@ -128,7 +128,7 @@ export default class Player extends Human implements CommandExecuter {
         this.connected = true;
         this.getServer()
             .getLogger()
-            .debug(`Complete player creation took ${this.joinTimer.stop()} ms`, 'Player/onEnable');
+            .debug(`(Complete player creation took ${this.joinTimer.stop()} ms)`, 'Player/onEnable');
     }
 
     public async onDisable() {

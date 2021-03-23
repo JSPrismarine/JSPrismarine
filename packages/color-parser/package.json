@@ -2,8 +2,8 @@
     "name": "@jsprismarine/color-parser",
     "version": "0.1.0-rc.48",
     "description": "Parse minecraft color codes",
-    "main": "./dist/color-parser/src/Parser.js",
-    "types": "./dist/color-parser/src/Parser.d.ts",
+    "main": "./dist/Parser.js",
+    "types": "./dist/Parser.d.ts",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "tsc --build src"
