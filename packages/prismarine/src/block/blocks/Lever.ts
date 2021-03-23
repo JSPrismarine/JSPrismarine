@@ -12,6 +12,6 @@ export default class Lever extends Transparent {
     }
 
     public getToolType() {
-        return BlockToolType.Axe;
+        return [BlockToolType.Axe];
     }
 }

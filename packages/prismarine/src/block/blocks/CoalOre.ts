@@ -15,7 +15,7 @@ export default class CoalOre extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Pickaxe;
+        return [BlockToolType.Pickaxe];
     }
 
     public getToolHarvestLevel() {

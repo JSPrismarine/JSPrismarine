@@ -33,6 +33,6 @@ export default class WhiteWool extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Shears;
+        return [BlockToolType.None, BlockToolType.Shears];
     }
 }

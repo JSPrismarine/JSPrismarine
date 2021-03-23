@@ -12,6 +12,6 @@ export default class GreenGlazedTerracotta extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Pickaxe;
+        return [BlockToolType.Pickaxe];
     }
 }

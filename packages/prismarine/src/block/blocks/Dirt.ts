@@ -19,6 +19,6 @@ export default class Dirt extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Shovel;
+        return [BlockToolType.None, BlockToolType.Shovel];
     }
 }

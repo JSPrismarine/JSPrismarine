@@ -169,7 +169,7 @@ export default class Server {
             // Add the player into the world
             world.addPlayer(player);
 
-            this.logger.debug(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
+            this.logger.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
         });
 
         this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {

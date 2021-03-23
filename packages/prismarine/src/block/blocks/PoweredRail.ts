@@ -12,6 +12,6 @@ export default class PoweredRail extends Transparent {
     }
 
     public getToolType() {
-        return BlockToolType.Pickaxe;
+        return [BlockToolType.Pickaxe];
     }
 }

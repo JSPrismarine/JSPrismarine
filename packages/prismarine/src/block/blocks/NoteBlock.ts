@@ -13,7 +13,7 @@ export default class NoteBlock extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Axe;
+        return [BlockToolType.Axe];
     }
 
     public getToolHarvestLevel() {

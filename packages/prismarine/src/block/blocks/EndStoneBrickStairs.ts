@@ -13,7 +13,7 @@ export default class EndStoneBrickStairs extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Pickaxe;
+        return [BlockToolType.Pickaxe];
     }
 
     public getToolHarvestLevel() {
