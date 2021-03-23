@@ -8,15 +8,15 @@
         ]
     },
     "bin": {
-        "prismarine": "packages/server/dist/Server.js"
+        "prismarine": "packages/server/dist/server/src/Server.js"
     },
     "engines": {
         "node": ">=14.0.0",
         "npm": "^7.0.0"
     },
     "scripts": {
-        "start": "node ./packages/server/dist/Server.js",
-        "start:dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./packages/server/dist/Server.js",
+        "start": "node ./packages/server/dist/server/src/Server.js",
+        "start:dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./packages/server/dist/server/src/Server.js",
         "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run build:server && npm run start:dev\"",
         "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run build:server && npm run start:dev",
         "build": "lerna run build",
