@@ -123,7 +123,7 @@ export default class Chunk {
 
     /**
      * Deserialize network stream into chunk
-     * useful for client applications and/or our leveldb impl
+     * useful for client applications and/or our Filesystem impl
      *
      * @param buffer the network stream
      */
