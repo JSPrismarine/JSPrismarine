@@ -1,3 +1,5 @@
+import * as Blocks from './Blocks';
+
 import Block from './Block';
 import { BlockIdsType } from './BlockIdsType';
 import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
@@ -89,37 +91,19 @@ export default class BlockManager {
     }
 
     /**
-     * Loops through ./src/block/blocks and register them
+     * Register blocks exported by './Blocks'
      */
     private async importBlocks() {
-        try {
-            const timer = new Timer();
-            const blocks = fs.readdirSync(path.join(__dirname, 'blocks'));
-            await Promise.all(
-                blocks.map(async (id: string) => {
-                    if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) {
-                        return; // Exclude test files
-                    }
+        const timer = new Timer();
 
-                    const block = require(`./blocks/${id}`).default;
-                    try {
-                        await this.registerClassBlock(new block());
-                    } catch (error) {
-                        this.server
-                            .getLogger()
-                            .error(`${id} failed to register: ${error}`, 'BlockManager/importBlocks');
-                        this.server.getLogger().debug(error.stack, 'BlockManager/importBlocks');
-                    }
-                })
+        // Dynamically register blocks
+        await Promise.all(Object.entries(Blocks).map(async ([, block]) => this.registerClassBlock(new block())));
+
+        this.server
+            .getLogger()
+            .verbose(
+                `Registered §b${this.blocks.size}§r block(s) (took ${timer.stop()} ms)!`,
+                'BlockManager/importBlocks'
             );
-            this.server
-                .getLogger()
-                .verbose(
-                    `Registered §b${this.blocks.size}§r block(s) (took ${timer.stop()} ms)!`,
-                    'BlockManager/importBlocks'
-                );
-        } catch (error) {
-            this.server.getLogger().error(`Failed to register blocks: ${error}`, 'BlockManager/importBlocks');
-        }
     }
 }

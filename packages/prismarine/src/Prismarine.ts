@@ -1,3 +1,4 @@
+import * as Blocks from './block/Blocks';
 import * as Entities from './entity/Entities';
 import * as Events from './events/Events';
 import * as Math from './math/Math';
@@ -26,5 +27,6 @@ export {
     Player,
     PlayerConnection,
     Utils,
-    PluginApi
+    PluginApi,
+    Blocks
 };
