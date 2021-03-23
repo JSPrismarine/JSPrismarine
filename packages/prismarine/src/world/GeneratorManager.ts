@@ -10,7 +10,7 @@ export default class GeneratorManager {
     public constructor(server: Server) {
         const generators = fs.readdirSync(path.join(__dirname, '/generators'));
         generators.forEach((generator) => {
-            if (generator.includes('.test.') || generator.includes('.d.ts') || generator.includes('.map')) {
+            if (generator.includes('.test.') || generator.includes('.ts') || generator.includes('.map')) {
                 return;
             }
             this.registerClassGenerator(generator.split('.')[0], server);
