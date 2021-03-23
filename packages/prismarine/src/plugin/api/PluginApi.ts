@@ -1,18 +1,14 @@
-import ConfigBuilder from '../../../../config/ConfigBuilder';
+import ConfigBuilder from '../../config/ConfigBuilder';
 import EventManager from './EventManager';
-import LoggerBuilder from '../../../../utils/Logger';
-import PluginApiVersion from '../../PluginApiVersion';
-import Server from '../../../../Server';
-import cwd from '../../../../utils/cwd';
+import LoggerBuilder from '../../utils/Logger';
+import Server from '../../Server';
+import cwd from '../../utils/cwd';
 import path from 'path';
 
-export const PLUGIN_API_VERSION = '1.0';
-
-export default class PluginApi extends PluginApiVersion {
+export default class PluginApi {
     private readonly pkg;
 
-    public constructor(private readonly server: Server, pkg: any) {
-        super(PLUGIN_API_VERSION);
+    public constructor(private server: Server, pkg: any) {
         this.pkg = pkg;
     }
 
