@@ -27,9 +27,7 @@ export default class Item {
         this.name = name;
 
         this.networkId = ItemIdMap[name];
-
-        // if (!this.networkId)
-        //    console.log(name, id, this.networkId);
+        // if (!this.networkId) console.log(name, id, this.networkId);
     }
 
     public getName(): string {
