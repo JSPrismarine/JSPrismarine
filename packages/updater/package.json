@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/updater",
-    "version": "0.1.0-rc.48",
+    "version": "0.1.0-rc.49",
     "description": "JSPrismarine updater",
     "main": "./dist/Updater.js",
     "types": "./dist/Updater.d.ts",
@@ -23,7 +23,7 @@
         "typescript": "4.2.3"
     },
     "dependencies": {
-        "@jsprismarine/prismarine": "^0.1.0-rc.48",
+        "@jsprismarine/prismarine": "^0.1.0-rc.49",
         "chalk": "^4.1.0",
         "node-fetch": "^2.6.1",
         "semver": "^7.3.4"
