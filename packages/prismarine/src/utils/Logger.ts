@@ -53,7 +53,7 @@ export default class LoggerBuilder {
                     )
                 }),
                 new transports.File({
-                    level: 'silly',
+                    level: 'debug',
                     filename: path.join(cwd(), 'logs', `${LoggerBuilder.logFile}`),
                     format: combine(
                         timestamp({ format: 'HH:mm:ss.SS' }),
@@ -106,6 +106,16 @@ export default class LoggerBuilder {
      */
     public error = (message: string, namespace?: string) => {
         this.logger.log('error', message, {
+            namespace
+        });
+    };
+
+    /**
+     * Log verbose messages
+     * @param message
+     */
+    public verbose = (message: string, namespace?: string) => {
+        this.logger.log('verbose', message, {
             namespace
         });
     };

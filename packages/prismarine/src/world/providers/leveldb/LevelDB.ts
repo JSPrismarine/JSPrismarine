@@ -15,7 +15,7 @@ export default class LevelDB extends BaseProvider {
         try {
             this.storage = new Level(path.join(this.getPath(), 'db'));
         } catch (error) {
-            server.getLogger().silly(error.stack, 'providers/LevelDB');
+            server.getLogger().debug(error.stack, 'providers/LevelDB');
             throw new Error(`failed to open world for reading with id ${folderPath}`);
         }
     }

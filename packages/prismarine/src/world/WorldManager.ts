@@ -134,7 +134,7 @@ export default class WorldManager {
                 this.server.getLogger().info(`Loaded §b${folderName}§r as default world!`, 'WorldManager/loadWorld');
             }
 
-            this.server.getLogger().debug(`World §b${folderName}§r successfully loaded!`, 'WorldManager/loadWorld');
+            this.server.getLogger().verbose(`World §b${folderName}§r successfully loaded!`, 'WorldManager/loadWorld');
             resolve(world);
         });
     }
@@ -158,7 +158,7 @@ export default class WorldManager {
 
         await world.close();
         this.worlds.delete(world.getUniqueId());
-        this.server.getLogger().debug(`Successfully unloaded world §b${folderName}§f!`, 'WorldManager/unloadWorld');
+        this.server.getLogger().verbose(`Successfully unloaded world §b${folderName}§f!`, 'WorldManager/unloadWorld');
     }
 
     /**

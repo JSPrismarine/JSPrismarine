@@ -88,10 +88,10 @@ export default class TelemetryManager {
                             'Content-Type': 'application/json'
                         })
                     });
-                    this.server.getLogger().silly('Sent heartbeat', 'TelemetryManager/tick');
+                    this.server.getLogger().debug('Sent heartbeat', 'TelemetryManager/tick');
                 } catch (error) {
                     this.server.getLogger().warn(`Failed to tick: ${url} (${error})`, 'TelemetryManager/tick');
-                    this.server.getLogger().silly(error.stack, 'TelemetryManager/tick');
+                    this.server.getLogger().debug(error.stack, 'TelemetryManager/tick');
                 }
             })
         );
@@ -108,7 +108,7 @@ export default class TelemetryManager {
                 "JSPrismarine has crashed, we're now submitting the error to the telemetry service...",
                 'TelemetryManager/sendCrashLog'
             );
-        this.server.getLogger().silly(crashlog.stack!, 'TelemetryManager/sendCrashLog');
+        this.server.getLogger().debug(crashlog.stack!, 'TelemetryManager/sendCrashLog');
 
         const body = {
             id: this.generateAnonomizedId(),
@@ -134,7 +134,7 @@ export default class TelemetryManager {
                         });
                         return `${url}/error/${(await res.json()).id}`;
                     } catch (error) {
-                        this.server.getLogger().silly(error.stack, 'TelemetryManager/sendCrashLog');
+                        this.server.getLogger().debug(error.stack, 'TelemetryManager/sendCrashLog');
                     }
                 })
             )
