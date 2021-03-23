@@ -57,7 +57,7 @@ export default class CommandManager {
 
         this.server
             .getLogger()
-            .debug(
+            .verbose(
                 `Registered §b${this.commands.size}§r commands(s) (took ${timer.stop()} ms)!`,
                 'CommandManager/onEnable'
             );
