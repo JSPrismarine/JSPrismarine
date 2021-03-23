@@ -113,7 +113,7 @@ export default class PacketRegistry {
             .filter(([, value]) => value.name !== 'DataPacket' && value.name !== 'BatchPacket')
             .map(([, value]) => this.registerPacket(value));
 
-        this.logger.debug(
+        this.logger.verbose(
             `Registered §b${this.packets.size}§r of §b${
                 Array.from(Object.keys(Identifiers)).length - 2
             }§r packet(s) (took ${timer.stop()} ms)!`,
@@ -130,7 +130,7 @@ export default class PacketRegistry {
         // Dynamically register handlers
         Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID!, new (value as any)()));
 
-        this.logger.debug(
+        this.logger.verbose(
             `Registered §b${this.handlers.size}§r packet handler(s) (took ${timer.stop()} ms)!`,
             'PacketRegistry/registerHandlers'
         );
