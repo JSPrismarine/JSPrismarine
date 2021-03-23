@@ -139,8 +139,8 @@
     },
     "pkg": {
         "scripts": [
-            "packages/server/dist/**/*.js",
-            "packages/prismarine/node_modules/leveldown/**/*.js"
+            "./packages/server/dist/**/*.js",
+            "./node_modules/leveldown/**/*.js"
         ],
         "assets": [
             "./node_modules/**/*.exe",
