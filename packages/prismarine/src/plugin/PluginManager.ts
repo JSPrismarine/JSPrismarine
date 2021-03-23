@@ -1,5 +1,5 @@
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
-import PluginApiVersion from './api/PluginApiVersion';
+import PluginApi from './api/PluginApi';
 import PluginFile from './PluginFile';
 import Server from '../Server';
 import Timer from '../utils/Timer';
@@ -10,7 +10,6 @@ import unzipper from 'unzipper';
 
 export default class PluginManager {
     private readonly server: Server;
-    private readonly pluginApiVersions = new Map();
     private readonly plugins = new Map();
 
     public constructor(server: Server) {
@@ -26,32 +25,8 @@ export default class PluginManager {
             fs.mkdirSync(cwd() + '/plugins');
         }
 
-        // Register PluginApiVersion(s)
-        let timer = new Timer();
-
-        const pluginApiVersions = fs.readdirSync(path.join(__dirname, 'api/versions'));
-        await Promise.all(
-            pluginApiVersions.map((id: string) => {
-                try {
-                    return this.registerPluginApiVersion(id);
-                } catch (error) {
-                    this.server
-                        .getLogger()
-                        .error(`§cFailed to load pluginApiVersion ${id}: ${error}`, 'PluginManager/onEnable');
-                    this.server.getLogger().debug(error.stack, 'PluginManager/onEnable');
-                    return null;
-                }
-            })
-        );
-        this.server
-            .getLogger()
-            .debug(
-                `Registered §b${pluginApiVersions.length}§r pluginApiVersion(s) (took ${timer.stop()} ms)!`,
-                'PluginManager/onEnable'
-            );
-
         // Register Plugin(s)
-        timer = new Timer();
+        const timer = new Timer();
 
         const plugins = fs.readdirSync(path.join(cwd(), 'plugins'));
         const res = (
@@ -82,25 +57,6 @@ export default class PluginManager {
                 return this.deregisterPlugin(id);
             })
         );
-        this.pluginApiVersions.clear();
-    }
-
-    /**
-     * Register a pluginApiVersion
-     */
-    private async registerPluginApiVersion(id: string) {
-        try {
-            const dir = path.join(__dirname, 'api/versions', id, 'PluginApi');
-            const PluginVersion = require(dir).default;
-
-            this.pluginApiVersions.set(id, PluginVersion);
-            this.server
-                .getLogger()
-                .debug(`PluginApiVersion with id §b${id}§r registered`, 'PluginManager/registerPluginApiVersion');
-        } catch (err) {
-            this.server.getLogger().error(err, 'PluginManager/registerPluginApiVersion');
-            throw new Error('invalid PluginApiVersion');
-        }
     }
 
     /**
@@ -182,13 +138,7 @@ export default class PluginManager {
                     }
                 })
             );
-
-        if (!pkg.prismarine?.apiVersion) throw new Error(`apiVersion is missing in package.json!`);
-
-        const pluginApiVersion: any = this.getPluginApiVersion(pkg.prismarine.apiVersion);
-        if (!pluginApiVersion) throw new Error(`Invalid PluginApiVersion ${pkg.prismarine.apiVersion}!`);
-
-        const plugin = new PluginFile(this.server, dir, new pluginApiVersion(this.server, pkg));
+        const plugin = new PluginFile(this.server, dir, new PluginApi(this.server, pkg));
 
         try {
             await plugin.onEnable();
@@ -269,23 +219,6 @@ export default class PluginManager {
         }
 
         this.plugins.delete(id);
-    }
-
-    /**
-     * Get a specific pluginApiVersion.
-     * NOTE: the minor version returned may be higher but NEVER lower.
-     */
-    private getPluginApiVersion(id: string): typeof PluginApiVersion {
-        const version = this.pluginApiVersions.get(id);
-        if (version) return version;
-
-        // Try to use a higher minor version instead
-        return this.pluginApiVersions.get(
-            Array.from(this.pluginApiVersions.keys()).find(
-                (apiVersion: string) =>
-                    apiVersion.split('.')[0] === id.split('.')[0] && apiVersion.split('.')[1] >= id.split('.')[1]
-            )
-        );
     }
 
     /**

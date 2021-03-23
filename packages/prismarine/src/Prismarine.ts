@@ -10,7 +10,7 @@ import ConfigBuilder from './config/ConfigBuilder';
 import Logger from './utils/Logger';
 import Player from './player/Player';
 import PlayerConnection from './player/PlayerConnection';
-import PluginApi from './plugin/api/versions/1.0/PluginApi';
+import PluginApi from './plugin/api/PluginApi';
 import Server from './Server';
 
 export {
