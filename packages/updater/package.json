@@ -2,8 +2,8 @@
     "name": "@jsprismarine/updater",
     "version": "0.1.0-rc.48",
     "description": "JSPrismarine updater",
-    "main": "./dist/updater/src/Updater.js",
-    "types": "./dist/updater/src/Updater.d.ts",
+    "main": "./dist/Updater.js",
+    "types": "./dist/Updater.d.ts",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "tsc --build src"

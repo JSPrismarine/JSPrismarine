@@ -2,8 +2,8 @@
     "name": "@jsprismarine/raknet",
     "version": "0.1.0-rc.48",
     "description": "Basic RakNet implementation written in TypeScript",
-    "main": "./dist/raknet/src/RakNet.js",
-    "types": "./dist/raknet/src/RakNet.d.ts",
+    "main": "./dist/RakNet.js",
+    "types": "./dist/RakNet.d.ts",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "tsc --build src"
