@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/server",
-    "version": "0.1.0-rc.48",
+    "version": "0.1.0-rc.49",
     "description": "Minecraft: Bedrock Edition RakNet client",
     "main": "./dist/Server.js",
     "types": "./dist/Server.d.ts",
@@ -25,8 +25,8 @@
         "typescript": "4.2.3"
     },
     "dependencies": {
-        "@jsprismarine/prismarine": "^0.1.0-rc.48",
-        "@jsprismarine/raknet": "^0.1.0-rc.48",
-        "@jsprismarine/updater": "^0.1.0-rc.48"
+        "@jsprismarine/prismarine": "^0.1.0-rc.49",
+        "@jsprismarine/raknet": "^0.1.0-rc.49",
+        "@jsprismarine/updater": "^0.1.0-rc.49"
     }
 }
