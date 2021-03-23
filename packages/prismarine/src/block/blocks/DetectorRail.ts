@@ -12,6 +12,6 @@ export default class DetectorRail extends Transparent {
     }
 
     public getToolType() {
-        return BlockToolType.Pickaxe;
+        return [BlockToolType.Pickaxe];
     }
 }

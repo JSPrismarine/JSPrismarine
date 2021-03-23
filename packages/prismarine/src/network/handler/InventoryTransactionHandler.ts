@@ -129,22 +129,33 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
                         // Spawn item if player isn't in creative
                         if (player.getGamemode() !== 'creative') {
-                            const droppedItem = new Item(
-                                player.getWorld(),
-                                server,
-                                new ContainerEntry({
-                                    item: block, // TODO: use block.getDrops()
-                                    count: 1
-                                })
-                            );
-                            await droppedItem.setPosition(packet.blockPosition);
+                            // TODO: use iteminhand
+                            const drops = block.getDrops(null, server);
+
                             await Promise.all(
-                                player
-                                    .getServer()
-                                    .getPlayerManager()
-                                    .getOnlinePlayers()
-                                    .filter((p) => p.getWorld().getUniqueId() === player.getWorld().getUniqueId())
-                                    .map(async (player) => droppedItem.sendSpawn(player))
+                                drops.map(async (block) => {
+                                    if (!block) return;
+
+                                    const droppedItem = new Item(
+                                        player.getWorld(),
+                                        server,
+                                        new ContainerEntry({
+                                            item: block,
+                                            count: 1
+                                        })
+                                    );
+                                    await droppedItem.setPosition(packet.blockPosition);
+                                    await Promise.all(
+                                        player
+                                            .getServer()
+                                            .getPlayerManager()
+                                            .getOnlinePlayers()
+                                            .filter(
+                                                (p) => p.getWorld().getUniqueId() === player.getWorld().getUniqueId()
+                                            )
+                                            .map(async (player) => droppedItem.sendSpawn(player))
+                                    );
+                                })
                             );
                         }
 

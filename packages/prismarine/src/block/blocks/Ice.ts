@@ -16,7 +16,7 @@ export default class Ice extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Pickaxe;
+        return [BlockToolType.None, BlockToolType.Pickaxe];
     }
 
     public isAffectedBySilkTouch() {

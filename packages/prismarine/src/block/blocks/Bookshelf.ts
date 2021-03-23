@@ -12,7 +12,7 @@ export default class Bookshelf extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Axe;
+        return [BlockToolType.Axe];
     }
 
     public getFlammability() {

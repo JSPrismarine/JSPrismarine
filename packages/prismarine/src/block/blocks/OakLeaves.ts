@@ -22,7 +22,7 @@ export default class Leaves extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Shears;
+        return [BlockToolType.Shears];
     }
 
     public getFlammability() {

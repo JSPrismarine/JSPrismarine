@@ -13,6 +13,6 @@ export default class PrismarineBricks extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Pickaxe;
+        return [BlockToolType.Pickaxe];
     }
 }

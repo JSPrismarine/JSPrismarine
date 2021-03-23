@@ -14,7 +14,7 @@ export default class Grass extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Shovel;
+        return [BlockToolType.None, BlockToolType.Shovel];
     }
 
     public getDropsForCompatibleTool(item: Item, server: Server) {

@@ -12,6 +12,6 @@ export default class StoneButton extends Transparent {
     }
 
     public getToolType() {
-        return BlockToolType.Pickaxe;
+        return [BlockToolType.Pickaxe];
     }
 }

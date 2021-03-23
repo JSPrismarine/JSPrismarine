@@ -22,7 +22,7 @@ export default class Planks extends Solid {
     }
 
     public getToolType() {
-        return BlockToolType.Axe;
+        return [BlockToolType.None, BlockToolType.Axe];
     }
 
     public getFlammability() {

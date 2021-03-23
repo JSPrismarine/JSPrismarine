@@ -107,8 +107,8 @@ export default class Block {
     /**
      * Get the Block's required tool type
      */
-    public getToolType(): BlockToolType {
-        return BlockToolType.None;
+    public getToolType(): BlockToolType[] {
+        return [BlockToolType.None];
     }
 
     /**
@@ -121,16 +121,16 @@ export default class Block {
     /**
      * Get the Block's drop(s) if the tool is compatible
      */
-    public getDropsForCompatibleTool(item: Item, server: Server): Array<Block | Item | null> {
+    public getDropsForCompatibleTool(item: Item | null, server: Server): Array<Block | Item | null> {
         return [this];
     }
 
     /**
      * Get the Block's drop(s) from the current item
      */
-    public getDrops(item: Item, server: Server): Array<Block | Item | null> {
+    public getDrops(item: Item | null, server: Server): Array<Block | Item | null> {
         if (this.isCompatibleWithTool(item)) {
-            if (this.isAffectedBySilkTouch() && item.hasEnchantment(ItemEnchantmentType.SilkTouch))
+            if (this.isAffectedBySilkTouch() && item?.hasEnchantment(ItemEnchantmentType.SilkTouch))
                 return this.getSilkTouchDrops(item, server);
 
             return this.getDropsForCompatibleTool(item, server);
@@ -182,16 +182,12 @@ export default class Block {
     }
 
     public isCompatibleWithTool(item: Item | null) {
-        if (!item) return false;
-
-        if (this.getHardness() < 0) return false;
-
         const toolType = this.getToolType();
         const harvestLevel = this.getToolHarvestLevel();
 
-        if (toolType === BlockToolType.None || harvestLevel === 0) return true;
-        if (toolType & item.getToolType() && item.getToolHarvestLevel() >= harvestLevel) return true;
-
+        if (toolType.includes(BlockToolType.None) || harvestLevel <= 0) return true;
+        if (!item) return false;
+        if (toolType.includes(item.getToolType()) && item.getToolHarvestLevel() >= harvestLevel) return true;
         return false;
     }
 
