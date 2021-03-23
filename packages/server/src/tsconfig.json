@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "outDir": "./dist",
+        "outDir": "../dist",
         "target": "es2020",
         "rootDir": ".",
         "lib": ["es2020", "esnext"],
@@ -13,7 +13,6 @@
         "isolatedModules": true,
         "esModuleInterop": true,
         "declaration": true,
-        "declarationMap": true,
         "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true,
         "emitDecoratorMetadata": true,
@@ -21,9 +20,8 @@
         "composite": true,
         "pretty": true,
         "incremental": true,
-        "typeRoots": ["./packages/prismarine/src/@types", "./node_modules/@types"]
+        "typeRoots": ["../node_modules/@types", "../../../src/@types"]
     },
-    "include": ["src/**/*", "package.json"],
-    "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
-    "references": [{ "path": "packages/prismarine/src" }, { "path": "packages/updater/src" }]
+    "exclude": ["**/*.test.*"],
+    "references": [{ "path": "../../prismarine/src" }, { "path": "../../updater/src" }]
 }

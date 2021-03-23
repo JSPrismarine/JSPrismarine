@@ -6,6 +6,7 @@ import Timer from '../utils/Timer';
 import fs from 'fs';
 import path from 'path';
 
+// TODO: Don't dynamically import, do it like ./network/Protocol etc
 export default class BlockManager {
     private readonly server: Server;
     private readonly blocks = new Map();

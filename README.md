@@ -72,6 +72,7 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
 
 -   [Running JSPrismarine](documentation/running.md)
 -   [Publish a new version](documentation/publish-package.md)
+-   [Experimental flags](documentation/experimental-flags.md)
 
 ## Remarks
 
