@@ -87,7 +87,6 @@ export default class Entity extends Position {
     }
 
     public async sendSpawn(player: Player) {
-        // Recursive import, find another way
         const pk = new AddActorPacket();
         pk.runtimeEntityId = this.runtimeId;
         pk.type = (this.constructor as any).MOB_ID; // TODO

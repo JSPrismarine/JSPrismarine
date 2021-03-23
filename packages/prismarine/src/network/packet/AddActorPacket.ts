@@ -1,5 +1,4 @@
 import DataPacket from './DataPacket';
-import { FlagType } from '../../entity/metadata';
 import Identifiers from '../Identifiers';
 
 export default class AddActorPacket extends DataPacket {
@@ -45,8 +44,9 @@ export default class AddActorPacket extends DataPacket {
 
         // TODO: fixme
         const metadata = Array.from(this.metadata);
-        this.writeUnsignedVarInt(metadata.length);
-        metadata.forEach(([key, [type, value]]) => {
+        this.writeUnsignedVarInt(/* metadata.length */ 0);
+
+        /* metadata.forEach(([key, [type, value]]) => {
             this.writeUnsignedVarInt(key);
             this.writeUnsignedVarInt(type);
 
@@ -81,7 +81,7 @@ export default class AddActorPacket extends DataPacket {
                 default:
                     throw new Error(`Invalid type: ${type}`);
             }
-        });
+        }); */
 
         // TODO: links
         this.writeUnsignedVarInt(this.links.length);

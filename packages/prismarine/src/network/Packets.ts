@@ -1,5 +1,6 @@
 import ActorFallPacket from './packet/ActorFallPacket';
 import AddActorPacket from './packet/AddActorPacket';
+import AddItemActorPacket from './packet/AddItemActorPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import AdventureSettingsPacket from './packet/AdventureSettingsPacket';
 import AnimatePacket from './packet/AnimatePacket';
@@ -72,6 +73,7 @@ import WorldEventPacket from './packet/WorldEventPacket';
 export {
     ActorFallPacket,
     AddActorPacket,
+    AddItemActorPacket,
     AddPlayerPacket,
     AdventureSettingsPacket,
     AnimatePacket,
