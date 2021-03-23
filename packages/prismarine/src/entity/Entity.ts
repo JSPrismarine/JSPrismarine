@@ -101,6 +101,7 @@ export default class Entity extends Position {
         pk.pitch = 0;
         pk.yaw = 0;
         pk.headYaw = 0;
+        pk.metadata = this.metadata.getMetadata();
         await player.getConnection().sendDataPacket(pk);
     }
 
