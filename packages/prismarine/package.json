@@ -40,7 +40,7 @@
         "live-plugin-manager": "0.15.1",
         "node-fetch": "2.6.1",
         "node-machine-id": "1.1.12",
-        "semver": "7.3.4",
+        "semver": "7.3.5",
         "set-interval-async": "1.0.34",
         "simplex-noise": "^2.4.0",
         "strip-json-comments": "^3.1.1",
