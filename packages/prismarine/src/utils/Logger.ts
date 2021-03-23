@@ -44,7 +44,9 @@ export default class LoggerBuilder {
                             return `[${timestamp} ${level}${colorParser(
                                 `${
                                     namespace &&
-                                    ((global as any).log_level === 'silly' || (global as any).log_level === 'debug')
+                                    ((global as any).log_level === 'silly' ||
+                                        (global as any).log_level === 'debug' ||
+                                        (global as any).log_level === 'verbose')
                                         ? ` ${namespace}]`
                                         : ']'
                                 }: ${message}`

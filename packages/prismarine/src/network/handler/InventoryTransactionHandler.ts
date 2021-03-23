@@ -2,17 +2,16 @@ import InventoryTransactionPacket, {
     InventoryTransactionType,
     InventoryTransactionUseItemActionType
 } from '../packet/InventoryTransactionPacket';
+import { LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
 
 import BlockMappings from '../../block/BlockMappings';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
-import Item from '../../entity/passive/Item';
-import LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
+import { Item } from '../../entity/Entities';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import type Server from '../../Server';
-import UpdateBlockPacket from '../packet/UpdateBlockPacket';
 import Vector3 from '../../math/Vector3';
 
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
@@ -115,6 +114,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         pk.z = packet.blockPosition.getZ();
                         // TODO: run a function from block.getBreakConsequences() because
                         // the broken block may place more blocks or run block related code
+                        // for example, ice should replace itself with a water source block
+                        // in survival
                         pk.blockRuntimeId = BlockMappings.getRuntimeId(0, 0); // Air
 
                         // Send block-break packet to all players in the same world
@@ -127,9 +128,15 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         );
 
                         // Spawn item if player isn't in creative
-                        // TODO: do this properly
                         if (player.getGamemode() !== 'creative') {
-                            const droppedItem = new Item(player.getWorld(), server, block);
+                            const droppedItem = new Item(
+                                player.getWorld(),
+                                server,
+                                new ContainerEntry({
+                                    item: block, // TODO: use block.getDrops()
+                                    count: 1
+                                })
+                            );
                             await droppedItem.setPosition(packet.blockPosition);
                             await Promise.all(
                                 player
