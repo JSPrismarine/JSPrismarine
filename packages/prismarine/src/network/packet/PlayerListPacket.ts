@@ -1,7 +1,10 @@
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import PacketBinaryStream from '../PacketBinaryStream';
 import Skin from '../../utils/skin/Skin';
 import UUID from '../../utils/UUID';
+import { stream } from 'winston';
 
 interface PlayerListData {
     uuid: UUID;
@@ -46,6 +49,17 @@ export class PlayerListEntry {
         this.skin = skin ?? null;
         this.teacher = isTeacher;
         this.host = isHost;
+    }
+
+    public networkSerialize(stream: PacketBinaryStream): void {
+        stream.writeVarLong(this.getUniqueEntityId()!);
+        stream.writeString(this.getName()!);
+        stream.writeString(this.getXUID());
+        stream.writeString(this.getPlatformChatId()!);
+        stream.writeLInt(this.getBuildPlatform()!);
+        this.getSkin()!.networkSerialize(stream);
+        stream.writeBool(this.isTeacher());
+        stream.writeBool(this.isHost());
     }
 
     public getUUID(): UUID {
@@ -100,10 +114,10 @@ export default class PlayerListPacket extends DataPacket {
         this.writeByte(this.type);
         this.writeUnsignedVarInt(this.entries.length);
         for (const entry of this.entries) {
-            this.writeUUID(entry.getUUID());
+            entry.getUUID().networkSerialize(this);
 
             if (this.type === PlayerListAction.TYPE_ADD) {
-                this.writePlayerListAddEntry(entry);
+                entry.networkSerialize(this);
             }
         }
 

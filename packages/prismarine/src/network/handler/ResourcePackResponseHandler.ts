@@ -46,7 +46,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             pk.levelId = world.getUniqueId();
             pk.worldName = world.getName();
             pk.seed = world.getSeed();
-            pk.gamerules = world.getGameruleManager().getGamerules();
+            pk.gamerules = world.getGameruleManager();
             await player.getConnection().sendDataPacket(pk);
             await player.getConnection().sendTime(world.getTicks());
             await player.getConnection().sendDataPacket(new AvailableActorIdentifiersPacket());

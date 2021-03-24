@@ -1,7 +1,9 @@
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+
 export default class Vector3 {
-    private x: number;
-    private y: number;
-    private z: number;
+    protected x: number;
+    protected y: number;
+    protected z: number;
 
     public constructor(x = 0, y = 0, z = 0) {
         this.x = x;
@@ -9,15 +11,15 @@ export default class Vector3 {
         this.z = z;
     }
 
-    public setX(x = 0) {
+    public setX(x = 0): void {
         this.x = x;
     }
 
-    public setY(y = 0) {
+    public setY(y = 0): void {
         this.y = y;
     }
 
-    public setZ(z = 0) {
+    public setZ(z = 0): void {
         this.z = z;
     }
 
@@ -34,8 +36,16 @@ export default class Vector3 {
     }
 
     public equals(vector: Vector3): boolean {
-        // There might be a way better way to do this?
-        if (JSON.stringify(this) !== JSON.stringify(vector)) return false;
-        return true;
+        return JSON.stringify(this) === JSON.stringify(vector);
+    }
+
+    public networkSerialize(stream: BinaryStream): void {
+        stream.writeLFloat(this.x);
+        stream.writeLFloat(this.y);
+        stream.writeLFloat(this.z);
+    }
+
+    public static networkDeserialize(stream: BinaryStream): Vector3 {
+        return new Vector3(stream.readLFloat(), stream.readLFloat(), stream.readLFloat());
     }
 }

@@ -1,3 +1,4 @@
+import PacketBinaryStream from '../../network/PacketBinaryStream';
 import SkinAnimation from './SkinAnimation';
 import SkinCape from './SkinCape';
 import SkinImage from './SkinImage';
@@ -163,6 +164,62 @@ export default class Skin {
         // Compute a full id
         skin.fullId = skin.getCape().getId() + skin.id;
         return skin;
+    }
+
+    public networkSerialize(stream: PacketBinaryStream): void {
+        stream.writeString(this.getId());
+        stream.writeString(this.getPlayFabId());
+        stream.writeString(this.getResourcePatch());
+
+        // Skin image
+        this.getImage().networkSerialize(stream);
+
+        // Animations
+        stream.writeLInt(this.getAnimations().size);
+        for (const animation of this.getAnimations()) {
+            animation.getImage().networkSerialize(stream);
+            stream.writeLInt(animation.getType());
+            stream.writeLFloat(animation.getFrames());
+            stream.writeLInt(animation.getExpression());
+        }
+
+        // Cape image
+        this.getCape().getImage().networkSerialize(stream);
+
+        // Miscellaneus
+        stream.writeString(this.getGeometry());
+        stream.writeString(this.getAnimationData());
+        stream.writeBool(this.isPremium());
+        stream.writeBool(this.isPersona());
+        stream.writeBool(this.isCapeOnClassicSkin());
+        stream.writeString(this.getCape().getId());
+        stream.writeString(this.getFullId());
+        stream.writeString(this.getArmSize());
+        stream.writeString(this.getColor());
+
+        // Hack to keep less useless data in software
+        if (this.isPersona()) {
+            stream.writeLInt(this.getPersonaData().getPieces().size);
+            for (const personaPiece of this.getPersonaData().getPieces()) {
+                stream.writeString(personaPiece.getPieceId());
+                stream.writeString(personaPiece.getPieceType());
+                stream.writeString(personaPiece.getPackId());
+                stream.writeBool(personaPiece.isDefault());
+                stream.writeString(personaPiece.getProductId());
+            }
+
+            stream.writeLInt(this.getPersonaData().getTintColors().size);
+            for (const tint of this.getPersonaData().getTintColors()) {
+                stream.writeString(tint.getPieceType());
+                stream.writeLInt(tint.getColors().length);
+                for (const color of tint.getColors()) {
+                    stream.writeString(color);
+                }
+            }
+        } else {
+            stream.writeLInt(0); // Persona pieces
+            stream.writeLInt(0); // Tint colors
+        }
     }
 
     public getId(): string {

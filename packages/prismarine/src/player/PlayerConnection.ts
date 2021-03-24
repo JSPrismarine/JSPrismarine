@@ -6,7 +6,7 @@ import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../network/
 
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
 import Air from '../block/blocks/Air';
-import { Attribute } from '../entity/attribute';
+import { Attribute } from '../entity/Attribute';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
 import BatchPacket from '../network/packet/BatchPacket';
 import Block from '../block/Block';
@@ -401,7 +401,7 @@ export default class PlayerConnection {
     public async sendMetadata(): Promise<void> {
         const pk = new SetActorDataPacket();
         pk.runtimeEntityId = this.player.runtimeId;
-        pk.metadata = this.player.getMetadataManager().getMetadata();
+        pk.metadata = this.player.getMetadataManager();
         pk.tick = BigInt(0); // TODO
         await this.sendDataPacket(pk);
     }
@@ -561,7 +561,7 @@ export default class PlayerConnection {
         pk.item = this.player.getInventory()?.getItemInHand() ?? new ContainerEntry({ item: new Air(), count: 0 });
 
         pk.deviceId = this.player.device?.id ?? '';
-        pk.metadata = this.player.getMetadataManager().getMetadata();
+        pk.metadata = this.player.getMetadataManager();
         await player.getConnection().sendDataPacket(pk);
         await this.sendSettings(player);
     }

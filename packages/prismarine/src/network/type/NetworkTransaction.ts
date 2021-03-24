@@ -1,3 +1,4 @@
+import Item from '../../item/Item';
 import NetworkTransactionSourceType from './NetworkTransactionSourceType';
 import type PacketBinaryStream from '../PacketBinaryStream';
 
@@ -34,8 +35,8 @@ class NetworkTransaction {
         }
 
         this.slot = buffer.readUnsignedVarInt();
-        this.oldItem = buffer.readItemStack();
-        this.newItem = buffer.readItemStack();
+        this.oldItem = Item.networkDeserialize(buffer);
+        this.newItem = Item.networkDeserialize(buffer);
 
         if (hasItemStack) {
             this.newItemStackId = buffer.readVarInt();

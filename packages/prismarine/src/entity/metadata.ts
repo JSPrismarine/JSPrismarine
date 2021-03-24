@@ -1,3 +1,5 @@
+import PacketBinaryStream from '../network/PacketBinaryStream';
+
 // TODO: Still missing flags
 export enum MetadataFlag {
     INDEX,
@@ -70,5 +72,30 @@ export default class MetadataManager {
 
     public getMetadata(): Map<number, [number, bigint | number | boolean | string]> {
         return this.metadata;
+    }
+
+    public networkSerialize(stream: PacketBinaryStream): void {
+        stream.writeUnsignedVarInt(this.getMetadata().size);
+        for (const [index, value] of this.getMetadata()) {
+            stream.writeUnsignedVarInt(index);
+            stream.writeUnsignedVarInt(value[0]);
+            switch (value[0]) {
+                case FlagType.BYTE:
+                    stream.writeByte(value[1] as number);
+                    break;
+                case FlagType.FLOAT:
+                    stream.writeLFloat(value[1] as number);
+                    break;
+                case FlagType.LONG:
+                    stream.writeVarLong(value[1] as bigint);
+                    break;
+                case FlagType.STRING:
+                    stream.writeString(value[1] as string);
+                    break;
+                case FlagType.SHORT:
+                    stream.writeLShort(value[1] as number);
+                    break;
+            }
+        }
     }
 }

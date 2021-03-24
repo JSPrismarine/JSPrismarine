@@ -19,10 +19,10 @@ export default class AddItemActorPacket extends DataPacket {
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
-        this.writeItemStack(this.item);
+        this.item.networkSerialize(this);
 
-        this.writeVector3(this.position);
-        this.writeVector3(this.motion);
+        this.position.networkSerialize(this);
+        this.motion.networkSerialize(this);
 
         // TODO: metadata
         this.writeUnsignedVarInt(0);

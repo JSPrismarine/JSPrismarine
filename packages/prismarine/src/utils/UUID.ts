@@ -1,4 +1,5 @@
 /* eslint-disable max-params */
+
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class UUID {
@@ -29,7 +30,7 @@ export default class UUID {
      * Creates an UUID from a binary representation
      */
     public static fromBinary(uuid: Buffer, version: number): UUID {
-        if (Buffer.byteLength(uuid) !== 16) {
+        if (uuid.byteLength !== 16) {
             throw new Error('UUID must have 16 bytes');
         }
 
@@ -85,5 +86,20 @@ export default class UUID {
 
     public getParts(): number[] {
         return this.parts;
+    }
+
+    public networkSerialize(stream: BinaryStream): void {
+        stream.writeLInt(this.parts[1]);
+        stream.writeLInt(this.parts[0]);
+        stream.writeLInt(this.parts[3]);
+        stream.writeLInt(this.parts[2]);
+    }
+
+    public static networkDeserialize(stream: BinaryStream): UUID {
+        const part1 = stream.readLInt();
+        const part0 = stream.readLInt();
+        const part3 = stream.readLInt();
+        const part2 = stream.readLInt();
+        return new UUID(part0, part1, part2, part3);
     }
 }
