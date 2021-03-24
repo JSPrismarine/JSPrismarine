@@ -1,6 +1,7 @@
 import ContainerEntry from '../../inventory/ContainerEntry';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import MetadataManager from '../../entity/Metadata';
 import UUID from '../../utils/UUID';
 
 export default class AddPlayerPacket extends DataPacket {
@@ -29,10 +30,10 @@ export default class AddPlayerPacket extends DataPacket {
     public deviceId!: string;
     public buildPlatform!: number;
 
-    public metadata: Map<number, [number, string | number | bigint | boolean]> = new Map();
+    public metadata!: MetadataManager;
 
     public encodePayload() {
-        this.writeUUID(this.uuid);
+        this.uuid.networkSerialize(this);
         this.writeString(this.name);
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
@@ -50,8 +51,8 @@ export default class AddPlayerPacket extends DataPacket {
         this.writeLFloat(this.yaw);
         this.writeLFloat(this.headYaw);
 
-        this.writeItemStack(this.item);
-        this.writeEntityMetadata(this.metadata);
+        this.item.networkSerialize(this);
+        this.metadata.networkSerialize(this);
 
         for (let i = 0; i < 5; i++) {
             this.writeUnsignedVarInt(0); // TODO: Adventure settings

@@ -13,14 +13,14 @@ export default class SpawnParticleEffectPacket extends DataPacket {
     public decodePayload() {
         this.dimensionId = this.readByte();
         this.uniqueEntityId = this.readVarLong();
-        this.position = this.readVector3();
+        this.position = Vector3.networkDeserialize(this);
         this.identifier = this.readString();
     }
 
     public encodePayload() {
         this.writeByte(this.dimensionId);
         this.writeVarLong(this.uniqueEntityId);
-        this.writeVector3(this.position);
+        this.position.networkSerialize(this);
         this.writeString(this.identifier);
     }
 }

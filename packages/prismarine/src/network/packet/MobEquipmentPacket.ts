@@ -13,7 +13,7 @@ export default class MobEquipmentPacket extends DataPacket {
 
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.writeItemStack(this.item);
+        this.item.networkSerialize(this);
         this.writeByte(this.inventorySlot);
         this.writeByte(this.hotbarSlot);
         this.writeByte(this.windowId);

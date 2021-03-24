@@ -1,7 +1,7 @@
-import MetadataManager, { FlagType, MetadataFlag } from './metadata';
+import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
 
 import AddActorPacket from '../network/packet/AddActorPacket';
-import AttributeManager from './attribute';
+import AttributeManager from './Attribute';
 import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
 import Player from '../player/Player';
 import Position from '../world/Position';

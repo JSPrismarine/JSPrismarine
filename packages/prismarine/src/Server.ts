@@ -69,7 +69,7 @@ export default class Server {
         this.telemetryManager = new TelemetryManager(this);
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
-        this.playerManager = new PlayerManager(this);
+        this.playerManager = new PlayerManager();
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.worldManager = new WorldManager(this);

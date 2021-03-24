@@ -1,5 +1,5 @@
-// Import PacketBinaryStream from '../PacketBinaryStream';
 import DataPacket from './DataPacket';
+import GameruleManager from '../../world/GameruleManager';
 import Identifiers from '../Identifiers';
 import Vector3 from '../../math/Vector3';
 
@@ -21,7 +21,7 @@ export default class StartGamePacket extends DataPacket {
 
     public worldSpawnPos!: Vector3;
 
-    public gamerules: Map<string, any> = new Map();
+    public gamerules!: GameruleManager;
 
     //    Private cachedItemPalette!: Buffer;
 
@@ -31,7 +31,7 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(this.gamemode);
 
-        this.writeVector3(this.playerPos);
+        this.playerPos.networkSerialize(this);
         this.writeLFloat(this.pith);
         this.writeLFloat(this.yaw);
 
@@ -71,7 +71,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(1); // Commands enabled
         this.writeByte(0); // Texture required
 
-        this.writeGamerules(this.gamerules);
+        this.gamerules.networkSerialize(this);
 
         this.writeLInt(0); // Experiment count
         this.writeBool(false); // Experiments previously toggled?

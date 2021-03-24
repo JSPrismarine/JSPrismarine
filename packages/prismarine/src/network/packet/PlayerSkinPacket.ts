@@ -1,7 +1,7 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import type Skin from '../../utils/skin/Skin';
-import type UUID from '../../utils/UUID';
+import UUID from '../../utils/UUID';
 
 export default class PlayerSkinPacket extends DataPacket {
     public static NetID = Identifiers.PlayerSkinPacket;
@@ -13,7 +13,7 @@ export default class PlayerSkinPacket extends DataPacket {
     public trusted!: boolean;
 
     public decodePayload() {
-        this.uuid = this.readUUID();
+        this.uuid = UUID.networkDeserialize(this);
         this.readRemaining();
         // TODO this.skin = this.readSkin();
         // this.newSkinName = this.readString();

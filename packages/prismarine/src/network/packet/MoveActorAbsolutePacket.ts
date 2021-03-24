@@ -17,7 +17,7 @@ export default class MoveActorAbsolutePacket extends DataPacket {
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeByte(this.flags ?? 0);
-        this.writePosition(this.position);
+        this.position.networkSerialize(this);
         this.writeByte(this.rotationX / (360 / 256));
         this.writeByte(this.rotationY / (360 / 256));
         this.writeByte(this.rotationZ / (360 / 256));

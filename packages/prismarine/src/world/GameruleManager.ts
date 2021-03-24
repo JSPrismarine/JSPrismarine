@@ -1,3 +1,4 @@
+import PacketBinaryStream from '../network/PacketBinaryStream';
 import Server from '../Server';
 
 export const GameRules = {
@@ -55,5 +56,31 @@ export default class GameruleManager {
 
     public getGamerules(): Map<string, any> {
         return this.rules;
+    }
+
+    public networkSerialize(stream: PacketBinaryStream): void {
+        const isInt = (n: number) => {
+            return n % 1 === 0;
+        };
+
+        stream.writeUnsignedVarInt(this.getGamerules().size);
+        for (const [name, value] of this.getGamerules()) {
+            stream.writeString(name);
+            switch (typeof value) {
+                case 'boolean':
+                    stream.writeByte(1); // Maybe value type ??
+                    stream.writeBool(value);
+                    break;
+                case 'number':
+                    if (isInt(value)) {
+                        stream.writeByte(2); // Maybe value type ??
+                        stream.writeUnsignedVarInt(value);
+                    } else {
+                        stream.writeByte(3); // Maybe value type ??
+                        stream.writeLFloat(value);
+                    }
+                    break;
+            }
+        }
     }
 }

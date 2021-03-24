@@ -1,6 +1,7 @@
 import ChangeSlot from '../type/ChangeSlot';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import Item from '../../item/Item';
 import NetworkTransaction from '../type/NetworkTransaction';
 import Vector3 from '../../math/Vector3';
 
@@ -25,10 +26,7 @@ export default class InventoryTransactionPacket extends DataPacket {
     public actions = new Map();
     public actionType!: number;
     public hotbarSlot!: number;
-    public itemInHand = {
-        id: 0,
-        meta: 0
-    };
+    public itemInHand!: Item;
 
     public blockPosition: Vector3 = new Vector3();
     public face!: number;
@@ -67,7 +65,7 @@ export default class InventoryTransactionPacket extends DataPacket {
                 this.blockPosition = new Vector3(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt());
                 this.face = this.readVarInt();
                 this.hotbarSlot = this.readVarInt();
-                this.itemInHand = this.readItemStack();
+                this.itemInHand = Item.networkDeserialize(this);
                 this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 this.blockRuntimeId = this.readUnsignedVarInt();
@@ -76,14 +74,14 @@ export default class InventoryTransactionPacket extends DataPacket {
                 this.entityId = this.readUnsignedVarLong();
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
-                this.itemInHand = this.readItemStack();
+                this.itemInHand = Item.networkDeserialize(this);
                 this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 break;
             case InventoryTransactionType.ReleaseItem:
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
-                this.itemInHand = this.readItemStack();
+                this.itemInHand = Item.networkDeserialize(this);
                 this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
                 break;
             default:

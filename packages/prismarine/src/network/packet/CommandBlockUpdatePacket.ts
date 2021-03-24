@@ -21,7 +21,7 @@ export default class CommandBlockUpdatePacket extends DataPacket {
     public decodePayload() {
         this.isBlock = this.readBool();
         if (this.isBlock) {
-            this.position = this.readVector3();
+            this.position = Vector3.networkDeserialize(this);
             this.mode = this.readUnsignedVarInt();
             this.needsRedstone = this.readBool();
             this.conditional = this.readBool();
@@ -39,7 +39,7 @@ export default class CommandBlockUpdatePacket extends DataPacket {
     public encodePayload() {
         this.writeBool(this.isBlock);
         if (this.isBlock) {
-            this.writeVector3(this.position);
+            this.position.networkSerialize(this);
             this.writeUnsignedVarInt(this.mode);
             this.writeBool(this.needsRedstone);
             this.writeBool(this.conditional);

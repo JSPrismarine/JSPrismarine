@@ -1,3 +1,5 @@
+import PacketBinaryStream from '../network/PacketBinaryStream';
+
 export const AttributeIds = {
     Absorption: 'minecraft:absorption',
     PlayerSaturation: 'minecraft:player.saturation',
@@ -52,6 +54,14 @@ export class Attribute {
         this.max = max;
         this.default = def;
         this.value = value;
+    }
+
+    public networkSerialize(stream: PacketBinaryStream): void {
+        stream.writeLFloat(this.getMin());
+        stream.writeLFloat(this.getMax());
+        stream.writeLFloat(this.getValue());
+        stream.writeLFloat(this.getDefault());
+        stream.writeString(this.getName());
     }
 
     public getName(): string {
@@ -209,4 +219,6 @@ export default class AttributeManager {
     public getAttributes(): Attribute[] {
         return this.attributes;
     }
+
+    public networkSerialize(): void {}
 }

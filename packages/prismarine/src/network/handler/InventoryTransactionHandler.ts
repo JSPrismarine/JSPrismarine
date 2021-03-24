@@ -85,7 +85,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                             .useItemOn(
                                 server
                                     .getBlockManager()
-                                    .getBlockByIdAndMeta(packet.itemInHand.id, packet.itemInHand.meta),
+                                    .getBlockByIdAndMeta(packet.itemInHand.getId(), packet.itemInHand.meta),
                                 packet.blockPosition,
                                 packet.face,
                                 packet.clickPosition,
