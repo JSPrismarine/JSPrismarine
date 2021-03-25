@@ -80,6 +80,10 @@ export default class GameruleManager {
                         stream.writeLFloat(value);
                     }
                     break;
+                default:
+                    this.server
+                        .getLogger()
+                        .error('Gamerule format not implemented', 'GameruleManager/networkSerialize');
             }
         }
     }
