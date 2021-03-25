@@ -174,6 +174,6 @@ export default class Item {
 
         // TODO: runtimeId
         // TODO: https://github.com/JSPrismarine/JSPrismarine/issues/106new
-        return new Item({ id: id, name: 'minecraft:unknown', meta: data });
+        return new Item({ id, name: 'minecraft:unknown', meta: data });
     }
 }
