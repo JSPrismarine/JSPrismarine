@@ -26,9 +26,10 @@ export default class Item {
     public nbt = null;
     public count = 1;
 
-    public constructor({ id, name }: ItemProps) {
+    public constructor({ id, name, meta }: ItemProps) {
         this.id = id;
         this.name = name;
+        if (meta) this.meta = meta;
 
         this.networkId = ItemIdMap[name];
         // if (!this.networkId) console.log(name, id, this.networkId);
@@ -172,9 +173,7 @@ export default class Item {
         // TODO: check if has additional data
 
         // TODO: runtimeId
-        // TODO: https://github.com/JSPrismarine/JSPrismarine/issues/106
-        const item = new Item({ id: id, name: 'minecraft:unknown' });
-        item.meta = data;
-        return item;
+        // TODO: https://github.com/JSPrismarine/JSPrismarine/issues/106new
+        return new Item({ id: id, name: 'minecraft:unknown', meta: data });
     }
 }

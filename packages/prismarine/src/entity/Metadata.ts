@@ -95,6 +95,8 @@ export default class MetadataManager {
                 case FlagType.SHORT:
                     stream.writeLShort(value[1] as number);
                     break;
+                default:
+                    throw new Error(`Metadata type ${value[0]} not supported`);
             }
         }
     }
