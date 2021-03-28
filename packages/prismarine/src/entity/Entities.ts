@@ -34,7 +34,7 @@ import FallingBlock from './other/FallingBlock';
 import Fireball from './other/Fireball';
 import FireworksRocket from './other/FireworksRocket';
 import FishingHook from './other/FishingHook';
-import Fox from './passive/fox';
+import Fox from './passive/Fox';
 import Ghast from './hostile/Ghast';
 import Guardian from './hostile/Guardian';
 import Hoglin from './hostile/Hoglin';
