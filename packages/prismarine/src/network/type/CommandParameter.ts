@@ -1,3 +1,5 @@
+import CommandEnum from './CommandEnum';
+
 export enum CommandParameterType {
     Int = 0x100000 | 0x01,
     Float = 0x100000 | 0x03,
@@ -13,23 +15,33 @@ export enum CommandParameterType {
     Enum = 0x200000
 }
 
+export enum CommandParameterFlags {
+    NONE = 0,
+    FORCE_COLLAPSE_ENUM = 0x1,
+    FLAG_HAS_ENUM_CONSTRAINT = 0x2
+}
+
 export default class CommandParameter {
-    public name: string;
-    public type: number;
-    public optional = true;
-    public flags = 0;
+    public paramName: string;
+    public paramType: CommandParameterType;
+    public isOptional: boolean;
+    public flags: CommandParameterFlags;
+    public enum: CommandEnum | null;
+    public postfix: string | null;
 
-    public constructor(data: {
-        name: string;
-        type: CommandParameterType;
-        enumValues?: string[];
-        optional: boolean;
-        flags?: any;
-    }) {
-        const { name, type, optional = true } = data;
-
-        this.name = name;
-        this.type = type;
-        this.optional = optional;
+    public constructor(
+        name: string,
+        type: CommandParameterType,
+        optional: boolean = false,
+        flags: CommandParameterFlags = CommandParameterFlags.NONE,
+        paramEnum: CommandEnum | null = null,
+        postfix: string | null = null
+    ) {
+        this.paramName = name;
+        this.paramType = type;
+        this.isOptional = optional;
+        this.flags = flags;
+        this.enum = paramEnum;
+        this.postfix = postfix;
     }
 }

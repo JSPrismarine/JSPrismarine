@@ -7,6 +7,7 @@ import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import Player from '../player/Player';
 import Server from '../Server';
 import Vector3 from '../math/Vector3';
+import CommandEnum from '../network/type/CommandEnum';
 
 export abstract class CommandArgument {
     public getReadableType(): string {
@@ -37,14 +38,23 @@ export class CommandArgumentGamemode implements CommandArgument {
     }
 
     public getParameters(): Set<CommandParameter> {
-        return new Set([
-            new CommandParameter({
-                name: 'gamemode',
-                type: CommandParameterType.Enum,
-                enumValues: ['survival', 'creative', 'adventure', 'spectator'],
-                optional: false
-            })
-        ]);
+        const gamemodeEnum = new CommandEnum();
+        gamemodeEnum.enumName = 'GameMode';
+        gamemodeEnum.enumValues = [
+            '0',
+            's',
+            'survival',
+            '1',
+            'c',
+            'creative',
+            '2',
+            'a',
+            'adventure',
+            '3',
+            'spec',
+            'spectator'
+        ];
+        return new Set([new CommandParameter('gamemode', CommandParameterType.Enum, false, 0, gamemodeEnum)]);
     }
 }
 
@@ -90,13 +100,7 @@ export class CommandArgumentEntity implements CommandArgument {
     }
 
     public getParameters(): Set<CommandParameter> {
-        return new Set([
-            new CommandParameter({
-                name: this.targetName,
-                type: CommandParameterType.Target,
-                optional: false
-            })
-        ]);
+        return new Set([new CommandParameter(this.targetName, CommandParameterType.Target)]);
     }
 }
 
@@ -166,21 +170,9 @@ export class CommandArgumentPosition extends Vector3 implements CommandArgument 
 
     public getParameters(): Set<CommandParameter> {
         return new Set([
-            new CommandParameter({
-                name: this.xName,
-                type: CommandParameterType.Position,
-                optional: false
-            }),
-            new CommandParameter({
-                name: this.yName,
-                type: CommandParameterType.Position,
-                optional: false
-            }),
-            new CommandParameter({
-                name: this.zName,
-                type: CommandParameterType.Position,
-                optional: false
-            })
+            new CommandParameter(this.xName, CommandParameterType.Position),
+            new CommandParameter(this.yName, CommandParameterType.Position),
+            new CommandParameter(this.zName, CommandParameterType.Position)
         ]);
     }
 }
@@ -197,12 +189,6 @@ export class CommandArgumentCommand implements CommandArgument {
     }
 
     public getParameters(): Set<CommandParameter> {
-        return new Set([
-            new CommandParameter({
-                name: 'command',
-                type: CommandParameterType.Command,
-                optional: false
-            })
-        ]);
+        return new Set([new CommandParameter('command', CommandParameterType.Command)]);
     }
 }
