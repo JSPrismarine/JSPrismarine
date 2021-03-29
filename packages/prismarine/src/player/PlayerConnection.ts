@@ -12,6 +12,8 @@ import BatchPacket from '../network/packet/BatchPacket';
 import Block from '../block/Block';
 import Chunk from '../world/chunk/Chunk';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
+import CommandData from '../network/type/CommandData';
+import CommandEnum from '../network/type/CommandEnum';
 import ContainerEntry from '../inventory/ContainerEntry';
 import CoordinateUtils from '../world/CoordinateUtils';
 import CreativeContentEntry from '../network/type/CreativeContentEntry';
@@ -297,11 +299,11 @@ export default class PlayerConnection {
             .getCommandManager()
             .getCommandsList()
             .forEach((command) => {
-                const classCommand = Array.from(this.server.getCommandManager().getCommands().values()).find(
+                const commandClass = Array.from(this.server.getCommandManager().getCommands().values()).find(
                     (cmd) => cmd.id.split(':')[1] === command[0]
-                )!;
+                );
 
-                if (!classCommand) {
+                if (!commandClass) {
                     this.player
                         .getServer()
                         .getLogger()
@@ -309,76 +311,44 @@ export default class PlayerConnection {
                     return;
                 }
 
-                if (!this.player.getServer().getPermissionManager().can(this.player).execute(classCommand.permission))
+                if (!this.player.getServer().getPermissionManager().can(this.player).execute(commandClass.permission))
                     return;
 
-                if (command[1].getCommand())
-                    pk.commandData.add({
-                        name: command[0],
-                        description: classCommand.description,
-                        parameters: new Set<CommandParameter>()
-                    });
+                const cmd = new CommandData();
+                cmd.commandName = command[0];
+                cmd.commandDescription = commandClass.description;
+                if (commandClass.aliases!.length > 0) {
+                    const cmdAliases = new CommandEnum();
+                    cmdAliases.enumName = `${command[0]}Aliases`;
+                    cmdAliases.enumValues = commandClass.aliases!.concat(command[0]);
+                    cmd.aliases = cmdAliases;
+                }
 
-                command[2].forEach((arg) => {
+                command[2].forEach((arg, index) => {
                     const parameters = arg
                         .map((parameter) => {
                             const parameters = parameter?.getParameters?.();
                             if (parameters) return Array.from(parameters.values());
 
                             if (parameter instanceof CommandArgumentEntity)
-                                return [
-                                    new CommandParameter({
-                                        name: 'target',
-                                        type: CommandParameterType.Target,
-                                        optional: false
-                                    })
-                                ];
+                                return [new CommandParameter('target', CommandParameterType.Target)];
 
                             if (parameter instanceof CommandArgumentGamemode)
-                                return [
-                                    new CommandParameter({
-                                        name: 'gamemode',
-                                        type: CommandParameterType.String,
-                                        optional: false
-                                    })
-                                ];
+                                return [new CommandParameter('gamemode', CommandParameterType.String)];
                             if (parameter.constructor.name === 'StringArgumentType')
-                                return [
-                                    new CommandParameter({
-                                        name: 'value',
-                                        type: CommandParameterType.String,
-                                        optional: false
-                                    })
-                                ];
+                                return [new CommandParameter('value', CommandParameterType.String)];
                             if (parameter.constructor.name === 'IntegerArgumentType')
-                                return [
-                                    new CommandParameter({
-                                        name: 'number',
-                                        type: CommandParameterType.Int,
-                                        optional: false
-                                    })
-                                ];
+                                return [new CommandParameter('number', CommandParameterType.Int)];
 
                             this.server.getLogger().warn(`Invalid parameter ${parameter.constructor.name}`);
-                            return [
-                                new CommandParameter({
-                                    name: 'value',
-                                    type: CommandParameterType.String,
-                                    optional: false
-                                })
-                            ];
+                            return [new CommandParameter('value', CommandParameterType.String)];
                         })
                         .filter((a) => a)
                         .flat();
-
-                    pk.commandData.add({
-                        name: command[0],
-                        description: classCommand.description,
-                        parameters: new Set<CommandParameter>(parameters as any)
-                    });
+                    cmd.overloads[index] = parameters;
                 });
+                pk.commandData.push(cmd);
             });
-
         await this.sendDataPacket(pk);
     }
 

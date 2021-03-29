@@ -1,12 +1,11 @@
+import CommandEnum from './CommandEnum';
 import CommandParameter from './CommandParameter';
 
-interface CommandData {
-    name: string;
-    description: string;
-    aliases?: string[];
-    flags?: number;
-    parameters?: Set<CommandParameter>;
-    permission?: string;
+export default class CommandData {
+    public commandName = 'commandName';
+    public commandDescription = 'commandDescription';
+    public flags = 0;
+    public permission = 0;
+    public aliases: CommandEnum | null = null;
+    public overloads: CommandParameter[][] = [];
 }
-
-export default CommandData;
