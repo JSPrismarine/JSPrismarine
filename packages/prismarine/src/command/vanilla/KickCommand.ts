@@ -2,8 +2,8 @@
 import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
-import { PlayerArgumentCommand } from '../CommandArguments';
 import Player from '../../player/Player';
+import { PlayerArgumentCommand } from '../CommandArguments';
 
 export default class KickCommand extends Command {
     public constructor() {

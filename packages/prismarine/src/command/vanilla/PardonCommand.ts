@@ -2,8 +2,8 @@
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
-import { PlayerArgumentCommand } from '../CommandArguments';
 import Player from '../../player/Player';
+import { PlayerArgumentCommand } from '../CommandArguments';
 
 export default class PardonCommand extends Command {
     public constructor() {

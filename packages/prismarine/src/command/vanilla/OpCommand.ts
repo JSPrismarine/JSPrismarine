@@ -4,8 +4,8 @@ import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
-import { PlayerArgumentCommand } from '../CommandArguments';
 import Player from '../../player/Player';
+import { PlayerArgumentCommand } from '../CommandArguments';
 
 export default class OpCommand extends Command {
     public constructor() {
