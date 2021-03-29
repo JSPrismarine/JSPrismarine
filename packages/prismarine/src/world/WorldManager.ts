@@ -41,7 +41,10 @@ export default class WorldManager {
             return;
         }
 
-        const world = await this.loadWorld(this.server.getConfig().getWorlds()[defaultWorld], defaultWorld);
+        const worldData = this.server.getConfig().getWorlds()[defaultWorld];
+        if (!worldData) throw new Error(`Invalid level-name`);
+
+        const world = await this.loadWorld(worldData, defaultWorld);
         await world.onEnable();
     }
 
@@ -100,7 +103,7 @@ export default class WorldManager {
             }
 
             const levelPath = path.join(cwd(), `/worlds/${folderName}/`);
-            const provider = this.providers.get(worldData.provider ?? 'Filesystem');
+            const provider = this.providers.get(worldData?.provider ?? 'Filesystem');
             const generator = this.server
                 .getWorldManager()
                 .getGeneratorManager()
