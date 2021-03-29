@@ -26,6 +26,7 @@ import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import TelemetryManager from './telemetry/TelemeteryManager';
 import Timer from './utils/Timer';
+import UpdateSoftEnumPacket from './network/packet/UpdateSoftEnumPacket';
 import WorldManager from './world/WorldManager';
 import { setIntervalAsync } from 'set-interval-async/dynamic';
 
@@ -170,6 +171,17 @@ export default class Server {
             world.addPlayer(player);
 
             this.logger.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
+
+            const pk = new UpdateSoftEnumPacket();
+            pk.enumName = 'Player';
+            pk.values = this.getPlayerManager()
+                .getOnlinePlayers()
+                .map((player) => player.getName());
+            pk.type = pk.TYPE_SET;
+
+            this.getPlayerManager()
+                .getOnlinePlayers()
+                .forEach(async (player) => player.getConnection().sendDataPacket(pk));
         });
 
         this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
@@ -211,6 +223,17 @@ export default class Server {
                 `Player destruction took about ${Date.now() - time} ms`,
                 'Server/listen/raknetDisconnect'
             );
+
+            const pk = new UpdateSoftEnumPacket();
+            pk.enumName = 'Player';
+            pk.values = this.getPlayerManager()
+                .getOnlinePlayers()
+                .map((player) => player.getName());
+            pk.type = pk.TYPE_SET;
+
+            this.getPlayerManager()
+                .getOnlinePlayers()
+                .forEach(async (player) => player.getConnection().sendDataPacket(pk));
         });
 
         this.getEventManager().on('raknetEncapsulatedPacket', async (event) => {
