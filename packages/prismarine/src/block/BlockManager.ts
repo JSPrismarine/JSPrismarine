@@ -9,6 +9,7 @@ import Timer from '../utils/Timer';
 export default class BlockManager {
     private readonly server: Server;
     private readonly blocks = new Map();
+    private readonly javaBlocks = new Map();
 
     public constructor(server: Server) {
         this.server = server;
@@ -32,13 +33,11 @@ export default class BlockManager {
      * Get block by namespaced  id
      */
     public getBlock(name: string): Block {
-        if (!this.blocks.has(name)) {
-            const secondTry = Array.from(this.blocks.values()).find((block) => block.javaName === name);
-            if (secondTry) return this.getBlock(secondTry.name);
-
+        if (!this.blocks.has(name) && !this.javaBlocks.has(name)) {
             throw new Error(`invalid block with id ${name}`);
         }
-        return this.blocks.get(name)!;
+
+        return this.blocks.get(name)! || this.javaBlocks.get(name)!;
     }
 
     /**
@@ -88,6 +87,7 @@ export default class BlockManager {
 
         this.server.getLogger().debug(`Block with id §b${block.name}§r registered`, 'BlockManager/registerClassBlock');
         this.blocks.set(block.name, block);
+        this.javaBlocks.set(block.javaName, block);
     }
 
     /**
