@@ -1,3 +1,5 @@
+import * as Entities from '../entity/Entities';
+
 import { CommandContext, StringReader, Suggestions } from '@jsprismarine/brigadier';
 import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
 
@@ -41,6 +43,44 @@ export class CommandArgumentGamemode implements CommandArgument {
         gamemodeEnum.enumName = 'GameMode';
         gamemodeEnum.enumValues = ['0', 'survival', '1', 'creative', '2', 'adventure', '3', 'spectator'];
         return new Set([new CommandParameter('gamemode', CommandParameterType.Enum, false, 0, gamemodeEnum)]);
+    }
+}
+
+export class CommandArgumentMob implements CommandArgument {
+    public parse(reader: StringReader, context: CommandContext<Player>) {
+        let str = '';
+        while (true) {
+            if (!reader.canRead()) break;
+
+            const pos = reader.getCursor();
+            const char = reader.read();
+            if (char === ' ') {
+                reader.setCursor(pos);
+                break;
+            }
+
+            str += char;
+        }
+
+        return str;
+    }
+    public async listSuggestions(context: any, builder: any) {
+        // TODO
+        return Suggestions.empty();
+    }
+    public getExamples() {
+        return [];
+    }
+
+    public getReadableType(): string {
+        return '[entity]';
+    }
+
+    public getParameters(): Set<CommandParameter> {
+        const entities = new CommandEnum();
+        entities.enumName = 'Entity';
+        entities.enumValues = Object.entries(Entities).map(([, entity]) => entity.MOB_ID);
+        return new Set([new CommandParameter('entitiy', CommandParameterType.Enum, false, 0, entities)]);
     }
 }
 

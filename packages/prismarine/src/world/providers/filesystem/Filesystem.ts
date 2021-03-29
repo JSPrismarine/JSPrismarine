@@ -30,6 +30,7 @@ export default class Filesystem extends BaseProvider {
     }
 
     public async writeChunk(chunk: Chunk): Promise<void> {
+        // TODO: format version, entities etc
         await fs.promises.writeFile(
             path.join(this.getPath(), 'chunks', `${chunk.getX()}_${chunk.getZ()}.dat`),
             chunk.networkSerialize(true)
