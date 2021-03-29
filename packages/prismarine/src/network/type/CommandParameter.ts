@@ -29,19 +29,19 @@ export default class CommandParameter {
     public enum: CommandEnum | null;
     public postfix: string | null;
 
-    public constructor(
-        name: string,
-        type: CommandParameterType,
-        optional = false,
-        flags: CommandParameterFlags = CommandParameterFlags.NONE,
-        paramEnum: CommandEnum | null = null,
-        postfix: string | null = null
-    ) {
-        this.paramName = name;
-        this.paramType = type;
-        this.isOptional = optional;
-        this.flags = flags;
-        this.enum = paramEnum;
-        this.postfix = postfix;
+    public constructor(data?: {
+        paramName?: string;
+        paramType?: CommandParameterType;
+        isOptional?: boolean;
+        flags?: CommandParameterFlags;
+        enum?: CommandEnum | null;
+        postfix?: string | null;
+    }) {
+        this.paramName = data?.paramName || 'paramName';
+        this.paramType = data?.paramType || CommandParameterType.Value;
+        this.isOptional = data?.isOptional || false;
+        this.flags = data?.flags || CommandParameterFlags.NONE;
+        this.enum = data?.enum || null;
+        this.postfix = data?.postfix || null;
     }
 }

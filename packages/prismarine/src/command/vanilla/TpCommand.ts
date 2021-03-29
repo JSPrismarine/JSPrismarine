@@ -21,69 +21,79 @@ export default class TpCommand extends Command {
         dispatcher.register(
             literal('tp')
                 .then(
-                    argument('position', new CommandArgumentPosition()).executes(async (context) => {
-                        const source = context.getSource() as Player;
+                    argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
+                        async (context) => {
+                            const source = context.getSource() as Player;
 
-                        if (!source.isPlayer()) throw new Error(`This command can't be run from the console`);
+                            if (!source.isPlayer()) throw new Error(`This command can't be run from the console`);
 
-                        const position = context.getArgument('position') as Vector3;
+                            const position = context.getArgument('position') as Vector3;
 
-                        if (Number.isInteger(position.getX())) {
-                            if (position.getX() > 0) {
-                                position.setX(position.getX() - 0.5);
-                            } else position.setX(position.getX() + 0.5);
+                            if (Number.isInteger(position.getX())) {
+                                if (position.getX() > 0) {
+                                    position.setX(position.getX() - 0.5);
+                                } else position.setX(position.getX() + 0.5);
+                            }
+                            if (Number.isInteger(position.getZ())) {
+                                if (position.getZ() > 0) {
+                                    position.setZ(position.getZ() - 0.5);
+                                } else position.setZ(position.getZ() + 0.5);
+                            }
+
+                            await source.setPosition(position, MovementType.Teleport);
+                            return `Teleported ${source.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
                         }
-                        if (Number.isInteger(position.getZ())) {
-                            if (position.getZ() > 0) {
-                                position.setZ(position.getZ() - 0.5);
-                            } else position.setZ(position.getZ() + 0.5);
-                        }
-
-                        await source.setPosition(position, MovementType.Teleport);
-                        return `Teleported ${source.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
-                    })
+                    )
                 )
                 .then(
-                    argument('player', new CommandArgumentEntity('source'))
+                    argument('player', new CommandArgumentEntity({ name: 'victim' }))
                         .then(
-                            argument('position', new CommandArgumentPosition()).executes(async (context) => {
-                                const targets = context.getArgument('player') as Player[];
+                            argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
+                                async (context) => {
+                                    const targets = context.getArgument('player') as Player[];
 
-                                const position = context.getArgument('position') as Vector3;
+                                    const position = context.getArgument('position') as Vector3;
 
-                                if (Number.isInteger(position.getX())) {
-                                    if (position.getX() > 0) {
-                                        position.setX(position.getX() - 0.5);
-                                    } else position.setX(position.getX() + 0.5);
+                                    if (Number.isInteger(position.getX())) {
+                                        if (position.getX() > 0) {
+                                            position.setX(position.getX() - 0.5);
+                                        } else position.setX(position.getX() + 0.5);
+                                    }
+                                    if (Number.isInteger(position.getZ())) {
+                                        if (position.getZ() > 0) {
+                                            position.setZ(position.getZ() - 0.5);
+                                        } else position.setZ(position.getZ() + 0.5);
+                                    }
+
+                                    if (!targets?.length)
+                                        throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
+
+                                    targets.forEach(async (entity) =>
+                                        entity.setPosition(position, MovementType.Teleport)
+                                    );
+
+                                    return `Teleported ${targets
+                                        .map((entity) => entity.getFormattedUsername())
+                                        .join(', ')} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
                                 }
-                                if (Number.isInteger(position.getZ())) {
-                                    if (position.getZ() > 0) {
-                                        position.setZ(position.getZ() - 0.5);
-                                    } else position.setZ(position.getZ() + 0.5);
-                                }
-
-                                if (!targets?.length) throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
-
-                                targets.forEach(async (entity) => entity.setPosition(position, MovementType.Teleport));
-
-                                return `Teleported ${targets
-                                    .map((entity) => entity.getFormattedUsername())
-                                    .join(', ')} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
-                            })
+                            )
                         )
                         .then(
-                            argument('target', new CommandArgumentEntity('target')).executes(async (context) => {
-                                const sources = context.getArgument('player') as Player[];
-                                const target = context.getArgument('target')?.[0] as Player;
+                            argument('target', new CommandArgumentEntity({ name: 'destination' })).executes(
+                                async (context) => {
+                                    const sources = context.getArgument('player') as Player[];
+                                    const target = context.getArgument('target')?.[0] as Player;
 
-                                if (!sources?.length) throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
-                                sources.forEach(async (entity) =>
-                                    entity.setPosition(target.getPosition(), MovementType.Teleport)
-                                );
-                                return `Teleported ${sources
-                                    .map((entity) => entity.getFormattedUsername())
-                                    .join(', ')} to ${target.getFormattedUsername()}`;
-                            })
+                                    if (!sources?.length)
+                                        throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
+                                    sources.forEach(async (entity) =>
+                                        entity.setPosition(target.getPosition(), MovementType.Teleport)
+                                    );
+                                    return `Teleported ${sources
+                                        .map((entity) => entity.getFormattedUsername())
+                                        .join(', ')} to ${target.getFormattedUsername()}`;
+                                }
+                            )
                         )
                         .executes(async (context) => {
                             const source = context.getSource() as Player;
