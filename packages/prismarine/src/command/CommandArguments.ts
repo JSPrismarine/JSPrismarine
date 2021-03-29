@@ -1,12 +1,11 @@
 import { CommandContext, StringReader, Suggestions } from '@jsprismarine/brigadier';
-import CommandEnum from '../network/type/CommandEnum';
 import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
 
+import CommandEnum from '../network/type/CommandEnum';
 import Gamemode from '../world/Gamemode';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import Player from '../player/Player';
-import Server from '../Server';
 import Vector3 from '../math/Vector3';
 
 export abstract class CommandArgument {
@@ -40,20 +39,7 @@ export class CommandArgumentGamemode implements CommandArgument {
     public getParameters(): Set<CommandParameter> {
         const gamemodeEnum = new CommandEnum();
         gamemodeEnum.enumName = 'GameMode';
-        gamemodeEnum.enumValues = [
-            '0',
-            's',
-            'survival',
-            '1',
-            'c',
-            'creative',
-            '2',
-            'a',
-            'adventure',
-            '3',
-            'spec',
-            'spectator'
-        ];
+        gamemodeEnum.enumValues = ['0', 'survival', '1', 'creative', '2', 'adventure', '3', 'spectator'];
         return new Set([new CommandParameter('gamemode', CommandParameterType.Enum, false, 0, gamemodeEnum)]);
     }
 }
