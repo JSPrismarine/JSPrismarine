@@ -8,6 +8,7 @@ import Server from '../Server';
 export default class Block {
     public id: number;
     public name: string;
+    public javaName: string;
     public hardness: number;
     public meta = 0;
     private networkId: number;
@@ -19,17 +20,21 @@ export default class Block {
     public constructor({
         id,
         name,
+        javaName,
         parentName,
         hardness
     }: {
         id: number;
         name: string;
+        javaName?: string;
         parentName?: string;
         hardness?: number;
     }) {
         this.id = id;
         this.name = name;
         this.hardness = hardness ?? 0;
+        this.name = name;
+        this.javaName = javaName ?? name;
 
         this.networkId = BlockIdMap[parentName ?? name];
         // if (!this.networkId) console.log(name, id, this.networkId);
