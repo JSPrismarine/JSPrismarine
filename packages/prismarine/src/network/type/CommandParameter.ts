@@ -32,7 +32,7 @@ export default class CommandParameter {
     public constructor(
         name: string,
         type: CommandParameterType,
-        optional: boolean = false,
+        optional = false,
         flags: CommandParameterFlags = CommandParameterFlags.NONE,
         paramEnum: CommandEnum | null = null,
         postfix: string | null = null

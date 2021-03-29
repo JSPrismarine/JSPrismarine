@@ -1,4 +1,5 @@
 import { CommandContext, StringReader, Suggestions } from '@jsprismarine/brigadier';
+import CommandEnum from '../network/type/CommandEnum';
 import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
 
 import Gamemode from '../world/Gamemode';
@@ -7,7 +8,6 @@ import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import Player from '../player/Player';
 import Server from '../Server';
 import Vector3 from '../math/Vector3';
-import CommandEnum from '../network/type/CommandEnum';
 
 export abstract class CommandArgument {
     public getReadableType(): string {

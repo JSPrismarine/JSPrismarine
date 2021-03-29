@@ -13,6 +13,8 @@ import Block from '../block/Block';
 import Chunk from '../world/chunk/Chunk';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
 import ContainerEntry from '../inventory/ContainerEntry';
+import CommandEnum from '../network/type/CommandEnum';
+import CommandData from '../network/type/CommandData';
 import CoordinateUtils from '../world/CoordinateUtils';
 import CreativeContentEntry from '../network/type/CreativeContentEntry';
 import CreativeContentPacket from '../network/packet/CreativeContentPacket';
@@ -42,9 +44,6 @@ import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
 import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
 import { WindowIds } from '../inventory/WindowManager';
-import CommandData from '../network/type/CommandData';
-import CommandEnum from '../network/type/CommandEnum';
-import Command from '../command/Command';
 
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
@@ -348,9 +347,7 @@ export default class PlayerConnection {
                         .flat();
                     cmd.overloads[index] = parameters;
                 });
-                //if (!pk.commandData.find(a => a.commandName === command[0])) {
                 pk.commandData.push(cmd);
-                //}
             });
         await this.sendDataPacket(pk);
     }
