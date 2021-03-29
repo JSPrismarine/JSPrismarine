@@ -80,8 +80,8 @@ export default class World {
         this.getGameruleManager().setGamerule(GameRules.ShowCoordinates, true);
 
         // Create player data folder
-        if (!fs.existsSync(path.join(cwd(), 'worlds', name, '/players'))) {
-            fs.mkdirSync(path.join(cwd(), 'worlds', name, '/players'));
+        if (!fs.existsSync(path.join(cwd(), 'worlds', name, '/playerdata'))) {
+            fs.mkdirSync(path.join(cwd(), 'worlds', name, '/playerdata'));
         }
     }
 
@@ -95,8 +95,9 @@ export default class World {
         const chunksToLoad: Array<Promise<void>> = [];
         const timer = new Timer();
 
-        for (let x = 0; x < 32; x++) {
-            for (let z = 0; z < 32; z++) {
+        const size = this.server.getConfig().getViewDistance() * 5;
+        for (let x = 0; x < size; x++) {
+            for (let z = 0; z < size; z++) {
                 chunksToLoad.push(this.loadChunk(x, z));
             }
         }
@@ -428,7 +429,7 @@ export default class World {
     public async getPlayerData(player: Player): Promise<WorldPlayerData> {
         try {
             const playerData = fs.readFileSync(
-                path.join(cwd(), 'worlds', this.getName(), 'players', `${player.getXUID()}.json`)
+                path.join(cwd(), 'worlds', this.getName(), 'playerdata', `${player.getXUID()}.json`)
             );
 
             return JSON.parse(minifyJson(playerData.toString('utf-8'))) as WorldPlayerData;
@@ -454,7 +455,7 @@ export default class World {
     public async savePlayerData(player: Player): Promise<void> {
         try {
             fs.writeFileSync(
-                path.join(cwd(), 'worlds', this.getName(), 'players', `${player.getXUID()}.json`),
+                path.join(cwd(), 'worlds', this.getName(), 'playerdata', `${player.getXUID()}.json`),
                 JSON.stringify(
                     {
                         uuid: player.getUUID(),

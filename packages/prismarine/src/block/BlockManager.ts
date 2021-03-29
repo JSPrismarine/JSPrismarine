@@ -33,6 +33,9 @@ export default class BlockManager {
      */
     public getBlock(name: string): Block {
         if (!this.blocks.has(name)) {
+            const secondTry = Array.from(this.blocks.values()).find((block) => block.javaName === name);
+            if (secondTry) return this.getBlock(secondTry.name);
+
             throw new Error(`invalid block with id ${name}`);
         }
         return this.blocks.get(name)!;
