@@ -1,9 +1,10 @@
 /* eslint-disable promise/prefer-await-to-then */
 import * as Entities from '../../entity/Entities';
 
-import { CommandDispatcher, argument, literal, string } from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
+import { CommandArgumentMob } from '../CommandArguments';
 import Entity from '../../entity/Entity';
 import Player from '../../player/Player';
 
@@ -19,7 +20,7 @@ export default class SummonCommand extends Command {
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
             literal('summon').then(
-                argument('entity', string()).executes(async (context) => {
+                argument('entity', new CommandArgumentMob()).executes(async (context) => {
                     const source = context.getSource() as Player;
                     const entityId = (context.getArgument('entity') as string).toLowerCase();
                     let entity: any | undefined;
@@ -36,7 +37,7 @@ export default class SummonCommand extends Command {
 
                     const mob: Entity = new entity(source.getWorld(), source.getServer());
                     await mob.setPosition(source.getPosition()); // TODO: get position from argument
-                    mob.setY(mob.getY() + 0.45); // temp
+                    mob.setY(mob.getY() - 1.55); // temp
 
                     await Promise.all(
                         source
