@@ -1,5 +1,6 @@
 /* eslint-disable promise/prefer-await-to-then */
-import { CommandDispatcher, argument, literal, string } from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+import { PlayerArgumentCommand } from '../CommandArguments';
 
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
@@ -18,7 +19,7 @@ export default class DeopCommand extends Command {
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
             literal('deop').then(
-                argument('player', string()).executes(async (context) => {
+                argument('player', new PlayerArgumentCommand({ name: 'player' })).executes(async (context) => {
                     const source = context.getSource() as Player;
                     const target = source.getServer().getPlayerManager().getPlayerByName(context.getArgument('player'));
 

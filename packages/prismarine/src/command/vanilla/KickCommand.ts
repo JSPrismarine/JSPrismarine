@@ -1,8 +1,8 @@
 /* eslint-disable promise/prefer-await-to-then */
 import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
+import { PlayerArgumentCommand } from '../CommandArguments';
 
 import Command from '../Command';
-import { CommandArgumentEntity } from '../CommandArguments';
 import Player from '../../player/Player';
 
 export default class KickCommand extends Command {
@@ -17,7 +17,7 @@ export default class KickCommand extends Command {
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
             literal('kick').then(
-                argument('player', new CommandArgumentEntity())
+                argument('player', new PlayerArgumentCommand({ name: 'player' }))
                     .then(
                         argument('reason', greedyString()).executes(async (context) => {
                             const reason = context.getArgument('reason') as string;
