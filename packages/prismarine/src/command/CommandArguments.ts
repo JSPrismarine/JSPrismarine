@@ -8,8 +8,8 @@ import Gamemode from '../world/Gamemode';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import Player from '../player/Player';
-import Vector3 from '../math/Vector3';
 import { Server } from '../Prismarine';
+import Vector3 from '../math/Vector3';
 
 export abstract class CommandArgument {
     public getReadableType(): string {

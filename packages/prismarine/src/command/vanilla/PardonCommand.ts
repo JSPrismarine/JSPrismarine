@@ -1,8 +1,8 @@
 /* eslint-disable promise/prefer-await-to-then */
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
-import { PlayerArgumentCommand } from '../CommandArguments';
 
 import Command from '../Command';
+import { PlayerArgumentCommand } from '../CommandArguments';
 import Player from '../../player/Player';
 
 export default class PardonCommand extends Command {

@@ -1,10 +1,10 @@
 /* eslint-disable promise/prefer-await-to-then */
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
-import { PlayerArgumentCommand } from '../CommandArguments';
 
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Command from '../Command';
+import { PlayerArgumentCommand } from '../CommandArguments';
 import Player from '../../player/Player';
 
 export default class OpCommand extends Command {
