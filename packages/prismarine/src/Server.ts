@@ -181,7 +181,7 @@ export default class Server {
 
             this.getPlayerManager()
                 .getOnlinePlayers()
-                .forEach(async (player) => await player.getConnection().sendDataPacket(pk));
+                .forEach(async (player) => player.getConnection().sendDataPacket(pk));
         });
 
         this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
@@ -233,7 +233,7 @@ export default class Server {
 
             this.getPlayerManager()
                 .getOnlinePlayers()
-                .forEach(async (player) => await player.getConnection().sendDataPacket(pk));
+                .forEach(async (player) => player.getConnection().sendDataPacket(pk));
         });
 
         this.getEventManager().on('raknetEncapsulatedPacket', async (event) => {
