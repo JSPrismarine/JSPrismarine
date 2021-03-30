@@ -9,12 +9,14 @@ const MAX_SUBCHUNKS = 16;
 export default class Chunk {
     private x: number;
     private z: number;
+    private hasChanged: boolean;
 
     private subChunks: Map<number, SubChunk> = new Map();
 
     public constructor(chunkX = 0, chunkZ = 0, subChunks: Map<number, SubChunk> = new Map()) {
         this.x = chunkX;
         this.z = chunkZ;
+        this.hasChanged = false;
 
         // Initialize all empty subchunks
         for (let y = 0; y < MAX_SUBCHUNKS; y++) {
@@ -28,6 +30,10 @@ export default class Chunk {
 
     public getZ(): number {
         return this.z;
+    }
+
+    public getHasChanged(): boolean {
+        return this.hasChanged;
     }
 
     public getHeight(): number {
@@ -102,6 +108,7 @@ export default class Chunk {
      */
     public setBlock(bx: number, by: number, bz: number, block: Block, layer = 0): void {
         this.getSubChunk(by).setBlock(bx, by, bz, BlockMappings.getRuntimeId(block.getId(), block.getMeta()), layer);
+        this.hasChanged = true;
     }
 
     public networkSerialize(forceAll = false): Buffer {
