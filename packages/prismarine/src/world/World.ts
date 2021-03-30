@@ -86,6 +86,8 @@ export default class World {
     }
 
     public async onEnable(): Promise<void> {
+        await this.provider.onEnable();
+
         this.server
             .getLogger()
             .info(
@@ -98,7 +100,7 @@ export default class World {
         const size = this.server.getConfig().getViewDistance() * 5;
         for (let x = 0; x < size; x++) {
             for (let z = 0; z < size; z++) {
-                chunksToLoad.push(this.loadChunk(x, z));
+                chunksToLoad.push(this.getChunk(x, z));
             }
         }
 
@@ -196,8 +198,6 @@ export default class World {
             // To all players
         }
     }
-
-    // Public playSound()
 
     /**
      * Returns a chunk from minecraft block positions x and z.

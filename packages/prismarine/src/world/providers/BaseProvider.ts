@@ -16,6 +16,9 @@ export default abstract class BaseProvider implements Provider {
         }
     }
 
+    public async onEnable() {}
+    public async onDisable() {}
+
     public async close() {}
 
     public getServer(): Server {
