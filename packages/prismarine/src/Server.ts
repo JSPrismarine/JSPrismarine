@@ -166,8 +166,12 @@ export default class Server {
 
             // Add the player into the global player manager
             // and it's local world
-            await this.playerManager.addPlayer(token, player);
-            world.addPlayer(player);
+            try {
+                await this.playerManager.addPlayer(token, player);
+                await world.addPlayer(player);
+            } catch (error) {
+                this.getLogger()?.warn(`addPlayer error: ${error}`, 'Server/listen/raknetConnect');
+            }
 
             this.getLogger()?.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
         });

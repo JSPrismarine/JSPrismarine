@@ -145,6 +145,12 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                         })
                                     );
                                     await droppedItem.setPosition(packet.blockPosition);
+                                    await Promise.all(
+                                        player
+                                            .getWorld()
+                                            .getPlayers()
+                                            .map(async (e) => droppedItem.sendSpawn(e as Player))
+                                    );
                                 })
                             );
                         }

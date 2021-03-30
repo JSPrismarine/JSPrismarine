@@ -377,11 +377,7 @@ export default class World {
      * found from the entity position.
      */
     public async addEntity(entity: Entity): Promise<void> {
-        await Promise.all(
-            this.getEntities()
-                .filter((e) => e.isPlayer())
-                .map(async (e) => entity.sendSpawn(e as Player))
-        );
+        // await Promise.all(this.getPlayers().map(async (e) => entity.sendSpawn(e as Player)));
 
         this.entities.set(entity.runtimeId, entity);
         // const chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
@@ -398,10 +394,17 @@ export default class World {
         return [...Array.from(this.entities.values()), ...Array.from(this.players.values())];
     }
 
+    public getPlayers(): Entity[] {
+        return Array.from(this.players.values());
+    }
+
     /**
      * Adds a player into the level.
      */
-    public addPlayer(player: Player): void {
+    public async addPlayer(player: Player): Promise<void> {
+        const exists = this.getEntities().find((e) => e.runtimeId === player.runtimeId);
+        if (exists) throw new Error(`Player with id ${player.runtimeId} already exists!`);
+
         this.players.set(player.runtimeId, player);
     }
 
@@ -413,11 +416,7 @@ export default class World {
     }
 
     public async removeEntity(entity: Entity): Promise<void> {
-        await Promise.all(
-            this.getEntities()
-                .filter((e) => e.isPlayer())
-                .map(async (e) => entity.sendDespawn(e as Player))
-        );
+        await Promise.all(this.getPlayers().map(async (e) => entity.sendDespawn(e as Player)));
         this.entities.delete(entity.runtimeId);
     }
 

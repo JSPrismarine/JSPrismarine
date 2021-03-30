@@ -78,6 +78,9 @@ export default class Item extends Entity {
         }
 
         await this.getWorld().removeEntity(this);
-        // TODO: pickup
+
+        const player = entity as Player;
+        player.getInventory().addItem(this.item);
+        await player.getConnection().sendInventory();
     }
 }

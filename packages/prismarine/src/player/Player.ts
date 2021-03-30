@@ -142,6 +142,7 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async update(tick: number): Promise<void> {
+        await super.update.bind(this)(tick);
         await this.playerConnection.update(tick);
 
         // TODO: get documentation about timings from vanilla

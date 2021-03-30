@@ -1,12 +1,13 @@
 /* eslint-disable promise/prefer-await-to-then */
 import * as Entities from '../../entity/Entities';
 
+import { CommandArgumentMob, CommandArgumentPosition } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
-import { CommandArgumentMob } from '../CommandArguments';
 import Entity from '../../entity/Entity';
 import Player from '../../player/Player';
+import Vector3 from '../../math/Vector3';
 
 export default class SummonCommand extends Command {
     public constructor() {
@@ -20,29 +21,39 @@ export default class SummonCommand extends Command {
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
             literal('summon').then(
-                argument('entity', new CommandArgumentMob()).executes(async (context) => {
-                    const source = context.getSource() as Player;
-                    const entityId = (context.getArgument('entity') as string).toLowerCase();
-                    let entity: any | undefined;
+                argument('entity', new CommandArgumentMob()).then(
+                    argument('position', new CommandArgumentPosition()).executes(async (context) => {
+                        const source = context.getSource() as Player;
+                        const position = context.getArgument('position') as Vector3;
+                        const entityId = (context.getArgument('entity') as string).toLowerCase();
+                        let entity: any | undefined;
 
-                    if (!entityId.includes(':')) {
-                        entity = Object.entries(Entities).find(
-                            ([, value]) => value.MOB_ID === `minecraft:${entityId}`
-                        )?.[1];
-                    } else {
-                        entity = Object.entries(Entities).find(([, value]) => value.MOB_ID === entityId)?.[1];
-                    }
+                        if (!entityId.includes(':')) {
+                            entity = Object.entries(Entities).find(
+                                ([, value]) => value.MOB_ID === `minecraft:${entityId}`
+                            )?.[1];
+                        } else {
+                            entity = Object.entries(Entities).find(([, value]) => value.MOB_ID === entityId)?.[1];
+                        }
 
-                    if (!entity) throw new Error(`No such entity "${entityId}"!`);
+                        if (!entity) throw new Error(`No such entity "${entityId}"!`);
 
-                    const mob: Entity = new entity(source.getWorld(), source.getServer());
-                    await mob.setPosition(source.getPosition()); // TODO: get position from argument
-                    mob.setY(mob.getY() - 1.55); // temp
+                        const mob: Entity = new entity(source.getWorld(), source.getServer());
+                        await mob.setPosition(position);
+                        mob.setY(mob.getY() - 1.55); // temp
 
-                    const res = `Summoned ${entity.MOB_ID}`;
-                    await source.sendMessage(res);
-                    return res;
-                })
+                        await Promise.all(
+                            source
+                                .getWorld()
+                                .getPlayers()
+                                .map(async (e) => mob.sendSpawn(e as Player))
+                        );
+
+                        const res = `Summoned ${entity.MOB_ID}`;
+                        await source.sendMessage(res);
+                        return res;
+                    })
+                )
             )
         );
     }
