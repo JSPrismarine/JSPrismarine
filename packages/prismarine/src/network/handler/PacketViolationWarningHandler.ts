@@ -8,6 +8,6 @@ export default class PacketViolationWarningHandler implements PacketHandler<Pack
     public static NetID = Identifiers.PacketViolationWarningPacket;
 
     public handle(packet: PacketViolationWarningPacket, server: Server, player: Player): void {
-        server.getLogger().error(`Packet violation 0x${packet.packetId.toString(16)}. ${packet.message}`);
+        server.getLogger()?.error(`Packet violation 0x${packet.packetId.toString(16)}. ${packet.message}`);
     }
 }

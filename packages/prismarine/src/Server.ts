@@ -1,4 +1,5 @@
 import { Connection, InetAddress, Listener, Protocol } from '@jsprismarine/raknet';
+import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
 import BanManager from './ban/BanManager';
 import BatchPacket from './network/packet/BatchPacket';
@@ -27,8 +28,8 @@ import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPac
 import TelemetryManager from './telemetry/TelemeteryManager';
 import Timer from './utils/Timer';
 import UpdateSoftEnumPacket from './network/packet/UpdateSoftEnumPacket';
+import WorkerManager from './worker/WorkerManager';
 import WorldManager from './world/WorldManager';
-import { setIntervalAsync } from 'set-interval-async/dynamic';
 
 export default class Server {
     private version!: string;
@@ -51,6 +52,7 @@ export default class Server {
     private readonly chatManager: ChatManager;
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
+    private workerManager: WorkerManager;
     private stopping = false;
 
     /**
@@ -58,15 +60,16 @@ export default class Server {
      */
     public static instance: Server;
 
-    public constructor({ logger, config, version }: { logger: LoggerBuilder; config: Config; version: string }) {
-        logger.info(
+    public constructor({ logger, config, version }: { logger?: LoggerBuilder; config: Config; version: string }) {
+        logger?.info(
             `Starting JSPrismarine server version ${version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`,
             'Server'
         );
 
         this.version = version;
-        this.logger = logger;
+        this.logger = logger!;
         this.config = config;
+        this.workerManager = new WorkerManager(this);
         this.telemetryManager = new TelemetryManager(this);
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
@@ -86,6 +89,7 @@ export default class Server {
 
     private async onEnable(): Promise<void> {
         this.config.onEnable();
+        await this.workerManager.onEnable();
         await BlockMappings.initMappings();
         await this.packetRegistry.onEnable();
         await this.permissionManager.onEnable();
@@ -106,6 +110,7 @@ export default class Server {
         await this.pluginManager.onDisable();
         await this.permissionManager.onDisable();
         await this.packetRegistry.onDisable();
+        await this.workerManager.onDisable();
         this.config.onDisable();
     }
 
@@ -139,38 +144,32 @@ export default class Server {
             try {
                 await this.getQueryManager().onRaw(buffer, inetAddr);
             } catch (error) {
-                this.getLogger().verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
-                this.getLogger().debug(error.stack, 'Server/listen/raw');
+                this.getLogger()?.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
+                this.getLogger()?.debug(error.stack, 'Server/listen/raw');
             }
         });
 
         this.getEventManager().on('raknetConnect', async (raknetConnectEvent: RaknetConnectEvent) => {
+            const timer = new Timer();
+
             const connection = raknetConnectEvent.getConnection();
             const token = `${connection.getAddress().getAddress()}:${connection.getAddress().getPort()}`;
+            this.getLogger()?.debug(`${token} is attempting to connect`, 'Server/listen/raknetDisconnect');
 
-            this.logger.debug(`${token} is attempting to connect`, 'Server/listen/raknetDisconnect');
-
-            // TODO: Get last world by player data
-            // and if it doesn't exists, return the default one
-            const timer = new Timer();
             const world = this.getWorldManager().getDefaultWorld()!;
-
             const player = new Player(connection, world, this);
 
             // Emit playerConnect event
             const playerConnectEvent = new PlayerConnectEvent(player, player.getAddress());
-
             await this.getEventManager().emit('playerConnect', playerConnectEvent);
-
             if (playerConnectEvent.cancelled) return;
 
-            await this.playerManager.removePlayer(token); // Try to remove player before creating it
+            // Add the player into the global player manager
+            // and it's local world
             await this.playerManager.addPlayer(token, player);
-
-            // Add the player into the world
             world.addPlayer(player);
 
-            this.logger.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
+            this.getLogger()?.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
         });
 
         this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
@@ -199,16 +198,16 @@ export default class Server {
                 player.getWorld().removePlayer(player);
                 await this.playerManager.removePlayer(token);
             } catch (error) {
-                this.logger.debug(
+                this.getLogger()?.debug(
                     `Cannot remove connection from non-existing player (${token})`,
                     'Server/listen/raknetDisconnect'
                 );
-                this.logger.debug(error.stack, 'Server/listen/raknetDisconnect');
+                this.getLogger()?.debug(error.stack, 'Server/listen/raknetDisconnect');
             }
 
-            this.logger.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
+            this.getLogger()?.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
 
-            this.logger.debug(
+            this.getLogger()?.debug(
                 `Player destruction took about ${Date.now() - time} ms`,
                 'Server/listen/raknetDisconnect'
             );
@@ -242,7 +241,7 @@ export default class Server {
                 for (const buf of batched.getPackets()) {
                     const pid = buf[0];
                     if (!this.packetRegistry.getPackets().has(pid)) {
-                        this.logger.warn(
+                        this.getLogger()?.warn(
                             `Packet 0x${pid.toString(16)} isn't implemented`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
@@ -255,7 +254,7 @@ export default class Server {
                     try {
                         packet.decode();
                     } catch (error) {
-                        this.logger.error(
+                        this.getLogger()?.error(
                             `Error while decoding packet: ${packet.constructor.name}: ${error}`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
@@ -265,20 +264,20 @@ export default class Server {
                     try {
                         const handler = this.packetRegistry.getHandler(packet.getId());
                         await handler.handle(packet, this, player);
-                        this.logger.silly(
+                        this.getLogger()?.silly(
                             `Received §b${packet.constructor.name}§r packet`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
                     } catch (error) {
-                        this.logger.error(
+                        this.getLogger()?.error(
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
-                        this.logger.debug(`${error.stack}`, 'Server/listen/raknetEncapsulatedPacket');
+                        this.getLogger()?.debug(`${error.stack}`, 'Server/listen/raknetEncapsulatedPacket');
                     }
                 }
             } catch (error) {
-                this.logger.error(error, 'Server/listen/raknetEncapsulatedPacket');
+                this.getLogger()?.error(error, 'Server/listen/raknetEncapsulatedPacket');
             }
         });
 
@@ -292,6 +291,9 @@ export default class Server {
             let lastTime = Date.now(),
                 ticks = 0;
             const tick = async () => {
+                if (this.stopping) void clearIntervalAsync(ticker);
+
+                // Every time we tick we have to increase the global ticker
                 ticks += 1;
 
                 // Calculate current tps
@@ -306,7 +308,7 @@ export default class Server {
                 lastTime = finishTime;
 
                 if (this.tps > 20) {
-                    this.getLogger().verbose(
+                    this.getLogger()?.verbose(
                         `TPS is ${this.tps} which is greater than 20! Are we recovering?`,
                         'Server/listen/setIntervalAsync'
                     );
@@ -320,14 +322,14 @@ export default class Server {
 
                 await Promise.all(promises);
             };
-            setIntervalAsync(tick, 1000 / 20);
+            const ticker = setIntervalAsync(tick, 1000 / 20);
 
             setInterval(() => {
                 const correctTicks = Math.ceil((Date.now() - startTime) / 50);
                 const behindTicks = correctTicks - (ticks + 1); // Add 1 to compensate for sometimes being off with a few ms
 
                 if (behindTicks) {
-                    this.getLogger().debug(
+                    this.getLogger()?.debug(
                         `We're behind with ${behindTicks} ticks. ${ticks}/${correctTicks}. Trying to recover!`,
                         'server'
                     );
@@ -339,7 +341,7 @@ export default class Server {
                 }
 
                 if (behindTicks < 20) return;
-                this.getLogger().warn(
+                this.getLogger()?.warn(
                     `Can't keep up, is the server overloaded? (${behindTicks} tick(s) or ${
                         behindTicks / 20
                     } second(s) behind)`,
@@ -348,7 +350,9 @@ export default class Server {
             }, 60 * 1000);
         } else {
             // Make sure we actually send chunks if real ticks are disabled
-            setIntervalAsync(async () => {
+            const ticker = setIntervalAsync(async () => {
+                if (this.stopping) void clearIntervalAsync(ticker);
+
                 const promises: Array<Promise<void>> = [];
                 for (const world of this.getWorldManager().getWorlds()) {
                     promises.push(world.update(Date.now()));
@@ -360,13 +364,13 @@ export default class Server {
 
         // Log experimental flags
         if (this.getConfig().getExperimentalFlags().length >= 1) {
-            this.logger.debug(`Enabled flags:`, 'Server/listen');
+            this.getLogger()?.debug(`Enabled flags:`, 'Server/listen');
             this.getConfig()
                 .getExperimentalFlags()
-                .forEach((flag) => this.logger.debug(`- ${flag}`, 'Server/listen'));
+                .forEach((flag) => this.getLogger()?.debug(`- ${flag}`, 'Server/listen'));
         }
 
-        this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
+        this.getLogger()?.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
     }
 
     /**
@@ -376,7 +380,7 @@ export default class Server {
         if (this.stopping) return;
         this.stopping = true;
 
-        this.getLogger().info('Stopping server', 'Server/kill');
+        this.getLogger()?.info('Stopping server', 'Server/kill');
         await this.console.onDisable();
 
         try {
@@ -393,7 +397,7 @@ export default class Server {
             await this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
             process.exit(options?.crash ? 1 : 0);
         } catch (error) {
-            this.getLogger().error(error, 'Server/kill');
+            this.getLogger()?.error(error, 'Server/kill');
             process.exit(1);
         }
     }
@@ -451,7 +455,7 @@ export default class Server {
     /**
      * Returns the logger
      */
-    public getLogger(): LoggerBuilder {
+    public getLogger(): LoggerBuilder | undefined {
         return this.logger;
     }
 

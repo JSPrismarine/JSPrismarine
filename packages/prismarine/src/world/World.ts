@@ -90,7 +90,7 @@ export default class World {
 
         this.server
             .getLogger()
-            .info(
+            ?.info(
                 `Preparing start region for dimension §b'${this.name}'/${this.generator.constructor.name}§r`,
                 'World/onEnable'
             );
@@ -105,7 +105,7 @@ export default class World {
         }
 
         await Promise.all(chunksToLoad);
-        this.server.getLogger().verbose(`(took ${timer.stop()} ms)`, 'World/onEnable');
+        this.server.getLogger()?.verbose(`(took ${timer.stop()} ms)`, 'World/onEnable');
     }
 
     public getGenerator(): Generator {
@@ -280,7 +280,7 @@ export default class World {
                 resolve(true);
                 return;
             } catch (error) {
-                player.getServer().getLogger().warn(`${player.getName()} failed to place block due to ${error}`);
+                player.getServer().getLogger()?.warn(`${player.getName()} failed to place block due to ${error}`);
                 await player.sendMessage(error?.message);
 
                 resolve(false);
@@ -378,10 +378,10 @@ export default class World {
         const timer = new Timer();
         this.server
             .getLogger()
-            .info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`, 'World/saveChunks');
+            ?.info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`, 'World/saveChunks');
 
         await Promise.all(Array.from(this.chunks.values()).map(async (chunk) => this.provider.writeChunk(chunk)));
-        this.server.getLogger().verbose(`(took ${timer.stop()} ms)!`, 'World/saveChunks');
+        this.server.getLogger()?.verbose(`(took ${timer.stop()} ms)!`, 'World/saveChunks');
     }
 
     public async save(): Promise<void> {
@@ -438,7 +438,7 @@ export default class World {
         } catch {
             this.server
                 .getLogger()
-                .debug(`PlayerData is missing for player ${player.getXUID()}`, 'World/getPlayerData');
+                ?.debug(`PlayerData is missing for player ${player.getXUID()}`, 'World/getPlayerData');
 
             return {
                 gamemode: this.server.getConfig().getGamemode(),
@@ -494,8 +494,8 @@ export default class World {
                 )
             );
         } catch (error) {
-            this.server.getLogger().error(`Failed to save player data: ${error}`, 'World/savePlayerData');
-            this.server.getLogger().debug(error.stack, 'World/savePlayerData');
+            this.server.getLogger()?.error(`Failed to save player data: ${error}`, 'World/savePlayerData');
+            this.server.getLogger()?.debug(error.stack, 'World/savePlayerData');
         }
     }
 }

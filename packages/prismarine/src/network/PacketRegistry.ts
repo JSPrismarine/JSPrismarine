@@ -9,12 +9,12 @@ import type Server from '../Server';
 import Timer from '../utils/Timer';
 
 export default class PacketRegistry {
-    private readonly logger: LoggerBuilder;
+    private server: Server;
     private readonly packets: Map<number, typeof Packets.DataPacket> = new Map();
     private readonly handlers: Map<number, PacketHandler<any>> = new Map();
 
     public constructor(server: Server) {
-        this.logger = server.getLogger();
+        this.server = server;
     }
 
     public async onEnable() {
@@ -38,7 +38,7 @@ export default class PacketRegistry {
             );
 
         this.packets.set(packet.NetID, packet);
-        this.logger.debug(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
+        this.server.getLogger()?.debug(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
     }
 
     /**
@@ -63,10 +63,9 @@ export default class PacketRegistry {
         if (this.handlers.has(id)) throw new Error(`Handler with id ${id} already exists!`);
 
         this.handlers.set(id, handler);
-        this.logger.debug(
-            `Handler with id §b${handler.constructor.name}§r registered`,
-            'PacketRegistry/registerHandler'
-        );
+        this.server
+            .getLogger()
+            ?.debug(`Handler with id §b${handler.constructor.name}§r registered`, 'PacketRegistry/registerHandler');
     }
 
     public getHandler(id: number): PacketHandler<any> {
@@ -113,12 +112,14 @@ export default class PacketRegistry {
             .filter(([, value]) => value.name !== 'DataPacket' && value.name !== 'BatchPacket')
             .map(([, value]) => this.registerPacket(value));
 
-        this.logger.verbose(
-            `Registered §b${this.packets.size}§r of §b${
-                Array.from(Object.keys(Identifiers)).length - 2
-            }§r packet(s) (took ${timer.stop()} ms)!`,
-            'PacketRegistry/registerPackets'
-        );
+        this.server
+            .getLogger()
+            ?.verbose(
+                `Registered §b${this.packets.size}§r of §b${
+                    Array.from(Object.keys(Identifiers)).length - 2
+                }§r packet(s) (took ${timer.stop()} ms)!`,
+                'PacketRegistry/registerPackets'
+            );
     }
 
     /**
@@ -130,10 +131,12 @@ export default class PacketRegistry {
         // Dynamically register handlers
         Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID!, new (value as any)()));
 
-        this.logger.verbose(
-            `Registered §b${this.handlers.size}§r packet handler(s) (took ${timer.stop()} ms)!`,
-            'PacketRegistry/registerHandlers'
-        );
+        this.server
+            .getLogger()
+            ?.verbose(
+                `Registered §b${this.handlers.size}§r packet handler(s) (took ${timer.stop()} ms)!`,
+                'PacketRegistry/registerHandlers'
+            );
     }
 
     /**

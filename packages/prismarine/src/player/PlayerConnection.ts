@@ -74,7 +74,7 @@ export default class PlayerConnection {
         sendPacket.buffer = batch.getBuffer();
 
         await this.connection.addEncapsulatedToQueue(sendPacket);
-        this.server.getLogger().silly(`Sent §b${packet.constructor.name}§r packet`, 'PlayerConnection/sendDataPacket');
+        this.server.getLogger()?.silly(`Sent §b${packet.constructor.name}§r packet`, 'PlayerConnection/sendDataPacket');
     }
 
     public async update(_tick: number): Promise<void> {
@@ -307,7 +307,7 @@ export default class PlayerConnection {
                     this.player
                         .getServer()
                         .getLogger()
-                        .warn(`Can't find corresponding command class for "${command[0]}"`);
+                        ?.warn(`Can't find corresponding command class for "${command[0]}"`);
                     return;
                 }
 
@@ -354,7 +354,7 @@ export default class PlayerConnection {
                                     new CommandParameter({ paramName: 'number', paramType: CommandParameterType.Int })
                                 ];
 
-                            this.server.getLogger().warn(`Invalid parameter ${parameter.constructor.name}`);
+                            this.server.getLogger()?.warn(`Invalid parameter ${parameter.constructor.name}`);
                             return [
                                 new CommandParameter({ paramName: 'value', paramType: CommandParameterType.String })
                             ];
@@ -530,7 +530,7 @@ export default class PlayerConnection {
      */
     public async sendSpawn(player: Player): Promise<void> {
         if (!player.getUUID()) {
-            this.server.getLogger().error(`UUID for player ${player.getName()} is undefined`);
+            this.server.getLogger()?.error(`UUID for player ${player.getName()} is undefined`);
             return;
         }
 
