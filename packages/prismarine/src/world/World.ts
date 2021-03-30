@@ -92,7 +92,7 @@ export default class World {
                 `Preparing start region for dimension §b'${this.name}'/${this.generator.constructor.name}§r`,
                 'World/onEnable'
             );
-        const chunksToLoad: Array<Promise<void>> = [];
+        const chunksToLoad: Array<Promise<Chunk>> = [];
         const timer = new Timer();
 
         const size = this.server.getConfig().getViewDistance() * 5;
@@ -157,9 +157,8 @@ export default class World {
      */
     public async getChunk(cx: number, cz: number): Promise<Chunk> {
         const index = CoordinateUtils.encodePos(cx, cz);
-        if (!this.chunks.has(index)) {
-            await this.loadChunk(cx, cz);
-        }
+        if (!this.chunks.has(index)) return this.loadChunk(cx, cz);
+
         return this.chunks.get(index)!;
     }
 
@@ -169,11 +168,14 @@ export default class World {
      * @param cx
      * @param cz
      */
-    public async loadChunk(cx: number, cz: number): Promise<void> {
+    public async loadChunk(cx: number, cz: number): Promise<Chunk> {
         const index = CoordinateUtils.encodePos(cx, cz);
         // Try - catch for provider errors
         const chunk = await this.provider.readChunk(cx, cz, this.seed, this.generator, this.config);
         this.chunks.set(index, chunk);
+
+        // TODO: event here, eg onChunkLoad
+        return chunk;
     }
 
     /**

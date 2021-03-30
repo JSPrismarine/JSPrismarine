@@ -44,16 +44,18 @@ export default class GamemodeCommand extends Command {
             literal('gamemode').then(
                 argument('gamemode', new CommandArgumentGamemode())
                     .then(
-                        argument('player', new CommandArgumentEntity()).executes(async (context) => {
-                            const source = context.getSource() as Player;
-                            const targets = context.getArgument('player') as Player[];
+                        argument('player', new CommandArgumentEntity({ name: 'player', optional: true })).executes(
+                            async (context) => {
+                                const source = context.getSource() as Player;
+                                const targets = context.getArgument('player') as Player[];
 
-                            const gamemode = context.getArgument('gamemode') as string;
+                                const gamemode = context.getArgument('gamemode') as string;
 
-                            if (!targets.length) throw new Error(`Cannot find player`);
+                                if (!targets.length) throw new Error(`Cannot find player`);
 
-                            targets.forEach(async (target) => this.setGamemode(source, target, gamemode));
-                        })
+                                targets.forEach(async (target) => this.setGamemode(source, target, gamemode));
+                            }
+                        )
                     )
                     .executes(async (context) => {
                         const source = context.getSource() as Player;

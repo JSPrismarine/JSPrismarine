@@ -331,17 +331,33 @@ export default class PlayerConnection {
                             if (parameters) return Array.from(parameters.values());
 
                             if (parameter instanceof CommandArgumentEntity)
-                                return [new CommandParameter('target', CommandParameterType.Target)];
+                                return [
+                                    new CommandParameter({
+                                        paramName: 'target',
+                                        paramType: CommandParameterType.Target
+                                    })
+                                ];
 
                             if (parameter instanceof CommandArgumentGamemode)
-                                return [new CommandParameter('gamemode', CommandParameterType.String)];
+                                return [
+                                    new CommandParameter({
+                                        paramName: 'gamemode',
+                                        paramType: CommandParameterType.String
+                                    })
+                                ];
                             if (parameter.constructor.name === 'StringArgumentType')
-                                return [new CommandParameter('value', CommandParameterType.String)];
+                                return [
+                                    new CommandParameter({ paramName: 'value', paramType: CommandParameterType.String })
+                                ];
                             if (parameter.constructor.name === 'IntegerArgumentType')
-                                return [new CommandParameter('number', CommandParameterType.Int)];
+                                return [
+                                    new CommandParameter({ paramName: 'number', paramType: CommandParameterType.Int })
+                                ];
 
                             this.server.getLogger().warn(`Invalid parameter ${parameter.constructor.name}`);
-                            return [new CommandParameter('value', CommandParameterType.String)];
+                            return [
+                                new CommandParameter({ paramName: 'value', paramType: CommandParameterType.String })
+                            ];
                         })
                         .filter((a) => a)
                         .flat();
@@ -349,6 +365,14 @@ export default class PlayerConnection {
                 });
                 pk.commandData.push(cmd);
             });
+        const playerEnum = new CommandEnum();
+        playerEnum.enumName = 'Player';
+        playerEnum.enumValues = this.player
+            .getServer()
+            .getPlayerManager()
+            .getOnlinePlayers()
+            .map((player) => player.getName());
+        pk.softEnums = [playerEnum];
         await this.sendDataPacket(pk);
     }
 

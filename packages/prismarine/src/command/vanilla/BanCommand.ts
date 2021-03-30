@@ -1,8 +1,9 @@
 /* eslint-disable promise/prefer-await-to-then */
-import { CommandDispatcher, argument, greedyString, literal, string } from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
 import Player from '../../player/Player';
+import { PlayerArgumentCommand } from '../CommandArguments';
 
 export default class BanCommand extends Command {
     public constructor() {
@@ -16,7 +17,7 @@ export default class BanCommand extends Command {
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
             literal('ban').then(
-                argument('player', string())
+                argument('player', new PlayerArgumentCommand({ name: 'player' }))
                     .then(
                         argument('reason', greedyString()).executes(async (context) => {
                             const source = context.getSource() as Player;
