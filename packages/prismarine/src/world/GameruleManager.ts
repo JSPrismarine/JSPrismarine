@@ -38,7 +38,7 @@ export default class GameruleManager {
      * @param value
      */
     public setGamerule(name: string, value: boolean | number): void {
-        this.rules.set(name, value);
+        this.rules.set(name.toLowerCase(), value);
     }
 
     /**
@@ -47,11 +47,11 @@ export default class GameruleManager {
      * @param name
      */
     public getGamerule(name: string): any {
-        if (!Object.values(GameRules).includes(name)) {
+        if (!Object.values(GameRules).includes(name.toLowerCase())) {
             this.server.getLogger()?.error(`Unknown Gamerule with name ${name}`, 'GameruleManager/getGamerule');
         }
 
-        this.rules.get(name);
+        this.rules.get(name.toLowerCase());
     }
 
     public getGamerules(): Map<string, any> {

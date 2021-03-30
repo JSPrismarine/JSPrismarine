@@ -25,6 +25,7 @@ import path from 'path';
 
 interface WorldData {
     name: string;
+    path: string;
     server: Server;
     provider: any;
     seed: number;
@@ -32,6 +33,10 @@ interface WorldData {
     config?: any;
 }
 
+export interface LevelMeta {
+    spawn: Vector3;
+    gameRules: Array<[string, any]>;
+}
 export interface WorldPlayerData {
     gamemode: string;
     position: {
@@ -53,6 +58,7 @@ export interface WorldPlayerData {
 export default class World {
     private readonly uniqueId: string = UUID.randomString();
     private name: string;
+    private path: string;
 
     private readonly players: Map<bigint, Player> = new Map();
     private readonly entities: Map<bigint, Entity> = new Map();
@@ -66,14 +72,18 @@ export default class World {
     private readonly config: Object;
     private spawn: Vector3 | null = null;
 
-    public constructor({ name, server, provider, seed, generator, config }: WorldData) {
+    public constructor({ name, server, path: levelPath, provider, seed, generator, config }: WorldData) {
         this.name = name;
+        this.path = levelPath;
         this.server = server;
         this.provider = provider;
         this.gameruleManager = new GameruleManager(server);
         this.seed = seed;
         this.generator = generator;
         this.config = config ?? {};
+
+        this.gameruleManager.setGamerule('dodaylightcycle', true);
+        this.gameruleManager.setGamerule('showcoordinates', true);
 
         // Create player data folder
         if (!fs.existsSync(path.join(cwd(), 'worlds', name, '/playerdata'))) {
@@ -82,13 +92,20 @@ export default class World {
     }
 
     public async onEnable(): Promise<void> {
+        // TODO: properly read level.json
+        /* try {
+            const metaData: LevelMeta = JSON.parse(
+                await fs.promises.readFile(path.join(this.path, 'level.json'), 'utf-8')
+            );
+
+            // if (metaData.spawn) this.setSpawnPosition(metaData.spawn);
+
+            if (metaData.gameRules)
+                metaData.gameRules.forEach(([name, value]) => this.gameruleManager.setGamerule(name, value));
+        } catch {} */
+
         this.provider.setWorld(this);
         await this.provider.onEnable();
-
-        // Get and set metadata
-        const levelMeta = await this.provider.getLevelMetadata();
-        this.spawn = levelMeta.spawn;
-        levelMeta.gameRules.forEach(([name, value]) => this.gameruleManager.setGamerule(name, value));
 
         this.server
             .getLogger()
@@ -111,6 +128,17 @@ export default class World {
     }
 
     public async onDisable() {
+        await fs.promises.writeFile(
+            path.join(this.path, 'level.json'),
+            JSON.stringify(
+                {
+                    spawn: await this.getSpawnPosition(),
+                    gamerules: Array.from(this.getGameruleManager().getGamerules())
+                },
+                null,
+                4
+            )
+        );
         await this.provider.onDisable();
     }
 
@@ -223,6 +251,10 @@ export default class World {
         const chunk = await this.getChunkAt(x, z);
         const y = chunk.getHighestBlockAt(x, z) + 1;
         return new Vector3(z, y + 2, z);
+    }
+
+    public setSpawnPosition(pos: Vector3) {
+        this.spawn = pos;
     }
 
     public broadcastPacket(packet: DataPacket, targets?: Player[]): void {}
@@ -406,10 +438,6 @@ export default class World {
                 await this.savePlayerData(player);
             });
         await this.saveChunks();
-    }
-
-    public async close(): Promise<void> {
-        await this.getProvider().close();
     }
 
     public getGameruleManager(): GameruleManager {

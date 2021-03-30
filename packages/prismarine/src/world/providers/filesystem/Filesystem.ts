@@ -7,13 +7,13 @@ import fs from 'graceful-fs';
 import path from 'path';
 
 export default class Filesystem extends BaseProvider {
+    private level: any = {};
+
     public constructor(folderPath: string, server: Server) {
         super(folderPath, server);
 
         if (!fs.existsSync(path.join(this.getPath(), 'chunks'))) fs.mkdirSync(path.join(this.getPath(), 'chunks'));
     }
-
-    public async close() {}
 
     public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
         try {
