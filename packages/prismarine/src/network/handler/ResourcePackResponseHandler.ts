@@ -89,12 +89,14 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // Update soft commandenums
             const packet = new UpdateSoftEnumPacket();
             packet.enumName = 'Player';
-            packet.values = server.getPlayerManager()
+            packet.values = server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .map((player) => player.getName());
-                packet.type = packet.TYPE_SET;
+            packet.type = packet.TYPE_SET;
 
-            server.getPlayerManager()
+            server
+                .getPlayerManager()
                 .getOnlinePlayers()
                 .forEach(async (player) => player.getConnection().sendDataPacket(pk));
         }
