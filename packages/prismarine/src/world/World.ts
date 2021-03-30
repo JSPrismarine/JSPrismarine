@@ -86,19 +86,21 @@ export default class World {
     }
 
     public async onEnable(): Promise<void> {
+        await this.provider.onEnable();
+
         this.server
             .getLogger()
             .info(
                 `Preparing start region for dimension §b'${this.name}'/${this.generator.constructor.name}§r`,
                 'World/onEnable'
             );
-        const chunksToLoad: Array<Promise<void>> = [];
+        const chunksToLoad: Array<Promise<Chunk>> = [];
         const timer = new Timer();
 
         const size = this.server.getConfig().getViewDistance() * 5;
         for (let x = 0; x < size; x++) {
             for (let z = 0; z < size; z++) {
-                chunksToLoad.push(this.loadChunk(x, z));
+                chunksToLoad.push(this.getChunk(x, z));
             }
         }
 
@@ -157,9 +159,8 @@ export default class World {
      */
     public async getChunk(cx: number, cz: number): Promise<Chunk> {
         const index = CoordinateUtils.encodePos(cx, cz);
-        if (!this.chunks.has(index)) {
-            await this.loadChunk(cx, cz);
-        }
+        if (!this.chunks.has(index)) return this.loadChunk(cx, cz);
+
         return this.chunks.get(index)!;
     }
 
@@ -169,11 +170,14 @@ export default class World {
      * @param cx
      * @param cz
      */
-    public async loadChunk(cx: number, cz: number): Promise<void> {
+    public async loadChunk(cx: number, cz: number): Promise<Chunk> {
         const index = CoordinateUtils.encodePos(cx, cz);
         // Try - catch for provider errors
         const chunk = await this.provider.readChunk(cx, cz, this.seed, this.generator, this.config);
         this.chunks.set(index, chunk);
+
+        // TODO: event here, eg onChunkLoad
+        return chunk;
     }
 
     /**
@@ -194,8 +198,6 @@ export default class World {
             // To all players
         }
     }
-
-    // Public playSound()
 
     /**
      * Returns a chunk from minecraft block positions x and z.

@@ -348,14 +348,14 @@ export default class Server {
             }, 60 * 1000);
         } else {
             // Make sure we actually send chunks if real ticks are disabled
-            setInterval(async () => {
+            setIntervalAsync(async () => {
                 const promises: Array<Promise<void>> = [];
                 for (const world of this.getWorldManager().getWorlds()) {
                     promises.push(world.update(Date.now()));
                 }
 
                 await Promise.all(promises);
-            }, 50);
+            }, 1000 / 20);
         }
 
         // Log experimental flags

@@ -3,7 +3,7 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../../chunk/Chunk';
 import Generator from '../../Generator';
 import type Server from '../../../Server';
-import fs from 'fs';
+import fs from 'graceful-fs';
 import path from 'path';
 
 export default class Filesystem extends BaseProvider {
@@ -20,6 +20,7 @@ export default class Filesystem extends BaseProvider {
             const buffer = Buffer.from(
                 await fs.promises.readFile(path.join(this.getPath(), 'chunks', `${cx}_${cz}.dat`))
             );
+
             const chunk = Chunk.networkDeserialize(new BinaryStream(buffer));
             (chunk as any).x = cx;
             (chunk as any).z = cz;
