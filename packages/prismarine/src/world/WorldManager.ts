@@ -83,7 +83,6 @@ export default class WorldManager {
         this.server.getLogger()?.info('Saving worlds', 'WorldManager/save');
         for (const world of this.getWorlds()) {
             await world.save();
-            await world.close();
         }
     }
 
@@ -122,6 +121,7 @@ export default class WorldManager {
             // TODO: figure out provider by data
             const world = new World({
                 name: folderName,
+                path: levelPath,
                 server: this.server,
                 provider: new provider(levelPath, this.server),
 
@@ -159,7 +159,6 @@ export default class WorldManager {
             return;
         }
 
-        await world.close();
         await world.onDisable();
         this.worlds.delete(world.getUniqueId());
         this.server.getLogger()?.verbose(`Successfully unloaded world §b${folderName}§f!`, 'WorldManager/unloadWorld');

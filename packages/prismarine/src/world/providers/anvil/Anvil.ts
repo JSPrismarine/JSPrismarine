@@ -1,7 +1,5 @@
-import BaseProvider, { LevelMeta } from '../BaseProvider';
-
+import BaseProvider from '../BaseProvider';
 import Chunk from '../../chunk/Chunk';
-import { GameRules } from '../../GameruleManager';
 import Generator from '../../Generator';
 import type Server from '../../../Server';
 import Vector3 from '../../../math/Vector3';
@@ -22,39 +20,6 @@ export default class Anvil extends BaseProvider {
 
         // Create regions folder if they don't already exist
         if (!fs.existsSync(path.join(this.getPath(), 'region'))) fs.mkdirSync(path.join(this.getPath(), 'region'));
-    }
-
-    public async onEnable() {
-        if (fs.existsSync(path.join(this.getPath(), 'level.dat')))
-            this.level = await ReadLevel(path.join(this.getPath(), 'level.dat'));
-        else this.level = {};
-
-        // const provider = AnvilProvider.Anvil();
-        this.anvil = new AnvilProvider(path.join(this.getPath(), 'region'));
-    }
-
-    public async onDisable() {
-        if (!this.level) return;
-        const spawn = await this.getWorld().getSpawnPosition();
-
-        this.level.SpawnX = spawn.getX();
-        this.level.SpawnY = spawn.getY();
-        this.level.SpawnZ = spawn.getZ();
-
-        await WriteLevel(path.join(this.getPath(), 'level.dat'), this.level);
-    }
-
-    public async getLevelMetadata(): Promise<LevelMeta> {
-        const level = this.level;
-        const gameRules: any = [
-            [GameRules.ShowCoordinates, true],
-            [GameRules.DoDayLightCycle, !(level?.GameRules?.doDayLightCycle === 'false')]
-        ]; // TODO
-
-        return {
-            spawn: new Vector3(level.SpawnX, level.SpawnY, level.SpawnZ),
-            gameRules
-        };
     }
 
     public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
