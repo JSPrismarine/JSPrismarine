@@ -20,6 +20,7 @@ export default class Filesystem extends BaseProvider {
             const buffer = Buffer.from(
                 await fs.promises.readFile(path.join(this.getPath(), 'chunks', `${cx}_${cz}.dat`))
             );
+
             const chunk = Chunk.networkDeserialize(new BinaryStream(buffer));
             (chunk as any).x = cx;
             (chunk as any).z = cz;
