@@ -5,7 +5,7 @@ import AttributeManager from './Attribute';
 import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
 import Player from '../player/Player';
 import Position from '../world/Position';
-import { RemoveActorPacket } from '../network/Packets';
+import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import Server from '../Server';
 import Vector3 from '../math/Vector3';
 import World from '../world/World';
@@ -48,15 +48,9 @@ export default class Entity extends Position {
     }
 
     public async update(tick: number) {
-        // const collisions = await this.getNearbyEntities(0.5);
-        // await Promise.all(collisions.map(async (e) => e.onCollide(this)));
+        const collisions = await this.getNearbyEntities(0.5);
+        await Promise.all(collisions.map(async (e) => e.onCollide(this)));
     }
-
-    // public setHealth(health: number): void {
-    //    if (health === this.)
-    // }
-
-    public damage(): void {}
 
     public getServer(): Server {
         return this.server;

@@ -26,7 +26,8 @@ export default class Item extends Entity {
     }
 
     public async update(tick: number) {
-        await super.update(tick);
+        // Call supermethod
+        await super.update.bind(this)(tick);
 
         // Arbitrary magic number. Sue me.
         if (tick % 5 !== 0) return;
@@ -42,13 +43,8 @@ export default class Item extends Entity {
             return true;
         }) as Item[];
 
-        // Get collisions, this should be done properly, and not here but in our parent.
-        const collisions = entities.filter((e) => e.getPosition().equals(this.getPosition()));
-        await Promise.all(collisions.map(async (e) => this.onCollide(e)));
-
+        // Only move to first item to prevent them getting stuck
         if (entities.length <= 0) return;
-
-        // Only move to first item to prevent getting stuck
         const position = entities[0].getPosition();
 
         // TODO: move them closer to each other instead of teleporting
