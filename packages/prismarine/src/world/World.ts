@@ -157,15 +157,9 @@ export default class World {
             await this.save();
         }
 
-        // Tick players
-        for (const player of this.players.values()) {
-            await player.update(timestamp);
-            // TODO: get documentation about timings from vanilla
-            // 1 second / 20 = 1 tick, 20 * 5 = 1 second
-            // 1 second * 60 = 1 minute
-            if (this.currentTick % (20 * 5 * 60 * 1) === 0) {
-                await player.getConnection().sendTime(this.currentTick);
-            }
+        // Tick entities & players
+        for (const entity of this.getEntities()) {
+            await entity.update(timestamp);
         }
 
         // TODO: tick chunks
@@ -383,6 +377,12 @@ export default class World {
      * found from the entity position.
      */
     public async addEntity(entity: Entity): Promise<void> {
+        await Promise.all(
+            this.getEntities()
+                .filter((e) => e.isPlayer())
+                .map(async (e) => entity.sendSpawn(e as Player))
+        );
+
         this.entities.set(entity.runtimeId, entity);
         // const chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
         // chunk.addEntity(entity as any);
@@ -410,6 +410,15 @@ export default class World {
      */
     public removePlayer(player: Player): void {
         this.players.delete(player.runtimeId);
+    }
+
+    public async removeEntity(entity: Entity): Promise<void> {
+        await Promise.all(
+            this.getEntities()
+                .filter((e) => e.isPlayer())
+                .map(async (e) => entity.sendDespawn(e as Player))
+        );
+        this.entities.delete(entity.runtimeId);
     }
 
     /**

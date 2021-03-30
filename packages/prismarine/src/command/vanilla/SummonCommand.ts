@@ -39,16 +39,7 @@ export default class SummonCommand extends Command {
                     await mob.setPosition(source.getPosition()); // TODO: get position from argument
                     mob.setY(mob.getY() - 1.55); // temp
 
-                    await Promise.all(
-                        source
-                            .getServer()
-                            .getPlayerManager()
-                            .getOnlinePlayers()
-                            .filter((p) => p.getWorld().getUniqueId() === source.getWorld().getUniqueId())
-                            .map(async (player) => mob.sendSpawn(player))
-                    );
                     const res = `Summoned ${entity.MOB_ID}`;
-
                     await source.sendMessage(res);
                     return res;
                 })
