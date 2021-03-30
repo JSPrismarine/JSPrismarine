@@ -160,6 +160,7 @@ export default class WorldManager {
         }
 
         await world.close();
+        await world.onDisable();
         this.worlds.delete(world.getUniqueId());
         this.server.getLogger()?.verbose(`Successfully unloaded world §b${folderName}§f!`, 'WorldManager/unloadWorld');
     }

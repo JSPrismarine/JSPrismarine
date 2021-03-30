@@ -1,12 +1,21 @@
 import type Chunk from '../chunk/Chunk';
+import { GameRules } from '../GameruleManager';
 import Generator from '../Generator';
 import Provider from './Provider';
 import type Server from '../../Server';
+import Vector3 from '../../math/Vector3';
+import type World from '../World';
 import fs from 'fs';
+
+export interface LevelMeta {
+    spawn: Vector3;
+    gameRules: Array<[string, any]>;
+}
 
 export default abstract class BaseProvider implements Provider {
     private path: string;
     private server: Server;
+    private world!: World;
 
     public constructor(path: string, server: Server) {
         this.server = server;
@@ -14,6 +23,13 @@ export default abstract class BaseProvider implements Provider {
         if (!fs.existsSync(path)) {
             fs.mkdirSync(path);
         }
+    }
+
+    public setWorld(world: World) {
+        this.world = world;
+    }
+    public getWorld() {
+        return this.world;
     }
 
     public async onEnable() {}
@@ -30,6 +46,16 @@ export default abstract class BaseProvider implements Provider {
      */
     public getPath(): string {
         return this.path;
+    }
+
+    public async getLevelMetadata(): Promise<LevelMeta> {
+        return {
+            spawn: new Vector3(0, 10, 0),
+            gameRules: [
+                [GameRules.DoDayLightCycle, true],
+                [GameRules.ShowCoordinates, true]
+            ]
+        };
     }
 
     /**

@@ -64,6 +64,7 @@ export default class World {
     private readonly seed: number;
     private readonly generator: Generator;
     private readonly config: Object;
+    private spawn: Vector3 | null = null;
 
     public constructor({ name, server, provider, seed, generator, config }: WorldData) {
         this.name = name;
@@ -74,11 +75,6 @@ export default class World {
         this.generator = generator;
         this.config = config ?? {};
 
-        // TODO: Load default gamrules
-        // TODO: getGameruleManager().showCoordinates(true ?? false);
-        this.getGameruleManager().setGamerule(GameRules.DoDayLightCycle, true);
-        this.getGameruleManager().setGamerule(GameRules.ShowCoordinates, true);
-
         // Create player data folder
         if (!fs.existsSync(path.join(cwd(), 'worlds', name, '/playerdata'))) {
             fs.mkdirSync(path.join(cwd(), 'worlds', name, '/playerdata'));
@@ -86,7 +82,13 @@ export default class World {
     }
 
     public async onEnable(): Promise<void> {
+        this.provider.setWorld(this);
         await this.provider.onEnable();
+
+        // Get and set metadata
+        const levelMeta = await this.provider.getLevelMetadata();
+        this.spawn = levelMeta.spawn;
+        levelMeta.gameRules.forEach(([name, value]) => this.gameruleManager.setGamerule(name, value));
 
         this.server
             .getLogger()
@@ -106,6 +108,10 @@ export default class World {
 
         await Promise.all(chunksToLoad);
         this.server.getLogger()?.verbose(`(took ${timer.stop()} ms)`, 'World/onEnable');
+    }
+
+    public async onDisable() {
+        await this.provider.onDisable();
     }
 
     public getGenerator(): Generator {
@@ -210,6 +216,8 @@ export default class World {
      * Returns the world default spawn position.
      */
     public async getSpawnPosition(): Promise<Vector3> {
+        if (this.spawn) return this.spawn;
+
         const x = 0;
         const z = 0; // TODO: replace with actual data
         const chunk = await this.getChunkAt(x, z);
