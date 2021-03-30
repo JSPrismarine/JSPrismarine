@@ -100,7 +100,7 @@ export default class World {
         const size = this.server.getConfig().getViewDistance() * 5;
         for (let x = 0; x < size; x++) {
             for (let z = 0; z < size; z++) {
-                chunksToLoad.push(this.getChunk(x, z));
+                chunksToLoad.push(this.loadChunk(x, z, true));
             }
         }
 
@@ -170,7 +170,7 @@ export default class World {
      * @param cx
      * @param cz
      */
-    public async loadChunk(cx: number, cz: number): Promise<Chunk> {
+    public async loadChunk(cx: number, cz: number, ignoreWarn?: boolean): Promise<Chunk> {
         const index = CoordinateUtils.encodePos(cx, cz);
         // Try - catch for provider errors
         const chunk = await this.provider.readChunk(cx, cz, this.seed, this.generator, this.config);
@@ -219,6 +219,7 @@ export default class World {
 
     public broadcastPacket(packet: DataPacket, targets?: Player[]): void {}
 
+    // TODO: move this?
     public async useItemOn(
         itemInHand: Item | Block | null,
         blockPosition: Vector3,
@@ -380,7 +381,11 @@ export default class World {
             .getLogger()
             ?.info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`, 'World/saveChunks');
 
-        await Promise.all(Array.from(this.chunks.values()).map(async (chunk) => this.provider.writeChunk(chunk)));
+        await Promise.all(
+            Array.from(this.chunks.values())
+                .filter((c) => c.getHasChanged())
+                .map(async (chunk) => this.provider.writeChunk(chunk))
+        );
         this.server.getLogger()?.verbose(`(took ${timer.stop()} ms)!`, 'World/saveChunks');
     }
 

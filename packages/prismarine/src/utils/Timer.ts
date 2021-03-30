@@ -11,13 +11,13 @@ export default class Timer {
         this.endTime = null;
     }
 
-    public stop() {
+    public stop(): number {
         this.endTime = process.hrtime(this.startTime);
 
         return this.getResult();
     }
 
-    public getResult() {
-        return ((this.endTime[0] * 1e9 + this.endTime[1]) / 1_000_000).toFixed(3);
+    public getResult(): number {
+        return Number.parseFloat(((this.endTime[0] * 1e9 + this.endTime[1]) / 1_000_000).toFixed(3));
     }
 }

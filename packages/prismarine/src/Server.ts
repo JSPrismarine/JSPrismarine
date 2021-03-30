@@ -523,6 +523,13 @@ export default class Server {
     }
 
     /**
+     * Returns the worker manager
+     */
+    public getWorkerManager(): WorkerManager {
+        return this.workerManager;
+    }
+
+    /**
      * Returns this Prismarine instance
      */
     public getServer(): Server {

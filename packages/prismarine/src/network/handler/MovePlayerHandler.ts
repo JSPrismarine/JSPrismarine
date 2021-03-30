@@ -36,6 +36,13 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
             await player.getConnection().broadcastMove(player, MovementType.Reset);
         }
 
+        // Make sure we actually change X or Z coordinates before
+        // we try to update the current chunking. This prevents
+        // and expensive call to *getWorld().getChunkAt*.
+        let updateChunk = false;
+        if (Math.trunc(player.getX()) !== Math.trunc(resultantVector.getX())) updateChunk = true;
+        if (Math.trunc(player.getZ()) !== Math.trunc(resultantVector.getZ())) updateChunk = true;
+
         // Position
         player.setX(resultantVector.getX());
         player.setY(resultantVector.getY());
@@ -56,10 +63,10 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
             await onlinePlayer.getConnection().broadcastMove(player, MovementType.Normal);
         }
 
-        // TODO: hash
-        (async () => {
+        // TODO: this seems awfully wasteful?
+        if (updateChunk) {
             const chunk = await player.getWorld().getChunkAt(player.getX(), player.getZ());
             if (player.currentChunk !== chunk) player.currentChunk = chunk;
-        })();
+        }
     }
 }

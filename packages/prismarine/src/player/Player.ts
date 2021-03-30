@@ -301,7 +301,6 @@ export default class Player extends Human implements CommandExecuter {
         if (val === this.onGround) return;
 
         this.onGround = val;
-        await this.sendSettings();
     }
 
     public async setPosition(position: Vector3, type: MovementType = MovementType.Normal) {
