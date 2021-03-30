@@ -1,12 +1,16 @@
-import BaseProvider from '../BaseProvider';
+import BaseProvider, { LevelMeta } from '../BaseProvider';
+
 import Chunk from '../../chunk/Chunk';
+import { GameRules } from '../../GameruleManager';
 import Generator from '../../Generator';
 import type Server from '../../../Server';
 import Vector3 from '../../../math/Vector3';
 import fs from 'fs';
 import path from 'path';
+
 const AnvilProvider = require('prismarine-provider-anvil').Anvil('1.16');
 const ReadLevel = require('prismarine-provider-anvil').level.readLevel;
+const WriteLevel = require('prismarine-provider-anvil').level.writeLevel;
 const ChunkProvider = require('prismarine-chunk')('1.16');
 
 export default class Anvil extends BaseProvider {
@@ -18,13 +22,39 @@ export default class Anvil extends BaseProvider {
 
         // Create regions folder if they don't already exist
         if (!fs.existsSync(path.join(this.getPath(), 'region'))) fs.mkdirSync(path.join(this.getPath(), 'region'));
-        this.anvil = new AnvilProvider(path.join(this.getPath(), 'region'));
     }
 
     public async onEnable() {
         if (fs.existsSync(path.join(this.getPath(), 'level.dat')))
             this.level = await ReadLevel(path.join(this.getPath(), 'level.dat'));
-        // TODO: create level.dat
+        else this.level = {};
+
+        // const provider = AnvilProvider.Anvil();
+        this.anvil = new AnvilProvider(path.join(this.getPath(), 'region'));
+    }
+
+    public async onDisable() {
+        if (!this.level) return;
+        const spawn = await this.getWorld().getSpawnPosition();
+
+        this.level.SpawnX = spawn.getX();
+        this.level.SpawnY = spawn.getY();
+        this.level.SpawnZ = spawn.getZ();
+
+        await WriteLevel(path.join(this.getPath(), 'level.dat'), this.level);
+    }
+
+    public async getLevelMetadata(): Promise<LevelMeta> {
+        const level = this.level;
+        const gameRules: any = [
+            [GameRules.ShowCoordinates, true],
+            [GameRules.DoDayLightCycle, !(level?.GameRules?.doDayLightCycle === 'false')]
+        ]; // TODO
+
+        return {
+            spawn: new Vector3(level.SpawnX, level.SpawnY, level.SpawnZ),
+            gameRules
+        };
     }
 
     public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
@@ -39,10 +69,13 @@ export default class Anvil extends BaseProvider {
 
         // A section might be null if it's only filled with air
         // which means that we're able to ignore it therefore
-        // making the loop a whole lot faster
+        // making the loop a whole lot faster.
         const height = data.sections.filter((a: any) => a !== null).length * 16;
         if (height <= 0) return generator.generateChunk(cx, cz, seed, config); // Maybe we should just return an empty chunk instead?
 
+        // Wrapper around the logic for converting a prismarineJS block
+        // to our format. This is done to prevent creating a new
+        // function instance for *every* block.
         const loadBlock = async (pos: Vector3, name: string) => {
             try {
                 let block;
@@ -71,7 +104,9 @@ export default class Anvil extends BaseProvider {
             for (let y = 0; y < height; y++) {
                 for (let z = 0; z < 16; z++) {
                     const pos = new Vector3(x, y, z);
-                    const name = data.getBlock(pos).name || 'air';
+                    const block = data.getBlock(pos);
+
+                    const name = block.name || 'air';
                     if (name.includes('air')) continue;
 
                     promises.push(loadBlock(pos, name));
