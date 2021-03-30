@@ -12,6 +12,7 @@ import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import type Server from '../../Server';
 import StartGamePacket from '../packet/StartGamePacket';
+import UpdateSoftEnumPacket from '../packet/UpdateSoftEnumPacket';
 import Vector3 from '../../math/Vector3';
 
 export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
@@ -84,6 +85,18 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
                 new Chat(server.getConsole(), `§e${player.getName()} joined the game`)
             );
             await server.getEventManager().emit('chat', chatSpawnEvent);
+
+            // Update soft commandenums
+            const packet = new UpdateSoftEnumPacket();
+            packet.enumName = 'Player';
+            packet.values = server.getPlayerManager()
+                .getOnlinePlayers()
+                .map((player) => player.getName());
+                packet.type = packet.TYPE_SET;
+
+            server.getPlayerManager()
+                .getOnlinePlayers()
+                .forEach(async (player) => player.getConnection().sendDataPacket(pk));
         }
     }
 }

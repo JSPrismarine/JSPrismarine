@@ -171,17 +171,6 @@ export default class Server {
             world.addPlayer(player);
 
             this.logger.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
-
-            const pk = new UpdateSoftEnumPacket();
-            pk.enumName = 'Player';
-            pk.values = this.getPlayerManager()
-                .getOnlinePlayers()
-                .map((player) => player.getName());
-            pk.type = pk.TYPE_SET;
-
-            this.getPlayerManager()
-                .getOnlinePlayers()
-                .forEach(async (player) => player.getConnection().sendDataPacket(pk));
         });
 
         this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {

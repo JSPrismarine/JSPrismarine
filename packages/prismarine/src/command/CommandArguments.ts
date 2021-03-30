@@ -362,10 +362,15 @@ export class PlayerArgumentCommand implements CommandArgument {
     public getParameters(): Set<CommandParameter> {
         const playerEnum = new CommandEnum();
         playerEnum.enumName = 'Player';
-        playerEnum.enumValues = Server.instance
-            .getPlayerManager()
-            .getOnlinePlayers()
-            .map((player) => player.getName());
+        try {
+            playerEnum.enumValues = Server.instance
+                .getPlayerManager()
+                .getOnlinePlayers()
+                .map((player) => player.getName());
+        } catch {
+            playerEnum.enumValues = [];
+        }
+
         return new Set([
             new CommandParameter({
                 paramName: this.name,
