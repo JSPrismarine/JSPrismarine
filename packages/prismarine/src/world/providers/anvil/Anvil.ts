@@ -3,26 +3,32 @@ import Chunk from '../../chunk/Chunk';
 import Generator from '../../Generator';
 import type Server from '../../../Server';
 import Vector3 from '../../../math/Vector3';
+import fs from 'fs';
 import path from 'path';
 const AnvilProvider = require('prismarine-provider-anvil').Anvil('1.16');
-// const ReadLevel = require('prismarine-provider-anvil').level.readLevel;
+const ReadLevel = require('prismarine-provider-anvil').level.readLevel;
 const ChunkProvider = require('prismarine-chunk')('1.16');
 
 export default class Anvil extends BaseProvider {
     private anvil: any;
-    // private level: any;
+    private level: any;
 
     public constructor(folderPath: string, server: Server) {
         super(folderPath, server);
 
+        // Create regions folder if they don't already exist
+        if (!fs.existsSync(path.join(this.getPath(), 'region'))) fs.mkdirSync(path.join(this.getPath(), 'region'));
         this.anvil = new AnvilProvider(path.join(this.getPath(), 'region'));
-        /* ReadLevel(path.join(this.getPath(), 'level.dat')).then((data: any) => {
-            this.level = data;
-            console.log(this.level);
-        }); */
+    }
+
+    public async onEnable() {
+        if (fs.existsSync(path.join(this.getPath(), 'level.dat')))
+            this.level = await ReadLevel(path.join(this.getPath(), 'level.dat'));
+        // TODO: create level.dat
     }
 
     public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
+        // Load the chunk from the region file
         const data = await this.anvil.load(cx, cz);
 
         // If the chunk doesn't exist we generate it
@@ -35,50 +41,65 @@ export default class Anvil extends BaseProvider {
         // which means that we're able to ignore it therefore
         // making the loop a whole lot faster
         const height = data.sections.filter((a: any) => a !== null).length * 16;
-        if (height <= 0) return chunk;
+        if (height <= 0) return generator.generateChunk(cx, cz, seed, config); // Maybe we should just return an empty chunk instead?
 
-        // TODO: optimize this, this is a horrible way to do it
-        // I'm not quite sure how though.
+        const loadBlock = async (pos: Vector3, name: string) => {
+            try {
+                let block;
+                if (!blocks.has(name)) {
+                    try {
+                        block = this.getServer().getBlockManager().getBlock(`minecraft:${name}`);
+                    } catch {
+                        block = null;
+                    }
+                    blocks.set(name, block);
+                } else {
+                    block = blocks.get(name);
+                }
+
+                // Finally set the block
+                if (block) chunk.setBlock(pos.getX(), pos.getY(), pos.getZ(), block);
+            } catch {}
+        };
+
+        const promises = [];
+        // Loop through each possible block and create a promise for it,
+        // which could result in maxiumum of 65536 entries to await for.
+        // thats horribly slow.
+        // luckly it's usualy "only" 24576 entires since about half the blocks are only air.
         for (let x = 0; x < 16; x++) {
             for (let y = 0; y < height; y++) {
                 for (let z = 0; z < 16; z++) {
-                    try {
-                        const name = data.getBlock(new Vector3(x, y, z)).name || 'air';
-                        if (name.includes('air')) continue;
+                    const pos = new Vector3(x, y, z);
+                    const name = data.getBlock(pos).name || 'air';
+                    if (name.includes('air')) continue;
 
-                        let block;
-                        if (!blocks.has(name)) {
-                            try {
-                                block = this.getServer().getBlockManager().getBlock(`minecraft:${name}`);
-                            } catch {
-                                block = null;
-                            }
-                            blocks.set(name, block);
-                        } else {
-                            block = blocks.get(name);
-                        }
-
-                        // Finally set the block
-                        if (block) chunk.setBlock(x, y, z, block);
-                    } catch {}
+                    promises.push(loadBlock(pos, name));
                 }
             }
         }
 
+        await Promise.all(promises);
         return chunk;
     }
 
     public async writeChunk(chunk: Chunk) {
         /* const ch = new ChunkProvider();
 
-        for (let x = 0; x < 16; x++) {
-            for (let z = 0; z < 16; z++) {
-                for (let y = 0; y < 256; y++) {
-                    const pos = new Vector3(x, y, z);
-                    const block = chunk.getBlock(x, y, z);
+        const saveBlock = async (pos: Vector3) => {
+            const block = chunk.getBlock(pos.getX(), pos.getY(), pos.getZ());
 
-                    ch.setBlockType(pos, block.id);
-                    ch.setBlockData(pos, block.meta);
+            // I'm not sure this is correct since block ids
+            // wont match between Java edition and Bedrock edition.
+            ch.setBlockType(pos, block.id);
+            ch.setBlockData(pos, block.meta);
+        };
+
+        const promises = [];
+        for (let x = 0; x < 16; x++) {
+            for (let y = 0; y < 256; y++) {
+                for (let z = 0; z < 16; z++) {
+                    promises.push(saveBlock(new Vector3(x, y, z)));
                 }
             }
         }

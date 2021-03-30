@@ -3,7 +3,7 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../../chunk/Chunk';
 import Generator from '../../Generator';
 import type Server from '../../../Server';
-import fs from 'fs';
+import fs from 'graceful-fs';
 import path from 'path';
 
 export default class Filesystem extends BaseProvider {

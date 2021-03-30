@@ -54,7 +54,9 @@ export class CommandArgumentGamemode implements CommandArgument {
     public getParameters(): Set<CommandParameter> {
         const gameModeEnum = new CommandEnum();
         gameModeEnum.enumName = 'GameMode';
-        gameModeEnum.enumValues = ['0', 'survival', '1', 'creative', '2', 'adventure', '3', 'spectator'];
+
+        // TODO: this should be dynamic
+        gameModeEnum.enumValues = ['survival', 'creative', 'adventure', 'spectator'];
         return new Set([
             new CommandParameter({
                 paramName: this.name,
