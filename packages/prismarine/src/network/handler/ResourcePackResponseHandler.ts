@@ -58,7 +58,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             server
                 .getLogger()
-                .info(
+                ?.info(
                     `§b${player.getName()}§f is attempting to join with id §b${
                         player.runtimeId
                     }§f from ${player.getAddress().getAddress()}:${player.getAddress().getPort()}`,

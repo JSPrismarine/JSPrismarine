@@ -48,7 +48,7 @@ export default class GameruleManager {
      */
     public getGamerule(name: string): any {
         if (!Object.values(GameRules).includes(name)) {
-            this.server.getLogger().error(`Unknown Gamerule with name ${name}`, 'GameruleManager/getGamerule');
+            this.server.getLogger()?.error(`Unknown Gamerule with name ${name}`, 'GameruleManager/getGamerule');
         }
 
         this.rules.get(name);
@@ -83,7 +83,7 @@ export default class GameruleManager {
                 default:
                     this.server
                         .getLogger()
-                        .error('Gamerule format not implemented', 'GameruleManager/networkSerialize');
+                        ?.error('Gamerule format not implemented', 'GameruleManager/networkSerialize');
             }
         }
     }

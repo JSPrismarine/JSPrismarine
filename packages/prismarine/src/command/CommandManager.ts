@@ -49,15 +49,15 @@ export default class CommandManager {
                 try {
                     await this.registerClassCommand(command);
                 } catch (err) {
-                    this.server.getLogger().warn(`Failed to register command ${command.id}: ${err}`);
-                    this.server.getLogger().debug(err.stack);
+                    this.server.getLogger()?.warn(`Failed to register command ${command.id}: ${err}`);
+                    this.server.getLogger()?.debug(err.stack);
                 }
             })
         );
 
         this.server
             .getLogger()
-            .verbose(
+            ?.verbose(
                 `Registered §b${this.commands.size}§r commands(s) (took ${timer.stop()} ms)!`,
                 'CommandManager/onEnable'
             );
@@ -80,7 +80,7 @@ export default class CommandManager {
         if (!command?.register)
             this.server
                 .getLogger()
-                .warn(
+                ?.warn(
                     `Command is missing "register" member. This is unsupported!`,
                     'CommandManager/registerClassCommand'
                 );
@@ -97,7 +97,7 @@ export default class CommandManager {
 
         this.server
             .getLogger()
-            .debug(`Command with id §b${command.id}§r registered`, 'CommandManager/registerClassCommand');
+            ?.debug(`Command with id §b${command.id}§r registered`, 'CommandManager/registerClassCommand');
     }
 
     /**
@@ -216,7 +216,7 @@ export default class CommandManager {
                 // Legacy commands
                 this.server
                     .getLogger()
-                    .warn(`${id} is using the legacy command format`, 'CommandManager/dispatchCommand');
+                    ?.warn(`${id} is using the legacy command format`, 'CommandManager/dispatchCommand');
                 res.push(
                     await command.execute(
                         sender as any,
@@ -251,11 +251,11 @@ export default class CommandManager {
             await sender.sendMessage(`§c${error}`);
             this.server
                 .getLogger()
-                .debug(
+                ?.debug(
                     `Player ${sender.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
-            this.server.getLogger().debug(`${error.stack}`, 'CommandManager/dispatchCommand');
+            this.server.getLogger()?.debug(`${error.stack}`, 'CommandManager/dispatchCommand');
         }
     }
 }

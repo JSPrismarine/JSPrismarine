@@ -112,7 +112,7 @@ export default class Player extends Human implements CommandExecuter {
                 this.getServer().getBlockManager().getBlock(item.id);
 
             if (!entry) {
-                this.getServer().getLogger().warn(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
+                this.getServer().getLogger()?.warn(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
                 return;
             }
 
@@ -128,7 +128,7 @@ export default class Player extends Human implements CommandExecuter {
         this.connected = true;
         this.getServer()
             .getLogger()
-            .debug(`(Complete player creation took ${this.joinTimer.stop()} ms)`, 'Player/onEnable');
+            ?.debug(`(Complete player creation took ${this.joinTimer.stop()} ms)`, 'Player/onEnable');
     }
 
     public async onDisable() {
@@ -148,7 +148,7 @@ export default class Player extends Human implements CommandExecuter {
     public async kick(reason = 'unknown reason'): Promise<void> {
         this.getServer()
             .getLogger()
-            .verbose(`Player with id §b${this.runtimeId}§r was kicked: ${reason}`, 'Player/kick');
+            ?.verbose(`Player with id §b${this.runtimeId}§r was kicked: ${reason}`, 'Player/kick');
         await this.playerConnection.kick(reason);
     }
 

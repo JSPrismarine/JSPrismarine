@@ -29,7 +29,7 @@ export default class PluginFile {
         else if (!this.package.prismarine.displayName)
             this.server
                 .getLogger()
-                .debug(`Plugin with id ${this.package.name}@${this.package.version} is missing displayName!`);
+                ?.debug(`Plugin with id ${this.package.name}@${this.package.version} is missing displayName!`);
 
         this.name = this.package.name;
         this.displayName = this.package.prismarine.name ?? this.name;

@@ -27,7 +27,7 @@ void updater.check().then(() => {
     });
 
     Prismarine.listen(config.getServerIp(), config.getPort()).catch(async (error) => {
-        Prismarine.getLogger().error(`Cannot start the server, is it already running on the same port?`, 'Prismarine');
+        Prismarine.getLogger()?.error(`Cannot start the server, is it already running on the same port?`, 'Prismarine');
         if (error) console.error(error);
 
         await Prismarine.kill({

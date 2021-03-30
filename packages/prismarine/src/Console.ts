@@ -21,8 +21,8 @@ export default class Console implements CommandExecuter {
         try {
             if (process.stdin.isTTY) process.stdin.setRawMode(true);
         } catch (error) {
-            this.server.getLogger().warn(`Failed to enable stdin rawMode: ${error}!`);
-            this.server.getLogger().debug(error.stack);
+            this.server.getLogger()?.warn(`Failed to enable stdin rawMode: ${error}!`);
+            this.server.getLogger()?.debug(error.stack);
         }
 
         const completer = (line: string) => {
@@ -84,7 +84,7 @@ export default class Console implements CommandExecuter {
     }
 
     public async sendMessage(message: string): Promise<void> {
-        this.getServer().getLogger().info(message, 'Console');
+        this.getServer().getLogger()?.info(message, 'Console');
     }
 
     public getWorld() {

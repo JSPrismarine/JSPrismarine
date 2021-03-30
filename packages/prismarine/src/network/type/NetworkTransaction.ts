@@ -31,7 +31,7 @@ class NetworkTransaction {
             default:
             //    This.server
             //        .getLogger()
-            //        .warn(`Unknown source type ${this.sourceType}`);
+            //        ?.warn(`Unknown source type ${this.sourceType}`);
         }
 
         this.slot = buffer.readUnsignedVarInt();

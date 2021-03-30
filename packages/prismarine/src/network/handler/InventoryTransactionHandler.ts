@@ -59,7 +59,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                             if (!movedItem) {
                                 server
                                     .getLogger()
-                                    .debug(`movedItem is undefined`, 'InventoryTransactionHandler/handle/Normal');
+                                    ?.debug(`movedItem is undefined`, 'InventoryTransactionHandler/handle/Normal');
                                 return;
                             }
 
@@ -69,7 +69,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         default:
                             server
                                 .getLogger()
-                                .debug(
+                                ?.debug(
                                     `Unknown source type: ${action.sourceType}`,
                                     'InventoryTransactionHandler/handle/Normal'
                                 );
@@ -192,13 +192,13 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     default:
                         server
                             .getLogger()
-                            .debug(`Unknown action type: ${packet.actionType}`, 'InventoryTransactionHandler/handle');
+                            ?.debug(`Unknown action type: ${packet.actionType}`, 'InventoryTransactionHandler/handle');
                 }
 
                 break;
             }
             default: {
-                server.getLogger().verbose(`Unknown type: ${packet.type}`, 'InventoryTransactionHandler/handle');
+                server.getLogger()?.verbose(`Unknown type: ${packet.type}`, 'InventoryTransactionHandler/handle');
                 throw new Error('Invalid InventoryTransactionType');
             }
         }
