@@ -44,6 +44,9 @@ export function EventEmitterishMixin<EventTypes extends [string, any], TBase ext
         public constructor(...args: any[]) {
             super(...args);
 
+            // Hack?
+            Evt.setDefaultMaxHandlers(Number.MAX_SAFE_INTEGER);
+
             instanceProperties.set(this, {
                 evt: getEvt({
                     constructorArgs: args as any,

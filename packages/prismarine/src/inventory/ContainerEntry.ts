@@ -1,7 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import type Block from '../block/Block';
 import type Item from '../item/Item';
-import PacketBinaryStream from '../network/PacketBinaryStream';
 
 export default class ContainerEntry {
     private item: Item | Block;
@@ -48,5 +47,9 @@ export default class ContainerEntry {
 
     public getCount() {
         return this.count;
+    }
+
+    public setCount(count: number) {
+        this.count = count;
     }
 }

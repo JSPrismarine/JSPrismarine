@@ -142,7 +142,16 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async update(tick: number): Promise<void> {
+        // Call super method
+        await super.update.bind(this)(tick);
         await this.playerConnection.update(tick);
+
+        // TODO: get documentation about timings from vanilla
+        // 1 second / 20 = 1 tick, 20 * 5 = 1 second
+        // 1 second * 60 = 1 minute
+        if (tick % (20 * 5 * 60 * 1) === 0) {
+            await this.playerConnection.sendTime(tick);
+        }
     }
 
     public async kick(reason = 'unknown reason'): Promise<void> {
@@ -163,14 +172,18 @@ export default class Player extends Human implements CommandExecuter {
         );
     }
 
-    // Return all the players in the same chunk
+    // Return all the players in the same chunk,.
     // TODO: move to world
     public getPlayersInChunk(): Player[] {
         return this.getServer()
             .getPlayerManager()
             .getOnlinePlayers()
-            .filter((player) => player.currentChunk === this.currentChunk);
+            .filter((player) => player.getCurrentChunk() === this.getCurrentChunk());
     }
+
+    // TODO: these
+    public async sendSpawn() {}
+    public async sendDespawn() {}
 
     public async sendMessage(message: string): Promise<void> {
         // TODO: Do this properly like java edition,
@@ -310,7 +323,12 @@ export default class Player extends Human implements CommandExecuter {
         await this.getConnection().broadcastMove(this, type);
     }
 
-    public getType(): string {
-        return 'minecraft:player';
+    public setCurrentChunk(chunk: Chunk) {
+        if (this.currentChunk === chunk) return;
+        this.currentChunk = chunk;
+    }
+
+    public getCurrentChunk() {
+        return this.currentChunk;
     }
 }

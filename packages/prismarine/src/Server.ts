@@ -26,6 +26,7 @@ import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import TelemetryManager from './telemetry/TelemeteryManager';
+import { TickEvent } from './events/Events';
 import Timer from './utils/Timer';
 import UpdateSoftEnumPacket from './network/packet/UpdateSoftEnumPacket';
 import WorkerManager from './worker/WorkerManager';
@@ -165,9 +166,13 @@ export default class Server {
             if (playerConnectEvent.cancelled) return;
 
             // Add the player into the global player manager
-            // and it's local world
-            await this.playerManager.addPlayer(token, player);
-            world.addPlayer(player);
+            // and their local world
+            try {
+                await this.playerManager.addPlayer(token, player);
+                await world.addEntity(player);
+            } catch {
+                /* we should probably do something here */
+            }
 
             this.getLogger()?.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
         });
@@ -195,7 +200,7 @@ export default class Server {
                 }
 
                 await player.onDisable();
-                player.getWorld().removePlayer(player);
+                await player.getWorld().removeEntity(player);
                 await this.playerManager.removePlayer(token);
             } catch (error) {
                 this.getLogger()?.debug(
@@ -281,86 +286,18 @@ export default class Server {
             }
         });
 
-        if (this.getConfig().getExperimentalFlags().includes('ticks')) {
-            // Initiate the tps history
-            this.tpsHistory = new Array(12000).fill(20);
+        let tick = 0;
+        const ticker = setIntervalAsync(async () => {
+            if (this.stopping) {
+                void clearIntervalAsync(ticker);
+                return;
+            }
 
-            // Tick worlds every 1/20 of a second (a minecraft tick)
-            // e.g. 1000 / 20 = 50
-            const startTime = Date.now();
-            let lastTime = Date.now(),
-                ticks = 0;
-            const tick = async () => {
-                if (this.stopping) void clearIntervalAsync(ticker);
+            const event = new TickEvent(tick);
+            await this.eventManager.emit('tick', event);
 
-                // Every time we tick we have to increase the global ticker
-                ticks += 1;
-
-                // Calculate current tps
-                const finishTime = Date.now();
-                this.tps = Math.round((1000 / (finishTime - lastTime)) * 100) / 100;
-
-                this.tpsHistory.push(this.tps);
-                if (this.tpsHistory.length > 12000) this.tpsHistory.shift();
-
-                // Make sure we never execute more than once every 20th of a second
-                if (finishTime - lastTime < 50) return;
-                lastTime = finishTime;
-
-                if (this.tps > 20) {
-                    this.getLogger()?.verbose(
-                        `TPS is ${this.tps} which is greater than 20! Are we recovering?`,
-                        'Server/listen/setIntervalAsync'
-                    );
-                    return;
-                }
-
-                const promises: Array<Promise<void>> = [];
-                for (const world of this.getWorldManager().getWorlds()) {
-                    promises.push(world.update(lastTime));
-                }
-
-                await Promise.all(promises);
-            };
-            const ticker = setIntervalAsync(tick, 1000 / 20);
-
-            setInterval(() => {
-                const correctTicks = Math.ceil((Date.now() - startTime) / 50);
-                const behindTicks = correctTicks - (ticks + 1); // Add 1 to compensate for sometimes being off with a few ms
-
-                if (behindTicks) {
-                    this.getLogger()?.debug(
-                        `We're behind with ${behindTicks} ticks. ${ticks}/${correctTicks}. Trying to recover!`,
-                        'server'
-                    );
-
-                    // Try to recover,
-                    // maybe we should handle this differently?
-                    // (eg keep track of the correct timestamps)
-                    for (let i = 0; i < behindTicks; i++) void tick();
-                }
-
-                if (behindTicks < 20) return;
-                this.getLogger()?.warn(
-                    `Can't keep up, is the server overloaded? (${behindTicks} tick(s) or ${
-                        behindTicks / 20
-                    } second(s) behind)`,
-                    'Server'
-                );
-            }, 60 * 1000);
-        } else {
-            // Make sure we actually send chunks if real ticks are disabled
-            const ticker = setIntervalAsync(async () => {
-                if (this.stopping) void clearIntervalAsync(ticker);
-
-                const promises: Array<Promise<void>> = [];
-                for (const world of this.getWorldManager().getWorlds()) {
-                    promises.push(world.update(Date.now()));
-                }
-
-                await Promise.all(promises);
-            }, 1000 / 20);
-        }
+            tick += 1;
+        }, 1000 / 20);
 
         // Log experimental flags
         if (this.getConfig().getExperimentalFlags().length >= 1) {

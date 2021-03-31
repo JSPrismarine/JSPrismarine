@@ -66,7 +66,7 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
         // TODO: this seems awfully wasteful?
         if (updateChunk) {
             const chunk = await player.getWorld().getChunkAt(player.getX(), player.getZ());
-            if (player.currentChunk !== chunk) player.currentChunk = chunk;
+            player.setCurrentChunk(chunk);
         }
     }
 }

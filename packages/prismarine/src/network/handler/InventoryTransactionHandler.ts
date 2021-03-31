@@ -144,17 +144,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                             count: 1
                                         })
                                     );
+                                    await player.getWorld().addEntity(droppedItem);
                                     await droppedItem.setPosition(packet.blockPosition);
-                                    await Promise.all(
-                                        player
-                                            .getServer()
-                                            .getPlayerManager()
-                                            .getOnlinePlayers()
-                                            .filter(
-                                                (p) => p.getWorld().getUniqueId() === player.getWorld().getUniqueId()
-                                            )
-                                            .map(async (player) => droppedItem.sendSpawn(player))
-                                    );
                                 })
                             );
                         }

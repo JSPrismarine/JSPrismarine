@@ -60,7 +60,6 @@ export default class World {
     private name: string;
     private path: string;
 
-    private readonly players: Map<bigint, Player> = new Map();
     private readonly entities: Map<bigint, Entity> = new Map();
     private readonly chunks: Map<string, Chunk> = new Map();
     private readonly gameruleManager: GameruleManager;
@@ -92,6 +91,8 @@ export default class World {
     }
 
     public async onEnable(): Promise<void> {
+        this.server.getEventManager().on('tick', async (evt) => this.update(evt.getTick()));
+
         // TODO: properly read level.json
         /* try {
             const metaData: LevelMeta = JSON.parse(
@@ -149,23 +150,12 @@ export default class World {
     /**
      * Called every tick.
      *
-     * @param timestamp
+     * @param tick
      */
-    public async update(timestamp: number): Promise<void> {
+    public async update(tick: number): Promise<void> {
         // Auto save every 2 minutes
         if (this.currentTick / 20 === 2 * 60) {
             await this.save();
-        }
-
-        // Tick players
-        for (const player of this.players.values()) {
-            await player.update(timestamp);
-            // TODO: get documentation about timings from vanilla
-            // 1 second / 20 = 1 tick, 20 * 5 = 1 second
-            // 1 second * 60 = 1 minute
-            if (this.currentTick % (20 * 5 * 60 * 1) === 0) {
-                await player.getConnection().sendTime(this.currentTick);
-            }
         }
 
         // TODO: tick chunks
@@ -374,18 +364,40 @@ export default class World {
     public async sendTime(): Promise<void> {
         // Try to send it at the same time to all
         await Promise.all(
-            Array.from(this.players.values()).map(async (player) => player.getConnection().sendTime(this.getTicks()))
+            this.getEntities()
+                .filter((e) => e.isPlayer())
+                .map(async (player) => (player as Player).getConnection().sendTime(this.getTicks()))
         );
     }
 
     /**
-     * Adds an entity into the level and in the chunk
-     * found from the entity position.
+     * Adds an entity to the level.
      */
     public async addEntity(entity: Entity): Promise<void> {
+        if (!entity.isPlayer())
+            await Promise.all(
+                this.getEntities()
+                    .filter((e) => e.getType() === 'minecraft:player')
+                    .map(async (e) => entity.sendSpawn(e as Player))
+            );
+
         this.entities.set(entity.runtimeId, entity);
         // const chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
         // chunk.addEntity(entity as any);
+    }
+
+    /**
+     * Removes an entity from the level.
+     */
+    public async removeEntity(entity: Entity): Promise<void> {
+        if (!entity.isPlayer())
+            await Promise.all(
+                this.getEntities()
+                    .filter((e) => e.isPlayer())
+                    .map(async (e) => entity.sendDespawn(e as Player))
+            );
+
+        this.entities.delete(entity.runtimeId);
     }
 
     /**
@@ -395,21 +407,7 @@ export default class World {
      * entity.isPlayer() functions.
      */
     public getEntities(): Entity[] {
-        return [...Array.from(this.entities.values()), ...Array.from(this.players.values())];
-    }
-
-    /**
-     * Adds a player into the level.
-     */
-    public addPlayer(player: Player): void {
-        this.players.set(player.runtimeId, player);
-    }
-
-    /**
-     * Removes a player from the level.
-     */
-    public removePlayer(player: Player): void {
-        this.players.delete(player.runtimeId);
+        return Array.from(this.entities.values());
     }
 
     /**
