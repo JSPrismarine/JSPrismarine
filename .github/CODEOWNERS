@@ -6,6 +6,7 @@
 /packages/prismarine/src/plugin/**  @filfat
 /packages/prismarine/src/query/**  @filfat
 /packages/prismarine/src/telemetry/**  @filfat
+/packages/prismarine/src/entity/**  @filfat
 
 /packages/prismarine/src/nbt/**  @HerryYT
 /packages/prismarine/src/network/**  @HerryYT

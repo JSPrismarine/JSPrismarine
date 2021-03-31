@@ -65,8 +65,18 @@ export default class PlayerConnection {
     // To refactor
     public async sendDataPacket(packet: DataPacket): Promise<void> {
         const batch = new BatchPacket();
-        batch.addPacket(packet);
-        batch.encode();
+        try {
+            batch.addPacket(packet);
+            batch.encode();
+        } catch (error) {
+            this.server
+                .getLogger()
+                ?.warn(
+                    `Packet §b${packet.constructor.name}§r to §b${this.player.runtimeId}§r failed with: ${error}`,
+                    'PlayerConnection/sendDataPacket'
+                );
+            return;
+        }
 
         // Add this in raknet
         const sendPacket = new Protocol.EncapsulatedPacket();
