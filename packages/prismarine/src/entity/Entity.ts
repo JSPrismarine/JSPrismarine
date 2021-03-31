@@ -43,8 +43,8 @@ export default class Entity extends Position {
         this.setGenericFlag(MetadataFlag.AFFECTED_BY_GRAVITY, true);
         this.setGenericFlag(MetadataFlag.HAS_COLLISION, true);
 
-        // Add this entity to the world
-        void world?.addEntity(this);
+        // Server could potentially be undefined
+        this.server?.getEventManager().on('tick', async (evt) => this.update(evt.getTick()));
     }
 
     public async update(tick: number) {
@@ -140,6 +140,9 @@ export default class Entity extends Position {
         return false;
     }
 
+    /**
+     * Get entity type.
+     */
     public getType(): string {
         return (this.constructor as any).MOB_ID;
     }

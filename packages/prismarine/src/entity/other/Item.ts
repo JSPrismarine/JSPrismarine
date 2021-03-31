@@ -19,7 +19,7 @@ export default class Item extends Entity {
     public async sendSpawn(player: Player) {
         const pk = new AddItemActorPacket();
         pk.runtimeEntityId = this.runtimeId;
-        pk.position = new Vector3(this.getX(), this.getY(), this.getZ()); // We could just use 'this', but that would give the packet access to a lot of unnecessary data
+        pk.position = new Vector3(this.getX(), this.getY(), this.getZ());
         pk.item = this.item;
 
         await player.getConnection().sendDataPacket(pk);
@@ -44,8 +44,8 @@ export default class Item extends Entity {
         }) as Item[];
 
         // Only move to first item to prevent them getting stuck
-        if (entities.length <= 0) return;
-        const position = entities[0].getPosition();
+        const position = entities.find((e) => !e.getPosition().equals(this.getPosition()))?.getPosition();
+        if (!position) return;
 
         // TODO: move them closer to each other instead of teleporting
         // Interpolate?
@@ -54,7 +54,7 @@ export default class Item extends Entity {
 
     public async onCollide(entity: Entity) {
         if (!entity.isPlayer()) {
-            if (entity.getType() === 'minecraft:item') {
+            /* if (entity.getType() === 'minecraft:item') {
                 const item = entity as Item;
 
                 if (item.item.getItem().getName() !== this.item.getItem().getName()) return;
@@ -72,7 +72,7 @@ export default class Item extends Entity {
                         .filter((e) => e.isPlayer())
                         .map(async (p) => this.sendSpawn(p as Player))
                 );
-            }
+            } */
 
             return;
         }

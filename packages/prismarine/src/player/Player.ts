@@ -142,6 +142,7 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async update(tick: number): Promise<void> {
+        // Call super method
         await super.update.bind(this)(tick);
         await this.playerConnection.update(tick);
 
@@ -326,11 +327,8 @@ export default class Player extends Human implements CommandExecuter {
         if (this.currentChunk === chunk) return;
         this.currentChunk = chunk;
     }
+
     public getCurrentChunk() {
         return this.currentChunk;
-    }
-
-    public getType(): string {
-        return 'minecraft:player';
     }
 }
