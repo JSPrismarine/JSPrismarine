@@ -5,6 +5,7 @@ import AttributeManager from './Attribute';
 import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
 import Player from '../player/Player';
 import Position from '../world/Position';
+import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import Server from '../Server';
 import Vector3 from '../math/Vector3';
 import World from '../world/World';
@@ -42,15 +43,14 @@ export default class Entity extends Position {
         this.setGenericFlag(MetadataFlag.AFFECTED_BY_GRAVITY, true);
         this.setGenericFlag(MetadataFlag.HAS_COLLISION, true);
 
-        // Add this entity to the world
-        void world?.addEntity(this);
+        // Server could potentially be undefined
+        this.server?.getEventManager().on('tick', async (evt) => this.update(evt.getTick()));
     }
 
-    // public setHealth(health: number): void {
-    //    if (health === this.)
-    // }
-
-    public damage(): void {}
+    public async update(tick: number) {
+        const collisions = await this.getNearbyEntities(0.5);
+        await Promise.all(collisions.map(async (e) => e.onCollide(this)));
+    }
 
     public getServer(): Server {
         return this.server;
@@ -104,6 +104,12 @@ export default class Entity extends Position {
         await player.getConnection().sendDataPacket(pk);
     }
 
+    public async sendDespawn(player: Player) {
+        const pk = new RemoveActorPacket();
+        pk.uniqueEntityId = this.runtimeId;
+        await player.getConnection().sendDataPacket(pk);
+    }
+
     public async setPosition(position: Vector3) {
         this.setX(position.getX());
         this.setY(position.getY());
@@ -134,6 +140,9 @@ export default class Entity extends Position {
         return false;
     }
 
+    /**
+     * Get entity type.
+     */
     public getType(): string {
         return (this.constructor as any).MOB_ID;
     }
@@ -154,6 +163,8 @@ export default class Entity extends Position {
                 .join(' ')
         );
     }
+
+    public async onCollide(entity: Entity) {}
 
     /**
      * Returns the nearest entity from the current entity
@@ -180,5 +191,37 @@ export default class Entity extends Position {
                 entities.filter((a) => a.runtimeId !== this.runtimeId)
             )
         ].filter((a) => a);
+    }
+
+    /**
+     * Get entities within radius of current entity
+     * @param radius number
+     */
+    public async getNearbyEntities(radius: number): Promise<Entity[]> {
+        const entities = this.getWorld().getEntities();
+        const position = this.getPosition();
+
+        const min = new Vector3(position.getX() - radius, position.getY() - radius, position.getZ() - radius);
+        const max = new Vector3(position.getX() + radius, position.getY() + radius, position.getZ() + radius);
+
+        const res = entities.filter((entity) => {
+            if (entity.runtimeId === this.runtimeId) return false;
+
+            const position = entity.getPosition();
+
+            if (
+                min.getX() < position.getX() &&
+                max.getX() > position.getX() &&
+                min.getY() < position.getY() &&
+                max.getY() > position.getY() &&
+                min.getZ() < position.getZ() &&
+                max.getZ() > position.getZ()
+            )
+                return true;
+
+            return false;
+        });
+
+        return res;
     }
 }

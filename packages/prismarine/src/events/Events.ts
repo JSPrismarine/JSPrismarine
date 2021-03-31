@@ -15,6 +15,7 @@ import PlayerToggleSprintEvent from './player/PlayerToggleSprintEvent';
 import RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
+import TickEvent from './other/TickEvent';
 
 export {
     BlockRegisterEvent,
@@ -22,6 +23,7 @@ export {
     CommandRegisterEvents,
     Event,
     ItemRegisterEvent,
+    TickEvent,
     PlayerConnectEvent,
     PlayerDespawnEvent,
     PlayerDisconnectEvent,
