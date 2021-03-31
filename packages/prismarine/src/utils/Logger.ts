@@ -13,7 +13,9 @@ export default class LoggerBuilder {
 
     public constructor() {
         const date = new Date();
-        if (!LoggerBuilder.logFile)
+        if (!LoggerBuilder.logFile && process.env.NODE_ENV === 'development')
+            LoggerBuilder.logFile = 'jsprismarine-development.log';
+        else if (!LoggerBuilder.logFile)
             // mmddyyyy-hh-mm-ss. yes American-style, sue me.
             LoggerBuilder.logFile = `jsprismarine.${(date.getMonth() + 1)
                 .toString()
