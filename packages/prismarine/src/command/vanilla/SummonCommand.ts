@@ -44,7 +44,7 @@ export default class SummonCommand extends Command {
 
                         const mob: Entity = new entity(source.getWorld(), source.getServer());
                         await source.getWorld().addEntity(mob);
-                        await mob.setPosition(new Vector3(source.getX(), source.getY() - 1.65, source.getZ()));
+                        await mob.setPosition(new Vector3(source.getX(), source.getY() - 1.6, source.getZ()));
 
                         const res = `Summoned ${entity.MOB_ID}`;
                         await source.sendMessage(res);

@@ -29,8 +29,9 @@ export default class GameruleCommand extends Command {
                         source.getWorld().getGameruleManager().setGamerule(name, value);
                         // TODO: notify clients about gamerule change
 
-                        const chat = new Chat(source, `§5[${source.getName()}] set ${name} to ${value}`);
-                        await source.getServer().getChatManager().send(chat);
+                        const res = `Set ${name} to ${value}`;
+                        await source.sendMessage(res);
+                        return res;
                     })
                 )
             )
