@@ -32,8 +32,8 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             const world = player.getWorld();
 
             const pk = new StartGamePacket();
-            pk.entityId = player.runtimeId;
-            pk.runtimeEntityId = player.runtimeId;
+            pk.entityId = player.getRuntimeId();
+            pk.runtimeEntityId = player.getRuntimeId();
             pk.gamemode = player.gamemode;
             pk.defaultGamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
 
@@ -59,9 +59,9 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             server
                 .getLogger()
                 ?.info(
-                    `§b${player.getName()}§f is attempting to join with id §b${
-                        player.runtimeId
-                    }§f from ${player.getAddress().getAddress()}:${player.getAddress().getPort()}`,
+                    `§b${player.getName()}§f is attempting to join with id §b${player.getRuntimeId()}§f from ${player
+                        .getAddress()
+                        .getAddress()}:${player.getAddress().getPort()}`,
                     'Handler/ResourcePackResponseHandler'
                 );
 

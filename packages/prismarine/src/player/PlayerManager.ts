@@ -37,7 +37,7 @@ export default class PlayerManager {
      * if it is not found, null is returned.
      */
     public getPlayerById(id: bigint): Player {
-        const player = this.getOnlinePlayers().find((player) => player.runtimeId === id);
+        const player = this.getOnlinePlayers().find((player) => player.getRuntimeId() === id);
 
         if (!player) throw new Error(`Can't find player with id ${id}`);
 

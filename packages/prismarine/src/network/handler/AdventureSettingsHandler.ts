@@ -9,7 +9,7 @@ export default class AdventureSettingsHandler implements PacketHandler<Adventure
     public static NetID = Identifiers.AdventureSettingsPacket;
 
     public async handle(packet: AdventureSettingsPacket, server: Server, player: Player): Promise<void> {
-        if (player.runtimeId !== packet.entityId && !player.isOp()) {
+        if (player.getRuntimeId() !== packet.entityId && !player.isOp()) {
             return;
         }
 

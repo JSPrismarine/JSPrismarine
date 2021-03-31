@@ -374,14 +374,9 @@ export default class World {
      * Adds an entity to the level.
      */
     public async addEntity(entity: Entity): Promise<void> {
-        if (!entity.isPlayer())
-            await Promise.all(
-                this.getEntities()
-                    .filter((e) => e.getType() === 'minecraft:player')
-                    .map(async (e) => entity.sendSpawn(e as Player))
-            );
+        if (!entity.isPlayer()) await entity.sendSpawn();
 
-        this.entities.set(entity.runtimeId, entity);
+        this.entities.set(entity.getRuntimeId(), entity);
         // const chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
         // chunk.addEntity(entity as any);
     }
@@ -390,14 +385,9 @@ export default class World {
      * Removes an entity from the level.
      */
     public async removeEntity(entity: Entity): Promise<void> {
-        if (!entity.isPlayer())
-            await Promise.all(
-                this.getEntities()
-                    .filter((e) => e.isPlayer())
-                    .map(async (e) => entity.sendDespawn(e as Player))
-            );
+        if (!entity.isPlayer()) await entity.sendDespawn();
 
-        this.entities.delete(entity.runtimeId);
+        this.entities.delete(entity.getRuntimeId());
     }
 
     /**

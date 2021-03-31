@@ -170,8 +170,9 @@ export default class Server {
             try {
                 await this.playerManager.addPlayer(token, player);
                 await world.addEntity(player);
-            } catch {
+            } catch (error) {
                 /* we should probably do something here */
+                this.getLogger()?.warn(`Failed to add player to the world: ${error}`, 'Server/listen/raknetConnect');
             }
 
             this.getLogger()?.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');

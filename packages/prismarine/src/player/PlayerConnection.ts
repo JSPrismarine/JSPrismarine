@@ -72,7 +72,7 @@ export default class PlayerConnection {
             this.server
                 .getLogger()
                 ?.warn(
-                    `Packet §b${packet.constructor.name}§r to §b${this.player.runtimeId}§r failed with: ${error}`,
+                    `Packet §b${packet.constructor.name}§r to §b${this.player.getRuntimeId()}§r failed with: ${error}`,
                     'PlayerConnection/sendDataPacket'
                 );
             return;
@@ -116,7 +116,7 @@ export default class PlayerConnection {
 
         pk.commandPermission = target.isOp() ? PermissionType.Operator : PermissionType.Normal;
         pk.playerPermission = target.isOp() ? PlayerPermissionType.Operator : PlayerPermissionType.Member;
-        pk.entityId = target.runtimeId;
+        pk.entityId = target.getRuntimeId();
         await this.sendDataPacket(pk);
     }
 
@@ -265,7 +265,7 @@ export default class PlayerConnection {
      */
     public async sendHandItem(item: ContainerEntry): Promise<void> {
         const pk = new MobEquipmentPacket();
-        pk.runtimeEntityId = this.player.runtimeId;
+        pk.runtimeEntityId = this.player.getRuntimeId();
         pk.item = item;
         pk.inventorySlot = this.player.getInventory().getHandSlotIndex();
         pk.hotbarSlot = this.player.getInventory().getHandSlotIndex();
@@ -396,7 +396,7 @@ export default class PlayerConnection {
 
     public async sendAttributes(attributes: Attribute[]): Promise<void> {
         const pk = new UpdateAttributesPacket();
-        pk.runtimeEntityId = this.player.runtimeId;
+        pk.runtimeEntityId = this.player.getRuntimeId();
         pk.attributes = attributes ?? this.player.getAttributeManager().getAttributes();
         pk.tick = BigInt(0); // TODO
         await this.sendDataPacket(pk);
@@ -404,7 +404,7 @@ export default class PlayerConnection {
 
     public async sendMetadata(): Promise<void> {
         const pk = new SetActorDataPacket();
-        pk.runtimeEntityId = this.player.runtimeId;
+        pk.runtimeEntityId = this.player.getRuntimeId();
         pk.metadata = this.player.getMetadataManager();
         pk.tick = BigInt(0); // TODO
         await this.sendDataPacket(pk);
@@ -440,7 +440,7 @@ export default class PlayerConnection {
      */
     public async broadcastMove(player: Player, mode = MovementType.Normal): Promise<void> {
         const pk = new MovePlayerPacket();
-        pk.runtimeEntityId = player.runtimeId;
+        pk.runtimeEntityId = player.getRuntimeId();
 
         pk.positionX = player.getX();
         pk.positionY = player.getY();
@@ -468,7 +468,7 @@ export default class PlayerConnection {
 
         const entry = new PlayerListEntry({
             uuid: UUID.fromString(this.player.uuid),
-            uniqueEntityid: this.player.runtimeId,
+            uniqueEntityid: this.player.getRuntimeId(),
             name: this.player.getName(),
             xuid: this.player.xuid,
             platformChatId: '', // TODO: read this value from Login
@@ -546,7 +546,7 @@ export default class PlayerConnection {
 
         const pk = new AddPlayerPacket();
         pk.uuid = UUID.fromString(this.player.getUUID()); // TODO: temp solution
-        pk.runtimeEntityId = this.player.runtimeId;
+        pk.runtimeEntityId = this.player.getRuntimeId();
         pk.name = this.player.getName();
 
         pk.positionX = this.player.getX();
@@ -575,7 +575,7 @@ export default class PlayerConnection {
      */
     public async sendDespawn(player: Player): Promise<void> {
         const pk = new RemoveActorPacket();
-        pk.uniqueEntityId = this.player.runtimeId; // We use runtime as unique
+        pk.uniqueEntityId = this.player.getRuntimeId(); // We use runtime as unique
         await player.getConnection().sendDataPacket(pk);
     }
 

@@ -71,6 +71,10 @@ export default class Console implements CommandExecuter {
         });
     }
 
+    public getRuntimeId(): bigint {
+        return this.runtimeId;
+    }
+
     public async onDisable(): Promise<void> {
         this.cli.close();
     }
@@ -137,7 +141,7 @@ export default class Console implements CommandExecuter {
         return [
             closest(
                 pos,
-                entities.filter((a) => a.runtimeId !== this.runtimeId)
+                entities.filter((a) => a.getRuntimeId() !== this.getRuntimeId())
             )
         ].filter((a) => a);
     }
