@@ -16,7 +16,7 @@ export default class GameruleCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
-            literal('say').then(
+            literal('gamerule').then(
                 argument('name', string()).then(
                     argument('value', string()).executes(async (context) => {
                         const source = context.getSource() as Player;
