@@ -30,6 +30,8 @@ export default class Item extends Entity {
         await super.update.bind(this)(tick);
 
         // Arbitrary magic number. Sue me.
+        // This is done to prevent running the code each tick
+        // since it's currently an extremely expensive task.
         if (tick % 5 !== 0) return;
 
         // Move items of the same type closer to each other,

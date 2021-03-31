@@ -100,9 +100,9 @@ export default class Player extends Human implements CommandExecuter {
         const playerData = await this.getWorld().getPlayerData(this);
 
         void this.setGamemode(Gamemode.getGamemodeId(playerData.gamemode));
-        this.setX(playerData.position.x);
-        this.setY(playerData.position.y);
-        this.setZ(playerData.position.z);
+        await this.setX(playerData.position.x);
+        await this.setY(playerData.position.y);
+        await this.setZ(playerData.position.z);
         this.pitch = playerData.position.pitch;
         this.yaw = playerData.position.yaw;
 
@@ -317,9 +317,9 @@ export default class Player extends Human implements CommandExecuter {
     }
 
     public async setPosition(position: Vector3, type: MovementType = MovementType.Normal) {
-        this.setX(position.getX());
-        this.setY(position.getY());
-        this.setZ(position.getZ());
+        await this.setX(position.getX());
+        await this.setY(position.getY());
+        await this.setZ(position.getZ());
         await this.getConnection().broadcastMove(this, type);
     }
 

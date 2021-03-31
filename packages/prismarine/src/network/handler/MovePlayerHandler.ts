@@ -44,9 +44,9 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
         if (Math.trunc(player.getZ()) !== Math.trunc(resultantVector.getZ())) updateChunk = true;
 
         // Position
-        player.setX(resultantVector.getX());
-        player.setY(resultantVector.getY());
-        player.setZ(resultantVector.getZ());
+        await player.setX(resultantVector.getX());
+        await player.setY(resultantVector.getY());
+        await player.setZ(resultantVector.getZ());
 
         // Rotation
         player.pitch = packet.pitch;
