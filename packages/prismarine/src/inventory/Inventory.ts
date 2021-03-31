@@ -53,6 +53,17 @@ export default class Inventory {
     }
 
     /**
+     * Add an item to the first available slot
+     */
+    public addItem(item: ContainerEntry) {
+        for (let i = 0; i < this.slots; i++)
+            if (!this.content.has(i)) {
+                this.setItem(i, item);
+                return;
+            }
+    }
+
+    /**
      * Returns the item in the slot.
      */
     public getItem(slot: number): ContainerEntry {
