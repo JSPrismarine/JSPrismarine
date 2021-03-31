@@ -87,6 +87,7 @@ export default class Entity extends Position {
     }
 
     public async sendSpawn(player: Player) {
+        // TODO: make player parameter optional and by default send it to all players in the same world
         const pk = new AddActorPacket();
         pk.runtimeEntityId = this.runtimeId;
         pk.type = (this.constructor as any).MOB_ID; // TODO
@@ -105,16 +106,24 @@ export default class Entity extends Position {
     }
 
     public async sendDespawn(player: Player) {
+        // TODO: make player parameter optional and by default send it to all players in the same world
         const pk = new RemoveActorPacket();
         pk.uniqueEntityId = this.runtimeId;
         await player.getConnection().sendDataPacket(pk);
     }
 
     public async setPosition(position: Vector3) {
-        this.setX(position.getX());
-        this.setY(position.getY());
-        this.setZ(position.getZ());
+        await this.setX(position.getX(), true);
+        await this.setY(position.getY(), true);
+        await this.setZ(position.getZ(), true);
 
+        await this.sendPosition();
+    }
+
+    /**
+     * Send the position to all the players in the same world.
+     */
+    public async sendPosition() {
         this.getServer()
             .getPlayerManager()
             .getOnlinePlayers()
@@ -136,6 +145,37 @@ export default class Entity extends Position {
         return new Vector3(this.getX(), this.getY(), this.getZ());
     }
 
+    /**
+     * Set the x position.
+     * @param n x
+     * @param preventMove if true the client won't be notified about the position change
+     */
+    public async setX(n: number, preventMove?: boolean) {
+        super.setX.bind(this)(n);
+        if (preventMove && !this.isPlayer()) await this.sendPosition();
+    }
+    /**
+     * Set the y position.
+     * @param n y
+     * @param preventMove if true the client won't be notified about the position change
+     */
+    public async setY(n: number, preventMove?: boolean) {
+        super.setY.bind(this)(n);
+        if (preventMove && !this.isPlayer()) await this.sendPosition();
+    }
+    /**
+     * Set the z position.
+     * @param n z
+     * @param preventMove if true the client won't be notified about the position change
+     */
+    public async setZ(n: number, preventMove?: boolean) {
+        super.setZ.bind(this)(n);
+        if (preventMove && !this.isPlayer()) await this.sendPosition();
+    }
+
+    /**
+     * Check if the entity is a player.
+     */
     public isPlayer(): boolean {
         return false;
     }
@@ -147,6 +187,9 @@ export default class Entity extends Position {
         return (this.constructor as any).MOB_ID;
     }
 
+    /**
+     * Get the entities (potentially custom) name.
+     */
     public getName(): string {
         return this.getFormattedUsername();
     }
@@ -154,7 +197,8 @@ export default class Entity extends Position {
     public getFormattedUsername(): string {
         return (
             this.metadata.getString(MetadataFlag.NAMETAG) ??
-            // Replace all '_' with a ' ' and capitalize each word afterwards
+            // Replace all '_' with a ' ' and capitalize each word afterwards,
+            // should probably be replaced with regex.
             ((this.constructor as any).MOB_ID as string)
                 .split(':')[1]
                 .replace(/_/g, ' ')
@@ -167,7 +211,7 @@ export default class Entity extends Position {
     public async onCollide(entity: Entity) {}
 
     /**
-     * Returns the nearest entity from the current entity
+     * Returns the nearest entity from the current entity.
      *
      * TODO: Customizable radius
      * TODO: amount of results
@@ -194,7 +238,7 @@ export default class Entity extends Position {
     }
 
     /**
-     * Get entities within radius of current entity
+     * Get entities within radius of current entity.
      * @param radius number
      */
     public async getNearbyEntities(radius: number): Promise<Entity[]> {
