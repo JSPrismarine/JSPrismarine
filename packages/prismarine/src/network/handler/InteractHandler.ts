@@ -20,7 +20,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 pk.windowId = 0; // TODO
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerPos = new Vector3(player.getX(), player.getY(), player.getZ());
-                pk.containerEntityId = player.runtimeId;
+                pk.containerEntityId = player.getRuntimeId();
                 await player.getConnection().sendDataPacket(pk);
                 break;
             }

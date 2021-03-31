@@ -16,13 +16,19 @@ export default class Item extends Entity {
         this.item = item;
     }
 
-    public async sendSpawn(player: Player) {
+    public async sendSpawn(player?: Player) {
+        const players: Player[] = player
+            ? [player]
+            : (this.getWorld()
+                  .getEntities()
+                  .filter((e) => e.isPlayer()) as Player[]);
+
         const pk = new AddItemActorPacket();
-        pk.runtimeEntityId = this.runtimeId;
+        pk.runtimeEntityId = this.getRuntimeId();
         pk.position = new Vector3(this.getX(), this.getY(), this.getZ());
         pk.item = this.item;
 
-        await player.getConnection().sendDataPacket(pk);
+        await Promise.all(players.map(async (p) => p.getConnection().sendDataPacket(pk)));
     }
 
     public async update(tick: number) {
@@ -67,13 +73,7 @@ export default class Item extends Entity {
                 // Increase our count
                 this.item.setCount(this.item.getCount() + item.item.getCount());
 
-                // Send new spawn
-                await Promise.all(
-                    this.getWorld()
-                        .getEntities()
-                        .filter((e) => e.isPlayer())
-                        .map(async (p) => this.sendSpawn(p as Player))
-                );
+                this.sendSpawn();
             } */
 
             return;

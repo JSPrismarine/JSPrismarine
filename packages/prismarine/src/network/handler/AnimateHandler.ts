@@ -9,7 +9,7 @@ export default class AnimateHandler implements PacketHandler<AnimatePacket> {
 
     public async handle(packet: AnimatePacket, server: Server, player: Player): Promise<void> {
         const pk = new AnimatePacket();
-        pk.runtimeEntityId = player.runtimeId;
+        pk.runtimeEntityId = player.getRuntimeId();
         pk.action = packet.action;
 
         await Promise.all(

@@ -15,7 +15,7 @@ export default class Entity extends Position {
     protected static MOB_ID: string;
     public static runtimeIdCount = 0n;
 
-    public runtimeId: bigint;
+    private runtimeId: bigint;
 
     private server: Server;
     // TODO: do not expose and make API instead
@@ -24,7 +24,6 @@ export default class Entity extends Position {
 
     /**
      * Entity constructor.
-     *
      */
     public constructor(world: World, server: Server) {
         super({ world }); // TODO
@@ -47,6 +46,17 @@ export default class Entity extends Position {
         this.server?.getEventManager().on('tick', async (evt) => this.update(evt.getTick()));
     }
 
+    /**
+     * Get the entity's runtime id.
+     */
+    public getRuntimeId(): bigint {
+        return this.runtimeId;
+    }
+
+    /**
+     * Fired every thick from the event subscription in the constructor.
+     * @param tick current tick
+     */
     public async update(tick: number) {
         const collisions = await this.getNearbyEntities(0.5);
         await Promise.all(collisions.map(async (e) => e.onCollide(this)));
@@ -86,10 +96,19 @@ export default class Entity extends Position {
         return this.metadata;
     }
 
-    public async sendSpawn(player: Player) {
-        // TODO: make player parameter optional and by default send it to all players in the same world
+    /**
+     * Spawn the entity.
+     * @param player optional - if specified, only send the packet to that player
+     */
+    public async sendSpawn(player?: Player) {
+        const players: Player[] = player
+            ? [player]
+            : (this.getWorld()
+                  .getEntities()
+                  .filter((e) => e.isPlayer()) as Player[]);
+
         const pk = new AddActorPacket();
-        pk.runtimeEntityId = this.runtimeId;
+        pk.runtimeEntityId = this.getRuntimeId();
         pk.type = (this.constructor as any).MOB_ID; // TODO
         pk.x = this.getX();
         pk.y = this.getY();
@@ -102,16 +121,29 @@ export default class Entity extends Position {
         pk.yaw = 0;
         pk.headYaw = 0;
         pk.metadata = this.metadata.getMetadata();
-        await player.getConnection().sendDataPacket(pk);
+        await Promise.all(players.map(async (p) => p.getConnection().sendDataPacket(pk)));
     }
 
-    public async sendDespawn(player: Player) {
-        // TODO: make player parameter optional and by default send it to all players in the same world
+    /**
+     * Despawn the entity.
+     * @param player optional - if specified, only send the packet to that player
+     */
+    public async sendDespawn(player?: Player) {
+        const players: Player[] = player
+            ? [player]
+            : (this.getWorld()
+                  .getEntities()
+                  .filter((e) => e.isPlayer()) as Player[]);
+
         const pk = new RemoveActorPacket();
         pk.uniqueEntityId = this.runtimeId;
-        await player.getConnection().sendDataPacket(pk);
+        await Promise.all(players.map(async (p) => p.getConnection().sendDataPacket(pk)));
     }
 
+    /**
+     * Set entity's position and notify the clients.
+     * @param position the position
+     */
     public async setPosition(position: Vector3) {
         await this.setX(position.getX(), true);
         await this.setY(position.getY(), true);
@@ -208,6 +240,10 @@ export default class Entity extends Position {
         );
     }
 
+    /**
+     * Fired when a entity collides with another.
+     * @param entity the entity collided with
+     */
     public async onCollide(entity: Entity) {}
 
     /**
