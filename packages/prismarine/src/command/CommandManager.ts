@@ -6,6 +6,7 @@ import { CommandArgument } from './CommandArguments';
 import CommandExecuter from './CommandExecuter';
 import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
+import Entity from '../entity/Entity';
 import Server from '../Server';
 import Timer from '../utils/Timer';
 import fs from 'fs';
@@ -232,16 +233,23 @@ export default class CommandManager {
                 res = await Promise.all(this.dispatcher.execute(parsed));
             }
 
-            res.forEach(async (res: any) => {
-                const chat = new Chat(
-                    this.server.getConsole(),
-                    `§o§7[${sender.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
-                    '*.ops'
-                );
+            const feedback = ((sender as any) as Entity)
+                .getWorld()
+                .getGameruleManager()
+                .getGamerule('sendCommandFeedback');
 
-                // TODO: should this be broadcasted to the executer?
-                await this.server.getChatManager().send(chat);
-            });
+            // Make sure we don't send feedback if sendCommandFeedback is set to false
+            if (((sender as any) as Entity).getRuntimeId() === BigInt(-1) || feedback)
+                res.forEach(async (res: any) => {
+                    const chat = new Chat(
+                        this.server.getConsole(),
+                        `§o§7[${sender.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
+                        '*.ops'
+                    );
+
+                    // TODO: should this be broadcasted to the executer?
+                    await this.server.getChatManager().send(chat);
+                });
         } catch (error) {
             if (error?.type?.message?.toString?.() === 'Unknown command') {
                 await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);

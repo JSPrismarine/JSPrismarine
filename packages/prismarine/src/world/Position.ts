@@ -9,7 +9,7 @@ interface PositionData {
 }
 
 export default class Position extends Vector3 {
-    private readonly world: World;
+    private world: World;
 
     public constructor({ x, y, z, world }: PositionData) {
         super(x, y, z);
@@ -18,5 +18,9 @@ export default class Position extends Vector3 {
 
     public getWorld(): World {
         return this.world;
+    }
+
+    public setWorld(world: World) {
+        this.world = world;
     }
 }
