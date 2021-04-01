@@ -20,12 +20,13 @@ export const GameRules = {
     SendCommandFeedback: 'sendcommandfeedback',
     ShowCoordinates: 'showcoordinates', // Bool
     RandomTickSpeed: 'randomtickspeed',
-    TNTExplodes: 'tntexplodes'
+    TNTExplodes: 'tntexplodes',
+    sendCommandFeedback: 'sendcommandfeedback'
 };
 
 export default class GameruleManager {
     private readonly server: Server;
-    private readonly rules: Map<string, any> = new Map();
+    private readonly rules: Map<string, boolean | number> = new Map();
 
     public constructor(server: Server) {
         this.server = server;
@@ -54,7 +55,7 @@ export default class GameruleManager {
         this.rules.get(name.toLowerCase());
     }
 
-    public getGamerules(): Map<string, any> {
+    public getGamerules() {
         return this.rules;
     }
 
