@@ -125,7 +125,7 @@ const Identifiers = {
     BiomeDefinitionListPacket: 0x7a,
     LevelSoundEventPacket: 0x7b,
     LevelEventGenericPacket: 0x7c,
-    LecternUpdayePacket: 0x7d,
+    LecternUpdatePacket: 0x7d,
     AddEntityPacket: 0x7f,
     RemoveEntityPacket: 0x80,
     ClientCacheStatusPacket: 0x81,

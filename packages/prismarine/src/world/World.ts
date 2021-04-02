@@ -81,9 +81,7 @@ export default class World {
         this.generator = generator;
         this.config = config ?? {};
 
-        this.gameruleManager.setGamerule(GameRules.DoDayLightCycle, true);
         this.gameruleManager.setGamerule(GameRules.ShowCoordinates, true);
-        this.gameruleManager.setGamerule(GameRules.sendCommandFeedback, true);
 
         // Create player data folder
         if (!fs.existsSync(path.join(cwd(), 'worlds', name, '/playerdata'))) {

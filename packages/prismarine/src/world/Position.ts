@@ -20,7 +20,7 @@ export default class Position extends Vector3 {
         return this.world;
     }
 
-    public setWorld(world: World) {
+    public async setWorld(world: World) {
         this.world = world;
     }
 }

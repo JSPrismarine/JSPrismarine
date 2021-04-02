@@ -239,7 +239,7 @@ export default class CommandManager {
                 .getGamerule('sendCommandFeedback');
 
             // Make sure we don't send feedback if sendCommandFeedback is set to false
-            if (((sender as any) as Entity).getRuntimeId() === BigInt(-1) || feedback)
+            if (feedback)
                 res.forEach(async (res: any) => {
                     const chat = new Chat(
                         this.server.getConsole(),

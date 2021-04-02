@@ -1,5 +1,6 @@
 import { Connection, InetAddress } from '@jsprismarine/raknet';
 
+import { ChangeDimensionPacket } from '../network/Packets';
 import ChatEvent from '../events/chat/ChatEvent';
 import Chunk from '../world/chunk/Chunk';
 import CommandExecuter from '../command/CommandExecuter';
@@ -135,6 +136,18 @@ export default class Player extends Human implements CommandExecuter {
         if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
 
         this.connected = false;
+    }
+
+    public async setWorld(world: World) {
+        await this.getWorld().removeEntity(this);
+        await world.addEntity(this);
+        await super.setWorld.bind(this)(world);
+
+        const pk = new ChangeDimensionPacket();
+        pk.dimension = 0; // TODO
+        pk.position = this;
+        pk.respawn = true;
+        await this.playerConnection.sendDataPacket(pk);
     }
 
     public isOnline() {

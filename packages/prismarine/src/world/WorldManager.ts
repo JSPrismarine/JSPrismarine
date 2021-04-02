@@ -53,7 +53,7 @@ export default class WorldManager {
     }
 
     /**
-     * Add a provider to the internal providers map
+     * Add a provider to the internal providers map.
      *
      * @param name the name of the provider CASE SENSITIVE
      * @param provider the provider
@@ -63,7 +63,7 @@ export default class WorldManager {
     }
 
     /**
-     * Remove a provider from the internal providers map
+     * Remove a provider from the internal providers map.
      *
      * @param name the name of the provider CASE SENSITIVE
      */
@@ -72,12 +72,15 @@ export default class WorldManager {
     }
 
     /**
-     * Get all providers
+     * Get all providers.
      */
     public getProviders(): Map<string, Provider> {
         return this.providers;
     }
 
+    /**
+     * Save the world to disk.
+     */
     public async save(): Promise<void> {
         this.server.getLogger()?.info('Saving worlds', 'WorldManager/save');
         for (const world of this.getWorlds()) {
