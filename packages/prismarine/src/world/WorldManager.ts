@@ -45,7 +45,6 @@ export default class WorldManager {
         if (!worldData) throw new Error(`Invalid level-name`);
 
         const world = await this.loadWorld(worldData, defaultWorld);
-        await world.onEnable();
     }
 
     public async onDisable(): Promise<void> {
@@ -93,7 +92,7 @@ export default class WorldManager {
      * @param folderName the name of the folder containing the world
      */
     public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             if (this.isWorldLoaded(folderName)) {
                 this.server
                     .getLogger()
@@ -138,6 +137,8 @@ export default class WorldManager {
             }
 
             this.server.getLogger()?.verbose(`World §b${folderName}§r successfully loaded!`, 'WorldManager/loadWorld');
+
+            await world.onEnable();
             resolve(world);
         });
     }
