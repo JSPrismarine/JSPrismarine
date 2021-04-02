@@ -30,6 +30,28 @@ export default class GameruleManager {
 
     public constructor(server: Server) {
         this.server = server;
+
+        // Set default values
+        this.setGamerule('CommandBlockOutput', true);
+        this.setGamerule('DoDayLightCycle', true);
+        this.setGamerule('DoEntityDrops', true);
+        this.setGamerule('DoFireTick', true);
+        this.setGamerule('DoMobLoot', true);
+        this.setGamerule('DoMobSpawning', true);
+        this.setGamerule('DoTileDrops', true);
+        this.setGamerule('DoWeatherCycle', true);
+        this.setGamerule('DrowingDamage', true);
+        this.setGamerule('FallDamage', true);
+        this.setGamerule('FireDamage', true);
+        this.setGamerule('KeepInventory', false);
+        this.setGamerule('MobGriefing', true);
+        this.setGamerule('NaturalRegeneration', true);
+        this.setGamerule('PVP', true);
+        this.setGamerule('SendCommandFeedback', true);
+        this.setGamerule('ShowCoordinates', false);
+        this.setGamerule('RandomTickSpeed', 3);
+        this.setGamerule('TNTExplodes', true);
+        this.setGamerule('sendCommandFeedback', true);
     }
 
     /**

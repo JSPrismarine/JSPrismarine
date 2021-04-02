@@ -6,7 +6,7 @@ export default class ChangeDimensionPacket extends DataPacket {
     public static NetID = Identifiers.ChangeDimensionPacket;
 
     public dimension!: number;
-    public position!: Vector3;
+    public position = new Vector3(0, 0, 0);
     public respawn!: boolean;
 
     public decodePayload() {
