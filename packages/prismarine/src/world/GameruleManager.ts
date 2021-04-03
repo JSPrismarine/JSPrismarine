@@ -17,7 +17,6 @@ export const GameRules = {
     MobGriefing: 'mobgriefing',
     NaturalRegeneration: 'naturalregeneration',
     PVP: 'pvp',
-    SendCommandFeedback: 'sendcommandfeedback',
     ShowCoordinates: 'showcoordinates', // Bool
     RandomTickSpeed: 'randomtickspeed',
     TNTExplodes: 'tntexplodes',
@@ -47,7 +46,6 @@ export default class GameruleManager {
         this.setGamerule('MobGriefing', true);
         this.setGamerule('NaturalRegeneration', true);
         this.setGamerule('PVP', true);
-        this.setGamerule('SendCommandFeedback', true);
         this.setGamerule('ShowCoordinates', false);
         this.setGamerule('RandomTickSpeed', 3);
         this.setGamerule('TNTExplodes', true);
