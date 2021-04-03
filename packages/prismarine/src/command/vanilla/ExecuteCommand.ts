@@ -22,20 +22,29 @@ export default class ExecuteCommand extends Command {
                         argument('command', new CommandArgumentCommand())
                             .executes(async (context) => {
                                 const source = context.getSource() as Player;
-                                const target = context.getArgument('player')[0] as Player;
+                                const targets = context.getArgument('player') as Player[];
                                 const command = context.getArgument('command') as string;
-                                await source.getServer().getCommandManager().dispatchCommand(target, command);
+                                await Promise.all(
+                                    targets.map(async (target) =>
+                                        source.getServer().getCommandManager().dispatchCommand(target, command)
+                                    )
+                                );
                             })
                             .then(
                                 argument('arguments', greedyString()).executes(async (context) => {
                                     const source = context.getSource() as Player;
-                                    const target = context.getArgument('player') as Player;
+                                    const targets = context.getArgument('player') as Player[];
                                     const command = context.getArgument('command') as string;
                                     const args = context.getArgument('arguments') as string;
-                                    await source
-                                        .getServer()
-                                        .getCommandManager()
-                                        .dispatchCommand(target, `${command} ${args}`);
+
+                                    await Promise.all(
+                                        targets.map(async (target) =>
+                                            source
+                                                .getServer()
+                                                .getCommandManager()
+                                                .dispatchCommand(target, `${command} ${args}`)
+                                        )
+                                    );
                                 })
                             )
                     )
