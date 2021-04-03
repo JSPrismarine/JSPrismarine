@@ -1,4 +1,3 @@
-import CommandExecuter from '../command/CommandExecuter';
 import Player from '../player/Player';
 import type Server from '../Server';
 import cwd from '../utils/cwd';
@@ -158,14 +157,14 @@ export default class PermissionManager {
         return this.ops.has(username);
     }
 
-    public can(executer: CommandExecuter) {
+    public can(executer: Player) {
         return {
             execute: (permission?: string) => {
                 if (!permission) return true;
                 if (!executer.isPlayer()) return true;
                 if (executer.isOp()) return true;
-                if ((executer as Player).getPermissions().includes(permission)) return true;
-                if ((executer as Player).getPermissions().includes('*')) return true;
+                if (executer.getPermissions().includes(permission)) return true;
+                if (executer.getPermissions().includes('*')) return true;
 
                 const split = permission.split('.');
                 let scope = '';
@@ -173,8 +172,8 @@ export default class PermissionManager {
                     if (scope) scope = `${scope}.${action}`;
                     else scope = action;
 
-                    if ((executer as Player).getPermissions().includes(scope)) return true;
-                    if ((executer as Player).getPermissions().includes(`${scope}.*`)) return true;
+                    if (executer.getPermissions().includes(scope)) return true;
+                    if (executer.getPermissions().includes(`${scope}.*`)) return true;
                 }
 
                 return false;

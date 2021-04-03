@@ -1,6 +1,6 @@
 /* eslint-disable promise/prefer-await-to-then */
 import { CommandArgumentCommand, CommandArgumentEntity } from '../CommandArguments';
-import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
 import type Player from '../../player/Player';
@@ -16,16 +16,49 @@ export default class ExecuteCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
-            literal('execute').then(
-                argument('player', new CommandArgumentEntity()).then(
-                    argument('command', new CommandArgumentCommand()).executes(async (context) => {
-                        const source = context.getSource() as Player;
-                        const target = context.getArgument('player')[0] as Player;
-                        const command = context.getArgument('command') as string;
-                        await source.getServer().getCommandManager().dispatchCommand(target, command);
-                    })
+            literal('execute')
+                .then(
+                    argument('player', new CommandArgumentEntity()).then(
+                        argument('command', new CommandArgumentCommand())
+                            .executes(async (context) => {
+                                const source = context.getSource() as Player;
+                                const target = context.getArgument('player')[0] as Player;
+                                const command = context.getArgument('command') as string;
+                                await source.getServer().getCommandManager().dispatchCommand(target, command);
+                            })
+                            .then(
+                                argument('arguments', greedyString()).executes(async (context) => {
+                                    const source = context.getSource() as Player;
+                                    const target = context.getArgument('player') as Player;
+                                    const command = context.getArgument('command') as string;
+                                    const args = context.getArgument('arguments') as string;
+                                    await source
+                                        .getServer()
+                                        .getCommandManager()
+                                        .dispatchCommand(target, `${command} ${args}`);
+                                })
+                            )
+                    )
                 )
-            )
+                .then(
+                    argument('command', new CommandArgumentCommand())
+                        .executes(async (context) => {
+                            const source = context.getSource() as Player;
+                            const command = context.getArgument('command') as string;
+                            await source.getServer().getCommandManager().dispatchCommand(source, command);
+                        })
+                        .then(
+                            argument('arguments', greedyString()).executes(async (context) => {
+                                const source = context.getSource() as Player;
+                                const command = context.getArgument('command') as string;
+                                const args = context.getArgument('arguments') as string;
+                                await source
+                                    .getServer()
+                                    .getCommandManager()
+                                    .dispatchCommand(source, `${command} ${args}`);
+                            })
+                        )
+                )
         );
     }
 }

@@ -3,10 +3,10 @@ import { ArgumentCommandNode, CommandDispatcher } from '@jsprismarine/brigadier'
 import Chat from '../chat/Chat';
 import Command from './Command';
 import { CommandArgument } from './CommandArguments';
-import CommandExecuter from './CommandExecuter';
 import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
 import Entity from '../entity/Entity';
+import { Player } from '../Prismarine';
 import Server from '../Server';
 import Timer from '../utils/Timer';
 import fs from 'fs';
@@ -15,7 +15,7 @@ import path from 'path';
 export default class CommandManager {
     private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
-    private dispatcher!: CommandDispatcher<CommandExecuter>;
+    private dispatcher!: CommandDispatcher<Player>;
 
     public constructor(server: Server) {
         this.server = server;
@@ -112,8 +112,8 @@ export default class CommandManager {
      * Get a list of all command variants
      * EXCLUDING legacy commands
      */
-    public getCommandsList(): Array<[string, CommandNode<CommandExecuter>, CommandArgument[][]]> {
-        const parseNode = (node: CommandNode<CommandExecuter>): any[] => {
+    public getCommandsList(): Array<[string, CommandNode<Player>, CommandArgument[][]]> {
+        const parseNode = (node: CommandNode<Player>): any[] => {
             if (node.getChildrenCount() <= 0) {
                 return [
                     {
@@ -187,14 +187,14 @@ export default class CommandManager {
     /**
      * Get dispatcher
      */
-    public getDispatcher(): CommandDispatcher<CommandExecuter> {
+    public getDispatcher(): CommandDispatcher<Player> {
         return this.dispatcher;
     }
 
     /**
      * Dispatches a command and executes them.
      */
-    public async dispatchCommand(sender: CommandExecuter, input = '') {
+    public async dispatchCommand(sender: Player, input = '') {
         try {
             const parsed = this.dispatcher.parse(input.trim(), sender);
             const id = parsed.getReader().getString().split(' ')[0];

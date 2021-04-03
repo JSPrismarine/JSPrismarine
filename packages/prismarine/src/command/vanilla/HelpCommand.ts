@@ -1,7 +1,7 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
-import CommandExecuter from '../CommandExecuter';
+import { Player } from '../../Prismarine';
 
 export default class HelpCommand extends Command {
     public constructor() {
@@ -15,7 +15,7 @@ export default class HelpCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<any>) {
         const execute = async (context: any) => {
-            const source = context.getSource() as CommandExecuter;
+            const source = context.getSource() as Player;
 
             source
                 .getServer()

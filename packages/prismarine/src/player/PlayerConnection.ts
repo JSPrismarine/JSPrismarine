@@ -420,11 +420,11 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
-    public async sendMessage(message: string, xuid = '', needsTranslation = false): Promise<void> {
+    public async sendMessage(message: string, xuid = '', needsTranslation = false, type = TextType.Raw): Promise<void> {
         if (!message) throw new Error('A message is required');
 
         const pk = new TextPacket();
-        pk.type = TextType.Raw;
+        pk.type = type;
         pk.message = message;
         pk.needsTranslation = needsTranslation;
         pk.xuid = xuid;

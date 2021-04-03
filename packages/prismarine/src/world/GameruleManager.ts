@@ -74,7 +74,7 @@ export default class GameruleManager {
             this.server.getLogger()?.error(`Unknown Gamerule with name ${name}`, 'GameruleManager/getGamerule');
         }
 
-        this.rules.get(name.toLowerCase());
+        return this.rules.get(name.toLowerCase());
     }
 
     public getGamerules() {

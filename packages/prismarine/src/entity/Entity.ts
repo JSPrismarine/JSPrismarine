@@ -7,6 +7,7 @@ import Player from '../player/Player';
 import Position from '../world/Position';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import Server from '../Server';
+import TextType from '../network/type/TextType';
 import Vector3 from '../math/Vector3';
 import World from '../world/World';
 
@@ -172,6 +173,13 @@ export default class Entity extends Position {
                 await player.getConnection().sendDataPacket(pk);
             });
     }
+
+    /**
+     * Send a message to an entity (unused).
+     * @param message the message
+     * @param type the text type
+     */
+    public sendMessage(message: string, type: TextType = TextType.Raw) {}
 
     public getPosition(): Vector3 {
         return new Vector3(this.getX(), this.getY(), this.getZ());
