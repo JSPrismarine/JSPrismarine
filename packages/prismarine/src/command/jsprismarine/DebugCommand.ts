@@ -46,29 +46,29 @@ export default class DebugCommand extends Command {
                 .executes(async (context) => {
                     const source = context.getSource() as Player;
 
-                    await source.sendMessage('§dWorlds Loaded:§r');
                     const worlds = source.getServer().getWorldManager().getWorlds();
+                    await source.sendMessage(`§dWorlds Loaded§r (${worlds.length}):`);
                     for (const world of worlds) {
                         await source.sendMessage(
                             `- id: §a${world.getUniqueId()}§r, name: §b${world.getName()}§r, ticks: §b${world.getTicks()}§r`
                         );
 
-                        await source.sendMessage('  §dGamerules:§r');
+                        const gamerules = Array.from(world.getGameruleManager().getGamerules());
+                        await source.sendMessage(`  §dGamerules§r (${gamerules.length}):`);
                         await Promise.all(
-                            Array.from(world.getGameruleManager().getGamerules()).map(async ([id, value]) => {
+                            gamerules.map(async ([id, value]) => {
                                 await source.sendMessage(`  - id: §a${id}§r, value: §b${value}§r`);
                             })
                         );
 
-                        await source.sendMessage('  §dEntities:§r');
+                        const entities = world.getEntities();
+                        await source.sendMessage(`  §dEntities§r (${entities.length}):`);
                         await Promise.all(
-                            world
-                                .getEntities()
-                                .map(async (e) =>
-                                    source.sendMessage(
-                                        `  - id: §a${e.getRuntimeId()}§r, name: §b${e.getName()}§r, type: §b${e.getType()}§r`
-                                    )
+                            entities.map(async (e) =>
+                                source.sendMessage(
+                                    `  - id: §a${e.getRuntimeId()}§r, name: §b${e.getName()}§r, type: §b${e.getType()}§r`
                                 )
+                            )
                         );
                     }
                 })

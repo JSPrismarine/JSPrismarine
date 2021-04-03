@@ -10,9 +10,9 @@ export default class LevelChunkPacket extends DataPacket {
     public data: any;
 
     public encodePayload() {
-        this.writeVarInt(this.chunkX);
-        this.writeVarInt(this.chunkZ);
-        this.writeUnsignedVarInt(this.subChunkCount);
+        this.writeVarInt(this.chunkX ?? 0);
+        this.writeVarInt(this.chunkZ ?? 0);
+        this.writeUnsignedVarInt(this.subChunkCount ?? 0);
         this.writeBool(false); // Cached
         this.writeUnsignedVarInt(Buffer.byteLength(this.data));
         this.append(this.data);

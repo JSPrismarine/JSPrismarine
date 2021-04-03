@@ -57,17 +57,17 @@ export default class GameruleManager {
     /**
      * Sets a game rule.
      *
-     * @param name
-     * @param value
+     * @param name the gamerule's name
+     * @param value the value, boolean OR number
      */
     public setGamerule(name: string, value: boolean | number): void {
         this.rules.set(name.toLowerCase(), value);
     }
 
     /**
-     * Returns the game rule value by its name.
+     * Returns the gamerule value.
      *
-     * @param name
+     * @param name the gamerule's name
      */
     public getGamerule(name: string): any {
         if (!Object.values(GameRules).includes(name.toLowerCase())) {
@@ -88,7 +88,7 @@ export default class GameruleManager {
 
         stream.writeUnsignedVarInt(this.getGamerules().size);
         for (const [name, value] of this.getGamerules()) {
-            stream.writeString(name);
+            stream.writeString(name.toLowerCase());
             switch (typeof value) {
                 case 'boolean':
                     stream.writeByte(1); // Maybe value type ??
