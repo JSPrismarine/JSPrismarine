@@ -15,6 +15,15 @@ export default class Inventory {
     }
 
     /**
+     * Get window id.
+     *
+     * TODO: implement this
+     */
+    public getId(): number {
+        return 0;
+    }
+
+    /**
      * Adds an array of items into the inventory.
      */
     public setItems(items: ContainerEntry[] = []) {

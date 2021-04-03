@@ -66,7 +66,7 @@ export default class DebugCommand extends Command {
                         await Promise.all(
                             entities.map(async (e) =>
                                 source.sendMessage(
-                                    `  - id: §a${e.getRuntimeId()}§r, name: §b${e.getName()}§r, type: §b${e.getType()}§r`
+                                    `  - id: §a${e.getRuntimeId()}§r, name: §b${e.getName()}§r, type: §b${e.getType()}§r, x: §b${e.getX()}§r, y: §b${e.getY()}§r, z: §b${e.getZ()}§r`
                                 )
                             )
                         );

@@ -1,8 +1,5 @@
-import InventoryTransactionPacket, {
-    InventoryTransactionType,
-    InventoryTransactionUseItemActionType
-} from '../packet/InventoryTransactionPacket';
-import { LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
+import { InventoryTransactionPacket, LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
+import { InventoryTransactionType, InventoryTransactionUseItemActionType } from '../packet/InventoryTransactionPacket';
 
 import BlockMappings from '../../block/BlockMappings';
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -18,14 +15,13 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     public static NetID = Identifiers.InventoryTransactionPacket;
 
     public async handle(packet: InventoryTransactionPacket, server: Server, player: Player): Promise<void> {
-        if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world
+        if (!player.isOnline()) return;
+        if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world.
 
         switch (packet.type) {
             case InventoryTransactionType.Normal: {
-                // TODO: refactor this crap
-                // <rant> probably base it on https://github.com/pmmp/PocketMine-MP/blob/d19db5d2e44d0925798c288247c3bddb71d23975/src/pocketmine/Player.php#L2399 or something smilar
-                // I'm apparently too dumb to figure out how this works. Or maybe I'm just tiered.
-                // anyways, fuck 2020. yay 2021. </rant>
+                // TODO: refactor this crap.
+                // probably base it on https://github.com/pmmp/PocketMine-MP/blob/d19db5d2e44d0925798c288247c3bddb71d23975/src/pocketmine/Player.php#L2399 or something similar.
                 let movedItem: ContainerEntry;
                 packet.actions.forEach(async (action) => {
                     switch (action.sourceType) {

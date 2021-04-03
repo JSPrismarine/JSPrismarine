@@ -17,7 +17,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 break;
             case InteractAction.OpenInventory: {
                 const pk = new ContainerOpenPacket();
-                pk.windowId = 0; // TODO
+                pk.windowId = player.getInventory().getId();
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerPos = new Vector3(player.getX(), player.getY(), player.getZ());
                 pk.containerEntityId = player.getRuntimeId();
