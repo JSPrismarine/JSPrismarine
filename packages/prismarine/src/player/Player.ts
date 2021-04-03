@@ -127,10 +127,11 @@ export default class Player extends Human implements CommandExecuter {
             );
         });
 
+        if (!this.connected)
+            this.getServer()
+                .getLogger()
+                ?.debug(`(Complete player creation took ${this.joinTimer.stop()} ms)`, 'Player/onEnable');
         this.connected = true;
-        this.getServer()
-            .getLogger()
-            ?.debug(`(Complete player creation took ${this.joinTimer.stop()} ms)`, 'Player/onEnable');
     }
 
     public async onDisable() {
@@ -163,6 +164,8 @@ export default class Player extends Human implements CommandExecuter {
         await this.getWorld().removeEntity(this);
         await world.addEntity(this);
         await super.setWorld.bind(this)(world);
+
+        await this.setPosition(new Vector3(0, 0, 0));
         for (let x = -3; x < 3; x++) {
             for (let z = -3; z < 3; z++) {
                 const pk = new LevelChunkPacket();
@@ -182,7 +185,7 @@ export default class Player extends Human implements CommandExecuter {
         this.currentChunk = null;
         await this.getConnection().clearChunks();
         await this.getConnection().needNewChunks();
-        await this.setPosition(new Vector3(0, 0, 0)); // TODO: load this properly
+        await this.onEnable();
         await this.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
     }
 
