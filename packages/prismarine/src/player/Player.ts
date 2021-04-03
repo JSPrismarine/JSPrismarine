@@ -1,6 +1,6 @@
+import { ChangeDimensionPacket, LevelChunkPacket } from '../network/Packets';
 import { Connection, InetAddress } from '@jsprismarine/raknet';
 
-import { ChangeDimensionPacket } from '../network/Packets';
 import ChatEvent from '../events/chat/ChatEvent';
 import Chunk from '../world/chunk/Chunk';
 import CommandExecuter from '../command/CommandExecuter';
@@ -10,6 +10,7 @@ import FormManager from '../form/FormManager';
 import Gamemode from '../world/Gamemode';
 import Human from '../entity/Human';
 import MovementType from '../network/type/MovementType';
+import PlayStatusType from '../network/type/PlayStatusType';
 import PlayerConnection from './PlayerConnection';
 import PlayerSetGamemodeEvent from '../events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
@@ -138,16 +139,51 @@ export default class Player extends Human implements CommandExecuter {
         this.connected = false;
     }
 
+    /**
+     * Change the player's current world.
+     *
+     * @param world the new world
+     */
     public async setWorld(world: World) {
+        const dim0 = new ChangeDimensionPacket();
+        dim0.dimension = 0;
+        dim0.position = this;
+        dim0.respawn = false;
+
+        const dim1 = new ChangeDimensionPacket();
+        dim1.dimension = 1;
+        dim1.position = new Vector3(0, 0, 0); // TODO: load this properly
+        dim1.respawn = false;
+
+        await this.getConnection().sendDataPacket(dim0);
+        await this.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.getConnection().sendDataPacket(dim1);
+        await this.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
+
         await this.getWorld().removeEntity(this);
         await world.addEntity(this);
         await super.setWorld.bind(this)(world);
+        for (let x = -3; x < 3; x++) {
+            for (let z = -3; z < 3; z++) {
+                const pk = new LevelChunkPacket();
+                pk.chunkX = x; // TODO
+                pk.chunkZ = z; // TODO
+                pk.data = Buffer.from('');
+                pk.subChunkCount = 0;
+                await this.getConnection().sendDataPacket(pk);
+            }
+        }
 
-        const pk = new ChangeDimensionPacket();
-        pk.dimension = 0; // TODO
-        pk.position = this;
-        pk.respawn = true;
-        await this.playerConnection.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(dim1);
+        await this.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.getConnection().sendDataPacket(dim0);
+        await this.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
+
+        this.currentChunk = null;
+        await this.getConnection().clearChunks();
+        await this.getConnection().needNewChunks();
+        await this.setPosition(new Vector3(0, 0, 0)); // TODO: load this properly
+        await this.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
     }
 
     public isOnline() {
