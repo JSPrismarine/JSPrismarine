@@ -212,6 +212,16 @@ export default class PlayerConnection {
         this.chunkSendQueue.add(chunk);
     }
 
+    /**
+     * Clear the currently loaded and loading chunks.
+     *
+     * Used for changing dimension etc.
+     */
+    public async clearChunks() {
+        this.loadedChunks.clear();
+        this.loadingChunks.clear();
+    }
+
     public async sendInventory(): Promise<void> {
         const pk = new InventoryContentPacket();
         pk.items = this.player.getInventory().getItems(true);
