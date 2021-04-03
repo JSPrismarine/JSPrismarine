@@ -1,6 +1,7 @@
+import Chat, { ChatType } from '../../chat/Chat';
+
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
-import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
@@ -82,7 +83,12 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             // Announce connection
             const chatSpawnEvent = new ChatEvent(
-                new Chat(server.getConsole(), `§e${player.getName()} joined the game`)
+                new Chat(
+                    server.getConsole(),
+                    `§e${player.getName()} joined the game`,
+                    '*.everyone',
+                    ChatType.Announcement
+                )
             );
             await server.getEventManager().emit('chat', chatSpawnEvent);
 

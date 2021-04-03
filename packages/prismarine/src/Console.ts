@@ -1,12 +1,11 @@
 import Chat from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
-import CommandExecuter from './command/CommandExecuter';
 import type Entity from './entity/Entity';
 import type Server from './Server';
 import Vector3 from './math/Vector3';
 import readline from 'readline';
 
-export default class Console implements CommandExecuter {
+export default class Console {
     private readonly server: Server;
     private cli: readline.Interface;
     public runtimeId = BigInt(-1);
@@ -51,7 +50,9 @@ export default class Console implements CommandExecuter {
 
         this.cli.on('line', (input: string) => {
             if (input.startsWith('/')) {
-                void this.getServer().getCommandManager().dispatchCommand(this, input.slice(1));
+                void this.getServer()
+                    .getCommandManager()
+                    .dispatchCommand(this as any, input.slice(1));
                 return;
             }
 

@@ -3,7 +3,6 @@ import { Connection, InetAddress } from '@jsprismarine/raknet';
 
 import ChatEvent from '../events/chat/ChatEvent';
 import Chunk from '../world/chunk/Chunk';
-import CommandExecuter from '../command/CommandExecuter';
 import ContainerEntry from '../inventory/ContainerEntry';
 import Device from '../utils/Device';
 import FormManager from '../form/FormManager';
@@ -17,12 +16,13 @@ import PlayerToggleFlightEvent from '../events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from '../events/player/PlayerToggleSprintEvent';
 import Server from '../Server';
 import Skin from '../utils/skin/Skin';
+import TextType from '../network/type/TextType';
 import Timer from '../utils/Timer';
 import Vector3 from '../math/Vector3';
 import WindowManager from '../inventory/WindowManager';
 import World from '../world/World';
 
-export default class Player extends Human implements CommandExecuter {
+export default class Player extends Human {
     private readonly address: InetAddress;
     private readonly playerConnection: PlayerConnection;
     private permissions: string[];
@@ -92,7 +92,7 @@ export default class Player extends Human implements CommandExecuter {
                 (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
                 evt.getChat().getChannel() === `*.player.${this.getName()}`
             )
-                await this.sendMessage(evt.getChat().getMessage());
+                await this.sendMessage(evt.getChat().getMessage(), (evt.getChat().getType() as number) as TextType);
         });
     }
 
@@ -237,10 +237,14 @@ export default class Player extends Human implements CommandExecuter {
     public async sendSpawn() {}
     public async sendDespawn() {}
 
-    public async sendMessage(message: string): Promise<void> {
+    /**
+     * Send a chat message to the client.
+     * @param message the message
+     */
+    public async sendMessage(message: string, type: TextType = TextType.Raw): Promise<void> {
         // TODO: Do this properly like java edition,
         // in other words, the message should be JSON formatted.
-        await this.playerConnection.sendMessage(message);
+        await this.playerConnection.sendMessage(message, '', false, type);
     }
 
     public async setGamemode(mode: number): Promise<void> {
