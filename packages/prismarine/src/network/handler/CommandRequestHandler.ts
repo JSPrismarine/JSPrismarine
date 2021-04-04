@@ -8,6 +8,6 @@ export default class CommandRequestHandler implements PacketHandler<CommandReque
     public static NetID = Identifiers.CommandRequestPacket;
 
     public async handle(packet: CommandRequestPacket, server: Server, player: Player): Promise<void> {
-        await player.getServer().getCommandManager().dispatchCommand(player, packet.commandName.slice(1));
+        await player.getServer().getCommandManager().dispatchCommand(player, player, packet.commandName.slice(1));
     }
 }

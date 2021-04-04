@@ -10,6 +10,7 @@ describe('permission', () => {
                     .can({
                         isPlayer: () => true,
                         isOp: () => false,
+                        isConsole: () => false,
                         getPermissions: () => ['namespace.scope.action']
                     } as any)
                     .execute('namespace.scope.action')
@@ -20,6 +21,7 @@ describe('permission', () => {
                     .can({
                         isPlayer: () => true,
                         isOp: () => false,
+                        isConsole: () => false,
                         getPermissions: () => ['namespace.scope.action']
                     } as any)
                     .execute('namespace.scope.action.subaction')
@@ -30,6 +32,7 @@ describe('permission', () => {
                     .can({
                         isPlayer: () => true,
                         isOp: () => false,
+                        isConsole: () => false,
                         getPermissions: () => ['namespace.scope.action.subaction.whoop']
                     } as any)
                     .execute('namespace.scope.action.subaction')
@@ -40,6 +43,7 @@ describe('permission', () => {
                     .can({
                         isPlayer: () => true,
                         isOp: () => false,
+                        isConsole: () => false,
                         getPermissions: () => ['namespace.scope.*']
                     } as any)
                     .execute('namespace.scope.action.subaction')
@@ -50,6 +54,7 @@ describe('permission', () => {
                     .can({
                         isPlayer: () => true,
                         isOp: () => false,
+                        isConsole: () => false,
                         getPermissions: () => ['*']
                     } as any)
                     .execute('namespace.scope.action.subaction')
@@ -60,6 +65,7 @@ describe('permission', () => {
                     .can({
                         isPlayer: () => true,
                         isOp: () => false,
+                        isConsole: () => false,
                         getPermissions: () => ['othernamespace.scope.action']
                     } as any)
                     .execute('namespace.scope.action.subaction')
@@ -70,6 +76,7 @@ describe('permission', () => {
                     .can({
                         isPlayer: () => true,
                         isOp: () => false,
+                        isConsole: () => false,
                         getPermissions: () => []
                     } as any)
                     .execute('namespace.scope.action.subaction')
@@ -82,7 +89,8 @@ describe('permission', () => {
             expect(
                 pm
                     .can({
-                        isPlayer: () => false
+                        isPlayer: () => false,
+                        isConsole: () => true
                     } as any)
                     .execute('namespace.scope.action.subaction')
             ).toBe(true);
@@ -95,7 +103,8 @@ describe('permission', () => {
                 pm
                     .can({
                         isPlayer: () => true,
-                        isOp: () => true
+                        isOp: () => true,
+                        isConsole: () => false
                     } as any)
                     .execute('namespace.scope.action.subaction')
             ).toBe(true);

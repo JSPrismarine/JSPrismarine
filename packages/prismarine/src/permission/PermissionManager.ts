@@ -33,6 +33,10 @@ export default class PermissionManager {
         this.defaultPermissions = [];
     }
 
+    public getDefaultPermissions(): string[] {
+        return this.defaultPermissions;
+    }
+
     public async getPermissions(player: Player): Promise<string[]> {
         return [
             ...this.defaultPermissions,
@@ -160,9 +164,11 @@ export default class PermissionManager {
     public can(executer: Player) {
         return {
             execute: (permission?: string) => {
+                if (!executer) throw new Error(`Executer can't be undefined or null`);
+
                 if (!permission) return true;
-                if (!executer.isPlayer()) return true;
-                if (executer.isOp()) return true;
+                if (executer.isConsole()) return true;
+                if (executer.isOp?.()) return true;
                 if (executer.getPermissions().includes(permission)) return true;
                 if (executer.getPermissions().includes('*')) return true;
 
