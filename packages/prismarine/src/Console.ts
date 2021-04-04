@@ -52,7 +52,7 @@ export default class Console {
             if (input.startsWith('/')) {
                 void this.getServer()
                     .getCommandManager()
-                    .dispatchCommand(this as any, input.slice(1));
+                    .dispatchCommand(this as any, this as any, input.slice(1));
                 return;
             }
 
@@ -62,13 +62,7 @@ export default class Console {
 
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
             if (evt.cancelled) return;
-
-            if (
-                evt.getChat().getChannel() === '*.everyone' ||
-                evt.getChat().getChannel() === '*.ops' ||
-                evt.getChat().getChannel() === `*.console`
-            )
-                await this.sendMessage(evt.getChat().getMessage());
+            await this.sendMessage(evt.getChat().getMessage());
         });
     }
 
@@ -120,6 +114,14 @@ export default class Console {
 
     public getPosition(): Vector3 {
         return new Vector3();
+    }
+
+    public getType() {
+        return 'jsprismarine:console';
+    }
+
+    public isConsole(): boolean {
+        return true;
     }
 
     /**

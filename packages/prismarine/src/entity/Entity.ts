@@ -221,6 +221,13 @@ export default class Entity extends Position {
     }
 
     /**
+     * Check if the entity is a console instance.
+     */
+    public isConsole(): boolean {
+        return false;
+    }
+
+    /**
      * Get entity type.
      */
     public getType(): string {

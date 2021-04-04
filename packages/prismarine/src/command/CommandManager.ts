@@ -193,10 +193,14 @@ export default class CommandManager {
 
     /**
      * Dispatches a command and executes them.
+     *
+     * @param sender the player/console who executed the command
+     * @param target the Player/entity/console who should execute the command
+     * @param input the command input including arguments
      */
-    public async dispatchCommand(sender: Player, input = '') {
+    public async dispatchCommand(sender: Player, target: Entity | Player, input = '') {
         try {
-            const parsed = this.dispatcher.parse(input.trim(), sender);
+            const parsed = this.dispatcher.parse(input.trim(), target as Player);
             const id = parsed.getReader().getString().split(' ')[0];
 
             // Get command from parsed string
@@ -227,7 +231,7 @@ export default class CommandManager {
             } else {
                 // Handle aliases
                 if (command?.aliases?.includes(id)) {
-                    await this.dispatchCommand(sender, input.replace(id, command.id.split(':')[1]));
+                    await this.dispatchCommand(sender, target, input.replace(id, command.id.split(':')[1]));
                     return;
                 }
                 res = await Promise.all(this.dispatcher.execute(parsed));
@@ -243,13 +247,22 @@ export default class CommandManager {
                 res.forEach(async (res: any) => {
                     const chat = new Chat(
                         this.server.getConsole(),
-                        `§o§7[${sender.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
+                        `§o§7[${target.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
                         '*.ops'
                     );
 
                     // TODO: should this be broadcasted to the executer?
                     await this.server.getChatManager().send(chat);
                 });
+            else {
+                const chat = new Chat(
+                    this.server.getConsole(),
+                    `§o§7[${sender.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
+                    '*.console'
+                );
+
+                await this.server.getChatManager().send(chat);
+            }
         } catch (error) {
             if (error?.type?.message?.toString?.() === 'Unknown command') {
                 await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
@@ -260,7 +273,7 @@ export default class CommandManager {
             this.server
                 .getLogger()
                 ?.debug(
-                    `Player ${sender.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
+                    `Player ${target.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
             this.server.getLogger()?.debug(`${error.stack}`, 'CommandManager/dispatchCommand');
