@@ -11,7 +11,8 @@
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
     "scripts": {
-        "build": "tsc --build src"
+        "build": "tsc --build src",
+        "docs": "typedoc --tsconfig ./src/tsconfig.json ./src/Prismarine.ts --out ./docs"
     },
     "keywords": [
         "javascript",
@@ -62,6 +63,7 @@
         "@types/workerpool": "6.0.0",
         "ts-jest": "26.5.4",
         "ts-node": "9.1.1",
+        "typedoc": "^0.20.35",
         "typescript": "4.2.4"
     },
     "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
