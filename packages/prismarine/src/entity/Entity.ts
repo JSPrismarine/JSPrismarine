@@ -229,18 +229,27 @@ export default class Entity extends Position {
 
     /**
      * Get entity type.
+     *
+     * @returns The entity's namespace ID.
      */
     public getType(): string {
         return (this.constructor as any).MOB_ID;
     }
 
     /**
-     * Get the entities (potentially custom) name.
+     * Get the entity's (potentially custom) name.
+     *
+     * @returns The entity's name without formatting (usually prefix & suffix).
      */
     public getName(): string {
         return this.getFormattedUsername();
     }
 
+    /**
+     * Get the entity's formatted name.
+     *
+     * @returns The entity's formatted name (including prefix & suffix).
+     */
     public getFormattedUsername(): string {
         return (
             this.metadata.getString(MetadataFlag.NAMETAG) ??
@@ -256,7 +265,8 @@ export default class Entity extends Position {
     }
 
     /**
-     * Fired when a entity collides with another.
+     * Fired when an entity collides with another entity.
+     
      * @param entity the entity collided with
      */
     public async onCollide(entity: Entity) {}
@@ -267,7 +277,9 @@ export default class Entity extends Position {
      * TODO: Customizable radius
      * TODO: amount of results
      *
-     * @param entities
+     * @param entities optional, the entities to compare the distance between
+     *
+     * @beta
      */
     public getNearestEntity(entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!) {
         const pos = new Vector3(this.getX(), this.getY(), this.getZ());
@@ -290,6 +302,7 @@ export default class Entity extends Position {
 
     /**
      * Get entities within radius of current entity.
+     *
      * @param radius number
      */
     public async getNearbyEntities(radius: number): Promise<Entity[]> {

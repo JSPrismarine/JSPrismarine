@@ -4,7 +4,12 @@ import Identifiers from '../Identifiers';
 export default class SetDefaultGameTypePacket extends DataPacket {
     public static NetID = Identifiers.SetDefaultGameTypePacket;
 
-    public gamemode!: number;
+    /**
+     * The gamemode to be set as default.
+     *
+     * @defaultValue `0` - survival mode
+     */
+    public gamemode: number = 0;
 
     public decodePayload() {
         this.gamemode = this.readVarInt();

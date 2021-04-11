@@ -8,8 +8,15 @@ import fastJWT from 'fast-jwt';
 export default class LoginPacket extends DataPacket {
     public static NetID = Identifiers.LoginPacket;
 
+    /**
+     * The client's xbox live ID.
+     */
     public XUID!: string;
     public identity!: string;
+
+    /**
+     * The client's username.
+     */
     public displayName!: string;
     public protocol!: number;
     public identityPublicKey!: string;

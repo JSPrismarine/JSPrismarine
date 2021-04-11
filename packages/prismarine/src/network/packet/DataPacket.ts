@@ -5,6 +5,9 @@ const SENDER_SHIFT = 10;
 const RECEIVER_SHIFT = 12;
 const SUBCLIENT_MASK = 0x03;
 export default class DataPacket extends PacketBinaryStream {
+    /**
+     * The packet's network ID.
+     */
     public static NetID: number;
 
     private encoded = false;
@@ -21,7 +24,12 @@ export default class DataPacket extends PacketBinaryStream {
         return this.encoded;
     }
 
-    public getName() {
+    /**
+     * Get the DataPacket's name.
+     *
+     * @returns The packet's name
+     */
+    public getName(): string {
         return this.constructor.name;
     }
 
@@ -47,6 +55,9 @@ export default class DataPacket extends PacketBinaryStream {
         this.receiverSubId = (header >> RECEIVER_SHIFT) & SUBCLIENT_MASK;
     }
 
+    /**
+     * Decode the packet from a network serialized buffer.
+     */
     public decodePayload() {}
 
     public encode() {
@@ -62,6 +73,9 @@ export default class DataPacket extends PacketBinaryStream {
         );
     }
 
+    /**
+     * Encode the packet to a network serialized buffer.
+     */
     public encodePayload() {}
 
     public getAllowBatching() {
