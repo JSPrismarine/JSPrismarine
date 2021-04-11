@@ -315,10 +315,21 @@ export default class Player extends Human {
     public isPlayer(): boolean {
         return true;
     }
+
+    /**
+     * Check if the `Player` is an operator.
+     *
+     * @returns `true` if this player is an operator otherwise `false`.
+     */
     public isOp(): boolean {
         return this.getServer().getPermissionManager().isOp(this.getName());
     }
 
+    /**
+     * Check if the `Player` is sprinting.
+     *
+     * @returns `true` if this player is sprinting otherwise `false`.
+     */
     public isSprinting() {
         return this.sprinting;
     }
@@ -372,6 +383,15 @@ export default class Player extends Human {
         this.onGround = val;
     }
 
+    /**
+     * Set the position.
+     *
+     * @remarks
+     * This will notify the player's client about the position change.
+     *
+     * @param position The position
+     * @param type The movement type
+     */
     public async setPosition(position: Vector3, type: MovementType = MovementType.Normal) {
         await this.setX(position.getX());
         await this.setY(position.getY());
@@ -385,6 +405,6 @@ export default class Player extends Human {
     }
 
     public getCurrentChunk() {
-        return this.currentChunk;
+        return this.currentChunk!;
     }
 }

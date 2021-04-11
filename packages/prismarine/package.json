@@ -12,7 +12,7 @@
     },
     "scripts": {
         "build": "tsc --build src",
-        "build:docs": "typedoc --tsconfig ./src/tsconfig.json ./src/Prismarine.ts --out ./docs"
+        "build:docs": "typedoc"
     },
     "keywords": [
         "javascript",

@@ -13,7 +13,11 @@ import World from '../world/World';
 
 // All entities will extend this base class
 export default class Entity extends Position {
+    /**
+     * The entity's namespace ID.
+     */
     protected static MOB_ID: string;
+
     public static runtimeIdCount = 0n;
 
     private runtimeId: bigint;
@@ -100,6 +104,11 @@ export default class Entity extends Position {
     /**
      * Spawn the entity.
      * @param player optional - if specified, only send the packet to that player
+     *
+     * @remarks
+     * `motion`, `pitch` & `yaw` is unimplemented.
+     *
+     * @beta
      */
     public async sendSpawn(player?: Player) {
         const players: Player[] = player

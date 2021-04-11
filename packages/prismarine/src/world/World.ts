@@ -206,7 +206,7 @@ export default class World {
     /**
      * Sends a world event packet to all the viewers in the position chunk.
      *
-     * @param position - world positon
+     * @param position - world position
      * @param worldEvent - event identifier
      * @param data
      */
@@ -223,7 +223,7 @@ export default class World {
     }
 
     /**
-     * Returns a chunk from minecraft block positions x and z.
+     * Returns a chunk from a block position's x and z coordinates.
      */
     public async getChunkAt(bx: number, bz: number): Promise<Chunk> {
         return this.getChunk(bx >> 4, bz >> 4);
@@ -242,11 +242,14 @@ export default class World {
         return new Vector3(z, y + 2, z);
     }
 
+    /**
+     * Set the world's spawn position.
+     *
+     * @param pos The position as a `Vector3`.
+     */
     public setSpawnPosition(pos: Vector3) {
         this.spawn = pos;
     }
-
-    public broadcastPacket(packet: DataPacket, targets?: Player[]): void {}
 
     // TODO: move this?
     public async useItemOn(

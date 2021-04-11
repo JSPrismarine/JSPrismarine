@@ -1,0 +1,6 @@
+{
+    "entryPoints": ["./src/Prismarine.ts"],
+    "tsconfig": "./src/tsconfig.json",
+    "includes": ["./src"],
+    "out": "./docs"
+}
