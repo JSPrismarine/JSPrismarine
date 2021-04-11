@@ -8,8 +8,7 @@ dist/
 /plugins/
 /builds/
 /worlds/
-/src/resources/
-/docs/
+docs/
 config.yaml
 ops.json
 banned-players.json
