@@ -1,6 +1,7 @@
 import * as Blocks from './block/Blocks';
 import * as Entities from './entity/Entities';
 import * as Events from './events/Events';
+import * as Items from './item/Items';
 import * as Math from './math/Math';
 import * as Protocol from './network/Protocol';
 import * as Utils from './utils/Utils';
@@ -28,5 +29,6 @@ export {
     PlayerConnection,
     Utils,
     PluginApi,
-    Blocks
+    Blocks,
+    Items
 };

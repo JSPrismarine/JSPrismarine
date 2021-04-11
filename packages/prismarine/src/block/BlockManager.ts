@@ -16,21 +16,21 @@ export default class BlockManager {
     }
 
     /**
-     * OnEnable hook
+     * OnEnable hook.
      */
     public async onEnable() {
         await this.importBlocks();
     }
 
     /**
-     * OnDisable hook
+     * OnDisable hook.
      */
     public async onDisable() {
         this.blocks.clear();
     }
 
     /**
-     * Get block by namespaced  id
+     * Get block by namespaced ID.
      */
     public getBlock(name: string): Block {
         if (!this.blocks.has(name) && !this.javaBlocks.has(name)) {
@@ -41,7 +41,7 @@ export default class BlockManager {
     }
 
     /**
-     * Get block by numeric id
+     * Get block by numeric ID.
      */
     public getBlockById(id: number): Block {
         if (!BlockIdsType[id]) {
@@ -52,7 +52,7 @@ export default class BlockManager {
     }
 
     /**
-     * Get block by numeric id and damage value
+     * Get block by numeric id and meta value.
      */
     public getBlockByIdAndMeta(id: number, meta: number): Block {
         const block = this.getBlocks().find((a) => a.id === id && a.meta === meta);
@@ -62,16 +62,20 @@ export default class BlockManager {
     }
 
     /**
-     * Get all blocks
+     * Get all blocks.
+     *
+     * @returns all registered blocks.
      */
     public getBlocks(): Block[] {
         return Array.from(this.blocks.values());
     }
 
     /**
-     * Registers block from block class
+     * Register a block.
+     *
+     * @param block The block
      */
-    public async registerClassBlock(block: Block) {
+    public async registerBlock(block: Block) {
         try {
             this.blocks.get(block.name);
             this.getBlockByIdAndMeta(block.getId(), block.getMeta());
@@ -97,7 +101,7 @@ export default class BlockManager {
         const timer = new Timer();
 
         // Dynamically register blocks
-        await Promise.all(Object.entries(Blocks).map(async ([, block]) => this.registerClassBlock(new block())));
+        await Promise.all(Object.entries(Blocks).map(async ([, block]) => this.registerBlock(new block())));
 
         this.server
             .getLogger()
