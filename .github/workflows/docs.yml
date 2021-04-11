@@ -23,4 +23,4 @@ jobs:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
                   publish_dir: ./packages/prismarine/docs
                   enable_jekyll: false
-                  cname: code.prismarine.dev
+                  cname: docs.prismarine.dev
