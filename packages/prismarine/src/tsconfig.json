@@ -6,5 +6,5 @@
         "typeRoots": ["../node_modules/@types", "./@types"]
     },
     "exclude": ["**/*.test.*"],
-    "references": [{ "path": "../../raknet/src" }, { "path": "../../color-parser/src" }]
+    "references": [{ "path": "../../raknet/src" }, { "path": "../../color-parser/src" }, { "path": "../../nbt/src" }]
 }

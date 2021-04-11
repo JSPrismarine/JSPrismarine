@@ -1,9 +1,9 @@
+import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
+
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { BlockToolType } from '../block/BlockToolType';
-import { ByteOrder } from '../nbt/ByteOrder';
 import { ItemEnchantmentType } from './ItemEnchantmentType';
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
-import NBTReader from '../nbt/NBTReader';
 import PacketBinaryStream from '../network/PacketBinaryStream';
 
 export interface ItemProps {
@@ -151,7 +151,7 @@ export default class Item {
             const version = stream.readByte();
 
             try {
-                const nbtReader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
+                const nbtReader = new NBTReader(stream, ByteOrder.ByteOrder.LITTLE_ENDIAN);
                 nbtReader.setUseVarint(true);
                 nbt = nbtReader.parse();
             } catch (e) {
