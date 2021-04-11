@@ -6,6 +6,7 @@ import * as Math from './math/Math';
 import * as Protocol from './network/Protocol';
 import * as Utils from './utils/Utils';
 
+import BaseProvider from './world/providers/BaseProvider';
 import Block from './block/Block';
 import Chat from './chat/Chat';
 import Config from './config/Config';
@@ -19,6 +20,7 @@ import PluginApi from './plugin/api/PluginApi';
 import Server from './Server';
 
 export {
+    BaseProvider,
     Block,
     Blocks,
     Chat,

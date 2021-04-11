@@ -27,8 +27,21 @@ export default class Entity extends Position {
     private runtimeId: bigint;
 
     private server: Server;
-    // TODO: do not expose and make API instead
+
+    /**
+     * @remarks
+     * TODO: proper manager
+     *
+     * @deprecated
+     */
     private readonly metadata: MetadataManager = new MetadataManager();
+
+    /**
+     * @remarks
+     * TODO: proper manager
+     *
+     * @deprecated
+     */
     private readonly attributes: AttributeManager = new AttributeManager();
 
     /**
@@ -80,6 +93,9 @@ export default class Entity extends Position {
         this.metadata.setString(MetadataFlag.NAMETAG, name);
     }
 
+    /**
+     * @deprecated
+     */
     public setDataFlag(propertyId: number, flagId: number, value = true, propertyType = FlagType.LONG) {
         // All generic flags are written as Longs (bigints) 64bit
         const flagId64 = BigInt(flagId);
@@ -90,18 +106,30 @@ export default class Entity extends Position {
         }
     }
 
+    /**
+     * @deprecated
+     */
     public getDataFlag(propertyId: number, flagId: bigint) {
         return ((this.metadata.getPropertyValue(propertyId) as bigint) & (1n << flagId)) > 0;
     }
 
+    /**
+     * @deprecated
+     */
     public setGenericFlag(flagId: number, value = true) {
         this.setDataFlag(flagId >= 64 ? 94 : MetadataFlag.INDEX, flagId % 64, value, FlagType.LONG);
     }
 
+    /**
+     * @deprecated
+     */
     public getAttributeManager(): AttributeManager {
         return this.attributes;
     }
 
+    /**
+     * @deprecated
+     */
     public getMetadataManager(): MetadataManager {
         return this.metadata;
     }
@@ -153,7 +181,8 @@ export default class Entity extends Position {
 
     /**
      * Set entity's position and notify the clients.
-     * @param position the position
+     *
+     * @param position The position
      */
     public async setPosition(position: Vector3) {
         await this.setX(position.getX(), true);
@@ -191,7 +220,7 @@ export default class Entity extends Position {
      * This will silently fail on non-client-controlled entities.
      *
      * @example
-     * Send hello world to a client:
+     * Send "Hello World!" to a client:
      *
      * ```ts
      * entity.sendMessage('Hello World!');
@@ -202,6 +231,11 @@ export default class Entity extends Position {
      */
     public sendMessage(message: string, type: TextType = TextType.Raw) {}
 
+    /**
+     * Get the entity's position.
+     *
+     * @returns The entity's position
+     */
     public getPosition(): Vector3 {
         return new Vector3(this.getX(), this.getY(), this.getZ());
     }
@@ -210,31 +244,31 @@ export default class Entity extends Position {
      * Set the x position.
      *
      * @param x The x coordinate
-     * @param preventMove If true the client won't be notified about the position change
+     * @param suppress If true the client won't be notified about the position change
      */
-    public async setX(x: number, preventMove?: boolean) {
+    public async setX(x: number, suppress?: boolean) {
         super.setX.bind(this)(x);
-        if (preventMove && !this.isPlayer()) await this.sendPosition();
+        if (suppress && !this.isPlayer()) await this.sendPosition();
     }
     /**
      * Set the y position.
      *
      * @param y The y coordinate
-     * @param preventMove If true the client won't be notified about the position change
+     * @param suppress If true the client won't be notified about the position change
      */
-    public async setY(y: number, preventMove?: boolean) {
+    public async setY(y: number, suppress?: boolean) {
         super.setY.bind(this)(y);
-        if (preventMove && !this.isPlayer()) await this.sendPosition();
+        if (!suppress && !this.isPlayer()) await this.sendPosition();
     }
     /**
      * Set the z position.
      *
      * @param z The z coordinate
-     * @param preventMove If true the client won't be notified about the position change
+     * @param suppress If true the client won't be notified about the position change
      */
-    public async setZ(z: number, preventMove?: boolean) {
+    public async setZ(z: number, suppress?: boolean) {
         super.setZ.bind(this)(z);
-        if (preventMove && !this.isPlayer()) await this.sendPosition();
+        if (!suppress && !this.isPlayer()) await this.sendPosition();
     }
 
     /**
@@ -302,14 +336,14 @@ export default class Entity extends Position {
     /**
      * Returns the nearest entity from the current entity.
      *
+     * @remarks
      * TODO: Customizable radius
-     * TODO: amount of results
      *
      * @param entities optional, the entities to compare the distance between
      *
      * @beta
      */
-    public getNearestEntity(entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!) {
+    public getNearestEntity(entities: Entity[] = this.getWorld().getEntities()!) {
         const pos = new Vector3(this.getX(), this.getY(), this.getZ());
         const dist = (a: Vector3, b: Vector3) =>
             Math.sqrt((b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2);
@@ -332,6 +366,10 @@ export default class Entity extends Position {
      * Get entities within radius of current entity.
      *
      * @param radius number
+     *
+     * @returns The entities within the specified radius sorted
+     *
+     * @beta
      */
     public async getNearbyEntities(radius: number): Promise<Entity[]> {
         const entities = this.getWorld().getEntities();
@@ -358,6 +396,7 @@ export default class Entity extends Position {
             return false;
         });
 
+        // TODO: sort entities based on distance
         return res;
     }
 }

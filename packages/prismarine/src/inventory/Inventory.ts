@@ -1,7 +1,11 @@
 import Air from '../block/blocks/Air';
 import ContainerEntry from './ContainerEntry';
 
-// TODO: viewer logic
+/**
+ * Inventory.
+ *
+ * @public
+ */
 export default class Inventory {
     private readonly slots: number;
     /**

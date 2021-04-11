@@ -6,6 +6,11 @@ import minifyJson from 'strip-json-comments';
 import path from 'path';
 import util from 'util';
 
+/**
+ * Ban manager.
+ *
+ * @public
+ */
 export default class BanManager {
     private readonly server: Server;
     private readonly banned: Map<
