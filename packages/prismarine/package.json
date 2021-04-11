@@ -12,7 +12,8 @@
     },
     "scripts": {
         "build": "tsc --build src",
-        "build:docs": "typedoc"
+        "build:docs": "typedoc",
+        "watch:docs": "typedoc --watch"
     },
     "keywords": [
         "javascript",

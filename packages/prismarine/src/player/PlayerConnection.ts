@@ -103,6 +103,11 @@ export default class PlayerConnection {
         await this.needNewChunks();
     }
 
+    /**
+     * Notify a client about change(s) to the adventure settings.
+     *
+     * @param player The client-controlled entity
+     */
     public async sendSettings(player?: Player): Promise<void> {
         const target = player ?? this.player;
         const pk = new AdventureSettingsPacket();
@@ -215,7 +220,8 @@ export default class PlayerConnection {
     /**
      * Clear the currently loaded and loading chunks.
      *
-     * Used for changing dimension etc.
+     * @remarks
+     * Usually used for changing dimension, world, etc.
      */
     public async clearChunks() {
         this.loadedChunks.clear();
@@ -272,6 +278,8 @@ export default class PlayerConnection {
 
     /**
      * Sets the item in the player hand.
+     *
+     * @param item The entity.
      */
     public async sendHandItem(item: ContainerEntry): Promise<void> {
         const pk = new MobEquipmentPacket();
@@ -291,15 +299,25 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
-    public async sendTime(time: number): Promise<void> {
+    /**
+     * Set the client's current tick.
+     *
+     * @param tick The tick
+     */
+    public async sendTime(tick: number): Promise<void> {
         const pk = new SetTimePacket();
-        pk.time = time;
+        pk.time = tick;
         await this.sendDataPacket(pk);
     }
 
-    public async sendGamemode(mode: number): Promise<void> {
+    /**
+     * Set the client's gamemode.
+     *
+     * @param gamemode the numeric gamemode ID
+     */
+    public async sendGamemode(gamemode: number): Promise<void> {
         const pk = new SetPlayerGameTypePacket();
-        pk.gamemode = mode;
+        pk.gamemode = gamemode;
         await this.sendDataPacket(pk);
     }
 
@@ -396,7 +414,11 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
-    // Updates the player view distance
+    /**
+     * Set the client's maximum view distance.
+     *
+     * @param distance The view distance
+     */
     public async setViewDistance(distance: number): Promise<void> {
         this.player.viewDistance = distance;
         const pk = new ChunkRadiusUpdatedPacket();
@@ -420,6 +442,17 @@ export default class PlayerConnection {
         await this.sendDataPacket(pk);
     }
 
+    /**
+     * Send a chat message to the client.
+     *
+     * @remarks
+     * Refactor this completely.
+     *
+     * @param message The message
+     * @param xuid The source xuid
+     * @param needsTranslation If the TextType requires translation
+     * @param type The text type
+     */
     public async sendMessage(message: string, xuid = '', needsTranslation = false, type = TextType.Raw): Promise<void> {
         if (!message) throw new Error('A message is required');
 

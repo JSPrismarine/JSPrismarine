@@ -3,6 +3,9 @@ import DataPacket from './DataPacket';
 import Server from '../../Server';
 import Zlib from 'zlib';
 
+/**
+ * @internal
+ */
 export default class BatchPacket extends DataPacket {
     public static NetID = 0xfe;
 
