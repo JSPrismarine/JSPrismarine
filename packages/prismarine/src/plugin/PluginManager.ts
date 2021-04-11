@@ -8,6 +8,11 @@ import fs from 'fs';
 import path from 'path';
 import unzipper from 'unzipper';
 
+/**
+ * Plugin manager.
+ *
+ * @public
+ */
 export default class PluginManager {
     private readonly server: Server;
     private readonly plugins = new Map();
@@ -61,6 +66,8 @@ export default class PluginManager {
 
     /**
      * Register a new plugin and download the required dependencies.
+     *
+     * @param id The plugin's path
      */
     private async registerPlugin(id: string): Promise<PluginFile | null> {
         if (id === '.extracted') return null;
@@ -204,6 +211,8 @@ export default class PluginManager {
 
     /**
      * Deregister a plugin.
+     *
+     * @param id The plugin's path
      */
     private async deregisterPlugin(id: string) {
         const plugin: PluginFile = this.plugins.get(id);

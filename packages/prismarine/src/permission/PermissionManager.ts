@@ -11,6 +11,11 @@ interface OpType {
     name: string;
 }
 
+/**
+ * Permission manager.
+ *
+ * @public
+ */
 export default class PermissionManager {
     private readonly server: Server;
     private readonly ops: Set<string> = new Set();
@@ -46,10 +51,10 @@ export default class PermissionManager {
     }
 
     /**
-     * Set player permissions.
+     * Set a player's permissions.
      *
-     * NOTE: This will not be saved to the permissions.json
-     * file as that is to be handled by the plugin author in a plugin-specific file.
+     * @remarks
+     * This will not be saved to the permissions.json file.
      */
     public setPermissions(player: Player, permissions: string[]) {
         this.permissions.set(player.getName(), permissions ?? []);

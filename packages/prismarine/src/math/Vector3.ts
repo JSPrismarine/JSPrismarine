@@ -1,5 +1,10 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
+/**
+ * 3D Vector.
+ *
+ * @public
+ */
 export default class Vector3 {
     /**
      * The x coordinate.
