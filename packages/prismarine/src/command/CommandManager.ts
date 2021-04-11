@@ -23,7 +23,7 @@ export default class CommandManager {
     }
 
     /**
-     * OnEnable hook
+     * OnEnable hook.
      */
     public async onEnable() {
         const timer = new Timer();
@@ -65,7 +65,7 @@ export default class CommandManager {
     }
 
     /**
-     * OnDisable hook
+     * OnDisable hook.
      */
     public async onDisable() {
         this.commands.clear();
@@ -102,15 +102,17 @@ export default class CommandManager {
     }
 
     /**
-     * Get all enabled commands
+     * Get all enabled commands.
      */
     public getCommands(): Map<string, Command> {
         return this.commands;
     }
 
     /**
-     * Get a list of all command variants
-     * EXCLUDING legacy commands
+     * Get a list of all command variants.
+     *
+     * @remarks
+     * This is EXCLUDING legacy commands.
      */
     public getCommandsList(): Array<[string, CommandNode<Player>, CommandArgument[][]]> {
         const parseNode = (node: CommandNode<Player>): any[] => {

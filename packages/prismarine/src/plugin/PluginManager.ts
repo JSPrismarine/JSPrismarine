@@ -17,7 +17,7 @@ export default class PluginManager {
     }
 
     /**
-     * OnEnable hook
+     * OnEnable hook.
      */
     public async onEnable() {
         // Create plugin folder
@@ -49,7 +49,7 @@ export default class PluginManager {
     }
 
     /**
-     * OnDisable hook
+     * OnDisable hook.
      */
     public async onDisable() {
         await Promise.all(
@@ -60,7 +60,7 @@ export default class PluginManager {
     }
 
     /**
-     * Register a new plugin and download the required dependencies
+     * Register a new plugin and download the required dependencies.
      */
     private async registerPlugin(id: string): Promise<PluginFile | null> {
         if (id === '.extracted') return null;
@@ -203,7 +203,7 @@ export default class PluginManager {
     }
 
     /**
-     * Deregister a plugin
+     * Deregister a plugin.
      */
     private async deregisterPlugin(id: string) {
         const plugin: PluginFile = this.plugins.get(id);
@@ -222,7 +222,7 @@ export default class PluginManager {
     }
 
     /**
-     * Return enabled plugins
+     * Return enabled plugins.
      */
     public getPlugins() {
         return Array.from(this.plugins.values());
