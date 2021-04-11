@@ -2,6 +2,9 @@ import Entity from '../entity/Entity';
 import Player from '../player/Player';
 
 /**
+ * Parse target selector argument.
+ *
+ * @remarks
  * A target selector is made up of 3 parts:
  *
  * - First there's the `@` (at symbol) part,
@@ -11,12 +14,16 @@ import Player from '../player/Player';
  * this specifies what kind of entities we should query for
  * and in what way.
  *
-- Thirdly there's the arguments,
+ * - Thirdly there's the arguments,
  * they are split up in a comma-separated list in the
  * argument=value format.
  *
  * This results in an input similar to:
  * `@e[type=player,gamemode=creative,limit=3]`
+ *
+ * @returns The entities matching the target query
+ *
+ * @public
  */
 const ParseTargetSelector = ({
     input,
