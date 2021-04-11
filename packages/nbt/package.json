@@ -1,0 +1,26 @@
+{
+    "name": "@jsprismarine/nbt",
+    "version": "0.1.0-rc.49",
+    "description": "Minecraft: Bedrock Edition NBT parser/writer",
+    "main": "./dist/NBT.js",
+    "types": "./dist/NBT.d.ts",
+    "funding": "https://github.com/sponsors/JSPrismarine",
+    "scripts": {
+        "build": "tsc --build src"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "nodejs",
+        "raknet"
+    ],
+    "author": "JSPrismarine",
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/nbt",
+    "devDependencies": {
+        "typescript": "4.2.4"
+    },
+    "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
+}

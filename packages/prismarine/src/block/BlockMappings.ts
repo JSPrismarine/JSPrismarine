@@ -1,8 +1,7 @@
+import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
+
 import BedrockData from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from '../nbt/ByteOrder';
-import NBTReader from '../nbt/NBTReader';
-import NBTTagCompound from '../nbt/NBTTagCompound';
 
 export interface LegacyId {
     id: number;
@@ -24,7 +23,7 @@ export default class BlockMappings {
                 new BinaryStream(
                     BedrockData.block_states // Vanilla states
                 ),
-                ByteOrder.LITTLE_ENDIAN
+                ByteOrder.ByteOrder.LITTLE_ENDIAN
             );
             resolve(reader.parseList());
         });
