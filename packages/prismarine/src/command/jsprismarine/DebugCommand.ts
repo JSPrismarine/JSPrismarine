@@ -1,5 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
-import { CommandDispatcher, argument, literal, string } from '@jsprismarine/brigadier';
+import { CommandDispatcher, argument, greedyString, literal, string } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
 import Player from '../../player/Player';
@@ -8,7 +8,7 @@ export default class DebugCommand extends Command {
     public constructor() {
         super({
             id: 'jsprismarine:debug',
-            description: 'Debug output',
+            description: 'Debug output.',
             permission: 'jsprismarine.command.debug'
         });
     }
@@ -18,7 +18,7 @@ export default class DebugCommand extends Command {
             literal('debug')
                 .then(
                     argument('action', string()).then(
-                        argument('value', string()).executes(async (context) => {
+                        argument('value', greedyString()).executes(async (context) => {
                             const source = context.getSource() as Player;
                             const action = context.getArgument('action') as string;
                             const value = context.getArgument('value') as string;
@@ -36,6 +36,13 @@ export default class DebugCommand extends Command {
                                     const world = source.getServer().getWorldManager().getWorldByName(value)!;
                                     await source.setWorld(world);
                                     return `Moved ${source.getFormattedUsername()} to ${world.getName()}`;
+                                }
+                                case 'setConfig': {
+                                    const config = value.split(' ')[0];
+                                    const data = value.replace(`${config} `, '');
+
+                                    (source.getServer().getConfig() as any)[config] = data;
+                                    return `Set config ${config} to ${data}`;
                                 }
                                 default:
                                     throw new Error('Invalid action!');
@@ -71,6 +78,11 @@ export default class DebugCommand extends Command {
                             )
                         );
                     }
+
+                    await source.sendMessage(`§dConfig§r:`);
+                    await source.sendMessage(`  - online-mode: ${source.getServer().getConfig().getOnlineMode()}`);
+                    await source.sendMessage(`  - max-players: ${source.getServer().getConfig().getMaxPlayers()}`);
+                    await source.sendMessage(`  - motd: ${source.getServer().getConfig().getMotd()}`);
                 })
         );
     }
