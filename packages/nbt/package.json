@@ -22,5 +22,8 @@
     "devDependencies": {
         "typescript": "4.2.4"
     },
-    "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
+    "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0",
+    "dependencies": {
+        "@jsprismarine/jsbinaryutils": "^2.1.8"
+    }
 }
