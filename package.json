@@ -22,6 +22,7 @@
         "build": "lerna run build",
         "build:docs": "lerna run build:docs",
         "build:server": "lerna run --scope=@jsprismarine/server build",
+        "watch:docs": "lerna run watch:docs",
         "bootstrap": "lerna bootstrap",
         "package": "pkg package.json --out-path ./builds/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",

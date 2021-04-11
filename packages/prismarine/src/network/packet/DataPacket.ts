@@ -4,6 +4,12 @@ const PID_MASK = 0x3ff;
 const SENDER_SHIFT = 10;
 const RECEIVER_SHIFT = 12;
 const SUBCLIENT_MASK = 0x03;
+
+/**
+ * The base class for all packets.
+ *
+ * @public
+ */
 export default class DataPacket extends PacketBinaryStream {
     /**
      * The packet's network ID.

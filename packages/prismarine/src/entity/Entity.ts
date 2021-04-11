@@ -63,7 +63,7 @@ export default class Entity extends Position {
     }
 
     /**
-     * Fired every thick from the event subscription in the constructor.
+     * Fired every tick from the event subscription in the constructor.
      *
      * @param tick current tick
      */
@@ -125,13 +125,9 @@ export default class Entity extends Position {
         const pk = new AddActorPacket();
         pk.runtimeEntityId = this.getRuntimeId();
         pk.type = (this.constructor as any).MOB_ID; // TODO
-        pk.x = this.getX();
-        pk.y = this.getY();
-        pk.z = this.getZ();
+        pk.position = this;
         // TODO: motion
-        pk.motionX = 0;
-        pk.motionY = 0;
-        pk.motionZ = 0;
+        pk.motion = new Vector3(0, 0, 0);
         pk.pitch = 0;
         pk.yaw = 0;
         pk.headYaw = 0;

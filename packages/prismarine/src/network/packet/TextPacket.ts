@@ -2,12 +2,25 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import TextType from '../type/TextType';
 
+/**
+ * Packet for chat messages, announcements etc.
+ *
+ * @public
+ */
 export default class TextPacket extends DataPacket {
     public static NetID = Identifiers.TextPacket;
 
+    /**
+     * The type of the chat message.
+     * Eg. Chat, Announcement, Json, etc.
+     */
     public type!: TextType;
     public needsTranslation!: boolean;
     public sourceName!: string;
+
+    /**
+     * The actual chat message.
+     */
     public message!: string;
     public parameters: string[] = [];
     public xuid!: string;
