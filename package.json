@@ -20,6 +20,7 @@
         "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run build:server && npm run start:dev\"",
         "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run build:server && npm run start:dev",
         "build": "lerna run build",
+        "build:docs": "lerna run build:docs",
         "build:server": "lerna run --scope=@jsprismarine/server build",
         "bootstrap": "lerna bootstrap",
         "package": "pkg package.json --out-path ./builds/",
