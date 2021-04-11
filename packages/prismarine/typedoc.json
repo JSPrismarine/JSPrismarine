@@ -2,5 +2,9 @@
     "entryPoints": ["./src/Prismarine.ts"],
     "tsconfig": "./src/tsconfig.json",
     "includes": ["./src"],
-    "out": "./docs"
+    "readme": "../../README.md",
+    "out": "./docs",
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "excludeInternal": true
 }

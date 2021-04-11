@@ -11,7 +11,11 @@ import TextType from '../network/type/TextType';
 import Vector3 from '../math/Vector3';
 import World from '../world/World';
 
-// All entities will extend this base class
+/**
+ * The base class for all entities including `Player`.
+ *
+ * @public
+ */
 export default class Entity extends Position {
     /**
      * The entity's namespace ID.
@@ -60,6 +64,7 @@ export default class Entity extends Position {
 
     /**
      * Fired every thick from the event subscription in the constructor.
+     *
      * @param tick current tick
      */
     public async update(tick: number) {
@@ -184,9 +189,20 @@ export default class Entity extends Position {
     }
 
     /**
-     * Send a message to an entity (unused).
-     * @param message the message
-     * @param type the text type
+     * Send a message to an entity.
+     *
+     * @remarks
+     * This will silently fail on non-client-controlled entities.
+     *
+     * @example
+     * Send hello world to a client:
+     *
+     * ```ts
+     * entity.sendMessage('Hello World!');
+     * ```
+     *
+     * @param message The message
+     * @param type The text type
      */
     public sendMessage(message: string, type: TextType = TextType.Raw) {}
 
@@ -196,34 +212,39 @@ export default class Entity extends Position {
 
     /**
      * Set the x position.
-     * @param n x
-     * @param preventMove if true the client won't be notified about the position change
+     *
+     * @param x The x coordinate
+     * @param preventMove If true the client won't be notified about the position change
      */
-    public async setX(n: number, preventMove?: boolean) {
-        super.setX.bind(this)(n);
+    public async setX(x: number, preventMove?: boolean) {
+        super.setX.bind(this)(x);
         if (preventMove && !this.isPlayer()) await this.sendPosition();
     }
     /**
      * Set the y position.
-     * @param n y
-     * @param preventMove if true the client won't be notified about the position change
+     *
+     * @param y The y coordinate
+     * @param preventMove If true the client won't be notified about the position change
      */
-    public async setY(n: number, preventMove?: boolean) {
-        super.setY.bind(this)(n);
+    public async setY(y: number, preventMove?: boolean) {
+        super.setY.bind(this)(y);
         if (preventMove && !this.isPlayer()) await this.sendPosition();
     }
     /**
      * Set the z position.
-     * @param n z
-     * @param preventMove if true the client won't be notified about the position change
+     *
+     * @param z The z coordinate
+     * @param preventMove If true the client won't be notified about the position change
      */
-    public async setZ(n: number, preventMove?: boolean) {
-        super.setZ.bind(this)(n);
+    public async setZ(z: number, preventMove?: boolean) {
+        super.setZ.bind(this)(z);
         if (preventMove && !this.isPlayer()) await this.sendPosition();
     }
 
     /**
      * Check if the entity is a player.
+     *
+     * @returns `true` if the entity is client-controlled otherwise `false`
      */
     public isPlayer(): boolean {
         return false;
@@ -231,6 +252,8 @@ export default class Entity extends Position {
 
     /**
      * Check if the entity is a console instance.
+     *
+     * @returns `true` if the entity is console-controlled otherwise `false`
      */
     public isConsole(): boolean {
         return false;
