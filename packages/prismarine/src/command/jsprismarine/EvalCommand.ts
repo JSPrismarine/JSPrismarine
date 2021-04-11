@@ -1,7 +1,9 @@
-import Command from '../Command';
-import Player from '../../player/Player';
+/* eslint-disable promise/prefer-await-to-then */
+import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
-export default class PluginsCommand extends Command {
+import Command from '../Command';
+
+export default class EvalCommand extends Command {
     public constructor() {
         super({
             id: 'jsprismarine:eval',
@@ -10,9 +12,15 @@ export default class PluginsCommand extends Command {
         });
     }
 
-    public async execute(sender: Player, args: any[]) {
-        const res = await Object.getPrototypeOf(async () => {}).constructor(args.join(' '))();
-        await sender.sendMessage(`Result: §e${res}`);
-        return res;
+    public async register(dispatcher: CommandDispatcher<any>) {
+        dispatcher.register(
+            literal('eval').then(
+                argument('script', greedyString()).executes(async (context) => {
+                    const script = context.getArgument('script') as string;
+
+                    return Object.getPrototypeOf(async () => {}).constructor(script)();
+                })
+            )
+        );
     }
 }

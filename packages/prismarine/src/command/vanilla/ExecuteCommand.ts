@@ -9,7 +9,7 @@ export default class ExecuteCommand extends Command {
     public constructor() {
         super({
             id: 'minecraft:execute',
-            description: 'Executes a command on a player target',
+            description: 'Executes a command on a player target.',
             permission: 'minecraft.command.execute'
         });
     }
