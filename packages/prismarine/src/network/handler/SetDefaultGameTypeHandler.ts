@@ -12,7 +12,7 @@ export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefau
             return;
         }
 
-        server.getConfig().setGamemode(packet.gamemode);
+        server.getConfig().setGamemode(packet.gamemode, true);
         await Promise.all(
             server
                 .getPlayerManager()
