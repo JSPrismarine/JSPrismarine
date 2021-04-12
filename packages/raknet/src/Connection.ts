@@ -153,7 +153,7 @@ export default class Connection {
      * @param reason the reason message, optional
      */
     public disconnect(reason?: string): void {
-        this.listener.removeConnection(this, reason ?? '');
+        void this.listener.removeConnection(this, reason ?? '');
     }
 
     /**
