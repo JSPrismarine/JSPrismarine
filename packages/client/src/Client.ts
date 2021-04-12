@@ -162,7 +162,7 @@ export default class Client extends EventEmitter implements RakNetListener {
         // Update session status
         this.connecting = true;
         // This.status = ConnectionStatus.Connected;
-        this.connection = new Connection(this, DEF_MTU_SIZE, this.targetAddress);
+        this.connection = new Connection(this as any, DEF_MTU_SIZE, this.targetAddress);
 
         return packet.getBuffer();
     }
@@ -213,7 +213,7 @@ export default class Client extends EventEmitter implements RakNetListener {
         return this.address;
     }
 
-    public removeConnection(connection: Connection, reason: string): void {
+    public async removeConnection(connection: Connection, reason?: string): Promise<void> {
         throw new Error('Method not implemented.');
     }
 }

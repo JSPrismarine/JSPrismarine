@@ -4,7 +4,7 @@
         "lib": ["es2020", "esnext"],
         "module": "commonjs",
         "moduleResolution": "node",
-        "allowJs": true,
+        "allowJs": false,
         "strict": true,
         "sourceMap": true,
         "forceConsistentCasingInFileNames": true,

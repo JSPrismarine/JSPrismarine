@@ -24,9 +24,8 @@
     },
     "dependencies": {
         "@jsprismarine/prismarine": "^0.1.0-rc.49",
-        "chalk": "^4.1.0",
-        "node-fetch": "^2.6.1",
-        "semver": "^7.3.4"
+        "node-fetch": "2.6.1",
+        "semver": "7.3.4"
     },
     "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
 }

@@ -20,9 +20,8 @@
         "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run build:server && npm run start:dev\"",
         "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run build:server && npm run start:dev",
         "build": "lerna run build",
-        "build:docs": "lerna run build:docs",
+        "build:docs": "typedoc",
         "build:server": "lerna run --scope=@jsprismarine/server build",
-        "watch:docs": "lerna run watch:docs",
         "bootstrap": "lerna bootstrap",
         "package": "pkg package.json --out-path ./builds/",
         "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
@@ -161,6 +160,7 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "devDependencies": {
+        "@strictsoftware/typedoc-plugin-monorepo": "^0.4.2",
         "@types/jest": "26.0.22",
         "@types/node": "14.14.37",
         "coveralls": "3.1.0",
@@ -172,6 +172,7 @@
         "prettier": "2.2.1",
         "ts-jest": "26.5.4",
         "ts-node": "9.1.1",
+        "typedoc": "^0.20.35",
         "typescript": "4.2.4",
         "xo": "0.38.2",
         "yarnhook": "0.5.1"
