@@ -14,7 +14,7 @@ import InetAddress from './utils/InetAddress';
 import NACK from './protocol/NACK';
 import NewIncomingConnection from './protocol/NewIncomingConnection';
 import Packet from './protocol/Packet';
-import RakNetListener from './RakNetListener';
+import type RakNetListener from './RakNetListener';
 
 export enum Priority {
     NORMAL,
