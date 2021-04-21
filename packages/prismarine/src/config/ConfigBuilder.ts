@@ -125,10 +125,10 @@ export default class ConfigBuilder {
     /**
      * Returns the value of the key.
      */
-    public get(key: string, defaults: any): any {
+    public get(key: string, defaults?: any): any {
         const data = this.getFileData();
         let result = _.get(data, key);
-        if (typeof result === 'undefined' && typeof defaults !== 'undefined') {
+        if (defaults && typeof result === 'undefined' && typeof defaults !== 'undefined') {
             const newData = _.set(data, key, defaults);
             this.setFileData(newData);
             result = defaults;
