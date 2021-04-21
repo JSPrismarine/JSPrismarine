@@ -17,19 +17,21 @@
     "scripts": {
         "start": "node ./packages/server/dist/Server.js --warning --circular",
         "start:dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./packages/server/dist/Server.js",
-        "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run build:server && npm run start:dev\"",
-        "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run build:server && npm run start:dev",
-        "build": "lerna run build",
+        "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run server:build && npm run start:dev\"",
+        "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run server:server && npm run start:dev",
+        "build": "npm-run-all build:*",
+        "build:source": "lerna run build",
         "build:docs": "typedoc",
-        "build:server": "lerna run --scope=@jsprismarine/server build",
+        "server:build": "lerna run --scope=@jsprismarine/server build",
         "bootstrap": "lerna bootstrap",
         "package": "pkg package.json --out-path ./builds/",
-        "test": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
-        "test:watch": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
-        "eslint": "xo packages/**/src/",
-        "eslint:format": "xo --fix packages/**/src/",
-        "prettier": "prettier --config .prettierrc packages/**/src/**/*.* --check && prettier --config .prettierrc packages/**/src/**/*.* --check",
-        "prettier:format": "prettier --config .prettierrc packages/**/src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write",
+        "watch:test": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
+        "test": "npm-run-all test:*",
+        "test:jest": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
+        "test:eslint": "xo packages/**/src/",
+        "test:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --check && prettier --config .prettierrc packages/**/src/**/*.* --check",
+        "format:eslint": "xo --fix packages/**/src/",
+        "format:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write",
         "coveralls": "jest --coverage --forceExit --testLocationInResults --silent && cat ./coverage/lcov.info | coveralls"
     },
     "repository": {
@@ -140,7 +142,7 @@
     },
     "husky": {
         "hooks": {
-            "pre-commit": "npm run build && npm run eslint && npm run prettier && npm run test",
+            "pre-commit": "npm run build && npm run test",
             "post-checkout": "yarnhook && lerna bootstrap",
             "post-merge": "yarnhook && lerna bootstrap",
             "post-rewrite": "yarnhook && lerna bootstrap"
@@ -176,6 +178,7 @@
         "jest": "26.6.3",
         "lerna": "4.0.0",
         "nodemon": "2.0.7",
+        "npm-run-all": "^4.1.5",
         "prettier": "2.2.1",
         "ts-jest": "26.5.5",
         "ts-node": "9.1.1",
