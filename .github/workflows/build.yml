@@ -16,7 +16,7 @@ jobs:
             - run: npm install -g lerna
             - run: lerna bootstrap
             - run: npm install
-            - run: npm run build
+            - run: npm run build:source
             - run: npm prune --production
             - run: npm install -g pkg
             - run: npm run package
@@ -32,4 +32,3 @@ jobs:
               with:
                   name: prismarine-x64-win32
                   path: builds/monorepo-win.exe
-
