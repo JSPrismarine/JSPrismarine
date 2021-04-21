@@ -196,8 +196,6 @@
         "@types/node-fetch": "2.5.10",
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.3",
-        "@types/workerpool": "6.0.0",
-        "chalk": "4.1.0",
         "d3-interpolate": "2.0.1",
         "evt": "1.9.13",
         "fast-jwt": "1.1.3",
@@ -214,7 +212,6 @@
         "strip-json-comments": "3.1.1",
         "unzipper": "0.10.11",
         "winston": "3.3.3",
-        "workerpool": "6.1.2",
         "yaml": "2.0.0-3"
     }
 }
