@@ -49,7 +49,7 @@
         "unzipper": "0.10.11",
         "winston": "3.3.3",
         "workerpool": "^6.1.2",
-        "yaml": "2.0.0-3"
+        "yaml": "2.0.0-5"
     },
     "devDependencies": {
         "@types/d3-interpolate": "2.0.0",
