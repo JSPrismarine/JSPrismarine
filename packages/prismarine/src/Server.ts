@@ -29,7 +29,6 @@ import TelemetryManager from './telemetry/TelemeteryManager';
 import { TickEvent } from './events/Events';
 import Timer from './utils/Timer';
 import UpdateSoftEnumPacket from './network/packet/UpdateSoftEnumPacket';
-import WorkerManager from './worker/WorkerManager';
 import WorldManager from './world/WorldManager';
 
 export default class Server {
@@ -53,7 +52,6 @@ export default class Server {
     private readonly chatManager: ChatManager;
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
-    private workerManager: WorkerManager;
     private stopping = false;
 
     /**
@@ -70,7 +68,6 @@ export default class Server {
         this.version = version;
         this.logger = logger!;
         this.config = config;
-        this.workerManager = new WorkerManager(this);
         this.telemetryManager = new TelemetryManager(this);
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
@@ -90,7 +87,6 @@ export default class Server {
 
     private async onEnable(): Promise<void> {
         this.config.onEnable();
-        await this.workerManager.onEnable();
         await BlockMappings.initMappings();
         await this.packetRegistry.onEnable();
         await this.permissionManager.onEnable();
@@ -111,7 +107,6 @@ export default class Server {
         await this.pluginManager.onDisable();
         await this.permissionManager.onDisable();
         await this.packetRegistry.onDisable();
-        await this.workerManager.onDisable();
         this.config.onDisable();
     }
 
@@ -458,13 +453,6 @@ export default class Server {
      */
     public getBanManager(): BanManager {
         return this.banManager;
-    }
-
-    /**
-     * Returns the worker manager
-     */
-    public getWorkerManager(): WorkerManager {
-        return this.workerManager;
     }
 
     /**

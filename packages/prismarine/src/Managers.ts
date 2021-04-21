@@ -11,7 +11,6 @@ import PluginManager from './plugin/PluginManager';
 import QueryManager from './query/QueryManager';
 import TelemeteryManager from './telemetry/TelemeteryManager';
 import WindowManager from './inventory/WindowManager';
-import WorkerManager from './worker/WorkerManager';
 import WorldManager from './world/WorldManager';
 
 export {
@@ -28,6 +27,5 @@ export {
     QueryManager,
     TelemeteryManager,
     WindowManager,
-    WorkerManager,
     WorldManager
 };
