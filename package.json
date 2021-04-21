@@ -96,6 +96,8 @@
             "@typescript-eslint/no-unnecessary-type-assertion": 0,
             "@typescript-eslint/no-array-constructor": 0,
             "@typescript-eslint/no-inferrable-types": 0,
+            "@typescript-eslint/no-unused-vars": 1,
+            "@typescript-eslint/no-unsafe-argument": 1,
             "no-inferrable-types": 0,
             "prefer-destructuring": 0,
             "new-cap": 0,
