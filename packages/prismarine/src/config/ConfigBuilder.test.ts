@@ -4,7 +4,7 @@ import path from 'path';
 describe('config', () => {
     describe('ConfigBuilder', () => {
         it('should properly read from the config file', () => {
-            const config = new ConfigBuilder(path.join(process.cwd(), '.test/', 'config.yaml'));
+            const config = new ConfigBuilder(path.join(process.cwd(), '.test/', 'test.yaml'));
 
             expect(config.get('string_var')).toStrictEqual('hello world');
             expect(config.get('number_var')).toStrictEqual(1337);
