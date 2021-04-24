@@ -207,7 +207,7 @@
         "prismarine-chunk": "1.22.0",
         "prismarine-provider-anvil": "2.3.2",
         "semver": "7.3.4",
-        "set-interval-async": "2.0.1",
+        "set-interval-async": "2.0.3",
         "simplex-noise": "2.4.0",
         "strip-json-comments": "3.1.1",
         "unzipper": "0.10.11",
