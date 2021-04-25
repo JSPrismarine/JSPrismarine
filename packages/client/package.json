@@ -26,7 +26,7 @@
     "dependencies": {
         "@jsprismarine/prismarine": "^0.1.0-rc.49",
         "@jsprismarine/raknet": "^0.1.0-rc.49",
-        "set-interval-async": "2.0.1"
+        "set-interval-async": "2.0.3"
     },
     "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
 }
