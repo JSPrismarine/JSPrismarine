@@ -170,7 +170,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "devDependencies": {
         "@strictsoftware/typedoc-plugin-monorepo": "0.4.2",
-        "@types/jest": "26.0.22",
+        "@types/jest": "26.0.23",
         "@types/node": "14.14.41",
         "coveralls": "3.1.0",
         "cross-env": "7.0.3",
