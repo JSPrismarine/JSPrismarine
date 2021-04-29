@@ -171,7 +171,7 @@
     "devDependencies": {
         "@strictsoftware/typedoc-plugin-monorepo": "0.4.2",
         "@types/jest": "26.0.23",
-        "@types/node": "14.14.42",
+        "@types/node": "14.14.43",
         "coveralls": "3.1.0",
         "cross-env": "7.0.3",
         "husky": "4.3.8",
