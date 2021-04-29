@@ -9,9 +9,24 @@ interface CommandProps {
 }
 
 export default class Command {
+    /**
+     * The command's id in a `[namespace]:[id]` format.
+     */
     public id: string;
+
+    /**
+     * The command's description.
+     */
     public description: string;
+
+    /**
+     * The command's permission.
+     */
     public permission?: string;
+
+    /**
+     * The command's aliases.
+     */
     public aliases?: string[];
 
     public constructor({ id = '', description = '', permission = '', aliases = [] }: CommandProps) {
@@ -21,9 +36,14 @@ export default class Command {
         this.aliases = aliases;
     }
 
+    /**
+     * Register the command.
+     */
     public async register(dispatcher: CommandDispatcher<any>): Promise<void> {}
 
     /**
+     * Run the command.
+     *
      * @deprecated Replaced with "Command.register"
      */
     public async execute(sender: Player, args: any[]): Promise<any> {}
