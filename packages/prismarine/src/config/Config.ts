@@ -106,12 +106,12 @@ export default class Config {
      * Set the default gamemode.
      *
      * @param gamemode the gamemode
-     * @param write if the value should be written to the `config.yml` file
+     * @param commit if the value should be written to the `config.yml` file
      */
-    public setGamemode(gamemode: number, write = false) {
+    public setGamemode(gamemode: number, commit = false) {
         this.gamemode = Gamemode.getGamemodeName(gamemode).toLowerCase();
 
-        if (write) this.configBuilder.set('gamemode', this.gamemode);
+        if (commit) this.configBuilder.set('gamemode', this.gamemode);
     }
 
     /**
@@ -127,12 +127,12 @@ export default class Config {
      * Set the motd.
      *
      * @param motd the gamemode
-     * @param write if the value should be written to the `config.yml` file
+     * @param commit if the value should be written to the `config.yml` file
      */
-    public setMotd(motd: string, write = false) {
+    public setMotd(motd: string, commit = false) {
         this.motd = motd;
 
-        if (write) this.configBuilder.set('motd', this.motd);
+        if (commit) this.configBuilder.set('motd', this.motd);
     }
 
     /**
