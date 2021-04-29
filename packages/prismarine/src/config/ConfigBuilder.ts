@@ -54,6 +54,9 @@ const TypeDefaults = {
     yaml: ' '
 };
 
+/**
+ * General config-file handler.
+ */
 export default class ConfigBuilder {
     private type: 'yaml' | 'json';
     private path: string;
@@ -90,6 +93,11 @@ export default class ConfigBuilder {
         return this.path;
     }
 
+    /**
+     * Get the config format (eg. type).
+     *
+     * @returns either `yaml` or `json`
+     */
     public getType(): 'yaml' | 'json' {
         return this.type;
     }
@@ -149,18 +157,23 @@ export default class ConfigBuilder {
 
     /**
      * Sets a key - value pair in config.
+     *
+     * @returns true if the value was set successfully
      */
     public set(key: string, value: any) {
         const data = this.getFileData();
         const newData = _.set(data, key, value);
         this.setFileData(newData);
+
+        // TODO
+        return true;
     }
 
     /**
      * Check if config value exists.
      *
      * @param key the config key
-     * @returns true if the config contains that key.
+     * @returns true if the config contains that key
      */
     public has(key: string): boolean {
         const data = this.getFileData();
@@ -172,7 +185,7 @@ export default class ConfigBuilder {
      * Delete a config value.
      *
      * @param key the config key
-     * @returns true if the deletion was successful.
+     * @returns true if the deletion was successful
      */
     public del(key: string): boolean {
         const data = this.getFileData();
