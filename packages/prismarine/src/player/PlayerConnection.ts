@@ -75,6 +75,7 @@ export default class PlayerConnection {
                     `Packet §b${packet.constructor.name}§r to §b${this.player.getRuntimeId()}§r failed with: ${error}`,
                     'PlayerConnection/sendDataPacket'
                 );
+            this.server.getLogger()?.debug(error.stack, 'PlayerConnection/sendDataPacket');
             return;
         }
 

@@ -26,6 +26,7 @@
         "bootstrap": "lerna bootstrap",
         "package": "pkg package.json --out-path ./builds/",
         "watch:test": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
+        "watch:docs": "typedoc --watch",
         "test": "npm-run-all test:*",
         "test:jest": "jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
         "test:eslint": "xo packages/**/src/",
@@ -104,6 +105,10 @@
             "@typescript-eslint/no-unused-vars": 1,
             "@typescript-eslint/no-non-null-asserted-optional-chain": 1,
             "@typescript-eslint/no-non-null-assertion": 0,
+            "max-params": [
+                1,
+                5
+            ],
             "no-redeclare": 1,
             "no-inferrable-types": 0,
             "prefer-destructuring": 0,
@@ -205,7 +210,6 @@
         "node-fetch": "2.6.1",
         "node-machine-id": "1.1.12",
         "prismarine-chunk": "1.22.0",
-        "prismarine-provider-anvil": "2.3.2",
         "semver": "7.3.4",
         "set-interval-async": "2.0.3",
         "simplex-noise": "2.4.0",

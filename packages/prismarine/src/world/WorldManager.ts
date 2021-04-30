@@ -1,6 +1,6 @@
-import Anvil from './providers/anvil/Anvil';
 import Filesystem from './providers/filesystem/Filesystem';
 import GeneratorManager from './GeneratorManager';
+import LevelDB from './providers/leveldb/LevelDB';
 import Provider from './providers/Provider';
 import Server from '../Server';
 import World from './World';
@@ -33,7 +33,7 @@ export default class WorldManager {
 
     public async onEnable(): Promise<void> {
         this.addProvider('Filesystem', Filesystem);
-        this.addProvider('Anvil', Anvil);
+        this.addProvider('LevelDB', LevelDB);
 
         const defaultWorld = this.server.getConfig().getLevelName();
         if (!defaultWorld) {
