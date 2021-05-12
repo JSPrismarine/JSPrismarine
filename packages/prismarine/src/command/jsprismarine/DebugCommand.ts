@@ -3,6 +3,7 @@ import { CommandDispatcher, argument, greedyString, literal, string } from '@jsp
 
 import Command from '../Command';
 import Player from '../../player/Player';
+import { WorldData } from '../../world/WorldManager';
 
 export default class DebugCommand extends Command {
     public constructor() {
@@ -25,7 +26,7 @@ export default class DebugCommand extends Command {
 
                             switch (action) {
                                 case 'loadWorld': {
-                                    const worldData = source.getServer().getConfig().getWorlds()[value];
+                                    const worldData = source.getServer().getConfig().getWorlds()[value] as WorldData;
                                     const world = await source
                                         .getServer()
                                         .getWorldManager()

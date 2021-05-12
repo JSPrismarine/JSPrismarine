@@ -19,7 +19,7 @@ export default class SayCommand extends Command {
             literal('say').then(
                 argument('message', greedyString()).executes(async (context) => {
                     const source = context.getSource() as Player;
-                    const message = context.getArgument('message');
+                    const message = context.getArgument('message') as string;
 
                     const chat = new Chat(source, `§5[${source.getName()}] ${message}`);
                     await source.getServer().getChatManager().send(chat);

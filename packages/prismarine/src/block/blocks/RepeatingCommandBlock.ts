@@ -15,7 +15,7 @@ export default class RepeatingCommandBlock extends Solid {
     }
 
     public getBlastResistance() {
-        return 18000000;
+        return 18_000_000;
     }
 
     public isPartOfCreativeInventory() {

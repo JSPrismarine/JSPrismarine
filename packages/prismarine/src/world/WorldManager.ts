@@ -8,18 +8,18 @@ import cwd from '../utils/cwd';
 import fs from 'fs';
 import path from 'path';
 
-interface WorldData {
+export interface WorldData {
     seed: number;
     provider: string;
     generator: string;
 }
 
 export default class WorldManager {
-    private readonly worlds: Map<string, World> = new Map();
+    private readonly worlds: Map<string, World> = new Map() as Map<string, World>;
     private defaultWorld!: World;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
-    private providers: Map<string, any> = new Map(); // TODO: this should be a manager
+    private providers: Map<string, any> = new Map() as Map<string, any>; // TODO: this should be a manager
 
     public constructor(server: Server) {
         this.server = server;
@@ -75,7 +75,7 @@ export default class WorldManager {
      * Get all providers.
      */
     public getProviders(): Map<string, Provider> {
-        return this.providers;
+        return this.providers as Map<string, Provider>;
     }
 
     /**

@@ -29,7 +29,7 @@ export default class ItemManager {
     }
 
     public getItem(name: string): Item {
-        return this.items.get(name);
+        return this.items.get(name) as Item;
     }
 
     /**
@@ -45,7 +45,7 @@ export default class ItemManager {
      * @returns all registered items.
      */
     public getItems(): Item[] {
-        return Array.from(this.items.values());
+        return Array.from(this.items.values()) as Item[];
     }
 
     /**

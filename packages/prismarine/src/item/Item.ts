@@ -31,7 +31,7 @@ export default class Item {
         this.name = name;
         if (meta) this.meta = meta;
 
-        this.networkId = ItemIdMap[name];
+        this.networkId = ItemIdMap[name] as number;
         // if (!this.networkId) console.log(name, id, this.networkId);
     }
 

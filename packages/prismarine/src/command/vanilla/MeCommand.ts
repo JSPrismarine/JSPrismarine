@@ -20,7 +20,7 @@ export default class MeCommand extends Command {
             literal('me').then(
                 argument('message', greedyString()).executes(async (context) => {
                     const source = context.getSource() as Player;
-                    const message = context.getArgument('message');
+                    const message = context.getArgument('message') as string;
                     const messageToSend = `*${source.getName()}: ${message}`;
 
                     const event = new ChatEvent(new Chat(source, messageToSend));

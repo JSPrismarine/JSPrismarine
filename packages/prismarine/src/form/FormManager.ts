@@ -1,7 +1,7 @@
 import IForm from './IForm';
 
 export default class FormManager {
-    private forms: Map<number, IForm> = new Map();
+    private forms: Map<number, IForm> = new Map() as Map<number, IForm>;
 
     public addForm(form: IForm): number {
         const id = this.forms.size;

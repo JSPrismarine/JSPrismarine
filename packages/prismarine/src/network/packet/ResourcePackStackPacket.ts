@@ -9,7 +9,7 @@ export default class ResourcePackStackPacket extends DataPacket {
     public resourcePackStack = [];
 
     // TODO: make a holder / manager
-    public experiments: Map<string, boolean> = new Map();
+    public experiments: Map<string, boolean> = new Map() as Map<string, boolean>;
     public experimentsAlreadyEnabled!: boolean;
 
     public encodePayload() {

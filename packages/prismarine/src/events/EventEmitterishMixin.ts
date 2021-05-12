@@ -49,8 +49,8 @@ export function EventEmitterishMixin<EventTypes extends [string, any], TBase ext
 
             instanceProperties.set(this, {
                 evt: getEvt({
-                    constructorArgs: args as any,
-                    instance: this as any
+                    constructorArgs: args as ConstructorParameters<TBase>,
+                    instance: this as InstanceType<TBase>
                 }),
                 ctx: Evt.newCtx()
             });

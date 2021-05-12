@@ -1,6 +1,6 @@
-import DataPacket from '../packet/DataPacket';
-import Player from '../../player/Player';
-import Server from '../../Server';
+import type DataPacket from '../packet/DataPacket';
+import type Player from '../../player/Player';
+import type Server from '../../Server';
 
 export default interface PacketHandler<T extends DataPacket> {
     /**
