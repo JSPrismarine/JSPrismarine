@@ -11,7 +11,7 @@ export default class Inventory {
     /**
      * (Slot number - Item in the slot)
      */
-    private readonly content: Map<number, ContainerEntry> = new Map();
+    private readonly content: Map<number, ContainerEntry> = new Map() as Map<number, ContainerEntry>;
 
     public constructor(slots = 0, items: ContainerEntry[] = []) {
         this.slots = slots;

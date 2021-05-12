@@ -34,9 +34,9 @@ export default class Config {
         this.configBuilder = new ConfigBuilder(path.join(cwd(), 'config.yaml'));
         (global as any).log_level = this.configBuilder.get('log-level', 'info');
 
-        this.port = this.configBuilder.get('port', 19132);
-        this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0');
-        this.levelName = this.configBuilder.get('level-name', 'world');
+        this.port = this.configBuilder.get('port', 19132) as number;
+        this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0') as string;
+        this.levelName = this.configBuilder.get('level-name', 'world') as string;
         this.worlds = this.configBuilder.get('worlds', {
             world: {
                 generator: 'overworld',
@@ -44,19 +44,19 @@ export default class Config {
                 seed: SeedGenerator()
             }
         });
-        this.maxPlayers = this.configBuilder.get('max-players', 20);
-        this.gamemode = this.configBuilder.get('gamemode', 'survival');
-        this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!');
-        this.viewDistance = this.configBuilder.get('view-distance', 10);
-        this.onlineMode = this.configBuilder.get('online-mode', true);
-        this.enableEval = this.configBuilder.get('enable-eval', false);
-        this.enableTelemetry = this.configBuilder.get('enable-telemetry', true);
-        this.telemetryUrls = this.configBuilder.get('telemetry-urls', ['https://telemetry.prismarine.dev']);
-        this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7);
-        this.experimentalFlags = this.configBuilder.get('experimental-flags', []);
+        this.maxPlayers = this.configBuilder.get('max-players', 20) as number;
+        this.gamemode = this.configBuilder.get('gamemode', 'survival') as string;
+        this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!') as string;
+        this.viewDistance = this.configBuilder.get('view-distance', 10) as number;
+        this.onlineMode = this.configBuilder.get('online-mode', true) as boolean;
+        this.enableEval = this.configBuilder.get('enable-eval', false) as boolean;
+        this.enableTelemetry = this.configBuilder.get('enable-telemetry', true) as boolean;
+        this.telemetryUrls = this.configBuilder.get('telemetry-urls', ['https://telemetry.prismarine.dev']) as string[];
+        this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
+        this.experimentalFlags = this.configBuilder.get('experimental-flags', []) as string[];
 
-        this.updateRepo = this.configBuilder.get('update-repo', 'JSPrismarine/JSPrismarine');
-        this.updateChannel = this.configBuilder.get('update-channel', 'release');
+        this.updateRepo = this.configBuilder.get('update-repo', 'JSPrismarine/JSPrismarine') as string;
+        this.updateChannel = this.configBuilder.get('update-channel', 'release') as string;
     }
 
     public onDisable() {}

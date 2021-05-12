@@ -47,7 +47,7 @@ export default class Block {
         this.name = name;
         this.javaName = javaName ?? name;
 
-        this.networkId = BlockIdMap[parentName ?? name];
+        this.networkId = BlockIdMap[parentName ?? name] as number;
         // if (!this.networkId) console.log(name, id, this.networkId);
     }
 

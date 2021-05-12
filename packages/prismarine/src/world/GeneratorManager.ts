@@ -4,7 +4,7 @@ import type Generator from './Generator';
 import type Server from '../Server';
 
 export default class GeneratorManager {
-    private readonly generators: Map<string, Generator> = new Map();
+    private readonly generators: Map<string, Generator> = new Map() as Map<string, Generator>;
 
     public constructor(server: Server) {
         this.registerClassGenerator('flat', Generators.Flat, server);
