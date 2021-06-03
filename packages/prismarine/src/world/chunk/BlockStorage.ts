@@ -67,7 +67,6 @@ export default class BlockStorage {
 
         // Encoding example
         // https://github.com/NiclasOlofsson/MiNET/blob/4acbccb6dedae066547f8486a2ace1c9d6db0084/src/MiNET/MiNET/Worlds/SubChunk.cs#L294
-        const words: number[] = new Array(wordsPerChunk);
         let position = 0;
         for (let w = 0; w < wordsPerChunk; w++) {
             let word = 0;
@@ -77,11 +76,7 @@ export default class BlockStorage {
 
                 position++;
             }
-            words[w] = word;
-        }
-
-        for (const w of words) {
-            stream.writeLInt(w);
+            stream.writeLInt(word);
         }
 
         // Write palette entries as runtime ids
