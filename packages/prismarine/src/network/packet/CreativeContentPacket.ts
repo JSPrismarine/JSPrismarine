@@ -9,11 +9,16 @@ export default class CreativeContentPacket extends DataPacket {
     public entries: any[] = [];
 
     public encodePayload() {
+        this.writeUnsignedVarInt(0);
+        /* Disabled for now cause it is not tested
+
         this.writeUnsignedVarInt(this.entries.length);
 
         this.entries.forEach((entry: CreativeContentEntry) => {
             entry.networkSerialize(this);
         });
+
+         */
     }
 
     public decodePayload() {
