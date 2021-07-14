@@ -207,7 +207,7 @@
         "@types/git-rev-sync": "2.0.0",
         "@types/node-fetch": "2.5.11",
         "@types/set-interval-async": "1.0.0",
-        "@types/unzipper": "0.10.3",
+        "@types/unzipper": "0.10.4",
         "d3-interpolate": "2.0.1",
         "evt": "1.9.13",
         "fast-jwt": "1.2.0",
