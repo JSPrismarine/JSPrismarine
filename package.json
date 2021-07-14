@@ -203,7 +203,7 @@
         "@jsprismarine/bedrock-data": "1.16.210-c",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
         "@jsprismarine/jsbinaryutils": "2.1.8",
-        "@types/d3-interpolate": "2.0.0",
+        "@types/d3-interpolate": "2.0.2",
         "@types/git-rev-sync": "2.0.0",
         "@types/node-fetch": "2.5.10",
         "@types/set-interval-async": "1.0.0",
