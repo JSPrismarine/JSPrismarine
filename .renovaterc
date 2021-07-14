@@ -3,5 +3,6 @@
         "@bigmichi1",
         ":automergePatch",
         ":automergeMinor"
-    ]
+    ],
+    "automerge": true
 }
