@@ -81,7 +81,7 @@ export default class World {
         this.generator = generator;
         this.config = config ?? {};
 
-        this.gameruleManager.setGamerule(GameRules.ShowCoordinates, true);
+        this.gameruleManager.setGamerule(GameRules.ShowCoordinates, true, true);
 
         // Create player data folder
         if (!fs.existsSync(path.join(cwd(), 'worlds', name, '/playerdata'))) {
@@ -101,7 +101,7 @@ export default class World {
             // if (metaData.spawn) this.setSpawnPosition(metaData.spawn);
 
             if (metaData.gameRules)
-                metaData.gameRules.forEach(([name, value]) => this.gameruleManager.setGamerule(name, value));
+                metaData.gameRules.forEach(([name, [value, editable]]) => this.gameruleManager.setGamerule(name, value, editable));
         } catch {} */
 
         this.provider.setWorld(this);

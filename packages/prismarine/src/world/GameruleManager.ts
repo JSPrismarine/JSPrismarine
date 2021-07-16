@@ -25,31 +25,31 @@ export const GameRules = {
 
 export default class GameruleManager {
     private readonly server: Server;
-    private readonly rules: Map<string, boolean | number> = new Map() as Map<string, boolean | number>;
+    private readonly rules: Map<string, [boolean | number, boolean]> = new Map() as Map<string, [boolean | number, boolean]>;
 
     public constructor(server: Server) {
         this.server = server;
 
         // Set default values
-        this.setGamerule('CommandBlockOutput', true);
-        this.setGamerule('DoDayLightCycle', true);
-        this.setGamerule('DoEntityDrops', true);
-        this.setGamerule('DoFireTick', true);
-        this.setGamerule('DoMobLoot', true);
-        this.setGamerule('DoMobSpawning', true);
-        this.setGamerule('DoTileDrops', true);
-        this.setGamerule('DoWeatherCycle', true);
-        this.setGamerule('DrowingDamage', true);
-        this.setGamerule('FallDamage', true);
-        this.setGamerule('FireDamage', true);
-        this.setGamerule('KeepInventory', false);
-        this.setGamerule('MobGriefing', true);
-        this.setGamerule('NaturalRegeneration', true);
-        this.setGamerule('PVP', true);
-        this.setGamerule('ShowCoordinates', false);
-        this.setGamerule('RandomTickSpeed', 3);
-        this.setGamerule('TNTExplodes', true);
-        this.setGamerule('sendCommandFeedback', true);
+        this.setGamerule('CommandBlockOutput', true, true);
+        this.setGamerule('DoDayLightCycle', true, true);
+        this.setGamerule('DoEntityDrops', true, true);
+        this.setGamerule('DoFireTick', true, true);
+        this.setGamerule('DoMobLoot', true, true);
+        this.setGamerule('DoMobSpawning', true, true);
+        this.setGamerule('DoTileDrops', true, true);
+        this.setGamerule('DoWeatherCycle', true, true);
+        this.setGamerule('DrowingDamage', true, true);
+        this.setGamerule('FallDamage', true, true);
+        this.setGamerule('FireDamage', true, true);
+        this.setGamerule('KeepInventory', false, true);
+        this.setGamerule('MobGriefing', true, true);
+        this.setGamerule('NaturalRegeneration', true, true);
+        this.setGamerule('PVP', true, true);
+        this.setGamerule('ShowCoordinates', false, true);
+        this.setGamerule('RandomTickSpeed', 3, true);
+        this.setGamerule('TNTExplodes', true, true);
+        this.setGamerule('sendCommandFeedback', true, true);
     }
 
     /**
@@ -58,8 +58,8 @@ export default class GameruleManager {
      * @param name the gamerule's name
      * @param value the value, boolean OR number
      */
-    public setGamerule(name: string, value: boolean | number): void {
-        this.rules.set(name.toLowerCase(), value);
+    public setGamerule(name: string, value: boolean | number, editable: boolean): void {
+        this.rules.set(name.toLowerCase(), [value, editable]);
     }
 
     /**
@@ -85,8 +85,9 @@ export default class GameruleManager {
         };
 
         stream.writeUnsignedVarInt(this.getGamerules().size);
-        for (const [name, value] of this.getGamerules()) {
+        for (const [name, [value, editable]] of this.getGamerules()) {
             stream.writeString(name.toLowerCase());
+            stream.writeBool(editable);
             switch (typeof value) {
                 case 'boolean':
                     stream.writeByte(1); // Maybe value type ??

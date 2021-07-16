@@ -1,6 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import type Block from '../block/Block';
 import type Item from '../item/Item';
+import { item_id_map } from '@jsprismarine/bedrock-data';
 
 export default class ContainerEntry {
     private item: Item | Block;
@@ -39,6 +40,9 @@ export default class ContainerEntry {
         stream.writeVarInt(0);
 
         // TODO: check for additional data
+        if (itemstack.getNetworkId() == item_id_map["minecraft:shield"]) {
+            stream.writeVarLong(BigInt(0));
+        }
     }
 
     public getItem() {

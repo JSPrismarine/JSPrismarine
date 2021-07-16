@@ -118,6 +118,8 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeString('');
         this.writeBool(false); // New inventory system
+
+        this.writeString('JSPrismarine');
     }
 
     /*
