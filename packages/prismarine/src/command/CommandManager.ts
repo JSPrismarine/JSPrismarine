@@ -238,7 +238,7 @@ export default class CommandManager {
                 res = await Promise.all(this.dispatcher.execute(parsed));
             }
 
-            const feedback = ((sender as any) as Entity)
+            const feedback = (sender as any as Entity)
                 .getWorld()
                 .getGameruleManager()
                 .getGamerule('sendCommandFeedback');

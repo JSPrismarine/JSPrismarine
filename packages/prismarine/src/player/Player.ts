@@ -92,7 +92,7 @@ export default class Player extends Human {
                 (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
                 evt.getChat().getChannel() === `*.player.${this.getName()}`
             )
-                await this.sendMessage(evt.getChat().getMessage(), (evt.getChat().getType() as number) as TextType);
+                await this.sendMessage(evt.getChat().getMessage(), evt.getChat().getType() as number as TextType);
         });
     }
 
