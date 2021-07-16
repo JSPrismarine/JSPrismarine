@@ -26,7 +26,7 @@ export default class GameruleCommand extends Command {
                         if (value === 'true') value = true;
                         if (value === 'false') value = false;
 
-                        source.getWorld().getGameruleManager().setGamerule(name, value);
+                        source.getWorld().getGameruleManager().setGamerule(name, value, true);
                         // TODO: notify clients about gamerule change
 
                         const res = `Set ${name} to ${value}`;
