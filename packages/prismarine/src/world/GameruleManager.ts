@@ -25,7 +25,10 @@ export const GameRules = {
 
 export default class GameruleManager {
     private readonly server: Server;
-    private readonly rules: Map<string, [boolean | number, boolean]> = new Map() as Map<string, [boolean | number, boolean]>;
+    private readonly rules: Map<string, [boolean | number, boolean]> = new Map() as Map<
+        string,
+        [boolean | number, boolean]
+    >;
 
     public constructor(server: Server) {
         this.server = server;
