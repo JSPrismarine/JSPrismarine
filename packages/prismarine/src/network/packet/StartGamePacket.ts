@@ -32,8 +32,11 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(this.gamemode);
 
         this.playerPos.networkSerialize(this);
-        this.writeLFloat(this.pith);
-        this.writeLFloat(this.yaw);
+
+        // TODO: is resulting null... fixme...
+        this.writeLFloat(this.pith ?? 0);
+        // TODO: is resulting undefined... fixme...
+        this.writeLFloat(this.yaw ?? 0);
 
         this.writeVarInt(0); // Seed
 
@@ -51,7 +54,9 @@ export default class StartGamePacket extends DataPacket {
         this.writeUnsignedVarInt(this.worldSpawnPos.getY());
         this.writeVarInt(this.worldSpawnPos.getZ());
 
-        this.writeBool(false); // Achievement disabled
+        // Recently found that may crash the client
+        // waiting for more info about it
+        this.writeBool(true); // Achievement disabled
 
         this.writeVarInt(0); // Day cycle / time
         this.writeVarInt(0); // Edu edition offer

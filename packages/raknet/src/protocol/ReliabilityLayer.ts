@@ -14,6 +14,15 @@ export enum PacketReliability {
 }
 export default PacketReliability;
 
+export function isOrdered(reliability: number): boolean {
+    return [
+        PacketReliability.UNRELIABLE_SEQUENCED,
+        PacketReliability.RELIABLE_ORDERED,
+        PacketReliability.RELIABLE_SEQUENCED,
+        PacketReliability.RELIABLE_ORDERED_WITH_ACK_RECEIPT
+    ].includes(reliability);
+}
+
 export function isReliable(reliability: number): boolean {
     switch (reliability) {
         case PacketReliability.RELIABLE:

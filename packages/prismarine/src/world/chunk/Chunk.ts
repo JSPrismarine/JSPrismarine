@@ -124,7 +124,7 @@ export default class Chunk {
         const biomeIds = Buffer.alloc(256).fill(0x00);
         stream.writeUnsignedVarInt(biomeIds.byteLength);
         stream.append(biomeIds);
-        stream.writeByte(0); // extra data (MIT)
+        stream.writeUnsignedVarInt(0); // extra data (MIT)
         return stream.getBuffer();
     }
 

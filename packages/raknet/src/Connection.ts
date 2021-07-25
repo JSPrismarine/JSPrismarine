@@ -1,4 +1,4 @@
-import PacketReliability, { isReliable } from './protocol/ReliabilityLayer';
+import PacketReliability, { isOrdered, isReliable, isSequenced } from './protocol/ReliabilityLayer';
 
 import ACK from './protocol/ACK';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
@@ -63,6 +63,10 @@ export default class Connection {
     // Last received sequence number
     private lastSequenceNumber = -1;
     private sendSequenceNumber = 0;
+
+    private highestSequenceIndex: Map<number, number> = new Map();
+    private inputOrderIndex: Map<number, number> = new Map();
+    private inputOrderingQueue: Map<number, Map<number, EncapsulatedPacket>> = new Map();
 
     // Used just for reliable messages
     private sendReliableIndex = 0;
@@ -221,7 +225,7 @@ export default class Connection {
 
         // Handle encapsulated
         for (const packet of dataPacket.packets) {
-            await this.receivePacket(packet);
+            this.receivePacket(packet);
         }
     }
 
@@ -260,40 +264,61 @@ export default class Connection {
         );
     }
 
-    public async receivePacket(packet: EncapsulatedPacket): Promise<void> {
-        if (!isReliable(packet.reliability)) {
-            // Handle the packet directly if it doesn't have a message index
-            await this.handlePacket(packet);
-        } else {
-            const holeCount = this.lastReliableIndex - packet.messageIndex;
-            // console.log('[RAKNET] Waiting on reliableMessageIndex=%d missingDiff=%d datagramNumber=%d', packet.messageIndex, holeCount, this.lastSequenceNumber);
+    public receivePacket(packet: EncapsulatedPacket): void {
+        if (packet.splitCount > 0) {
+            this.handleSplit(packet);
+            return;
+        }
 
-            if (holeCount === 0) {
-                await this.handlePacket(packet);
-                this.lastReliableIndex++;
+        if (isSequenced(packet.reliability)) {
+            if (this.highestSequenceIndex.has(packet.orderChannel)) {
+                const highest = this.highestSequenceIndex.get(packet.orderChannel)!;
+                if (packet.sequenceIndex < highest) {
+                    return;
+                }
 
-                // TODO: Handle the out of order reliable packets
-                // this.receivedReliableQueue.forEach(async (encapsualted) => {
-                //    if ((encapsualted.messageIndex - this.lastReliableIndex) != 1) {
-                //        return false;
-                //    }
-                //    await this.handlePacket(encapsualted);
-                //    console.log(encapsualted.messageIndex)
-                //    this.lastReliableIndex++;
-                // });
-                // this.receivedReliableQueue.clear();
+                this.highestSequenceIndex.set(packet.orderChannel, packet.orderIndex + 1);
+            } else {
+                this.highestSequenceIndex.set(packet.orderChannel, packet.orderIndex);
+            }
+            this.handlePacket(packet);
+        } else if (isOrdered(packet.reliability)) {
+            if (!this.inputOrderIndex.has(packet.orderChannel)) {
+                this.inputOrderIndex.set(packet.orderChannel, 0);
+                this.inputOrderingQueue.set(packet.orderChannel, new Map());
             }
 
-            // Hold in a queue out of order reliable messages
-            // this.receivedReliableQueue.set(packet.messageIndex, packet);
+            const expectedOrderIndex = this.inputOrderIndex.get(packet.orderChannel)!;
+            if (packet.orderIndex == expectedOrderIndex) {
+                this.highestSequenceIndex.set(packet.orderChannel, 0);
+
+                const nextOrderIndex = expectedOrderIndex + 1;
+                this.inputOrderIndex.set(packet.orderChannel, nextOrderIndex);
+
+                this.handlePacket(packet);
+                const outOfOrderQueue = this.inputOrderingQueue.get(packet.orderChannel)!;
+                let i = nextOrderIndex;
+                for (; outOfOrderQueue.has(i); i++) {
+                    const packet = outOfOrderQueue.get(i)!;
+                    this.handlePacket(packet);
+                    outOfOrderQueue.delete(i);
+                }
+
+                this.inputOrderIndex.set(packet.orderChannel, i);
+            } else if (packet.orderIndex > expectedOrderIndex) {
+                this.inputOrderingQueue.get(packet.orderChannel)!.set(packet.orderIndex, packet);
+            } else {
+                return;
+            }
+        } else {
+            this.handlePacket(packet);
         }
     }
 
     public async addEncapsulatedToQueue(packet: EncapsulatedPacket, flags = Priority.NORMAL) {
         if (isReliable(packet.reliability)) {
             packet.messageIndex = this.sendReliableIndex++;
-
-            if (packet.reliability === PacketReliability.RELIABLE_ORDERED) {
+            if (isOrdered(packet.reliability)) {
                 packet.orderIndex = this.channelIndex[packet.orderChannel]++;
             }
         }
@@ -318,17 +343,12 @@ export default class Connection {
                 pk.splitIndex = index;
                 pk.buffer = buffer;
 
-                if (index !== 0) {
+                if (isReliable(pk.reliability)) {
                     pk.messageIndex = this.sendReliableIndex++;
-                }
-
-                // Figure out if the message index differs
-                // from 0 with reliable as reliability
-                // pk.messageIndex = packet.messageIndex
-
-                if (pk.reliability === PacketReliability.RELIABLE_ORDERED) {
-                    pk.orderChannel = packet.orderChannel;
-                    pk.orderIndex = packet.orderIndex;
+                    if (isOrdered(pk.reliability)) {
+                        pk.orderChannel = packet.orderChannel;
+                        pk.orderIndex = packet.orderIndex;
+                    }
                 }
 
                 await this.addToQueue(pk, flags);
@@ -368,11 +388,6 @@ export default class Connection {
      * Encapsulated handling route
      */
     public async handlePacket(packet: EncapsulatedPacket): Promise<void> {
-        if (packet.splitCount > 0) {
-            await this.handleSplit(packet);
-            return;
-        }
-
         const id = packet.buffer.readUInt8();
 
         if (id < 0x80) {
@@ -400,13 +415,15 @@ export default class Connection {
                     dataPacket.decode();
 
                     // Client bots will work just in offline mode
-                    const offlineMode = this.offlineMode;
+                    // TODO: fix offline mode not working as intended
+                    // const offlineMode = this.offlineMode;
+                    // console.log(offlineMode)
 
-                    const serverPort = this.listener.getSocket().address().port;
-                    if (!offlineMode ?? dataPacket.address.getPort() === serverPort) {
-                        this.state = Status.CONNECTED;
-                        this.listener.emit('openConnection', this);
-                    }
+                    // const serverPort = this.listener.getSocket().address().port;
+                    // if (offlineMode && dataPacket.address.getPort() === serverPort) {
+                    this.state = Status.CONNECTED;
+                    this.listener.emit('openConnection', this);
+                    // }
                 }
             } else if (id === Identifiers.DisconnectNotification) {
                 this.disconnect('client disconnect');
@@ -456,27 +473,35 @@ export default class Connection {
     /**
      * Handles a splitted packet.
      */
-    public async handleSplit(packet: EncapsulatedPacket): Promise<void> {
-        if (this.splitPackets.has(packet.splitId)) {
+    public handleSplit(packet: EncapsulatedPacket): void {
+        if (!this.splitPackets.has(packet.splitId)) {
+            this.splitPackets.set(packet.splitId, new Map([[packet.splitIndex, packet]]));
+        } else {
             const value = this.splitPackets.get(packet.splitId)!;
             value.set(packet.splitIndex, packet);
             this.splitPackets.set(packet.splitId, value);
-        } else {
-            this.splitPackets.set(packet.splitId, new Map([[packet.splitIndex, packet]]));
-        }
 
-        // If we have all pieces, put them together
-        const localSplits = this.splitPackets.get(packet.splitId)!;
-        if (localSplits.size === packet.splitCount) {
-            const pk = new EncapsulatedPacket();
-            const stream = new BinaryStream();
-            Array.from(localSplits.values()).forEach((packet) => {
-                stream.append(packet.buffer);
-            });
-            this.splitPackets.delete(packet.splitId);
+            // If we have all pieces, put them together
+            if (value.size === packet.splitCount) {
+                const stream = new BinaryStream();
+                // Ensure the correctness of the buffer orders
+                for (let i = 0; i < value.size; i++) {
+                    const splitPacket = value.get(i)!;
+                    stream.append(splitPacket.buffer);
+                }
 
-            pk.buffer = stream.getBuffer();
-            await this.receivePacket(pk);
+                const pk = new EncapsulatedPacket();
+                pk.buffer = stream.getBuffer();
+                pk.reliability = packet.reliability;
+                if (isOrdered(packet.reliability)) {
+                    pk.orderIndex = packet.orderIndex;
+                    pk.orderChannel = packet.orderChannel;
+                }
+
+                this.splitPackets.delete(packet.splitId);
+
+                this.receivePacket(pk);
+            }
         }
     }
 

@@ -104,7 +104,7 @@ export default class AvailableCommandsPacket extends DataPacket {
     ): void {
         this.writeString(data.commandName);
         this.writeString(data.commandDescription);
-        this.writeByte(data.flags);
+        this.writeLShort(data.flags);
         this.writeByte(data.permission);
         if (data.aliases !== null) {
             this.writeLInt(enumIndexes.get(data.aliases.enumName) ?? -1);

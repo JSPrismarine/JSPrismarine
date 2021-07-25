@@ -23,9 +23,9 @@ export default class BatchPacket extends DataPacket {
     public decodePayload(): void {
         try {
             this.payload = Zlib.inflateRawSync(this.readRemaining(), {
-                chunkSize: 1024 * 1024 * 2
+                maxOutputLength: 1024 * 1024 * 2
             });
-        } catch {
+        } catch (e) {
             this.payload = Buffer.alloc(0);
         }
     }

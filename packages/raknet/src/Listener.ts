@@ -37,6 +37,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
     public constructor(server: any) {
         super();
         this.server = server;
+        this.socket = Dgram.createSocket({ type: 'udp4' });
         this.name = new ServerName(server);
         // Generate a signed random 64 bit GUID
         const uniqueId = Crypto.randomBytes(8).readBigInt64BE();
@@ -48,7 +49,6 @@ export default class Listener extends EventEmitter implements RakNetListener {
      * Creates a packet listener on given address and port.
      */
     public async listen(address: string, port: number): Promise<Listener> {
-        this.socket = Dgram.createSocket({ type: 'udp4' });
         this.socket.on('message', async (buffer: Buffer, rinfo: RemoteInfo) => {
             const token = `${rinfo.address}:${rinfo.port}`;
             if (this.connections.has(token)) {

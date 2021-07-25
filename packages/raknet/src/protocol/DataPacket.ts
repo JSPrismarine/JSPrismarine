@@ -4,7 +4,7 @@ import Packet from './Packet';
 
 export default class DataPacket extends Packet {
     public constructor(buffer?: Buffer) {
-        super(Math.trunc(BitFlags.VALID), buffer);
+        super(BitFlags.VALID, buffer);
     }
 
     public packets: EncapsulatedPacket[] = [];
