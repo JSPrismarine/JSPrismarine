@@ -107,31 +107,41 @@ export default class Item {
     }
 
     public networkSerialize(stream: BinaryStream): void {
+        let tempstream = new BinaryStream();
+
         if (this.getName() === 'minecraft:air') {
             stream.writeVarInt(0);
             return;
         }
 
         stream.writeVarInt(this.getNetworkId());
-        stream.writeVarInt(((this.meta & 0x7fff) << 8) | this.getAmount());
+        stream.writeLShort(this.getAmount());
+        stream.writeUnsignedVarInt(this.meta);
+        stream.writeByte(0);
+        stream.writeVarInt(0);
 
         if (this.nbt !== null) {
             // Write the amount of tags to write
             // (1) according to vanilla
-            stream.writeLShort(0xffff);
-            stream.writeByte(1);
+            tempstream.writeLShort(0xffff);
+            tempstream.writeByte(1);
 
             // Write hardcoded NBT tag
             // TODO: unimplemented NBT.write(nbt, true, true)
         } else {
-            stream.writeLShort(0);
+            tempstream.writeLShort(0);
         }
 
         // CanPlace and canBreak
-        stream.writeVarInt(0);
-        stream.writeVarInt(0);
+        tempstream.writeVarInt(0);
+        tempstream.writeVarInt(0);
 
         // TODO: check for additional data
+        if (this.getNetworkId() === ItemIdMap['minecraft:shield']) {
+            tempstream.writeVarLong(BigInt(0));
+        }
+        stream.writeUnsignedVarInt(tempstream.getBuffer().length);
+        stream.append(tempstream.getBuffer());
     }
 
     public static networkDeserialize(stream: PacketBinaryStream): Item {

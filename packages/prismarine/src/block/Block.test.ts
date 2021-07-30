@@ -4,7 +4,7 @@ import path from 'path';
 
 describe('block', () => {
     describe('Block', () => {
-        it('every block show have unique namespace id', async (done) => {
+        it('every block show have unique namespace id', (done) => {
             jest.setTimeout(35000);
             const IDs: Set<string> = new Set();
             const blocks = fs.readdirSync(path.resolve(__dirname, 'blocks'));

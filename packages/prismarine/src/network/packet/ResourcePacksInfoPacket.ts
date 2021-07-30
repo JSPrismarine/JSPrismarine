@@ -13,6 +13,7 @@ export default class ResourcePacksInfoPacket extends DataPacket {
     public encodePayload() {
         this.writeBool(this.mustAccept);
         this.writeBool(this.hasScripts);
+        this.writeBool(false); // force accept
         this.writeLShort(this.behaviorPackEntries.length);
         for (const _behaviorEntry of this.behaviorPackEntries) {
             // TODO: we don't need them for now

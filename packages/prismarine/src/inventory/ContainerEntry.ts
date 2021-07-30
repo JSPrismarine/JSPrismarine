@@ -13,6 +13,8 @@ export default class ContainerEntry {
     }
 
     public networkSerialize(stream: BinaryStream): void {
+        let tempstream = new BinaryStream();
+
         const itemstack = this.getItem();
 
         if (itemstack.getName() === 'minecraft:air') {
@@ -21,28 +23,32 @@ export default class ContainerEntry {
         }
 
         stream.writeVarInt(itemstack.getNetworkId());
-        stream.writeVarInt(((itemstack.meta & 0x7fff) << 8) | this.getCount());
+        stream.writeLShort(this.getCount());
+        stream.writeUnsignedVarInt(itemstack.meta);
+        stream.writeVarInt(0);
 
         if (itemstack.nbt !== null) {
             // Write the amount of tags to write
             // (1) according to vanilla
-            stream.writeLShort(0xffff);
-            stream.writeByte(1);
+            tempstream.writeLShort(0xffff);
+            tempstream.writeByte(1);
 
             // Write hardcoded NBT tag
             // TODO: unimplemented NBT.write(nbt, true, true)
         } else {
-            stream.writeLShort(0);
+            tempstream.writeLShort(0);
         }
 
         // CanPlace and canBreak
-        stream.writeVarInt(0);
-        stream.writeVarInt(0);
+        tempstream.writeVarInt(0);
+        tempstream.writeVarInt(0);
 
         // TODO: check for additional data
-        if (itemstack.getNetworkId() == item_id_map["minecraft:shield"]) {
-            stream.writeVarLong(BigInt(0));
+        if (itemstack.getNetworkId() === item_id_map['minecraft:shield']) {
+            tempstream.writeVarLong(BigInt(0));
         }
+        stream.writeUnsignedVarInt(tempstream.getBuffer().length);
+        stream.append(tempstream.getBuffer());
     }
 
     public getItem() {

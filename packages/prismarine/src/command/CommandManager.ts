@@ -126,9 +126,7 @@ export default class CommandManager {
             }
 
             const res = Array.from(node.getChildren())
-                .map((node) => {
-                    return parseNode(node);
-                })
+                .map((node) => parseNode(node))
                 .reverse();
 
             return [
@@ -173,12 +171,13 @@ export default class CommandManager {
                 .map((item) => {
                     if (!item[2].length) return `/${item[0]}`;
                     return item[2]
-                        .map((entries) => {
-                            return `/${item[0]} ${entries
-                                .flat(Number.POSITIVE_INFINITY)
-                                .map((argument: any) => argument.getReadableType?.() ?? argument.constructor.name)
-                                .join(' ')}`;
-                        })
+                        .map(
+                            (entries) =>
+                                `/${item[0]} ${entries
+                                    .flat(Number.POSITIVE_INFINITY)
+                                    .map((argument: any) => argument.getReadableType?.() ?? argument.constructor.name)
+                                    .join(' ')}`
+                        )
                         .join(`\n`);
                 })
                 .join('\n')}`;
@@ -239,7 +238,7 @@ export default class CommandManager {
                 res = await Promise.all(this.dispatcher.execute(parsed));
             }
 
-            const feedback = ((sender as any) as Entity)
+            const feedback = (sender as any as Entity)
                 .getWorld()
                 .getGameruleManager()
                 .getGamerule('sendCommandFeedback');

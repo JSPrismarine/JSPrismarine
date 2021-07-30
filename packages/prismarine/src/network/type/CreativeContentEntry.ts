@@ -14,12 +14,12 @@ class CreativeContentEntry {
     }
 
     public networkSerialize(stream: BinaryStream): void {
-        stream.writeVarInt(this.entryId);
+        stream.writeUnsignedVarInt(this.entryId);
         new ContainerEntry({ item: this.item, count: 1 }).networkSerialize(stream);
     }
 
     public static networkDeserialize(stream: PacketBinaryStream): CreativeContentEntry {
-        const entryId = stream.readVarInt();
+        const entryId = stream.readUnsignedVarInt();
         const item = Item.networkDeserialize(stream);
         return new CreativeContentEntry(entryId, item);
     }

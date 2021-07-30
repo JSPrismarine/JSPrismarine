@@ -16,7 +16,7 @@ jest.mock('../Server', () => {
 });
 
 describe('QueryManager', () => {
-    it('handshake', async (done) => {
+    it('handshake', async () => {
         const prismarine = new Server({
             logger: null as any,
             config: null as any,
@@ -37,6 +37,5 @@ describe('QueryManager', () => {
                 'binary'
             ).toString()
         );
-        done();
     });
 });
