@@ -41,7 +41,7 @@
         "live-plugin-manager": "0.15.1",
         "node-fetch": "2.6.1",
         "node-machine-id": "1.1.12",
-        "prismarine-chunk": "1.23.0",
+        "prismarine-chunk": "1.25.0",
         "prismarine-provider-anvil": "2.4.0",
         "set-interval-async": "2.0.3",
         "simplex-noise": "2.4.0",
