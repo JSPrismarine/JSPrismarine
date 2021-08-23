@@ -44,7 +44,7 @@
         "prismarine-chunk": "1.25.0",
         "prismarine-provider-anvil": "2.4.0",
         "set-interval-async": "2.0.3",
-        "simplex-noise": "2.4.0",
+        "simplex-noise": "3.0.0",
         "strip-json-comments": "3.1.1",
         "unzipper": "0.10.11",
         "winston": "3.3.3",
