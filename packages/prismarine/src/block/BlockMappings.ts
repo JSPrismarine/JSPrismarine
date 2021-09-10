@@ -23,22 +23,18 @@ export default class BlockMappings {
                 new BinaryStream(
                     BedrockData.block_states // Vanilla states
                 ),
-                ByteOrder.ByteOrder.LITTLE_ENDIAN
+                ByteOrder.ByteOrder.BIG_ENDIAN
             );
             resolve(reader.parseList());
         });
 
         compound.forEach((state) => {
-            const runtimeId = BlockMappings.runtimeIdAlloc++;
-            if (!state.has('LegacyStates')) return;
+            const blockId = state.getNumber('id', -1);
+            const meta = state.getShort('data', -1);
+            const runtimeId = state.getNumber('runtimeId', -1);
+            const legacyId = (blockId << 6) | meta;
 
-            const legacyStates: Set<NBTTagCompound> = state.getList('LegacyStates', false)!;
-
-            const firstState = legacyStates.values().next().value as NBTTagCompound;
-            const legacyId = firstState.getNumber('id', 0);
-            const legacyMeta = firstState.getShort('val', 0);
-
-            this.registerMapping(runtimeId, legacyId, legacyMeta);
+            this.registerMapping(runtimeId, legacyId, meta);
 
             // TODO: blockstates or whatever this is
             /* legacyStates.forEach((legacyState: NBTTagCompound) => {

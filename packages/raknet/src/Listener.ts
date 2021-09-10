@@ -10,8 +10,6 @@ import OpenConnectionReply1 from './protocol/OpenConnectionReply1';
 import OpenConnectionReply2 from './protocol/OpenConnectionReply2';
 import OpenConnectionRequest1 from './protocol/OpenConnectionRequest1';
 import OpenConnectionRequest2 from './protocol/OpenConnectionRequest2';
-import RakNetListener from './RakNetListener';
-import ServerName from './utils/ServerName';
 import UnconnectedPing from './protocol/UnconnectedPing';
 import UnconnectedPong from './protocol/UnconnectedPong';
 
@@ -22,48 +20,27 @@ const PROTOCOL = 10;
 const RAKNET_TPS = 100;
 const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
-// Listen to packets and then process them
-export default class Listener extends EventEmitter implements RakNetListener {
-    private readonly id: bigint;
-    private name: ServerName;
-    private socket!: Socket;
+export default class Listener extends EventEmitter {
+    private readonly guid: bigint;
+    private readonly socket: Socket;
     private readonly connections: Map<string, Connection> = new Map();
-    private get shutdown() {
-        return false;
-    }
+    private readonly logger: any;
+    private readonly onlineMode: boolean;
 
-    private readonly server: any;
-
-    public constructor(server: any) {
+    // TODO: logger interface
+    public constructor(logger: any, onlineMode = true) {
         super();
-        this.server = server;
+        this.logger = logger;
+        this.onlineMode = onlineMode;
         this.socket = Dgram.createSocket({ type: 'udp4' });
-        this.name = new ServerName(server);
-        // Generate a signed random 64 bit GUID
-        const uniqueId = Crypto.randomBytes(8).readBigInt64BE();
-        this.id = uniqueId;
-        this.name.setServerId(uniqueId);
+        this.socket.on('message', this.handleRaw.bind(this));
+        this.guid = Crypto.randomBytes(8).readBigInt64BE();
     }
 
     /**
      * Creates a packet listener on given address and port.
      */
     public async listen(address: string, port: number): Promise<Listener> {
-        this.socket.on('message', async (buffer: Buffer, rinfo: RemoteInfo) => {
-            const token = `${rinfo.address}:${rinfo.port}`;
-            if (this.connections.has(token)) {
-                return this.connections.get(token)!.receive(buffer);
-            }
-
-            try {
-                await this.sendBuffer(await this.handleUnconnected(buffer, rinfo), rinfo.address, rinfo.port);
-            } catch (error: any) {
-                this.server
-                    .getLogger()
-                    ?.debug(`Failed to handle an offline packet: ${error}`, 'raknet/Listener/listen');
-            }
-        });
-
         return new Promise((resolve, reject) => {
             const failFn = (e: Error) => {
                 reject(e);
@@ -73,14 +50,8 @@ export default class Listener extends EventEmitter implements RakNetListener {
             this.socket.bind(port, address, () => {
                 this.socket.removeListener('error', failFn);
 
-                const timer = setInterval(async () => {
-                    if (!this.shutdown) {
-                        await Promise.all(
-                            Array.from(this.connections.values()).map(async (conn) => conn.update(Date.now()))
-                        );
-                    } else {
-                        clearInterval(timer);
-                    }
+                setInterval(() => {
+                    this.emit('tick', Date.now());
                 }, RAKNET_TICK_LENGTH * 1000);
 
                 resolve(this);
@@ -102,6 +73,15 @@ export default class Listener extends EventEmitter implements RakNetListener {
         });
     }
 
+    private handleRaw(buffer: Buffer, rinfo: RemoteInfo): void {
+        const connection = this.getConnection(rinfo);
+        connection == null
+            ? this.handleUnconnected(buffer, rinfo).then((response) => {
+                  this.sendBuffer(response, rinfo);
+              })
+            : connection.receive(buffer);
+    }
+
     private async handleUnconnected(buffer: Buffer, rinfo: RemoteInfo): Promise<Buffer> {
         const header = buffer.readUInt8();
 
@@ -114,13 +94,15 @@ export default class Listener extends EventEmitter implements RakNetListener {
             case Identifiers.OpenConnectionRequest1:
                 return this.handleOpenConnectionRequest1(buffer);
             case Identifiers.OpenConnectionRequest2:
+                // TODO: move to rinfo
                 return this.handleOpenConnectionRequest2(
                     buffer,
                     new InetAddress(
                         rinfo.address,
                         rinfo.port,
                         rinfo.family === 'IPv4' ? 4 : 6 // V6 is not implemented yet
-                    )
+                    ),
+                    rinfo
                 );
             default:
                 throw new Error(`Unknown unconnected packet with ID: 0x${header.toString(16)}`);
@@ -139,12 +121,12 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
             const packet = new UnconnectedPong();
             packet.sendTimestamp = decodedPacket.sendTimestamp;
-            packet.serverGUID = this.id;
+            packet.serverGUID = this.guid;
 
-            const serverQuery: ServerName = this.name;
-            this.emit('unconnectedPong', serverQuery);
+            // const serverQuery: ServerName = this.name;
+            // this.emit('unconnectedPong', serverQuery);
 
-            packet.serverName = serverQuery.toString();
+            packet.serverName = 'MCPE;JSPrismarine;440;1.17.10;0;20;' + this.guid + ';Second line;Creative;';
             packet.encode();
 
             resolve(packet.getBuffer());
@@ -163,7 +145,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
             if (decodedPacket.protocol !== PROTOCOL) {
                 const packet = new IncompatibleProtocolVersion();
                 packet.protocol = PROTOCOL;
-                packet.serverGUID = this.id;
+                packet.serverGUID = this.guid;
                 packet.encode();
 
                 const buffer = packet.getBuffer();
@@ -172,7 +154,7 @@ export default class Listener extends EventEmitter implements RakNetListener {
             }
 
             const packet = new OpenConnectionReply1();
-            packet.serverGUID = this.id;
+            packet.serverGUID = this.guid;
             packet.mtuSize = decodedPacket.mtuSize;
             packet.encode();
 
@@ -180,7 +162,11 @@ export default class Listener extends EventEmitter implements RakNetListener {
         });
     }
 
-    public async handleOpenConnectionRequest2(buffer: Buffer, address: InetAddress): Promise<Buffer> {
+    public async handleOpenConnectionRequest2(
+        buffer: Buffer,
+        address: InetAddress,
+        rinfo: RemoteInfo
+    ): Promise<Buffer> {
         return new Promise((resolve) => {
             const decodedPacket = new OpenConnectionRequest2(buffer);
             decodedPacket.decode();
@@ -190,18 +176,23 @@ export default class Listener extends EventEmitter implements RakNetListener {
             }
 
             const packet = new OpenConnectionReply2();
-            packet.serverGUID = this.id;
+            packet.serverGUID = this.guid;
             packet.mtuSize = decodedPacket.mtuSize;
             packet.clientAddress = address;
             packet.encode();
 
             this.connections.set(
                 `${address.getAddress()}:${address.getPort()}`,
-                new Connection(this, decodedPacket.mtuSize, address, !this.server.getConfig().getOnlineMode())
+                new Connection(this, decodedPacket.mtuSize, rinfo, this.onlineMode)
             );
 
             resolve(packet.getBuffer());
         });
+    }
+
+    private getConnection(rinfo: RemoteInfo): Connection | null {
+        const token = `${rinfo.address}:${rinfo.port}`;
+        return this.connections.get(token) ?? null;
     }
 
     /**
@@ -221,9 +212,9 @@ export default class Listener extends EventEmitter implements RakNetListener {
     /**
      * Send packet buffer to the client.
      */
-    public async sendBuffer(buffer: Buffer, address: string, port: number): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.socket.send(buffer, 0, buffer.length, port, address, (err) => {
+    public async sendBuffer(buffer: Buffer, rinfo: RemoteInfo): Promise<void> {
+        return new Promise((resolve) => {
+            this.socket.send(buffer, rinfo.port, rinfo.address, (_) => {
                 // Ignore errors
                 resolve();
             });
@@ -236,13 +227,5 @@ export default class Listener extends EventEmitter implements RakNetListener {
 
     public getConnections() {
         return this.connections;
-    }
-
-    public getName() {
-        return this.name;
-    }
-
-    public setName(name: ServerName) {
-        this.name = name;
     }
 }

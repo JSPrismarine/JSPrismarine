@@ -11,21 +11,21 @@ export default class EncapsulatedPacket {
     public reliability!: number;
 
     // Reliable message number, used to identify reliable messages on the network
-    public messageIndex = 0;
+    public messageIndex!: number;
 
     // Identifier used with sequenced messages
-    public sequenceIndex = 0;
+    public sequenceIndex!: number;
     // Identifier used for ordering packets, included in sequenced messages
-    public orderIndex = 0;
+    public orderIndex!: number;
     // The order channel the packet is on, used just if the reliability type has it
-    public orderChannel = 0;
+    public orderChannel!: number;
 
     // If the packet is splitted, this is the count of splits
     public splitCount = 0;
     // If the packet is splitted, this ID refers to the index in the splits array
-    public splitIndex = 0;
+    public splitIndex!: number;
     // The ID of the split packet (if the packet is splitted)
-    public splitId = 0;
+    public splitId!: number;
 
     public static fromBinary(stream: BinaryStream): EncapsulatedPacket {
         const packet = new EncapsulatedPacket();

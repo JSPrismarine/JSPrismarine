@@ -14,7 +14,8 @@ import InetAddress from './utils/InetAddress';
 import NACK from './protocol/NACK';
 import NewIncomingConnection from './protocol/NewIncomingConnection';
 import Packet from './protocol/Packet';
-import type RakNetListener from './RakNetListener';
+import Listener from './Listener';
+import { RemoteInfo } from 'dgram';
 
 export enum Priority {
     NORMAL,
@@ -29,9 +30,9 @@ export enum Status {
 }
 
 export default class Connection {
-    private readonly listener: RakNetListener;
+    private readonly listener: Listener;
     private readonly mtuSize: number;
-    protected address: InetAddress;
+    protected rinfo: RemoteInfo;
 
     // Client connection state
     private state = Status.CONNECTING;
@@ -81,10 +82,13 @@ export default class Connection {
     private lastUpdate: number = Date.now();
     private active = false;
 
-    public constructor(listener: RakNetListener, mtuSize: number, address: InetAddress, offlineMode = false) {
+    public constructor(listener: Listener, mtuSize: number, rinfo: RemoteInfo, offlineMode = false) {
         this.listener = listener;
+
+        listener.on('tick', this.update.bind(this));
+
         this.mtuSize = mtuSize;
-        this.address = address;
+        this.rinfo = rinfo;
         this.offlineMode = offlineMode;
 
         this.lastUpdate = Date.now();
@@ -108,14 +112,14 @@ export default class Connection {
 
         if (this.ackQueue.size > 0) {
             const pk = new ACK();
-            pk.setPackets(Array.from(this.ackQueue));
+            pk.packets = Array.from(this.ackQueue);
             await this.sendPacket(pk);
             this.ackQueue.clear();
         }
 
         if (this.nackQueue.size > 0) {
             const pk = new NACK();
-            pk.setPackets(Array.from(this.nackQueue));
+            pk.packets = Array.from(this.nackQueue);
             await this.sendPacket(pk);
             this.nackQueue.clear();
         }
@@ -238,8 +242,7 @@ export default class Connection {
         // TODO: ping calculation
 
         await Promise.all(
-            packet
-                .getPackets()
+            packet.packets
                 .filter((seq: any) => this.recoveryQueue.has(seq))
                 .map((seq: any) => this.recoveryQueue.delete(seq))
         );
@@ -250,8 +253,7 @@ export default class Connection {
         packet.decode();
 
         await Promise.all(
-            packet
-                .getPackets()
+            packet.packets
                 .filter((seq: any) => this.recoveryQueue.has(seq))
                 .map(async (seq: any) => {
                     const pk = this.recoveryQueue.get(seq)!;
@@ -390,49 +392,47 @@ export default class Connection {
     public async handlePacket(packet: EncapsulatedPacket): Promise<void> {
         const id = packet.buffer.readUInt8();
 
-        if (id < 0x80) {
-            if (this.state === Status.CONNECTING) {
-                if (id === Identifiers.ConnectionRequestAccepted) {
-                    const dataPacket = new ConnectionRequestAccepted(packet.buffer);
-                    dataPacket.decode();
+        if (this.state === Status.CONNECTING) {
+            if (id === Identifiers.ConnectionRequestAccepted) {
+                const dataPacket = new ConnectionRequestAccepted(packet.buffer);
+                dataPacket.decode();
 
-                    const pk = new NewIncomingConnection();
-                    pk.requestTimestamp = BigInt(Date.now());
-                    pk.acceptedTimestamp = BigInt(Date.now());
-                    pk.address = dataPacket.clientAddress;
-                    pk.encode();
+                const pk = new NewIncomingConnection();
+                pk.requestTimestamp = BigInt(Date.now());
+                pk.acceptedTimestamp = BigInt(Date.now());
+                pk.address = dataPacket.clientAddress;
+                pk.encode();
 
-                    const sendPk = new EncapsulatedPacket();
-                    sendPk.reliability = 0;
-                    sendPk.buffer = pk.getBuffer();
+                const sendPk = new EncapsulatedPacket();
+                sendPk.reliability = 0;
+                sendPk.buffer = pk.getBuffer();
 
-                    await this.addToQueue(sendPk, Priority.IMMEDIATE);
-                } else if (id === Identifiers.ConnectionRequest) {
-                    const encapsulated = await this.handleConnectionRequest(packet.buffer);
-                    await this.addToQueue(encapsulated, Priority.IMMEDIATE);
-                } else if (id === Identifiers.NewIncomingConnection) {
-                    const dataPacket = new NewIncomingConnection(packet.buffer);
-                    dataPacket.decode();
+                await this.addToQueue(sendPk, Priority.IMMEDIATE);
+            } else if (id === Identifiers.ConnectionRequest) {
+                const encapsulated = await this.handleConnectionRequest(packet.buffer);
+                await this.addToQueue(encapsulated, Priority.IMMEDIATE);
+            } else if (id === Identifiers.NewIncomingConnection) {
+                const dataPacket = new NewIncomingConnection(packet.buffer);
+                dataPacket.decode();
 
-                    // Client bots will work just in offline mode
-                    // TODO: fix offline mode not working as intended
-                    // const offlineMode = this.offlineMode;
-                    // console.log(offlineMode)
+                // Client bots will work just in offline mode
+                // TODO: fix offline mode not working as intended
+                // const offlineMode = this.offlineMode;
+                // console.log(offlineMode)
 
-                    // const serverPort = this.listener.getSocket().address().port;
-                    // if (offlineMode && dataPacket.address.getPort() === serverPort) {
-                    this.state = Status.CONNECTED;
-                    this.listener.emit('openConnection', this);
-                    // }
-                }
-            } else if (id === Identifiers.DisconnectNotification) {
-                this.disconnect('client disconnect');
-            } else if (id === Identifiers.ConnectedPing) {
-                const encapsulated = await this.handleConnectedPing(packet.buffer);
-                await this.addToQueue(encapsulated);
+                // const serverPort = this.listener.getSocket().address().port;
+                // if (offlineMode && dataPacket.address.getPort() === serverPort) {
+                this.state = Status.CONNECTED;
+                this.listener.emit('openConnection', this);
+                // }
             }
+        } else if (id === Identifiers.DisconnectNotification) {
+            this.disconnect('client disconnect');
+        } else if (id === Identifiers.ConnectedPing) {
+            const encapsulated = await this.handleConnectedPing(packet.buffer);
+            await this.addToQueue(encapsulated);
         } else if (this.state === Status.CONNECTED) {
-            this.listener.emit('encapsulated', packet, this.address); // To fit in software needs later
+            this.listener.emit('encapsulated', packet, this.getAddress()); // To fit in software needs later
         }
     }
 
@@ -442,7 +442,7 @@ export default class Connection {
         dataPacket.decode();
 
         const pk = new ConnectionRequestAccepted();
-        pk.clientAddress = this.address;
+        pk.clientAddress = this.getAddress();
         pk.requestTimestamp = dataPacket.requestTimestamp;
         pk.acceptedTimestamp = BigInt(Date.now());
         pk.encode();
@@ -518,7 +518,7 @@ export default class Connection {
     public async sendPacket(packet: Packet): Promise<void> {
         packet.encode();
 
-        await this.listener.sendBuffer(packet.getBuffer(), this.address.getAddress(), this.address.getPort());
+        await this.listener.sendBuffer(packet.getBuffer(), this.rinfo);
     }
 
     public async close() {
@@ -534,11 +534,11 @@ export default class Connection {
         return this.active;
     }
 
-    public getListener(): RakNetListener {
+    public getListener(): Listener {
         return this.listener;
     }
 
     public getAddress(): InetAddress {
-        return this.address;
+        return new InetAddress(this.rinfo.address, this.rinfo.port, 4);
     }
 }

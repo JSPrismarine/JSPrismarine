@@ -1,5 +1,5 @@
 import { Connection, ConnectionPriority, InetAddress, Protocol, RakNetListener } from '@jsprismarine/raknet';
-import Dgram, { Socket } from 'dgram';
+import Dgram, { RemoteInfo, Socket } from 'dgram';
 import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
@@ -162,7 +162,12 @@ export default class Client extends EventEmitter implements RakNetListener {
         // Update session status
         this.connecting = true;
         // This.status = ConnectionStatus.Connected;
-        this.connection = new Connection(this as any, DEF_MTU_SIZE, this.targetAddress);
+        this.connection = new Connection(this as any, DEF_MTU_SIZE, {
+            address: this.address.getAddress(),
+            port: this.address.getPort(),
+            family: 'IPv4',
+            size: 0
+        });
 
         return packet.getBuffer();
     }

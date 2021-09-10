@@ -64,7 +64,7 @@ export default class TelemetryManager {
             id: this.id,
             version: `${this.server.getConfig().getVersion()}:${this.server.getQueryManager().git_rev}`,
             online_mode: this.server.getConfig().getOnlineMode(),
-            player_count: this.server.getRaknet()?.getName().getOnlinePlayerCount() || 0,
+            player_count: 0, // TODO
             max_player_count: this.server.getConfig().getMaxPlayers(),
             plugins: this.server
                 .getPluginManager()

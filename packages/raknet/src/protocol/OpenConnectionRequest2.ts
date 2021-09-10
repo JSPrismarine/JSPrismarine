@@ -1,6 +1,7 @@
 import Identifiers from './Identifiers';
 import InetAddress from '../utils/InetAddress';
 import OfflinePacket from './OfflinePacket';
+import { RemoteInfo } from 'dgram';
 
 export default class OpenConnectionRequest2 extends OfflinePacket {
     public constructor(buffer?: Buffer) {
