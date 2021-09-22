@@ -13,7 +13,7 @@ export default class ContainerEntry {
     }
 
     public networkSerialize(stream: BinaryStream): void {
-        let tempstream = new BinaryStream();
+        const tempstream = new BinaryStream();
 
         const itemstack = this.getItem();
 
