@@ -107,7 +107,7 @@ export default class Item {
     }
 
     public networkSerialize(stream: BinaryStream): void {
-        let tempstream = new BinaryStream();
+        const tempstream = new BinaryStream();
 
         if (this.getName() === 'minecraft:air') {
             stream.writeVarInt(0);
