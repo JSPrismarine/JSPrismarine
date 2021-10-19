@@ -48,13 +48,6 @@ export default class InventoryTransactionPacket extends DataPacket {
         }
 
         this.type = this.readUnsignedVarInt();
-        this.hasItemStackIds = this.readBool();
-
-        const actionsCount = this.readUnsignedVarInt();
-        for (let i = 0; i < actionsCount; i++) {
-            const networkTransaction = new NetworkTransaction().decode(this, this.hasItemStackIds);
-            this.actions.set(i, networkTransaction);
-        }
 
         switch (this.type) {
             case InventoryTransactionType.Normal:
@@ -86,6 +79,12 @@ export default class InventoryTransactionPacket extends DataPacket {
                 break;
             default:
                 break;
+        }
+
+        const actionsCount = this.readUnsignedVarInt();
+        for (let i = 0; i < actionsCount; i++) {
+            const networkTransaction = new NetworkTransaction().decode(this, this.hasItemStackIds);
+            this.actions.set(i, networkTransaction);
         }
     }
 }

@@ -163,7 +163,7 @@ export class CommandArgumentEntity implements CommandArgument {
                     entities: context.getSource().getWorld().getEntities()
                 });
             } catch (error) {
-                if (!error.message.includes('no results')) throw error;
+                if (!(error as any).message.includes('no results')) throw error;
                 return [];
             }
 

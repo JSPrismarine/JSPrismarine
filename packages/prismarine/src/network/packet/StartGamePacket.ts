@@ -101,6 +101,11 @@ export default class StartGamePacket extends DataPacket {
         this.writeLInt(0); // Limited world length
 
         this.writeBool(false); // Has new nether
+
+        // TODOs
+        this.writeString('');
+        this.writeString('');
+
         this.writeBool(false); // Experimental gameplay
 
         this.writeString(this.levelId);

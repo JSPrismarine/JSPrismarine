@@ -314,7 +314,7 @@ export default class World {
                 return;
             } catch (error) {
                 player.getServer().getLogger()?.warn(`${player.getName()} failed to place block due to ${error}`);
-                await player.sendMessage(error?.message);
+                await player.sendMessage((error as any)?.message);
 
                 resolve(false);
             }
@@ -331,7 +331,7 @@ export default class World {
             return;
         }
 
-        const runtimeId = BlockMappings.getRuntimeId(block.getId(), block.getMeta());
+        const runtimeId = BlockMappings.getRuntimeId(block.getName());
 
         const blockUpdate = new UpdateBlockPacket();
         blockUpdate.x = placedPosition.getX();
@@ -526,7 +526,7 @@ export default class World {
             );
         } catch (error) {
             this.server.getLogger()?.error(`Failed to save player data: ${error}`, 'World/savePlayerData');
-            this.server.getLogger()?.debug(error.stack, 'World/savePlayerData');
+            this.server.getLogger()?.debug((error as any).stack, 'World/savePlayerData');
         }
     }
 }

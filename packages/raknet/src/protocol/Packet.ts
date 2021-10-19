@@ -13,15 +13,13 @@ export default class Packet extends BinaryStream {
         return this.id;
     }
 
-    // Decodes packet buffer
     public decode(): void {
-        this.readByte(); // Skip the packet ID
+        this.readByte();
         this.decodePayload();
     }
 
     protected decodePayload(): void {}
 
-    // Encodes packet buffer
     public encode() {
         this.writeByte(this.getId());
         this.encodePayload();
@@ -29,23 +27,19 @@ export default class Packet extends BinaryStream {
 
     protected encodePayload(): void {}
 
-    // Reads a string from the buffer
     public readString(): string {
-        return this.read(this.readShort()).toString();
+        return this.read(this.readShort()).toString('utf-8');
     }
 
-    // Writes a string length + buffer
-    // valid only for offline packets
     public writeString(v: string): void {
-        this.writeShort(Buffer.byteLength(v));
-        this.append(Buffer.from(v, 'utf-8'));
+        const data = Buffer.from(v, 'utf-8');
+        this.writeShort(data.byteLength);
+        this.append(data);
     }
 
-    // Reads a RakNet address passed into the buffer
-    public readAddress() {
+    public readAddress(): InetAddress {
         const ver = this.readByte();
         if (ver === 4) {
-            // Read 4 bytes
             const ipBytes = this.getBuffer().slice(this.getOffset(), this.addOffset(4, true));
             const addr = `${(-ipBytes[0] - 1) & 0xff}.${(-ipBytes[1] - 1) & 0xff}.${(-ipBytes[2] - 1) & 0xff}.${
                 (-ipBytes[3] - 1) & 0xff
@@ -62,16 +56,15 @@ export default class Packet extends BinaryStream {
         return new InetAddress(addr, port, ver);
     }
 
-    // Writes an IPv4 address into the buffer
-    // Needs to get refactored, also needs to be added support for IPv6
     public writeAddress(address: InetAddress): void {
-        this.writeByte(address.getVersion() ?? 4);
-        address
+        this.writeByte(4); // IPv4 only
+        const bytes = address
             .getAddress()
             .split('.', 4)
-            .forEach((b) => {
-                this.writeByte(-b - 1);
-            });
+            .map((v) => parseInt(v));
+        for (const byte of bytes) {
+            this.writeByte(~byte & 0xff);
+        }
         this.writeShort(address.getPort());
     }
 }

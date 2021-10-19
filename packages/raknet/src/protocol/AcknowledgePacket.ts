@@ -1,25 +1,25 @@
-import Packet from './Packet';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Packet from './Packet';
 
 export default class AcknowledgePacket extends Packet {
-    public packets: Array<number> = [];
+    public sequenceNumbers: Array<number> = [];
 
     public decodePayload(): void {
         // Clear old cached decoded packets
-        this.packets = [];
+        this.sequenceNumbers = [];
 
         const recordCount = this.readShort();
         for (let i = 0; i < recordCount; i++) {
             const notRange = this.readBool();
 
             if (notRange) {
-                this.packets.push(this.readLTriad());
+                this.sequenceNumbers.push(this.readLTriad());
             } else {
                 const start = this.readLTriad();
                 const end = this.readLTriad();
 
                 for (let i = start; i <= end; i++) {
-                    this.packets.push(i);
+                    this.sequenceNumbers.push(i);
                 }
             }
         }
@@ -27,17 +27,17 @@ export default class AcknowledgePacket extends Packet {
 
     public encodePayload(): void {
         const stream = new BinaryStream();
-        this.packets.sort((a, b) => a - b);
-        const count = this.packets.length;
+        this.sequenceNumbers.sort((a, b) => a - b);
+        const count = this.sequenceNumbers.length;
         let records = 0;
 
         if (count > 0) {
             let pointer = 1;
-            let start = this.packets[0];
-            let last = this.packets[0];
+            let start = this.sequenceNumbers[0];
+            let last = this.sequenceNumbers[0];
 
             while (pointer < count) {
-                let current = this.packets[pointer++];
+                let current = this.sequenceNumbers[pointer++];
                 const diff = current - last;
                 if (diff === 1) {
                     last = current;

@@ -21,10 +21,7 @@ export default class SummonCommand extends Command {
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
             literal('summon').then(
-                argument(
-                    'entity',
-                    new CommandArgumentMob()
-                ) /* .then(
+                argument('entity', new CommandArgumentMob()) /* .then(
                     argument('position', new CommandArgumentPosition()) */
                     .executes(async (context) => {
                         const source = context.getSource() as Player;

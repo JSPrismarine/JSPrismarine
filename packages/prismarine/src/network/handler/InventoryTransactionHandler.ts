@@ -112,7 +112,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         // the broken block may place more blocks or run block related code
                         // for example, ice should replace itself with a water source block
                         // in survival
-                        pk.blockRuntimeId = BlockMappings.getRuntimeId(0, 0); // Air
+                        pk.blockRuntimeId = BlockMappings.getRuntimeId('minecraft:air'); // Air
 
                         // Send block-break packet to all players in the same world
                         await Promise.all(
@@ -161,7 +161,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         soundPk.positionZ = player.getZ();
 
                         // ? 0 or id & 0xf
-                        soundPk.extraData = BlockMappings.getRuntimeId(blockId.id, blockId.meta); // In this case refers to block runtime Id
+                        soundPk.extraData = BlockMappings.getRuntimeId('minecraft:air'); // In this case refers to block runtime Id
                         soundPk.entityType = ':';
                         soundPk.isBabyMob = false;
                         soundPk.disableRelativeVolume = false;

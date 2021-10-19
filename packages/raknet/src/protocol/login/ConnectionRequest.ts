@@ -1,9 +1,9 @@
-import Identifiers from './Identifiers';
-import Packet from './Packet';
+import MessageHeaders from '../MessageHeaders';
+import Packet from '../Packet';
 
 export default class ConnectionRequest extends Packet {
     public constructor(buffer?: Buffer) {
-        super(Identifiers.ConnectionRequest, buffer);
+        super(MessageHeaders.CONNECTION_REQUEST, buffer);
     }
 
     public clientGUID!: bigint;

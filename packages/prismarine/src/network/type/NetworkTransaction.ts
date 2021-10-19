@@ -35,8 +35,8 @@ class NetworkTransaction {
         }
 
         this.slot = buffer.readUnsignedVarInt();
-        this.oldItem = Item.networkDeserialize(buffer);
-        this.newItem = Item.networkDeserialize(buffer);
+        this.oldItem = Item.networkDeserialize(buffer, true);
+        this.newItem = Item.networkDeserialize(buffer, true);
 
         if (hasItemStack) {
             this.newItemStackId = buffer.readVarInt();

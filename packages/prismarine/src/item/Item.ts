@@ -134,15 +134,25 @@ export default class Item {
         // TODO: check for additional data
     }
 
-    public static networkDeserialize(stream: PacketBinaryStream): Item {
+    public static networkDeserialize(stream: PacketBinaryStream, extra = false): Item {
         const id = stream.readVarInt();
         if (id === 0) {
             // TODO: items
             return new Item({ id: 0, name: 'minecraft:air' });
         }
 
+        const count = stream.readLShort();
+        const netData = stream.readUnsignedVarInt();
+
+        // TODO: refactor everything basically...
+        if (extra) {
+            if (stream.readBool()) {
+                stream.readVarInt();
+            }
+        }
+
         const temp = stream.readVarInt();
-        const amount = temp & 0xff;
+        // const amount = temp & 0xff;
         const data = temp >> 8;
 
         let nbt = null;
@@ -162,12 +172,12 @@ export default class Item {
 
         const countPlaceOn = stream.readVarInt();
         for (let i = 0; i < countPlaceOn; i++) {
-            stream.readString();
+            stream.read(stream.readLShort());
         }
 
         const countCanBreak = stream.readVarInt();
         for (let i = 0; i < countCanBreak; i++) {
-            stream.readString();
+            stream.read(stream.readLShort());
         }
 
         // TODO: check if has additional data

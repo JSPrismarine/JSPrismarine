@@ -1,8 +1,8 @@
 import AcknowledgePacket from './AcknowledgePacket';
-import Identifiers from './Identifiers';
+import MessageHeaders from './MessageHeaders';
 
 export default class ACK extends AcknowledgePacket {
     public constructor(buffer?: Buffer) {
-        super(Identifiers.AcknowledgePacket, buffer);
+        super(MessageHeaders.ACKNOWLEDGE_PACKET, buffer);
     }
 }

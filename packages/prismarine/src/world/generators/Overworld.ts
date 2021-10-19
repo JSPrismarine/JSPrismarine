@@ -1,4 +1,5 @@
 import BaseGenerator from '../BaseGenerator';
+import BlockMappings from '../../block/BlockMappings';
 import Chunk from '../chunk/Chunk';
 import Noise from 'simplex-noise';
 
@@ -25,11 +26,11 @@ export default class Overworld extends BaseGenerator {
             const stone = this.getBlockManager().getBlock('minecraft:stone');
             const dirt = this.getBlockManager().getBlock('minecraft:dirt');
             const grass = this.getBlockManager().getBlock('minecraft:grass');
-            const tall_grass = this.getBlockManager().getBlock('minecraft:tall_grass');
+            const tall_grass = this.getBlockManager().getBlock('minecraft:double_plant');
             const water = this.getBlockManager().getBlock('minecraft:water');
-            const poppy = this.getBlockManager().getBlock('minecraft:poppy');
-            const dandelion = this.getBlockManager().getBlock('minecraft:dandelion');
-            const oxeye_daisy = this.getBlockManager().getBlock('minecraft:oxeye_daisy');
+            const poppy = this.getBlockManager().getBlock('minecraft:red_flower');
+            const dandelion = this.getBlockManager().getBlock('minecraft:yellow_flower');
+            const oxeye_daisy = this.getBlockManager().getBlock('minecraft:red_flower'); // TODO: Will be the same as red_flower state 0 as states are not properly implemented
 
             for (let x = 0; x < CHUNK_WIDTH; x++) {
                 for (let z = 0; z < CHUNK_LENGTH; z++) {

@@ -21,6 +21,7 @@ export default class TelemetryManager {
 
         ['uncaughtException', 'unhandledRejection'].forEach((interruptSignal) =>
             process.on(interruptSignal, async (error) => {
+                console.log((error as Error).stack);
                 await this.sendCrashLog(error, urls);
                 this.server.getLogger()?.error(error, 'TelemetryManager');
                 await this.server.kill({
@@ -91,7 +92,7 @@ export default class TelemetryManager {
                     this.server.getLogger()?.debug('Sent heartbeat', 'TelemetryManager/tick');
                 } catch (error) {
                     this.server.getLogger()?.warn(`Failed to tick: ${url} (${error})`, 'TelemetryManager/tick');
-                    this.server.getLogger()?.debug(error.stack, 'TelemetryManager/tick');
+                    this.server.getLogger()?.debug((error as any).stack, 'TelemetryManager/tick');
                 }
             })
         );
@@ -132,9 +133,9 @@ export default class TelemetryManager {
                                 'Content-Type': 'application/json'
                             })
                         });
-                        return `${url}/error/${(await res.json()).id}`;
+                        return `${url}/error/${((await res.json()) as any).id}`;
                     } catch (error) {
-                        this.server.getLogger()?.debug(error.stack, 'TelemetryManager/sendCrashLog');
+                        this.server.getLogger()?.debug((error as any).stack, 'TelemetryManager/sendCrashLog');
                     }
                 })
             )

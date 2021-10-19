@@ -51,7 +51,7 @@ export default class CommandManager {
                     await this.registerClassCommand(command);
                 } catch (err) {
                     this.server.getLogger()?.warn(`Failed to register command ${command.id}: ${err}`);
-                    this.server.getLogger()?.debug(err.stack);
+                    this.server.getLogger()?.debug((err as any).stack);
                 }
             })
         );
@@ -239,7 +239,7 @@ export default class CommandManager {
                 res = await Promise.all(this.dispatcher.execute(parsed));
             }
 
-            const feedback = ((sender as any) as Entity)
+            const feedback = (sender as any as Entity)
                 .getWorld()
                 .getGameruleManager()
                 .getGamerule('sendCommandFeedback');
@@ -266,7 +266,7 @@ export default class CommandManager {
                 await this.server.getChatManager().send(chat);
             }
         } catch (error) {
-            if (error?.type?.message?.toString?.() === 'Unknown command') {
+            if ((error as any)?.type?.message?.toString?.() === 'Unknown command') {
                 await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
                 return;
             }
@@ -278,7 +278,7 @@ export default class CommandManager {
                     `Player ${target.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
-            this.server.getLogger()?.debug(`${error.stack}`, 'CommandManager/dispatchCommand');
+            this.server.getLogger()?.debug(`${(error as any).stack}`, 'CommandManager/dispatchCommand');
         }
     }
 }

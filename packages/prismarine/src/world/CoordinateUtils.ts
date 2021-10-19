@@ -24,6 +24,6 @@ export default class CoordinateUtils {
      * from the encoded integer given.
      */
     public static decodePos(encodedPos: string): [number, number] {
-        return (encodedPos.split(':') as unknown) as [number, number];
+        return encodedPos.split(':') as unknown as [number, number];
     }
 }

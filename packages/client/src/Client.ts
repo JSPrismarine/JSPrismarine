@@ -1,4 +1,4 @@
-import { Connection, ConnectionPriority, InetAddress, Protocol, RakNetListener } from '@jsprismarine/raknet';
+import { Connection, ConnectionPriority, InetAddress, Protocol } from '@jsprismarine/raknet';
 import Dgram, { RemoteInfo, Socket } from 'dgram';
 import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
@@ -23,7 +23,7 @@ const DEF_MTU_SIZE = 1455;
 const RAKNET_TPS = 100;
 const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
-export default class Client extends EventEmitter implements RakNetListener {
+export default class Client extends EventEmitter {
     private clientGUID = Crypto.randomBytes(8).readBigInt64BE();
     private readonly logger = new Logger();
     private readonly address: InetAddress;

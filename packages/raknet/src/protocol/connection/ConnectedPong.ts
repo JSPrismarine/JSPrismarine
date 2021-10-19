@@ -1,9 +1,9 @@
-import Identifiers from './Identifiers';
-import Packet from './Packet';
+import MessageHeaders from '../MessageHeaders';
+import Packet from '../Packet';
 
 export default class ConnectedPong extends Packet {
     public constructor() {
-        super(Identifiers.ConnectedPong);
+        super(MessageHeaders.CONNECTED_PONG);
     }
 
     public clientTimestamp!: bigint;

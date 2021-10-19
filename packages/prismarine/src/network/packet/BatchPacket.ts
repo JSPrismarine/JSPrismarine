@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
-import Server from '../../Server';
+import Fflate from 'fflate';
 import Zlib from 'zlib';
 
 /**
@@ -11,7 +11,8 @@ export default class BatchPacket extends DataPacket {
 
     private payload = Buffer.alloc(0);
     // Bigger compression level leads to more CPU usage and less network, and vice versa
-    private readonly compressionLevel: number = Server?.instance?.getConfig().getPacketCompressionLevel() ?? 7;
+    // TODO: batch.setCompressionLevel(), it should be dependent from Server instance
+    // private readonly compressionLevel: number = Server?.instance?.getConfig().getPacketCompressionLevel() ?? 7;
 
     public decodeHeader(): void {
         const pid = this.readByte();
@@ -22,9 +23,7 @@ export default class BatchPacket extends DataPacket {
 
     public decodePayload(): void {
         try {
-            this.payload = Zlib.inflateRawSync(this.readRemaining(), {
-                maxOutputLength: 1024 * 1024 * 2
-            });
+            this.payload = Buffer.from(Fflate.inflateSync(this.readRemaining()));
         } catch (e) {
             this.payload = Buffer.alloc(0);
         }
@@ -35,7 +34,9 @@ export default class BatchPacket extends DataPacket {
     }
 
     public encodePayload(): void {
-        this.append(Zlib.deflateRawSync(this.payload, { level: this.compressionLevel }));
+        // this.append(Buffer.from(Fflate.deflateSync(this.payload, { level: 7 })));
+        // Seems like Zlib runs a little bit better for deflating, will see in future with async...
+        this.append(Zlib.deflateRawSync(this.payload, { level: 7 }));
     }
 
     public addPacket(packet: DataPacket): void {
