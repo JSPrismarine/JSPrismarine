@@ -59,7 +59,7 @@ export default class BlockMappings {
                     legacyState.getNumber('id', 0),
                     legacyState.getShort('val', 0)
                 );
-            }); 
+            });
         }); */
     }
 
