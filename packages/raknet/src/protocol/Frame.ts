@@ -1,0 +1,123 @@
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BitFlags from './BitFlags';
+import FrameReliability from './FrameReliability';
+import assert from 'assert';
+
+export default class Frame {
+    public reliability = FrameReliability.UNRELIABLE;
+
+    public reliableIndex: number | null = null;
+
+    public sequenceIndex: number | null = null;
+
+    public orderIndex: number | null = null;
+    public orderChannel: number | null = null;
+
+    public fragmentSize = 0;
+    public fragmentId!: number;
+    public fragmentIndex!: number;
+
+    public content!: Buffer;
+
+    public fromBinary(stream: BinaryStream): Frame {
+        const header = stream.readByte();
+        this.reliability = (header & 0xe0) >> 5;
+
+        // Length from bits to bytes
+        const length = Math.ceil(stream.readShort() / 8);
+
+        if (this.isReliable()) {
+            this.reliableIndex = stream.readLTriad();
+        }
+
+        if (this.isSequenced()) {
+            this.sequenceIndex = stream.readLTriad();
+        }
+
+        if (this.isOrdered()) {
+            this.orderIndex = stream.readLTriad();
+            this.orderChannel = stream.readByte();
+        }
+
+        if ((header & BitFlags.SPLIT) > 0) {
+            this.fragmentSize = stream.readInt();
+            this.fragmentId = stream.readShort();
+            this.fragmentIndex = stream.readInt();
+        }
+
+        this.content = stream.read(length);
+        return this;
+    }
+
+    public toBinary(): BinaryStream {
+        const stream = new BinaryStream();
+        const fragmented = this.isFragmented();
+
+        stream.writeByte((this.reliability << 5) | (fragmented ? BitFlags.SPLIT : 0));
+        stream.writeShort(this.content.byteLength << 3);
+
+        if (this.isReliable()) {
+            assert(typeof this.reliableIndex === 'number', 'Invalid ReliableIndex for reliable Frame');
+            stream.writeLTriad(this.reliableIndex);
+        }
+
+        if (this.isSequenced()) {
+            assert(typeof this.sequenceIndex === 'number', 'Invalid SequenceIndex for sequenced Frame');
+            stream.writeLTriad(this.sequenceIndex);
+        }
+
+        if (this.isOrdered()) {
+            assert(typeof this.orderIndex === 'number', 'Invalid OrderIndex for ordered Frame');
+            stream.writeLTriad(this.orderIndex);
+            assert(typeof this.orderChannel === 'number', 'Invalid OrderChannel for ordered FrameSet');
+            stream.writeByte(this.orderChannel);
+        }
+
+        if (fragmented) {
+            stream.writeInt(this.fragmentSize);
+            stream.writeShort(this.fragmentId);
+            stream.writeInt(this.fragmentIndex);
+        }
+
+        stream.append(this.content);
+        return stream;
+    }
+
+    public getByteLength(): number {
+        return (
+            3 +
+            this.content.byteLength +
+            (this.isReliable() ? 3 : 0) +
+            (this.isSequenced() ? 3 : 0) +
+            (this.isOrdered() ? 4 : 0) +
+            (this.isFragmented() ? 10 : 0)
+        );
+    }
+
+    public isReliable(): boolean {
+        return [
+            FrameReliability.RELIABLE,
+            FrameReliability.RELIABLE_ORDERED,
+            FrameReliability.RELIABLE_SEQUENCED,
+            FrameReliability.RELIABLE_WITH_ACK_RECEIPT,
+            FrameReliability.RELIABLE_ORDERED_WITH_ACK_RECEIPT
+        ].includes(this.reliability);
+    }
+
+    public isSequenced(): boolean {
+        return [FrameReliability.RELIABLE_SEQUENCED, FrameReliability.UNRELIABLE_SEQUENCED].includes(this.reliability);
+    }
+
+    public isOrdered(): boolean {
+        return [
+            FrameReliability.UNRELIABLE_SEQUENCED,
+            FrameReliability.RELIABLE_ORDERED,
+            FrameReliability.RELIABLE_SEQUENCED,
+            FrameReliability.RELIABLE_ORDERED_WITH_ACK_RECEIPT
+        ].includes(this.reliability);
+    }
+
+    public isFragmented(): boolean {
+        return this.fragmentSize > 0;
+    }
+}

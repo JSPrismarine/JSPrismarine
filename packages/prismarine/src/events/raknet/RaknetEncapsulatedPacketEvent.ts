@@ -4,9 +4,9 @@ import { Protocol } from '@jsprismarine/raknet';
 
 export default class RaknetEncapsulatedPacketEvent extends Event {
     private readonly inetAddr: InetAddress;
-    private readonly packet: Protocol.EncapsulatedPacket;
+    private readonly packet: Protocol.Frame;
 
-    public constructor(inetAddr: InetAddress, packet: Protocol.EncapsulatedPacket) {
+    public constructor(inetAddr: InetAddress, packet: Protocol.Frame) {
         super();
         this.inetAddr = inetAddr;
         this.packet = packet;
@@ -16,7 +16,7 @@ export default class RaknetEncapsulatedPacketEvent extends Event {
         return this.inetAddr;
     }
 
-    public getPacket(): Protocol.EncapsulatedPacket {
+    public getPacket(): Protocol.Frame {
         return this.packet;
     }
 }

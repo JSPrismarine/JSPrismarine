@@ -106,7 +106,7 @@ export default class PermissionManager {
                 this.permissions.set(player.name, player.permissions.length <= 0 ? [] : player.permissions)
             );
         } catch (error) {
-            this.server.getLogger()?.error(error, 'PermissionManager/parsePermissions');
+            this.server.getLogger()?.error(error as any, 'PermissionManager/parsePermissions');
             throw new Error(`Invalid permissions.json file.`);
         }
     }
@@ -123,7 +123,7 @@ export default class PermissionManager {
 
             ops.map((op) => this.ops.add(op.name));
         } catch (error) {
-            this.server.getLogger()?.error(error, 'PermissionManager/parseOps');
+            this.server.getLogger()?.error(error as any, 'PermissionManager/parseOps');
             throw new Error(`Invalid ops.json file.`);
         }
     }

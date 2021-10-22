@@ -43,7 +43,7 @@ export default class PluginManager {
                         this.server
                             .getLogger()
                             ?.error(`§cFailed to load plugin ${id}: ${error}`, 'PluginManager/onEnable');
-                        this.server.getLogger()?.debug(error.stack, 'PluginManager/onEnable');
+                        this.server.getLogger()?.debug((error as any).stack, 'PluginManager/onEnable');
                     }
                 })
             )
@@ -140,7 +140,7 @@ export default class PluginManager {
                         this.server
                             .getLogger()
                             ?.debug(`moduleManager failed with: ${error}`, 'PluginManager/registerPlugin');
-                        this.server.getLogger()?.debug(error.stack, 'PluginManager/registerPlugin');
+                        this.server.getLogger()?.debug((error as any).stack, 'PluginManager/registerPlugin');
                         throw new Error(`Failed to install ${dependency[0]}: ${error}`);
                     }
                 })
@@ -156,7 +156,7 @@ export default class PluginManager {
                     `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
                     'PluginManager/registerPlugin'
                 );
-            this.server.getLogger()?.debug(error.stack, 'PluginManager/registerPlugin');
+            this.server.getLogger()?.debug((error as any).stack, 'PluginManager/registerPlugin');
             return null;
         }
 

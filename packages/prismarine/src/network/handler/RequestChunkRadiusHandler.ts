@@ -12,7 +12,8 @@ export default class RequestChunkRadiusHandler implements PacketHandler<RequestC
         const maxViewDistance = server.getConfig().getViewDistance();
         const viewDistance = packet.radius >= maxViewDistance ? maxViewDistance : packet.radius;
 
-        await player.getConnection().sendSettings();
+        // TODO: do not send before login sequence :)
+        // await player.getConnection().sendSettings();
         await player.getConnection().setViewDistance(viewDistance);
         await player.getConnection().sendNetworkChunkPublisher();
         await player.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);

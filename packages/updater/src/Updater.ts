@@ -27,7 +27,9 @@ export default class Updater {
                       await fetch(`https://api.github.com/repos/${this.config.getUpdateRepo()}/releases/latest`)
                   ).json()
                 : (
-                      await (await fetch(`https://api.github.com/repos/${this.config.getUpdateRepo()}/releases`)).json()
+                      (await (
+                          await fetch(`https://api.github.com/repos/${this.config.getUpdateRepo()}/releases`)
+                      ).json()) as any
                   ).find?.((a: any) => a.prerelease);
 
         if (!release?.tag_name) {
@@ -48,7 +50,7 @@ export default class Updater {
 
             this.logger.debug('No new version of JSPrismarine available', 'Updater/check');
         } catch (err) {
-            this.logger.error(err, 'Updater/check');
+            this.logger.error(err as any, 'Updater/check');
         }
     }
 }

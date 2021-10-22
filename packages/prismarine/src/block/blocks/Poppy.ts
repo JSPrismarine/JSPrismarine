@@ -18,7 +18,7 @@ export enum FlowerType {
 
 export default class Poppy extends Flowable {
     public constructor(
-        name = 'minecraft:poppy', // Supposed to be "red_flower"
+        name = 'minecraft:red_flower', // Supposed to be "red_flower"  //  TODO: to match runtime states is red_flower
         type: FlowerType = FlowerType.Poppy
     ) {
         super({
