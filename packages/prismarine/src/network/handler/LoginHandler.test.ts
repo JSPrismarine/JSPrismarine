@@ -5,7 +5,7 @@ import LoginPacket from '../packet/LoginPacket';
 describe('network', () => {
     describe('handler', () => {
         describe('LoginHandler', () => {
-            it('handle with non-banned', async (done) => {
+            it('handle with non-banned', async () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
@@ -21,12 +21,10 @@ describe('network', () => {
                             expect(player.username).toStrictEqual({
                                 name: 'runner'
                             });
-                            done();
                         }
                     }),
                     kick: (message: any) => {
                         expect(message).toBe('You have been banned!');
-                        done();
                     }
                 } as any;
 
@@ -47,7 +45,7 @@ describe('network', () => {
                 );
             });
 
-            it('handle with banned without reason', async (done) => {
+            it('handle with banned without reason', async () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
@@ -62,7 +60,6 @@ describe('network', () => {
                     }),
                     kick: (message: any) => {
                         expect(message).toBe('You have been banned!');
-                        done();
                     }
                 } as any;
 
@@ -83,7 +80,7 @@ describe('network', () => {
                 );
             });
 
-            it('handle with banned with reason', async (done) => {
+            it('handle with banned with reason', async () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
@@ -98,7 +95,6 @@ describe('network', () => {
                     }),
                     kick: (message: any) => {
                         expect(message).toBe('You have been banned for reason: a reason!');
-                        done();
                     }
                 } as any;
 
@@ -119,7 +115,7 @@ describe('network', () => {
                 );
             });
 
-            it('handle invalid username', async (done) => {
+            it('handle invalid username', async () => {
                 const pk = new LoginPacket();
                 pk.displayName = '';
                 pk.protocol = Identifiers.Protocol;
@@ -134,7 +130,6 @@ describe('network', () => {
                     }),
                     kick: (message: any) => {
                         expect(message).toBe('Invalid username!');
-                        done();
                     }
                 } as any;
 
@@ -142,7 +137,7 @@ describe('network', () => {
                 await handler.handle(pk, {} as any, player);
             });
 
-            it('handle outdated client', async (done) => {
+            it('handle outdated client', async () => {
                 const pk = new LoginPacket();
                 pk.displayName = '';
                 pk.protocol = Identifiers.Protocol - 10;
@@ -153,7 +148,6 @@ describe('network', () => {
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(1);
-                            done();
                         }
                     })
                 } as any;
@@ -162,7 +156,7 @@ describe('network', () => {
                 await handler.handle(pk, {} as any, player);
             });
 
-            it('handle outdated server', async (done) => {
+            it('handle outdated server', async () => {
                 const pk = new LoginPacket();
                 pk.displayName = '';
                 pk.protocol = Identifiers.Protocol + 10;
@@ -173,7 +167,6 @@ describe('network', () => {
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(2);
-                            done();
                         }
                     })
                 } as any;

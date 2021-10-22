@@ -23,7 +23,7 @@ jest.mock('winston', () => ({
 }));
 
 describe('Prismarine', () => {
-    it.skip('server to start & exit properly', async (done) => {
+    it.skip('server to start & exit properly', async () => {
         jest.setTimeout(35000);
 
         const getRandomInt = (min: number, max: number) => {
@@ -95,6 +95,5 @@ describe('Prismarine', () => {
         await prismarine.listen('0.0.0.0', getRandomInt(46000, 49999));
         await prismarine.kill();
         expect(mockExit).toHaveBeenCalledWith(0);
-        done();
     });
 });

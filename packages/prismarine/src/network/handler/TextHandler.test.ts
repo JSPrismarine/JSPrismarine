@@ -4,7 +4,7 @@ import TextPacket from '../packet/TextPacket';
 describe('network', () => {
     describe('handler', () => {
         describe('TextHandler', () => {
-            it('handle', async (done) => {
+            it('handle', async () => {
                 const pk = new TextPacket();
                 pk.message = 'hello world';
 
@@ -15,7 +15,6 @@ describe('network', () => {
                         getChatManager: () => ({
                             send: (chat: any) => {
                                 expect(chat.getMessage()).toBe('runner hello world');
-                                done();
                             }
                         })
                     } as any,
