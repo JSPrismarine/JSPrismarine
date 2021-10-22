@@ -8,7 +8,7 @@ export default class NewIncomingConnection extends Packet {
     }
 
     public address!: InetAddress;
-    public systemAddresses: Array<InetAddress> = [];
+    public systemAddresses: InetAddress[] = [];
 
     public requestTimestamp!: bigint;
     public acceptedTimestamp!: bigint;

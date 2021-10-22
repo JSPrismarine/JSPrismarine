@@ -61,7 +61,7 @@ export default class Packet extends BinaryStream {
         const bytes = address
             .getAddress()
             .split('.', 4)
-            .map((v) => parseInt(v, 10));
+            .map((v) => Number.parseInt(v, 10));
         // 10 should work perfectly fine, but maybe base2 is directly better...
         // TODO: see when will refactor this code soon
         for (const byte of bytes) {

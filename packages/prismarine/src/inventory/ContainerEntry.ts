@@ -40,7 +40,7 @@ export default class ContainerEntry {
         stream.writeVarInt(0);
 
         // TODO: check for additional data
-        if (itemstack.getNetworkId() == item_id_map['minecraft:shield']) {
+        if (itemstack.getNetworkId() === item_id_map['minecraft:shield']) {
             stream.writeVarLong(BigInt(0));
         }
     }

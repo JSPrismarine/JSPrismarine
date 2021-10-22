@@ -1,20 +1,15 @@
-import ACK from './protocol/ACK';
+import Dgram, { RemoteInfo } from 'dgram';
+
 import BitFlags from './protocol/BitFlags';
-import Connection from './Session';
-import Dgram from 'dgram';
 import { EventEmitter } from 'events';
-import FrameSet from './protocol/FrameSet';
-import NACK from './protocol/NACK';
 import Packet from './protocol/Packet';
 import { RAKNET_TPS } from './RakNet';
 import RakNetSession from './Session';
-import { RemoteInfo } from 'dgram';
-import Session from './Session';
 import UnconnectedHandler from './protocol/UnconnectedHandler';
 
 export default class RakNetListener extends EventEmitter {
     private readonly guid: bigint;
-    private readonly sessions: Map<string, Session> = new Map();
+    private readonly sessions: Map<string, RakNetSession> = new Map();
     private readonly socket: Dgram.Socket;
     private readonly onlineMode: boolean;
 
@@ -41,7 +36,7 @@ export default class RakNetListener extends EventEmitter {
                     if ((header & BitFlags.VALID) === 0) {
                         unconnHandler.handle(msg, rinfo);
                     } else {
-                        this.getConnection(rinfo)?.handle(msg);
+                        this.getSession(rinfo)?.handle(msg);
                     }
                 });
 
@@ -70,7 +65,7 @@ export default class RakNetListener extends EventEmitter {
     }
 
     public addSession(rinfo: RemoteInfo, mtuSize: number) {
-        this.sessions.set(`${rinfo.address}:${rinfo.port}`, new Session(this, mtuSize, rinfo, true));
+        this.sessions.set(`${rinfo.address}:${rinfo.port}`, new RakNetSession(this, mtuSize, rinfo, this.onlineMode));
     }
 
     public removeSession(session: RakNetSession, reason?: string): void {
@@ -84,11 +79,11 @@ export default class RakNetListener extends EventEmitter {
         this.emit('closeConnection', session.getAddress(), reason);
     }
 
-    public getSessions(): Array<Session> {
+    public getSessions(): RakNetSession[] {
         return Array.from(this.sessions.values());
     }
 
-    private getConnection(rinfo: RemoteInfo): Connection | null {
+    private getSession(rinfo: RemoteInfo): RakNetSession | null {
         return this.sessions.get(`${rinfo.address}:${rinfo.port}`) ?? null;
     }
 

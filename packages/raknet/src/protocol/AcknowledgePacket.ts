@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Packet from './Packet';
 
 export default class AcknowledgePacket extends Packet {
-    public sequenceNumbers: Array<number> = [];
+    public sequenceNumbers: number[] = [];
 
     public decodePayload(): void {
         // Clear old cached decoded packets
@@ -37,7 +37,7 @@ export default class AcknowledgePacket extends Packet {
             let last = this.sequenceNumbers[0];
 
             while (pointer < count) {
-                let current = this.sequenceNumbers[pointer++];
+                const current = this.sequenceNumbers[pointer++];
                 const diff = current - last;
                 if (diff === 1) {
                     last = current;

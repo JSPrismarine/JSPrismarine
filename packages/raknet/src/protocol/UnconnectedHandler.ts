@@ -1,14 +1,14 @@
-import { InetAddress, MAX_CHANNELS, MAX_MTU_SIZE, MINECRAFT_PROTOCOL, RakNetListener } from '../RakNet';
+import { InetAddress, MAX_MTU_SIZE, MINECRAFT_PROTOCOL, RakNetListener } from '../RakNet';
 
-import IncompatibleProtocolVersion from '../protocol/connection/IncompatibleProtocolVersion';
+import IncompatibleProtocolVersion from './connection/IncompatibleProtocolVersion';
 import MessageHeaders from './MessageHeaders';
-import OpenConnectionReply1 from '../protocol/connection/OpenConnectionReply1';
-import OpenConnectionReply2 from '../protocol/connection/OpenConnectionReply2';
-import OpenConnectionRequest1 from '../protocol/connection/OpenConnectionRequest1';
-import OpenConnectionRequest2 from '../protocol/connection/OpenConnectionRequest2';
+import OpenConnectionReply1 from './connection/OpenConnectionReply1';
+import OpenConnectionReply2 from './connection/OpenConnectionReply2';
+import OpenConnectionRequest1 from './connection/OpenConnectionRequest1';
+import OpenConnectionRequest2 from './connection/OpenConnectionRequest2';
 import { RemoteInfo } from 'dgram';
-import UnconnectedPing from '../protocol/offline/UnconnectedPing';
-import UnconnectedPong from '../protocol/offline/UnconnectedPong';
+import UnconnectedPing from './offline/UnconnectedPing';
+import UnconnectedPong from './offline/UnconnectedPong';
 
 export default class UnconnectedHandler {
     private readonly listener: RakNetListener;

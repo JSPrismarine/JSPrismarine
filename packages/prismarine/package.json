@@ -48,7 +48,8 @@
         "strip-json-comments": "3.1.1",
         "unzipper": "0.10.11",
         "winston": "3.3.3",
-        "yaml": "2.0.0-3"
+        "yaml": "2.0.0-3",
+        "fflate": "^0.7.1"
     },
     "devDependencies": {
         "@types/d3-interpolate": "2.0.0",

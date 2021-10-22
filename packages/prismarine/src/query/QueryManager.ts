@@ -42,7 +42,7 @@ export default class QueryManager {
                     res.writeByte(9);
                     res.writeInt(sessionId);
                     res.append(Buffer.from(`9513307\0`, 'binary'));
-                    await this.server.getRaknet().sendBuffer(res.getBuffer(), {
+                    this.server.getRaknet().sendBuffer(res.getBuffer(), {
                         address: rinfo.getAddress(),
                         port: rinfo.getPort(),
                         family: 'IPv4',
@@ -125,7 +125,7 @@ export default class QueryManager {
                             'binary'
                         )
                     );
-                    await this.server.getRaknet().sendBuffer(res.getBuffer(), {
+                    this.server.getRaknet().sendBuffer(res.getBuffer(), {
                         address: rinfo.getAddress(),
                         port: rinfo.getPort(),
                         family: 'IPv4',

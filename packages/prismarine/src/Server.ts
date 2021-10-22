@@ -121,7 +121,7 @@ export default class Server {
         await this.worldManager.onEnable();
 
         this.raknet = new RakNetListener(false);
-        this.raknet.start(serverIp, port);
+        await this.raknet.start(serverIp, port);
         this.raknet.on('openConnection', async (connection: Connection) => {
             const event = new RaknetConnectEvent(connection);
             await this.getEventManager().emit('raknetConnect', event);
@@ -328,7 +328,7 @@ export default class Server {
 
             await this.worldManager.onDisable();
             await this.onDisable();
-            await this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
+            this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
             process.exit(options?.crash ? 1 : 0);
         } catch (error) {
             this.getLogger()?.error(error as any, 'Server/kill');

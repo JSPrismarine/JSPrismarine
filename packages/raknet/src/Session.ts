@@ -52,11 +52,11 @@ export default class RakNetSession {
     private outputFragmentIndex = 0;
 
     private lastInputSequenceNumber = -1;
-    private readonly inputHighestSequenceIndex: Array<number>;
-    private readonly inputOrderIndex: Array<number>;
+    private readonly inputHighestSequenceIndex: number[];
+    private readonly inputOrderIndex: number[];
     private inputOrderingQueue: Map<number, Map<number, Frame>> = new Map();
 
-    private readonly channelIndex: Array<number>;
+    private readonly channelIndex: number[];
 
     // Last timestamp of packet received, helpful for timeout
     private lastUpdate: number = Date.now();
@@ -320,13 +320,14 @@ export default class RakNetSession {
         }
     }
 
-    private async handlePacket(packet: Frame): Promise<void> {
+    private handlePacket(packet: Frame): void {
         const id = packet.content[0];
 
         if (this.state === RakNetStatus.CONNECTING) {
             if (id === MessageHeaders.CONNECTION_REQUEST) {
-                const encapsulated = await this.handleConnectionRequest(packet.content);
-                this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE);
+                this.handleConnectionRequest(packet.content).then((encapsulated) =>
+                    this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE)
+                );
             } else if (id === MessageHeaders.NEW_INCOMING_CONNECTION) {
                 // TODO: online mode
                 this.state = RakNetStatus.CONNECTED;
@@ -335,8 +336,9 @@ export default class RakNetSession {
         } else if (id === MessageHeaders.DISCONNECT_NOTIFICATION) {
             this.disconnect('client disconnect');
         } else if (id === MessageHeaders.CONNECTED_PING) {
-            const encapsulated = await this.handleConnectedPing(packet.content);
-            this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE);
+            this.handleConnectedPing(packet.content).then((encapsulated) =>
+                this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE)
+            );
         } else if (this.state === RakNetStatus.CONNECTED) {
             this.listener.emit('encapsulated', packet, this.getAddress()); // To fit in software needs later
         }

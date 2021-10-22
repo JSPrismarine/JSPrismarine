@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
-import Fflate from 'fflate';
 import Zlib from 'zlib';
+import { inflateSync } from 'fflate';
 
 /**
  * @internal
@@ -23,8 +23,8 @@ export default class BatchPacket extends DataPacket {
 
     public decodePayload(): void {
         try {
-            this.payload = Buffer.from(Fflate.inflateSync(this.readRemaining()));
-        } catch (e) {
+            this.payload = Buffer.from(inflateSync(this.readRemaining()));
+        } catch {
             this.payload = Buffer.alloc(0);
         }
     }

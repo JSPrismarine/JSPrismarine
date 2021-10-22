@@ -8,7 +8,7 @@ export default class FrameSet extends Packet {
     }
 
     public sequenceNumber!: number;
-    public frames: Array<Frame> = [];
+    public frames: Frame[] = [];
 
     public decodePayload(): void {
         this.sequenceNumber = this.readLTriad();
