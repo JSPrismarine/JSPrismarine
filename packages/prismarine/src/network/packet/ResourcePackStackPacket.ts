@@ -29,7 +29,7 @@ export default class ResourcePackStackPacket extends DataPacket {
             this.writeString('');
         }
 
-        this.writeString(Identifiers.MinecraftVersion);
+        this.writeString('*');
 
         this.writeLInt(this.experiments.size); // Experiments count
         this.writeBool(this.experimentsAlreadyEnabled); // Experiemnts previously toggled?

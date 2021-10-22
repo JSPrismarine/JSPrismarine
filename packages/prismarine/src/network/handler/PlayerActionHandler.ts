@@ -66,18 +66,21 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
                 const blockId = chunk.getBlock(packet.position.getX(), packet.position.getY(), packet.position.getZ());
 
+                // TODO
+                /*
                 const pk = new WorldEventPacket();
                 pk.eventId = LevelEventType.ParticlePunchBlock;
                 pk.x = packet.position.getX();
                 pk.y = packet.position.getY();
                 pk.z = packet.position.getZ();
-                pk.data = BlockMappings.getRuntimeId(blockId.id, blockId.meta);
+                pk.data = BlockMappings.getRuntimeId();
 
                 await Promise.all(
                     player
                         .getPlayersInChunk()
                         .map(async (nearbyPlayer) => nearbyPlayer.getConnection().sendDataPacket(pk))
                 );
+                */
 
                 break;
             }

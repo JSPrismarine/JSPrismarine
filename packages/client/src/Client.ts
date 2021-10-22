@@ -1,10 +1,11 @@
-import { Connection, ConnectionPriority, InetAddress, Protocol, RakNetListener } from '@jsprismarine/raknet';
+import { Connection, ConnectionPriority, InetAddress, Protocol } from '@jsprismarine/raknet';
 import Dgram, { Socket } from 'dgram';
 import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
 import Crypto from 'crypto';
 import { EventEmitter } from 'events';
+import { RakNetPriority } from '@jsprismarine/raknet/src/Session';
 
 // https://stackoverflow.com/a/1527820/3142553
 const getRandomInt = (min: number, max: number) => {
@@ -23,7 +24,7 @@ const DEF_MTU_SIZE = 1455;
 const RAKNET_TPS = 100;
 const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
-export default class Client extends EventEmitter implements RakNetListener {
+export default class Client extends EventEmitter {
     private clientGUID = Crypto.randomBytes(8).readBigInt64BE();
     private readonly logger = new Logger();
     private readonly address: InetAddress;
@@ -70,8 +71,8 @@ export default class Client extends EventEmitter implements RakNetListener {
             // and the login process starts
             if (!this.connecting) {
                 const pk = new Protocol.UnconnectedPing();
-                pk.sendTimestamp = BigInt(Date.now());
-                pk.clientGUID = this.clientGUID;
+                pk.timestamp = BigInt(Date.now());
+                // TODO: can be omitted... pk. = this.clientGUID;
                 pk.encode();
                 await this.sendBuffer(pk.getBuffer());
             }
@@ -80,15 +81,15 @@ export default class Client extends EventEmitter implements RakNetListener {
                 const pk = new JSPProtocol.Packets.LoginPacket();
                 pk.encode();
 
-                const sendPk = new Protocol.EncapsulatedPacket();
+                const sendPk = new Protocol.Frame();
                 sendPk.reliability = 0;
-                sendPk.buffer = pk.getBuffer();
+                sendPk.content = pk.getBuffer();
 
-                await this.connection!.addEncapsulatedToQueue(sendPk, ConnectionPriority.NORMAL); // Packet needs to be splitted
+                this.connection!.sendFrame(sendPk, ConnectionPriority.NORMAL); // Packet needs to be splitted
                 this.loginHandled = true;
             }
 
-            await this.connection?.update(Date.now());
+            this.connection?.update(Date.now());
         }, RAKNET_TICK_LENGTH * 1000);
         return this;
     }
@@ -97,20 +98,20 @@ export default class Client extends EventEmitter implements RakNetListener {
         const header = buffer.readUInt8(); // Read packet header
 
         if (this.connection && this.offlineHandled) {
-            return this.connection.receive(buffer);
+            return this.connection.handle(buffer);
         }
 
         let buf;
         switch (header) {
-            case Protocol.Identifiers.UnconnectedPong:
+            case Protocol.MessageHeaders.UNCONNECTED_PONG:
                 buf = this.handleUnconnectedPong(buffer);
                 await this.sendBuffer(buf);
                 break;
-            case Protocol.Identifiers.OpenConnectionReply1:
+            case Protocol.MessageHeaders.OPEN_CONNECTION_REPLY_1:
                 buf = this.handleOpenConnectionReply1(buffer);
                 await this.sendBuffer(buf);
                 break;
-            case Protocol.Identifiers.OpenConnectionReply2:
+            case Protocol.MessageHeaders.OPEN_CONNECTION_REPLY_2:
                 this.handleOpenConnectionReply2(buffer);
                 break;
             default:
@@ -162,7 +163,12 @@ export default class Client extends EventEmitter implements RakNetListener {
         // Update session status
         this.connecting = true;
         // This.status = ConnectionStatus.Connected;
-        this.connection = new Connection(this as any, DEF_MTU_SIZE, this.targetAddress);
+        this.connection = new Connection(this as any, DEF_MTU_SIZE, {
+            address: this.address.getAddress(),
+            port: this.address.getPort(),
+            family: 'IPv4',
+            size: 0
+        });
 
         return packet.getBuffer();
     }
@@ -184,11 +190,11 @@ export default class Client extends EventEmitter implements RakNetListener {
         packet.requestTimestamp = BigInt(Date.now());
         packet.encode();
 
-        const sendPacket = new Protocol.EncapsulatedPacket();
+        const sendPacket = new Protocol.Frame();
         sendPacket.reliability = 0;
-        sendPacket.buffer = packet.getBuffer();
+        sendPacket.content = packet.getBuffer();
 
-        void this.connection?.addToQueue(sendPacket, 1);
+        this.connection?.sendFrame(sendPacket, RakNetPriority.NORMAL);
 
         this.offlineHandled = true;
         this.connected = true; // Should be... we can't rely on it

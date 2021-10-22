@@ -1,62 +1,74 @@
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Packet from './Packet';
 
-// const MAX_ACK_PACKETS = 4096;
 export default class AcknowledgePacket extends Packet {
-    // Array containing all sequence numbers of received (ACK)
-    // or lost (NACK) packets
-    private packets: number[] = [];
+    public sequenceNumbers: number[] = [];
 
     public decodePayload(): void {
         // Clear old cached decoded packets
-        this.packets = [];
+        this.sequenceNumbers = [];
 
         const recordCount = this.readShort();
         for (let i = 0; i < recordCount; i++) {
             const notRange = this.readBool();
 
             if (notRange) {
-                this.packets.push(this.readLTriad());
+                this.sequenceNumbers.push(this.readLTriad());
             } else {
                 const start = this.readLTriad();
                 const end = this.readLTriad();
 
                 for (let i = start; i <= end; i++) {
-                    this.packets.push(i);
+                    this.sequenceNumbers.push(i);
                 }
             }
         }
     }
 
     public encodePayload(): void {
-        const seqNumbersCount = this.packets.length;
-        // Record count (a range has start and end values, so count 2 values)
-        this.writeShort(seqNumbersCount > 1 ? seqNumbersCount / 2 : 1);
-        // Sort in ascending order
-        this.packets.sort((a, b) => a - b);
+        const stream = new BinaryStream();
+        this.sequenceNumbers.sort((a, b) => a - b);
+        const count = this.sequenceNumbers.length;
+        let records = 0;
 
-        if (seqNumbersCount > 1) {
-            // True if is a single record
-            this.writeBool(false);
-            // We always have 2 sequence numbers max, so this may be a hack
-            for (let i = 0; i < seqNumbersCount / 2; i += 2) {
-                // Write start sequence number
-                this.writeLTriad(this.packets[i]);
-                // Write end sequence number
-                this.writeLTriad(this.packets[i + 1]);
+        if (count > 0) {
+            let pointer = 1;
+            let start = this.sequenceNumbers[0];
+            let last = this.sequenceNumbers[0];
+
+            while (pointer < count) {
+                const current = this.sequenceNumbers[pointer++];
+                const diff = current - last;
+                if (diff === 1) {
+                    last = current;
+                } else if (diff > 1) {
+                    if (start === last) {
+                        stream.writeBool(true); // single?
+                        stream.writeLTriad(start);
+                        start = last = current;
+                    } else {
+                        stream.writeBool(false); // single?
+                        stream.writeLTriad(start);
+                        stream.writeLTriad(last);
+                        start = last = current;
+                    }
+                    ++records;
+                }
             }
-        } else {
-            // True if is a single record
-            this.writeBool(true);
-            // Write the only value we have
-            this.writeLTriad(this.packets[0]);
+
+            // last iteration
+            if (start === last) {
+                stream.writeBool(true); // single?
+                stream.writeLTriad(start);
+            } else {
+                stream.writeBool(false); // single?
+                stream.writeLTriad(start);
+                stream.writeLTriad(last);
+            }
+            ++records;
         }
-    }
 
-    public setPackets(packets: number[]): void {
-        this.packets = packets;
-    }
-
-    public getPackets(): number[] {
-        return this.packets;
+        this.writeShort(records);
+        this.append(stream.getBuffer());
     }
 }

@@ -1,9 +1,9 @@
-import Identifiers from './Identifiers';
-import OfflinePacket from './OfflinePacket';
+import MessageHeaders from '../MessageHeaders';
+import OfflinePacket from '../UnconnectedPacket';
 
 export default class IncompatibleProtocolVersion extends OfflinePacket {
     public constructor() {
-        super(Identifiers.IncompatibleProtocolVersion);
+        super(MessageHeaders.INCOMPATIBLE_PROTOCOL_VERSION);
     }
 
     public protocol!: number;

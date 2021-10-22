@@ -1,10 +1,10 @@
-import Identifiers from './Identifiers';
-import InetAddress from '../utils/InetAddress';
-import Packet from './Packet';
+import { InetAddress } from '../../RakNet';
+import MessageHeaders from '../MessageHeaders';
+import Packet from '../Packet';
 
 export default class NewIncomingConnection extends Packet {
     public constructor(buffer?: Buffer) {
-        super(Identifiers.NewIncomingConnection, buffer);
+        super(MessageHeaders.NEW_INCOMING_CONNECTION, buffer);
     }
 
     public address!: InetAddress;

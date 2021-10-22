@@ -101,7 +101,10 @@ export default class Player extends Human {
 
         const playerData = await this.getWorld().getPlayerData(this);
 
-        void this.setGamemode(Gamemode.getGamemodeId(playerData.gamemode));
+        // void this.setGamemode(Gamemode.getGamemodeId(playerData.gamemode));
+        // TODO: calling this before the player is spawning will create an undefined behavior
+        // this function will send a SetPlayerGameType packet breaking the login sequence
+        // i'll keep this comment while it's broken
         await this.setX(playerData.position.x);
         await this.setY(playerData.position.y);
         await this.setZ(playerData.position.z);

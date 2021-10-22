@@ -1,8 +1,8 @@
-import Identifiers from './Identifiers';
-import OfflinePacket from './OfflinePacket';
+import MessageHeaders from './MessageHeaders';
+import OfflinePacket from './UnconnectedPacket';
 
 export default class DisconnectNotification extends OfflinePacket {
     public constructor() {
-        super(Identifiers.DisconnectNotification);
+        super(MessageHeaders.DISCONNECT_NOTIFICATION);
     }
 }

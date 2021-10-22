@@ -1,10 +1,10 @@
-import Identifiers from './Identifiers';
-import InetAddress from '../utils/InetAddress';
-import OfflinePacket from './OfflinePacket';
+import { InetAddress } from '../../RakNet';
+import MessageHeaders from '../MessageHeaders';
+import OfflinePacket from '../UnconnectedPacket';
 
 export default class OpenConnectionRequest2 extends OfflinePacket {
     public constructor(buffer?: Buffer) {
-        super(Identifiers.OpenConnectionRequest2, buffer);
+        super(MessageHeaders.OPEN_CONNECTION_REQUEST_2, buffer);
     }
 
     public serverAddress!: InetAddress;

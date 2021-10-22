@@ -107,7 +107,7 @@ export default class Chunk {
      * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
     public setBlock(bx: number, by: number, bz: number, block: Block, layer = 0): void {
-        this.getSubChunk(by).setBlock(bx, by, bz, BlockMappings.getRuntimeId(block.getId(), block.getMeta()), layer);
+        this.getSubChunk(by).setBlock(bx, by, bz, BlockMappings.getRuntimeId(block.getName()), layer);
         this.hasChanged = true;
     }
 
@@ -124,7 +124,7 @@ export default class Chunk {
         const biomeIds = Buffer.alloc(256).fill(0x00);
         stream.writeUnsignedVarInt(biomeIds.byteLength);
         stream.append(biomeIds);
-        stream.writeByte(0); // extra data (MIT)
+        stream.writeUnsignedVarInt(0); // extra data (MIT)
         return stream.getBuffer();
     }
 

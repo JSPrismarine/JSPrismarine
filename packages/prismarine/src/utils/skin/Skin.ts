@@ -189,9 +189,7 @@ export default class Skin {
         // Miscellaneus
         stream.writeString(this.getGeometry());
         stream.writeString(this.getAnimationData());
-        stream.writeBool(this.isPremium());
-        stream.writeBool(this.isPersona());
-        stream.writeBool(this.isCapeOnClassicSkin());
+        stream.writeString(''); // geometry data engine version
         stream.writeString(this.getCape().getId());
         stream.writeString(this.getFullId());
         stream.writeString(this.getArmSize());
@@ -220,6 +218,11 @@ export default class Skin {
             stream.writeLInt(0); // Persona pieces
             stream.writeLInt(0); // Tint colors
         }
+
+        stream.writeBool(this.isPremium());
+        stream.writeBool(this.isPersona());
+        stream.writeBool(this.isCapeOnClassicSkin());
+        stream.writeBool(true); // Is primary user
     }
 
     public getId(): string {

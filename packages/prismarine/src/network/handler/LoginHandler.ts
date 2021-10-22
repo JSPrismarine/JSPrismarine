@@ -59,6 +59,9 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
         }
 
         const pk = new ResourcePacksInfoPacket();
+        pk.mustAccept = false;
+        pk.forceAccept = false;
+        pk.hasScripts = false;
         await player.getConnection().sendDataPacket(pk);
     }
 }

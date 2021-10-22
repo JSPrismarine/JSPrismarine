@@ -17,6 +17,7 @@ export default class CreativeContentPacket extends DataPacket {
         this.entries.forEach((entry: CreativeContentEntry) => {
             entry.networkSerialize(this);
         });
+
          */
     }
 

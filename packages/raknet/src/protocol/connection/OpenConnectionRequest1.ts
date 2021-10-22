@@ -1,25 +1,24 @@
-import Identifiers from './Identifiers';
-import OfflinePacket from './OfflinePacket';
+import MessageHeaders from '../MessageHeaders';
+import OfflinePacket from '../UnconnectedPacket';
 
 export default class OpenConnectionRequest1 extends OfflinePacket {
     public constructor(buffer?: Buffer) {
-        super(Identifiers.OpenConnectionRequest1, buffer);
+        super(MessageHeaders.OPEN_CONNECTION_REQUEST_1, buffer);
     }
 
     public mtuSize!: number;
     public protocol!: number;
 
     public decodePayload(): void {
-        this.mtuSize = Buffer.byteLength(this.getBuffer()) + 1 + 28;
         this.readMagic();
         this.protocol = this.readByte();
+        this.mtuSize = this.getBuffer().byteLength + 28;
     }
 
     public encodePayload(): void {
         this.writeMagic();
         this.writeByte(this.protocol);
         const length = this.mtuSize - this.getBuffer().byteLength;
-        const buf = Buffer.alloc(length).fill(0x00);
-        this.append(buf);
+        this.append(Buffer.alloc(length));
     }
 }
