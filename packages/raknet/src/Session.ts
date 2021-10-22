@@ -247,8 +247,6 @@ export default class RakNetSession {
                 this.inputOrderIndex[orderChannel] = i;
             } else if (orderIndex > this.inputOrderIndex[orderChannel]) {
                 this.inputOrderingQueue.get(orderChannel)!.set(orderIndex, frame);
-            } else {
-                return;
             }
         } else {
             this.handlePacket(frame);
@@ -325,8 +323,9 @@ export default class RakNetSession {
 
         if (this.state === RakNetStatus.CONNECTING) {
             if (id === MessageHeaders.CONNECTION_REQUEST) {
-                this.handleConnectionRequest(packet.content).then((encapsulated) =>
-                    this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE)
+                this.handleConnectionRequest(packet.content).then(
+                    (encapsulated) => this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE),
+                    () => {}
                 );
             } else if (id === MessageHeaders.NEW_INCOMING_CONNECTION) {
                 // TODO: online mode
@@ -336,8 +335,9 @@ export default class RakNetSession {
         } else if (id === MessageHeaders.DISCONNECT_NOTIFICATION) {
             this.disconnect('client disconnect');
         } else if (id === MessageHeaders.CONNECTED_PING) {
-            this.handleConnectedPing(packet.content).then((encapsulated) =>
-                this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE)
+            this.handleConnectedPing(packet.content).then(
+                (encapsulated) => this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE),
+                () => {}
             );
         } else if (this.state === RakNetStatus.CONNECTED) {
             this.listener.emit('encapsulated', packet, this.getAddress()); // To fit in software needs later
