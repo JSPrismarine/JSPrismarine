@@ -94,7 +94,7 @@
 										<a href="_raknet._raknet-1.ConnectionRequestAccepted.html" class="tsd-signature-type" data-tsd-kind="Class">ConnectionRequestAccepted</a>
 									</li>
 									<li>
-										<a href="_raknet._raknet-1.DataPacket.html" class="tsd-signature-type" data-tsd-kind="Class">DataPacket</a>
+										<a href="_raknet._raknet-1.FrameSet.html" class="tsd-signature-type" data-tsd-kind="Class">FrameSet</a>
 									</li>
 									<li>
 										<a href="_raknet._raknet-1.NewIncomingConnection.html" class="tsd-signature-type" data-tsd-kind="Class">NewIncomingConnection</a>
@@ -313,8 +313,17 @@
 					<li class="current tsd-kind-namespace tsd-parent-kind-module">
 						<a href="../modules/_raknet._raknet-1.html" class="tsd-kind-icon">/raknet</a>
 						<ul>
+							<li class=" tsd-kind-reference tsd-parent-kind-namespace">
+								<a href="../modules/_raknet._raknet-1.html#RakNetPriority" class="tsd-kind-icon">Rak<wbr>Net<wbr>Priority</a>
+							</li>
 							<li class=" tsd-kind-enum tsd-parent-kind-namespace">
-								<a href="../enums/_raknet._raknet-1.ReliabilityLayer.html" class="tsd-kind-icon">Reliability<wbr>Layer</a>
+								<a href="../enums/_raknet._raknet-1.BitFlags.html" class="tsd-kind-icon">Bit<wbr>Flags</a>
+							</li>
+							<li class=" tsd-kind-enum tsd-parent-kind-namespace">
+								<a href="../enums/_raknet._raknet-1.FrameReliability.html" class="tsd-kind-icon">Frame<wbr>Reliability</a>
+							</li>
+							<li class=" tsd-kind-enum tsd-parent-kind-namespace">
+								<a href="../enums/_raknet._raknet-1.MessageHeaders.html" class="tsd-kind-icon">Message<wbr>Headers</a>
 							</li>
 							<li class=" tsd-kind-class tsd-parent-kind-namespace">
 								<a href="_raknet._raknet-1.ACK.html" class="tsd-kind-icon">ACK</a>
@@ -335,13 +344,13 @@
 								<a href="_raknet._raknet-1.ConnectionRequestAccepted.html" class="tsd-kind-icon">Connection<wbr>Request<wbr>Accepted</a>
 							</li>
 							<li class=" tsd-kind-class tsd-parent-kind-namespace">
-								<a href="_raknet._raknet-1.DataPacket.html" class="tsd-kind-icon">Data<wbr>Packet</a>
-							</li>
-							<li class=" tsd-kind-class tsd-parent-kind-namespace">
 								<a href="_raknet._raknet-1.DisconnectNotification.html" class="tsd-kind-icon">Disconnect<wbr>Notification</a>
 							</li>
 							<li class=" tsd-kind-class tsd-parent-kind-namespace">
-								<a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-kind-icon">Encapsulated<wbr>Packet</a>
+								<a href="_raknet._raknet-1.Frame.html" class="tsd-kind-icon">Frame</a>
+							</li>
+							<li class=" tsd-kind-class tsd-parent-kind-namespace">
+								<a href="_raknet._raknet-1.FrameSet.html" class="tsd-kind-icon">Frame<wbr>Set</a>
 							</li>
 							<li class=" tsd-kind-class tsd-parent-kind-namespace">
 								<a href="_raknet._raknet-1.IncompatibleProtocolVersion.html" class="tsd-kind-icon">Incompatible<wbr>Protocol<wbr>Version</a>
@@ -402,12 +411,6 @@
 							<li class=" tsd-kind-class tsd-parent-kind-namespace">
 								<a href="_raknet._raknet-1.UnconnectedPong.html" class="tsd-kind-icon">Unconnected<wbr>Pong</a>
 							</li>
-							<li class=" tsd-kind-variable tsd-parent-kind-namespace">
-								<a href="../modules/_raknet._raknet-1.html#BitFlags" class="tsd-kind-icon">Bit<wbr>Flags</a>
-							</li>
-							<li class=" tsd-kind-variable tsd-parent-kind-namespace">
-								<a href="../modules/_raknet._raknet-1.html#Identifiers" class="tsd-kind-icon">Identifiers</a>
-							</li>
 						</ul>
 					</li>
 				</ul>
@@ -422,13 +425,25 @@
 						<a href="_raknet.InetAddress.html" class="tsd-kind-icon">Inet<wbr>Address</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module">
-						<a href="_raknet.Listener.html" class="tsd-kind-icon">Listener</a>
+						<a href="_raknet.RakNetListener.html" class="tsd-kind-icon">Rak<wbr>Net<wbr>Listener</a>
 					</li>
 					<li class=" tsd-kind-class tsd-parent-kind-module">
 						<a href="_raknet.ServerName.html" class="tsd-kind-icon">Server<wbr>Name</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
-						<a href="../interfaces/_raknet.RakNetListener.html" class="tsd-kind-icon">Rak<wbr>Net<wbr>Listener</a>
+					<li class=" tsd-kind-variable tsd-parent-kind-module">
+						<a href="../modules/_raknet.html#MAX_CHANNELS" class="tsd-kind-icon">MAX_<wbr>CHANNELS</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-module">
+						<a href="../modules/_raknet.html#MAX_MTU_SIZE" class="tsd-kind-icon">MAX_<wbr>MTU_<wbr>SIZE</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-module">
+						<a href="../modules/_raknet.html#MINECRAFT_PROTOCOL" class="tsd-kind-icon">MINECRAFT_<wbr>PROTOCOL</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-module">
+						<a href="../modules/_raknet.html#RAKNET_MAGIC" class="tsd-kind-icon">RAKNET_<wbr>MAGIC</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-parent-kind-module">
+						<a href="../modules/_raknet.html#RAKNET_TPS" class="tsd-kind-icon">RAKNET_<wbr>TPS</a>
 					</li>
 				</ul>
 			</nav>
@@ -440,19 +455,17 @@
 		<h2>Legend</h2>
 		<div class="tsd-legend-group">
 			<ul class="tsd-legend">
+				<li class="tsd-kind-namespace"><span class="tsd-kind-icon">Namespace</span></li>
+				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
+				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
+			</ul>
+			<ul class="tsd-legend">
 				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
 				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
 				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
 			</ul>
 			<ul class="tsd-legend">
-				<li class="tsd-kind-namespace"><span class="tsd-kind-icon">Namespace</span></li>
-				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
-			</ul>
-			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
 			</ul>
 		</div>
 	</div>

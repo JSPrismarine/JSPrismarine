@@ -87,26 +87,19 @@
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#addEncapsulatedToQueue" class="tsd-kind-icon">add<wbr>Encapsulated<wbr>ToQueue</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#addToQueue" class="tsd-kind-icon">add<wbr>ToQueue</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#close" class="tsd-kind-icon">close</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#disconnect" class="tsd-kind-icon">disconnect</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#getAddress" class="tsd-kind-icon">get<wbr>Address</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#getListener" class="tsd-kind-icon">get<wbr>Listener</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#getSendQueue" class="tsd-kind-icon">get<wbr>Send<wbr>Queue</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#getState" class="tsd-kind-icon">get<wbr>State</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#handleACK" class="tsd-kind-icon">handleACK</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#handle" class="tsd-kind-icon">handle</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#handleConnectedPing" class="tsd-kind-icon">handle<wbr>Connected<wbr>Ping</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#handleConnectionRequest" class="tsd-kind-icon">handle<wbr>Connection<wbr>Request</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#handleDatagram" class="tsd-kind-icon">handle<wbr>Datagram</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#handleNACK" class="tsd-kind-icon">handleNACK</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#handlePacket" class="tsd-kind-icon">handle<wbr>Packet</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#handleSplit" class="tsd-kind-icon">handle<wbr>Split</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#handleFragment" class="tsd-kind-icon">handle<wbr>Fragment</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#isActive" class="tsd-kind-icon">is<wbr>Active</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#receive" class="tsd-kind-icon">receive</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#receivePacket" class="tsd-kind-icon">receive<wbr>Packet</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#sendPacket" class="tsd-kind-icon">send<wbr>Packet</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#sendPacketQueue" class="tsd-kind-icon">send<wbr>Packet<wbr>Queue</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#isDisconnected" class="tsd-kind-icon">is<wbr>Disconnected</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#sendFrame" class="tsd-kind-icon">send<wbr>Frame</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#sendFrameQueue" class="tsd-kind-icon">send<wbr>Frame<wbr>Queue</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_raknet.Connection.html#update" class="tsd-kind-icon">update</a></li>
 							</ul>
 						</section>
@@ -119,28 +112,28 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Connection<span class="tsd-signature-symbol">(</span>listener<span class="tsd-signature-symbol">: </span><a href="../interfaces/_raknet.RakNetListener.html" class="tsd-signature-type" data-tsd-kind="Interface">RakNetListener</a>, mtuSize<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, address<span class="tsd-signature-symbol">: </span><a href="_raknet.InetAddress.html" class="tsd-signature-type" data-tsd-kind="Class">InetAddress</a>, offlineMode<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_raknet.Connection.html" class="tsd-signature-type" data-tsd-kind="Class">Connection</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Connection<span class="tsd-signature-symbol">(</span>listener<span class="tsd-signature-symbol">: </span><a href="_raknet.RakNetListener.html" class="tsd-signature-type" data-tsd-kind="Class">RakNetListener</a>, mtuSize<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, rinfo<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">RemoteInfo</span>, offlineMode<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_raknet.Connection.html" class="tsd-signature-type" data-tsd-kind="Class">Connection</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L80">packages/raknet/src/Connection.ts:80</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:38</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>listener: <a href="../interfaces/_raknet.RakNetListener.html" class="tsd-signature-type" data-tsd-kind="Interface">RakNetListener</a></h5>
+									<h5>listener: <a href="_raknet.RakNetListener.html" class="tsd-signature-type" data-tsd-kind="Class">RakNetListener</a></h5>
 								</li>
 								<li>
 									<h5>mtuSize: <span class="tsd-signature-type">number</span></h5>
 								</li>
 								<li>
-									<h5>address: <a href="_raknet.InetAddress.html" class="tsd-signature-type" data-tsd-kind="Class">InetAddress</a></h5>
+									<h5>rinfo: <span class="tsd-signature-type">RemoteInfo</span></h5>
 								</li>
 								<li>
-									<h5>offlineMode: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> offlineMode: <span class="tsd-signature-type">boolean</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="_raknet.Connection.html" class="tsd-signature-type" data-tsd-kind="Class">Connection</a></h4>
@@ -151,76 +144,19 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="addEncapsulatedToQueue" class="tsd-anchor"></a>
-					<h3>add<wbr>Encapsulated<wbr>ToQueue</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">add<wbr>Encapsulated<wbr>ToQueue<span class="tsd-signature-symbol">(</span>packet<span class="tsd-signature-symbol">: </span><a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a>, flags<span class="tsd-signature-symbol">?: </span><a href="../enums/_raknet.ConnectionPriority.html" class="tsd-signature-type" data-tsd-kind="Enumeration">ConnectionPriority</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L292">packages/raknet/src/Connection.ts:292</a></li>
-								</ul>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>packet: <a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a></h5>
-								</li>
-								<li>
-									<h5>flags: <a href="../enums/_raknet.ConnectionPriority.html" class="tsd-signature-type" data-tsd-kind="Enumeration">ConnectionPriority</a><span class="tsd-signature-symbol"> = ...</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="addToQueue" class="tsd-anchor"></a>
-					<h3>add<wbr>ToQueue</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">add<wbr>ToQueue<span class="tsd-signature-symbol">(</span>pk<span class="tsd-signature-symbol">: </span><a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a>, flags<span class="tsd-signature-symbol">?: </span><a href="../enums/_raknet.ConnectionPriority.html" class="tsd-signature-type" data-tsd-kind="Enumeration">ConnectionPriority</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L347">packages/raknet/src/Connection.ts:347</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<div class="lead">
-									<p>Adds a packet into the queue</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>pk: <a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a></h5>
-								</li>
-								<li>
-									<h5>flags: <a href="../enums/_raknet.ConnectionPriority.html" class="tsd-signature-type" data-tsd-kind="Enumeration">ConnectionPriority</a><span class="tsd-signature-symbol"> = ...</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="close" class="tsd-anchor"></a>
 					<h3>close</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">close<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">close<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L499">packages/raknet/src/Connection.ts:499</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:54</li>
 								</ul>
 							</aside>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -234,7 +170,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L155">packages/raknet/src/Connection.ts:155</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:59</li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -265,7 +201,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L516">packages/raknet/src/Connection.ts:516</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:64</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="_raknet.InetAddress.html" class="tsd-signature-type" data-tsd-kind="Class">InetAddress</a></h4>
@@ -276,33 +212,16 @@
 					<a name="getListener" class="tsd-anchor"></a>
 					<h3>get<wbr>Listener</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Listener<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_raknet.RakNetListener.html" class="tsd-signature-type" data-tsd-kind="Interface">RakNetListener</a></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Listener<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_raknet.RakNetListener.html" class="tsd-signature-type" data-tsd-kind="Class">RakNetListener</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L512">packages/raknet/src/Connection.ts:512</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:63</li>
 								</ul>
 							</aside>
-							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_raknet.RakNetListener.html" class="tsd-signature-type" data-tsd-kind="Interface">RakNetListener</a></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="getSendQueue" class="tsd-anchor"></a>
-					<h3>get<wbr>Send<wbr>Queue</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Send<wbr>Queue<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_raknet._raknet-1.DataPacket.html" class="tsd-signature-type" data-tsd-kind="Class">DataPacket</a></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L93">packages/raknet/src/Connection.ts:93</a></li>
-								</ul>
-							</aside>
-							<h4 class="tsd-returns-title">Returns <a href="_raknet._raknet-1.DataPacket.html" class="tsd-signature-type" data-tsd-kind="Class">DataPacket</a></h4>
+							<h4 class="tsd-returns-title">Returns <a href="_raknet.RakNetListener.html" class="tsd-signature-type" data-tsd-kind="Class">RakNetListener</a></h4>
 						</li>
 					</ul>
 				</section>
@@ -316,7 +235,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L504">packages/raknet/src/Connection.ts:504</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:60</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
@@ -324,16 +243,16 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="handleACK" class="tsd-anchor"></a>
-					<h3>handleACK</h3>
+					<a name="handle" class="tsd-anchor"></a>
+					<h3>handle</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">handleACK<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">handle<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L230">packages/raknet/src/Connection.ts:230</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:40</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -342,7 +261,7 @@
 									<h5>buffer: <span class="tsd-signature-type">Buffer</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -350,13 +269,13 @@
 					<a name="handleConnectedPing" class="tsd-anchor"></a>
 					<h3>handle<wbr>Connected<wbr>Ping</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">handle<wbr>Connected<wbr>Ping<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">handle<wbr>Connected<wbr>Ping<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_raknet._raknet-1.Frame.html" class="tsd-signature-type" data-tsd-kind="Class">Frame</a><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L440">packages/raknet/src/Connection.ts:440</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:49</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -365,7 +284,7 @@
 									<h5>buffer: <span class="tsd-signature-type">Buffer</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_raknet._raknet-1.Frame.html" class="tsd-signature-type" data-tsd-kind="Class">Frame</a><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -373,13 +292,13 @@
 					<a name="handleConnectionRequest" class="tsd-anchor"></a>
 					<h3>handle<wbr>Connection<wbr>Request</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">handle<wbr>Connection<wbr>Request<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">handle<wbr>Connection<wbr>Request<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_raknet._raknet-1.Frame.html" class="tsd-signature-type" data-tsd-kind="Class">Frame</a><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L423">packages/raknet/src/Connection.ts:423</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:48</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -388,109 +307,30 @@
 									<h5>buffer: <span class="tsd-signature-type">Buffer</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_raknet._raknet-1.Frame.html" class="tsd-signature-type" data-tsd-kind="Class">Frame</a><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="handleDatagram" class="tsd-anchor"></a>
-					<h3>handle<wbr>Datagram</h3>
+					<a name="handleFragment" class="tsd-anchor"></a>
+					<h3>handle<wbr>Fragment</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">handle<wbr>Datagram<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">handle<wbr>Fragment<span class="tsd-signature-symbol">(</span>frame<span class="tsd-signature-symbol">: </span><a href="_raknet._raknet-1.Frame.html" class="tsd-signature-type" data-tsd-kind="Class">Frame</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L178">packages/raknet/src/Connection.ts:178</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:50</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>buffer: <span class="tsd-signature-type">Buffer</span></h5>
+									<h5>frame: <a href="_raknet._raknet-1.Frame.html" class="tsd-signature-type" data-tsd-kind="Class">Frame</a></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="handleNACK" class="tsd-anchor"></a>
-					<h3>handleNACK</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">handleNACK<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L244">packages/raknet/src/Connection.ts:244</a></li>
-								</ul>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>buffer: <span class="tsd-signature-type">Buffer</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="handlePacket" class="tsd-anchor"></a>
-					<h3>handle<wbr>Packet</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">handle<wbr>Packet<span class="tsd-signature-symbol">(</span>packet<span class="tsd-signature-symbol">: </span><a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L370">packages/raknet/src/Connection.ts:370</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<div class="lead">
-									<p>Encapsulated handling route</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>packet: <a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="handleSplit" class="tsd-anchor"></a>
-					<h3>handle<wbr>Split</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">handle<wbr>Split<span class="tsd-signature-symbol">(</span>packet<span class="tsd-signature-symbol">: </span><a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L459">packages/raknet/src/Connection.ts:459</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<div class="lead">
-									<p>Handles a splitted packet.</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>packet: <a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -504,7 +344,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L508">packages/raknet/src/Connection.ts:508</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:61</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
@@ -512,93 +352,62 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="receive" class="tsd-anchor"></a>
-					<h3>receive</h3>
+					<a name="isDisconnected" class="tsd-anchor"></a>
+					<h3>is<wbr>Disconnected</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">receive<span class="tsd-signature-symbol">(</span>buffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Disconnected<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L162">packages/raknet/src/Connection.ts:162</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:62</li>
 								</ul>
 							</aside>
-							<div class="tsd-comment tsd-typography">
-								<div class="lead">
-									<p>Receive session packets</p>
-								</div>
-							</div>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>buffer: <span class="tsd-signature-type">Buffer</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 						</li>
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="receivePacket" class="tsd-anchor"></a>
-					<h3>receive<wbr>Packet</h3>
+					<a name="sendFrame" class="tsd-anchor"></a>
+					<h3>send<wbr>Frame</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">receive<wbr>Packet<span class="tsd-signature-symbol">(</span>packet<span class="tsd-signature-symbol">: </span><a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">send<wbr>Frame<span class="tsd-signature-symbol">(</span>frame<span class="tsd-signature-symbol">: </span><a href="_raknet._raknet-1.Frame.html" class="tsd-signature-type" data-tsd-kind="Class">Frame</a>, flags<span class="tsd-signature-symbol">?: </span><a href="../enums/_raknet.ConnectionPriority.html" class="tsd-signature-type" data-tsd-kind="Enumeration">ConnectionPriority</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L263">packages/raknet/src/Connection.ts:263</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:45</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>packet: <a href="_raknet._raknet-1.EncapsulatedPacket.html" class="tsd-signature-type" data-tsd-kind="Class">EncapsulatedPacket</a></h5>
+									<h5>frame: <a href="_raknet._raknet-1.Frame.html" class="tsd-signature-type" data-tsd-kind="Class">Frame</a></h5>
 								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="sendPacket" class="tsd-anchor"></a>
-					<h3>send<wbr>Packet</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">send<wbr>Packet<span class="tsd-signature-symbol">(</span>packet<span class="tsd-signature-symbol">: </span><a href="_raknet._raknet-1.Packet.html" class="tsd-signature-type" data-tsd-kind="Class">Packet</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L493">packages/raknet/src/Connection.ts:493</a></li>
-								</ul>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
 								<li>
-									<h5>packet: <a href="_raknet._raknet-1.Packet.html" class="tsd-signature-type" data-tsd-kind="Class">Packet</a></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> flags: <a href="../enums/_raknet.ConnectionPriority.html" class="tsd-signature-type" data-tsd-kind="Enumeration">ConnectionPriority</a></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="sendPacketQueue" class="tsd-anchor"></a>
-					<h3>send<wbr>Packet<wbr>Queue</h3>
+					<a name="sendFrameQueue" class="tsd-anchor"></a>
+					<h3>send<wbr>Frame<wbr>Queue</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">send<wbr>Packet<wbr>Queue<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">send<wbr>Frame<wbr>Queue<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L483">packages/raknet/src/Connection.ts:483</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:51</li>
 								</ul>
 							</aside>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -606,13 +415,13 @@
 					<a name="update" class="tsd-anchor"></a>
 					<h3>update</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">update<span class="tsd-signature-symbol">(</span>timestamp<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">update<span class="tsd-signature-symbol">(</span>timestamp<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/908e9e4/packages/raknet/src/Connection.ts#L97">packages/raknet/src/Connection.ts:97</a></li>
+									<li>Defined in packages/raknet/dist/Session.d.ts:39</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -621,7 +430,7 @@
 									<h5>timestamp: <span class="tsd-signature-type">number</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -685,12 +494,6 @@
 										<a href="_raknet.Connection.html#constructor" class="tsd-kind-icon">constructor</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#addEncapsulatedToQueue" class="tsd-kind-icon">add<wbr>Encapsulated<wbr>ToQueue</a>
-									</li>
-									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#addToQueue" class="tsd-kind-icon">add<wbr>ToQueue</a>
-									</li>
-									<li class=" tsd-kind-method tsd-parent-kind-class">
 										<a href="_raknet.Connection.html#close" class="tsd-kind-icon">close</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
@@ -703,13 +506,10 @@
 										<a href="_raknet.Connection.html#getListener" class="tsd-kind-icon">get<wbr>Listener</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#getSendQueue" class="tsd-kind-icon">get<wbr>Send<wbr>Queue</a>
-									</li>
-									<li class=" tsd-kind-method tsd-parent-kind-class">
 										<a href="_raknet.Connection.html#getState" class="tsd-kind-icon">get<wbr>State</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#handleACK" class="tsd-kind-icon">handleACK</a>
+										<a href="_raknet.Connection.html#handle" class="tsd-kind-icon">handle</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
 										<a href="_raknet.Connection.html#handleConnectedPing" class="tsd-kind-icon">handle<wbr>Connected<wbr>Ping</a>
@@ -718,31 +518,19 @@
 										<a href="_raknet.Connection.html#handleConnectionRequest" class="tsd-kind-icon">handle<wbr>Connection<wbr>Request</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#handleDatagram" class="tsd-kind-icon">handle<wbr>Datagram</a>
-									</li>
-									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#handleNACK" class="tsd-kind-icon">handleNACK</a>
-									</li>
-									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#handlePacket" class="tsd-kind-icon">handle<wbr>Packet</a>
-									</li>
-									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#handleSplit" class="tsd-kind-icon">handle<wbr>Split</a>
+										<a href="_raknet.Connection.html#handleFragment" class="tsd-kind-icon">handle<wbr>Fragment</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
 										<a href="_raknet.Connection.html#isActive" class="tsd-kind-icon">is<wbr>Active</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#receive" class="tsd-kind-icon">receive</a>
+										<a href="_raknet.Connection.html#isDisconnected" class="tsd-kind-icon">is<wbr>Disconnected</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#receivePacket" class="tsd-kind-icon">receive<wbr>Packet</a>
+										<a href="_raknet.Connection.html#sendFrame" class="tsd-kind-icon">send<wbr>Frame</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#sendPacket" class="tsd-kind-icon">send<wbr>Packet</a>
-									</li>
-									<li class=" tsd-kind-method tsd-parent-kind-class">
-										<a href="_raknet.Connection.html#sendPacketQueue" class="tsd-kind-icon">send<wbr>Packet<wbr>Queue</a>
+										<a href="_raknet.Connection.html#sendFrameQueue" class="tsd-kind-icon">send<wbr>Frame<wbr>Queue</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
 										<a href="_raknet.Connection.html#update" class="tsd-kind-icon">update</a>
@@ -753,13 +541,25 @@
 								<a href="_raknet.InetAddress.html" class="tsd-kind-icon">Inet<wbr>Address</a>
 							</li>
 							<li class=" tsd-kind-class tsd-parent-kind-module">
-								<a href="_raknet.Listener.html" class="tsd-kind-icon">Listener</a>
+								<a href="_raknet.RakNetListener.html" class="tsd-kind-icon">Rak<wbr>Net<wbr>Listener</a>
 							</li>
 							<li class=" tsd-kind-class tsd-parent-kind-module">
 								<a href="_raknet.ServerName.html" class="tsd-kind-icon">Server<wbr>Name</a>
 							</li>
-							<li class=" tsd-kind-interface tsd-parent-kind-module">
-								<a href="../interfaces/_raknet.RakNetListener.html" class="tsd-kind-icon">Rak<wbr>Net<wbr>Listener</a>
+							<li class=" tsd-kind-variable tsd-parent-kind-module">
+								<a href="../modules/_raknet.html#MAX_CHANNELS" class="tsd-kind-icon">MAX_<wbr>CHANNELS</a>
+							</li>
+							<li class=" tsd-kind-variable tsd-parent-kind-module">
+								<a href="../modules/_raknet.html#MAX_MTU_SIZE" class="tsd-kind-icon">MAX_<wbr>MTU_<wbr>SIZE</a>
+							</li>
+							<li class=" tsd-kind-variable tsd-parent-kind-module">
+								<a href="../modules/_raknet.html#MINECRAFT_PROTOCOL" class="tsd-kind-icon">MINECRAFT_<wbr>PROTOCOL</a>
+							</li>
+							<li class=" tsd-kind-variable tsd-parent-kind-module">
+								<a href="../modules/_raknet.html#RAKNET_MAGIC" class="tsd-kind-icon">RAKNET_<wbr>MAGIC</a>
+							</li>
+							<li class=" tsd-kind-variable tsd-parent-kind-module">
+								<a href="../modules/_raknet.html#RAKNET_TPS" class="tsd-kind-icon">RAKNET_<wbr>TPS</a>
 							</li>
 						</ul>
 					</li>
@@ -778,19 +578,17 @@
 		<h2>Legend</h2>
 		<div class="tsd-legend-group">
 			<ul class="tsd-legend">
+				<li class="tsd-kind-namespace"><span class="tsd-kind-icon">Namespace</span></li>
+				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
+				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
+			</ul>
+			<ul class="tsd-legend">
 				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
 				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
 				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
 			</ul>
 			<ul class="tsd-legend">
-				<li class="tsd-kind-namespace"><span class="tsd-kind-icon">Namespace</span></li>
-				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
-			</ul>
-			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
 			</ul>
 		</div>
 	</div>
