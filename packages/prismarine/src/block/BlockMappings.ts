@@ -2,6 +2,7 @@ import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 
 import BedrockData from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { stream } from 'winston';
 
 export interface LegacyId {
     id: number;
@@ -12,63 +13,51 @@ export interface LegacyId {
  * Class used to manage runtime Ids.
  */
 export default class BlockMappings {
-    private static readonly legacyToRuntimeId: Map<number, number> = new Map();
-    private static readonly runtimeIdToLegacy: Map<number, number> = new Map();
+    // private static readonly legacyToRuntimeId: Map<number, number> = new Map();
+    // private static readonly runtimeIdToLegacy: Map<number, number> = new Map();
+    // block name -> runtimeId (will not support states for now :(...)
+    private static readonly nameToRuntime: Map<string, number> = new Map();
+    private static readonly runtimeToName: Map<number, string> = new Map();
 
-    private static runtimeIdAlloc = 0;
+    public static initMappings(): void {
+        const stream = new BinaryStream(
+            BedrockData.canonical_block_states // Vanilla states
+        );
+        const reader: NBTReader = new NBTReader(stream, ByteOrder.ByteOrder.LITTLE_ENDIAN);
+        reader.setUseVarint(true);
 
-    public static async initMappings(): Promise<void> {
-        const compound: Set<NBTTagCompound> = await new Promise((resolve) => {
-            const reader: NBTReader = new NBTReader(
-                new BinaryStream(
-                    BedrockData.block_states // Vanilla states
-                ),
-                ByteOrder.ByteOrder.LITTLE_ENDIAN
-            );
-            resolve(reader.parseList());
-        });
+        let runtimeId = 0;
 
-        compound.forEach((state) => {
-            const runtimeId = BlockMappings.runtimeIdAlloc++;
-            if (!state.has('LegacyStates')) return;
+        do {
+            const vanillaBlock = reader.parse();
+            const vanillaBlockName = vanillaBlock.getString('name', 'unknown');
 
-            const legacyStates: Set<NBTTagCompound> = state.getList('LegacyStates', false)!;
-
-            const firstState = legacyStates.values().next().value as NBTTagCompound;
-            const legacyId = firstState.getNumber('id', 0);
-            const legacyMeta = firstState.getShort('val', 0);
-
-            this.registerMapping(runtimeId, legacyId, legacyMeta);
-
-            // TODO: blockstates or whatever this is
-            /* legacyStates.forEach((legacyState: NBTTagCompound) => {
-                this.registerMapping(
-                    runtimeId,
-                    legacyState.getNumber('id', 0),
-                    legacyState.getShort('val', 0)
-                );
-            }); */
-        });
-    }
-
-    private static registerMapping(runtimeId: number, legacyId: number, legacyMeta: number): void {
-        this.legacyToRuntimeId.set((legacyId << 4) | legacyMeta, runtimeId);
-        this.runtimeIdToLegacy.set(runtimeId, (legacyId << 4) | legacyMeta);
-    }
-
-    public static getRuntimeId(legacyId: number, legacyMeta: number): number {
-        const indexLegacyId = legacyId << 4;
-        if (!this.legacyToRuntimeId.has(indexLegacyId | legacyMeta)) {
-            if (!this.legacyToRuntimeId.has(indexLegacyId)) {
-                // TODO:
+            const vanillaBlockStates = vanillaBlock.getCompound('states', false);
+            if (vanillaBlockStates === null) {
+                throw new Error(`Vanilla block=${vanillaBlockName} has no states`);
             }
-            return this.legacyToRuntimeId.get(indexLegacyId)!;
-        }
-        return this.legacyToRuntimeId.get(indexLegacyId | legacyMeta)!;
+
+            // TODO: every block state implementation
+            // for (const _ of vanillaBlockStates.entries()) {
+            // }
+
+            this.registerMapping(vanillaBlockName, runtimeId++);
+        } while (!stream.feof());
+    }
+
+    private static registerMapping(name: string, runtimeId: number): void {
+        this.nameToRuntime.set(name, runtimeId);
+        this.runtimeToName.set(runtimeId, name);
+    }
+
+    public static getRuntimeId(name: string): number {
+        return this.nameToRuntime.get(name) ?? 0; // Air runtime ID!!
     }
 
     public static getLegacyId(runtimeId: number): LegacyId {
-        const hashLegacyId = this.runtimeIdToLegacy.get(runtimeId)!;
-        return <LegacyId>{ id: hashLegacyId >> 4, meta: hashLegacyId & 0xf };
+        const name = this.runtimeToName.get(runtimeId)!;
+        const legacyId = BedrockData.block_id_map[name];
+        // TODO: proper meta
+        return <LegacyId>{ id: legacyId & 0xf, meta: 0 };
     }
 }

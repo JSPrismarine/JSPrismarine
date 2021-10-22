@@ -79,11 +79,12 @@ export default class PlayerConnection {
         }
 
         // Add this in raknet
-        const sendPacket = new Protocol.EncapsulatedPacket();
-        sendPacket.reliability = 0;
-        sendPacket.buffer = batch.getBuffer();
+        const sendPacket = new Protocol.Frame();
+        sendPacket.reliability = Protocol.FrameReliability.RELIABLE_ORDERED;
+        sendPacket.orderChannel = 0;
+        sendPacket.content = batch.getBuffer();
 
-        await this.connection.addEncapsulatedToQueue(sendPacket);
+        this.connection.sendFrame(sendPacket, Protocol.RakNetPriority.IMMEDIATE);
         this.server.getLogger()?.silly(`Sent §b${packet.constructor.name}§r packet`, 'PlayerConnection/sendDataPacket');
     }
 
@@ -458,6 +459,7 @@ export default class PlayerConnection {
 
         const pk = new TextPacket();
         pk.type = type;
+        pk.sourceName = '';
         pk.message = message;
         pk.needsTranslation = needsTranslation;
         pk.xuid = xuid;

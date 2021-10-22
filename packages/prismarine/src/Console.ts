@@ -21,7 +21,7 @@ export default class Console {
             if (process.stdin.isTTY) process.stdin.setRawMode(true);
         } catch (error) {
             this.server.getLogger()?.warn(`Failed to enable stdin rawMode: ${error}!`);
-            this.server.getLogger()?.debug(error.stack);
+            this.server.getLogger()?.debug((error as any).stack);
         }
 
         const completer = (line: string) => {

@@ -82,7 +82,7 @@ export default class BlockManager {
 
             throw new Error(`Block with id ${block.getName()} (${block.getId()}:${block.getMeta()}) already exists`);
         } catch (error) {
-            if (!error.message.includes('invalid block with ')) throw error;
+            if (!(error as any).message.includes('invalid block with ')) throw error;
         }
 
         const event = new BlockRegisterEvent(block);

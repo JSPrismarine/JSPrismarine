@@ -1,9 +1,9 @@
-import Identifiers from './Identifiers';
-import Packet from './Packet';
+import MessageHeaders from '../MessageHeaders';
+import Packet from '../Packet';
 
 export default class ConnectedPing extends Packet {
     public constructor(buffer: Buffer) {
-        super(Identifiers.ConnectedPing, buffer);
+        super(MessageHeaders.CONNECTED_PING, buffer);
     }
 
     public clientTimestamp!: bigint;

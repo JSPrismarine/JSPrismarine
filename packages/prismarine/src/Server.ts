@@ -1,4 +1,4 @@
-import { Connection, InetAddress, Listener, Protocol } from '@jsprismarine/raknet';
+import { Connection, InetAddress, Protocol, RakNetListener } from '@jsprismarine/raknet';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
 import BanManager from './ban/BanManager';
@@ -33,7 +33,7 @@ import WorldManager from './world/WorldManager';
 
 export default class Server {
     private version!: string;
-    private raknet!: Listener;
+    private raknet!: RakNetListener;
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
     private tps = 20;
@@ -87,7 +87,7 @@ export default class Server {
 
     private async onEnable(): Promise<void> {
         this.config.onEnable();
-        await BlockMappings.initMappings();
+        BlockMappings.initMappings();
         await this.packetRegistry.onEnable();
         await this.permissionManager.onEnable();
         await this.pluginManager.onEnable();
@@ -120,7 +120,8 @@ export default class Server {
         await this.onEnable();
         await this.worldManager.onEnable();
 
-        this.raknet = await new Listener(this as any).listen(serverIp, port);
+        this.raknet = new RakNetListener(false);
+        await this.raknet.start(serverIp, port);
         this.raknet.on('openConnection', async (connection: Connection) => {
             const event = new RaknetConnectEvent(connection);
             await this.getEventManager().emit('raknetConnect', event);
@@ -131,7 +132,7 @@ export default class Server {
             await this.getEventManager().emit('raknetDisconnect', event);
         });
 
-        this.raknet.on('encapsulated', async (packet: Protocol.EncapsulatedPacket, inetAddr: InetAddress) => {
+        this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             await this.getEventManager().emit('raknetEncapsulatedPacket', event);
         });
@@ -141,7 +142,7 @@ export default class Server {
                 await this.getQueryManager().onRaw(buffer, inetAddr);
             } catch (error) {
                 this.getLogger()?.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
-                this.getLogger()?.debug(error.stack, 'Server/listen/raw');
+                this.getLogger()?.debug((error as any).stack, 'Server/listen/raw');
             }
         });
 
@@ -203,7 +204,7 @@ export default class Server {
                     `Cannot remove connection from non-existing player (${token})`,
                     'Server/listen/raknetDisconnect'
                 );
-                this.getLogger()?.debug(error.stack, 'Server/listen/raknetDisconnect');
+                this.getLogger()?.debug((error as any).stack, 'Server/listen/raknetDisconnect');
             }
 
             this.getLogger()?.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
@@ -235,7 +236,7 @@ export default class Server {
                 const player = this.playerManager.getPlayer(token);
 
                 // Read batch content and handle them
-                const batched = new BatchPacket(raknetPacket.buffer);
+                const batched = new BatchPacket(raknetPacket.content);
                 batched.decode();
 
                 // Read all packets inside batch and handle them
@@ -274,11 +275,11 @@ export default class Server {
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
-                        this.getLogger()?.debug(`${error.stack}`, 'Server/listen/raknetEncapsulatedPacket');
+                        this.getLogger()?.debug(`${(error as any).stack}`, 'Server/listen/raknetEncapsulatedPacket');
                     }
                 }
             } catch (error) {
-                this.getLogger()?.error(error, 'Server/listen/raknetEncapsulatedPacket');
+                this.getLogger()?.error(error as any, 'Server/listen/raknetEncapsulatedPacket');
             }
         });
 
@@ -327,10 +328,10 @@ export default class Server {
 
             await this.worldManager.onDisable();
             await this.onDisable();
-            await this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
+            this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
             process.exit(options?.crash ? 1 : 0);
         } catch (error) {
-            this.getLogger()?.error(error, 'Server/kill');
+            this.getLogger()?.error(error as any, 'Server/kill');
             process.exit(1);
         }
     }

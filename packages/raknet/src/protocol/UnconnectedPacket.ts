@@ -1,10 +1,7 @@
 import Packet from './Packet';
+import { RAKNET_MAGIC } from '../RakNet';
 
-const MAGIC = Buffer.from(
-    '\u0000\u00FF\u00FF\u0000\u00FE\u00FE\u00FE\u00FE\u00FD\u00FD\u00FD\u00FD\u0012\u0034\u0056\u0078',
-    'binary'
-);
-export default class OfflinePacket extends Packet {
+export default class UnconnectedPacket extends Packet {
     private magic!: Buffer;
 
     // Used to read offline packets magic (needed to validate the packet)
@@ -13,10 +10,10 @@ export default class OfflinePacket extends Packet {
     }
 
     public writeMagic(): void {
-        this.append(MAGIC);
+        this.append(RAKNET_MAGIC);
     }
 
     public isValid(): boolean {
-        return MAGIC.equals(this.magic);
+        return RAKNET_MAGIC.equals(this.magic);
     }
 }

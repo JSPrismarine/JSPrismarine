@@ -1,10 +1,10 @@
-import Identifiers from './Identifiers';
-import InetAddress from '../utils/InetAddress';
-import Packet from './Packet';
+import { InetAddress } from '../../RakNet';
+import MessageHeaders from '../MessageHeaders';
+import Packet from '../Packet';
 
 export default class ConnectionRequestAccepted extends Packet {
     public constructor(buffer?: Buffer) {
-        super(Identifiers.ConnectionRequestAccepted, buffer);
+        super(MessageHeaders.CONNECTION_REQUEST_ACCEPTED, buffer);
     }
 
     public clientAddress!: InetAddress;

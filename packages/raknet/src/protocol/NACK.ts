@@ -1,8 +1,8 @@
 import AcknowledgePacket from './AcknowledgePacket';
-import Identifiers from './Identifiers';
+import MessageHeaders from './MessageHeaders';
 
 export default class NACK extends AcknowledgePacket {
     public constructor(buffer?: Buffer) {
-        super(Identifiers.NacknowledgePacket, buffer);
+        super(MessageHeaders.NACKNOWLEDGE_PACKET, buffer);
     }
 }

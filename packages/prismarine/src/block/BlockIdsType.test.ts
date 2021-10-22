@@ -5,7 +5,7 @@ import LoggerBuilder from '../utils/Logger';
 describe('block', () => {
     describe('BlockIdsType', () => {
         // Enable this test to figure out which blocks have yet to be added
-        it.skip('every block is implemented', async (done) => {
+        it.skip('every block is implemented', async () => {
             jest.setTimeout(35000);
 
             const blockManager = new BlockManager({
@@ -20,7 +20,6 @@ describe('block', () => {
 
                 expect(blockManager.getBlockById(Number(blockId))?.getId()).toEqual(Number(blockId));
             }
-            done();
         });
     });
 });

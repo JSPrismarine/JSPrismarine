@@ -50,8 +50,11 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             pk.seed = world.getSeed();
             pk.gamerules = world.getGameruleManager();
             await player.getConnection().sendDataPacket(pk);
-            await player.getConnection().sendTime(world.getTicks());
-            await player.getConnection().sendDataPacket(new AvailableActorIdentifiersPacket());
+
+            // TODO: not sure but may break login sequence
+            // await player.getConnection().sendTime(world.getTicks());
+
+            await player.getConnection().sendCreativeContents(true);
 
             await player.getConnection().sendDataPacket(new BiomeDefinitionListPacket());
 
@@ -70,9 +73,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // TODO: always visible nametag
             await player.getConnection().sendMetadata();
             await player.getConnection().sendAvailableCommands();
-            await player.getConnection().sendInventory();
-
-            await player.getConnection().sendCreativeContents();
+            // TODO: fix await player.getConnection().sendInventory();
 
             // First add
             await player.getConnection().addToPlayerList();
@@ -93,6 +94,11 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             await server.getEventManager().emit('chat', chatSpawnEvent);
 
             // Update soft commandenums
+            /*
+            TODO: not sure about this one, but for sure who implemented it
+            forgot to change "pk" to "packet" on sendDataPacket, so he was
+            basically sending twice a StartGame packet... poor client :)...
+
             const packet = new UpdateSoftEnumPacket();
             packet.enumName = 'Player';
             packet.values = server
@@ -104,7 +110,8 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             server
                 .getPlayerManager()
                 .getOnlinePlayers()
-                .forEach(async (player) => player.getConnection().sendDataPacket(pk));
+                .forEach(async (player) => player.getConnection().sendDataPacket(packet));
+            */
         }
     }
 }

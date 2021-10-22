@@ -6,7 +6,7 @@ export default class TallGrass extends Flowable {
 
     public constructor() {
         super({
-            name: 'minecraft:tall_grass',
+            name: 'minecraft:double_plant',
             id: BlockIdsType.TallGrass,
             hardness: 0
         });
