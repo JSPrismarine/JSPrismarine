@@ -20,7 +20,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/raknet",
     "dependencies": {
-        "@jsprismarine/jsbinaryutils": "2.1.8"
+        "@jsprismarine/jsbinaryutils": "2.1.9"
     },
     "devDependencies": {
         "typescript": "4.3.5"
