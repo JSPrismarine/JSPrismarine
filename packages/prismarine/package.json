@@ -52,7 +52,7 @@
         "fflate": "^0.7.1"
     },
     "devDependencies": {
-        "@types/d3-interpolate": "2.0.0",
+        "@types/d3-interpolate": "2.0.2",
         "@types/git-rev-sync": "2.0.0",
         "@types/jest": "26.0.23",
         "@types/node": "14.17.29",
