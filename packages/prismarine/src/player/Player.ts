@@ -108,8 +108,8 @@ export default class Player extends Human {
         await this.setX(playerData.position.x);
         await this.setY(playerData.position.y);
         await this.setZ(playerData.position.z);
-        this.pitch = playerData.position.pitch;
-        this.yaw = playerData.position.yaw;
+        this.pitch = playerData.position.pitch ?? 0;
+        this.yaw = playerData.position.yaw ?? 0;
 
         playerData.inventory.forEach((item) => {
             const entry =

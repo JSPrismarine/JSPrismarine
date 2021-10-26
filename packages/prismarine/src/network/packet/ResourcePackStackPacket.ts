@@ -9,7 +9,7 @@ export default class ResourcePackStackPacket extends DataPacket {
     public resourcePackStack = [];
 
     // TODO: make a holder / manager
-    public experiments: Map<string, boolean> = new Map() as Map<string, boolean>;
+    public experiments: Map<string, boolean> = new Map();
     public experimentsAlreadyEnabled!: boolean;
 
     public encodePayload() {
@@ -29,9 +29,11 @@ export default class ResourcePackStackPacket extends DataPacket {
             this.writeString('');
         }
 
-        this.writeString('*');
+        this.writeString('*'); // Same as vanilla, should be the game version
 
-        this.writeLInt(this.experiments.size); // Experiments count
+        // TODO: write properly experiments
+        this.writeLInt(0); // Experiments count
+
         this.writeBool(this.experimentsAlreadyEnabled); // Experiemnts previously toggled?
     }
 }
