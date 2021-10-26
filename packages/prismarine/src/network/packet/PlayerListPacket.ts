@@ -1,10 +1,8 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import PacketBinaryStream from '../PacketBinaryStream';
 import Skin from '../../utils/skin/Skin';
 import UUID from '../../utils/UUID';
-import { stream } from 'winston';
 
 interface PlayerListData {
     uuid: UUID;
@@ -122,8 +120,8 @@ export default class PlayerListPacket extends DataPacket {
         }
 
         if (this.type === PlayerListAction.TYPE_ADD) {
-            for (const entry of this.entries) {
-                this.writeBool(entry.getSkin()!.isTrusted);
+            for (let i = 0; i < this.entries.length; i++) {
+                this.writeBool(true);
             }
         }
     }

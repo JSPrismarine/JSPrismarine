@@ -1,3 +1,5 @@
+import NetworkSettingsPacket, { NetworkCompression } from '../packet/NetworkSettingsPacket';
+
 import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
 import PacketHandler from './PacketHandler';
@@ -50,6 +52,9 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
         player.device = packet.device;
 
         await player.onEnable();
+
+        // TODO: encryption handshake
+
         await player.getConnection().sendPlayStatus(PlayStatusType.LoginSuccess);
 
         const reason = server.getBanManager().isBanned(player);
@@ -58,10 +63,14 @@ export default class LoginHandler implements PacketHandler<LoginPacket> {
             return;
         }
 
-        const pk = new ResourcePacksInfoPacket();
-        pk.mustAccept = false;
-        pk.forceAccept = false;
-        pk.hasScripts = false;
-        await player.getConnection().sendDataPacket(pk);
+        const resourcePacksInfo = new ResourcePacksInfoPacket();
+        resourcePacksInfo.mustAccept = false;
+        resourcePacksInfo.forceAccept = false;
+        resourcePacksInfo.hasScripts = false;
+        await player.getConnection().sendDataPacket(resourcePacksInfo);
+
+        const networkSettings = new NetworkSettingsPacket();
+        networkSettings.compressionThreshold = NetworkCompression.COMPRESS_EVERYTHING;
+        await player.getConnection().sendDataPacket(networkSettings);
     }
 }

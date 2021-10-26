@@ -508,8 +508,8 @@ export default class PlayerConnection {
      * Add the player to the client player list
      */
     public async addToPlayerList(): Promise<void> {
-        const pk = new PlayerListPacket();
-        pk.type = PlayerListAction.TYPE_ADD;
+        const playerList = new PlayerListPacket();
+        playerList.type = PlayerListAction.TYPE_ADD;
 
         const entry = new PlayerListEntry({
             uuid: UUID.fromString(this.player.uuid),
@@ -522,18 +522,15 @@ export default class PlayerConnection {
             isTeacher: false, // TODO: figure out where to read teacher and host
             isHost: false
         });
-        pk.entries.push(entry);
+        playerList.entries.push(entry);
 
         // Add to cached player list
         this.server.getPlayerManager().getPlayerList().set(this.player.uuid, entry);
 
         // Add just this entry for every players on the server
-        await Promise.all(
-            this.server
-                .getPlayerManager()
-                .getOnlinePlayers()
-                .map(async (player) => player.getConnection().sendDataPacket(pk))
-        );
+        for (const player of this.server.getPlayerManager().getOnlinePlayers()) {
+            player.getConnection().sendDataPacket(playerList);
+        }
     }
 
     /**

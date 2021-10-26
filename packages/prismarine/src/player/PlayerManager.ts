@@ -11,12 +11,14 @@ export default class PlayerManager {
 
         return player;
     }
+
     public async addPlayer(address: string, player: Player) {
         if (!player) throw new Error('Invalid player');
         if (this.players.has(address)) throw new Error('Player already exists');
 
         this.players.set(address, player);
     }
+
     public async removePlayer(address: string) {
         this.players.delete(address);
     }
