@@ -529,7 +529,7 @@ export default class PlayerConnection {
 
         // Add just this entry for every players on the server
         for (const player of this.server.getPlayerManager().getOnlinePlayers()) {
-            player.getConnection().sendDataPacket(playerList);
+            await player.getConnection().sendDataPacket(playerList);
         }
     }
 
