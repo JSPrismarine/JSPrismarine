@@ -1,6 +1,5 @@
 import Chat, { ChatType } from '../../chat/Chat';
 
-import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Gamemode from '../../world/Gamemode';
@@ -21,9 +20,10 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
     public async handle(packet: ResourcePackResponsePacket, server: Server, player: Player): Promise<void> {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
-            const pk = new ResourcePackStackPacket();
-            pk.experimentsAlreadyEnabled = false;
-            await player.getConnection().sendDataPacket(pk);
+            const resourcePackStack = new ResourcePackStackPacket();
+            resourcePackStack.experimentsAlreadyEnabled = false;
+            resourcePackStack.experimentsAlreadyEnabled = false;
+            await player.getConnection().sendDataPacket(resourcePackStack);
         } else if (packet.status === ResourcePackStatusType.Completed) {
             // Emit playerSpawn event
             const spawnEvent = new PlayerSpawnEvent(player);
@@ -32,27 +32,35 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             const world = player.getWorld();
 
-            const pk = new StartGamePacket();
-            pk.entityId = player.getRuntimeId();
-            pk.runtimeEntityId = player.getRuntimeId();
-            pk.gamemode = player.gamemode;
-            pk.defaultGamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
+            // 4x inventory slot packet (index from 0 to 4)
+
+            // First add
+            await player.getConnection().addToPlayerList();
+            // Then retrieve other players
+            if (server.getPlayerManager().getOnlinePlayers().length > 1) {
+                await player.getConnection().sendPlayerList();
+            }
+
+            await player.getConnection().sendTime(world.getTicks());
+
+            const startGame = new StartGamePacket();
+            startGame.entityId = player.getRuntimeId();
+            startGame.runtimeEntityId = player.getRuntimeId();
+            startGame.gamemode = player.gamemode;
+            startGame.defaultGamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
 
             const worldSpawnPos = await world.getSpawnPosition();
-            pk.worldSpawnPos = worldSpawnPos;
+            startGame.worldSpawnPos = worldSpawnPos;
 
-            pk.playerPos = new Vector3(player.getX(), player.getY(), player.getZ());
-            pk.pith = player.pitch;
-            pk.pith = player.yaw;
+            startGame.playerPos = new Vector3(player.getX(), player.getY(), player.getZ());
+            startGame.pitch = player.pitch;
+            startGame.yaw = player.yaw;
 
-            pk.levelId = world.getUniqueId();
-            pk.worldName = world.getName();
-            pk.seed = world.getSeed();
-            pk.gamerules = world.getGameruleManager();
-            await player.getConnection().sendDataPacket(pk);
-
-            // TODO: not sure but may break login sequence
-            // await player.getConnection().sendTime(world.getTicks());
+            startGame.levelId = world.getUniqueId();
+            startGame.worldName = world.getName();
+            startGame.seed = world.getSeed();
+            startGame.gamerules = world.getGameruleManager();
+            await player.getConnection().sendDataPacket(startGame);
 
             await player.getConnection().sendCreativeContents(true);
 
@@ -74,13 +82,6 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             await player.getConnection().sendMetadata();
             await player.getConnection().sendAvailableCommands();
             // TODO: fix await player.getConnection().sendInventory();
-
-            // First add
-            await player.getConnection().addToPlayerList();
-            // Then retrieve other players
-            if (server.getPlayerManager().getOnlinePlayers().length > 1) {
-                await player.getConnection().sendPlayerList();
-            }
 
             // Announce connection
             const chatSpawnEvent = new ChatEvent(

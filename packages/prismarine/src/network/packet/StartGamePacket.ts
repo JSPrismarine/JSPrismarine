@@ -12,7 +12,7 @@ export default class StartGamePacket extends DataPacket {
     public defaultGamemode!: number;
 
     public playerPos!: Vector3;
-    public pith!: number;
+    public pitch!: number;
     public yaw!: number;
 
     public levelId!: string;
@@ -34,7 +34,7 @@ export default class StartGamePacket extends DataPacket {
         this.playerPos.networkSerialize(this);
 
         // TODO: is resulting null... fixme...
-        this.writeLFloat(this.pith ?? 0);
+        this.writeLFloat(this.pitch ?? 0);
         // TODO: is resulting undefined... fixme...
         this.writeLFloat(this.yaw ?? 0);
 
