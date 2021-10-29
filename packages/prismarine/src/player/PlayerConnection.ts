@@ -538,7 +538,7 @@ export default class PlayerConnection {
         });
         playerList.entries.push(entry);
 
-        this.server.broadcastPacket(playerList);
+        await this.server.broadcastPacket(playerList);
         this.server.getPlayerManager().getPlayerList().set(this.player.uuid, entry);
     }
 
