@@ -104,9 +104,9 @@ export default class Vector3 {
      * @param stream The network stream.
      */
     public networkSerialize(stream: BinaryStream): void {
-        stream.writeLFloat(this.x);
-        stream.writeLFloat(this.y);
-        stream.writeLFloat(this.z);
+        stream.writeFloatLE(this.x);
+        stream.writeFloatLE(this.y);
+        stream.writeFloatLE(this.z);
     }
 
     /**
@@ -115,6 +115,6 @@ export default class Vector3 {
      * @param stream The network stream.
      */
     public static networkDeserialize(stream: BinaryStream): Vector3 {
-        return new Vector3(stream.readLFloat(), stream.readLFloat(), stream.readLFloat());
+        return new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE());
     }
 }

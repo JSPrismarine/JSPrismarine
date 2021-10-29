@@ -12,7 +12,7 @@ export default class AnimatePacket extends DataPacket {
         this.writeVarInt(this.action);
         this.writeUnsignedVarLong(this.runtimeEntityId);
         if ((this.action & 0x80) !== 0) {
-            this.writeLFloat(this.boatRowingTime);
+            this.writeFloatLE(this.boatRowingTime);
         }
     }
 
@@ -20,7 +20,7 @@ export default class AnimatePacket extends DataPacket {
         this.action = this.readVarInt();
         this.runtimeEntityId = this.readUnsignedVarLong();
         if ((this.action & 0x80) !== 0) {
-            this.boatRowingTime = this.readLFloat();
+            this.boatRowingTime = this.readFloatLE();
         }
     }
 }

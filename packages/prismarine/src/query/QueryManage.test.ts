@@ -24,11 +24,11 @@ describe('QueryManager', () => {
         });
         const queryManager = new QueryManager(prismarine);
 
-        const stream = new BinaryStream();
-        stream.writeShort(65277);
+        let stream = new BinaryStream();
+        stream.writeUnsignedShort(65277);
         stream.writeByte(0);
         stream.writeInt(0);
-        stream.setOffset(0);
+        stream = new BinaryStream(stream.getBuffer());
 
         const buffer = await queryManager.onRaw(stream.getBuffer(), new InetAddress('0.0.0.0', 19132));
         expect(buffer.toString()).toBe(

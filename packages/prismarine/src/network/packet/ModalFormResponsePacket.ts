@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class ModalFormResponsePacket extends DataPacket {
     public static NetID = Identifiers.ModalFormResponsePacket;
@@ -9,11 +10,11 @@ export default class ModalFormResponsePacket extends DataPacket {
 
     public encodePayload(): void {
         this.writeUnsignedVarInt(this.formId);
-        this.writeString(this.formData);
+        McpeUtil.writeString(this, this.formData);
     }
 
     public decodePayload(): void {
         this.formId = this.readUnsignedVarInt();
-        this.formData = this.readString();
+        this.formData = McpeUtil.readString(this);
     }
 }

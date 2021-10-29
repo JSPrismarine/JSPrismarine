@@ -161,6 +161,10 @@ export default class World {
 
         // Continue world time ticks
         this.currentTick++;
+
+        for (const entity of this.getEntities()) {
+            await entity.update(tick);
+        }
     }
 
     /**

@@ -13,7 +13,7 @@ export default class ResourcePackStackPacket extends DataPacket {
     public experimentsAlreadyEnabled!: boolean;
 
     public encodePayload() {
-        this.writeBool(this.mustAccept);
+        this.writeBoolean(this.mustAccept);
 
         this.writeUnsignedVarInt(this.behaviorPackStack.length);
         for (const _behaviorPackStack of this.behaviorPackStack) {
@@ -32,8 +32,8 @@ export default class ResourcePackStackPacket extends DataPacket {
         this.writeString('*'); // Same as vanilla, should be the game version
 
         // TODO: write properly experiments
-        this.writeLInt(0); // Experiments count
+        this.writeUnsignedIntLE(0); // Experiments count
 
-        this.writeBool(this.experimentsAlreadyEnabled); // Experiemnts previously toggled?
+        this.writeBoolean(this.experimentsAlreadyEnabled); // Experiemnts previously toggled?
     }
 }

@@ -4,9 +4,11 @@ import CommandEnumConstraint from '../type/CommandEnumConstraint';
 import CommandParameter from '../type/CommandParameter';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class AvailableCommandsPacket extends DataPacket {
     public static NetID = Identifiers.AvailableCommandsPacket;
+
     public ARG_FLAG_VALID = 0x100000;
     public ARG_FLAG_ENUM = 0x200000;
     public ARG_FLAG_POSTFIX = 0x1000000;
@@ -14,6 +16,7 @@ export default class AvailableCommandsPacket extends DataPacket {
     public hardcodedEnums: CommandEnum[] = [];
     public softEnums: CommandEnum[] = [];
     public enumConstraints: CommandEnumConstraint[] = [];
+
     public encodePayload() {
         const enumValueIndexes: Map<string, number> = new Map<string, number>();
         const postfixIndexes: Map<string, number> = new Map<string, number>();
@@ -52,12 +55,12 @@ export default class AvailableCommandsPacket extends DataPacket {
             });
         });
         this.writeUnsignedVarInt(enumValueIndexes.size);
-        enumValueIndexes.forEach((index: number, enumValue: string) => {
-            this.writeString(enumValue);
+        enumValueIndexes.forEach((_index: number, enumValue: string) => {
+            McpeUtil.writeString(this, enumValue);
         });
         this.writeUnsignedVarInt(postfixIndexes.size);
-        postfixIndexes.forEach((index: number, postfix: string) => {
-            this.writeString(postfix);
+        postfixIndexes.forEach((_index: number, postfix: string) => {
+            McpeUtil.writeString(this, postfix);
         });
         this.writeUnsignedVarInt(enums.size);
         enums.forEach((_enum: CommandEnum) => {
@@ -76,8 +79,9 @@ export default class AvailableCommandsPacket extends DataPacket {
             this.writeEnumConstraint(constraint, enumIndexes, enumValueIndexes);
         });
     }
+
     private writeEnum(_enum: CommandEnum, enumValueMap: Map<string, number>): void {
-        this.writeString(_enum.enumName);
+        McpeUtil.writeString(this, _enum.enumName);
         this.writeUnsignedVarInt(_enum.enumValues.length);
         const listSize = enumValueMap.size;
         _enum.enumValues.forEach((value: string) => {
@@ -88,34 +92,36 @@ export default class AvailableCommandsPacket extends DataPacket {
             this.writeEnumValueIndex(index, listSize);
         });
     }
+
     private writeEnumValueIndex(index: number, valueCount: number): void {
         if (valueCount < 256) {
             this.writeByte(index);
         } else if (valueCount < 65536) {
-            this.writeLShort(index);
+            this.writeUnsignedShortLE(index);
         } else {
-            this.writeLInt(index);
+            this.writeUnsignedIntLE(index);
         }
     }
+
     private writeCommandData(
         data: CommandData,
         enumIndexes: Map<string, number>,
         postfixIndexes: Map<string, number>
     ): void {
-        this.writeString(data.commandName);
-        this.writeString(data.commandDescription);
-        this.writeLShort(data.flags);
+        McpeUtil.writeString(this, data.commandName);
+        McpeUtil.writeString(this, data.commandDescription);
+        this.writeUnsignedShortLE(data.flags);
         this.writeByte(data.permission);
         if (data.aliases !== null) {
-            this.writeLInt(enumIndexes.get(data.aliases.enumName) ?? -1);
+            this.writeIntLE(enumIndexes.get(data.aliases.enumName) ?? -1);
         } else {
-            this.writeLInt(-1);
+            this.writeIntLE(-1);
         }
         this.writeUnsignedVarInt(data.overloads.length);
         data.overloads.forEach((overload: CommandParameter[]) => {
             this.writeUnsignedVarInt(overload.length);
             overload.forEach((parameter: CommandParameter) => {
-                this.writeString(parameter.paramName);
+                McpeUtil.writeString(this, parameter.paramName);
                 let type;
                 if (parameter.enum !== null) {
                     type = this.ARG_FLAG_ENUM | this.ARG_FLAG_VALID | (enumIndexes.get(parameter.enum.enumName) ?? -1);
@@ -128,26 +134,28 @@ export default class AvailableCommandsPacket extends DataPacket {
                 } else {
                     type = parameter.paramType;
                 }
-                this.writeLInt(type);
-                this.writeBool(parameter.isOptional);
+                this.writeIntLE(type);
+                this.writeBoolean(parameter.isOptional);
                 this.writeByte(parameter.flags);
             });
         });
     }
+
     private writeSoftEnum(_enum: CommandEnum): void {
-        this.writeString(_enum.enumName);
+        McpeUtil.writeString(this, _enum.enumName);
         this.writeUnsignedVarInt(_enum.enumValues.length);
         _enum.enumValues.forEach((value: string) => {
-            this.writeString(value);
+            McpeUtil.writeString(this, value);
         });
     }
+
     private writeEnumConstraint(
         constraint: CommandEnumConstraint,
         enumIndexes: Map<string, number>,
         enumValueIndexes: Map<string, number>
     ): void {
-        this.writeLInt(enumValueIndexes.get(constraint.getAffectedValue()) ?? 0);
-        this.writeLInt(enumIndexes.get(constraint.getEnum().enumName) ?? 0);
+        this.writeIntLE(enumValueIndexes.get(constraint.getAffectedValue()) ?? 0);
+        this.writeIntLE(enumIndexes.get(constraint.getEnum().enumName) ?? 0);
         this.writeUnsignedVarInt(constraint.getConstraints().length);
         constraint.getConstraints().forEach((v: any) => {
             this.writeByte(v);

@@ -14,15 +14,15 @@ export default class SkinImage {
     // TODO: API
 
     public networkSerialize(stream: BinaryStream): void {
-        stream.writeLInt(this.width);
-        stream.writeLInt(this.height);
+        stream.writeUnsignedIntLE(this.width);
+        stream.writeUnsignedIntLE(this.height);
         stream.writeUnsignedVarInt(this.data.length);
-        stream.append(this.data);
+        stream.write(this.data);
     }
 
     public static networkDeserialize(stream: BinaryStream): SkinImage {
-        const width = stream.readLInt();
-        const height = stream.readLInt();
+        const width = stream.readUnsignedIntLE();
+        const height = stream.readUnsignedIntLE();
         const length = stream.readUnsignedVarInt();
         const data = stream.read(length);
         return new SkinImage({

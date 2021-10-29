@@ -50,7 +50,7 @@ export default class NBTStreamReader {
         this.expectInput(2, 'Invalid NBT Data: Expected short');
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
-            return new ShortVal(this.input.readLShort());
+            return new ShortVal(this.input.readShortLE());
         }
 
         return new ShortVal(this.input.readShort());
@@ -64,7 +64,7 @@ export default class NBTStreamReader {
         this.expectInput(4, 'Invalid NBT Data: Expected int');
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
-            return new NumberVal(this.input.readLInt());
+            return new NumberVal(this.input.readIntLE());
         }
 
         return new NumberVal(this.input.readInt());
@@ -78,7 +78,7 @@ export default class NBTStreamReader {
         this.expectInput(8, 'Invalid NBT Data: Expected long');
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
-            return new LongVal(this.input.readLLong());
+            return new LongVal(this.input.readLongLE());
         }
 
         return new LongVal(this.input.readLong());
@@ -88,7 +88,7 @@ export default class NBTStreamReader {
         this.expectInput(4, 'Invalid NBT Data: Expected long');
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
-            return new FloatVal(this.input.readLFloat());
+            return new FloatVal(this.input.readFloatLE());
         }
 
         return new FloatVal(this.input.readFloat());
@@ -98,7 +98,7 @@ export default class NBTStreamReader {
         this.expectInput(8, 'Invalid NBT Data: Expected double');
 
         if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
-            return new DoubleVal(this.input.readLDouble());
+            return new DoubleVal(this.input.readDoubleLE());
         }
 
         return new DoubleVal(this.input.readDouble());
@@ -126,8 +126,8 @@ export default class NBTStreamReader {
             this.alterAllocationLimit(remaining);
         }
 
-        const length = this.input.readRemaining().length;
-        this.input.addOffset(-length, false);
+        const length = this.input.readRemaining().byteLength;
+        this.input.skip(-length);
         if (length < remaining) {
             throw new Error(message);
         }

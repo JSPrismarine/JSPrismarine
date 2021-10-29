@@ -42,23 +42,23 @@ export default class AddActorPacket extends DataPacket {
 
         this.writeString(this.type);
 
-        this.writeLFloat(this.position.getX());
-        this.writeLFloat(this.position.getY());
-        this.writeLFloat(this.position.getZ());
+        this.writeFloatLE(this.position.getX());
+        this.writeFloatLE(this.position.getY());
+        this.writeFloatLE(this.position.getZ());
 
-        this.writeLFloat(this.motion.getX());
-        this.writeLFloat(this.motion.getY());
-        this.writeLFloat(this.motion.getZ());
+        this.writeFloatLE(this.motion.getX());
+        this.writeFloatLE(this.motion.getY());
+        this.writeFloatLE(this.motion.getZ());
 
-        this.writeLFloat(this.pitch);
-        this.writeLFloat(this.yaw);
-        this.writeLFloat(this.headYaw);
+        this.writeFloatLE(this.pitch);
+        this.writeFloatLE(this.yaw);
+        this.writeFloatLE(this.headYaw);
 
         // TODO: attributes
         this.writeUnsignedVarInt(this.attributes.length);
 
         // TODO: fixme
-        const metadata = Array.from(this.metadata);
+        // const metadata = Array.from(this.metadata);
         this.writeUnsignedVarInt(/* metadata.length */ 0);
 
         /* metadata.forEach(([key, [type, value]]) => {

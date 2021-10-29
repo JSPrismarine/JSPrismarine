@@ -7,10 +7,10 @@ export default class OnScreenTextureAnimationPacket extends DataPacket {
     public animationType!: number;
 
     public decodePayload() {
-        this.animationType = this.readLInt();
+        this.animationType = this.readUnsignedIntLE();
     }
 
     public encodePayload() {
-        this.writeLInt(this.animationType);
+        this.writeUnsignedIntLE(this.animationType);
     }
 }

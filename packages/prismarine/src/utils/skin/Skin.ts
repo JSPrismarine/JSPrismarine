@@ -175,12 +175,12 @@ export default class Skin {
         this.getImage().networkSerialize(stream);
 
         // Animations
-        stream.writeLInt(this.getAnimations().size);
+        stream.writeUnsignedIntLE(this.getAnimations().size);
         for (const animation of this.getAnimations()) {
             animation.getImage().networkSerialize(stream);
-            stream.writeLInt(animation.getType());
-            stream.writeLFloat(animation.getFrames());
-            stream.writeLInt(animation.getExpression());
+            stream.writeUnsignedIntLE(animation.getType());
+            stream.writeFloatLE(animation.getFrames());
+            stream.writeUnsignedIntLE(animation.getExpression());
         }
 
         // Cape image
@@ -197,32 +197,32 @@ export default class Skin {
 
         // Hack to keep less useless data in software
         if (this.isPersona()) {
-            stream.writeLInt(this.getPersonaData().getPieces().size);
+            stream.writeUnsignedIntLE(this.getPersonaData().getPieces().size);
             for (const personaPiece of this.getPersonaData().getPieces()) {
                 stream.writeString(personaPiece.getPieceId());
                 stream.writeString(personaPiece.getPieceType());
                 stream.writeString(personaPiece.getPackId());
-                stream.writeBool(personaPiece.isDefault());
+                stream.writeBoolean(personaPiece.isDefault());
                 stream.writeString(personaPiece.getProductId());
             }
 
-            stream.writeLInt(this.getPersonaData().getTintColors().size);
+            stream.writeUnsignedIntLE(this.getPersonaData().getTintColors().size);
             for (const tint of this.getPersonaData().getTintColors()) {
                 stream.writeString(tint.getPieceType());
-                stream.writeLInt(tint.getColors().length);
+                stream.writeUnsignedIntLE(tint.getColors().length);
                 for (const color of tint.getColors()) {
                     stream.writeString(color);
                 }
             }
         } else {
-            stream.writeLInt(0); // Persona pieces
-            stream.writeLInt(0); // Tint colors
+            stream.writeUnsignedIntLE(0); // Persona pieces
+            stream.writeUnsignedIntLE(0); // Tint colors
         }
 
-        stream.writeBool(this.isPremium());
-        stream.writeBool(this.isPersona());
-        stream.writeBool(this.isCapeOnClassicSkin());
-        stream.writeBool(true); // Is primary user
+        stream.writeBoolean(this.isPremium());
+        stream.writeBoolean(this.isPersona());
+        stream.writeBoolean(this.isCapeOnClassicSkin());
+        stream.writeBoolean(true); // Is primary user
     }
 
     public getId(): string {

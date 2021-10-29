@@ -7,6 +7,6 @@ export default class PacketBinaryStream extends BinaryStream {
 
     public writeString(v: string): void {
         this.writeUnsignedVarInt(Buffer.byteLength(v));
-        this.append(Buffer.from(v, 'utf8'));
+        this.write(Buffer.from(v, 'utf8'));
     }
 }

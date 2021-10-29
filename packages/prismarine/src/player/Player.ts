@@ -92,7 +92,12 @@ export default class Player extends Human {
                 (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
                 evt.getChat().getChannel() === `*.player.${this.getName()}`
             )
-                await this.sendMessage(evt.getChat().getMessage(), evt.getChat().getType() as number as TextType);
+                await this.sendMessage(
+                    evt.getChat().getMessage(),
+                    evt.getChat().getType() as number as TextType,
+                    evt.getChat().getParameters(),
+                    evt.getChat().isNeedsTranslation()
+                );
         });
     }
 
@@ -244,10 +249,15 @@ export default class Player extends Human {
      * Send a chat message to the client.
      * @param message the message
      */
-    public async sendMessage(message: string, type: TextType = TextType.Raw): Promise<void> {
+    public async sendMessage(
+        message: string,
+        type: TextType = TextType.Raw,
+        parameters: string[] = [],
+        needsTranslation = false
+    ): Promise<void> {
         // TODO: Do this properly like java edition,
         // in other words, the message should be JSON formatted.
-        await this.playerConnection.sendMessage(message, '', false, type);
+        await this.playerConnection.sendMessage(message, '', parameters, needsTranslation, type);
     }
 
     public async setGamemode(mode: number): Promise<void> {

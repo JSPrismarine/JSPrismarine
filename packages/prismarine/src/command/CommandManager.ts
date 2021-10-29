@@ -249,6 +249,8 @@ export default class CommandManager {
                     const chat = new Chat(
                         this.server.getConsole(),
                         `§o§7[${target.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
+                        [],
+                        false,
                         '*.ops'
                     );
 
@@ -259,6 +261,8 @@ export default class CommandManager {
                 const chat = new Chat(
                     this.server.getConsole(),
                     `§o§7[${sender.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
+                    [],
+                    false,
                     '*.console'
                 );
 

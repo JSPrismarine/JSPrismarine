@@ -22,7 +22,7 @@ export default class SetScorePacket extends DataPacket {
             let entry: ScorePacketEntry;
             entry!.entryID = this.readVarLong();
             entry!.objectiveName = this.readString();
-            entry!.score = this.readLInt();
+            entry!.score = this.readIntLE();
             if (this.action !== 1) {
                 entry!.identityType = this.readByte();
                 if (entry!.identityType !== 3) {
@@ -41,7 +41,7 @@ export default class SetScorePacket extends DataPacket {
         this.scoreEntries.forEach((entry: ScorePacketEntry) => {
             this.writeVarLong(entry.entryID);
             this.writeString(entry.objectiveName);
-            this.writeLInt(entry.score);
+            this.writeIntLE(entry.score);
             if (this.action !== 1) {
                 this.writeByte(entry.identityType);
                 if (entry.identityType !== 3) {

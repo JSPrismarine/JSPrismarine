@@ -9,11 +9,11 @@ export default class ShowStoreOfferPacket extends DataPacket {
 
     public decodePayload() {
         this.offerId = this.readString();
-        this.showAll = this.readBool();
+        this.showAll = this.readBoolean();
     }
 
     public encodePayload() {
         this.writeString(this.offerId);
-        this.writeBool(this.showAll);
+        this.writeBoolean(this.showAll);
     }
 }

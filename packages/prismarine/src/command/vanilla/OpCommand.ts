@@ -1,4 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
+
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
 import Chat from '../../chat/Chat';
@@ -27,7 +28,7 @@ export default class OpCommand extends Command {
 
                     if (target) {
                         const event = new ChatEvent(
-                            new Chat(source, '§eYou are now op!', `*.player.${target.getName()}`)
+                            new Chat(source, '§eYou are now op!', [], false, `*.player.${target.getName()}`)
                         );
                         await target.getServer().getEventManager().emit('chat', event);
                     }

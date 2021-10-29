@@ -1,6 +1,7 @@
 import DataPacket from './DataPacket';
 import GameruleManager from '../../world/GameruleManager';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 import Vector3 from '../../math/Vector3';
 
 export default class StartGamePacket extends DataPacket {
@@ -23,8 +24,6 @@ export default class StartGamePacket extends DataPacket {
 
     public gamerules!: GameruleManager;
 
-    //    Private cachedItemPalette!: Buffer;
-
     public encodePayload() {
         this.writeVarLong(this.entityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
@@ -34,14 +33,14 @@ export default class StartGamePacket extends DataPacket {
         this.playerPos.networkSerialize(this);
 
         // TODO: is resulting null... fixme...
-        this.writeLFloat(this.pitch ?? 0);
+        this.writeFloatLE(this.pitch ?? 0);
         // TODO: is resulting undefined... fixme...
-        this.writeLFloat(this.yaw ?? 0);
+        this.writeFloatLE(this.yaw ?? 0);
 
         this.writeVarInt(0); // Seed
 
-        this.writeLShort(0x00); // Default spawn biome type
-        this.writeString('plains'); // User defined biome name
+        this.writeUnsignedShortLE(0x00); // Default spawn biome type
+        McpeUtil.writeString(this, 'plains'); // User defined biome name
 
         this.writeVarInt(0); // Dimension
 
@@ -56,15 +55,15 @@ export default class StartGamePacket extends DataPacket {
 
         // Recently found that may crash the client
         // waiting for more info about it
-        this.writeBool(true); // Achievement disabled
+        this.writeBoolean(true); // Achievement disabled
 
         this.writeVarInt(0); // Day cycle / time
         this.writeVarInt(0); // Edu edition offer
-        this.writeBool(false); // Edu features
+        this.writeBoolean(false); // Edu features
         this.writeString(''); // Edu product id
 
-        this.writeLFloat(0); // Rain lvl
-        this.writeLFloat(0); // Lightning lvl
+        this.writeFloatLE(0); // Rain lvl
+        this.writeFloatLE(0); // Lightning lvl
 
         this.writeByte(0); // Confirmed platform locked
         this.writeByte(1); // Multi player game
@@ -78,15 +77,15 @@ export default class StartGamePacket extends DataPacket {
 
         this.gamerules.networkSerialize(this);
 
-        this.writeLInt(0); // Experiment count
-        this.writeBool(false); // Experiments previously toggled?
+        this.writeUnsignedIntLE(0); // Experiment count
+        this.writeBoolean(false); // Experiments previously toggled?
 
         this.writeByte(0); // Bonus chest
         this.writeByte(0); // Start with map
 
         this.writeVarInt(1); // Player perms
 
-        this.writeLInt(0); // Chunk tick range
+        this.writeUnsignedIntLE(0); // Chunk tick range
 
         this.writeByte(0); // Locked behavior
         this.writeByte(0); // Locked texture
@@ -97,28 +96,28 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // Only spawn v1 villagers
         this.writeString(Identifiers.MinecraftVersion);
 
-        this.writeLInt(0); // Limited world height
-        this.writeLInt(0); // Limited world length
+        this.writeUnsignedIntLE(0); // Limited world height
+        this.writeUnsignedIntLE(0); // Limited world length
 
-        this.writeBool(false); // Has new nether
+        this.writeBoolean(false); // Has new nether
 
         // TODOs
-        this.writeString('');
-        this.writeString('');
+        McpeUtil.writeString(this, '');
+        McpeUtil.writeString(this, '');
 
-        this.writeBool(false); // Experimental gameplay
+        this.writeBoolean(false); // Experimental gameplay
 
         this.writeString(this.levelId);
         this.writeString(this.worldName);
-        this.writeString(''); // Template content identity
+        McpeUtil.writeString(this, '00000000-0000-0000-0000-000000000000'); // Template content identity
 
         this.writeByte(0); // Is trial
 
         this.writeUnsignedVarInt(0); // Server auth movement
         this.writeVarInt(0); // Rewind History Size
-        this.writeBool(false); // Is Server Authoritative Block Breaking
+        this.writeBoolean(false); // Is Server Authoritative Block Breaking
 
-        this.writeLLong(BigInt(0)); // World ticks (for time)
+        this.writeLongLE(BigInt(0)); // World ticks (for time)
 
         this.writeVarInt(0); // Enchantment seed
 
@@ -126,10 +125,10 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeUnsignedVarInt(0); // Item palette
 
-        this.writeString('');
-        this.writeBool(false); // New inventory system
+        McpeUtil.writeString(this, '');
+        this.writeBoolean(false); // New inventory system
 
-        this.writeString('JSPrismarine');
+        McpeUtil.writeString(this, Identifiers.MinecraftVersion);
     }
 
     /*

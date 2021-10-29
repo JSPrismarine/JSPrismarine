@@ -12,18 +12,18 @@ export default class WorldEventPacket extends DataPacket {
 
     public decodePayload() {
         this.eventId = this.readVarInt();
-        this.x = this.readLFloat();
-        this.y = this.readLFloat();
-        this.z = this.readLFloat();
+        this.x = this.readFloatLE();
+        this.y = this.readFloatLE();
+        this.z = this.readFloatLE();
         this.data = this.readVarInt();
     }
 
     public encodePayload() {
         this.writeVarInt(this.eventId);
 
-        this.writeLFloat(this.x);
-        this.writeLFloat(this.y);
-        this.writeLFloat(this.z);
+        this.writeFloatLE(this.x);
+        this.writeFloatLE(this.y);
+        this.writeFloatLE(this.z);
 
         this.writeVarInt(this.data);
     }

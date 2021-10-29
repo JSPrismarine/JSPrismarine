@@ -57,10 +57,10 @@ export class Attribute {
     }
 
     public networkSerialize(stream: PacketBinaryStream): void {
-        stream.writeLFloat(this.getMin());
-        stream.writeLFloat(this.getMax());
-        stream.writeLFloat(this.getValue());
-        stream.writeLFloat(this.getDefault());
+        stream.writeFloatLE(this.getMin());
+        stream.writeFloatLE(this.getMax());
+        stream.writeFloatLE(this.getValue());
+        stream.writeFloatLE(this.getDefault());
         stream.writeString(this.getName());
     }
 

@@ -1,7 +1,6 @@
 import CreativeContentEntry from '../type/CreativeContentEntry';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import { stream } from 'winston';
 
 export default class CreativeContentPacket extends DataPacket {
     public static NetID = Identifiers.CreativeContentPacket;
