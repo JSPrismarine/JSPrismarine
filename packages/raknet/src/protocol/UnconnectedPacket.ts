@@ -6,11 +6,11 @@ export default class UnconnectedPacket extends Packet {
 
     // Used to read offline packets magic (needed to validate the packet)
     public readMagic(): void {
-        this.magic = this.getBuffer().slice(this.getOffset(), this.addOffset(16, true));
+        this.magic = this.read(16);
     }
 
     public writeMagic(): void {
-        this.append(RAKNET_MAGIC);
+        this.write(RAKNET_MAGIC);
     }
 
     public isValid(): boolean {

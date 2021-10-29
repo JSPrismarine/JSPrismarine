@@ -26,13 +26,13 @@ export default class ContainerEntry {
         if (itemstack.nbt !== null) {
             // Write the amount of tags to write
             // (1) according to vanilla
-            stream.writeLShort(0xffff);
+            stream.writeUnsignedShortLE(0xffff);
             stream.writeByte(1);
 
             // Write hardcoded NBT tag
             // TODO: unimplemented NBT.write(nbt, true, true)
         } else {
-            stream.writeLShort(0);
+            stream.writeUnsignedShortLE(0);
         }
 
         // CanPlace and canBreak

@@ -44,6 +44,6 @@ export default class AddItemActorPacket extends DataPacket {
         // TODO: metadata
         this.writeUnsignedVarInt(0);
 
-        this.writeBool(this.isFromFishing);
+        this.writeBoolean(this.isFromFishing);
     }
 }

@@ -10,6 +10,6 @@ export default class BiomeDefinitionListPacket extends DataPacket {
     }
 
     public encodePayload() {
-        this.append(this.cachedNBT || (this.cachedNBT = Buffer.from(this.hardcodedNBT, 'base64')));
+        this.write(this.cachedNBT || (this.cachedNBT = Buffer.from(this.hardcodedNBT, 'base64')));
     }
 }

@@ -15,7 +15,7 @@ export default class OpenConnectionReply2 extends OfflinePacket {
         this.readMagic();
         this.serverGuid = this.readLong();
         this.clientAddress = this.readAddress();
-        this.mtuSize = this.readShort();
+        this.mtuSize = this.readUnsignedShort();
         this.readByte(); // Secure
     }
 
@@ -23,7 +23,7 @@ export default class OpenConnectionReply2 extends OfflinePacket {
         this.writeMagic();
         this.writeLong(this.serverGuid);
         this.writeAddress(this.clientAddress);
-        this.writeShort(this.mtuSize);
+        this.writeUnsignedShort(this.mtuSize);
         this.writeByte(0); // Secure
     }
 }

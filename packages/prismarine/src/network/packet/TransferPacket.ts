@@ -9,11 +9,11 @@ export default class TransferPacket extends DataPacket {
 
     public decodePayload() {
         this.address = this.readString();
-        this.port = this.readLShort();
+        this.port = this.readUnsignedShortLE();
     }
 
     public encodePayload() {
         this.writeString(this.address);
-        this.writeLShort(this.port);
+        this.writeUnsignedShortLE(this.port);
     }
 }

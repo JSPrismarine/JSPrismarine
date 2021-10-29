@@ -9,6 +9,6 @@ export default class AvailableActorIdentifiersPacket extends DataPacket {
     private cachedNBT: any;
 
     public async encodePayload() {
-        this.append(this.cachedNBT || (this.cachedNBT = EntityIdentifiers));
+        this.write(this.cachedNBT || (this.cachedNBT = EntityIdentifiers));
     }
 }

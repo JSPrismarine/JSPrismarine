@@ -39,17 +39,17 @@ export default class AddPlayerPacket extends DataPacket {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeString(this.platformChatId || '');
 
-        this.writeLFloat(this.positionX);
-        this.writeLFloat(this.positionY);
-        this.writeLFloat(this.positionZ);
+        this.writeFloatLE(this.positionX);
+        this.writeFloatLE(this.positionY);
+        this.writeFloatLE(this.positionZ);
 
-        this.writeLFloat(this.motionX);
-        this.writeLFloat(this.motionY);
-        this.writeLFloat(this.motionZ);
+        this.writeFloatLE(this.motionX);
+        this.writeFloatLE(this.motionY);
+        this.writeFloatLE(this.motionZ);
 
-        this.writeLFloat(this.pitch);
-        this.writeLFloat(this.yaw);
-        this.writeLFloat(this.headYaw);
+        this.writeFloatLE(this.pitch);
+        this.writeFloatLE(this.yaw);
+        this.writeFloatLE(this.headYaw);
 
         this.item.networkSerialize(this);
         this.metadata.networkSerialize(this);
@@ -65,10 +65,10 @@ export default class AddPlayerPacket extends DataPacket {
         //     this.writeLLong(this.uniqueEntityId >> 1n);
         // }
 
-        this.writeLLong(BigInt(0)); // TODO: fix userid
+        this.writeLongLE(BigInt(0)); // TODO: fix userid
 
         this.writeUnsignedVarInt(0); // TODO: Entity links
         this.writeString(this.deviceId);
-        this.writeLInt(this.buildPlatform || -1); // TODO: OS enum
+        this.writeIntLE(this.buildPlatform || -1); // TODO: OS enum
     }
 }

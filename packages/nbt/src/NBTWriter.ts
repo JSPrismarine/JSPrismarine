@@ -49,7 +49,7 @@ export default class NBTWriter {
                 this.writeShortValue(Buffer.byteLength(value));
             }
 
-            this.buf.append(bytes);
+            this.buf.write(bytes);
         } else if (this.useVarint) {
             this.writeByteValue(0);
         } else {
@@ -63,9 +63,9 @@ export default class NBTWriter {
 
     public writeShortValue(value: number): void {
         if (this.order === ByteOrder.LITTLE_ENDIAN) {
-            this.buf.writeLShort(value);
+            this.buf.writeUnsignedShortLE(value);
         } else {
-            this.buf.writeShort(value);
+            this.buf.writeUnsignedShort(value);
         }
     }
 
@@ -73,9 +73,9 @@ export default class NBTWriter {
         if (this.useVarint) {
             this.buf.writeVarInt(value);
         } else if (this.order === ByteOrder.LITTLE_ENDIAN) {
-            this.buf.writeLInt(value);
+            this.buf.writeUnsignedIntLE(value);
         } else {
-            this.buf.writeInt(value);
+            this.buf.writeUnsignedInt(value);
         }
     }
 
@@ -83,15 +83,15 @@ export default class NBTWriter {
         if (this.useVarint) {
             this.buf.writeVarLong(value);
         } else if (this.order === ByteOrder.LITTLE_ENDIAN) {
-            this.buf.writeLLong(value);
+            this.buf.writeUnsignedLongLE(value);
         } else {
-            this.buf.writeLong(value);
+            this.buf.writeUnsignedLong(value);
         }
     }
 
     private writeFloatValue(value: number): void {
         if (this.order === ByteOrder.LITTLE_ENDIAN) {
-            this.buf.writeLFloat(value);
+            this.buf.writeFloatLE(value);
         } else {
             this.buf.writeFloat(value);
         }
@@ -99,7 +99,7 @@ export default class NBTWriter {
 
     private writeDoubleValue(value: number): void {
         if (this.order === ByteOrder.LITTLE_ENDIAN) {
-            this.buf.writeLDouble(value);
+            this.buf.writeDoubleLE(value);
         } else {
             this.buf.writeDouble(value);
         }
@@ -107,7 +107,7 @@ export default class NBTWriter {
 
     private writeByteArrayValue(value: Buffer): void {
         this.writeIntegerValue(value.length);
-        this.buf.append(value);
+        this.buf.write(value);
     }
 
     private writeIntegerArrayValue(value: number[]) {

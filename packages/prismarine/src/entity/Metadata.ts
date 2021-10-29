@@ -84,7 +84,7 @@ export default class MetadataManager {
                     stream.writeByte(value[1] as number);
                     break;
                 case FlagType.FLOAT:
-                    stream.writeLFloat(value[1] as number);
+                    stream.writeFloatLE(value[1] as number);
                     break;
                 case FlagType.LONG:
                     stream.writeVarLong(value[1] as bigint);
@@ -93,7 +93,7 @@ export default class MetadataManager {
                     stream.writeString(value[1] as string);
                     break;
                 case FlagType.SHORT:
-                    stream.writeLShort(value[1] as number);
+                    stream.writeUnsignedShortLE(value[1] as number);
                     break;
                 default:
                     throw new Error(`Metadata type ${value[0]} not supported`);

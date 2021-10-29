@@ -59,8 +59,8 @@ export default class InventoryTransactionPacket extends DataPacket {
                 this.face = this.readVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = Item.networkDeserialize(this);
-                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
-                this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
+                this.playerPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
+                this.clickPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
                 this.blockRuntimeId = this.readUnsignedVarInt();
                 break;
             case InventoryTransactionType.UseItemOnEntity:
@@ -68,14 +68,14 @@ export default class InventoryTransactionPacket extends DataPacket {
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = Item.networkDeserialize(this);
-                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
-                this.clickPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
+                this.playerPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
+                this.clickPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
                 break;
             case InventoryTransactionType.ReleaseItem:
                 this.actionType = this.readUnsignedVarInt();
                 this.hotbarSlot = this.readVarInt();
                 this.itemInHand = Item.networkDeserialize(this);
-                this.playerPosition = new Vector3(this.readLFloat(), this.readLFloat(), this.readLFloat());
+                this.playerPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
                 break;
             default:
                 break;

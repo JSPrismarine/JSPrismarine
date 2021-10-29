@@ -29,21 +29,21 @@ export default class MovePlayerPacket extends DataPacket {
     public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
 
-        this.positionX = this.readLFloat();
-        this.positionY = this.readLFloat();
-        this.positionZ = this.readLFloat();
+        this.positionX = this.readFloatLE();
+        this.positionY = this.readFloatLE();
+        this.positionZ = this.readFloatLE();
 
-        this.pitch = this.readLFloat();
-        this.yaw = this.readLFloat();
-        this.headYaw = this.readLFloat();
+        this.pitch = this.readFloatLE();
+        this.yaw = this.readFloatLE();
+        this.headYaw = this.readFloatLE();
 
         this.mode = this.readByte();
-        this.onGround = this.readBool();
+        this.onGround = this.readBoolean();
         this.ridingEntityRuntimeId = this.readUnsignedVarLong();
 
         if (this.mode === MovementType.Teleport) {
-            this.teleportCause = this.readLInt();
-            this.teleportItemId = this.readLInt();
+            this.teleportCause = this.readIntLE();
+            this.teleportItemId = this.readIntLE();
         }
 
         this.tick = this.readUnsignedVarLong();
@@ -52,21 +52,21 @@ export default class MovePlayerPacket extends DataPacket {
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
-        this.writeLFloat(this.positionX);
-        this.writeLFloat(this.positionY);
-        this.writeLFloat(this.positionZ);
+        this.writeFloatLE(this.positionX);
+        this.writeFloatLE(this.positionY);
+        this.writeFloatLE(this.positionZ);
 
-        this.writeLFloat(this.pitch);
-        this.writeLFloat(this.yaw);
-        this.writeLFloat(this.headYaw);
+        this.writeFloatLE(this.pitch);
+        this.writeFloatLE(this.yaw);
+        this.writeFloatLE(this.headYaw);
 
         this.writeByte(this.mode);
-        this.writeBool(this.onGround);
+        this.writeBoolean(this.onGround);
         this.writeUnsignedVarLong(this.ridingEntityRuntimeId);
 
         if (this.mode === MovementType.Teleport) {
-            this.writeLInt(this.teleportCause);
-            this.writeLInt(this.teleportItemId);
+            this.writeIntLE(this.teleportCause);
+            this.writeIntLE(this.teleportItemId);
         }
 
         this.writeUnsignedVarLong(this.tick);

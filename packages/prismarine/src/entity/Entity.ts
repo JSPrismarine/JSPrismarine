@@ -63,9 +63,6 @@ export default class Entity extends Position {
 
         this.setGenericFlag(MetadataFlag.AFFECTED_BY_GRAVITY, true);
         this.setGenericFlag(MetadataFlag.HAS_COLLISION, true);
-
-        // Server could potentially be undefined
-        this.server?.getEventManager().on('tick', async (evt) => this.update(evt.getTick()));
     }
 
     /**
@@ -78,9 +75,9 @@ export default class Entity extends Position {
     /**
      * Fired every tick from the event subscription in the constructor.
      *
-     * @param tick current tick
+     * @param _tick current tick
      */
-    public async update(tick: number) {
+    public async update(_tick: number) {
         const collisions = await this.getNearbyEntities(0.5);
         await Promise.all(collisions.map(async (e) => e.onCollide(this)));
     }

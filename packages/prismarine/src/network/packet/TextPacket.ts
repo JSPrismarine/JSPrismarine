@@ -28,7 +28,7 @@ export default class TextPacket extends DataPacket {
 
     public decodePayload() {
         this.type = this.readByte();
-        this.needsTranslation = this.readBool();
+        this.needsTranslation = this.readBoolean();
 
         switch (this.type) {
             case TextType.Chat:
@@ -64,7 +64,7 @@ export default class TextPacket extends DataPacket {
 
     public encodePayload() {
         this.writeByte(this.type);
-        this.writeBool(this.needsTranslation);
+        this.writeBoolean(this.needsTranslation);
 
         switch (this.type) {
             case TextType.Chat:

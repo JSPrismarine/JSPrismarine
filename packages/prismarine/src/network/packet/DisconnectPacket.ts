@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class DisconnectPacket extends DataPacket {
     public static NetID = Identifiers.DisconnectPacket;
@@ -8,14 +9,14 @@ export default class DisconnectPacket extends DataPacket {
     public message!: string;
 
     public encodePayload() {
-        this.writeBool(this.hideDisconnectionWindow);
+        this.writeBoolean(this.hideDisconnectionWindow);
 
-        if (!this.hideDisconnectionWindow) this.writeString(this.message);
+        if (!this.hideDisconnectionWindow) McpeUtil.writeString(this, this.message);
     }
 
     public decodePayload() {
-        this.hideDisconnectionWindow = this.readBool();
+        this.hideDisconnectionWindow = this.readBoolean();
 
-        if (!this.hideDisconnectionWindow) this.message = this.readString();
+        if (!this.hideDisconnectionWindow) this.message = McpeUtil.readString(this);
     }
 }

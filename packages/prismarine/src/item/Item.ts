@@ -118,13 +118,13 @@ export default class Item {
         if (this.nbt !== null) {
             // Write the amount of tags to write
             // (1) according to vanilla
-            stream.writeLShort(0xffff);
+            stream.writeUnsignedShortLE(0xffff);
             stream.writeByte(1);
 
             // Write hardcoded NBT tag
             // TODO: unimplemented NBT.write(nbt, true, true)
         } else {
-            stream.writeLShort(0);
+            stream.writeUnsignedShortLE(0);
         }
 
         // CanPlace and canBreak
@@ -141,12 +141,12 @@ export default class Item {
             return new Item({ id: 0, name: 'minecraft:air' });
         }
 
-        const count = stream.readLShort();
+        const count = stream.readUnsignedShortLE();
         const netData = stream.readUnsignedVarInt();
 
         // TODO: refactor everything basically...
         if (extra) {
-            if (stream.readBool()) {
+            if (stream.readBoolean()) {
                 stream.readVarInt();
             }
         }
@@ -156,7 +156,7 @@ export default class Item {
         const data = temp >> 8;
 
         let nbt = null;
-        const extraLen = stream.readLShort();
+        const extraLen = stream.readUnsignedShortLE();
         if (extraLen === -1) {
             const version = stream.readByte();
 
@@ -172,12 +172,12 @@ export default class Item {
 
         const countPlaceOn = stream.readVarInt();
         for (let i = 0; i < countPlaceOn; i++) {
-            stream.read(stream.readLShort());
+            stream.read(stream.readUnsignedShortLE());
         }
 
         const countCanBreak = stream.readVarInt();
         for (let i = 0; i < countCanBreak; i++) {
-            stream.read(stream.readLShort());
+            stream.read(stream.readUnsignedShortLE());
         }
 
         // TODO: check if has additional data

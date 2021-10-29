@@ -37,7 +37,7 @@ export default class AdventureSettingsPacket extends DataPacket {
         this.writeUnsignedVarInt(this.flags2);
         this.writeUnsignedVarInt(this.playerPermission);
         this.writeUnsignedVarInt(this.customFlags);
-        this.writeLLong(this.entityId);
+        this.writeLongLE(this.entityId);
     }
 
     public decodePayload() {
@@ -46,7 +46,7 @@ export default class AdventureSettingsPacket extends DataPacket {
         this.flags2 = this.readUnsignedVarInt();
         this.playerPermission = this.readUnsignedVarInt();
         this.customFlags = this.readUnsignedVarInt();
-        this.entityId = this.readLLong();
+        this.entityId = this.readLongLE();
     }
 
     public getFlag(flag: AdventureSettingsFlags) {

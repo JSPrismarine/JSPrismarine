@@ -76,8 +76,8 @@ export default class PlaySoundPacket extends DataPacket {
         this.name = (SoundName as any)[this.readString()] as SoundName;
         this.position = BlockPosition.networkDeserialize(this);
         // TODO: fix position, divide it by 8
-        this.volume = this.readLFloat();
-        this.pitch = this.readLFloat();
+        this.volume = this.readFloatLE();
+        this.pitch = this.readFloatLE();
     }
 
     public encodePayload(): void {}

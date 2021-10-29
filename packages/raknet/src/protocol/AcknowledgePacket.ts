@@ -8,15 +8,15 @@ export default class AcknowledgePacket extends Packet {
         // Clear old cached decoded packets
         this.sequenceNumbers = [];
 
-        const recordCount = this.readShort();
+        const recordCount = this.readUnsignedShort();
         for (let i = 0; i < recordCount; i++) {
-            const notRange = this.readBool();
+            const notRange = this.readBoolean();
 
             if (notRange) {
-                this.sequenceNumbers.push(this.readLTriad());
+                this.sequenceNumbers.push(this.readUnsignedTriadLE());
             } else {
-                const start = this.readLTriad();
-                const end = this.readLTriad();
+                const start = this.readUnsignedTriadLE();
+                const end = this.readUnsignedTriadLE();
 
                 for (let i = start; i <= end; i++) {
                     this.sequenceNumbers.push(i);
@@ -43,13 +43,13 @@ export default class AcknowledgePacket extends Packet {
                     last = current;
                 } else if (diff > 1) {
                     if (start === last) {
-                        stream.writeBool(true); // single?
-                        stream.writeLTriad(start);
+                        stream.writeBoolean(true); // single?
+                        stream.writeUnsignedTriadLE(start);
                         start = last = current;
                     } else {
-                        stream.writeBool(false); // single?
-                        stream.writeLTriad(start);
-                        stream.writeLTriad(last);
+                        stream.writeBoolean(false); // single?
+                        stream.writeUnsignedTriadLE(start);
+                        stream.writeUnsignedTriadLE(last);
                         start = last = current;
                     }
                     ++records;
@@ -58,17 +58,17 @@ export default class AcknowledgePacket extends Packet {
 
             // last iteration
             if (start === last) {
-                stream.writeBool(true); // single?
-                stream.writeLTriad(start);
+                stream.writeBoolean(true); // single?
+                stream.writeUnsignedTriadLE(start);
             } else {
-                stream.writeBool(false); // single?
-                stream.writeLTriad(start);
-                stream.writeLTriad(last);
+                stream.writeBoolean(false); // single?
+                stream.writeUnsignedTriadLE(start);
+                stream.writeUnsignedTriadLE(last);
             }
             ++records;
         }
 
-        this.writeShort(records);
-        this.append(stream.getBuffer());
+        this.writeUnsignedShort(records);
+        this.write(stream.getBuffer());
     }
 }

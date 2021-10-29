@@ -1,4 +1,3 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Device from '../../utils/Device';
 import Identifiers from '../Identifiers';

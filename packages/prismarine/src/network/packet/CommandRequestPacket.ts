@@ -1,6 +1,7 @@
 import CommandOriginData from '../type/CommandOriginData';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class CommandRequestPacket extends DataPacket {
     public static NetID = Identifiers.CommandRequestPacket;
@@ -10,8 +11,8 @@ export default class CommandRequestPacket extends DataPacket {
     public internal!: boolean;
 
     public decodePayload() {
-        this.commandName = this.readString();
+        this.commandName = McpeUtil.readString(this);
         this.commandOriginData = CommandOriginData.networkDeserialize(this);
-        this.internal = this.readBool();
+        this.internal = this.readBoolean();
     }
 }

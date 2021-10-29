@@ -14,14 +14,14 @@ export default class OpenConnectionRequest2 extends OfflinePacket {
     public decodePayload(): void {
         this.readMagic();
         this.serverAddress = this.readAddress();
-        this.mtuSize = this.readShort();
+        this.mtuSize = this.readUnsignedShort();
         this.clientGUID = this.readLong();
     }
 
     public encodePayload(): void {
         this.writeMagic();
         this.writeAddress(this.serverAddress);
-        this.writeShort(this.mtuSize);
+        this.writeUnsignedShort(this.mtuSize);
         this.writeLong(this.clientGUID);
     }
 }

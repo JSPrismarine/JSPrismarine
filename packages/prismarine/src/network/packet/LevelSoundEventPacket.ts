@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class LevelSoundEventPacket extends DataPacket {
     public static NetID = Identifiers.LevelSoundEventPacket;
@@ -18,26 +19,26 @@ export default class LevelSoundEventPacket extends DataPacket {
     public decodePayload() {
         this.sound = this.readUnsignedVarInt();
 
-        this.positionX = this.readLFloat();
-        this.positionY = this.readLFloat();
-        this.positionZ = this.readLFloat();
+        this.positionX = this.readFloatLE();
+        this.positionY = this.readFloatLE();
+        this.positionZ = this.readFloatLE();
 
         this.extraData = this.readVarInt();
-        this.entityType = this.readString();
-        this.isBabyMob = this.readBool();
-        this.disableRelativeVolume = this.readBool();
+        this.entityType = McpeUtil.readString(this);
+        this.isBabyMob = this.readBoolean();
+        this.disableRelativeVolume = this.readBoolean();
     }
 
     public encodePayload() {
         this.writeUnsignedVarInt(this.sound);
 
-        this.writeLFloat(this.positionX);
-        this.writeLFloat(this.positionY);
-        this.writeLFloat(this.positionZ);
+        this.writeFloatLE(this.positionX);
+        this.writeFloatLE(this.positionY);
+        this.writeFloatLE(this.positionZ);
 
         this.writeVarInt(this.extraData);
-        this.writeString(this.entityType);
-        this.writeBool(this.isBabyMob);
-        this.writeBool(this.disableRelativeVolume);
+        McpeUtil.writeString(this, this.entityType);
+        this.writeBoolean(this.isBabyMob);
+        this.writeBoolean(this.disableRelativeVolume);
     }
 }

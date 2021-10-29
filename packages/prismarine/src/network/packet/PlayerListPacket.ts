@@ -54,10 +54,10 @@ export class PlayerListEntry {
         stream.writeString(this.getName()!);
         stream.writeString(this.getXUID());
         stream.writeString(this.getPlatformChatId()!);
-        stream.writeLInt(this.getBuildPlatform()!);
+        stream.writeIntLE(this.getBuildPlatform()!);
         this.getSkin()!.networkSerialize(stream);
-        stream.writeBool(this.isTeacher());
-        stream.writeBool(this.isHost());
+        stream.writeBoolean(this.isTeacher());
+        stream.writeBoolean(this.isHost());
     }
 
     public getUUID(): UUID {
@@ -121,7 +121,7 @@ export default class PlayerListPacket extends DataPacket {
 
         if (this.type === PlayerListAction.TYPE_ADD) {
             for (let i = 0; i < this.entries.length; i++) {
-                this.writeBool(true);
+                this.writeBoolean(true);
             }
         }
     }

@@ -10,13 +10,13 @@ export default class ActorFallPacket extends DataPacket {
 
     public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
-        this.fallDistance = this.readLFloat();
-        this.inVoid = this.readBool();
+        this.fallDistance = this.readFloatLE();
+        this.inVoid = this.readBoolean();
     }
 
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.writeLFloat(this.fallDistance);
-        this.writeBool(this.inVoid);
+        this.writeFloatLE(this.fallDistance);
+        this.writeBoolean(this.inVoid);
     }
 }

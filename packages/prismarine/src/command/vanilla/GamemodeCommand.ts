@@ -1,4 +1,5 @@
 /* eslint-disable promise/prefer-await-to-then */
+
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
@@ -19,7 +20,9 @@ export default class GamemodeCommand extends Command {
 
     private async setGamemode(source: Player, target: Player, gamemode: string) {
         if (!target) {
-            const event = new ChatEvent(new Chat(source, `Player is not online!`, `*.player.${source.getName()}`));
+            const event = new ChatEvent(
+                new Chat(source, `Player is not online!`, [], false, `*.player.${source.getName()}`)
+            );
             await source.getServer().getEventManager().emit('chat', event);
             return;
         }
@@ -29,6 +32,8 @@ export default class GamemodeCommand extends Command {
                 new Chat(
                     source,
                     `Can't set ${source.getFormattedUsername()} to ${gamemode}`,
+                    [],
+                    false,
                     `*.player.${source.getName()}`
                 )
             );
