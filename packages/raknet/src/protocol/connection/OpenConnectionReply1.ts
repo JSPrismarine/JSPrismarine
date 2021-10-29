@@ -13,13 +13,13 @@ export default class OpenConnectionReply1 extends OfflinePacket {
         this.readMagic();
         this.serverGUID = this.readLong();
         this.readByte(); // Secure
-        this.mtuSize = this.readShort();
+        this.mtuSize = this.readUnsignedShort();
     }
 
     public encodePayload(): void {
         this.writeMagic();
         this.writeLong(this.serverGUID);
         this.writeByte(0); // Secure
-        this.writeShort(this.mtuSize);
+        this.writeUnsignedShort(this.mtuSize);
     }
 }

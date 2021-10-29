@@ -27,15 +27,15 @@ export default class Frame {
         const length = Math.ceil(stream.readShort() / 8);
 
         if (this.isReliable()) {
-            this.reliableIndex = stream.readLTriad();
+            this.reliableIndex = stream.readTriadLE();
         }
 
         if (this.isSequenced()) {
-            this.sequenceIndex = stream.readLTriad();
+            this.sequenceIndex = stream.readTriadLE();
         }
 
         if (this.isOrdered()) {
-            this.orderIndex = stream.readLTriad();
+            this.orderIndex = stream.readTriadLE();
             this.orderChannel = stream.readByte();
         }
 
@@ -54,32 +54,32 @@ export default class Frame {
         const fragmented = this.isFragmented();
 
         stream.writeByte((this.reliability << 5) | (fragmented ? BitFlags.SPLIT : 0));
-        stream.writeShort(this.content.byteLength << 3);
+        stream.writeUnsignedShort(this.content.byteLength << 3);
 
         if (this.isReliable()) {
             assert(typeof this.reliableIndex === 'number', 'Invalid ReliableIndex for reliable Frame');
-            stream.writeLTriad(this.reliableIndex);
+            stream.writeUnsignedTriadLE(this.reliableIndex);
         }
 
         if (this.isSequenced()) {
             assert(typeof this.sequenceIndex === 'number', 'Invalid SequenceIndex for sequenced Frame');
-            stream.writeLTriad(this.sequenceIndex);
+            stream.writeUnsignedTriadLE(this.sequenceIndex);
         }
 
         if (this.isOrdered()) {
             assert(typeof this.orderIndex === 'number', 'Invalid OrderIndex for ordered Frame');
-            stream.writeLTriad(this.orderIndex);
+            stream.writeUnsignedTriadLE(this.orderIndex);
             assert(typeof this.orderChannel === 'number', 'Invalid OrderChannel for ordered FrameSet');
             stream.writeByte(this.orderChannel);
         }
 
         if (fragmented) {
-            stream.writeInt(this.fragmentSize);
-            stream.writeShort(this.fragmentId);
-            stream.writeInt(this.fragmentIndex);
+            stream.writeUnsignedInt(this.fragmentSize);
+            stream.writeUnsignedShort(this.fragmentId);
+            stream.writeUnsignedInt(this.fragmentIndex);
         }
 
-        stream.append(this.content);
+        stream.write(this.content);
         return stream;
     }
 

@@ -40,7 +40,8 @@ export default class DataPacket extends PacketBinaryStream {
     }
 
     public decode() {
-        this.setOffset(0);
+        (this as any).offset = 0;
+        // TODO: reset this.setOffset(0);
         this.decodeHeader();
         this.decodePayload();
 
@@ -67,7 +68,7 @@ export default class DataPacket extends PacketBinaryStream {
     public decodePayload() {}
 
     public encode() {
-        this.reset();
+        // this.reset();
         this.encodeHeader();
         this.encodePayload();
         this.encoded = true;

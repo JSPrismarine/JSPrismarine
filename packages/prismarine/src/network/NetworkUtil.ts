@@ -9,18 +9,18 @@ export default class McpeUtil {
     public static writeString(stream: BinaryStream, str: string): void {
         const buffer = Buffer.from(str, 'utf-8');
         stream.writeUnsignedVarInt(buffer.byteLength);
-        stream.append(buffer);
+        stream.write(buffer);
     }
 
     public static readLELengthASCIIString(stream: BinaryStream): string {
-        const strLen = stream.readLInt();
+        const strLen = stream.readUnsignedIntLE();
         const str = stream.read(strLen).toString('ascii');
         return str;
     }
 
     public static writeLELengthASCIIString(stream: BinaryStream, str: string): void {
         const buf = Buffer.from(str, 'ascii');
-        stream.writeLInt(buf.byteLength);
-        stream.append(buf);
+        stream.writeUnsignedIntLE(buf.byteLength);
+        stream.write(buf);
     }
 }

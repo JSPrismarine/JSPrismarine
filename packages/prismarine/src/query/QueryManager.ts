@@ -26,7 +26,7 @@ export default class QueryManager {
     public async onRaw(buffer: Buffer, rinfo: InetAddress): Promise<Buffer> {
         return new Promise(async (resolve, reject) => {
             const stream = new BinaryStream(buffer);
-            const magic = stream.readShort();
+            const magic = stream.readUnsignedShort();
             const type: QueryType = stream.readByte();
             const sessionId = stream.readInt() & 0x0f0f0f0f;
 
@@ -41,7 +41,7 @@ export default class QueryManager {
                     const res = new BinaryStream();
                     res.writeByte(9);
                     res.writeInt(sessionId);
-                    res.append(Buffer.from(`9513307\0`, 'binary'));
+                    res.write(Buffer.from(`9513307\0`, 'binary'));
                     this.server.getRaknet().sendBuffer(res.getBuffer(), {
                         address: rinfo.getAddress(),
                         port: rinfo.getPort(),
@@ -73,7 +73,7 @@ export default class QueryManager {
                         .getPluginManager()
                         .getPlugins()
                         .map((plugin: PluginFile) => `${plugin.getDisplayName()} ${plugin.getVersion()}`);
-                    res.append(
+                    res.write(
                         Buffer.from(
                             `\0${[
                                 'hostname',
@@ -116,7 +116,7 @@ export default class QueryManager {
                     res.writeByte(0);
                     // End padding
 
-                    res.append(
+                    res.write(
                         Buffer.from(
                             `${this.server
                                 .getPlayerManager()

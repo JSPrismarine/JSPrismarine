@@ -1,9 +1,11 @@
 import Chat, { ChatType } from '../../chat/Chat';
+import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import ChatEvent from '../../events/chat/ChatEvent';
 import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
+import { ItemComponentPacket } from '../Packets';
 import PacketHandler from './PacketHandler';
 import type Player from '../../player/Player';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
@@ -12,7 +14,6 @@ import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import type Server from '../../Server';
 import StartGamePacket from '../packet/StartGamePacket';
-import UpdateSoftEnumPacket from '../packet/UpdateSoftEnumPacket';
 import Vector3 from '../../math/Vector3';
 
 export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
@@ -30,16 +31,11 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             server.getEventManager().post(['playerSpawn', spawnEvent]);
             if (spawnEvent.cancelled) return;
 
-            const world = player.getWorld();
+            // TODO: send inventory slots
 
-            // 4x inventory slot packet (index from 0 to 4)
-
-            // First add
             await player.getConnection().addToPlayerList();
-            // Then retrieve other players
-            if (server.getPlayerManager().getOnlinePlayers().length > 1) {
-                await player.getConnection().sendPlayerList();
-            }
+
+            const world = player.getWorld();
 
             await player.getConnection().sendTime(world.getTicks());
 
@@ -62,11 +58,46 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             startGame.gamerules = world.getGameruleManager();
             await player.getConnection().sendDataPacket(startGame);
 
-            await player.getConnection().sendCreativeContents(true);
+            const itemComponent = new ItemComponentPacket();
+            await player.getConnection().sendDataPacket(itemComponent);
+
+            // TODO: set player spawn position packet
+
+            await player.getConnection().sendTime(world.getTicks());
+
+            // TODO: set difficulty packet
+            // TODO: set commands enabled packet
+
+            await player.getConnection().sendSettings();
+
+            // TODO: game rules changed packet
+
+            await player.getConnection().sendPlayerList();
 
             await player.getConnection().sendDataPacket(new BiomeDefinitionListPacket());
 
+            // TODO: available entity identifiers
+
+            // TODO: player fog packet
+
             await player.getConnection().sendAttributes(player.getAttributeManager().getDefaults());
+
+            await player.getConnection().sendCreativeContents(true);
+
+            // Some packets...
+
+            // TODO: inventory crafting data
+
+            // TODO: available commands
+
+            const respawnPacket = new RespawnPacket();
+            respawnPacket.state = RespawnState.SERVER_SEARCHING_FOR_SPAWN;
+            respawnPacket.position = await world.getSpawnPosition();
+            respawnPacket.runtimeEntityId = player.getRuntimeId();
+            await player.getConnection().sendDataPacket(respawnPacket);
+
+            respawnPacket.state = RespawnState.SERVER_READY_TO_SPAWN;
+            await player.getConnection().sendDataPacket(respawnPacket);
 
             server
                 .getLogger()
@@ -80,39 +111,21 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             player.setNameTag(player.getName());
             // TODO: always visible nametag
             await player.getConnection().sendMetadata();
-            await player.getConnection().sendAvailableCommands();
+
             // TODO: fix await player.getConnection().sendInventory();
 
             // Announce connection
             const chatSpawnEvent = new ChatEvent(
                 new Chat(
                     server.getConsole(),
-                    `§e${player.getName()} joined the game`,
+                    `§e%multiplayer.player.joined`, // TODO: enum of client hardcoded messages
+                    [player.getName()],
+                    true,
                     '*.everyone',
-                    ChatType.Announcement
+                    ChatType.TRANSLATION
                 )
             );
             await server.getEventManager().emit('chat', chatSpawnEvent);
-
-            // Update soft commandenums
-            /*
-            TODO: not sure about this one, but for sure who implemented it
-            forgot to change "pk" to "packet" on sendDataPacket, so he was
-            basically sending twice a StartGame packet... poor client :)...
-
-            const packet = new UpdateSoftEnumPacket();
-            packet.enumName = 'Player';
-            packet.values = server
-                .getPlayerManager()
-                .getOnlinePlayers()
-                .map((player) => player.getName());
-            packet.type = packet.TYPE_SET;
-
-            server
-                .getPlayerManager()
-                .getOnlinePlayers()
-                .forEach(async (player) => player.getConnection().sendDataPacket(packet));
-            */
         }
     }
 }

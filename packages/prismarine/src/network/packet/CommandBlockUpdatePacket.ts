@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 import Vector3 from '../../math/Vector3';
 
 export default class CommandBlockUpdatePacket extends DataPacket {
@@ -19,38 +20,38 @@ export default class CommandBlockUpdatePacket extends DataPacket {
     public executeOnFirstTick!: boolean;
 
     public decodePayload() {
-        this.isBlock = this.readBool();
+        this.isBlock = this.readBoolean();
         if (this.isBlock) {
             this.position = Vector3.networkDeserialize(this);
             this.mode = this.readUnsignedVarInt();
-            this.needsRedstone = this.readBool();
-            this.conditional = this.readBool();
+            this.needsRedstone = this.readBoolean();
+            this.conditional = this.readBoolean();
         } else {
-            this.minecartEntityRuntimeID = this.readLong();
+            this.minecartEntityRuntimeID = this.readUnsignedLong();
         }
-        this.command = this.readString();
-        this.lastOutput = this.readString();
-        this.name = this.readString();
-        this.shouldTrackOutput = this.readBool();
-        this.tickDelay = this.readLInt();
-        this.executeOnFirstTick = this.readBool();
+        this.command = McpeUtil.readString(this);
+        this.lastOutput = McpeUtil.readString(this);
+        this.name = McpeUtil.readString(this);
+        this.shouldTrackOutput = this.readBoolean();
+        this.tickDelay = this.readUnsignedIntLE();
+        this.executeOnFirstTick = this.readBoolean();
     }
 
     public encodePayload() {
-        this.writeBool(this.isBlock);
+        this.writeBoolean(this.isBlock);
         if (this.isBlock) {
             this.position.networkSerialize(this);
             this.writeUnsignedVarInt(this.mode);
-            this.writeBool(this.needsRedstone);
-            this.writeBool(this.conditional);
+            this.writeBoolean(this.needsRedstone);
+            this.writeBoolean(this.conditional);
         } else {
-            this.writeLong(this.minecartEntityRuntimeID);
+            this.writeUnsignedLong(this.minecartEntityRuntimeID);
         }
-        this.writeString(this.command);
-        this.writeString(this.lastOutput);
-        this.writeString(this.name);
-        this.writeBool(this.shouldTrackOutput);
-        this.writeLInt(this.tickDelay);
-        this.writeBool(this.executeOnFirstTick);
+        McpeUtil.writeString(this, this.command);
+        McpeUtil.writeString(this, this.lastOutput);
+        McpeUtil.writeString(this, this.name);
+        this.writeBoolean(this.shouldTrackOutput);
+        this.writeUnsignedIntLE(this.tickDelay);
+        this.writeBoolean(this.executeOnFirstTick);
     }
 }

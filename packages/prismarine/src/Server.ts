@@ -1,3 +1,4 @@
+import Chat, { ChatType } from './chat/Chat';
 import { Connection, InetAddress, Protocol, RakNetListener } from '@jsprismarine/raknet';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
@@ -5,12 +6,12 @@ import BanManager from './ban/BanManager';
 import BatchPacket from './network/packet/BatchPacket';
 import BlockManager from './block/BlockManager';
 import BlockMappings from './block/BlockMappings';
-import Chat from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
 import ChatManager from './chat/ChatManager';
 import CommandManager from './command/CommandManager';
 import type Config from './config/Config';
 import Console from './Console';
+import { DataPacket } from './network/Packets';
 import { EventManager } from './events/EventManager';
 import Identifiers from './network/Identifiers';
 import ItemManager from './item/ItemManager';
@@ -192,7 +193,16 @@ export default class Server {
                 // Sometimes we fail at decoding the username for whatever reason
                 if (player.getName()) {
                     // Announce disconnection
-                    const event = new ChatEvent(new Chat(this.getConsole(), `§e${player.getName()} left the game`));
+                    const event = new ChatEvent(
+                        new Chat(
+                            this.getConsole(),
+                            `§e%multiplayer.player.left`,
+                            [player.getName()],
+                            true,
+                            '*.everyone',
+                            ChatType.TRANSLATION
+                        )
+                    );
                     await this.getEventManager().emit('chat', event);
                 }
 
@@ -213,17 +223,6 @@ export default class Server {
                 `Player destruction took about ${Date.now() - time} ms`,
                 'Server/listen/raknetDisconnect'
             );
-
-            const pk = new UpdateSoftEnumPacket();
-            pk.enumName = 'Player';
-            pk.values = this.getPlayerManager()
-                .getOnlinePlayers()
-                .map((player) => player.getName());
-            pk.type = pk.TYPE_SET;
-
-            this.getPlayerManager()
-                .getOnlinePlayers()
-                .forEach(async (player) => player.getConnection().sendDataPacket(pk));
         });
 
         this.getEventManager().on('raknetEncapsulatedPacket', async (event) => {
@@ -283,6 +282,13 @@ export default class Server {
             }
         });
 
+        this.getEventManager().on('tick', async (event) => {
+            for (const world of this.getWorldManager().getWorlds()) {
+                await world.update(event.getTick());
+            }
+        });
+
+        // TODO: the tick depends on the world
         let tick = 0;
         const ticker = setIntervalAsync(async () => {
             if (this.stopping) {
@@ -333,6 +339,14 @@ export default class Server {
         } catch (error) {
             this.getLogger()?.error(error as any, 'Server/kill');
             process.exit(1);
+        }
+    }
+
+    public async broadcastPacket<T extends DataPacket>(dataPacket: T): Promise<void> {
+        // Maybe i can improve this by using the UDP broadcast, all unconnected clients
+        // will ignore the connected packet probably, but may cause issues.
+        for (const onlinePlayer of this.getPlayerManager().getOnlinePlayers()) {
+            await onlinePlayer.getConnection().sendDataPacket(dataPacket);
         }
     }
 

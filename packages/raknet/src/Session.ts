@@ -393,7 +393,7 @@ export default class RakNetSession {
                 // Ensure the correctness of the buffer orders
                 for (let i = 0; i < value.size; i++) {
                     const splitPacket = value.get(i)!;
-                    stream.append(splitPacket.content);
+                    stream.write(splitPacket.content);
                 }
 
                 const assembledFrame = new Frame();

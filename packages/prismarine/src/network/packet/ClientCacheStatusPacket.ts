@@ -7,6 +7,6 @@ export default class ClientCacheStatusPacket extends DataPacket {
     public enabled!: boolean;
 
     public decodePayload() {
-        this.enabled = this.readBool();
+        this.enabled = this.readBoolean();
     }
 }

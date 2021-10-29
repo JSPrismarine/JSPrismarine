@@ -454,7 +454,13 @@ export default class PlayerConnection {
      * @param needsTranslation If the TextType requires translation
      * @param type The text type
      */
-    public async sendMessage(message: string, xuid = '', needsTranslation = false, type = TextType.Raw): Promise<void> {
+    public async sendMessage(
+        message: string,
+        xuid = '',
+        parameters: string[] = [],
+        needsTranslation = false,
+        type = TextType.Raw
+    ): Promise<void> {
         if (!message) throw new Error('A message is required');
 
         const pk = new TextPacket();
@@ -464,6 +470,7 @@ export default class PlayerConnection {
         pk.needsTranslation = needsTranslation;
         pk.xuid = xuid;
         pk.platformChatId = ''; // TODO
+        pk.parameters = parameters;
         await this.sendDataPacket(pk);
     }
 
@@ -499,13 +506,20 @@ export default class PlayerConnection {
 
         pk.onGround = player.isOnGround();
 
+        // TODO
+        if (mode === MovementType.Teleport) {
+            pk.teleportCause = 0;
+            pk.teleportItemId = 0;
+        }
+
         pk.ridingEntityRuntimeId = BigInt(0);
         pk.tick = BigInt(0); // TODO
         await this.sendDataPacket(pk);
     }
 
     /**
-     * Add the player to the client player list
+     * Adds the client to the player list of every player inside
+     * the server and also to the player itself.
      */
     public async addToPlayerList(): Promise<void> {
         const playerList = new PlayerListPacket();
@@ -524,13 +538,8 @@ export default class PlayerConnection {
         });
         playerList.entries.push(entry);
 
-        // Add to cached player list
+        await this.server.broadcastPacket(playerList);
         this.server.getPlayerManager().getPlayerList().set(this.player.uuid, entry);
-
-        // Add just this entry for every players on the server
-        for (const player of this.server.getPlayerManager().getOnlinePlayers()) {
-            await player.getConnection().sendDataPacket(playerList);
-        }
     }
 
     /**
@@ -558,21 +567,13 @@ export default class PlayerConnection {
     }
 
     /**
-     * Retrieve all other player in server
-     * and add them to the player's in-game player list
+     * Sends the full player list to the player.
      */
     public async sendPlayerList(): Promise<void> {
-        const pk = new PlayerListPacket();
-        pk.type = PlayerListAction.TYPE_ADD;
-
-        // Hack to not compute every time entries
-        Array.from(this.server.getPlayerManager().getPlayerList()).forEach(([uuid, entry]) => {
-            if (!(uuid === this.player.uuid)) {
-                pk.entries.push(entry);
-            }
-        });
-
-        await this.sendDataPacket(pk);
+        const playerList = new PlayerListPacket();
+        playerList.type = PlayerListAction.TYPE_ADD;
+        playerList.entries = Array.from(this.server.getPlayerManager().getPlayerList().values());
+        await this.sendDataPacket(playerList);
     }
 
     /**

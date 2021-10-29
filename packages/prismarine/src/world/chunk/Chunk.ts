@@ -121,9 +121,9 @@ export default class Chunk {
         }
 
         // TODO: biomes
-        const biomeIds = Buffer.alloc(256).fill(0x00);
+        const biomeIds = new Uint8Array(256).fill(0);
         stream.writeUnsignedVarInt(biomeIds.byteLength);
-        stream.append(biomeIds);
+        stream.write(biomeIds);
         stream.writeUnsignedVarInt(0); // extra data (MIT)
         return stream.getBuffer();
     }

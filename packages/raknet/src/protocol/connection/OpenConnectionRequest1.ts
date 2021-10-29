@@ -19,6 +19,6 @@ export default class OpenConnectionRequest1 extends OfflinePacket {
         this.writeMagic();
         this.writeByte(this.protocol);
         const length = this.mtuSize - this.getBuffer().byteLength;
-        this.append(Buffer.alloc(length));
+        this.write(Buffer.alloc(length));
     }
 }

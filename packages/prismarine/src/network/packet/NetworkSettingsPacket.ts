@@ -12,10 +12,10 @@ export default class NetworkSettingsPacket extends DataPacket {
     public compressionThreshold!: number;
 
     public decodePayload() {
-        this.compressionThreshold = this.readLShort();
+        this.compressionThreshold = this.readUnsignedShortLE();
     }
 
     public encodePayload() {
-        this.writeLShort(this.compressionThreshold);
+        this.writeUnsignedShortLE(this.compressionThreshold);
     }
 }

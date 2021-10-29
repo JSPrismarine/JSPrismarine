@@ -9,7 +9,7 @@ import { inflateSync } from 'fflate';
 export default class BatchPacket extends DataPacket {
     public static NetID = 0xfe;
 
-    private payload = Buffer.alloc(0);
+    private payload = new BinaryStream();
     // Bigger compression level leads to more CPU usage and less network, and vice versa
     // TODO: batch.setCompressionLevel(), it should be dependent from Server instance
     // private readonly compressionLevel: number = Server?.instance?.getConfig().getPacketCompressionLevel() ?? 7;
@@ -23,9 +23,9 @@ export default class BatchPacket extends DataPacket {
 
     public decodePayload(): void {
         try {
-            this.payload = Buffer.from(inflateSync(this.readRemaining()));
+            this.payload.write(inflateSync(this.readRemaining()));
         } catch {
-            this.payload = Buffer.alloc(0);
+            this.payload.write(new Uint8Array(0));
         }
     }
 
@@ -36,7 +36,7 @@ export default class BatchPacket extends DataPacket {
     public encodePayload(): void {
         // this.append(Buffer.from(Fflate.deflateSync(this.payload, { level: 7 })));
         // Seems like Zlib runs a little bit better for deflating, will see in future with async...
-        this.append(Zlib.deflateRawSync(this.payload, { level: 7 }));
+        this.write(Zlib.deflateRawSync(this.payload.getBuffer(), { level: 7 }));
     }
 
     public addPacket(packet: DataPacket): void {
@@ -44,15 +44,12 @@ export default class BatchPacket extends DataPacket {
             packet.encode();
         }
 
-        const stream = new BinaryStream();
-        stream.writeUnsignedVarInt(packet.getBuffer().byteLength);
-        stream.append(packet.getBuffer());
-        this.payload = Buffer.concat([this.payload, stream.getBuffer()]);
+        this.payload.writeUnsignedVarInt(packet.getBuffer().byteLength);
+        this.payload.write(packet.getBuffer());
     }
 
     public getPackets(): Buffer[] {
-        const stream = new BinaryStream();
-        (stream as any).buffer = this.payload;
+        const stream = new BinaryStream(this.payload.getBuffer());
         const packets: Buffer[] = [];
         while (!stream.feof()) {
             const length = stream.readUnsignedVarInt();

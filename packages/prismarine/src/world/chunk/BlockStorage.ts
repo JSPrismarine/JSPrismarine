@@ -76,7 +76,7 @@ export default class BlockStorage {
 
                 position++;
             }
-            stream.writeLInt(word);
+            stream.writeIntLE(word);
         }
 
         // Write palette entries as runtime ids
@@ -93,7 +93,7 @@ export default class BlockStorage {
 
         const words: number[] = new Array(wordsPerChunk);
         for (let w = 0; w < wordsPerChunk; w++) {
-            words[w] = stream.readLInt();
+            words[w] = stream.readIntLE();
         }
 
         const paletteCount = stream.readVarInt();

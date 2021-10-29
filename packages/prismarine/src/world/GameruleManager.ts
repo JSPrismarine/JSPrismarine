@@ -90,11 +90,11 @@ export default class GameruleManager {
         stream.writeUnsignedVarInt(this.getGamerules().size);
         for (const [name, [value, editable]] of this.getGamerules()) {
             stream.writeString(name.toLowerCase());
-            stream.writeBool(editable);
+            stream.writeBoolean(editable);
             switch (typeof value) {
                 case 'boolean':
                     stream.writeByte(1); // Maybe value type ??
-                    stream.writeBool(value);
+                    stream.writeBoolean(value);
                     break;
                 case 'number':
                     if (isInt(value)) {
@@ -102,7 +102,7 @@ export default class GameruleManager {
                         stream.writeUnsignedVarInt(value);
                     } else {
                         stream.writeByte(3); // Maybe value type ??
-                        stream.writeLFloat(value);
+                        stream.writeFloatLE(value);
                     }
                     break;
                 default:

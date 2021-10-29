@@ -11,16 +11,16 @@ export default class FrameSet extends Packet {
     public frames: Frame[] = [];
 
     public decodePayload(): void {
-        this.sequenceNumber = this.readLTriad();
+        this.sequenceNumber = this.readUnsignedTriadLE();
         do {
             this.frames.push(new Frame().fromBinary(this));
         } while (!this.feof());
     }
 
     public encodePayload(): void {
-        this.writeLTriad(this.sequenceNumber);
+        this.writeUnsignedTriadLE(this.sequenceNumber);
         for (const frame of this.frames) {
-            this.append(frame.toBinary().getBuffer());
+            this.write(frame.toBinary().getBuffer());
         }
     }
 

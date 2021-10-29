@@ -2,21 +2,33 @@ import type Console from '../Console';
 import type Player from '../player/Player';
 
 export enum ChatType {
-    Raw = 0,
-    Chat = 1,
-    System = 6,
-    Announcement = 8
+    RAW = 0,
+    CHAT = 1,
+    TRANSLATION = 2,
+    SYSTEM = 6,
+    ANNOUNCEMENT = 8
 }
 export default class Chat {
     private readonly channel: string;
     private readonly sender: Player | Console;
     private readonly message: string;
+    private readonly parameters: string[];
+    private readonly needsTranslation: boolean;
     private readonly type: ChatType;
 
-    public constructor(sender: Player | Console, message: string, channel = '*.everyone', type = ChatType.Chat) {
+    public constructor(
+        sender: Player | Console,
+        message: string,
+        parameters: string[] = [],
+        needsTranslation = false,
+        channel = '*.everyone',
+        type = ChatType.CHAT
+    ) {
         this.sender = sender;
         this.channel = channel;
         this.message = message;
+        this.parameters = parameters;
+        this.needsTranslation = needsTranslation;
         this.type = type;
     }
 
@@ -30,6 +42,14 @@ export default class Chat {
 
     public getMessage() {
         return this.message;
+    }
+
+    public getParameters(): string[] {
+        return this.parameters;
+    }
+
+    public isNeedsTranslation(): boolean {
+        return this.needsTranslation;
     }
 
     public getType() {

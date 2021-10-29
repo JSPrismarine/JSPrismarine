@@ -12,15 +12,15 @@ export default class ResourcePacksInfoPacket extends DataPacket {
     public resourcePackEntries = [];
 
     public encodePayload() {
-        this.writeBool(this.mustAccept);
-        this.writeBool(this.hasScripts);
-        this.writeBool(this.forceAccept);
-        this.writeLShort(this.behaviorPackEntries.length);
+        this.writeBoolean(this.mustAccept);
+        this.writeBoolean(this.hasScripts);
+        this.writeBoolean(this.forceAccept);
+        this.writeUnsignedShortLE(this.behaviorPackEntries.length);
         for (const _behaviorEntry of this.behaviorPackEntries) {
             // TODO: we don't need them for now
         }
 
-        this.writeLShort(this.resourcePackEntries.length);
+        this.writeUnsignedShortLE(this.resourcePackEntries.length);
         for (const _resourceEntry of this.resourcePackEntries) {
             // TODO: we don't need them for now
         }
