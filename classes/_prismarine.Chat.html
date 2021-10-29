@@ -89,8 +89,10 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_prismarine.Chat.html#getChannel" class="tsd-kind-icon">get<wbr>Channel</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_prismarine.Chat.html#getMessage" class="tsd-kind-icon">get<wbr>Message</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_prismarine.Chat.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_prismarine.Chat.html#getSender" class="tsd-kind-icon">get<wbr>Sender</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_prismarine.Chat.html#getType" class="tsd-kind-icon">get<wbr>Type</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_prismarine.Chat.html#isNeedsTranslation" class="tsd-kind-icon">is<wbr>Needs<wbr>Translation</a></li>
 							</ul>
 						</section>
 					</div>
@@ -102,13 +104,13 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Chat<span class="tsd-signature-symbol">(</span>sender<span class="tsd-signature-symbol">: </span><a href="_prismarine.Player.html" class="tsd-signature-type" data-tsd-kind="Class">Player</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">default</span>, message<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, channel<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, type<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">ChatType</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_prismarine.Chat.html" class="tsd-signature-type" data-tsd-kind="Class">Chat</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Chat<span class="tsd-signature-symbol">(</span>sender<span class="tsd-signature-symbol">: </span><a href="_prismarine.Player.html" class="tsd-signature-type" data-tsd-kind="Class">Player</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">default</span>, message<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, parameters<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span>, needsTranslation<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span>, channel<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, type<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">ChatType</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_prismarine.Chat.html" class="tsd-signature-type" data-tsd-kind="Class">Chat</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:14</li>
+									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:17</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -118,6 +120,12 @@
 								</li>
 								<li>
 									<h5>message: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> parameters: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> needsTranslation: <span class="tsd-signature-type">boolean</span></h5>
 								</li>
 								<li>
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> channel: <span class="tsd-signature-type">string</span></h5>
@@ -143,7 +151,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:15</li>
+									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:18</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
@@ -160,10 +168,27 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:17</li>
+									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:20</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="getParameters" class="tsd-anchor"></a>
+					<h3>get<wbr>Parameters</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Parameters<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:21</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -177,7 +202,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:16</li>
+									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:19</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="_prismarine.Player.html" class="tsd-signature-type" data-tsd-kind="Class">Player</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">default</span></h4>
@@ -194,10 +219,27 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:18</li>
+									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:23</li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">ChatType</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="isNeedsTranslation" class="tsd-anchor"></a>
+					<h3>is<wbr>Needs<wbr>Translation</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">is<wbr>Needs<wbr>Translation<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in packages/prismarine/dist/chat/Chat.d.ts:22</li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -267,10 +309,16 @@
 										<a href="_prismarine.Chat.html#getMessage" class="tsd-kind-icon">get<wbr>Message</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
+										<a href="_prismarine.Chat.html#getParameters" class="tsd-kind-icon">get<wbr>Parameters</a>
+									</li>
+									<li class=" tsd-kind-method tsd-parent-kind-class">
 										<a href="_prismarine.Chat.html#getSender" class="tsd-kind-icon">get<wbr>Sender</a>
 									</li>
 									<li class=" tsd-kind-method tsd-parent-kind-class">
 										<a href="_prismarine.Chat.html#getType" class="tsd-kind-icon">get<wbr>Type</a>
+									</li>
+									<li class=" tsd-kind-method tsd-parent-kind-class">
+										<a href="_prismarine.Chat.html#isNeedsTranslation" class="tsd-kind-icon">is<wbr>Needs<wbr>Translation</a>
 									</li>
 								</ul>
 							</li>
