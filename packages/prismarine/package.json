@@ -55,7 +55,7 @@
         "@types/d3-interpolate": "2.0.2",
         "@types/git-rev-sync": "2.0.0",
         "@types/jest": "27.0.3",
-        "@types/node": "16.11.6",
+        "@types/node": "16.11.8",
         "@types/node-fetch": "2.5.10",
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.3",
