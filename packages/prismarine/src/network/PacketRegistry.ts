@@ -2,7 +2,6 @@ import * as Handlers from './Handlers';
 import * as Packets from './Packets';
 
 import Identifiers from './Identifiers';
-import LoggerBuilder from '../utils/Logger';
 import PacketHandler from './handler/PacketHandler';
 import type Player from '../player/Player';
 import type Server from '../Server';

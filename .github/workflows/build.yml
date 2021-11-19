@@ -15,7 +15,7 @@ jobs:
             - run: npm install -g npm@latest
             - run: npm install -g lerna
             - run: lerna bootstrap --concurrency=1
-            - run: npm install
+            - run: npm install --force
             - run: npm run build:source
             - run: npm prune --production
             - run: npm install -g pkg

@@ -14,7 +14,7 @@ jobs:
             - run: npm install -g npm@latest
             - run: npm install -g lerna
             - run: lerna bootstrap --concurrency=1
-            - run: npm install
+            - run: npm install --force
             - run: npm run build:source
             - run: npm run test:eslint
     lint-prettier:
@@ -27,7 +27,7 @@ jobs:
             - run: npm install -g npm@latest
             - run: npm install -g lerna
             - run: lerna bootstrap --concurrency=1
-            - run: npm install
+            - run: npm install --force
             - run: npm run build:source
             - run: npm run test:prettier
     lint-coveralls:
@@ -40,7 +40,7 @@ jobs:
             - run: npm install -g npm@latest
             - run: npm install -g lerna
             - run: lerna bootstrap --concurrency=1
-            - run: npm install
+            - run: npm install --force
             - run: npm run build:source
             - run: npm run coveralls
             - name: Coveralls

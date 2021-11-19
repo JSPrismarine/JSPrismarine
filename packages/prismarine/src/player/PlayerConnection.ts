@@ -1,4 +1,5 @@
 import AdventureSettingsPacket, { AdventureSettingsFlags } from '../network/packet/AdventureSettingsPacket';
+import BatchPacket, { DEFAULT_COMPRESSION_LEVEL } from '../network/packet/BatchPacket';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
 import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
 import { Connection, Protocol } from '@jsprismarine/raknet';
@@ -8,7 +9,6 @@ import AddPlayerPacket from '../network/packet/AddPlayerPacket';
 import Air from '../block/blocks/Air';
 import { Attribute } from '../entity/Attribute';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
-import BatchPacket from '../network/packet/BatchPacket';
 import Block from '../block/Block';
 import Chunk from '../world/chunk/Chunk';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
@@ -65,9 +65,10 @@ export default class PlayerConnection {
     // To refactor
     public async sendDataPacket(packet: DataPacket): Promise<void> {
         const batch = new BatchPacket();
+        batch.setCompressionLevel(DEFAULT_COMPRESSION_LEVEL);
         try {
             batch.addPacket(packet);
-            batch.encode();
+            await batch.encodeAsync();
         } catch (error) {
             this.server
                 .getLogger()
@@ -90,15 +91,17 @@ export default class PlayerConnection {
 
     public async update(_tick: number): Promise<void> {
         if (this.chunkSendQueue.size > 0) {
+            const chunksToSend = new Array(this.chunkSendQueue.size);
             for (const chunk of this.chunkSendQueue) {
                 const encodedPos = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
                 if (!this.loadingChunks.has(encodedPos)) {
                     this.chunkSendQueue.delete(chunk);
                 }
 
-                await this.sendChunk(chunk);
+                chunksToSend.push(this.sendChunk(chunk));
                 this.chunkSendQueue.delete(chunk);
             }
+            await Promise.allSettled(chunksToSend);
         }
 
         await this.needNewChunks();

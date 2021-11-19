@@ -1,18 +1,12 @@
 import Chat from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
-import type Entity from './entity/Entity';
-import type Server from './Server';
-import Vector3 from './math/Vector3';
+import { Server } from './Prismarine';
 import readline from 'readline';
 
 export default class Console {
-    private readonly server: Server;
     private cli: readline.Interface;
-    public runtimeId = BigInt(-1);
 
-    public constructor(server: Server) {
-        this.server = server;
-
+    public constructor(private readonly server: Server) {
         // Console command reader
         readline.emitKeypressEvents(process.stdin);
         process.stdin.setEncoding('utf8');
@@ -25,13 +19,13 @@ export default class Console {
         }
 
         const completer = (line: string) => {
-            const hits = Array.from(this.getServer().getCommandManager().getCommands().values())
+            const hits = Array.from(this.server.getCommandManager().getCommands().values())
                 .filter((a) => a.id.split(':')[1].startsWith(line.replace('/', '')))
                 .map((a) => '/' + a.id.split(':')[1]);
             return [
                 hits.length
                     ? hits
-                    : Array.from(this.getServer().getCommandManager().getCommands().values()).map(
+                    : Array.from(this.server.getCommandManager().getCommands().values()).map(
                           (a) => '/' + a.id.split(':')[1]
                       ),
                 line
@@ -50,14 +44,12 @@ export default class Console {
 
         this.cli.on('line', (input: string) => {
             if (input.startsWith('/')) {
-                void this.getServer()
-                    .getCommandManager()
-                    .dispatchCommand(this as any, this as any, input.slice(1));
+                void this.server.getCommandManager().dispatchCommand(this as any, this as any, input.slice(1));
                 return;
             }
 
-            const event = new ChatEvent(new Chat(this, `${this.getFormattedUsername()} ${input}`));
-            void this.getServer().getEventManager().emit('chat', event);
+            const event = new ChatEvent(new Chat(this, `[CONSOLE] ${input}`));
+            void this.server.getEventManager().emit('chat', event);
         });
 
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
@@ -66,86 +58,11 @@ export default class Console {
         });
     }
 
-    public getRuntimeId(): bigint {
-        return this.runtimeId;
-    }
-
     public async onDisable(): Promise<void> {
         this.cli.close();
     }
 
-    public getName(): string {
-        return 'CONSOLE';
-    }
-
-    public getFormattedUsername(): string {
-        return '[CONSOLE]';
-    }
-
     public async sendMessage(message: string): Promise<void> {
-        this.getServer().getLogger()?.info(message, 'Console');
-    }
-
-    public getWorld() {
-        return this.server.getWorldManager().getDefaultWorld();
-    }
-
-    public getServer(): Server {
-        return this.server;
-    }
-
-    public isPlayer(): boolean {
-        return false;
-    }
-
-    public isOp(): boolean {
-        return true;
-    }
-
-    public getX(): number {
-        return 0;
-    }
-    public getY(): number {
-        return 0;
-    }
-    public getZ(): number {
-        return 0;
-    }
-
-    public getPosition(): Vector3 {
-        return new Vector3();
-    }
-
-    public getType() {
-        return 'jsprismarine:console';
-    }
-
-    public isConsole(): boolean {
-        return true;
-    }
-
-    /**
-     * Returns the nearest entity from the current entity
-     *
-     * TODO: Customizable radius
-     * TODO: Generic?
-     */
-    public getNearestEntity(entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!) {
-        const pos = new Vector3(this.getX(), this.getY(), this.getZ());
-        const dist = (a: Vector3, b: Vector3) =>
-            Math.sqrt((b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2);
-
-        const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
-            const distances = points.map((e) => dist(target, new Vector3(e.getX(), e.getY(), e.getZ())));
-            const closest = Math.min(...distances);
-            return points.find((e, i) => distances[i] - closest < eps)!;
-        };
-
-        return [
-            closest(
-                pos,
-                entities.filter((a) => a.getRuntimeId() !== this.getRuntimeId())
-            )
-        ].filter((a) => a);
+        this.server.getLogger()?.info(message, 'Console');
     }
 }

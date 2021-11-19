@@ -56,8 +56,7 @@ export default class BanManager {
             reason
         });
 
-        const writeFile = util.promisify(fs.writeFile);
-        await writeFile(
+        await fs.promises.writeFile(
             path.join(cwd(), '/banned-players.json'),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({
@@ -73,9 +72,7 @@ export default class BanManager {
 
     public async setUnbanned(username: string) {
         this.banned.delete(username);
-
-        const writeFile = util.promisify(fs.writeFile);
-        await writeFile(
+        await fs.promises.writeFile(
             path.join(cwd(), '/banned-players.json'),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({

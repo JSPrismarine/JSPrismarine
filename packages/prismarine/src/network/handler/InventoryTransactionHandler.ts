@@ -1,5 +1,5 @@
+import { InventoryTransaction, InventoryTransactionUseItemAction } from '../packet/InventoryTransactionPacket';
 import { InventoryTransactionPacket, LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
-import { InventoryTransactionType, InventoryTransactionUseItemActionType } from '../packet/InventoryTransactionPacket';
 
 import BlockMappings from '../../block/BlockMappings';
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -18,8 +18,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         if (!player.isOnline()) return;
         if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world.
 
-        switch (packet.type) {
-            case InventoryTransactionType.Normal: {
+        switch (packet.transactionType) {
+            case InventoryTransaction.NORMAL: {
                 // TODO: refactor this crap.
                 // probably base it on https://github.com/pmmp/PocketMine-MP/blob/d19db5d2e44d0925798c288247c3bddb71d23975/src/pocketmine/Player.php#L2399 or something similar.
                 let movedItem: ContainerEntry;
@@ -73,9 +73,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 });
                 break;
             }
-            case InventoryTransactionType.UseItem: {
+            case InventoryTransaction.USE_ITEM: {
                 switch (packet.actionType) {
-                    case InventoryTransactionUseItemActionType.ClickBlock:
+                    case InventoryTransactionUseItemAction.CLICK_BLOCK:
                         await player
                             .getWorld()
                             .useItemOn(
@@ -88,9 +88,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                 player
                             );
                         break;
-                    case InventoryTransactionUseItemActionType.ClickAir:
+                    case InventoryTransactionUseItemAction.CLICK_AIR:
                         break;
-                    case InventoryTransactionUseItemActionType.BreakBlock: {
+                    case InventoryTransactionUseItemAction.BREAK_BLOCK: {
                         const chunk = await player
                             .getWorld()
                             .getChunkAt(packet.blockPosition.getX(), packet.blockPosition.getZ());
@@ -114,16 +114,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         // in survival
                         pk.blockRuntimeId = BlockMappings.getRuntimeId('minecraft:air'); // Air
 
-                        // Send block-break packet to all players in the same world
-                        await Promise.all(
-                            server
-                                .getPlayerManager()
-                                .getOnlinePlayers()
-                                .filter((p) => p.getWorld().getUniqueId() === player.getWorld().getUniqueId())
-                                .map(async (player) => player.getConnection().sendDataPacket(pk))
-                        );
-
                         // Spawn item if player isn't in creative
+                        /* 
+                        TODO: fix item spawning
                         if (player.getGamemode() !== 'creative') {
                             // TODO: use iteminhand
                             const drops = block.getDrops(null, server);
@@ -144,13 +137,14 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                     await droppedItem.setPosition(packet.blockPosition);
                                 })
                             );
-                        }
+                        } 
+                        */
 
                         chunk.setBlock(
                             chunkPos.getX(),
                             chunkPos.getY(),
                             chunkPos.getZ(),
-                            server.getBlockManager().getBlock('minecraft:air')!
+                            server.getBlockManager().getBlock('minecraft:air')! // TODO
                         );
 
                         const soundPk = new LevelSoundEventPacket();
@@ -161,11 +155,12 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         soundPk.positionZ = player.getZ();
 
                         // ? 0 or id & 0xf
-                        soundPk.extraData = BlockMappings.getRuntimeId('minecraft:air'); // In this case refers to block runtime Id
+                        soundPk.extraData = BlockMappings.getRuntimeId(block.getName()); // In this case refers to block runtime Id
                         soundPk.entityType = ':';
                         soundPk.isBabyMob = false;
-                        soundPk.disableRelativeVolume = false;
+                        soundPk.disableRelativeVolume = true;
 
+                        // Send block-break packet to all players in the same chunk
                         await Promise.all([
                             player.getPlayersInChunk().map(async (player) => {
                                 await player.getConnection().sendDataPacket(soundPk);
@@ -184,8 +179,12 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
                 break;
             }
+            case InventoryTransaction.USE_ITEM_ON_ENTITY:
+                break;
             default: {
-                server.getLogger()?.verbose(`Unknown type: ${packet.type}`, 'InventoryTransactionHandler/handle');
+                server
+                    .getLogger()
+                    ?.verbose(`Unknown type: ${packet.transactionType}`, 'InventoryTransactionHandler/handle');
                 throw new Error('Invalid InventoryTransactionType');
             }
         }

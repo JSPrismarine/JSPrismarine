@@ -29,8 +29,8 @@ import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPac
 import TelemetryManager from './telemetry/TelemeteryManager';
 import { TickEvent } from './events/Events';
 import Timer from './utils/Timer';
-import UpdateSoftEnumPacket from './network/packet/UpdateSoftEnumPacket';
 import WorldManager from './world/WorldManager';
+import assert from 'assert';
 
 export default class Server {
     private version!: string;
@@ -42,8 +42,8 @@ export default class Server {
     private readonly console: Console;
     private readonly telemetryManager: TelemetryManager;
     private readonly eventManager = new EventManager();
-    private packetRegistry: PacketRegistry;
-    private playerManager: PlayerManager;
+    private readonly packetRegistry: PacketRegistry;
+    private readonly playerManager = new PlayerManager();
     private readonly pluginManager: PluginManager;
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
@@ -72,7 +72,6 @@ export default class Server {
         this.telemetryManager = new TelemetryManager(this);
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
-        this.playerManager = new PlayerManager();
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.worldManager = new WorldManager(this);
@@ -88,8 +87,6 @@ export default class Server {
 
     private async onEnable(): Promise<void> {
         this.config.onEnable();
-        BlockMappings.initMappings();
-        await this.packetRegistry.onEnable();
         await this.permissionManager.onEnable();
         await this.pluginManager.onEnable();
         await this.banManager.onEnable();
@@ -107,30 +104,33 @@ export default class Server {
         await this.banManager.onDisable();
         await this.pluginManager.onDisable();
         await this.permissionManager.onDisable();
-        await this.packetRegistry.onDisable();
         this.config.onDisable();
     }
 
     public async reload(): Promise<void> {
-        this.packetRegistry = new PacketRegistry(this);
         await this.onDisable();
         await this.onEnable();
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.onEnable();
+        BlockMappings.initMappings();
+        await this.packetRegistry.onEnable();
         await this.worldManager.onEnable();
 
         this.raknet = new RakNetListener(false);
         await this.raknet.start(serverIp, port);
+
         this.raknet.on('openConnection', async (connection: Connection) => {
             const event = new RaknetConnectEvent(connection);
             await this.getEventManager().emit('raknetConnect', event);
+            await this.handleNewConnection(connection);
         });
 
         this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
             const event = new RaknetDisconnectEvent(inetAddr, reason);
             await this.getEventManager().emit('raknetDisconnect', event);
+            await this.handleCloseConnection(inetAddr, reason);
         });
 
         this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
@@ -147,84 +147,6 @@ export default class Server {
             }
         });
 
-        this.getEventManager().on('raknetConnect', async (raknetConnectEvent: RaknetConnectEvent) => {
-            const timer = new Timer();
-
-            const connection = raknetConnectEvent.getConnection();
-            const token = `${connection.getAddress().getAddress()}:${connection.getAddress().getPort()}`;
-            this.getLogger()?.debug(`${token} is attempting to connect`, 'Server/listen/raknetDisconnect');
-
-            const world = this.getWorldManager().getDefaultWorld()!;
-            const player = new Player(connection, world, this);
-
-            // Emit playerConnect event
-            const playerConnectEvent = new PlayerConnectEvent(player, player.getAddress());
-            await this.getEventManager().emit('playerConnect', playerConnectEvent);
-            if (playerConnectEvent.cancelled) return;
-
-            // Add the player into the global player manager
-            // and their local world
-            try {
-                await this.playerManager.addPlayer(token, player);
-                await world.addEntity(player);
-            } catch (error) {
-                /* we should probably do something here */
-                this.getLogger()?.warn(`Failed to add player to the world: ${error}`, 'Server/listen/raknetConnect');
-            }
-
-            this.getLogger()?.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
-        });
-
-        this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
-            const inetAddr = event.getInetAddr();
-            const reason = event.getReason();
-
-            const time = Date.now();
-            const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
-            try {
-                const player = this.playerManager.getPlayer(token);
-
-                // De-spawn the player to all online players
-                await player.getConnection().removeFromPlayerList();
-                for (const onlinePlayer of this.playerManager.getOnlinePlayers()) {
-                    await player.getConnection().sendDespawn(onlinePlayer);
-                }
-
-                // Sometimes we fail at decoding the username for whatever reason
-                if (player.getName()) {
-                    // Announce disconnection
-                    const event = new ChatEvent(
-                        new Chat(
-                            this.getConsole(),
-                            `§e%multiplayer.player.left`,
-                            [player.getName()],
-                            true,
-                            '*.everyone',
-                            ChatType.TRANSLATION
-                        )
-                    );
-                    await this.getEventManager().emit('chat', event);
-                }
-
-                await player.onDisable();
-                await player.getWorld().removeEntity(player);
-                await this.playerManager.removePlayer(token);
-            } catch (error) {
-                this.getLogger()?.debug(
-                    `Cannot remove connection from non-existing player (${token})`,
-                    'Server/listen/raknetDisconnect'
-                );
-                this.getLogger()?.debug((error as any).stack, 'Server/listen/raknetDisconnect');
-            }
-
-            this.getLogger()?.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
-
-            this.getLogger()?.debug(
-                `Player destruction took about ${Date.now() - time} ms`,
-                'Server/listen/raknetDisconnect'
-            );
-        });
-
         this.getEventManager().on('raknetEncapsulatedPacket', async (event) => {
             const raknetPacket = event.getPacket();
             const inetAddr = event.getInetAddr();
@@ -234,13 +156,15 @@ export default class Server {
             try {
                 const player = this.playerManager.getPlayer(token);
 
-                // Read batch content and handle them
+                // Read batch content and handle it
                 const batched = new BatchPacket(raknetPacket.content);
-                batched.decode();
+                await batched.decodeAsync();
 
                 // Read all packets inside batch and handle them
-                for (const buf of batched.getPackets()) {
-                    const pid = buf[0];
+                for (const buf of await batched.getPackets()) {
+                    const pid = buf.at(0);
+                    assert(typeof pid === 'number', 'Recived an invalid packet!');
+
                     if (!this.packetRegistry.getPackets().has(pid)) {
                         this.getLogger()?.warn(
                             `Packet 0x${pid.toString(16)} isn't implemented`,
@@ -250,7 +174,7 @@ export default class Server {
                     }
 
                     // Get packet from registry
-                    const packet = new (this.packetRegistry.getPackets().get(buf[0])!)(buf);
+                    const packet = new (this.packetRegistry.getPackets().get(pid)!)(buf);
 
                     try {
                         packet.decode();
@@ -263,7 +187,7 @@ export default class Server {
                     }
 
                     try {
-                        const handler = this.packetRegistry.getHandler(packet.getId());
+                        const handler = this.packetRegistry.getHandler(pid);
                         await handler.handle(packet, this, player);
                         this.getLogger()?.silly(
                             `Received §b${packet.constructor.name}§r packet`,
@@ -340,6 +264,81 @@ export default class Server {
             this.getLogger()?.error(error as any, 'Server/kill');
             process.exit(1);
         }
+    }
+
+    private async handleNewConnection(connection: Connection): Promise<void> {
+        const timer = new Timer();
+
+        const token = `${connection.getAddress().getAddress()}:${connection.getAddress().getPort()}`;
+        this.getLogger()?.debug(`${token} is attempting to connect`, 'Server/listen/raknetDisconnect');
+
+        const world = this.getWorldManager().getDefaultWorld()!;
+        const player = new Player(connection, world, this);
+
+        // Emit playerConnect event
+        const playerConnectEvent = new PlayerConnectEvent(player, player.getAddress());
+        await this.getEventManager().emit('playerConnect', playerConnectEvent);
+        if (playerConnectEvent.cancelled) return;
+
+        // Add the player into the global player manager
+        // and their local world
+        try {
+            await this.playerManager.addPlayer(token, player);
+            await world.addEntity(player);
+        } catch (error) {
+            /* we should probably do something here */
+            this.getLogger()?.warn(`Failed to add player to the world: ${error}`, 'Server/listen/raknetConnect');
+        }
+
+        this.getLogger()?.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
+    }
+
+    private async handleCloseConnection(inetAddr: InetAddress, reason: string): Promise<void> {
+        const time = Date.now();
+
+        const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
+        try {
+            const player = this.playerManager.getPlayer(token);
+
+            // De-spawn the player to all online players
+            await player.getConnection().removeFromPlayerList();
+            for (const onlinePlayer of this.playerManager.getOnlinePlayers()) {
+                await player.getConnection().sendDespawn(onlinePlayer);
+            }
+
+            // Sometimes we fail at decoding the username for whatever reason
+            if (player.getName()) {
+                // Announce disconnection
+                const event = new ChatEvent(
+                    new Chat(
+                        this.getConsole(),
+                        `§e%multiplayer.player.left`,
+                        [player.getName()],
+                        true,
+                        '*.everyone',
+                        ChatType.TRANSLATION
+                    )
+                );
+                await this.getEventManager().emit('chat', event);
+            }
+
+            await player.onDisable();
+            await player.getWorld().removeEntity(player);
+            await this.playerManager.removePlayer(token);
+        } catch (error) {
+            this.getLogger()?.debug(
+                `Cannot remove connection from non-existing player (${token})`,
+                'Server/listen/raknetDisconnect'
+            );
+            this.getLogger()?.debug((error as any).stack, 'Server/listen/raknetDisconnect');
+        }
+
+        this.getLogger()?.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
+
+        this.getLogger()?.debug(
+            `Player destruction took about ${Date.now() - time} ms`,
+            'Server/listen/raknetDisconnect'
+        );
     }
 
     public async broadcastPacket<T extends DataPacket>(dataPacket: T): Promise<void> {
