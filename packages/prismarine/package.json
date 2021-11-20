@@ -38,7 +38,7 @@
         "fast-jwt": "1.3.2",
         "git-rev-sync": "3.0.1",
         "graceful-fs": "4.2.6",
-        "live-plugin-manager": "0.15.1",
+        "live-plugin-manager": "0.17.0",
         "node-fetch": "2.6.6",
         "node-machine-id": "1.1.12",
         "prismarine-chunk": "1.22.0",
