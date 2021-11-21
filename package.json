@@ -214,7 +214,7 @@
         "fflate": "0.7.1",
         "git-rev-sync": "3.0.1",
         "graceful-fs": "4.2.8",
-        "live-plugin-manager": "0.16.0",
+        "live-plugin-manager": "0.17.0",
         "node-fetch": "2.6.6",
         "node-machine-id": "1.1.12",
         "prismarine-chunk": "1.26.0",
