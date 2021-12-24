@@ -209,7 +209,7 @@
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.4",
         "d3-interpolate": "2.0.1",
-        "evt": "1.10.1",
+        "evt": "1.10.2",
         "fast-jwt": "1.4.0",
         "fflate": "0.7.2",
         "git-rev-sync": "3.0.1",
