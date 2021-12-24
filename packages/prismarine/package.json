@@ -58,7 +58,7 @@
         "@types/node": "16.11.17",
         "@types/node-fetch": "2.5.10",
         "@types/set-interval-async": "1.0.0",
-        "@types/unzipper": "0.10.3",
+        "@types/unzipper": "0.10.5",
         "@types/workerpool": "6.0.0",
         "ts-jest": "27.1.2",
         "ts-node": "10.4.0",
