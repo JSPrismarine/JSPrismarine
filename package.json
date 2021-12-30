@@ -210,7 +210,7 @@
         "@types/unzipper": "0.10.5",
         "d3-interpolate": "2.0.1",
         "evt": "1.10.2",
-        "fast-jwt": "1.4.0",
+        "fast-jwt": "1.4.1",
         "fflate": "0.7.2",
         "git-rev-sync": "3.0.1",
         "graceful-fs": "4.2.8",
