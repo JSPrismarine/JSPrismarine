@@ -213,7 +213,7 @@
         "fast-jwt": "1.4.1",
         "fflate": "0.7.2",
         "git-rev-sync": "3.0.1",
-        "graceful-fs": "4.2.8",
+        "graceful-fs": "4.2.9",
         "live-plugin-manager": "0.17.1",
         "node-fetch": "2.6.6",
         "node-machine-id": "1.1.12",
