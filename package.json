@@ -217,7 +217,7 @@
         "live-plugin-manager": "0.17.1",
         "node-fetch": "2.6.6",
         "node-machine-id": "1.1.12",
-        "prismarine-chunk": "1.28.0",
+        "prismarine-chunk": "1.28.1",
         "prismarine-provider-anvil": "2.5.1",
         "semver": "7.3.5",
         "set-interval-async": "2.0.3",
