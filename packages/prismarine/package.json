@@ -56,7 +56,7 @@
         "@types/git-rev-sync": "2.0.0",
         "@types/jest": "27.4.0",
         "@types/node": "16.11.19",
-        "@types/node-fetch": "2.5.10",
+        "@types/node-fetch": "2.5.12",
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.5",
         "@types/workerpool": "6.0.1",
