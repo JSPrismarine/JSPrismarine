@@ -54,7 +54,7 @@
     "devDependencies": {
         "@types/d3-interpolate": "2.0.2",
         "@types/git-rev-sync": "2.0.0",
-        "@types/jest": "27.4.0",
+        "@types/jest": "27.4.1",
         "@types/node": "16.11.19",
         "@types/node-fetch": "2.5.12",
         "@types/set-interval-async": "1.0.0",
