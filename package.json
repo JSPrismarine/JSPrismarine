@@ -184,7 +184,7 @@
         "@strictsoftware/typedoc-plugin-monorepo": "0.4.2",
         "@types/jest": "27.4.1",
         "@types/node": "16.11.26",
-        "@types/node-fetch": "2.5.12",
+        "@types/node-fetch": "2.6.1",
         "coveralls": "3.1.1",
         "cross-env": "7.0.3",
         "husky": "7.0.4",
