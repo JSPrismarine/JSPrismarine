@@ -31,7 +31,7 @@
         "@jsprismarine/brigadier": "0.2.0-rc.1",
         "@jsprismarine/color-parser": "^0.1.0-rc.49",
         "@jsprismarine/nbt": "^0.1.0-rc.49",
-        "@jsprismarine/jsbinaryutils": "3.2.2",
+        "@jsprismarine/jsbinaryutils": "3.2.3",
         "@jsprismarine/raknet": "^0.1.0-rc.49",
         "d3-interpolate": "2.0.1",
         "evt": "1.10.2",
