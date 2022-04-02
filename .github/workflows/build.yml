@@ -8,8 +8,8 @@ jobs:
     artifacts:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v2
+            - uses: actions/checkout@v3
+            - uses: actions/setup-node@v3
               with:
                   node-version: 14
             - run: npm install -g npm@latest
@@ -20,15 +20,15 @@ jobs:
             - run: npm prune --production
             - run: npm install -g pkg
             - run: npm run package
-            - uses: actions/upload-artifact@v2
+            - uses: actions/upload-artifact@v3
               with:
                   name: prismarine-x64-linux
                   path: builds/monorepo-linux
-            - uses: actions/upload-artifact@v2
+            - uses: actions/upload-artifact@v3
               with:
                   name: prismarine-x64-macos
                   path: builds/monorepo-macos
-            - uses: actions/upload-artifact@v2
+            - uses: actions/upload-artifact@v3
               with:
                   name: prismarine-x64-win32
                   path: builds/monorepo-win.exe
