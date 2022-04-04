@@ -37,7 +37,7 @@
         "evt": "1.10.2",
         "fast-jwt": "1.5.2",
         "git-rev-sync": "3.0.2",
-        "graceful-fs": "4.2.9",
+        "graceful-fs": "4.2.10",
         "live-plugin-manager": "0.17.1",
         "node-fetch": "2.6.7",
         "node-machine-id": "1.1.12",
