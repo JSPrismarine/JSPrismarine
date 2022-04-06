@@ -35,7 +35,7 @@
         "@jsprismarine/raknet": "^0.1.0-rc.49",
         "d3-interpolate": "2.0.1",
         "evt": "1.10.2",
-        "fast-jwt": "1.5.2",
+        "fast-jwt": "1.5.3",
         "git-rev-sync": "3.0.2",
         "graceful-fs": "4.2.10",
         "live-plugin-manager": "0.17.1",
