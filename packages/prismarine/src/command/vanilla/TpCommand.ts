@@ -1,4 +1,3 @@
-/* eslint-disable promise/prefer-await-to-then */
 import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 

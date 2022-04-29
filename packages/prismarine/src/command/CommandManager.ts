@@ -150,7 +150,7 @@ export default class CommandManager {
         };
 
         const res = Array.from(this.server.getCommandManager().getDispatcher().getRoot().getChildren())
-            .map((command) => {
+            .flatMap((command) => {
                 const branches: any[] = [];
                 if (command.getCommand()) branches.push([]);
 
@@ -163,7 +163,6 @@ export default class CommandManager {
 
                 return branches.map((branch) => [command.getName(), command, branch]);
             })
-            .flat()
             .filter((a) => a);
 
         res.toString = () => {

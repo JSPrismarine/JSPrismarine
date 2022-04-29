@@ -145,10 +145,8 @@ export default class Item {
         const netData = stream.readUnsignedVarInt();
 
         // TODO: refactor everything basically...
-        if (extra) {
-            if (stream.readBoolean()) {
-                stream.readVarInt();
-            }
+        if (extra && stream.readBoolean()) {
+            stream.readVarInt();
         }
 
         const temp = stream.readVarInt();

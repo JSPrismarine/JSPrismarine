@@ -1,4 +1,3 @@
-/* eslint-disable promise/prefer-await-to-then */
 import * as Entities from '../../entity/Entities';
 
 import { CommandArgumentMob, CommandArgumentPosition } from '../CommandArguments';
