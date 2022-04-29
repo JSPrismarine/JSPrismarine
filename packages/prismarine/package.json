@@ -39,7 +39,7 @@
         "git-rev-sync": "3.0.2",
         "graceful-fs": "4.2.10",
         "live-plugin-manager": "0.17.1",
-        "node-fetch": "2.6.7",
+        "node-fetch": "3.2.4",
         "node-machine-id": "1.1.12",
         "prismarine-chunk": "1.31.0",
         "prismarine-provider-anvil": "2.7.0",
