@@ -29,7 +29,6 @@ import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPac
 import TelemetryManager from './telemetry/TelemeteryManager';
 import { TickEvent } from './events/Events';
 import Timer from './utils/Timer';
-import UpdateSoftEnumPacket from './network/packet/UpdateSoftEnumPacket';
 import WorldManager from './world/WorldManager';
 
 export default class Server {

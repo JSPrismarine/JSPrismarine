@@ -181,7 +181,7 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "devDependencies": {
-        "@strictsoftware/typedoc-plugin-monorepo": "0.4.2",
+        "@janniks/typedoc-plugin-monorepo": "^0.4.2-1",
         "@types/jest": "27.4.1",
         "@types/node": "16.11.32",
         "@types/node-fetch": "2.6.1",
@@ -195,9 +195,9 @@
         "prettier": "2.6.2",
         "ts-jest": "27.1.4",
         "ts-node": "10.7.0",
-        "typedoc": "0.21.10",
-        "typescript": "4.4.4",
-        "xo": "0.40.3",
+        "typedoc": "^0.22.15",
+        "typescript": "^4.6.4",
+        "xo": "^0.48.0",
         "yarnhook": "0.5.1"
     },
     "dependencies": {
@@ -215,7 +215,7 @@
         "git-rev-sync": "3.0.2",
         "graceful-fs": "4.2.10",
         "live-plugin-manager": "0.17.1",
-        "node-fetch": "2.6.7",
+        "node-fetch": "^2.6.7",
         "node-machine-id": "1.1.12",
         "prismarine-chunk": "1.31.0",
         "prismarine-provider-anvil": "2.7.0",
@@ -225,6 +225,6 @@
         "strip-json-comments": "3.1.1",
         "unzipper": "0.10.11",
         "winston": "3.7.2",
-        "yaml": "2.0.0-3"
+        "yaml": "^2.0.1"
     }
 }
