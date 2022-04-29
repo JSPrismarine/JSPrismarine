@@ -211,9 +211,9 @@ export default class RakNetSession {
             return;
         }
 
-        const orderChannel = frame.orderChannel as number;
-        const orderIndex = frame.orderIndex as number;
-        const sequenceIndex = frame.sequenceIndex as number;
+        const orderChannel = frame.orderChannel!;
+        const orderIndex = frame.orderIndex!;
+        const sequenceIndex = frame.sequenceIndex!;
 
         if (frame.isSequenced()) {
             if (
@@ -368,7 +368,7 @@ export default class RakNetSession {
 
         const pk = new ConnectedPong();
         pk.clientTimestamp = dataPacket.clientTimestamp;
-        pk.serverTimestamp = BigInt(new Date().getTime());
+        pk.serverTimestamp = BigInt(Date.now());
         pk.encode();
 
         const sendPacket = new Frame();

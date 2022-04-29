@@ -1,4 +1,3 @@
-/* eslint-disable promise/prefer-await-to-then */
 import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';

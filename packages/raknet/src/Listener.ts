@@ -43,10 +43,8 @@ export default class RakNetListener extends EventEmitter {
                 setInterval(() => {
                     for (const session of this.getSessions()) {
                         if (session.isDisconnected()) {
-                            if (session.isDisconnected()) {
-                                this.removeSession(session);
-                                return;
-                            }
+                            this.removeSession(session);
+                            return;
                         }
                         session.update(Date.now());
                     }

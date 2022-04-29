@@ -44,7 +44,6 @@
         "import/no-named-as-default": 0,
         "import/order": 0,
         "import/no-cycle": 1,
-        "promise/prefer-await-to-then": 1,
         "@typescript-eslint/member-ordering": 0,
         "@typescript-eslint/ban-types": 0,
         "@typescript-eslint/no-implicit-any-catch": 0,
