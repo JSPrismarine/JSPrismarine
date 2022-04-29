@@ -1,243 +1,115 @@
-<!doctype html>
-<html class="default no-js">
-<head>
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>@jsprismarine/monorepo</title>
-	<meta name="description" content="Documentation for @jsprismarine/monorepo">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="assets/css/main.css">
-	<script async src="assets/js/search.js" id="search-script"></script>
-</head>
-<body>
-<header>
-	<div class="tsd-page-toolbar">
-		<div class="container">
-			<div class="table-wrap">
-				<div class="table-cell" id="tsd-search" data-index="assets/js/search.json" data-base=".">
-					<div class="field">
-						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
-						<input id="tsd-search-field" type="text" />
-					</div>
-					<ul class="results">
-						<li class="state loading">Preparing search index...</li>
-						<li class="state failure">The search index is not available</li>
-					</ul>
-					<a href="index.html" class="title">@jsprismarine/monorepo</a>
-				</div>
-				<div class="table-cell" id="tsd-widgets">
-					<div id="tsd-filter">
-						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
-						<div class="tsd-filter-group">
-							<div class="tsd-select" id="tsd-filter-visibility">
-								<span class="tsd-select-label">All</span>
-								<ul class="tsd-select-list">
-									<li data-value="public">Public</li>
-									<li data-value="protected">Public/Protected</li>
-									<li data-value="private" class="selected">All</li>
-								</ul>
-							</div>
-							<input type="checkbox" id="tsd-filter-inherited" checked />
-							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
-						</div>
-					</div>
-					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="tsd-page-title">
-		<div class="container">
-			<h1>@jsprismarine/monorepo</h1>
-		</div>
-	</div>
-</header>
-<div class="container container-main">
-	<div class="row">
-		<div class="col-8 col-content">
-			<div class="tsd-panel tsd-typography">
-				<a href="#jsprismarine" id="jsprismarine" style="color: inherit; text-decoration: none;">
-					<h1>JSPrismarine</h1>
-				</a>
-				<a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">
-					<img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine?style=flat-square">
-				</a>
-				<a href="https://github.com/JSPrismarine/JSPrismarine/graphs/contributors">
-					<img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D&style=flat-square">
-				</a>
-				<a href="https://github.com/JSPrismarine/JSPrismarine/commits/master">
-					<img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC&style=flat-square">
-				</a>
-				<a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=workflow%3A%22Unit+%26+Integration+Testing%22">
-					<img alt="Build" src="https://img.shields.io/github/workflow/status/JSPrismarine/JSPrismarine/Unit%20&%20Integration%20Testing?style=flat-square">
-				</a>
-				<a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
-					<img alt="Coveralls github" src="https://img.shields.io/coveralls/github/JSPrismarine/JSPrismarine?style=flat-square">
-				</a>
-				<a href="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine">
-					<img alt="Codefactor.io" src="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine/badge?style=flat-square">
-				</a>
-				<a href="https://discord.gg/6w8JWhy">
-					<img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
-				</a>
-				<a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
-					<img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=flat-square">
-				</a>
-				<a href="https://github.com/sponsors/JSPrismarine">
-					<img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/JSPrismarine?style=flat-square">
-				</a>
-				<p>A dedicated Minecraft Bedrock Edition server written in TypeScript with focus on performance, extensibility and ease-of-use.</p>
-				<a href="#why-use-jsprismarine" id="why-use-jsprismarine" style="color: inherit; text-decoration: none;">
-					<h2>Why use JSPrismarine?</h2>
-				</a>
-				<ul>
-					<li>Written in TypeScript which means that it&#39;s easy to use and develop plugins for. You can in theory develop plugins in any language that transpile into JavaScript (such as TypeScript, Kotlin, CoffeeScript, asm.js and many more).</li>
-					<li>Open source with the permissive <a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">MPL2</a> license.</li>
-					<li>Under active development.</li>
-				</ul>
-				<a href="#getting-started" id="getting-started" style="color: inherit; text-decoration: none;">
-					<h2>Getting started</h2>
-				</a>
-				<p>Prebuilt binaries will be provided once a stable release is out, these will not require a node environment. For now however, you can either follow the steps bellow or download the <a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22">latest nightly</a> (which may or may not work).</p>
-				<ul>
-					<li>Linux/MacOS/Unix based OS or Windows (requires WSL)<ul>
-							<li>You need <a href="https://nodejs.org">Node.js</a> v14+, <a href="https://www.npmjs.com">npm</a> v7+ and <a href="https://lerna.js.org/">lerna</a>.</li>
-							<li>Clone the repository <code>git clone https://github.com/JSPrismarine/JSPrismarine.git</code>.</li>
-							<li>Go in the cloned repository <code>cd JSPrismarine</code></li>
-							<li>Install dependencies <code>npm install</code> and <code>lerna bootstrap</code>.</li>
-							<li>Before running production build you have to build it <code>npm run build</code></li>
-							<li>You&#39;re done, you can run it using <code>npm run start</code> (or <code>npm run dev</code> for development)</li>
-						</ul>
-					</li>
-				</ul>
-				<a href="#faq" id="faq" style="color: inherit; text-decoration: none;">
-					<h2>FAQ</h2>
-				</a>
-				<ul>
-					<li>Can I contribute?<ul>
-							<li>Sure, make sure to read the <a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTING.md">CONTRIBUTING.md</a> file first.</li>
-						</ul>
-					</li>
-					<li>Is JSPrismarine for <code>Minecraft: Bedrock Edition</code> or <code>Minecraft: Java Edition</code>?<ul>
-							<li>JSPrismarine is made for <code>Minecraft: Bedrock Edition</code>, there may however be plugin(s) available to provide a <code>Minecraft: Java Edition</code> implementation..</li>
-						</ul>
-					</li>
-					<li>What devices devices can a player join JSPrismarine with?<ul>
-							<li>By default PC/Windows, Android, iOS. However with some tricks you can also join with Xbox One, Switch and the PS4.</li>
-						</ul>
-					</li>
-					<li>Which OSes can run JSPrismarine?<ul>
-							<li>Any platform supporting Node.js v14 or later.</li>
-						</ul>
-					</li>
-					<li>Does it support plugins?<ul>
-							<li>Yes but JSPrismarine is in fast development-mode which means that currently SEMVER isn&#39;t strictly followed. We do however try to provide a deprecation warning two weeks ahead of removing an API function.</li>
-						</ul>
-					</li>
-					<li>If my question isn&#39;t listed here where should I sak?<ul>
-							<li>You can join the <a href="https://discord.gg/fGkHZhu">Discord server</a>, ask on the <a href="https://prismarine.dev">forums</a> or in case of a development-related question issue an open a <a href="https://github.com/HerryYT/JSPrismarine/issues/new">GitHub issue</a>.</li>
-						</ul>
-					</li>
-					<li>Why can&#39;t I join a JSPrismarine instance hosted on my Windows PC?<ul>
-							<li>To join an instance of JSPrismarine hosted on the same Windows machine you need to enable Loopback by doing the following:<ul>
-									<li>Open Windows PowerShell as administrator</li>
-									<li>Run this command: <code>CheckNetIsolation LoopbackExempt -a -n=&quot;Microsoft.MinecraftUWP_8wekyb3d8bbwe&quot;</code></li>
-									<li>Open Minecraft and add a server with the ip <code>127.0.0.1</code></li>
-								</ul>
-							</li>
-						</ul>
-					</li>
-				</ul>
-				<a href="#documentation" id="documentation" style="color: inherit; text-decoration: none;">
-					<h2>Documentation</h2>
-				</a>
-				<ul>
-					<li><a href="documentation/running.md">Running JSPrismarine</a></li>
-					<li><a href="documentation/publish-package.md">Publish a new version</a></li>
-					<li><a href="documentation/experimental-flags.md">Experimental flags</a></li>
-				</ul>
-				<a href="#remarks" id="remarks" style="color: inherit; text-decoration: none;">
-					<h2>Remarks</h2>
-				</a>
-				<ul>
-					<li>JSPrismarine still in active development, currently no stable version is released.</li>
-					<li>The plugin API isn&#39;t stable.</li>
-				</ul>
-			</div>
-		</div>
-		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
-			<nav class="tsd-navigation primary">
-				<ul>
-					<li class=" ">
-						<a href="modules.html">Modules</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_client.html">/client</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_color_parser.html">/color-<wbr>parser</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_nbt.html">/nbt</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_prismarine.html">/prismarine</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_raknet.html">/raknet</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_updater.html">/updater</a>
-					</li>
-				</ul>
-			</nav>
-			<nav class="tsd-navigation secondary menu-sticky">
-				<ul class="before-current">
-					<li class=" tsd-kind-module">
-						<a href="modules/_client.html" class="tsd-kind-icon">/client</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_color_parser.html" class="tsd-kind-icon">/color-<wbr>parser</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_nbt.html" class="tsd-kind-icon">/nbt</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_prismarine.html" class="tsd-kind-icon">/prismarine</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_raknet.html" class="tsd-kind-icon">/raknet</a>
-					</li>
-					<li class=" tsd-kind-module">
-						<a href="modules/_updater.html" class="tsd-kind-icon">/updater</a>
-					</li>
-				</ul>
-			</nav>
-		</div>
-	</div>
-</div>
-<footer class="with-border-bottom">
-	<div class="container">
-		<h2>Legend</h2>
-		<div class="tsd-legend-group">
-			<ul class="tsd-legend">
-				<li class="tsd-kind-namespace"><span class="tsd-kind-icon">Namespace</span></li>
-				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
-				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
-			</ul>
-		</div>
-	</div>
-</footer>
-<div class="container tsd-generator">
-	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
-</div>
-<div class="overlay"></div>
-<script src="assets/js/main.js"></script>
-</body>
-</html>
+<!DOCTYPE html><html class="default"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@jsprismarine/monorepo</title><meta name="description" content="Documentation for @jsprismarine/monorepo"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script async src="assets/search.js" id="search-script"></script></head><body><script>document.body.classList.add(localStorage.getItem("tsd-theme") || "os")</script><header><div class="tsd-page-toolbar"><div class="container"><div class="table-wrap"><div class="table-cell" id="tsd-search" data-base="."><div class="field"><label for="tsd-search-field" class="tsd-widget search no-caption">Search</label><input type="text" id="tsd-search-field"/></div><ul class="results"><li class="state loading">Preparing search index...</li><li class="state failure">The search index is not available</li></ul><a href="index.html" class="title">@jsprismarine/monorepo</a></div><div class="table-cell" id="tsd-widgets"><div id="tsd-filter"><a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a><div class="tsd-filter-group"><div class="tsd-select" id="tsd-filter-visibility"><span class="tsd-select-label">All</span><ul class="tsd-select-list"><li data-value="public">Public</li><li data-value="protected">Public/Protected</li><li data-value="private" class="selected">All</li></ul></div> <input type="checkbox" id="tsd-filter-inherited" checked/><label class="tsd-widget" for="tsd-filter-inherited">Inherited</label></div></div><a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a></div></div></div></div><div class="tsd-page-title"><div class="container"><h1> @jsprismarine/monorepo </h1></div></div></header><div class="container container-main"><div class="row"><div class="col-8 col-content"><div class="tsd-panel tsd-typography">
+<a href="#jsprismarine" id="jsprismarine" style="color: inherit; text-decoration: none;">
+  <h1>JSPrismarine</h1>
+</a>
+<a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">
+  <img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine?style=flat-square">
+</a>
+<a href="https://github.com/JSPrismarine/JSPrismarine/graphs/contributors">
+  <img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D&style=flat-square">
+</a>
+<a href="https://github.com/JSPrismarine/JSPrismarine/commits/master">
+  <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC&style=flat-square">
+</a>
+<a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=workflow%3A%22Unit+%26+Integration+Testing%22">
+  <img alt="Build" src="https://img.shields.io/github/workflow/status/JSPrismarine/JSPrismarine/Unit%20&%20Integration%20Testing?style=flat-square">
+</a>
+<a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
+  <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/JSPrismarine/JSPrismarine?style=flat-square">
+</a>
+<a href="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine">
+  <img alt="Codefactor.io" src="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine/badge?style=flat-square">
+</a>
+<a href="https://discord.gg/6w8JWhy">
+  <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
+</a>
+<a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
+  <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=flat-square">
+</a>
+<a href="https://github.com/sponsors/JSPrismarine">
+  <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/JSPrismarine?style=flat-square">
+</a>
+
+<p>A dedicated Minecraft Bedrock Edition server written in TypeScript with focus on performance, extensibility and ease-of-use.</p>
+
+<a href="#why-use-jsprismarine" id="why-use-jsprismarine" style="color: inherit; text-decoration: none;">
+  <h2>Why use JSPrismarine?</h2>
+</a>
+<ul>
+<li>Written in TypeScript which means that it&#39;s easy to use and develop plugins for. You can in theory develop plugins in any language that transpile into JavaScript (such as TypeScript, Kotlin, CoffeeScript, asm.js and many more).</li>
+<li>Open source with the permissive <a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">MPL2</a> license.</li>
+<li>Under active development.</li>
+</ul>
+
+<a href="#getting-started" id="getting-started" style="color: inherit; text-decoration: none;">
+  <h2>Getting started</h2>
+</a>
+<p>Prebuilt binaries will be provided once a stable release is out, these will not require a node environment. For now however, you can either follow the steps bellow or download the <a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22">latest nightly</a> (which may or may not work).</p>
+<ul>
+<li>Linux/MacOS/Unix based OS or Windows (requires WSL)<ul>
+<li>You need <a href="https://nodejs.org">Node.js</a> v14+, <a href="https://www.npmjs.com">npm</a> v7+ and <a href="https://lerna.js.org/">lerna</a>.</li>
+<li>Clone the repository <code>git clone https://github.com/JSPrismarine/JSPrismarine.git</code>.</li>
+<li>Go in the cloned repository <code>cd JSPrismarine</code></li>
+<li>Install dependencies <code>npm install</code> and <code>lerna bootstrap</code>.</li>
+<li>Before running production build you have to build it <code>npm run build</code></li>
+<li>You&#39;re done, you can run it using <code>npm run start</code> (or <code>npm run dev</code> for development)</li>
+</ul>
+</li>
+</ul>
+
+<a href="#faq" id="faq" style="color: inherit; text-decoration: none;">
+  <h2>FAQ</h2>
+</a>
+<ul>
+<li>Can I contribute?<ul>
+<li>Sure, make sure to read the <a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTING.md">CONTRIBUTING.md</a> file first.</li>
+</ul>
+</li>
+<li>Is JSPrismarine for <code>Minecraft: Bedrock Edition</code> or <code>Minecraft: Java Edition</code>?<ul>
+<li>JSPrismarine is made for <code>Minecraft: Bedrock Edition</code>, there may however be plugin(s) available to provide a <code>Minecraft: Java Edition</code> implementation..</li>
+</ul>
+</li>
+<li>What devices devices can a player join JSPrismarine with?<ul>
+<li>By default PC/Windows, Android, iOS. However with some tricks you can also join with Xbox One, Switch and the PS4.</li>
+</ul>
+</li>
+<li>Which OSes can run JSPrismarine?<ul>
+<li>Any platform supporting Node.js v14 or later.</li>
+</ul>
+</li>
+<li>Does it support plugins?<ul>
+<li>Yes but JSPrismarine is in fast development-mode which means that currently SEMVER isn&#39;t strictly followed. We do however try to provide a deprecation warning two weeks ahead of removing an API function.</li>
+</ul>
+</li>
+<li>If my question isn&#39;t listed here where should I sak?<ul>
+<li>You can join the <a href="https://discord.gg/fGkHZhu">Discord server</a>, ask on the <a href="https://prismarine.dev">forums</a> or in case of a development-related question issue an open a <a href="https://github.com/HerryYT/JSPrismarine/issues/new">GitHub issue</a>.</li>
+</ul>
+</li>
+<li>Why can&#39;t I join a JSPrismarine instance hosted on my Windows PC?<ul>
+<li>To join an instance of JSPrismarine hosted on the same Windows machine you need to enable Loopback by doing the following:<ul>
+<li>Open Windows PowerShell as administrator</li>
+<li>Run this command: <code>CheckNetIsolation LoopbackExempt -a -n=&quot;Microsoft.MinecraftUWP_8wekyb3d8bbwe&quot;</code></li>
+<li>Open Minecraft and add a server with the ip <code>127.0.0.1</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+<a href="#documentation" id="documentation" style="color: inherit; text-decoration: none;">
+  <h2>Documentation</h2>
+</a>
+<ul>
+<li><a href="documentation/running.md">Running JSPrismarine</a></li>
+<li><a href="documentation/publish-package.md">Publish a new version</a></li>
+<li><a href="documentation/experimental-flags.md">Experimental flags</a></li>
+</ul>
+
+<a href="#remarks" id="remarks" style="color: inherit; text-decoration: none;">
+  <h2>Remarks</h2>
+</a>
+<ul>
+<li>JSPrismarine still in active development, currently no stable version is released.</li>
+<li>The plugin API isn&#39;t stable.</li>
+</ul>
+</div></div><div class="col-4 col-menu menu-sticky-wrap menu-highlight"><nav class="tsd-navigation primary"><ul><li class="current"><a href="modules.html">Modules</a></li><li class=" tsd-kind-module"><a href="modules/_client.html">/client</a></li><li class=" tsd-kind-module"><a href="modules/_color_parser.html">/color-<wbr/>parser</a></li><li class=" tsd-kind-module"><a href="modules/_nbt.html">/nbt</a></li><li class=" tsd-kind-module"><a href="modules/_prismarine.html">/prismarine</a></li><li class=" tsd-kind-module"><a href="modules/_raknet.html">/raknet</a></li><li class=" tsd-kind-module"><a href="modules/_updater.html">/updater</a></li></ul></nav></div></div></div><footer class="with-border-bottom"><div class="container"><h2>Legend</h2><div class="tsd-legend-group"><ul class="tsd-legend"><li class="tsd-kind-namespace"><span class="tsd-kind-icon">Namespace</span></li><li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li><li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li></ul><ul class="tsd-legend"><li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li></ul><ul class="tsd-legend"><li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li></ul></div><h2>Settings</h2><p>Theme <select id="theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></p></div></footer><div class="container tsd-generator"><p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div><div class="overlay"></div><script src="assets/main.js"></script></body></html>
