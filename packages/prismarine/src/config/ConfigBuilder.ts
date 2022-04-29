@@ -126,7 +126,8 @@ export default class ConfigBuilder {
                 resultData = JSON.parse(minifyJson(rawFileData));
                 break;
             case 'yaml':
-                resultData = YAML.parse(rawFileData, { indent: 2 });
+                // TODO: check indent parameter
+                resultData = YAML.parse(rawFileData);
                 break;
             default:
                 throw new Error(`Unknown config type: ${this.type}!`);
