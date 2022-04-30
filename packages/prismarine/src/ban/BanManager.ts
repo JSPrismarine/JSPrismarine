@@ -3,6 +3,7 @@ import type Server from '../Server';
 import cwd from '../utils/cwd';
 import fs from 'fs';
 import minifyJson from 'strip-json-comments';
+
 import path from 'path';
 import util from 'util';
 

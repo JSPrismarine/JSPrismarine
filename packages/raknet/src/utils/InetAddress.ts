@@ -20,4 +20,8 @@ export default class InetAddress {
     public getVersion(): number {
         return this.version;
     }
+
+    public toToken(): string {
+        return `${this.address}:${this.port}`;
+    }
 }

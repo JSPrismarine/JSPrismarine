@@ -438,6 +438,7 @@ export default class RakNetSession {
      */
     public disconnect(reason?: string): void {
         this.state = RakNetStatus.DISCONNECTED;
+        this.close();
         this.listener.removeSession(this, reason ?? '');
     }
 

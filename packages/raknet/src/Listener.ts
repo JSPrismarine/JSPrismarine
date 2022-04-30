@@ -32,8 +32,7 @@ export default class RakNetListener extends EventEmitter {
             this.socket.bind(port, address, () => {
                 this.socket.removeListener('error', failFn);
                 this.socket.on('message', async (msg, rinfo) => {
-                    const header = msg[0];
-                    if ((header & BitFlags.VALID) === 0) {
+                    if ((msg.readUint8() & BitFlags.VALID) === 0) {
                         unconnHandler.handle(msg, rinfo);
                     } else {
                         this.getSession(rinfo)?.handle(msg);
@@ -41,7 +40,7 @@ export default class RakNetListener extends EventEmitter {
                 });
 
                 setInterval(() => {
-                    for (const session of this.getSessions()) {
+                    for (const session of this.sessions.values()) {
                         if (session.isDisconnected()) {
                             this.removeSession(session);
                             return;
@@ -67,14 +66,10 @@ export default class RakNetListener extends EventEmitter {
     }
 
     public removeSession(session: RakNetSession, reason?: string): void {
-        const inetAddr = session.getAddress();
-        const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
-        if (this.sessions.has(token)) {
-            this.sessions.get(token)?.close();
-            this.sessions.delete(token);
+        const token = session.getAddress().toToken();
+        if (this.sessions.delete(token)) {
+            this.emit('closeConnection', session.getAddress(), reason);
         }
-
-        this.emit('closeConnection', session.getAddress(), reason);
     }
 
     public getSessions(): RakNetSession[] {
