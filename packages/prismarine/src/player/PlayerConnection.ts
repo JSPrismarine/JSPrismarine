@@ -478,6 +478,7 @@ export default class PlayerConnection {
         const pk = new LevelChunkPacket();
         pk.chunkX = chunk.getX();
         pk.chunkZ = chunk.getZ();
+        pk.clientSubChunkRequestsEnabled = false;
         pk.subChunkCount = chunk.getTopEmpty();
         pk.data = chunk.networkSerialize();
         await this.sendDataPacket(pk);

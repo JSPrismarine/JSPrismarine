@@ -4,7 +4,6 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { BlockToolType } from '../block/BlockToolType';
 import { ItemEnchantmentType } from './ItemEnchantmentType';
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
-import PacketBinaryStream from '../network/PacketBinaryStream';
 
 export interface ItemProps {
     id: number;
@@ -134,7 +133,7 @@ export default class Item {
         // TODO: check for additional data
     }
 
-    public static networkDeserialize(stream: PacketBinaryStream, extra = false): Item {
+    public static networkDeserialize(stream: BinaryStream, extra = false): Item {
         const id = stream.readVarInt();
         if (id === 0) {
             // TODO: items

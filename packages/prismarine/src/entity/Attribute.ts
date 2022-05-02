@@ -1,4 +1,5 @@
-import PacketBinaryStream from '../network/PacketBinaryStream';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
+import McpeUtil from '../network/NetworkUtil';
 
 export const AttributeIds = {
     Absorption: 'minecraft:absorption',
@@ -56,12 +57,12 @@ export class Attribute {
         this.value = value;
     }
 
-    public networkSerialize(stream: PacketBinaryStream): void {
+    public networkSerialize(stream: BinaryStream): void {
         stream.writeFloatLE(this.getMin());
         stream.writeFloatLE(this.getMax());
         stream.writeFloatLE(this.getValue());
         stream.writeFloatLE(this.getDefault());
-        stream.writeString(this.getName());
+        McpeUtil.writeString(stream, this.getName());
     }
 
     public getName(): string {

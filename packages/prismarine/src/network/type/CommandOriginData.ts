@@ -1,18 +1,19 @@
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import CommandOriginType from './CommandOriginType';
-import PacketBinaryStream from '../PacketBinaryStream';
+import McpeUtil from '../NetworkUtil';
 import UUID from '../../utils/UUID';
 
-class CommandOriginData {
+export default class CommandOriginData {
     public type!: number;
     public uuid!: UUID;
     public requestId!: string;
     public uniqueEntityId!: bigint;
 
-    public static networkDeserialize(stream: PacketBinaryStream): CommandOriginData {
+    public static networkDeserialize(stream: BinaryStream): CommandOriginData {
         const data = new CommandOriginData();
         data.type = stream.readUnsignedVarInt();
         data.uuid = UUID.networkDeserialize(stream);
-        data.requestId = stream.readString();
+        data.requestId = McpeUtil.readString(stream);
 
         if (data.type === CommandOriginType.DevConsole || data.type === CommandOriginType.Test) {
             data.uniqueEntityId = stream.readVarLong();
@@ -21,5 +22,3 @@ class CommandOriginData {
         return data;
     }
 }
-
-export default CommandOriginData;

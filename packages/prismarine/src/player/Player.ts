@@ -177,6 +177,7 @@ export default class Player extends Human {
         for (let x = -3; x < 3; x++) {
             for (let z = -3; z < 3; z++) {
                 const pk = new LevelChunkPacket();
+                pk.clientSubChunkRequestsEnabled = false;
                 pk.chunkX = x; // TODO
                 pk.chunkZ = z; // TODO
                 pk.data = Buffer.from('');

@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 import Vector3 from '../../math/Vector3';
 
 /**
@@ -36,11 +37,11 @@ export default class AddActorPacket extends DataPacket {
     public metadata!: Map<number, [number, bigint | number | boolean | string]>;
     public links = [];
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
-        this.writeString(this.type);
+        McpeUtil.writeString(this, this.type);
 
         this.writeFloatLE(this.position.getX());
         this.writeFloatLE(this.position.getY());

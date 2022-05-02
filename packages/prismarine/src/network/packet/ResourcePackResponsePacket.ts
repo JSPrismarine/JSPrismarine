@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class ResourcePackResponsePacket extends DataPacket {
     public static NetID = Identifiers.ResourcePackResponsePacket;
@@ -11,7 +12,7 @@ export default class ResourcePackResponsePacket extends DataPacket {
         this.status = this.readByte();
         let entryCount = this.readUnsignedShortLE();
         while (entryCount-- > 0) {
-            this.packIds.push(this.readString());
+            this.packIds.push(McpeUtil.readString(this));
         }
     }
 
@@ -21,7 +22,7 @@ export default class ResourcePackResponsePacket extends DataPacket {
 
         this.writeUnsignedShortLE(this.packIds.length);
         this.packIds.forEach((id) => {
-            this.writeString(id);
+            McpeUtil.writeString(this, id);
         });
     }
 }

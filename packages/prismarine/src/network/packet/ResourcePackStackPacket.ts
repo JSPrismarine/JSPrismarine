@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class ResourcePackStackPacket extends DataPacket {
     public static NetID = Identifiers.ResourcePackStackPacket;
@@ -17,19 +18,19 @@ export default class ResourcePackStackPacket extends DataPacket {
 
         this.writeUnsignedVarInt(this.behaviorPackStack.length);
         for (const _behaviorPackStack of this.behaviorPackStack) {
-            this.writeString('');
-            this.writeString('');
-            this.writeString('');
+            McpeUtil.writeString(this, '');
+            McpeUtil.writeString(this, '');
+            McpeUtil.writeString(this, '');
         }
 
         this.writeUnsignedVarInt(this.resourcePackStack.length);
         for (const _resourcePackStack of this.resourcePackStack) {
-            this.writeString('');
-            this.writeString('');
-            this.writeString('');
+            McpeUtil.writeString(this, '');
+            McpeUtil.writeString(this, '');
+            McpeUtil.writeString(this, '');
         }
 
-        this.writeString('*'); // Same as vanilla, should be the game version
+        McpeUtil.writeString(this, '*'); // Same as vanilla, should be the game version
 
         // TODO: write properly experiments
         this.writeUnsignedIntLE(0); // Experiments count
