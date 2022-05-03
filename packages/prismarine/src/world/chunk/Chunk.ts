@@ -113,18 +113,25 @@ export default class Chunk {
 
     public networkSerialize(forceAll = false): Buffer {
         const stream = new BinaryStream();
-        // Encode sub chunks
+
+        // For some reasons we need this hack since 1.18
+        // TODO: figure out what is this
+        for (let y = 0; y < 4; ++y) {
+            stream.writeByte(8); // subchunk version 8
+            stream.writeByte(0); // 0 layers
+        }
 
         for (let i = 0; i < (forceAll ? MAX_SUBCHUNKS : this.getTopEmpty()); i++) {
             const subChunk = this.subChunks.get(i)!;
             subChunk.networkSerialize(stream);
         }
 
-        // TODO: biomes
-        const biomeIds = new Uint8Array(256).fill(0);
-        stream.writeUnsignedVarInt(biomeIds.byteLength);
-        stream.write(biomeIds);
-        stream.writeUnsignedVarInt(0); // extra data (MIT)
+        // TODO: 3D biomes
+        for (let i = 0; i < 25; i++) {
+            stream.writeByte(0); // fake biome palette, non persistent
+            stream.writeVarInt(1 << 1); // plains
+        }
+
         return stream.getBuffer();
     }
 

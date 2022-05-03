@@ -1,10 +1,10 @@
-import PacketBinaryStream from '../PacketBinaryStream';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 class ChangeSlot {
     public containerId!: number;
     public changedSlots!: Buffer;
 
-    public decode(buffer: PacketBinaryStream) {
+    public decode(buffer: BinaryStream) {
         this.containerId = buffer.readByte();
 
         const count = buffer.readUnsignedVarInt();

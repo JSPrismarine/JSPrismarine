@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class RemoveObjectivePacket extends DataPacket {
     public static NetID = Identifiers.RemoveObjectivePacket;
@@ -7,10 +8,10 @@ export default class RemoveObjectivePacket extends DataPacket {
     public objectiveId!: string;
 
     public decodePayload() {
-        this.objectiveId = this.readString();
+        this.objectiveId = McpeUtil.readString(this);
     }
 
     public encodePayload() {
-        this.writeString(this.objectiveId);
+        McpeUtil.writeString(this, this.objectiveId);
     }
 }

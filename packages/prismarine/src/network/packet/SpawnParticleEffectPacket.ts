@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 import Vector3 from '../../math/Vector3';
 
 export default class SpawnParticleEffectPacket extends DataPacket {
@@ -14,13 +15,14 @@ export default class SpawnParticleEffectPacket extends DataPacket {
         this.dimensionId = this.readByte();
         this.uniqueEntityId = this.readVarLong();
         this.position = Vector3.networkDeserialize(this);
-        this.identifier = this.readString();
+        this.identifier = McpeUtil.readString(this);
     }
 
     public encodePayload() {
         this.writeByte(this.dimensionId);
         this.writeVarLong(this.uniqueEntityId);
         this.position.networkSerialize(this);
-        this.writeString(this.identifier);
+        McpeUtil.writeString(this, this.identifier);
+        // TODO
     }
 }

@@ -8,7 +8,7 @@
     "scripts": {
         "build": "tsc --build src",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
-        "start:dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./dist/Server.js"
+        "dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./dist/Server.js"
     },
     "repository": {
         "type": "git",

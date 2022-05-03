@@ -1,8 +1,8 @@
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Item from '../../item/Item';
 import NetworkTransactionSourceType from './NetworkTransactionSourceType';
-import type PacketBinaryStream from '../PacketBinaryStream';
 
-class NetworkTransaction {
+export default class NetworkTransaction {
     public sourceType!: number;
     public windowId!: number;
     public sourceFlags = 0;
@@ -14,7 +14,7 @@ class NetworkTransaction {
     // 1.16
     public newItemStackId: any;
 
-    public decode(buffer: PacketBinaryStream, hasItemStack = false) {
+    public decode(buffer: BinaryStream, hasItemStack = false) {
         this.sourceType = buffer.readUnsignedVarInt();
 
         switch (this.sourceType) {
@@ -46,5 +46,3 @@ class NetworkTransaction {
         return this;
     }
 }
-
-export default NetworkTransaction;

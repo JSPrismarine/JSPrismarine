@@ -1,4 +1,4 @@
-import PacketBinaryStream from '../PacketBinaryStream';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 const PID_MASK = 0x3ff;
 const SENDER_SHIFT = 10;
@@ -10,7 +10,7 @@ const SUBCLIENT_MASK = 0x03;
  *
  * @public
  */
-export default class DataPacket extends PacketBinaryStream {
+export default class DataPacket extends BinaryStream {
     /**
      * The packet's network ID.
      */
@@ -39,9 +39,7 @@ export default class DataPacket extends PacketBinaryStream {
         return this.constructor.name;
     }
 
-    public decode() {
-        (this as any).offset = 0;
-        // TODO: reset this.setOffset(0);
+    public decode(): void {
         this.decodeHeader();
         this.decodePayload();
 

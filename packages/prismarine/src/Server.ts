@@ -41,8 +41,8 @@ export default class Server {
     private readonly console: Console;
     private readonly telemetryManager: TelemetryManager;
     private readonly eventManager = new EventManager();
-    private packetRegistry: PacketRegistry;
-    private playerManager: PlayerManager;
+    private readonly packetRegistry: PacketRegistry;
+    private readonly playerManager = new PlayerManager();
     private readonly pluginManager: PluginManager;
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
@@ -71,7 +71,6 @@ export default class Server {
         this.telemetryManager = new TelemetryManager(this);
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
-        this.playerManager = new PlayerManager();
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.worldManager = new WorldManager(this);
@@ -87,8 +86,6 @@ export default class Server {
 
     private async onEnable(): Promise<void> {
         this.config.onEnable();
-        BlockMappings.initMappings();
-        await this.packetRegistry.onEnable();
         await this.permissionManager.onEnable();
         await this.pluginManager.onEnable();
         await this.banManager.onEnable();
@@ -111,14 +108,15 @@ export default class Server {
     }
 
     public async reload(): Promise<void> {
-        this.packetRegistry = new PacketRegistry(this);
         await this.onDisable();
         await this.onEnable();
     }
 
     public async listen(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.onEnable();
+        BlockMappings.initMappings();
         await this.worldManager.onEnable();
+        await this.packetRegistry.onEnable();
 
         this.raknet = new RakNetListener(false);
         await this.raknet.start(serverIp, port);
@@ -249,7 +247,7 @@ export default class Server {
                     }
 
                     // Get packet from registry
-                    const packet = new (this.packetRegistry.getPackets().get(buf[0])!)(buf);
+                    const packet = new (this.packetRegistry.getPackets().get(pid)!)(buf);
 
                     try {
                         packet.decode();
@@ -262,7 +260,7 @@ export default class Server {
                     }
 
                     try {
-                        const handler = this.packetRegistry.getHandler(packet.getId());
+                        const handler = this.packetRegistry.getHandler(pid);
                         await handler.handle(packet, this, player);
                         this.getLogger()?.silly(
                             `Received §b${packet.constructor.name}§r packet`,
@@ -324,7 +322,7 @@ export default class Server {
 
         try {
             // Kick all online players
-            for (const player of this.getPlayerManager().getOnlinePlayers()) {
+            for (const player of this.playerManager.getOnlinePlayers()) {
                 await player.kick('Server closed.');
             }
 
