@@ -10,20 +10,21 @@ process.title = 'Prismarine';
 if (process.env.JSP_DIR && !fs.existsSync(path.join(process.cwd(), process.env.JSP_DIR)))
     fs.mkdirSync(path.join(process.cwd(), process.env.JSP_DIR));
 
-const config = new Config(process.env.npm_package_version!);
-const logger = new Logger();
+const version = process.env.npm_package_version!;
 
+const config = new Config(version);
+const logger = new Logger();
 const updater = new Updater({
     config,
     logger,
-    version: process.env.npm_package_version!
+    version
 });
 
 void updater.check().then(() => {
     const Prismarine = new Server({
         config,
         logger,
-        version: process.env.npm_package_version!
+        version
     });
 
     Prismarine.listen(config.getServerIp(), config.getPort()).catch(async (error) => {

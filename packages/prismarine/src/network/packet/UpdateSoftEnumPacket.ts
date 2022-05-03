@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class UpdateSoftEnumPacket extends DataPacket {
     public static NetID = Identifiers.UpdateSoftEnumPacket;
@@ -13,10 +14,10 @@ export default class UpdateSoftEnumPacket extends DataPacket {
     public type!: number;
 
     public encodePayload() {
-        this.writeString(this.enumName);
+        McpeUtil.writeString(this, this.enumName);
         this.writeUnsignedVarInt(this.values.length);
         this.values.forEach((v) => {
-            this.writeString(v);
+            McpeUtil.writeString(this, v);
         });
         this.writeByte(this.type);
     }

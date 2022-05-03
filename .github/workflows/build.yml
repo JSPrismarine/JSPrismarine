@@ -12,9 +12,10 @@ jobs:
             - uses: actions/setup-node@v3
               with:
                   node-version: 14
+            - uses: nrwl/nx-set-shas@v2
+
             - run: npm install -g npm@latest
-            - run: npm install -g lerna
-            - run: lerna bootstrap --concurrency=1
+            - run: npm install -g nx
             - run: npm install
             - run: npm run build:source
             - run: npm prune --production

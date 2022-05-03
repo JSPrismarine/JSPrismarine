@@ -24,8 +24,8 @@ export default class BatchPacket extends DataPacket {
     public decodePayload(): void {
         try {
             this.payload.write(inflateSync(this.readRemaining()));
-        } catch {
-            this.payload.write(new Uint8Array(0));
+        } catch (e) {
+            throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
         }
     }
 
@@ -51,12 +51,10 @@ export default class BatchPacket extends DataPacket {
     public getPackets(): Buffer[] {
         const stream = new BinaryStream(this.payload.getBuffer());
         const packets: Buffer[] = [];
-        while (!stream.feof()) {
-            const length = stream.readUnsignedVarInt();
-            const buffer = stream.read(length);
-            packets.push(buffer);
-        }
-
+        do {
+            // VarUint: packet length
+            packets.push(stream.read(stream.readUnsignedVarInt()));
+        } while (!stream.feof());
         return packets;
     }
 }

@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class ShowStoreOfferPacket extends DataPacket {
     public static NetID = Identifiers.ShowStoreOfferPacket;
@@ -8,12 +9,12 @@ export default class ShowStoreOfferPacket extends DataPacket {
     public showAll!: boolean;
 
     public decodePayload() {
-        this.offerId = this.readString();
+        this.offerId = McpeUtil.readString(this);
         this.showAll = this.readBoolean();
     }
 
     public encodePayload() {
-        this.writeString(this.offerId);
+        McpeUtil.writeString(this, this.offerId);
         this.writeBoolean(this.showAll);
     }
 }

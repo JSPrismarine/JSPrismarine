@@ -12,8 +12,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install -g npm@latest
-            - run: npm install -g lerna
-            - run: lerna bootstrap --concurrency=1
+            - run: npm install -g nx
             - run: npm install
             - run: npm run build:source
             - run: npm run test:eslint
@@ -25,8 +24,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install -g npm@latest
-            - run: npm install -g lerna
-            - run: lerna bootstrap --concurrency=1
+            - run: npm install -g nx
             - run: npm install
             - run: npm run build:source
             - run: npm run test:prettier
@@ -38,8 +36,7 @@ jobs:
               with:
                   node-version: 14
             - run: npm install -g npm@latest
-            - run: npm install -g lerna
-            - run: lerna bootstrap --concurrency=1
+            - run: npm install -g nx
             - run: npm install
             - run: npm run build:source
             - run: npm run coveralls

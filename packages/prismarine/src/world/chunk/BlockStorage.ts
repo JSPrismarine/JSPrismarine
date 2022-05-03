@@ -13,7 +13,7 @@ export default class BlockStorage {
 
     public constructor({ blocks, palette }: BlockStorageData) {
         this.palette = palette ?? [BlockMappings.getRuntimeId('minecraft:air')];
-        this.blocks = blocks ?? new Array(4096).fill(0);
+        this.blocks = blocks ?? Array.from<number>({ length: 4096 }).fill(0);
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {

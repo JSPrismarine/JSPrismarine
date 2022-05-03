@@ -37,7 +37,7 @@ export default class StartGamePacket extends DataPacket {
         // TODO: is resulting undefined... fixme...
         this.writeFloatLE(this.yaw ?? 0);
 
-        this.writeVarInt(0); // Seed
+        this.writeLongLE(0n); // Seed
 
         this.writeUnsignedShortLE(0x00); // Default spawn biome type
         McpeUtil.writeString(this, 'plains'); // User defined biome name
@@ -60,7 +60,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(0); // Day cycle / time
         this.writeVarInt(0); // Edu edition offer
         this.writeBoolean(false); // Edu features
-        this.writeString(''); // Edu product id
+        McpeUtil.writeString(this, ''); // Edu product id
 
         this.writeFloatLE(0); // Rain lvl
         this.writeFloatLE(0); // Lightning lvl
@@ -94,7 +94,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // From world template
         this.writeByte(0); // World template option locked
         this.writeByte(0); // Only spawn v1 villagers
-        this.writeString(Identifiers.MinecraftVersion);
+        McpeUtil.writeString(this, Identifiers.MinecraftVersion);
 
         this.writeUnsignedIntLE(0); // Limited world height
         this.writeUnsignedIntLE(0); // Limited world length
@@ -107,8 +107,8 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeBoolean(false); // Experimental gameplay
 
-        this.writeString(this.levelId);
-        this.writeString(this.worldName);
+        McpeUtil.writeString(this, this.levelId);
+        McpeUtil.writeString(this, this.worldName);
         McpeUtil.writeString(this, '00000000-0000-0000-0000-000000000000'); // Template content identity
 
         this.writeByte(0); // Is trial
@@ -117,7 +117,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(0); // Rewind History Size
         this.writeBoolean(false); // Is Server Authoritative Block Breaking
 
-        this.writeLongLE(BigInt(0)); // World ticks (for time)
+        this.writeLongLE(0n); // World ticks (for time)
 
         this.writeVarInt(0); // Enchantment seed
 
@@ -129,6 +129,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeBoolean(false); // New inventory system
 
         McpeUtil.writeString(this, Identifiers.MinecraftVersion);
+        this.writeLongLE(0n);
     }
 
     /*

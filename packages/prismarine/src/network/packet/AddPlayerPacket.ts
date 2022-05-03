@@ -1,6 +1,7 @@
 import ContainerEntry from '../../inventory/ContainerEntry';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 import MetadataManager from '../../entity/Metadata';
 import UUID from '../../utils/UUID';
 
@@ -34,10 +35,10 @@ export default class AddPlayerPacket extends DataPacket {
 
     public encodePayload() {
         this.uuid.networkSerialize(this);
-        this.writeString(this.name);
+        McpeUtil.writeString(this, this.name);
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.writeString(this.platformChatId || '');
+        McpeUtil.writeString(this, this.platformChatId ?? '');
 
         this.writeFloatLE(this.positionX);
         this.writeFloatLE(this.positionY);
@@ -52,6 +53,7 @@ export default class AddPlayerPacket extends DataPacket {
         this.writeFloatLE(this.headYaw);
 
         this.item.networkSerialize(this);
+        this.writeVarInt(0); // TODO: gamemode
         this.metadata.networkSerialize(this);
 
         for (let i = 0; i < 5; i++) {
@@ -68,7 +70,7 @@ export default class AddPlayerPacket extends DataPacket {
         this.writeLongLE(BigInt(0)); // TODO: fix userid
 
         this.writeUnsignedVarInt(0); // TODO: Entity links
-        this.writeString(this.deviceId);
+        McpeUtil.writeString(this, this.deviceId);
         this.writeIntLE(this.buildPlatform || -1); // TODO: OS enum
     }
 }

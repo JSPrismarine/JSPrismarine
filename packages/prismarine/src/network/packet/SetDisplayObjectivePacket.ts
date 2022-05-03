@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class SetDisplayObjectivePacket extends DataPacket {
     public static NetID = Identifiers.SetDisplayObjectivePacket;
@@ -11,18 +12,18 @@ export default class SetDisplayObjectivePacket extends DataPacket {
     public sortOrder!: number;
 
     public decodePayload() {
-        this.displaySlot = this.readString();
-        this.objectiveId = this.readString();
-        this.displayName = this.readString();
-        this.criteria = this.readString();
+        this.displaySlot = McpeUtil.readString(this);
+        this.objectiveId = McpeUtil.readString(this);
+        this.displayName = McpeUtil.readString(this);
+        this.criteria = McpeUtil.readString(this);
         this.sortOrder = this.readVarInt();
     }
 
     public encodePayload() {
-        this.writeString(this.displaySlot);
-        this.writeString(this.objectiveId);
-        this.writeString(this.displayName);
-        this.writeString(this.criteria);
+        McpeUtil.writeString(this, this.displaySlot);
+        McpeUtil.writeString(this, this.objectiveId);
+        McpeUtil.writeString(this, this.displayName);
+        McpeUtil.writeString(this, this.criteria);
         this.writeVarInt(this.sortOrder);
     }
 }

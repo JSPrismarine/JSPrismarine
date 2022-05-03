@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class PacketViolationWarningPacket extends DataPacket {
     public static NetID = Identifiers.PacketViolationWarningPacket;
@@ -13,13 +14,13 @@ export default class PacketViolationWarningPacket extends DataPacket {
         this.writeVarInt(this.type);
         this.writeVarInt(this.severity);
         this.writeVarInt(this.packetId);
-        this.writeString(this.message);
+        McpeUtil.writeString(this, this.message);
     }
 
     public decodePayload() {
         this.type = this.readVarInt();
         this.severity = this.readVarInt();
         this.packetId = this.readVarInt();
-        this.message = this.readString();
+        this.message = McpeUtil.readString(this);
     }
 }

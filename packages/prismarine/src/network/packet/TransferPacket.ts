@@ -1,5 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class TransferPacket extends DataPacket {
     public static NetID = Identifiers.TransferPacket;
@@ -8,12 +9,12 @@ export default class TransferPacket extends DataPacket {
     public port!: number;
 
     public decodePayload() {
-        this.address = this.readString();
+        this.address = McpeUtil.readString(this);
         this.port = this.readUnsignedShortLE();
     }
 
     public encodePayload() {
-        this.writeString(this.address);
+        McpeUtil.writeString(this, this.address);
         this.writeUnsignedShortLE(this.port);
     }
 }
