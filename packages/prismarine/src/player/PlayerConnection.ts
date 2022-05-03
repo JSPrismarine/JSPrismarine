@@ -479,7 +479,7 @@ export default class PlayerConnection {
         pk.chunkX = chunk.getX();
         pk.chunkZ = chunk.getZ();
         pk.clientSubChunkRequestsEnabled = false;
-        pk.subChunkCount = chunk.getTopEmpty();
+        pk.subChunkCount = chunk.getTopEmpty() + 4; // add the useless layers hack
         pk.data = chunk.networkSerialize();
         await this.sendDataPacket(pk);
 
