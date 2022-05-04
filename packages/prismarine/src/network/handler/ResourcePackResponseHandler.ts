@@ -1,5 +1,6 @@
 import Chat, { ChatType } from '../../chat/Chat';
 import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
+import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
 
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import ChatEvent from '../../events/chat/ChatEvent';
@@ -22,7 +23,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
     public async handle(packet: ResourcePackResponsePacket, server: Server, player: Player): Promise<void> {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
             const resourcePackStack = new ResourcePackStackPacket();
-            resourcePackStack.experimentsAlreadyEnabled = false;
+            resourcePackStack.mustAccept = false;
             resourcePackStack.experimentsAlreadyEnabled = false;
             await player.getConnection().sendDataPacket(resourcePackStack);
         } else if (packet.status === ResourcePackStatusType.Completed) {
@@ -61,7 +62,12 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             const itemComponent = new ItemComponentPacket();
             await player.getConnection().sendDataPacket(itemComponent);
 
-            // TODO: set player spawn position packet
+            const setSpawPos = new SetSpawnPositionPacket();
+            setSpawPos.dimension = 3; // TODO: enum
+            setSpawPos.position = new Vector3(-2147483648, -2147483648, -2147483648);
+            setSpawPos.blockPosition = setSpawPos.position;
+            setSpawPos.type = SpawnType.PLAYER_SPAWN;
+            await player.getConnection().sendDataPacket(setSpawPos);
 
             await player.getConnection().sendTime(world.getTicks());
 
