@@ -139,9 +139,11 @@ export default class Chunk {
      * Deserialize network stream into chunk
      * useful for client applications and/or our Filesystem impl
      *
-     * @param buffer the network stream
+     * @param stream the network stream
      */
     public static networkDeserialize(stream: BinaryStream): Chunk {
+        stream.read(8); // skip fake subchunks
+
         const subChunks: Map<number, SubChunk> = new Map();
         for (let i = 0; i < MAX_SUBCHUNKS; i++) {
             subChunks.set(i, SubChunk.networkDeserialize(stream));

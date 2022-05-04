@@ -33,7 +33,7 @@ export default class UnconnectedHandler {
                 const guid = this.listener.getServerGuid();
 
                 pong.serverGuid = guid;
-                pong.serverName = 'MCPE;JSPrismarine;465;1.17.34;0;20;' + guid + ';Second line;Creative;';
+                pong.serverName = 'MCPE;JSPrismarine;503;1.18.30;0;20;' + guid + ';Second line;Creative;';
                 this.listener.sendPacket(pong, rinfo);
                 break;
             case MessageHeaders.OPEN_CONNECTION_REQUEST_1:

@@ -194,7 +194,8 @@
   "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
   "devDependencies": {
     "@janniks/typedoc-plugin-monorepo": "^0.4.2-1",
-    "@types/jest": "27.4.1",
+    "@nrwl/nx-cloud": "latest",
+    "@types/jest": "^27.5.0",
     "@types/node": "^17.0.31",
     "@types/node-fetch": "2.6.1",
     "coveralls": "3.1.1",
@@ -204,15 +205,14 @@
     "lerna": "4.0.0",
     "nodemon": "2.0.16",
     "npm-run-all": "4.1.5",
+    "nx": "14.1.1",
     "prettier": "2.6.2",
     "ts-jest": "28.0.1",
     "ts-node": "10.7.0",
     "typedoc": "^0.22.15",
     "typescript": "^4.6.4",
     "xo": "^0.48.0",
-    "yarnhook": "0.5.1",
-    "nx": "14.1.1",
-    "@nrwl/nx-cloud": "latest"
+    "yarnhook": "0.5.1"
   },
   "dependencies": {
     "@jsprismarine/bedrock-data": "^1.18.30",
