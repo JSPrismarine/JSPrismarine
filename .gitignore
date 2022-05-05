@@ -17,6 +17,9 @@ permissions.json
 /logs/
 /jsp/
 
+# Turbo cache
+.turbo/
+
 # Text editors/IDE things
 .idea
 .vscode
