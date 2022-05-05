@@ -6,6 +6,9 @@ on:
 jobs:
     lint-eslint:
         runs-on: ubuntu-latest
+        env:
+            TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+            TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         steps:
             - uses: actions/checkout@v3
             - uses: actions/setup-node@v3
@@ -17,6 +20,9 @@ jobs:
             - run: npm run test:eslint
     lint-prettier:
         runs-on: ubuntu-latest
+        env:
+            TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+            TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         steps:
             - uses: actions/checkout@v3
             - uses: actions/setup-node@v3
@@ -28,6 +34,9 @@ jobs:
             - run: npm run test:prettier
     lint-coveralls:
         runs-on: ubuntu-latest
+        env:
+            TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+            TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         steps:
             - uses: actions/checkout@v3
             - uses: actions/setup-node@v3
