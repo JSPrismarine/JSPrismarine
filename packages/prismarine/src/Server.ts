@@ -120,6 +120,7 @@ export default class Server {
 
         this.raknet = new RakNetListener(false);
         await this.raknet.start(serverIp, port);
+
         this.raknet.on('openConnection', async (connection: Connection) => {
             const event = new RaknetConnectEvent(connection);
             await this.getEventManager().emit('raknetConnect', event);
@@ -139,8 +140,8 @@ export default class Server {
             try {
                 await this.getQueryManager().onRaw(buffer, inetAddr);
             } catch (error) {
-                this.getLogger()?.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
-                this.getLogger()?.debug((error as any).stack, 'Server/listen/raw');
+                this.logger?.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
+                this.logger?.debug((error as any).stack, 'Server/listen/raw');
             }
         });
 
@@ -148,10 +149,11 @@ export default class Server {
             const timer = new Timer();
 
             const connection = raknetConnectEvent.getConnection();
-            const token = `${connection.getAddress().getAddress()}:${connection.getAddress().getPort()}`;
-            this.getLogger()?.debug(`${token} is attempting to connect`, 'Server/listen/raknetDisconnect');
+            const token = connection.getAddress().toToken();
+            this.logger?.debug(`${token} is attempting to connect`, 'Server/listen/raknetDisconnect');
 
             const world = this.getWorldManager().getDefaultWorld()!;
+            // TODO: first we should create the session, and then the player
             const player = new Player(connection, world, this);
 
             // Emit playerConnect event
@@ -166,10 +168,10 @@ export default class Server {
                 await world.addEntity(player);
             } catch (error) {
                 /* we should probably do something here */
-                this.getLogger()?.warn(`Failed to add player to the world: ${error}`, 'Server/listen/raknetConnect');
+                this.logger?.warn(`Failed to add player to the world: ${error}`, 'Server/listen/raknetConnect');
             }
 
-            this.getLogger()?.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
+            this.logger?.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
         });
 
         this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
@@ -200,23 +202,23 @@ export default class Server {
                             ChatType.TRANSLATION
                         )
                     );
-                    await this.getEventManager().emit('chat', event);
+                    await this.eventManager.emit('chat', event);
                 }
 
                 await player.onDisable();
                 await player.getWorld().removeEntity(player);
                 await this.playerManager.removePlayer(token);
             } catch (error) {
-                this.getLogger()?.debug(
+                this.logger?.debug(
                     `Cannot remove connection from non-existing player (${token})`,
                     'Server/listen/raknetDisconnect'
                 );
-                this.getLogger()?.debug((error as any).stack, 'Server/listen/raknetDisconnect');
+                this.logger?.debug((error as any).stack, 'Server/listen/raknetDisconnect');
             }
 
-            this.getLogger()?.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
+            this.logger?.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
 
-            this.getLogger()?.debug(
+            this.logger?.debug(
                 `Player destruction took about ${Date.now() - time} ms`,
                 'Server/listen/raknetDisconnect'
             );
@@ -239,7 +241,7 @@ export default class Server {
                 for (const buf of batched.getPackets()) {
                     const pid = buf[0];
                     if (!this.packetRegistry.getPackets().has(pid)) {
-                        this.getLogger()?.warn(
+                        this.logger?.warn(
                             `Packet 0x${pid.toString(16)} isn't implemented`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
@@ -252,7 +254,7 @@ export default class Server {
                     try {
                         packet.decode();
                     } catch (error) {
-                        this.getLogger()?.error(
+                        this.logger?.error(
                             `Error while decoding packet: ${packet.constructor.name}: ${error}`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
@@ -262,20 +264,20 @@ export default class Server {
                     try {
                         const handler = this.packetRegistry.getHandler(pid);
                         await handler.handle(packet, this, player);
-                        this.getLogger()?.silly(
+                        this.logger?.silly(
                             `Received §b${packet.constructor.name}§r packet`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
                     } catch (error) {
-                        this.getLogger()?.error(
+                        this.logger?.error(
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
-                        this.getLogger()?.debug(`${(error as any).stack}`, 'Server/listen/raknetEncapsulatedPacket');
+                        this.logger?.debug(`${(error as any).stack}`, 'Server/listen/raknetEncapsulatedPacket');
                     }
                 }
             } catch (error) {
-                this.getLogger()?.error(error as any, 'Server/listen/raknetEncapsulatedPacket');
+                this.logger?.error(error as any, 'Server/listen/raknetEncapsulatedPacket');
             }
         });
 
@@ -301,13 +303,13 @@ export default class Server {
 
         // Log experimental flags
         if (this.getConfig().getExperimentalFlags().length >= 1) {
-            this.getLogger()?.debug(`Enabled flags:`, 'Server/listen');
+            this.logger?.debug(`Enabled flags:`, 'Server/listen');
             this.getConfig()
                 .getExperimentalFlags()
-                .forEach((flag) => this.getLogger()?.debug(`- ${flag}`, 'Server/listen'));
+                .forEach((flag) => this.logger?.debug(`- ${flag}`, 'Server/listen'));
         }
 
-        this.getLogger()?.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
+        this.logger?.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
     }
 
     /**
@@ -317,7 +319,7 @@ export default class Server {
         if (this.stopping) return;
         this.stopping = true;
 
-        this.getLogger()?.info('Stopping server', 'Server/kill');
+        this.logger?.info('Stopping server', 'Server/kill');
         await this.console.onDisable();
 
         try {
@@ -334,7 +336,7 @@ export default class Server {
             this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
             process.exit(options?.crash ? 1 : 0);
         } catch (error) {
-            this.getLogger()?.error(error as any, 'Server/kill');
+            this.logger?.error(error as any, 'Server/kill');
             process.exit(1);
         }
     }

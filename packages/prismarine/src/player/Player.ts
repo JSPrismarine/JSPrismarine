@@ -70,6 +70,8 @@ export default class Player extends Human {
 
     private readonly forms: FormManager;
 
+    private chatHandler: (event: ChatEvent) => void;
+
     /**
      * Player's constructor.
      */
@@ -82,8 +84,8 @@ export default class Player extends Human {
         this.permissions = [];
         this.joinTimer.reset();
 
-        // Handle chat messages
-        server.getEventManager().on('chat', async (evt: ChatEvent) => {
+        // TODO: remove this mess :/
+        this.chatHandler = async (evt: ChatEvent) => {
             if (evt.cancelled) return;
 
             // TODO: proper channel system
@@ -98,7 +100,9 @@ export default class Player extends Human {
                     evt.getChat().getParameters(),
                     evt.getChat().isNeedsTranslation()
                 );
-        });
+        };
+
+        server.getEventManager().on('chat', this.chatHandler);
     }
 
     public async onEnable() {
@@ -144,6 +148,7 @@ export default class Player extends Human {
 
     public async onDisable() {
         if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
+        this.server.getEventManager().removeListener('chat', this.chatHandler);
 
         this.connected = false;
     }

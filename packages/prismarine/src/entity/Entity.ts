@@ -26,7 +26,7 @@ export default class Entity extends Position {
 
     private runtimeId: bigint;
 
-    private server: Server;
+    protected server: Server;
 
     /**
      * @remarks
