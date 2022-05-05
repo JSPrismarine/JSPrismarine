@@ -1,14 +1,14 @@
 import Identifiers from '../Identifiers';
 import PacketHandler from './PacketHandler';
-import type Player from '../../player/Player';
+import { PlayerConnection } from '../../Prismarine';
 import type Server from '../../Server';
 import SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket';
 
 export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefaultGameTypePacket> {
     public static NetID = Identifiers.SetDefaultGameTypePacket;
 
-    public async handle(packet: SetDefaultGameTypePacket, server: Server, player: Player): Promise<void> {
-        if (!player.isOp()) {
+    public async handle(packet: SetDefaultGameTypePacket, server: Server, connection: PlayerConnection): Promise<void> {
+        if (!connection.getPlayer().isOp()) {
             return;
         }
 

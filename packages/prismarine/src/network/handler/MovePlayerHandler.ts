@@ -4,7 +4,7 @@ import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
 import PacketHandler from './PacketHandler';
-import type Player from '../../player/Player';
+import { PlayerConnection } from '../../Prismarine';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
@@ -12,7 +12,8 @@ import Vector3 from '../../math/Vector3';
 export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket> {
     public static NetID = Identifiers.MovePlayerPacket;
 
-    public async handle(packet: MovePlayerPacket, server: Server, player: Player): Promise<void> {
+    public async handle(packet: MovePlayerPacket, server: Server, connection: PlayerConnection): Promise<void> {
+        const player = connection.getPlayer();
         // Update movement for every player & interpolate position to smooth it
         const interpolatedVector = d3.interpolateObject(
             { x: player.getX(), z: player.getZ() },

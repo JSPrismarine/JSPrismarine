@@ -1,24 +1,22 @@
 import AdventureSettingsPacket, { AdventureSettingsFlags } from '../network/packet/AdventureSettingsPacket';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
 import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
-import { Connection, Protocol } from '@jsprismarine/raknet';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../network/packet/PlayerListPacket';
 
 import AddPlayerPacket from '../network/packet/AddPlayerPacket';
 import Air from '../block/blocks/Air';
 import { Attribute } from '../entity/Attribute';
 import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
-import BatchPacket from '../network/packet/BatchPacket';
 import Block from '../block/Block';
 import Chunk from '../world/chunk/Chunk';
 import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
 import CommandData from '../network/type/CommandData';
 import CommandEnum from '../network/type/CommandEnum';
+import Connection from '../network/Connection';
 import ContainerEntry from '../inventory/ContainerEntry';
 import CoordinateUtils from '../world/CoordinateUtils';
 import CreativeContentEntry from '../network/type/CreativeContentEntry';
 import CreativeContentPacket from '../network/packet/CreativeContentPacket';
-import DataPacket from '../network/packet/DataPacket';
 import DisconnectPacket from '../network/packet/DisconnectPacket';
 import Gamemode from '../world/Gamemode';
 import IForm from '../form/IForm';
@@ -34,6 +32,7 @@ import PermissionType from '../network/type/PermissionType';
 import PlayStatusPacket from '../network/packet/PlayStatusPacket';
 import type Player from './Player';
 import PlayerPermissionType from '../network/type/PlayerPermissionType';
+import { RakNetSession } from '@jsprismarine/raknet';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import type Server from '../Server';
 import SetActorDataPacket from '../network/packet/SetActorDataPacket';
@@ -47,45 +46,18 @@ import { WindowIds } from '../inventory/WindowManager';
 
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
-export default class PlayerConnection {
+export default class PlayerConnection extends Connection {
     private player: Player;
-    private readonly connection: Connection;
     private readonly server: Server;
 
     private readonly chunkSendQueue: Set<Chunk> = new Set();
     private readonly loadedChunks: Set<string> = new Set();
     private readonly loadingChunks: Set<string> = new Set();
 
-    public constructor(server: Server, connection: Connection, player: Player) {
+    public constructor(server: Server, session: RakNetSession, player: Player) {
+        super(session, server.getLogger());
         this.server = server;
-        this.connection = connection;
         this.player = player;
-    }
-
-    // To refactor
-    public async sendDataPacket(packet: DataPacket): Promise<void> {
-        const batch = new BatchPacket();
-        try {
-            batch.addPacket(packet);
-            batch.encode();
-        } catch (error) {
-            this.server
-                .getLogger()
-                ?.warn(
-                    `Packet §b${packet.constructor.name}§r to §b${this.player.getRuntimeId()}§r failed with: ${error}`,
-                    'PlayerConnection/sendDataPacket'
-                );
-            return;
-        }
-
-        // Add this in raknet
-        const sendPacket = new Protocol.Frame();
-        sendPacket.reliability = Protocol.FrameReliability.RELIABLE_ORDERED;
-        sendPacket.orderChannel = 0;
-        sendPacket.content = batch.getBuffer();
-
-        this.connection.sendFrame(sendPacket, Protocol.RakNetPriority.IMMEDIATE);
-        this.server.getLogger()?.silly(`Sent §b${packet.constructor.name}§r packet`, 'PlayerConnection/sendDataPacket');
     }
 
     public async update(_tick: number): Promise<void> {
@@ -634,5 +606,9 @@ export default class PlayerConnection {
         pk.hideDisconnectionWindow = false;
         pk.message = reason;
         await this.sendDataPacket(pk);
+    }
+
+    public getPlayer(): Player {
+        return this.player;
     }
 }

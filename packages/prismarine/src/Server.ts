@@ -1,5 +1,5 @@
 import Chat, { ChatType } from './chat/Chat';
-import { Connection, InetAddress, Protocol, RakNetListener } from '@jsprismarine/raknet';
+import { InetAddress, Protocol, RakNetListener, RakNetSession } from '@jsprismarine/raknet';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
 import BanManager from './ban/BanManager';
@@ -8,8 +8,10 @@ import BlockManager from './block/BlockManager';
 import BlockMappings from './block/BlockMappings';
 import ChatEvent from './events/chat/ChatEvent';
 import ChatManager from './chat/ChatManager';
+import ClientConnection from './network/ClientConnection';
 import CommandManager from './command/CommandManager';
 import type Config from './config/Config';
+import Connection from './network/Connection';
 import Console from './Console';
 import { DataPacket } from './network/Packets';
 import { EventManager } from './events/EventManager';
@@ -20,6 +22,7 @@ import PacketRegistry from './network/PacketRegistry';
 import PermissionManager from './permission/PermissionManager';
 import Player from './player/Player';
 import PlayerConnectEvent from './events/player/PlayerConnectEvent';
+import { PlayerConnection } from './Prismarine';
 import PlayerManager from './player/PlayerManager';
 import PluginManager from './plugin/PluginManager';
 import QueryManager from './query/QueryManager';
@@ -53,6 +56,12 @@ export default class Server {
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
     private stopping = false;
+
+    // TODO: properly think an implementation for this
+    // maybe i should make a manager that recognizes the difference
+    // between a client and a player; if it's a player
+    // it automatically adds it to the world etc...
+    public readonly connections: Map<string, Connection> = new Map();
 
     /**
      * @deprecated
@@ -112,7 +121,7 @@ export default class Server {
         await this.onEnable();
     }
 
-    public async listen(serverIp = '0.0.0.0', port = 19132): Promise<void> {
+    public async bootstrap(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.onEnable();
         BlockMappings.initMappings();
         await this.worldManager.onEnable();
@@ -121,65 +130,29 @@ export default class Server {
         this.raknet = new RakNetListener(false);
         await this.raknet.start(serverIp, port);
 
-        this.raknet.on('openConnection', async (connection: Connection) => {
-            const event = new RaknetConnectEvent(connection);
-            await this.getEventManager().emit('raknetConnect', event);
+        this.raknet.on('openConnection', async (session: RakNetSession) => {
+            const event = new RaknetConnectEvent(session);
+            await this.eventManager.emit('raknetConnect', event);
+
+            const token = session.getAddress().toToken();
+            if (this.connections.has(session.getAddress().toToken())) {
+                this.logger?.error(`Another client with token (${token}) is already connected!`, 'Server/listen/openConnection');
+                session.disconnect('Already connected from another location');
+                return;
+            }
+
+            const timer = new Timer();
+            this.logger?.debug(`${token} is attempting to connect`, 'Server/listen/openConnection');
+            this.connections.set(token, new ClientConnection(session, this.logger));
+            this.logger?.verbose(`New connection handling took ${timer.stop()} ms`, 'Server/listen/openConnection');
         });
 
         this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
             const event = new RaknetDisconnectEvent(inetAddr, reason);
-            await this.getEventManager().emit('raknetDisconnect', event);
-        });
-
-        this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
-            const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
-            await this.getEventManager().emit('raknetEncapsulatedPacket', event);
-        });
-
-        this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
-            try {
-                await this.getQueryManager().onRaw(buffer, inetAddr);
-            } catch (error) {
-                this.logger?.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
-                this.logger?.debug((error as any).stack, 'Server/listen/raw');
-            }
-        });
-
-        this.getEventManager().on('raknetConnect', async (raknetConnectEvent: RaknetConnectEvent) => {
-            const timer = new Timer();
-
-            const connection = raknetConnectEvent.getConnection();
-            const token = connection.getAddress().toToken();
-            this.logger?.debug(`${token} is attempting to connect`, 'Server/listen/raknetDisconnect');
-
-            const world = this.getWorldManager().getDefaultWorld()!;
-            // TODO: first we should create the session, and then the player
-            const player = new Player(connection, world, this);
-
-            // Emit playerConnect event
-            const playerConnectEvent = new PlayerConnectEvent(player, player.getAddress());
-            await this.getEventManager().emit('playerConnect', playerConnectEvent);
-            if (playerConnectEvent.cancelled) return;
-
-            // Add the player into the global player manager
-            // and their local world
-            try {
-                await this.playerManager.addPlayer(token, player);
-                await world.addEntity(player);
-            } catch (error) {
-                /* we should probably do something here */
-                this.logger?.warn(`Failed to add player to the world: ${error}`, 'Server/listen/raknetConnect');
-            }
-
-            this.logger?.verbose(`Player creation took ${timer.stop()} ms`, 'Server/listen/raknetConnect');
-        });
-
-        this.getEventManager().on('raknetDisconnect', async (event: RaknetDisconnectEvent) => {
-            const inetAddr = event.getInetAddr();
-            const reason = event.getReason();
+            await this.eventManager.emit('raknetDisconnect', event);
 
             const time = Date.now();
-            const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
+            const token = inetAddr.toToken();
             try {
                 const player = this.playerManager.getPlayer(token);
 
@@ -194,7 +167,7 @@ export default class Server {
                     // Announce disconnection
                     const event = new ChatEvent(
                         new Chat(
-                            this.getConsole(),
+                            this.console,
                             `§e%multiplayer.player.left`,
                             [player.getName()],
                             true,
@@ -208,6 +181,8 @@ export default class Server {
                 await player.onDisable();
                 await player.getWorld().removeEntity(player);
                 await this.playerManager.removePlayer(token);
+
+                this.connections.delete(token);
             } catch (error) {
                 this.logger?.debug(
                     `Cannot remove connection from non-existing player (${token})`,
@@ -224,22 +199,25 @@ export default class Server {
             );
         });
 
-        this.getEventManager().on('raknetEncapsulatedPacket', async (event) => {
-            const raknetPacket = event.getPacket();
-            const inetAddr = event.getInetAddr();
-
-            const token = `${inetAddr.getAddress()}:${inetAddr.getPort()}`;
+        this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
+            const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
+            await this.eventManager.emit('raknetEncapsulatedPacket', event);
+            
+            let connection = null;
+            if ((connection = this.connections.get(inetAddr.toToken()) ?? null) === null) {
+                this.logger?.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
+                return;
+            }
 
             try {
-                const player = this.playerManager.getPlayer(token);
-
                 // Read batch content and handle them
-                const batched = new BatchPacket(raknetPacket.content);
+                const batched = new BatchPacket(packet.content);
                 batched.decode();
 
                 // Read all packets inside batch and handle them
                 for (const buf of batched.getPackets()) {
                     const pid = buf[0];
+                    
                     if (!this.packetRegistry.getPackets().has(pid)) {
                         this.logger?.warn(
                             `Packet 0x${pid.toString(16)} isn't implemented`,
@@ -263,7 +241,7 @@ export default class Server {
 
                     try {
                         const handler = this.packetRegistry.getHandler(pid);
-                        await handler.handle(packet, this, player);
+                        await (handler as any).handle(packet, this, connection);
                         this.logger?.silly(
                             `Received §b${packet.constructor.name}§r packet`,
                             'Server/listen/raknetEncapsulatedPacket'
@@ -278,12 +256,15 @@ export default class Server {
                 }
             } catch (error) {
                 this.logger?.error(error as any, 'Server/listen/raknetEncapsulatedPacket');
-            }
+            } 
         });
 
-        this.getEventManager().on('tick', async (event) => {
-            for (const world of this.getWorldManager().getWorlds()) {
-                await world.update(event.getTick());
+        this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
+            try {
+                await this.queryManager.onRaw(buffer, inetAddr);
+            } catch (error) {
+                this.logger?.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
+                this.logger?.debug((error as any).stack, 'Server/listen/raw');
             }
         });
 
@@ -298,13 +279,16 @@ export default class Server {
             const event = new TickEvent(tick);
             await this.eventManager.emit('tick', event);
 
+            for (const world of this.worldManager.getWorlds()) {
+                await world.update(event.getTick());
+            }
             tick += 1;
         }, 1000 / 20);
 
         // Log experimental flags
-        if (this.getConfig().getExperimentalFlags().length >= 1) {
+        if (this.config.getExperimentalFlags().length >= 1) {
             this.logger?.debug(`Enabled flags:`, 'Server/listen');
-            this.getConfig()
+            this.config
                 .getExperimentalFlags()
                 .forEach((flag) => this.logger?.debug(`- ${flag}`, 'Server/listen'));
         }
@@ -344,7 +328,7 @@ export default class Server {
     public async broadcastPacket<T extends DataPacket>(dataPacket: T): Promise<void> {
         // Maybe i can improve this by using the UDP broadcast, all unconnected clients
         // will ignore the connected packet probably, but may cause issues.
-        for (const onlinePlayer of this.getPlayerManager().getOnlinePlayers()) {
+        for (const onlinePlayer of this.playerManager.getOnlinePlayers()) {
             await onlinePlayer.getConnection().sendDataPacket(dataPacket);
         }
     }
@@ -480,7 +464,7 @@ export default class Server {
      * Returns the current TPS
      */
     public getTPS(): number {
-        if (!this.getConfig().getExperimentalFlags().includes('ticks')) return 20;
+        if (!this.config.getExperimentalFlags().includes('ticks')) return 20;
 
         return this.tps;
     }
@@ -493,7 +477,7 @@ export default class Server {
         five: number;
         ten: number;
     } {
-        if (!this.getConfig().getExperimentalFlags().includes('ticks'))
+        if (!this.config.getExperimentalFlags().includes('ticks'))
             return {
                 one: 20,
                 five: 20,

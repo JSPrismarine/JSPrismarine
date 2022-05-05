@@ -1,5 +1,5 @@
 import { ChangeDimensionPacket, LevelChunkPacket } from '../network/Packets';
-import { Connection, InetAddress } from '@jsprismarine/raknet';
+import { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 
 import ChatEvent from '../events/chat/ChatEvent';
 import Chunk from '../world/chunk/Chunk';
@@ -75,10 +75,10 @@ export default class Player extends Human {
     /**
      * Player's constructor.
      */
-    public constructor(connection: Connection, world: World, server: Server) {
+    public constructor(session: RakNetSession, world: World, server: Server) {
         super(world, server);
-        this.address = connection?.getAddress();
-        this.playerConnection = new PlayerConnection(server, connection, this);
+        this.address = session?.getAddress();
+        this.playerConnection = new PlayerConnection(server, session, this);
         this.windows = new WindowManager();
         this.forms = new FormManager();
         this.permissions = [];

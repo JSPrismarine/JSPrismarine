@@ -1,17 +1,17 @@
-import BlockMappings from '../../block/BlockMappings';
 import Identifiers from '../Identifiers';
 import LevelEventType from '../type/LevelEventType';
 import PacketHandler from './PacketHandler';
-import type Player from '../../player/Player';
 import type PlayerActionPacket from '../packet/PlayerActionPacket';
 import PlayerActionType from '../type/PlayerActionType';
+import { PlayerConnection } from '../../Prismarine';
 import type Server from '../../Server';
 import WorldEventPacket from '../packet/WorldEventPacket';
 
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
     public static NetID = Identifiers.PlayerActionPacket;
 
-    public async handle(packet: PlayerActionPacket, server: Server, player: Player): Promise<void> {
+    public async handle(packet: PlayerActionPacket, server: Server, connection: PlayerConnection): Promise<void> {
+        const player = connection.getPlayer();
         switch (packet.action) {
             case PlayerActionType.StartBreak: {
                 const block = await player
