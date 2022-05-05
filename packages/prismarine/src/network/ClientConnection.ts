@@ -1,7 +1,7 @@
-import { Logger, Player, PlayerConnection, Server } from "../Prismarine";
+import { Logger, Player, PlayerConnection, Server } from '../Prismarine';
 
-import Connection from "./Connection";
-import { RakNetSession } from "@jsprismarine/raknet";
+import Connection from './Connection';
+import { RakNetSession } from '@jsprismarine/raknet';
 
 /**
  * This is used to handle the connection before the player creation itself,
@@ -17,9 +17,9 @@ export default class ClientConnection extends Connection {
     }
 
     public initPlayerConnection(server: Server, player: Player): PlayerConnection {
-       return new PlayerConnection(server, this.session, player) 
+        return new PlayerConnection(server, this.session, player);
     }
-    
+
     public getRakNetSession(): RakNetSession {
         return this.session;
     }

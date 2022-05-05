@@ -7,7 +7,11 @@ import type ServerSettingsRequestPacket from '../packet/ServerSettingsRequestPac
 export default class ServerSettingsRequestHandler implements PacketHandler<ServerSettingsRequestPacket> {
     public static NetID = Identifiers.ServerSettingsRequestPacket;
 
-    public async handle(_packet: ServerSettingsRequestPacket, _server: Server, connection: PlayerConnection): Promise<void> {
+    public async handle(
+        _packet: ServerSettingsRequestPacket,
+        _server: Server,
+        connection: PlayerConnection
+    ): Promise<void> {
         await connection.sendSettings();
     }
 }

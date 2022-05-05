@@ -20,7 +20,11 @@ import Vector3 from '../../math/Vector3';
 export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
     public static NetID = Identifiers.ResourcePackResponsePacket;
 
-    public async handle(packet: ResourcePackResponsePacket, server: Server, connection: PlayerConnection): Promise<void> {
+    public async handle(
+        packet: ResourcePackResponsePacket,
+        server: Server,
+        connection: PlayerConnection
+    ): Promise<void> {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
             const resourcePackStack = new ResourcePackStackPacket();
             resourcePackStack.mustAccept = false;

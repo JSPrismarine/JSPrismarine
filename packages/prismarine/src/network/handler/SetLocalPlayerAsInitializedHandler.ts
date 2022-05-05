@@ -7,7 +7,11 @@ import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsIn
 export default class SetLocalPlayerAsInitializedHandler implements PacketHandler<SetLocalPlayerAsInitializedPacket> {
     public static NetID = Identifiers.SetLocalPlayerAsInitializedPacket;
 
-    public async handle(_packet: SetLocalPlayerAsInitializedPacket, _server: Server, _connection: PlayerConnection): Promise<void> {
+    public async handle(
+        _packet: SetLocalPlayerAsInitializedPacket,
+        _server: Server,
+        _connection: PlayerConnection
+    ): Promise<void> {
         // TODO: figure out what i should do here...
     }
 }

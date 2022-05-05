@@ -1,7 +1,7 @@
-import { BatchPacket, DataPacket } from "./Packets";
-import { Protocol, RakNetSession } from "@jsprismarine/raknet";
+import { BatchPacket, DataPacket } from './Packets';
+import { Protocol, RakNetSession } from '@jsprismarine/raknet';
 
-import { Logger } from "../Prismarine";
+import { Logger } from '../Prismarine';
 
 /**
  * This should handle everything related to a hypotetic Client session such
@@ -15,18 +15,19 @@ export default class Connection {
         this.rakSession = session;
         this.logger = logger;
     }
-    
+
     public async sendDataPacket(packet: DataPacket): Promise<void> {
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);
             batch.encode();
         } catch (error) {
-            this.logger
-                ?.warn(
-                    `Packet §b${packet.constructor.name}§r to §b${this.rakSession.getAddress().toToken()}§r failed with: ${error}`,
-                    'PlayerConnection/sendDataPacket'
-                ); 
+            this.logger?.warn(
+                `Packet §b${packet.constructor.name}§r to §b${this.rakSession
+                    .getAddress()
+                    .toToken()}§r failed with: ${error}`,
+                'PlayerConnection/sendDataPacket'
+            );
             return;
         }
 

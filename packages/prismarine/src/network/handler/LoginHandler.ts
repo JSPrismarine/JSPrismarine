@@ -20,7 +20,10 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
 
         // Kick client if has newer / older client version
         if (packet.protocol !== Identifiers.Protocol) {
-            playStatus.status = (packet.protocol < Identifiers.Protocol ? PlayStatusType.LoginFailedClient : PlayStatusType.LoginFailedServer);
+            playStatus.status =
+                packet.protocol < Identifiers.Protocol
+                    ? PlayStatusType.LoginFailedClient
+                    : PlayStatusType.LoginFailedServer;
             connection.sendDataPacket(playStatus);
             return;
         }
@@ -72,10 +75,10 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         // Update the player connection to be recognized as a connected player
         const token = raknetSession.getAddress().toToken();
         server.connections.set(token, connection.initPlayerConnection(server, player));
-        server.getPlayerManager().addPlayer(token, player)
-        world.addEntity(player);        
+        server.getPlayerManager().addPlayer(token, player);
+        world.addEntity(player);
 
-        // Finalize connection handshake 
+        // Finalize connection handshake
         const resourcePacksInfo = new ResourcePacksInfoPacket();
         resourcePacksInfo.mustAccept = false;
         resourcePacksInfo.forceAccept = false;

@@ -136,7 +136,10 @@ export default class Server {
 
             const token = session.getAddress().toToken();
             if (this.connections.has(session.getAddress().toToken())) {
-                this.logger?.error(`Another client with token (${token}) is already connected!`, 'Server/listen/openConnection');
+                this.logger?.error(
+                    `Another client with token (${token}) is already connected!`,
+                    'Server/listen/openConnection'
+                );
                 session.disconnect('Already connected from another location');
                 return;
             }
@@ -202,7 +205,7 @@ export default class Server {
         this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             await this.eventManager.emit('raknetEncapsulatedPacket', event);
-            
+
             let connection = null;
             if ((connection = this.connections.get(inetAddr.toToken()) ?? null) === null) {
                 this.logger?.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
@@ -217,7 +220,7 @@ export default class Server {
                 // Read all packets inside batch and handle them
                 for (const buf of batched.getPackets()) {
                     const pid = buf[0];
-                    
+
                     if (!this.packetRegistry.getPackets().has(pid)) {
                         this.logger?.warn(
                             `Packet 0x${pid.toString(16)} isn't implemented`,
@@ -256,7 +259,7 @@ export default class Server {
                 }
             } catch (error) {
                 this.logger?.error(error as any, 'Server/listen/raknetEncapsulatedPacket');
-            } 
+            }
         });
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
@@ -288,9 +291,7 @@ export default class Server {
         // Log experimental flags
         if (this.config.getExperimentalFlags().length >= 1) {
             this.logger?.debug(`Enabled flags:`, 'Server/listen');
-            this.config
-                .getExperimentalFlags()
-                .forEach((flag) => this.logger?.debug(`- ${flag}`, 'Server/listen'));
+            this.config.getExperimentalFlags().forEach((flag) => this.logger?.debug(`- ${flag}`, 'Server/listen'));
         }
 
         this.logger?.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');

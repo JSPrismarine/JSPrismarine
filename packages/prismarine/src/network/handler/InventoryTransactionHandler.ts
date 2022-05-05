@@ -14,7 +14,11 @@ import Vector3 from '../../math/Vector3';
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
     public static NetID = Identifiers.InventoryTransactionPacket;
 
-    public async handle(packet: InventoryTransactionPacket, server: Server, connection: PlayerConnection): Promise<void> {
+    public async handle(
+        packet: InventoryTransactionPacket,
+        server: Server,
+        connection: PlayerConnection
+    ): Promise<void> {
         const player = connection.getPlayer();
         if (!player.isOnline()) return;
         if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world.
