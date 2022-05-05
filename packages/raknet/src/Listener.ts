@@ -66,8 +66,7 @@ export default class RakNetListener extends EventEmitter {
     }
 
     public removeSession(session: RakNetSession, reason?: string): void {
-        const token = session.getAddress().toToken();
-        if (this.sessions.delete(token)) {
+        if (this.sessions.delete(session.getAddress().toToken())) {
             this.emit('closeConnection', session.getAddress(), reason);
         }
     }
