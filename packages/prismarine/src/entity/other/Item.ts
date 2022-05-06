@@ -28,7 +28,7 @@ export default class Item extends Entity {
         pk.position = new Vector3(this.getX(), this.getY(), this.getZ());
         pk.item = this.item;
 
-        await Promise.all(players.map(async (p) => p.getConnection().sendDataPacket(pk)));
+        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(pk)));
     }
 
     public async update(tick: number) {
@@ -83,6 +83,6 @@ export default class Item extends Entity {
 
         const player = entity as Player;
         player.getInventory().addItem(this.item);
-        await player.getConnection().sendInventory();
+        await player.getNetworkSession().sendInventory();
     }
 }

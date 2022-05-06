@@ -5,7 +5,6 @@ import Block from '../block/Block';
 import BlockMappings from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
 import CoordinateUtils from './CoordinateUtils';
-import DataPacket from '../network/packet/DataPacket';
 import Entity from '../entity/Entity';
 import Gamemode from './Gamemode';
 import Generator from './Generator';
@@ -345,9 +344,11 @@ export default class World {
 
         await Promise.all(
             this.server
-                .getPlayerManager()
-                .getOnlinePlayers()
-                .map(async (onlinePlayer) => onlinePlayer.getConnection().sendDataPacket(blockUpdate))
+                .getSessionManager()
+                .getAllPlayers()
+                .map(async (onlinePlayer) =>
+                    onlinePlayer.getNetworkSession().getConnection().sendDataPacket(blockUpdate)
+                )
         );
 
         const pk = new LevelSoundEventPacket();
@@ -363,7 +364,9 @@ export default class World {
         pk.disableRelativeVolume = false;
 
         await Promise.all(
-            player.getPlayersInChunk().map(async (narbyPlayer) => narbyPlayer.getConnection().sendDataPacket(pk))
+            player
+                .getPlayersInChunk()
+                .map(async (narbyPlayer) => narbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk))
         );
     }
 
@@ -372,7 +375,7 @@ export default class World {
         await Promise.all(
             this.getEntities()
                 .filter((e) => e.isPlayer())
-                .map(async (player) => (player as Player).getConnection().sendTime(this.getTicks()))
+                .map(async (player) => (player as Player).getNetworkSession().sendTime(this.getTicks()))
         );
     }
 
@@ -426,8 +429,8 @@ export default class World {
     public async save(): Promise<void> {
         // Save chunks
         this.server
-            .getPlayerManager()
-            .getOnlinePlayers()
+            .getSessionManager()
+            .getAllPlayers()
             .forEach(async (player) => {
                 await this.savePlayerData(player);
             });

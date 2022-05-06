@@ -8,7 +8,7 @@ import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
 import { ItemComponentPacket } from '../Packets';
 import PacketHandler from './PacketHandler';
-import { PlayerConnection } from '../../Prismarine';
+import { PlayerSession } from '../../Prismarine';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
@@ -20,18 +20,14 @@ import Vector3 from '../../math/Vector3';
 export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
     public static NetID = Identifiers.ResourcePackResponsePacket;
 
-    public async handle(
-        packet: ResourcePackResponsePacket,
-        server: Server,
-        connection: PlayerConnection
-    ): Promise<void> {
+    public async handle(packet: ResourcePackResponsePacket, server: Server, session: PlayerSession): Promise<void> {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
             const resourcePackStack = new ResourcePackStackPacket();
             resourcePackStack.mustAccept = false;
             resourcePackStack.experimentsAlreadyEnabled = false;
-            await connection.sendDataPacket(resourcePackStack);
+            await session.getConnection().sendDataPacket(resourcePackStack);
         } else if (packet.status === ResourcePackStatusType.Completed) {
-            const player = connection.getPlayer();
+            const player = session.getPlayer();
             // Emit playerSpawn event
             const spawnEvent = new PlayerSpawnEvent(player);
             server.getEventManager().post(['playerSpawn', spawnEvent]);
@@ -39,11 +35,11 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             // TODO: send inventory slots
 
-            await connection.addToPlayerList();
+            await session.addToPlayerList();
 
             const world = player.getWorld();
 
-            await connection.sendTime(world.getTicks());
+            await session.sendTime(world.getTicks());
 
             const startGame = new StartGamePacket();
             startGame.entityId = player.getRuntimeId();
@@ -62,38 +58,38 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             startGame.worldName = world.getName();
             startGame.seed = world.getSeed();
             startGame.gamerules = world.getGameruleManager();
-            await connection.sendDataPacket(startGame);
+            await session.getConnection().sendDataPacket(startGame);
 
             const itemComponent = new ItemComponentPacket();
-            await connection.sendDataPacket(itemComponent);
+            await session.getConnection().sendDataPacket(itemComponent);
 
             const setSpawPos = new SetSpawnPositionPacket();
             setSpawPos.dimension = 3; // TODO: enum
             setSpawPos.position = new Vector3(-2147483648, -2147483648, -2147483648);
             setSpawPos.blockPosition = setSpawPos.position;
             setSpawPos.type = SpawnType.PLAYER_SPAWN;
-            await connection.sendDataPacket(setSpawPos);
+            await session.getConnection().sendDataPacket(setSpawPos);
 
-            await connection.sendTime(world.getTicks());
+            await session.sendTime(world.getTicks());
 
             // TODO: set difficulty packet
             // TODO: set commands enabled packet
 
-            await connection.sendSettings();
+            await session.sendSettings();
 
             // TODO: game rules changed packet
 
-            await connection.sendPlayerList();
+            await session.sendPlayerList();
 
-            await connection.sendDataPacket(new BiomeDefinitionListPacket());
+            await session.getConnection().sendDataPacket(new BiomeDefinitionListPacket());
 
             // TODO: available entity identifiers
 
             // TODO: player fog packet
 
-            await connection.sendAttributes(player.getAttributeManager().getDefaults());
+            await session.sendAttributes(player.getAttributeManager().getDefaults());
 
-            await connection.sendCreativeContents(true);
+            await session.sendCreativeContents(true);
 
             // Some packets...
 
@@ -105,10 +101,10 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             respawnPacket.state = RespawnState.SERVER_SEARCHING_FOR_SPAWN;
             respawnPacket.position = await world.getSpawnPosition();
             respawnPacket.runtimeEntityId = player.getRuntimeId();
-            await connection.sendDataPacket(respawnPacket);
+            await session.getConnection().sendDataPacket(respawnPacket);
 
             respawnPacket.state = RespawnState.SERVER_READY_TO_SPAWN;
-            await connection.sendDataPacket(respawnPacket);
+            await session.getConnection().sendDataPacket(respawnPacket);
 
             server
                 .getLogger()
@@ -121,7 +117,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             player.setNameTag(player.getName());
             // TODO: always visible nametag
-            await connection.sendMetadata();
+            await session.sendMetadata();
 
             // TODO: fix await player.getConnection().sendInventory();
 

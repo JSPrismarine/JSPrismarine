@@ -4,10 +4,11 @@ import { Protocol, RakNetSession } from '@jsprismarine/raknet';
 import { Logger } from '../Prismarine';
 
 /**
- * This should handle everything related to a hypotetic Client session such
- * as packet queues, batching, encrypting and so on... but nothing regarding Minecraft itself
+ * Act as the first connection layer, handles everything related to batching,
+ * queuing and encrypting of Minecraft packets in a hypotetical session.
+ * TODO: implement ticking, batching, queues, encryption.
  */
-export default class Connection {
+export default class MinecraftSession {
     private readonly rakSession: RakNetSession;
     private readonly logger?: Logger;
 

@@ -24,7 +24,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
                 packet.protocol < Identifiers.Protocol
                     ? PlayStatusType.LoginFailedClient
                     : PlayStatusType.LoginFailedServer;
-            connection.sendDataPacket(playStatus);
+            await connection.sendDataPacket(playStatus);
             return;
         }
 
@@ -37,13 +37,12 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
 
         // Player with same name is already online
         try {
-            const oldPlayer = server.getPlayerManager().getPlayerByExactName(packet.displayName);
+            const oldPlayer = server.getSessionManager().getPlayerByExactName(packet.displayName);
             await oldPlayer.kick('Logged in from another location');
         } catch {}
 
-        const raknetSession = connection.getRakNetSession();
         const world = server.getWorldManager().getDefaultWorld();
-        const player = new Player(raknetSession, world, server);
+        const player = new Player(connection, world, server);
 
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;
@@ -63,9 +62,6 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
 
         // TODO: encryption handshake
 
-        playStatus.status = PlayStatusType.LoginSuccess;
-        await connection.sendDataPacket(playStatus);
-
         const reason = server.getBanManager().isBanned(player);
         if (reason !== false) {
             await player.kick(`You have been banned${reason ? ` for reason: ${reason}` : ''}!`);
@@ -73,10 +69,10 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         }
 
         // Update the player connection to be recognized as a connected player
-        const token = raknetSession.getAddress().toToken();
-        server.connections.set(token, connection.initPlayerConnection(server, player));
-        server.getPlayerManager().addPlayer(token, player);
-        world.addEntity(player);
+        const session = connection.initPlayerConnection(server, player);
+        session.sendPlayStatus(PlayStatusType.LoginSuccess);
+
+        await world.addEntity(player);
 
         // Finalize connection handshake
         const resourcePacksInfo = new ResourcePacksInfoPacket();

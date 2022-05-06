@@ -3,7 +3,7 @@ import * as Packets from './Packets';
 
 import Identifiers from './Identifiers';
 import PacketHandler from './handler/PacketHandler';
-import { PlayerConnection } from '../Prismarine';
+import { PlayerSession } from '../Prismarine';
 import PreLoginPacketHandler from './handler/PreLoginPacketHandler';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
@@ -83,9 +83,9 @@ export default class PacketRegistry {
      */
     public appendHandler(handler: PacketHandler<any>, handler2: PacketHandler<any>): PacketHandler<any> {
         const res = new (class Handler {
-            public async handle(packet: any, server: Server, connection: PlayerConnection) {
-                await handler.handle(packet, server, connection);
-                await handler2.handle(packet, server, connection);
+            public async handle(packet: any, server: Server, session: PlayerSession) {
+                await handler.handle(packet, server, session);
+                await handler2.handle(packet, server, session);
             }
         })();
 

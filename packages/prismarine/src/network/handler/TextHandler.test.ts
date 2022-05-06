@@ -19,9 +19,11 @@ describe('network', () => {
                         })
                     } as any,
                     {
-                        getFormattedUsername: () => {
-                            return 'runner';
-                        }
+                        getPlayer: () => ({
+                            getFormattedUsername: () => {
+                                return 'runner';
+                            }
+                        })
                     } as any
                 );
             });

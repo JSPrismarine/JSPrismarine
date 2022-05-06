@@ -10,6 +10,21 @@ describe('network', () => {
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
 
+                const connection = {
+                    getRakNetSession: () => ({
+                        getAddress: () => ({
+                            toToken: () => {
+                                return 'token'
+                            }
+                        })
+                    }),
+                    sendDataPacket: (packet: any) => {
+                        expect(player.username).toStrictEqual({
+                            name: 'runner'
+                        });
+                    }
+                } as any;
+
                 const player = {
                     username: {},
                     onEnable: () => {},
@@ -37,11 +52,30 @@ describe('network', () => {
                                 return false;
                             }
                         }),
+                        getLogger: () => {
+                            return null;
+                        },
+                        getEventManager: () => ({
+                            on: (event: any, handler: any) => {}
+                        }),
+                        getWorldManager: () => ({
+                            getDefaultWorld: () => ({
+                                addEntity: () => {},
+                                getPlayerData(player: any) {
+                                    return { position: { x: 0, y: 0, z: 0 }, inventory: [] };
+                                } 
+                            })
+                        }),
+                        getPermissionManager: () => ({
+                            getPermissions(player: any) {
+                                return null;
+                            }
+                        }),
                         getPlayerByExactName(name: string) {
                             return null;
                         }
                     } as any,
-                    player
+                    connection
                 );
             });
 

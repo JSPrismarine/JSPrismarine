@@ -3,15 +3,15 @@ import LevelEventType from '../type/LevelEventType';
 import PacketHandler from './PacketHandler';
 import type PlayerActionPacket from '../packet/PlayerActionPacket';
 import PlayerActionType from '../type/PlayerActionType';
-import { PlayerConnection } from '../../Prismarine';
+import { PlayerSession } from '../../Prismarine';
 import type Server from '../../Server';
 import WorldEventPacket from '../packet/WorldEventPacket';
 
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
     public static NetID = Identifiers.PlayerActionPacket;
 
-    public async handle(packet: PlayerActionPacket, server: Server, connection: PlayerConnection): Promise<void> {
-        const player = connection.getPlayer();
+    public async handle(packet: PlayerActionPacket, server: Server, session: PlayerSession): Promise<void> {
+        const player = session.getPlayer();
         switch (packet.action) {
             case PlayerActionType.StartBreak: {
                 const block = await player
@@ -31,7 +31,9 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 await Promise.all(
                     player
                         .getPlayersInChunk()
-                        .map(async (nearbyPlayer) => nearbyPlayer.getConnection().sendDataPacket(pk))
+                        .map(async (nearbyPlayer) =>
+                            nearbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk)
+                        )
                 );
 
                 break;
@@ -50,7 +52,9 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 await Promise.all(
                     player
                         .getPlayersInChunk()
-                        .map(async (nearbyPlayer) => nearbyPlayer.getConnection().sendDataPacket(pk))
+                        .map(async (nearbyPlayer) =>
+                            nearbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk)
+                        )
                 );
                 break;
             }

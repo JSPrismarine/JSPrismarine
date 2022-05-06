@@ -1,32 +1,32 @@
 import Identifiers from '../Identifiers';
 import PacketHandler from './PacketHandler';
 import PlayStatusType from '../type/PlayStatusType';
-import { PlayerConnection } from '../../Prismarine';
+import { PlayerSession } from '../../Prismarine';
 import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
 import type Server from '../../Server';
 
 export default class RequestChunkRadiusHandler implements PacketHandler<RequestChunkRadiusPacket> {
     public static NetID = Identifiers.RequestChunkRadiusPacket;
 
-    public async handle(packet: RequestChunkRadiusPacket, server: Server, connection: PlayerConnection): Promise<void> {
-        const player = connection.getPlayer();
+    public async handle(packet: RequestChunkRadiusPacket, server: Server, session: PlayerSession): Promise<void> {
         const maxViewDistance = server.getConfig().getViewDistance();
         const viewDistance = packet.radius >= maxViewDistance ? maxViewDistance : packet.radius;
 
-        await player.getConnection().setViewDistance(viewDistance);
+        await session.setViewDistance(viewDistance);
 
-        await player.getConnection().sendNetworkChunkPublisher();
-        await player.getConnection().needNewChunks(true);
+        await session.sendNetworkChunkPublisher();
+        await session.needNewChunks(true);
 
         // Summon player(s)
+        const player = session.getPlayer();
         await Promise.all(
             server
-                .getPlayerManager()
-                .getOnlinePlayers()
+                .getSessionManager()
+                .getAllPlayers()
                 .filter((p) => !(p === player))
                 .map(async (p) => {
-                    await p.getConnection().sendSpawn(player);
-                    await player.getConnection().sendSpawn(p);
+                    await p.getNetworkSession().sendSpawn(player);
+                    await session.sendSpawn(p);
                 })
         );
 
@@ -40,6 +40,6 @@ export default class RequestChunkRadiusHandler implements PacketHandler<RequestC
         );
 
         // todo: set health packet
-        await player.getConnection().sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
     }
 }

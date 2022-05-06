@@ -11,7 +11,6 @@ import ChatManager from './chat/ChatManager';
 import ClientConnection from './network/ClientConnection';
 import CommandManager from './command/CommandManager';
 import type Config from './config/Config';
-import Connection from './network/Connection';
 import Console from './Console';
 import { DataPacket } from './network/Packets';
 import { EventManager } from './events/EventManager';
@@ -20,12 +19,12 @@ import ItemManager from './item/ItemManager';
 import type LoggerBuilder from './utils/Logger';
 import PacketRegistry from './network/PacketRegistry';
 import PermissionManager from './permission/PermissionManager';
-import PlayerManager from './player/PlayerManager';
 import PluginManager from './plugin/PluginManager';
 import QueryManager from './query/QueryManager';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
+import SessionManager from './SessionManager';
 import TelemetryManager from './telemetry/TelemeteryManager';
 import { TickEvent } from './events/Events';
 import Timer from './utils/Timer';
@@ -42,7 +41,7 @@ export default class Server {
     private readonly telemetryManager: TelemetryManager;
     private readonly eventManager = new EventManager();
     private readonly packetRegistry: PacketRegistry;
-    private readonly playerManager = new PlayerManager();
+    private readonly sessionManager = new SessionManager();
     private readonly pluginManager: PluginManager;
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
@@ -53,12 +52,6 @@ export default class Server {
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
     private stopping = false;
-
-    // TODO: properly think an implementation for this
-    // maybe i should make a manager that recognizes the difference
-    // between a client and a player; if it's a player
-    // it automatically adds it to the world etc...
-    public readonly connections: Map<string, Connection> = new Map();
 
     /**
      * @deprecated
@@ -132,7 +125,7 @@ export default class Server {
             await this.eventManager.emit('raknetConnect', event);
 
             const token = session.getAddress().toToken();
-            if (this.connections.has(session.getAddress().toToken())) {
+            if (this.sessionManager.has(session.getAddress().toToken())) {
                 this.logger?.error(
                     `Another client with token (${token}) is already connected!`,
                     'Server/listen/openConnection'
@@ -143,7 +136,7 @@ export default class Server {
 
             const timer = new Timer();
             this.logger?.debug(`${token} is attempting to connect`, 'Server/listen/openConnection');
-            this.connections.set(token, new ClientConnection(session, this.logger));
+            this.sessionManager.add(token, new ClientConnection(session, this.logger));
             this.logger?.verbose(`New connection handling took ${timer.stop()} ms`, 'Server/listen/openConnection');
         });
 
@@ -154,12 +147,12 @@ export default class Server {
             const time = Date.now();
             const token = inetAddr.toToken();
             try {
-                const player = this.playerManager.getPlayer(token);
+                const player = this.sessionManager.getPlayer(token);
 
                 // De-spawn the player to all online players
-                await player.getConnection().removeFromPlayerList();
-                for (const onlinePlayer of this.playerManager.getOnlinePlayers()) {
-                    await player.getConnection().sendDespawn(onlinePlayer);
+                await player.getNetworkSession().removeFromPlayerList();
+                for (const onlinePlayer of this.sessionManager.getAllPlayers()) {
+                    await player.getNetworkSession().sendDespawn(onlinePlayer);
                 }
 
                 // Sometimes we fail at decoding the username for whatever reason
@@ -180,9 +173,7 @@ export default class Server {
 
                 await player.onDisable();
                 await player.getWorld().removeEntity(player);
-                await this.playerManager.removePlayer(token);
-
-                this.connections.delete(token);
+                this.sessionManager.remove(token);
             } catch (error) {
                 this.logger?.debug(
                     `Cannot remove connection from non-existing player (${token})`,
@@ -204,7 +195,7 @@ export default class Server {
             await this.eventManager.emit('raknetEncapsulatedPacket', event);
 
             let connection = null;
-            if ((connection = this.connections.get(inetAddr.toToken()) ?? null) === null) {
+            if ((connection = this.sessionManager.get(inetAddr.toToken()) ?? null) === null) {
                 this.logger?.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
                 return;
             }
@@ -241,7 +232,11 @@ export default class Server {
 
                     try {
                         const handler = this.packetRegistry.getHandler(pid);
-                        await (handler as any).handle(packet, this, connection);
+                        await (handler as any).handle(
+                            packet,
+                            this,
+                            connection.getPlayerSession() ? connection.getPlayerSession() : connection
+                        );
                         this.logger?.silly(
                             `Received §b${packet.constructor.name}§r packet`,
                             'Server/listen/raknetEncapsulatedPacket'
@@ -306,7 +301,7 @@ export default class Server {
 
         try {
             // Kick all online players
-            for (const player of this.playerManager.getOnlinePlayers()) {
+            for (const player of this.sessionManager.getAllPlayers()) {
                 await player.kick('Server closed.');
             }
 
@@ -326,8 +321,8 @@ export default class Server {
     public async broadcastPacket<T extends DataPacket>(dataPacket: T): Promise<void> {
         // Maybe i can improve this by using the UDP broadcast, all unconnected clients
         // will ignore the connected packet probably, but may cause issues.
-        for (const onlinePlayer of this.playerManager.getOnlinePlayers()) {
-            await onlinePlayer.getConnection().sendDataPacket(dataPacket);
+        for (const onlinePlayer of this.sessionManager.getAllPlayers()) {
+            await onlinePlayer.getNetworkSession().getConnection().sendDataPacket(dataPacket);
         }
     }
 
@@ -356,8 +351,8 @@ export default class Server {
     /**
      * Returns the player manager
      */
-    public getPlayerManager(): PlayerManager {
-        return this.playerManager;
+    public getSessionManager(): SessionManager {
+        return this.sessionManager;
     }
 
     /**

@@ -20,7 +20,10 @@ export default class DeopCommand extends Command {
             literal('deop').then(
                 argument('player', new PlayerArgumentCommand({ name: 'player' })).executes(async (context) => {
                     const source = context.getSource() as Player;
-                    const target = source.getServer().getPlayerManager().getPlayerByName(context.getArgument('player'));
+                    const target = source
+                        .getServer()
+                        .getSessionManager()
+                        .getPlayerByExactName(context.getArgument('player')); // TODO: by name not exact
 
                     await source.getServer().getPermissionManager().setOp(context.getArgument('player'), false);
 

@@ -119,8 +119,8 @@ export default class QueryManager {
                     res.write(
                         Buffer.from(
                             `${this.server
-                                .getPlayerManager()
-                                .getOnlinePlayers()
+                                .getSessionManager()
+                                .getAllPlayers()
                                 .map((player) => `${player.getName()}\0`)}\0`,
                             'binary'
                         )

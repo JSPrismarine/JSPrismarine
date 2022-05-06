@@ -1,26 +1,42 @@
-import { Logger, Player, PlayerConnection, Server } from '../Prismarine';
+import { Logger, Player, PlayerSession, Server } from '../Prismarine';
 
-import Connection from './Connection';
+import MinecraftSession from './MinecraftSession';
 import { RakNetSession } from '@jsprismarine/raknet';
+import assert from 'assert';
 
 /**
- * This is used to handle the connection before the player creation itself,
- * so it may help to not waste resources in case the client trying to connect is
- * simply outdated or doesn't pass all tests in the LoginHandler.
+ * Handles the connection before the player creation itself, very helpful as
+ * it helps to not waste resources in case the client trying to connect is simply
+ * outdated or sends invalid data during the login handshake.
  */
-export default class ClientConnection extends Connection {
-    private readonly session: RakNetSession;
+export default class ClientConnection extends MinecraftSession {
+    private readonly rakNetSession: RakNetSession;
+    private playerSession: PlayerSession | null = null;
 
     public constructor(session: RakNetSession, logger?: Logger) {
         super(session, logger);
-        this.session = session;
+        this.rakNetSession = session;
     }
 
-    public initPlayerConnection(server: Server, player: Player): PlayerConnection {
-        return new PlayerConnection(server, this.session, player);
+    /**
+     * @internal
+     *
+     * @param server the server instance
+     * @param player the player instance
+     * @returns the new player session
+     */
+    public initPlayerConnection(server: Server, player: Player): PlayerSession {
+        assert(this.playerSession === null, 'Player session was already created');
+
+        this.playerSession = new PlayerSession(server, this, player);
+        return this.playerSession;
+    }
+
+    public getPlayerSession(): PlayerSession | null {
+        return this.playerSession;
     }
 
     public getRakNetSession(): RakNetSession {
-        return this.session;
+        return this.rakNetSession;
     }
 }
