@@ -1,80 +1,193 @@
-# JSPrismarine
+<img src="https://raw.githubusercontent.com/RealTriassic/JSPrismarine/master/.github/assets/banner_transparent.png" height="152" align="center">
 
-<a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">
-  <img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine?style=flat-square">
-</a>
-<a href="https://github.com/JSPrismarine/JSPrismarine/graphs/contributors">
-  <img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D&style=flat-square">
-</a>
-<a href="https://github.com/JSPrismarine/JSPrismarine/commits/master">
-  <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC&style=flat-square">
-</a>
-<a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=workflow%3A%22Unit+%26+Integration+Testing%22">
-  <img alt="Build" src="https://img.shields.io/github/workflow/status/JSPrismarine/JSPrismarine/Unit%20&%20Integration%20Testing?style=flat-square">
-</a>
-<a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
-  <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/JSPrismarine/JSPrismarine?style=flat-square">
-</a>
-<a href="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine">
-  <img alt="Codefactor.io" src="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine/badge?style=flat-square">
-</a>
+<br /> <br />
+
+<h1>Avalanche for Minecraft: Bedrock Edition.</h1>
+
 <a href="https://discord.gg/6w8JWhy">
-  <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
+  <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=discord&style=flat-square" style="margin-right: 4px;">
 </a>
-<a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
-  <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=flat-square">
+<a href="https://github.com/AvalanchePowered/Avalanche/actions?query=workflow%3A%22Unit+%26+Integration+Testing%22">
+  <img alt="Build" src="https://img.shields.io/github/workflow/status/AvalanchePowered/Avalanche/Unit%20&%20Integration%20Testing?style=flat-square" style="margin-right: 4px;">
 </a>
-<a href="https://github.com/sponsors/JSPrismarine">
-  <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/JSPrismarine?style=flat-square">
+<a href="https://github.com/AvalanchePowered/Avalanche/commits/master">
+  <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/AvalanchePowered/Avalanche?color=%2387F4BC&style=flat-square" style="margin-right: 4px;">
+</a>
+<a href="https://coveralls.io/github/AvalanchePowered/Avalanche">
+  <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/AvalanchePowered/Avalanche?style=flat-square" style="margin-right: 4px;">
+</a>
+<a href="https://www.codefactor.io/repository/github/avalanchepowered/avalanche">
+  <img alt="Codefactor.io" src="https://www.codefactor.io/repository/github/avalanchepowered/avalanche/badge?style=flat-square" style="margin-right: 4px;">
+</a>
+<a href="https://github.com/AvalanchePowered/Avalanche/blob/master/LICENSE.md">
+  <img alt="License" src="https://img.shields.io/github/license/AvalanchePowered/Avalanche?style=flat-square" style="margin-right: 4px;">
+</a>
+<a href="https://github.com/AvalanchePowered/Avalanche/graphs/contributors">
+  <img alt="Contributors" src="https://img.shields.io/github/contributors/AvalanchePowered/Avalanche?color=%23E30B5D&style=flat-square" style="margin-right: 4px;">
+</a>
+<a href="https://github.com/AvalanchePowered/Avalanche/search?q=todo">
+  <img alt="TODO Counter" src="https://img.shields.io/github/search/AvalanchePowered/Avalanche/todo.svg?style=flat-square" style="margin-right: 4px;">
+</a>
+<a href="https://github.com/sponsors/AvalanchePowered">
+  <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/AvalanchePowered?style=flat-square">
 </a>
 
-A dedicated Minecraft Bedrock Edition server written in TypeScript with focus on performance, extensibility and ease-of-use.
+<br />
 
-## Why use JSPrismarine?
+<p>
+  Avalanche is a Minecraft server software for the Bedrock Edition codebase built using Typescript. It was built to be as performant, stable and understandable as possible, we aim to provide a hassle-free plugin development experience that will allow you to easily customize your Minecraft server in very interesting ways.
+</p>
 
--   Written in TypeScript which means that it's easy to use and develop plugins for. You can in theory develop plugins in any language that transpile into JavaScript (such as TypeScript, Kotlin, CoffeeScript, asm.js and many more).
--   Open source with the permissive [MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) license.
--   Under active development.
+<br /> <br />
 
-## Getting started
+<h1>📦 Features</h1>
 
-Prebuilt binaries will be provided once a stable release is out, these will not require a node environment. For now however, you can either follow the steps bellow or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22) (which may or may not work).
+<ul>
 
--   Linux/MacOS/Unix based OS or Windows (requires WSL)
-    -   You need [Node.js](https://nodejs.org) v14+, [npm](https://www.npmjs.com) v7+ and [lerna](https://lerna.js.org/).
-    -   Clone the repository `git clone https://github.com/JSPrismarine/JSPrismarine.git`.
-    -   Go in the cloned repository `cd JSPrismarine`
-    -   Install dependencies `npm install` and `lerna bootstrap`.
-    -   Before running production build you have to build it `npm run build`
-    -   You're done, you can run it using `npm run start` (or `npm run dev` for development)
+  <li>
+    Written in Typescript to provide an easy method to create plugins, this means in theory you can write plugins in any language that transpiles into JavaScript.
+  </li>
 
-## FAQ
+  <li>
+    Open source and licensed under the permissive <a href="https://github.com/AvalanchePowered/Avalanche/blob/master/LICENSE.md">Mozilla Public License 2.0 license</a>.
+  </li>
 
--   Can I contribute?
-    -   Sure, make sure to read the [CONTRIBUTING.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTING.md) file first.
--   Is JSPrismarine for `Minecraft: Bedrock Edition` or `Minecraft: Java Edition`?
-    -   JSPrismarine is made for `Minecraft: Bedrock Edition`, there may however be plugin(s) available to provide a `Minecraft: Java Edition` implementation..
--   What devices devices can a player join JSPrismarine with?
-    -   By default PC/Windows, Android, iOS. However with some tricks you can also join with Xbox One, Switch and the PS4.
--   Which OSes can run JSPrismarine?
-    -   Any platform supporting Node.js v14 or later.
--   Does it support plugins?
-    -   Yes but JSPrismarine is in fast development-mode which means that currently SEMVER isn't strictly followed. We do however try to provide a deprecation warning two weeks ahead of removing an API function.
--   If my question isn't listed here where should I sak?
-    -   You can join the [Discord server](https://discord.gg/fGkHZhu), ask on the [forums](https://prismarine.dev) or in case of a development-related question issue an open a [GitHub issue](https://github.com/HerryYT/JSPrismarine/issues/new).
--   Why can't I join a JSPrismarine instance hosted on my Windows PC?
-    -   To join an instance of JSPrismarine hosted on the same Windows machine you need to enable Loopback by doing the following:
-        -   Open Windows PowerShell as administrator
-        -   Run this command: `CheckNetIsolation LoopbackExempt -a -n="Microsoft.MinecraftUWP_8wekyb3d8bbwe"`
-        -   Open Minecraft and add a server with the ip `127.0.0.1`
+  <li>
+    Actively maintained by project leaders and contributors.
+  </li>
 
-## Documentation
+  <li>
+    Built for performance, stability and ease of use.
+  </li>
+  
+  <li>
+    Aims to provide functional access to all items & blocks in the game of Minecraft.
+  </li>
 
--   [Running JSPrismarine](documentation/running.md)
--   [Publish a new version](documentation/publish-package.md)
--   [Experimental flags](documentation/experimental-flags.md)
+  <li>
+    Extendable functionality using plugins.
+  </li>
 
-## Remarks
+</ul>
 
--   JSPrismarine still in active development, currently no stable version is released.
--   The plugin API isn't stable.
+<br /> <br />
+
+<h1>💾 Getting started with Avalanche</h1>
+
+<p>
+  Pre-built binaries will be distributed through GitHub releases once stable builds begin rolling out, these binaries will not require a node environment to run, currently, you can download the <a href="https://github.com/AvalanchePowered/Avalanche/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22">latest nightly build</a> through GitHub artifacts.
+</p>
+
+<br />
+
+<h2>Manual Installation</h2>
+
+<p style="font-weight: bold;">
+  Before continuing with the manual installation, please ensure you have a Linux/OSX/Unix based Operating System, or if you are running Windows, make sure you are doing this through Windows Subsystem for Linux.
+</p>
+
+<p style="font-style: italic;">
+  Building requires <a href="https://nodejs.org" target="_blank">Node.js</a> v16.0.0 or newer, <a href="https://www.npmjs.com/package/npm" target="_blank">NPM</a> v8.0.0 or newer and <a href="https://lerna.js.org/" target="_blank">Lerna</a>. If you run into any problems during this process, join our <a href="">Discord Guild</a>, we will be happy to help you out.
+</p>
+
+<br />
+
+<ul>
+
+  <div style="margin-bottom: 16px;">
+    <li style="font-weight: bold;">
+      Clone the Avalanche GitHub repository.
+    </li>
+    <kbd>git clone https://github.com/AvalanchePowered/Avalanche</kbd>
+  </div>
+
+  <div style="margin-bottom: 16px;">
+    <li style="font-weight: bold;">
+      Move yourself into the directory that was just created.
+    </li>
+    <kbd>cd Avalanche</kbd>
+  </div>
+
+  <div style="margin-bottom: 16px;">
+    <li style="font-weight: bold;">
+      Install all required dependencies for running Avalanche. 
+    </li>
+    <kbd>npm install</kbd> and then <kbd>lerna bootstrap</kbd>
+  </div>
+
+  <div style="margin-bottom: 16px;">
+    <li style="font-weight: bold;">
+      Build Avalanche using NPM. 
+    </li>
+    <kbd>npm run build</kbd>
+  </div>
+
+  <div style="margin-bottom: 16px;">
+    <li style="font-weight: bold;">
+      Start Avalanche and you're good to go! 
+    </li>
+    <kbd>npm run start</kbd> for production or <kbd>npm run dev</kbd> for development.
+  </div>
+</ul>
+
+<br /> <br />
+
+<h1>🔥 Frequently asked Questions</h1>
+
+<ul>
+
+  <div style="margin-bottom: 12px;">
+    <li style="font-weight: bold; font-size: 16px;">
+      Can I contribute to the project?
+    </li>
+    <p>
+    Yes, but before you do so, please read our <a href="https://github.com/AvalanchePowered/Avalanche/blob/master/CONTRIBUTING.md">contribution guidelines</a>.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 12px;">
+    <li style="font-weight: bold; font-size: 16px;">
+      Where can I download plugins for Avalanche?
+    </li>
+    <p>
+      Plugins for Avalanche can be downloaded from <a href="https://avalanchepowered.org" target="_blank">our website</a>.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 12px;">
+    <li style="font-weight: bold; font-size: 16px;">
+      I cannot join my Avalanche server through Windows.
+    </li>
+    <p>
+      Windows by default does not allow you to join locally hosted servers through Minecraft, to fix this, run <kbd>CheckNetIsolation LoopbackExempt -a -n="Microsoft.MinecraftUWP_8wekyb3d8bbwe"</kbd> through PowerShell as an administrator, then restart your game and try again.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 12px;">
+    <li style="font-weight: bold; font-size: 16px;">
+      What operating systems are supported by Avalanche?
+    </li>
+    <p>
+      In theory, any operating system capable of running Node.js version 16.0.0 of newer should be able to run it, though this is not guaranteed, but you can definitely run Avalanche on Linux, OSX and Windows as they do support Node.js.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 12px;">
+    <li style="font-weight: bold; font-size: 16px;">
+      What devices can I join my Avalanche server using?
+    </li>
+    <p>
+      You can easily join your server using Android, iOS and Windows 10/11. Mojang does not officially support joining external servers on PS4, Xbox One and Switch, but there are methods to workaround this that can be easily found online by doing a little bit of searching.
+    </p>
+  </div>
+
+  <div style="margin-bottom: 12px;">
+    <li style="font-weight: bold; font-size: 16px;">
+      My question was not listed here, what should I do?
+    </li>
+    <p>
+      The easiest method would be joining our <a href="https://discord.gg/6w8JWhy" target="_blank">Discord Guild</a> and asking other people, alternatively you can ask on our <a href="https://avalanchepowered.com" target="_blank">forums</a>. <span style="font-weight: bold;">Please do not open issues on the GitHub repository for help with running Avalanche unless you experience a bug that doesn't allow you to run it.</span>
+    </p>
+  </div>
+
+</ul>
