@@ -1,6 +1,10 @@
 <br />
 
-<img src="https://raw.githubusercontent.com/RealTriassic/JSPrismarine/master/.github/assets/banner_transparent.png" height="152">
+<div>
+  <center>
+    <img src="https://raw.githubusercontent.com/RealTriassic/JSPrismarine/master/.github/assets/banner_transparent.png" height="152">
+  </center>
+</div>
 
 <br /> <br />
 
