@@ -46,6 +46,11 @@
   Avalanche is a Minecraft server software for the Bedrock Edition codebase built using Typescript. It was built to be as performant, stable and understandable as possible, we aim to provide a hassle-free plugin development experience that will allow you to easily customize your Minecraft server in very interesting ways.
 </p>
 
+<br />
+
+> <em>Some of the things mentioned here may or may not be implemented in Avalanche yet. Avalanche is still in very active and early development, please consider [contributing](#can-i-contribute-to-the-project) to help our development.</em>
+
+
 <br /> <br />
 
 <h1>📦 Features</h1>
@@ -145,7 +150,7 @@
 <ul>
 
   <div>
-    <li>
+    <li id="can-i-contribute-to-the-project">
       <b>Can I contribute to the project?</b>
     </li>
     <p>
