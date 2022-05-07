@@ -14,12 +14,12 @@ The following is a set of guidelines for contributing to Avalanche and its packa
 
 -   [Reporting Bugs](#reporting-bugs)
 -   [Suggesting Enhancements](#suggesting-enhancements)
--   [Your First Code Contribution](#your-first-code-contribution)
+-   [Your first code contribution](#your-first-code-contribution)
 -   [Pull Requests](#pull-requests)
 
 [**Styleguides**](#styleguides)
 
--   [Git Commit Messages](#git-commit-messages)
+-   [Git commit messages](#git-commit-messages)
 -   [TypeScript Styleguide](#typescript-styleguide)
 
 <br />
