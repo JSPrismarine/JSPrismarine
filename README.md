@@ -1,10 +1,12 @@
-<img src="https://raw.githubusercontent.com/RealTriassic/JSPrismarine/master/.github/assets/banner_transparent.png" height="152" align="center" style="margin-top: 16px;">
+<br />
+
+<img src="https://raw.githubusercontent.com/RealTriassic/JSPrismarine/master/.github/assets/banner_transparent.png" height="152">
 
 <br /> <br />
 
 <h1>Avalanche for Minecraft: Bedrock Edition.</h1>
 
-<div style="margin-bottom: 16px;">
+<div>
   <a href="https://discord.gg/6w8JWhy">
     <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=discord&style=flat-square" style="margin-right: 4px;">
   </a>
@@ -84,49 +86,49 @@
 
 <h2>Manual Installation</h2>
 
-<p style="font-weight: bold;">
-  Before continuing with the manual installation, please ensure you have a Linux/OSX/Unix based Operating System, or if you are running Windows, make sure you are doing this through Windows Subsystem for Linux.
+<p>
+  <b>Before continuing with the manual installation, please ensure you have a Linux/OSX/Unix based Operating System, or if you are running Windows, make sure you are doing this through Windows Subsystem for Linux.</b>
 </p>
 
-<p style="font-style: italic;">
-  Building requires <a href="https://nodejs.org" target="_blank">Node.js</a> v16.0.0 or newer, <a href="https://www.npmjs.com/package/npm" target="_blank">NPM</a> v8.0.0 or newer and <a href="https://lerna.js.org/" target="_blank">Lerna</a>. If you run into any problems during this process, join our <a href="">Discord Guild</a>, we will be happy to help you out.
+<p>
+  <em>Building requires <a href="https://nodejs.org" target="_blank">Node.js</a> v16.0.0 or newer, <a href="https://www.npmjs.com/package/npm" target="_blank">NPM</a> v8.0.0 or newer and <a href="https://lerna.js.org/" target="_blank">Lerna</a>. If you run into any problems during this process, join our <a href="">Discord Guild</a>, we will be happy to help you out.</em>
 </p>
 
 <br />
 
 <ul>
 
-  <div style="margin-bottom: 16px;">
-    <li style="font-weight: bold;">
-      Clone the Avalanche GitHub repository.
+  <div>
+    <li>
+      <b>Clone the Avalanche GitHub repository.</b>
     </li>
     <kbd>git clone https://github.com/AvalanchePowered/Avalanche</kbd>
   </div>
 
-  <div style="margin-bottom: 16px;">
-    <li style="font-weight: bold;">
-      Move yourself into the directory that was just created.
+  <div>
+    <li>
+      <b>Move yourself into the directory that was just created.</b>
     </li>
     <kbd>cd Avalanche</kbd>
   </div>
 
-  <div style="margin-bottom: 16px;">
-    <li style="font-weight: bold;">
-      Install all required dependencies for running Avalanche. 
+  <div>
+    <li>
+      <b>Install all required dependencies for running Avalanche. </b>
     </li>
     <kbd>npm install</kbd> and then <kbd>lerna bootstrap</kbd>
   </div>
 
-  <div style="margin-bottom: 16px;">
-    <li style="font-weight: bold;">
-      Build Avalanche using NPM. 
+  <div>
+    <li>
+      <b>Build Avalanche using NPM.</b>
     </li>
     <kbd>npm run build</kbd>
   </div>
 
-  <div style="margin-bottom: 16px;">
-    <li style="font-weight: bold;">
-      Start Avalanche and you're good to go! 
+  <div>
+    <li>
+      <b>Start Avalanche and you're good to go!</b>
     </li>
     <kbd>npm run start</kbd> for production or <kbd>npm run dev</kbd> for development.
   </div>
@@ -138,54 +140,54 @@
 
 <ul>
 
-  <div style="margin-bottom: 12px;">
-    <li style="font-weight: bold; font-size: 16px;">
-      Can I contribute to the project?
+  <div>
+    <li>
+      <b>Can I contribute to the project?</b>
     </li>
     <p>
     Yes, but before you do so, please read our <a href="https://github.com/AvalanchePowered/Avalanche/blob/master/CONTRIBUTING.md">contribution guidelines</a>.
     </p>
   </div>
 
-  <div style="margin-bottom: 12px;">
-    <li style="font-weight: bold; font-size: 16px;">
-      Where can I download plugins for Avalanche?
+  <div>
+    <li>
+      <b>Where can I download plugins for Avalanche?</b>
     </li>
     <p>
       Plugins for Avalanche can be downloaded from <a href="https://avalanchepowered.org" target="_blank">our website</a>.
     </p>
   </div>
 
-  <div style="margin-bottom: 12px;">
-    <li style="font-weight: bold; font-size: 16px;">
-      I cannot join my Avalanche server through Windows.
+  <div>
+    <li>
+      <b>I cannot join my Avalanche server through Windows.</b>
     </li>
     <p>
       Windows by default does not allow you to join locally hosted servers through Minecraft, to fix this, run <kbd>CheckNetIsolation LoopbackExempt -a -n="Microsoft.MinecraftUWP_8wekyb3d8bbwe"</kbd> through PowerShell as an administrator, then restart your game and try again.
     </p>
   </div>
 
-  <div style="margin-bottom: 12px;">
-    <li style="font-weight: bold; font-size: 16px;">
-      What operating systems are supported by Avalanche?
+  <div>
+    <li>
+      <b>What operating systems are supported by Avalanche?</b>
     </li>
     <p>
       In theory, any operating system capable of running Node.js version 16.0.0 of newer should be able to run it, though this is not guaranteed, but you can definitely run Avalanche on Linux, OSX and Windows as they do support Node.js.
     </p>
   </div>
 
-  <div style="margin-bottom: 12px;">
-    <li style="font-weight: bold; font-size: 16px;">
-      What devices can I join my Avalanche server using?
+  <div>
+    <li>
+      <b>What devices can I join my Avalanche server using?</b>
     </li>
     <p>
       You can easily join your server using Android, iOS and Windows 10/11. Mojang does not officially support joining external servers on PS4, Xbox One and Switch, but there are methods to workaround this that can be easily found online by doing a little bit of searching.
     </p>
   </div>
 
-  <div style="margin-bottom: 12px;">
-    <li style="font-weight: bold; font-size: 16px;">
-      My question was not listed here, what should I do?
+  <div>
+    <li>
+      <b>My question was not listed here, what should I do?</b>
     </li>
     <p>
       The easiest method would be joining our <a href="https://discord.gg/6w8JWhy" target="_blank">Discord Guild</a> and asking other people, alternatively you can ask on our <a href="https://avalanchepowered.com" target="_blank">forums</a>. <span style="font-weight: bold;">Please do not open issues on the GitHub repository for help with running Avalanche unless you experience a bug that doesn't allow you to run it.</span>
