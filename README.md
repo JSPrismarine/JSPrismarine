@@ -1,38 +1,40 @@
-<img src="https://raw.githubusercontent.com/RealTriassic/JSPrismarine/master/.github/assets/banner_transparent.png" height="152" align="center">
+<img src="https://raw.githubusercontent.com/RealTriassic/JSPrismarine/master/.github/assets/banner_transparent.png" height="152" align="center" style="margin-top: 16px;">
 
 <br /> <br />
 
 <h1>Avalanche for Minecraft: Bedrock Edition.</h1>
 
-<a href="https://discord.gg/6w8JWhy">
-  <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=discord&style=flat-square" style="margin-right: 4px;">
-</a>
-<a href="https://github.com/AvalanchePowered/Avalanche/actions?query=workflow%3A%22Unit+%26+Integration+Testing%22">
-  <img alt="Build" src="https://img.shields.io/github/workflow/status/AvalanchePowered/Avalanche/Unit%20&%20Integration%20Testing?style=flat-square" style="margin-right: 4px;">
-</a>
-<a href="https://github.com/AvalanchePowered/Avalanche/commits/master">
-  <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/AvalanchePowered/Avalanche?color=%2387F4BC&style=flat-square" style="margin-right: 4px;">
-</a>
-<a href="https://coveralls.io/github/AvalanchePowered/Avalanche">
-  <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/AvalanchePowered/Avalanche?style=flat-square" style="margin-right: 4px;">
-</a>
-<a href="https://www.codefactor.io/repository/github/avalanchepowered/avalanche">
-  <img alt="Codefactor.io" src="https://www.codefactor.io/repository/github/avalanchepowered/avalanche/badge?style=flat-square" style="margin-right: 4px;">
-</a>
-<a href="https://github.com/AvalanchePowered/Avalanche/blob/master/LICENSE.md">
-  <img alt="License" src="https://img.shields.io/github/license/AvalanchePowered/Avalanche?style=flat-square" style="margin-right: 4px;">
-</a>
-<a href="https://github.com/AvalanchePowered/Avalanche/graphs/contributors">
-  <img alt="Contributors" src="https://img.shields.io/github/contributors/AvalanchePowered/Avalanche?color=%23E30B5D&style=flat-square" style="margin-right: 4px;">
-</a>
-<a href="https://github.com/AvalanchePowered/Avalanche/search?q=todo">
-  <img alt="TODO Counter" src="https://img.shields.io/github/search/AvalanchePowered/Avalanche/todo.svg?style=flat-square" style="margin-right: 4px;">
-</a>
-<a href="https://github.com/sponsors/AvalanchePowered">
-  <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/AvalanchePowered?style=flat-square">
-</a>
+<div style="margin-bottom: 16px;">
+  <a href="https://discord.gg/6w8JWhy">
+    <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=discord&style=flat-square" style="margin-right: 4px;">
+  </a>
+  <a href="https://github.com/AvalanchePowered/Avalanche/actions?query=workflow%3A%22Unit+%26+Integration+Testing%22">
+    <img alt="Build" src="https://img.shields.io/github/workflow/status/AvalanchePowered/Avalanche/Unit%20&%20Integration%20Testing?style=flat-square" style="margin-right: 4px;">
+  </a>
+  <a href="https://github.com/AvalanchePowered/Avalanche/commits/master">
+    <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/AvalanchePowered/Avalanche?color=%2387F4BC&style=flat-square" style="margin-right: 4px;">
+  </a>
+  <a href="https://coveralls.io/github/AvalanchePowered/Avalanche">
+    <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/AvalanchePowered/Avalanche?style=flat-square" style="margin-right: 4px;">
+  </a>
+  <a href="https://www.codefactor.io/repository/github/avalanchepowered/avalanche">
+    <img alt="Codefactor.io" src="https://www.codefactor.io/repository/github/avalanchepowered/avalanche/badge?style=flat-square" style="margin-right: 4px;">
+  </a>
+  <a href="https://github.com/AvalanchePowered/Avalanche/blob/master/LICENSE.md">
+    <img alt="License" src="https://img.shields.io/github/license/  AvalanchePowered/Avalanche?style=flat-square" style="margin-right: 4px;">
+  </a>
+  <a href="https://github.com/AvalanchePowered/Avalanche/graphs/contributors">
+    <img alt="Contributors" src="https://img.shields.io/github/contributors/AvalanchePowered/Avalanche?color=%23E30B5D&style=flat-square" style="margin-right: 4px;">
+  </a>
+  <a href="https://github.com/AvalanchePowered/Avalanche/search?q=todo">
+    <img alt="TODO Counter" src="https://img.shields.io/github/search/AvalanchePowered/Avalanche/todo.svg?style=flat-square" style="margin-right: 4px;">
+  </a>
+  <a href="https://github.com/sponsors/AvalanchePowered">
+    <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/AvalanchePowered?style=flat-square">
+  </a>
+</div>
 
-<br /> <br />
+<br />
 
 <p>
   Avalanche is a Minecraft server software for the Bedrock Edition codebase built using Typescript. It was built to be as performant, stable and understandable as possible, we aim to provide a hassle-free plugin development experience that will allow you to easily customize your Minecraft server in very interesting ways.
