@@ -32,7 +32,7 @@
   <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/AvalanchePowered?style=flat-square">
 </a>
 
-<br />
+<br /> <br />
 
 <p>
   Avalanche is a Minecraft server software for the Bedrock Edition codebase built using Typescript. It was built to be as performant, stable and understandable as possible, we aim to provide a hassle-free plugin development experience that will allow you to easily customize your Minecraft server in very interesting ways.
