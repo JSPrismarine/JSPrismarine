@@ -1,7 +1,7 @@
+import { inflateSync, inflate } from 'fflate';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Zlib from 'zlib';
-import { inflateSync, inflate } from 'fflate';
 
 /**
  * @internal
@@ -29,7 +29,7 @@ export default class BatchPacket extends DataPacket {
         }
     }
 
-    public async asyncDecode(): Promise<Array<Buffer>> {
+    public async asyncDecode(): Promise<Buffer[]> {
         this.decodeHeader();
 
         try {
@@ -69,9 +69,9 @@ export default class BatchPacket extends DataPacket {
         this.payload.write(packet.getBuffer());
     }
 
-    public getPackets(): Array<Buffer> {
+    public getPackets(): Buffer[] {
         const stream = new BinaryStream(this.payload.getBuffer());
-        const packets: Array<Buffer> = [];
+        const packets: Buffer[] = [];
         do {
             // VarUint: packet length
             packets.push(stream.read(stream.readUnsignedVarInt()));

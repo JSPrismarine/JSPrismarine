@@ -21,7 +21,7 @@ export default class SessionManager {
         return this.connections.delete(token);
     }
 
-    public getAllPlayers(): Array<Player> {
+    public getAllPlayers(): Player[] {
         const players = new Array();
         for (const conn of this.connections.values()) {
             const session = conn.getPlayerSession();

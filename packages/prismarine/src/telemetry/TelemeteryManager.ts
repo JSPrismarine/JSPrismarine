@@ -20,8 +20,8 @@ export default class TelemetryManager {
 
         if (!this.enabled) return;
 
-        exitHook.uncaughtExceptionHandler(async (err) => await this.handleCrash(err));
-        exitHook.unhandledRejectionHandler(async (err) => await this.handleCrash(err));
+        exitHook.uncaughtExceptionHandler(this.handleCrash);
+        exitHook.unhandledRejectionHandler(this.handleCrash);
     }
 
     private async handleCrash(error: Error): Promise<void> {
