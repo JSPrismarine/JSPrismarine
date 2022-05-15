@@ -87,7 +87,7 @@ export default class Player extends Human {
 
         // TODO: remove this mess :/
         this.chatHandler = async (evt: ChatEvent) => {
-            if (evt.cancelled) return;
+            if (evt.isCancelled()) return;
 
             // TODO: proper channel system
             if (
@@ -270,7 +270,7 @@ export default class Player extends Human {
     public async setGamemode(mode: number): Promise<void> {
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.getServer().getEventManager().post(['playerSetGamemode', event]);
-        if (event.cancelled) return;
+        if (event.isCancelled()) return;
 
         this.gamemode = event.getGamemode();
         await this.networkSession.sendGamemode(this.gamemode);
@@ -359,7 +359,7 @@ export default class Player extends Human {
 
         const event = new PlayerToggleSprintEvent(this, sprinting);
         this.getServer().getEventManager().post(['playerToggleSprint', event]);
-        if (event.cancelled) return;
+        if (event.isCancelled()) return;
 
         this.sprinting = event.getIsSprinting();
         await this.sendSettings();
@@ -378,7 +378,7 @@ export default class Player extends Human {
 
         const event = new PlayerToggleFlightEvent(this, flying);
         this.getServer().getEventManager().post(['playerToggleFlight', event]);
-        if (event.cancelled) return;
+        if (event.isCancelled()) return;
 
         this.flying = event.getIsFlying();
         await this.sendSettings();

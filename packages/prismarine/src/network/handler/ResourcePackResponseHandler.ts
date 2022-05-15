@@ -31,7 +31,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // Emit playerSpawn event
             const spawnEvent = new PlayerSpawnEvent(player);
             server.getEventManager().post(['playerSpawn', spawnEvent]);
-            if (spawnEvent.cancelled) return;
+            if (spawnEvent.isCancelled()) return;
 
             // TODO: send inventory slots
 

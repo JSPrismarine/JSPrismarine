@@ -1,6 +1,7 @@
 import Identifiers from '../Identifiers';
 import LoginHandler from './LoginHandler';
 import LoginPacket from '../packet/LoginPacket';
+import PlayStatusType from '../type/PlayStatusType';
 
 describe('network', () => {
     describe('handler', () => {
@@ -14,26 +15,26 @@ describe('network', () => {
                     getRakNetSession: () => ({
                         getAddress: () => ({
                             toToken: () => {
-                                return 'token'
+                                return 'token';
                             }
                         })
                     }),
-                    sendDataPacket: (packet: any) => {
-                        expect(player.username).toStrictEqual({
-                            name: 'runner'
-                        });
-                    }
+                    sendDataPacket: (packet: any) => {},
+                    initPlayerConnection: (server: any, player: any) => ({
+                        sendPlayStatus: (status: any) => {
+                            expect(status).toStrictEqual(PlayStatusType.LoginSuccess);
+                        }
+                    })
                 } as any;
 
                 const player = {
-                    username: {},
                     onEnable: () => {},
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
                         },
                         sendDataPacket: (packet: any) => {
-                            expect(player.username).toStrictEqual({
+                            expect(player.username.name).toStrictEqual({
                                 name: 'runner'
                             });
                         }
@@ -63,7 +64,7 @@ describe('network', () => {
                                 addEntity: () => {},
                                 getPlayerData(player: any) {
                                     return { position: { x: 0, y: 0, z: 0 }, inventory: [] };
-                                } 
+                                }
                             })
                         }),
                         getPermissionManager: () => ({
@@ -85,7 +86,6 @@ describe('network', () => {
                 pk.protocol = Identifiers.Protocol;
 
                 const player = {
-                    username: {},
                     onEnable: () => {},
                     getConnection: () => ({
                         sendPlayStatus: (status: any) => {
@@ -94,7 +94,14 @@ describe('network', () => {
                     }),
                     kick: (message: any) => {
                         expect(message).toBe('You have been banned!');
-                    }
+                    },
+                    getRakNetSession: () => ({
+                        getAddress: () => {}
+                    }),
+                    initPlayerConnection: (server: any, player: any) => ({
+                        sendPlayStatus: (status: any) => {}
+                    }),
+                    sendDataPacket: (packet: any) => {}
                 } as any;
 
                 const handler = new LoginHandler();
@@ -103,7 +110,26 @@ describe('network', () => {
                     {
                         getBanManager: () => ({
                             isBanned: (player: any) => {
-                                return '';
+                                return false;
+                            }
+                        }),
+                        getLogger: () => {
+                            return null;
+                        },
+                        getEventManager: () => ({
+                            on: (event: any, handler: any) => {}
+                        }),
+                        getWorldManager: () => ({
+                            getDefaultWorld: () => ({
+                                addEntity: () => {},
+                                getPlayerData(player: any) {
+                                    return { position: { x: 0, y: 0, z: 0 }, inventory: [] };
+                                }
+                            })
+                        }),
+                        getPermissionManager: () => ({
+                            getPermissions(player: any) {
+                                return null;
                             }
                         }),
                         getPlayerByExactName(name: string) {
@@ -129,7 +155,14 @@ describe('network', () => {
                     }),
                     kick: (message: any) => {
                         expect(message).toBe('You have been banned for reason: a reason!');
-                    }
+                    },
+                    getRakNetSession: () => ({
+                        getAddress: () => {}
+                    }),
+                    initPlayerConnection: (server: any, player: any) => ({
+                        sendPlayStatus: (status: any) => {}
+                    }),
+                    sendDataPacket: (packet: any) => {}
                 } as any;
 
                 const handler = new LoginHandler();
@@ -138,7 +171,26 @@ describe('network', () => {
                     {
                         getBanManager: () => ({
                             isBanned: (player: any) => {
-                                return 'a reason';
+                                return false;
+                            }
+                        }),
+                        getLogger: () => {
+                            return null;
+                        },
+                        getEventManager: () => ({
+                            on: (event: any, handler: any) => {}
+                        }),
+                        getWorldManager: () => ({
+                            getDefaultWorld: () => ({
+                                addEntity: () => {},
+                                getPlayerData(player: any) {
+                                    return { position: { x: 0, y: 0, z: 0 }, inventory: [] };
+                                }
+                            })
+                        }),
+                        getPermissionManager: () => ({
+                            getPermissions(player: any) {
+                                return null;
                             }
                         }),
                         getPlayerByExactName(name: string) {
@@ -164,7 +216,8 @@ describe('network', () => {
                     }),
                     kick: (message: any) => {
                         expect(message).toBe('Invalid username!');
-                    }
+                    },
+                    disconnect: (reason: any, hideReason: any) => {}
                 } as any;
 
                 const handler = new LoginHandler();
@@ -183,7 +236,10 @@ describe('network', () => {
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(1);
                         }
-                    })
+                    }),
+                    sendDataPacket: (packet: any) => {
+                        expect(packet.getName()).toBe('PlayStatusPacket');
+                    }
                 } as any;
 
                 const handler = new LoginHandler();
@@ -195,18 +251,12 @@ describe('network', () => {
                 pk.displayName = '';
                 pk.protocol = Identifiers.Protocol + 10;
 
-                const player = {
-                    username: {},
-                    onEnable: () => {},
-                    getConnection: () => ({
-                        sendPlayStatus: (status: any) => {
-                            expect(status).toBe(2);
-                        }
-                    })
+                const connection = {
+                    sendDataPacket: (packet: any) => {}
                 } as any;
 
                 const handler = new LoginHandler();
-                await handler.handle(pk, {} as any, player);
+                await handler.handle(pk, {} as any, connection);
             });
         });
     });

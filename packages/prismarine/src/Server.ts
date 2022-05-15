@@ -124,6 +124,11 @@ export default class Server {
             const event = new RaknetConnectEvent(session);
             await this.eventManager.emit('raknetConnect', event);
 
+            if (event.isCancelled()) {
+                session.disconnect();
+                return;
+            }
+
             const token = session.getAddress().toToken();
             if (this.sessionManager.has(session.getAddress().toToken())) {
                 this.logger?.error(
@@ -203,10 +208,9 @@ export default class Server {
             try {
                 // Read batch content and handle them
                 const batched = new BatchPacket(packet.content);
-                batched.decode();
 
                 // Read all packets inside batch and handle them
-                for (const buf of batched.getPackets()) {
+                for (const buf of await batched.asyncDecode()) {
                     const pid = buf[0];
 
                     if (!this.packetRegistry.getPackets().has(pid)) {
@@ -232,11 +236,7 @@ export default class Server {
 
                     try {
                         const handler = this.packetRegistry.getHandler(pid);
-                        await (handler as any).handle(
-                            packet,
-                            this,
-                            connection.getPlayerSession() ? connection.getPlayerSession() : connection
-                        );
+                        await (handler as any).handle(packet, this, connection.getPlayerSession() ?? connection);
                         this.logger?.silly(
                             `Received §b${packet.constructor.name}§r packet`,
                             'Server/listen/raknetEncapsulatedPacket'
@@ -292,7 +292,7 @@ export default class Server {
     /**
      * Kills the server asynchronously.
      */
-    public async kill(options?: { withoutSaving?: boolean; crash?: boolean }): Promise<void> {
+    public async shutdown(options?: { withoutSaving?: boolean; crash?: boolean }): Promise<void> {
         if (this.stopping) return;
         this.stopping = true;
 

@@ -25,7 +25,7 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
         // Emit move event
         const event = new PlayerMoveEvent(player, resultantVector, packet.mode);
         server.getEventManager().post(['playerMove', event]);
-        if (event.cancelled) {
+        if (event.isCancelled()) {
             // Reset the player position
             await session.broadcastMove(player, MovementType.Reset);
             return;

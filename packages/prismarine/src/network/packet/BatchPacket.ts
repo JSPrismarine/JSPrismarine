@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Zlib from 'zlib';
-import { inflateSync } from 'fflate';
+import { inflateSync, inflate } from 'fflate';
 
 /**
  * @internal
@@ -29,6 +29,27 @@ export default class BatchPacket extends DataPacket {
         }
     }
 
+    public async asyncDecode(): Promise<Array<Buffer>> {
+        this.decodeHeader();
+
+        try {
+            this.payload.write(
+                await new Promise((resolve, reject) => {
+                    inflate(this.readRemaining(), (err, data) => {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve(data);
+                    });
+                })
+            );
+        } catch (e) {
+            throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
+        }
+
+        return this.getPackets();
+    }
+
     public encodeHeader(): void {
         this.writeByte(this.getId());
     }
@@ -48,9 +69,9 @@ export default class BatchPacket extends DataPacket {
         this.payload.write(packet.getBuffer());
     }
 
-    public getPackets(): Buffer[] {
+    public getPackets(): Array<Buffer> {
         const stream = new BinaryStream(this.payload.getBuffer());
-        const packets: Buffer[] = [];
+        const packets: Array<Buffer> = [];
         do {
             // VarUint: packet length
             packets.push(stream.read(stream.readUnsignedVarInt()));

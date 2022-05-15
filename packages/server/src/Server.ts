@@ -1,6 +1,7 @@
 import { Config, Logger, Server } from '@jsprismarine/prismarine';
 
 import Updater from '@jsprismarine/updater';
+import exitHook from 'async-exit-hook';
 import fs from 'fs';
 import path from 'path';
 
@@ -19,44 +20,27 @@ const updater = new Updater({
     logger,
     version
 });
-
-void updater.check().then(() => {
-    const Prismarine = new Server({
-        config,
-        logger,
-        version
-    });
-
-    Prismarine.bootstrap(config.getServerIp(), config.getPort()).catch(async (error) => {
-        Prismarine.getLogger()?.error(`Cannot start the server, is it already running on the same port?`, 'Prismarine');
-        if (error) console.error(error);
-
-        await Prismarine.kill({
-            crash: true
-        });
-    });
-
-    // Kills the server when exiting process
-    [
-        'uncaughtException',
-        'unhandledRejection',
-        'SIGHUP',
-        'SIGINT',
-        'SIGQUIT',
-        'SIGILL',
-        'SIGTRAP',
-        'SIGABRT',
-        'SIGBUS',
-        'SIGFPE',
-        'SIGUSR1',
-        'SIGSEGV',
-        'SIGUSR2',
-        'SIGTERM'
-    ].forEach((interruptSignal) =>
-        process.on(interruptSignal, async () => {
-            await Prismarine.kill();
-        })
-    );
-
-    (global as any).Server = Prismarine;
+const server = new Server({
+    config,
+    logger,
+    version
 });
+
+exitHook(async () => {
+    await server.shutdown();
+});
+
+(async () => {
+    await updater.check();
+
+    try {
+        await server.bootstrap(config.getServerIp(), config.getServerPort());
+    } catch (e) {
+        logger.error(
+            `Cannot start the server, is it already running on the same port? (${(<Error>e).name})`,
+            'Prismarine'
+        );
+        await server.shutdown({ crash: true });
+        process.exit(1);
+    }
+})();

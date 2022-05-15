@@ -133,7 +133,7 @@ export default class PermissionManager {
         if (target) {
             const event = new playerToggleOperatorEvent(target, op);
             this.server.getEventManager().post(['playerToggleOperator', event]);
-            if (event.cancelled) return false;
+            if (event.isCancelled()) return false;
 
             await target.getNetworkSession().sendAvailableCommands();
         }

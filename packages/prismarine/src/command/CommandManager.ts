@@ -45,7 +45,7 @@ export default class CommandManager {
 
                 const event = new CommandRegisterEvent(command);
                 await this.server.getEventManager().emit('commandRegister', event);
-                if (event.cancelled) return;
+                if (event.isCancelled()) return;
 
                 try {
                     await this.registerClassCommand(command);

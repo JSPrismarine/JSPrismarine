@@ -61,7 +61,7 @@ export default class Console {
         });
 
         server.getEventManager().on('chat', async (evt: ChatEvent) => {
-            if (evt.cancelled) return;
+            if (evt.isCancelled()) return;
             await this.sendMessage(evt.getChat().getMessage());
         });
     }

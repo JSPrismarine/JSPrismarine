@@ -30,10 +30,20 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
 
         // Kick the player if their username is invalid
         if (!packet.displayName) {
-            // TODO: await player.kick('Invalid username!');
-            connection.forceDisconnect();
+            connection.disconnect('Invalid username!', false);
             return;
         }
+
+        // TODO: get rid of this trash
+        const world = server.getWorldManager().getDefaultWorld();
+        const player = new Player(connection, world, server);
+        player.username.name = packet.displayName;
+        player.locale = packet.languageCode;
+        player.randomId = packet.clientRandomId;
+        player.uuid = packet.identity;
+        player.xuid = packet.XUID;
+        player.skin = packet.skin;
+        player.device = packet.device;
 
         // Player with same name is already online
         try {
@@ -41,22 +51,10 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             await oldPlayer.kick('Logged in from another location');
         } catch {}
 
-        const world = server.getWorldManager().getDefaultWorld();
-        const player = new Player(connection, world, server);
-
-        player.username.name = packet.displayName;
-        player.locale = packet.languageCode;
-        player.randomId = packet.clientRandomId;
-        player.uuid = packet.identity;
-        player.xuid = packet.XUID;
-
         if (!player.xuid && server?.getConfig?.().getOnlineMode?.()) {
             await player.kick('Server is in online-mode!');
             return;
         }
-
-        player.skin = packet.skin;
-        player.device = packet.device;
 
         await player.onEnable();
 
@@ -70,7 +68,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
 
         // Update the player connection to be recognized as a connected player
         const session = connection.initPlayerConnection(server, player);
-        session.sendPlayStatus(PlayStatusType.LoginSuccess);
+        await session.sendPlayStatus(PlayStatusType.LoginSuccess);
 
         await world.addEntity(player);
 

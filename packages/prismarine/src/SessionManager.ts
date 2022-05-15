@@ -21,11 +21,13 @@ export default class SessionManager {
         return this.connections.delete(token);
     }
 
-    public getAllPlayers(): Player[] {
+    public getAllPlayers(): Array<Player> {
         const players = new Array();
         for (const conn of this.connections.values()) {
             const session = conn.getPlayerSession();
-            session && players.push(session.getPlayer());
+            if (session !== null) {
+                players.push(session.getPlayer());
+            }
         }
         return players;
     }
@@ -59,7 +61,7 @@ export default class SessionManager {
      */
     public getPlayerByExactName(name: string): Player {
         const found = this.getAllPlayers().find((p) => p.getName() === name) ?? null;
-        assert(found != null, `Player with name ${name} cannot be found!`);
+        assert(found !== null, `Player with name ${name} cannot be found!`);
         return found;
     }
 
@@ -72,7 +74,7 @@ export default class SessionManager {
      */
     public getPlayerById(id: bigint): Player | null {
         const found = this.getAllPlayers().find((p) => p.getRuntimeId() === id) ?? null;
-        assert(found != null, `Player with id ${id} cannot be found!`);
+        assert(found !== null, `Player with id ${id} cannot be found!`);
         return found;
     }
 }

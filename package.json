@@ -194,6 +194,7 @@
   "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
   "devDependencies": {
     "@janniks/typedoc-plugin-monorepo": "^0.4.2",
+    "@types/async-exit-hook": "^2.0.0",
     "@types/jest": "^27.5.0",
     "@types/node": "^17.0.31",
     "@types/node-fetch": "2.6.1",
@@ -221,6 +222,7 @@
     "@types/git-rev-sync": "2.0.0",
     "@types/set-interval-async": "1.0.0",
     "@types/unzipper": "0.10.5",
+    "async-exit-hook": "^2.0.1",
     "d3-interpolate": "2.0.1",
     "evt": "^1.10.2",
     "fast-jwt": "1.5.4",

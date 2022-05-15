@@ -95,7 +95,7 @@ export default class QueryManager {
                                 'maxplayers',
                                 // this.server.getRaknet().getName().getMaxPlayerCount(),
                                 'hostport',
-                                this.server.getConfig().getPort(),
+                                this.server.getConfig().getServerPort(),
                                 'hostip',
                                 this.server.getConfig().getServerIp()
                             ].join('\0')}\0\0`,
