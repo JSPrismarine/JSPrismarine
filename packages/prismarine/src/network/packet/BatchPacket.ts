@@ -1,4 +1,4 @@
-import { inflateSync, inflate } from 'fflate';
+import { inflate, inflateSync } from 'fflate';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Zlib from 'zlib';

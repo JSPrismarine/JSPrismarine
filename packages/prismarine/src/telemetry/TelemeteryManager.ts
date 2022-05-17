@@ -1,9 +1,9 @@
 import fetch, { Headers } from 'node-fetch';
+import { machineIdSync } from 'node-machine-id';
 
+import exitHook from 'async-exit-hook';
 import PluginFile from '../plugin/PluginFile';
 import Server from '../Server';
-import { machineIdSync } from 'node-machine-id';
-import exitHook from 'async-exit-hook';
 
 export default class TelemetryManager {
     private readonly id = this.generateAnonomizedId();
