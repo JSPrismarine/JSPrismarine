@@ -42,21 +42,6 @@
     "space": 4,
     "prettier": true,
     "rules": {
-      "sort-imports": [
-        "error",
-        {
-          "ignoreCase": false,
-          "ignoreDeclarationSort": false,
-          "ignoreMemberSort": false,
-          "memberSyntaxSortOrder": [
-            "none",
-            "all",
-            "multiple",
-            "single"
-          ],
-          "allowSeparatedGroups": false
-        }
-      ],
       "unicorn/filename-case": 0,
       "unicorn/prevent-abbreviations": 0,
       "unicorn/no-process-exit": 0,
