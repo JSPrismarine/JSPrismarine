@@ -17,7 +17,7 @@ import Entity from './entity/Entity';
 import Item from './item/Item';
 import Logger from './utils/Logger';
 import Player from './player/Player';
-import PlayerConnection from './player/PlayerConnection';
+import PlayerSession from './network/PlayerSession';
 import PluginApi from './plugin/api/PluginApi';
 import Server from './Server';
 
@@ -38,7 +38,7 @@ export {
     Managers,
     Math,
     Player,
-    PlayerConnection,
+    PlayerSession,
     PluginApi,
     Protocol,
     Server,

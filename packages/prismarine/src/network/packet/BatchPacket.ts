@@ -1,7 +1,7 @@
+import { inflate, inflateSync } from 'fflate';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Zlib from 'zlib';
-import { inflateSync } from 'fflate';
 
 /**
  * @internal
@@ -27,6 +27,27 @@ export default class BatchPacket extends DataPacket {
         } catch (e) {
             throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
         }
+    }
+
+    public async asyncDecode(): Promise<Buffer[]> {
+        this.decodeHeader();
+
+        try {
+            this.payload.write(
+                await new Promise((resolve, reject) => {
+                    inflate(this.readRemaining(), (err, data) => {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve(data);
+                    });
+                })
+            );
+        } catch (e) {
+            throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
+        }
+
+        return this.getPackets();
     }
 
     public encodeHeader(): void {

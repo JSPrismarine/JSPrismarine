@@ -167,7 +167,7 @@ export class CommandArgumentEntity implements CommandArgument {
                 return [];
             }
 
-        return [context.getSource().getServer().getPlayerManager().getPlayerByName(player)];
+        return [context.getSource().getServer().getSessionManager().getPlayerByExactName(player)]; // TODO: by name not exact
     }
 
     public getReadableType(): string {
@@ -366,8 +366,8 @@ export class PlayerArgumentCommand implements CommandArgument {
         playerEnum.enumName = 'Player';
         try {
             playerEnum.enumValues = Server.instance
-                .getPlayerManager()
-                .getOnlinePlayers()
+                .getSessionManager()
+                .getAllPlayers()
                 .map((player) => player.getName());
         } catch {
             playerEnum.enumValues = [];

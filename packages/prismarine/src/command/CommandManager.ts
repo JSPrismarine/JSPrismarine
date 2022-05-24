@@ -45,7 +45,7 @@ export default class CommandManager {
 
                 const event = new CommandRegisterEvent(command);
                 await this.server.getEventManager().emit('commandRegister', event);
-                if (event.cancelled) return;
+                if (event.isCancelled()) return;
 
                 try {
                     await this.registerClassCommand(command);
@@ -91,9 +91,9 @@ export default class CommandManager {
 
         await Promise.all(
             this.server
-                .getPlayerManager()
-                .getOnlinePlayers()
-                .map(async (player) => player.getConnection().sendAvailableCommands())
+                .getSessionManager()
+                .getAllPlayers()
+                .map(async (player) => player.getNetworkSession().sendAvailableCommands())
         );
 
         this.server

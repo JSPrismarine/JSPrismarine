@@ -1,5 +1,9 @@
 export default class Event {
-    public cancelled = false;
+    private cancelled = false;
+
+    public isCancelled(): boolean {
+        return this.cancelled;
+    }
 
     public preventDefault(): void {
         this.cancelled = true;

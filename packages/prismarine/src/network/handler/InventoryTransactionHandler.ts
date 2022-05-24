@@ -7,14 +7,15 @@ import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
 import { Item } from '../../entity/Entities';
 import PacketHandler from './PacketHandler';
-import type Player from '../../player/Player';
+import { PlayerSession } from '../../Prismarine';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
     public static NetID = Identifiers.InventoryTransactionPacket;
 
-    public async handle(packet: InventoryTransactionPacket, server: Server, player: Player): Promise<void> {
+    public async handle(packet: InventoryTransactionPacket, server: Server, connection: PlayerSession): Promise<void> {
+        const player = connection.getPlayer();
         if (!player.isOnline()) return;
         if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world.
 
@@ -117,10 +118,10 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         // Send block-break packet to all players in the same world
                         await Promise.all(
                             server
-                                .getPlayerManager()
-                                .getOnlinePlayers()
+                                .getSessionManager()
+                                .getAllPlayers()
                                 .filter((p) => p.getWorld().getUniqueId() === player.getWorld().getUniqueId())
-                                .map(async (player) => player.getConnection().sendDataPacket(pk))
+                                .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(pk))
                         );
 
                         // Spawn item if player isn't in creative
@@ -168,10 +169,10 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
                         await Promise.all([
                             player.getPlayersInChunk().map(async (player) => {
-                                await player.getConnection().sendDataPacket(soundPk);
+                                await player.getNetworkSession().getConnection().sendDataPacket(soundPk);
                             }),
                             player.getPlayersInChunk().map(async (player) => {
-                                await player.getConnection().sendDataPacket(pk);
+                                await player.getNetworkSession().getConnection().sendDataPacket(pk);
                             })
                         ]);
                         break;

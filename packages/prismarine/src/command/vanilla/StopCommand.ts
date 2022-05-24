@@ -17,7 +17,7 @@ export default class StopCommand extends Command {
             literal('stop').executes(async (context) => {
                 const source = context.getSource() as Player;
 
-                await source.getServer().getServer().kill();
+                await source.getServer().getServer().shutdown();
                 return 'Stopping the server...';
             })
         );

@@ -1,91 +1,63 @@
-import AdventureSettingsPacket, { AdventureSettingsFlags } from '../network/packet/AdventureSettingsPacket';
+import AdventureSettingsPacket, { AdventureSettingsFlags } from './packet/AdventureSettingsPacket';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
-import CommandParameter, { CommandParameterType } from '../network/type/CommandParameter';
-import { Connection, Protocol } from '@jsprismarine/raknet';
-import PlayerListPacket, { PlayerListAction, PlayerListEntry } from '../network/packet/PlayerListPacket';
+import CommandParameter, { CommandParameterType } from './type/CommandParameter';
+import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
 
-import AddPlayerPacket from '../network/packet/AddPlayerPacket';
+import AddPlayerPacket from './packet/AddPlayerPacket';
 import Air from '../block/blocks/Air';
 import { Attribute } from '../entity/Attribute';
-import AvailableCommandsPacket from '../network/packet/AvailableCommandsPacket';
-import BatchPacket from '../network/packet/BatchPacket';
+import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import Block from '../block/Block';
 import Chunk from '../world/chunk/Chunk';
-import ChunkRadiusUpdatedPacket from '../network/packet/ChunkRadiusUpdatedPacket';
-import CommandData from '../network/type/CommandData';
-import CommandEnum from '../network/type/CommandEnum';
+import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
+import ClientConnection from './ClientConnection';
+import CommandData from './type/CommandData';
+import CommandEnum from './type/CommandEnum';
 import ContainerEntry from '../inventory/ContainerEntry';
 import CoordinateUtils from '../world/CoordinateUtils';
-import CreativeContentEntry from '../network/type/CreativeContentEntry';
-import CreativeContentPacket from '../network/packet/CreativeContentPacket';
-import DataPacket from '../network/packet/DataPacket';
-import DisconnectPacket from '../network/packet/DisconnectPacket';
+import CreativeContentEntry from './type/CreativeContentEntry';
+import CreativeContentPacket from './packet/CreativeContentPacket';
+import DisconnectPacket from './packet/DisconnectPacket';
 import Gamemode from '../world/Gamemode';
 import IForm from '../form/IForm';
-import InventoryContentPacket from '../network/packet/InventoryContentPacket';
+import InventoryContentPacket from './packet/InventoryContentPacket';
 import Item from '../item/Item';
-import LevelChunkPacket from '../network/packet/LevelChunkPacket';
-import MobEquipmentPacket from '../network/packet/MobEquipmentPacket';
-import ModalFormRequestPacket from '../network/packet/ModalFormRequestPacket';
-import MovePlayerPacket from '../network/packet/MovePlayerPacket';
-import MovementType from '../network/type/MovementType';
-import NetworkChunkPublisherUpdatePacket from '../network/packet/NetworkChunkPublisherUpdatePacket';
-import PermissionType from '../network/type/PermissionType';
-import PlayStatusPacket from '../network/packet/PlayStatusPacket';
-import type Player from './Player';
-import PlayerPermissionType from '../network/type/PlayerPermissionType';
-import RemoveActorPacket from '../network/packet/RemoveActorPacket';
+import LevelChunkPacket from './packet/LevelChunkPacket';
+import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
+import MovePlayerPacket from './packet/MovePlayerPacket';
+import MovementType from './type/MovementType';
+import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
+import PermissionType from './type/PermissionType';
+import PlayStatusPacket from './packet/PlayStatusPacket';
+import type Player from '../player/Player';
+import PlayerPermissionType from './type/PlayerPermissionType';
+import RemoveActorPacket from './packet/RemoveActorPacket';
 import type Server from '../Server';
-import SetActorDataPacket from '../network/packet/SetActorDataPacket';
-import SetPlayerGameTypePacket from '../network/packet/SetPlayerGameTypePacket';
-import SetTimePacket from '../network/packet/SetTimePacket';
-import TextPacket from '../network/packet/TextPacket';
-import TextType from '../network/type/TextType';
+import SetActorDataPacket from './packet/SetActorDataPacket';
+import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
+import SetTimePacket from './packet/SetTimePacket';
+import TextPacket from './packet/TextPacket';
+import TextType from './type/TextType';
 import UUID from '../utils/UUID';
-import UpdateAttributesPacket from '../network/packet/UpdateAttributesPacket';
+import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import { WindowIds } from '../inventory/WindowManager';
 
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
-export default class PlayerConnection {
-    private player: Player;
-    private readonly connection: Connection;
+export default class PlayerSession {
+    private connection: ClientConnection;
     private readonly server: Server;
+    private player: Player;
 
     private readonly chunkSendQueue: Set<Chunk> = new Set();
     private readonly loadedChunks: Set<string> = new Set();
     private readonly loadingChunks: Set<string> = new Set();
 
-    public constructor(server: Server, connection: Connection, player: Player) {
+    public constructor(server: Server, connection: ClientConnection, player: Player) {
         this.server = server;
         this.connection = connection;
         this.player = player;
-    }
-
-    // To refactor
-    public async sendDataPacket(packet: DataPacket): Promise<void> {
-        const batch = new BatchPacket();
-        try {
-            batch.addPacket(packet);
-            batch.encode();
-        } catch (error) {
-            this.server
-                .getLogger()
-                ?.warn(
-                    `Packet §b${packet.constructor.name}§r to §b${this.player.getRuntimeId()}§r failed with: ${error}`,
-                    'PlayerConnection/sendDataPacket'
-                );
-            return;
-        }
-
-        // Add this in raknet
-        const sendPacket = new Protocol.Frame();
-        sendPacket.reliability = Protocol.FrameReliability.RELIABLE_ORDERED;
-        sendPacket.orderChannel = 0;
-        sendPacket.content = batch.getBuffer();
-
-        this.connection.sendFrame(sendPacket, Protocol.RakNetPriority.IMMEDIATE);
-        this.server.getLogger()?.silly(`Sent §b${packet.constructor.name}§r packet`, 'PlayerConnection/sendDataPacket');
     }
 
     public async update(_tick: number): Promise<void> {
@@ -123,7 +95,7 @@ export default class PlayerConnection {
         pk.commandPermission = target.isOp() ? PermissionType.Operator : PermissionType.Normal;
         pk.playerPermission = target.isOp() ? PlayerPermissionType.Operator : PlayerPermissionType.Member;
         pk.entityId = target.getRuntimeId();
-        await this.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk);
     }
 
     public async needNewChunks(forceResend = false): Promise<void> {
@@ -233,7 +205,7 @@ export default class PlayerConnection {
         const pk = new InventoryContentPacket();
         pk.items = this.player.getInventory().getItems(true);
         pk.windowId = WindowIds.INVENTORY; // Inventory window
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
         await this.sendHandItem(this.player.getInventory().getItemInHand());
 
         /* TODO: not working..
@@ -252,7 +224,7 @@ export default class PlayerConnection {
     public async sendCreativeContents(empty = false): Promise<void> {
         const pk = new CreativeContentPacket();
         if (empty) {
-            await this.sendDataPacket(pk);
+            await this.getConnection().sendDataPacket(pk);
             return;
         }
 
@@ -274,7 +246,7 @@ export default class PlayerConnection {
             return new CreativeContentEntry(index, block);
         });
 
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     /**
@@ -289,7 +261,7 @@ export default class PlayerConnection {
         pk.inventorySlot = this.player.getInventory().getHandSlotIndex();
         pk.hotbarSlot = this.player.getInventory().getHandSlotIndex();
         pk.windowId = 0; // Inventory ID
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     public async sendForm(form: IForm): Promise<void> {
@@ -297,7 +269,7 @@ export default class PlayerConnection {
         const pk = new ModalFormRequestPacket();
         pk.formId = id;
         pk.formData = form.jsonSerialize();
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     /**
@@ -308,7 +280,7 @@ export default class PlayerConnection {
     public async sendTime(tick: number): Promise<void> {
         const pk = new SetTimePacket();
         pk.time = tick;
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     /**
@@ -319,7 +291,7 @@ export default class PlayerConnection {
     public async sendGamemode(gamemode: number): Promise<void> {
         const pk = new SetPlayerGameTypePacket();
         pk.gamemode = gamemode;
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     public async sendNetworkChunkPublisher(): Promise<void> {
@@ -328,7 +300,7 @@ export default class PlayerConnection {
         pk.y = Math.floor(this.player.getY());
         pk.z = Math.floor(this.player.getZ());
         pk.radius = this.player.viewDistance << 4;
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     public async sendAvailableCommands(): Promise<void> {
@@ -408,11 +380,11 @@ export default class PlayerConnection {
         playerEnum.enumName = 'Player';
         playerEnum.enumValues = this.player
             .getServer()
-            .getPlayerManager()
-            .getOnlinePlayers()
+            .getSessionManager()
+            .getAllPlayers()
             .map((player) => player.getName());
         pk.softEnums = [playerEnum];
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     /**
@@ -424,7 +396,7 @@ export default class PlayerConnection {
         this.player.viewDistance = distance;
         const pk = new ChunkRadiusUpdatedPacket();
         pk.radius = distance;
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     public async sendAttributes(attributes: Attribute[]): Promise<void> {
@@ -432,7 +404,7 @@ export default class PlayerConnection {
         pk.runtimeEntityId = this.player.getRuntimeId();
         pk.attributes = attributes ?? this.player.getAttributeManager().getAttributes();
         pk.tick = BigInt(0); // TODO
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     public async sendMetadata(): Promise<void> {
@@ -440,7 +412,7 @@ export default class PlayerConnection {
         pk.runtimeEntityId = this.player.getRuntimeId();
         pk.metadata = this.player.getMetadataManager();
         pk.tick = BigInt(0); // TODO
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     /**
@@ -471,7 +443,7 @@ export default class PlayerConnection {
         pk.xuid = xuid;
         pk.platformChatId = ''; // TODO
         pk.parameters = parameters;
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     public async sendChunk(chunk: Chunk): Promise<void> {
@@ -481,7 +453,7 @@ export default class PlayerConnection {
         pk.clientSubChunkRequestsEnabled = false;
         pk.subChunkCount = chunk.getTopEmpty() + 4; // add the useless layers hack
         pk.data = chunk.networkSerialize();
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
 
         const hash = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
         this.loadedChunks.add(hash);
@@ -515,7 +487,7 @@ export default class PlayerConnection {
 
         pk.ridingEntityRuntimeId = BigInt(0);
         pk.tick = BigInt(0); // TODO
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     /**
@@ -540,7 +512,7 @@ export default class PlayerConnection {
         playerList.entries.push(entry);
 
         await this.server.broadcastPacket(playerList);
-        this.server.getPlayerManager().getPlayerList().set(this.player.uuid, entry);
+        // TODO: this.server.getPlayerManager().getPlayerList().set(this.player.uuid, entry);
     }
 
     /**
@@ -557,13 +529,13 @@ export default class PlayerConnection {
         });
         pk.entries.push(entry);
 
-        this.server.getPlayerManager().getPlayerList().delete(this.player.uuid);
+        // TODO this.server.getPlayerManager().getPlayerList().delete(this.player.uuid);
 
         await Promise.all(
             this.server
-                .getPlayerManager()
-                .getOnlinePlayers()
-                .map(async (player) => player.getConnection().sendDataPacket(pk))
+                .getSessionManager()
+                .getAllPlayers()
+                .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(pk))
         );
     }
 
@@ -573,8 +545,8 @@ export default class PlayerConnection {
     public async sendPlayerList(): Promise<void> {
         const playerList = new PlayerListPacket();
         playerList.type = PlayerListAction.TYPE_ADD;
-        playerList.entries = Array.from(this.server.getPlayerManager().getPlayerList().values());
-        await this.sendDataPacket(playerList);
+        playerList.entries = []; /* TODO Array.from(this.server.getPlayerManager().getPlayerList().values()); */
+        await this.getConnection().sendDataPacket(playerList);
     }
 
     /**
@@ -610,7 +582,7 @@ export default class PlayerConnection {
 
         pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager();
-        await player.getConnection().sendDataPacket(pk);
+        await player.getNetworkSession().getConnection().sendDataPacket(pk);
         await this.sendSettings(player);
     }
 
@@ -620,19 +592,27 @@ export default class PlayerConnection {
     public async sendDespawn(player: Player): Promise<void> {
         const pk = new RemoveActorPacket();
         pk.uniqueEntityId = this.player.getRuntimeId(); // We use runtime as unique
-        await player.getConnection().sendDataPacket(pk);
+        await player.getNetworkSession().getConnection().sendDataPacket(pk);
     }
 
     public async sendPlayStatus(status: number): Promise<void> {
         const pk = new PlayStatusPacket();
         pk.status = status;
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
     }
 
     public async kick(reason = 'unknown reason'): Promise<void> {
         const pk = new DisconnectPacket();
         pk.hideDisconnectionWindow = false;
         pk.message = reason;
-        await this.sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk);
+    }
+
+    public getConnection(): ClientConnection {
+        return this.connection;
+    }
+
+    public getPlayer(): Player {
+        return this.player;
     }
 }

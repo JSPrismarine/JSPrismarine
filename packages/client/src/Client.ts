@@ -1,4 +1,4 @@
-import { Connection, ConnectionPriority, InetAddress, Protocol } from '@jsprismarine/raknet';
+import { ConnectionPriority, InetAddress, Protocol, RakNetSession } from '@jsprismarine/raknet';
 import Dgram, { Socket } from 'dgram';
 import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
@@ -29,7 +29,7 @@ export default class Client extends EventEmitter {
     private readonly logger = new Logger();
     private readonly address: InetAddress;
     private targetAddress!: InetAddress;
-    private connection: Connection | null = null;
+    private connection: RakNetSession | null = null;
     private readonly socket = Dgram.createSocket({ type: 'udp4' });
     private get closed() {
         return false;
@@ -163,7 +163,7 @@ export default class Client extends EventEmitter {
         // Update session status
         this.connecting = true;
         // This.status = ConnectionStatus.Connected;
-        this.connection = new Connection(this as any, DEF_MTU_SIZE, {
+        this.connection = new RakNetSession(this as any, DEF_MTU_SIZE, {
             address: this.address.getAddress(),
             port: this.address.getPort(),
             family: 'IPv4',
@@ -219,7 +219,7 @@ export default class Client extends EventEmitter {
         return this.address;
     }
 
-    public async removeConnection(connection: Connection, reason?: string): Promise<void> {
+    public async removeConnection(connection: RakNetSession, reason?: string): Promise<void> {
         throw new Error('Method not implemented.');
     }
 }
