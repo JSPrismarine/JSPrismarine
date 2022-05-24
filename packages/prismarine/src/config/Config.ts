@@ -65,7 +65,7 @@ export default class Config {
         return this.version;
     }
 
-    public getPort(): number {
+    public getServerPort(): number {
         return this.port;
     }
 

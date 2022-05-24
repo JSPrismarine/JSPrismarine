@@ -1,6 +1,6 @@
 import * as Protocol from './protocol/Protocol';
 
-import Connection, { RakNetPriority as ConnectionPriority } from './Session';
+import RakNetSession, { RakNetPriority as ConnectionPriority } from './Session';
 
 import InetAddress from './utils/InetAddress';
 import RakNetListener from './Listener';
@@ -15,4 +15,4 @@ export const RAKNET_MAGIC = Buffer.from(
 );
 export const MAX_MTU_SIZE = 1500;
 
-export { Connection, ConnectionPriority, Protocol, RakNetListener, InetAddress, ServerName };
+export { RakNetSession, ConnectionPriority, Protocol, RakNetListener, InetAddress, ServerName };

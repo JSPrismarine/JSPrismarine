@@ -3,25 +3,26 @@ import InteractPacket, { InteractAction } from '../packet/InteractPacket';
 import ContainerOpenPacket from '../packet/ContainerOpenPacket';
 import Identifiers from '../Identifiers';
 import PacketHandler from './PacketHandler';
-import type Player from '../../player/Player';
+import { PlayerSession } from '../../Prismarine';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 
 export default class InteractHandler implements PacketHandler<InteractPacket> {
     public static NetID = Identifiers.InteractPacket;
 
-    public async handle(packet: InteractPacket, server: Server, player: Player): Promise<void> {
+    public async handle(packet: InteractPacket, server: Server, session: PlayerSession): Promise<void> {
         switch (packet.action) {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:
                 break;
             case InteractAction.OpenInventory: {
+                const player = session.getPlayer();
                 const pk = new ContainerOpenPacket();
                 pk.windowId = player.getInventory().getId();
                 pk.containerType = -1; // -> inventory (TODO)
                 pk.containerPos = new Vector3(player.getX(), player.getY(), player.getZ());
                 pk.containerEntityId = player.getRuntimeId();
-                await player.getConnection().sendDataPacket(pk);
+                await session.getConnection().sendDataPacket(pk);
                 break;
             }
             default:

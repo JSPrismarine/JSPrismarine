@@ -157,7 +157,7 @@ export default class Entity extends Position {
         pk.yaw = 0;
         pk.headYaw = 0;
         pk.metadata = this.metadata.getMetadata();
-        await Promise.all(players.map(async (p) => p.getConnection().sendDataPacket(pk)));
+        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(pk)));
     }
 
     /**
@@ -173,7 +173,7 @@ export default class Entity extends Position {
 
         const pk = new RemoveActorPacket();
         pk.uniqueEntityId = this.runtimeId;
-        await Promise.all(players.map(async (p) => p.getConnection().sendDataPacket(pk)));
+        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(pk)));
     }
 
     /**
@@ -194,8 +194,8 @@ export default class Entity extends Position {
      */
     public async sendPosition() {
         this.getServer()
-            .getPlayerManager()
-            .getOnlinePlayers()
+            .getSessionManager()
+            .getAllPlayers()
             .filter((p) => p.getWorld().getUniqueId() === this.getWorld().getUniqueId())
             .map(async (player) => {
                 const pk = new MoveActorAbsolutePacket();
@@ -206,7 +206,7 @@ export default class Entity extends Position {
                 pk.rotationX = 0;
                 pk.rotationY = 0;
                 pk.rotationZ = 0;
-                await player.getConnection().sendDataPacket(pk);
+                await player.getNetworkSession().getConnection().sendDataPacket(pk);
             });
     }
 

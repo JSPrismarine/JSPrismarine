@@ -1,8 +1,10 @@
 import fetch, { Headers } from 'node-fetch';
-
-import PluginFile from '../plugin/PluginFile';
-import Server from '../Server';
 import { machineIdSync } from 'node-machine-id';
+
+import exitHook from 'async-exit-hook';
+
+import type PluginFile from '../plugin/PluginFile';
+import type Server from '../Server';
 
 export default class TelemetryManager {
     private readonly id = this.generateAnonomizedId();
@@ -19,16 +21,17 @@ export default class TelemetryManager {
 
         if (!this.enabled) return;
 
-        ['uncaughtException', 'unhandledRejection'].forEach((interruptSignal) =>
-            process.on(interruptSignal, async (error) => {
-                console.log((error as Error).stack);
-                await this.sendCrashLog(error, urls);
-                this.server.getLogger()?.error(error, 'TelemetryManager');
-                await this.server.kill({
-                    crash: true
-                });
-            })
-        );
+        exitHook.uncaughtExceptionHandler(this.handleCrash);
+        exitHook.unhandledRejectionHandler(this.handleCrash);
+    }
+
+    private async handleCrash(error: Error): Promise<void> {
+        console.log((<Error>error).stack);
+        await this.sendCrashLog(error, this.urls);
+        this.server.getLogger()?.error((<Error>error).message, 'TelemetryManager');
+        await this.server.shutdown({
+            crash: true
+        });
     }
 
     public async onEnable() {

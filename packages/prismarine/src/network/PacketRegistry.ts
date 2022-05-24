@@ -2,9 +2,9 @@ import * as Handlers from './Handlers';
 import * as Packets from './Packets';
 
 import Identifiers from './Identifiers';
-import LoggerBuilder from '../utils/Logger';
 import PacketHandler from './handler/PacketHandler';
-import type Player from '../player/Player';
+import { PlayerSession } from '../Prismarine';
+import PreLoginPacketHandler from './handler/PreLoginPacketHandler';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
 
@@ -68,7 +68,7 @@ export default class PacketRegistry {
             ?.debug(`Handler with id §b${handler.constructor.name}§r registered`, 'PacketRegistry/registerHandler');
     }
 
-    public getHandler(id: number): PacketHandler<any> {
+    public getHandler(id: number): PacketHandler<any> | PreLoginPacketHandler<any> {
         if (!this.handlers.has(id)) throw new Error(`Invalid handler with id ${id.toString(16)}!`);
 
         return this.handlers.get(id)!;
@@ -83,9 +83,9 @@ export default class PacketRegistry {
      */
     public appendHandler(handler: PacketHandler<any>, handler2: PacketHandler<any>): PacketHandler<any> {
         const res = new (class Handler {
-            public async handle(packet: any, server: Server, player: Player) {
-                await handler.handle(packet, server, player);
-                await handler2.handle(packet, server, player);
+            public async handle(packet: any, server: Server, session: PlayerSession) {
+                await handler.handle(packet, server, session);
+                await handler2.handle(packet, server, session);
             }
         })();
 

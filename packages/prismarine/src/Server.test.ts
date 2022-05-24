@@ -92,8 +92,8 @@ describe('Prismarine', () => {
 
         const mockExit = jest.spyOn(process, 'exit').mockImplementation((() => {}) as any);
 
-        await prismarine.listen('0.0.0.0', getRandomInt(46000, 49999));
-        await prismarine.kill();
+        await prismarine.bootstrap('0.0.0.0', getRandomInt(46000, 49999));
+        await prismarine.shutdown();
         expect(mockExit).toHaveBeenCalledWith(0);
     });
 });

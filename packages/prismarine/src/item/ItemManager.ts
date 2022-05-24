@@ -56,7 +56,7 @@ export default class ItemManager {
     public registerItem = async (item: Item) => {
         const event = new ItemRegisterEvent(item);
         await this.server.getEventManager().emit('itemRegister', event);
-        if (event.cancelled) return;
+        if (event.isCancelled()) return;
 
         this.server
             .getLogger()
