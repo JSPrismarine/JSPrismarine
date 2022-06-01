@@ -209,7 +209,7 @@
     "@types/unzipper": "0.10.5",
     "async-exit-hook": "^2.0.1",
     "d3-interpolate": "2.0.1",
-    "evt": "^1.10.2",
+    "evt": "1.11.0",
     "fast-jwt": "1.5.4",
     "fflate": "0.7.3",
     "git-rev-sync": "3.0.2",
