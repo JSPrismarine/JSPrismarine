@@ -180,7 +180,7 @@
   "devDependencies": {
     "@janniks/typedoc-plugin-monorepo": "^0.4.2",
     "@types/async-exit-hook": "^2.0.0",
-    "@types/jest": "^27.5.1",
+    "@types/jest": "27.5.2",
     "@types/node": "^17.0.31",
     "@types/node-fetch": "2.6.1",
     "coveralls": "3.1.1",
