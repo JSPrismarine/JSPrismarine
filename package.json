@@ -199,7 +199,7 @@
         "async-exit-hook": "2.0.1",
         "d3-interpolate": "2.0.1",
         "evt": "1.11.2",
-        "fast-jwt": "1.6.0",
+        "fast-jwt": "1.6.1",
         "fflate": "0.7.3",
         "git-rev-sync": "3.0.2",
         "graceful-fs": "4.2.10",
