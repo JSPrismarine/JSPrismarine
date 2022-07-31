@@ -15,17 +15,14 @@
 <a href="https://coveralls.io/github/JSPrismarine/JSPrismarine">
   <img alt="Coveralls github" src="https://img.shields.io/coveralls/github/JSPrismarine/JSPrismarine?style=flat-square">
 </a>
-<a href="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine">
-  <img alt="Codefactor.io" src="https://www.codefactor.io/repository/github/jsprismarine/jsprismarine/badge?style=flat-square">
-</a>
 <a href="https://discord.gg/6w8JWhy">
   <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
 </a>
 <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
-  <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo.svg?style=flat-square">
+  <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo?style=flat-square">
 </a>
-<a href="https://github.com/sponsors/JSPrismarine">
-  <img alt="GitHub Sponsors" src="https://img.shields.io/github/sponsors/JSPrismarine?style=flat-square">
+<a href="https://github.com/JSPrismarine/JSPrismarine/search?q=fixme">
+  <img alt="FIXME Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/fixme?style=flat-square">
 </a>
 
 A dedicated Minecraft Bedrock Edition server written in TypeScript with focus on performance, extensibility and ease-of-use.
