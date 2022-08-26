@@ -23,7 +23,7 @@
         "@jsprismarine/jsbinaryutils": "3.2.3"
     },
     "devDependencies": {
-        "typescript": "4.7.4"
+        "typescript": "4.8.2"
     },
     "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
 }
