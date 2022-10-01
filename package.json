@@ -200,7 +200,7 @@
         "d3-interpolate": "2.0.1",
         "evt": "1.11.2",
         "fast-jwt": "1.7.1",
-        "fflate": "0.7.3",
+        "fflate": "0.7.4",
         "git-rev-sync": "3.0.2",
         "graceful-fs": "4.2.10",
         "live-plugin-manager": "0.17.1",
