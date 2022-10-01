@@ -27,7 +27,7 @@
 		"url": "https://github.com/JSPrismarine/JSPrismarine/issues"
 	},
 	"dependencies": {
-		"fflate": "0.7.3",
+		"fflate": "0.7.4",
 		"node-fetch": "^2.6.7",
 		"yaml": "^2.0.1"
 	},
