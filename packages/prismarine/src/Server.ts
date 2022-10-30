@@ -264,6 +264,9 @@ export default class Server {
         });
 
         // TODO: the tick depends on the world
+        // TODO: ticks have to be sync... what if a newer update
+        // takes less to complete than the one started before?
+        // will lead to desyncronized gameplay
         let tick = 0;
         const ticker = setIntervalAsync(async () => {
             if (this.stopping) {
@@ -278,7 +281,7 @@ export default class Server {
                 await world.update(event.getTick());
             }
             tick += 1;
-        }, 1000 / 20);
+        }, 50);
 
         // Log experimental flags
         if (this.config.getExperimentalFlags().length >= 1) {
