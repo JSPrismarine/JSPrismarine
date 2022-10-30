@@ -12,6 +12,7 @@ import QueryManager from './query/QueryManager';
 import TelemeteryManager from './telemetry/TelemeteryManager';
 import WindowManager from './inventory/WindowManager';
 import WorldManager from './world/WorldManager';
+import SessionManager from './SessionManager';
 
 export {
     BanManager,
@@ -22,6 +23,7 @@ export {
     FormManager,
     ItemManager,
     PermissionManager,
+    SessionManager,
     PlayerManager,
     PluginManager,
     QueryManager,
