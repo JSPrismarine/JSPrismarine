@@ -22,20 +22,25 @@ export default class BatchPacket extends DataPacket {
     }
 
     public decodePayload(): void {
+        const rem = this.readRemaining();
         try {
-            this.payload.write(inflateSync(this.readRemaining()));
+            this.payload.write(inflateSync(rem));
         } catch (e) {
-            throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
+            // TODO: awful hack to handle uncompressed game packets
+            this.payload.write(rem)
+            // throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
         }
     }
 
     public async asyncDecode(): Promise<Buffer[]> {
         this.decodeHeader();
 
+        const rem = this.readRemaining();
+
         try {
             this.payload.write(
                 await new Promise((resolve, reject) => {
-                    inflate(this.readRemaining(), (err, data) => {
+                    inflate(rem, (err, data) => {
                         if (err) {
                             reject(err);
                         }
@@ -44,7 +49,8 @@ export default class BatchPacket extends DataPacket {
                 })
             );
         } catch (e) {
-            throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
+            this.payload.write(rem);
+            // throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
         }
 
         return this.getPackets();

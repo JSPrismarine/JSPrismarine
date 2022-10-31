@@ -21,6 +21,7 @@ import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitia
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import TextHandler from './handler/TextHandler';
 import TickSyncHandler from './handler/TickSyncHandler';
+import RequestNetworkSettingsHandler from './handler/RequestNetworkSettingsHandler';
 
 export {
     AdventureSettingsHandler,
@@ -45,5 +46,6 @@ export {
     SetLocalPlayerAsInitializedHandler,
     SetPlayerGameTypeHandler,
     TextHandler,
-    TickSyncHandler
+    TickSyncHandler,
+    RequestNetworkSettingsHandler
 };

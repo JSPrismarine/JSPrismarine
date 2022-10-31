@@ -54,6 +54,7 @@ export default class AddActorPacket extends DataPacket {
         this.writeFloatLE(this.pitch);
         this.writeFloatLE(this.yaw);
         this.writeFloatLE(this.headYaw);
+        this.writeFloatLE(this.yaw);  // bodyYaw
 
         // TODO: attributes
         this.writeUnsignedVarInt(this.attributes.length);
@@ -61,6 +62,9 @@ export default class AddActorPacket extends DataPacket {
         // TODO: fixme
         // const metadata = Array.from(this.metadata);
         this.writeUnsignedVarInt(/* metadata.length */ 0);
+
+        this.writeUnsignedVarInt(0); // ? unknown
+        this.writeUnsignedVarInt(0); // ? unknown
 
         /* metadata.forEach(([key, [type, value]]) => {
             this.writeUnsignedVarInt(key);

@@ -229,14 +229,16 @@ export default class Player extends Human {
     }
 
     public async sendSettings(): Promise<void> {
-        await Promise.all(
+        /* 
+            TODO
+            await Promise.all(
             this.getServer()
                 .getSessionManager()
                 .getAllPlayers()
                 .map(async (target) => {
                     await target.getNetworkSession().sendSettings(this);
                 })
-        );
+        ); */
     }
 
     // Return all the players in the same chunk,.

@@ -36,7 +36,6 @@ export default class AddPlayerPacket extends DataPacket {
     public encodePayload() {
         this.uuid.networkSerialize(this);
         McpeUtil.writeString(this, this.name);
-        this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
         McpeUtil.writeString(this, this.platformChatId ?? '');
 
@@ -56,18 +55,13 @@ export default class AddPlayerPacket extends DataPacket {
         this.writeVarInt(0); // TODO: gamemode
         this.metadata.networkSerialize(this);
 
-        for (let i = 0; i < 5; i++) {
-            this.writeUnsignedVarInt(0); // TODO: Adventure settings
-        }
+        this.writeUnsignedVarInt(0); // ? unknown
+        this.writeUnsignedVarInt(0); // ? unknown
 
-        // UserId
-        // if (this.uniqueEntityId & 1n) {
-        //    this.writeLLong(-1n * ((this.uniqueEntityId + 1n) >> 1n));
-        // } else {
-        //     this.writeLLong(this.uniqueEntityId >> 1n);
-        // }
-
-        this.writeLongLE(BigInt(0)); // TODO: fix userid
+        this.writeLongLE(this.uniqueEntityId ?? this.runtimeEntityId);
+        this.writeByte(0); // command permission
+        this.writeByte(0); // permission level
+        this.writeByte(0); // ? unknown
 
         this.writeUnsignedVarInt(0); // TODO: Entity links
         McpeUtil.writeString(this, this.deviceId);

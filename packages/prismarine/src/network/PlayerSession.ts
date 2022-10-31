@@ -583,7 +583,7 @@ export default class PlayerSession {
         pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager();
         await player.getNetworkSession().getConnection().sendDataPacket(pk);
-        await this.sendSettings(player);
+        // TODO: await this.sendSettings(player);
     }
 
     /**

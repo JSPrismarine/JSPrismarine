@@ -14,6 +14,10 @@ export default class PlayerActionPacket extends DataPacket {
         this.runtimeEntityId = this.readUnsignedVarLong();
         this.action = this.readVarInt();
         this.position = BlockPosition.networkDeserialize(this);
+        
+        // TODO
+        BlockPosition.networkDeserialize(this);
+
         this.face = this.readVarInt();
     }
 
@@ -21,6 +25,10 @@ export default class PlayerActionPacket extends DataPacket {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeVarInt(this.action);
         this.position.networkSerialize(this);
+
+        // TODO
+        new BlockPosition(0, 0, 0).networkSerialize(this);
+
         this.writeVarInt(this.face);
     }
 }

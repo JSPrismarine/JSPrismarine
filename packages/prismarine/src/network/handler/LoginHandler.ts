@@ -1,5 +1,3 @@
-import NetworkSettingsPacket, { NetworkCompression } from '../packet/NetworkSettingsPacket';
-
 import ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
@@ -79,8 +77,8 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         resourcePacksInfo.hasScripts = false;
         await connection.sendDataPacket(resourcePacksInfo);
 
-        const networkSettings = new NetworkSettingsPacket();
-        networkSettings.compressionThreshold = NetworkCompression.COMPRESS_EVERYTHING;
-        await connection.sendDataPacket(networkSettings);
+        // const networkSettings = new NetworkSettingsPacket();
+        // networkSettings.compressionThreshold = NetworkCompression.COMPRESS_EVERYTHING;
+        // await connection.sendDataPacket(networkSettings);
     }
 }

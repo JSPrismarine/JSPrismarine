@@ -3,6 +3,9 @@ import GameruleManager from '../../world/GameruleManager';
 import Identifiers from '../Identifiers';
 import McpeUtil from '../NetworkUtil';
 import Vector3 from '../../math/Vector3';
+import UUID from '../../utils/UUID';
+import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class StartGamePacket extends DataPacket {
     public static NetID = Identifiers.StartGamePacket;
@@ -57,6 +60,8 @@ export default class StartGamePacket extends DataPacket {
         // waiting for more info about it
         this.writeBoolean(true); // Achievement disabled
 
+        this.writeBoolean(false);  // Is editor mode?
+
         this.writeVarInt(0); // Day cycle / time
         this.writeVarInt(0); // Edu edition offer
         this.writeBoolean(false); // Edu features
@@ -94,6 +99,8 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // From world template
         this.writeByte(0); // World template option locked
         this.writeByte(0); // Only spawn v1 villagers
+        this.writeByte(0); // Disable persona skins
+        this.writeByte(0); // Disable custom skins
         McpeUtil.writeString(this, Identifiers.MinecraftVersion);
 
         this.writeUnsignedIntLE(0); // Limited world height
@@ -106,6 +113,9 @@ export default class StartGamePacket extends DataPacket {
         McpeUtil.writeString(this, '');
 
         this.writeBoolean(false); // Experimental gameplay
+
+        this.writeByte(0); // Chat restriction level
+        this.writeByte(0); // Disable player interactions
 
         McpeUtil.writeString(this, this.levelId);
         McpeUtil.writeString(this, this.worldName);
@@ -121,7 +131,7 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(0); // Enchantment seed
 
-        this.writeUnsignedVarInt(0); // Custom blocks
+        this.writeUnsignedVarInt(0); // Blocks palette
 
         this.writeUnsignedVarInt(0); // Item palette
 
@@ -129,7 +139,20 @@ export default class StartGamePacket extends DataPacket {
         this.writeBoolean(false); // New inventory system
 
         McpeUtil.writeString(this, Identifiers.MinecraftVersion);
-        this.writeLongLE(0n);
+        
+        // TODO
+        const str = new BinaryStream();
+        const nbt = new NBTWriter(str, 1);
+        nbt.setUseVarint(true);
+        nbt.writeCompound(new NBTTagCompound());
+        this.write(str.getBuffer());
+        
+        this.writeLongLE(0n); // Block palette checksum
+
+        // TODO: Not sure if a random one will work, but let's try
+        UUID.fromRandom().networkSerialize(this);
+
+        this.writeByte(0); // Use client side chunk generation
     }
 
     /*

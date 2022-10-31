@@ -10,12 +10,14 @@ export default class SpawnParticleEffectPacket extends DataPacket {
     public uniqueEntityId!: bigint;
     public position!: Vector3;
     public identifier!: string;
+    public molangJson!: string;
 
     public decodePayload() {
         this.dimensionId = this.readByte();
         this.uniqueEntityId = this.readVarLong();
         this.position = Vector3.networkDeserialize(this);
         this.identifier = McpeUtil.readString(this);
+        this.molangJson = McpeUtil.readString(this);
     }
 
     public encodePayload() {
@@ -23,6 +25,6 @@ export default class SpawnParticleEffectPacket extends DataPacket {
         this.writeVarLong(this.uniqueEntityId);
         this.position.networkSerialize(this);
         McpeUtil.writeString(this, this.identifier);
-        // TODO
+        McpeUtil.writeString(this, this.molangJson);
     }
 }

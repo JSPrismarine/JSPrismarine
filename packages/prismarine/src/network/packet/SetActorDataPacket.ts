@@ -13,6 +13,10 @@ export default class SetActorDataPacket extends DataPacket {
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.metadata.networkSerialize(this);
+
+        this.writeUnsignedVarInt(0); // ? unknown
+        this.writeUnsignedVarInt(0); // ? unknown
+
         this.writeUnsignedVarLong(this.tick);
     }
 }
