@@ -189,7 +189,7 @@
         "yarnhook": "0.6.0"
     },
     "dependencies": {
-        "@jsprismarine/bedrock-data": "1.18.30",
+        "@jsprismarine/bedrock-data": "^1.19.40",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
         "@jsprismarine/jsbinaryutils": "3.2.3",
         "@types/d3-interpolate": "3.0.1",
@@ -206,7 +206,6 @@
         "live-plugin-manager": "0.17.1",
         "node-fetch": "2.6.7",
         "node-machine-id": "1.1.12",
-        "npm": "^8.19.2",
         "prismarine-chunk": "1.32.0",
         "prismarine-provider-anvil": "2.7.0",
         "semver": "7.3.8",

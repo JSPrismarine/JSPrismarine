@@ -14,7 +14,7 @@ export default class PlayerActionPacket extends DataPacket {
         this.runtimeEntityId = this.readUnsignedVarLong();
         this.action = this.readVarInt();
         this.position = BlockPosition.networkDeserialize(this);
-        
+
         // TODO
         BlockPosition.networkDeserialize(this);
 
