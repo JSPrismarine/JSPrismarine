@@ -1,5 +1,3 @@
-import * as d3 from 'd3-interpolate';
-
 import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
@@ -15,12 +13,13 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
     public async handle(packet: MovePlayerPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
         // Update movement for every player & interpolate position to smooth it
-        const interpolatedVector = d3.interpolateObject(
+        /* const interpolatedVector = d3.interpolateObject(
             { x: player.getX(), z: player.getZ() },
             { x: packet.positionX, z: packet.positionZ }
-        )(0.5);
-        const resultantVector = new Vector3(interpolatedVector.x, packet.positionY, interpolatedVector.z);
-        const immutableFrom = Object.freeze(resultantVector);
+        )(0.5); */
+        // TODO: interpolation
+        const resultantVector = new Vector3(packet.positionX, packet.positionY, packet.positionZ);
+        // const immutableFrom = Object.freeze(resultantVector);
 
         // Emit move event
         const event = new PlayerMoveEvent(player, resultantVector, packet.mode);
@@ -33,9 +32,9 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
 
         // Check if the position has been changed through an event listener
         // if so, reset the player position
-        if (!immutableFrom.equals(resultantVector)) {
-            await session.broadcastMove(player, MovementType.Reset);
-        }
+        // if (!immutableFrom.equals(resultantVector)) {
+        await session.broadcastMove(player, MovementType.Reset);
+        // }
 
         // Make sure we actually change X or Z coordinates before
         // we try to update the current chunking. This prevents
