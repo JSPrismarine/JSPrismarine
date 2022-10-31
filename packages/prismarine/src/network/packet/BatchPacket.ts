@@ -26,7 +26,7 @@ export default class BatchPacket extends DataPacket {
         const rem = this.readRemaining();
         try {
             this.payload.write(inflateSync(rem));
-        } catch (e) {
+        } catch {
             // TODO: awful hack to handle uncompressed game packets
             this.payload.write(rem);
             // throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
@@ -49,7 +49,7 @@ export default class BatchPacket extends DataPacket {
                     });
                 })
             );
-        } catch (e) {
+        } catch {
             // If the decompression fails, probably the packet is uncompressed
             this.payload.write(rem);
             // throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
