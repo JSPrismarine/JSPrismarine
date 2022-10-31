@@ -30,7 +30,7 @@ export default class Config {
         this.onEnable();
     }
 
-    public onEnable() {
+    public onEnable(): void {
         this.configBuilder = new ConfigBuilder(path.join(cwd(), 'config.yaml'));
         (global as any).log_level = this.configBuilder.get('log-level', 'info');
 
@@ -48,7 +48,7 @@ export default class Config {
         this.gamemode = this.configBuilder.get('gamemode', 'survival') as string;
         this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!') as string;
         this.viewDistance = this.configBuilder.get('view-distance', 10) as number;
-        this.onlineMode = this.configBuilder.get('online-mode', true) as boolean;
+        this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
         this.enableEval = this.configBuilder.get('enable-eval', false) as boolean;
         this.enableTelemetry = this.configBuilder.get('enable-telemetry', false) as boolean;
         this.telemetryUrls = this.configBuilder.get('telemetry-urls', ['https://telemetry.prismarine.dev']) as string[];
