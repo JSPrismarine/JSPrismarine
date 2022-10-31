@@ -60,7 +60,7 @@ export default class StartGamePacket extends DataPacket {
         // waiting for more info about it
         this.writeBoolean(true); // Achievement disabled
 
-        this.writeBoolean(false);  // Is editor mode?
+        this.writeBoolean(false); // Is editor mode?
 
         this.writeVarInt(0); // Day cycle / time
         this.writeVarInt(0); // Edu edition offer
@@ -139,14 +139,14 @@ export default class StartGamePacket extends DataPacket {
         this.writeBoolean(false); // New inventory system
 
         McpeUtil.writeString(this, Identifiers.MinecraftVersion);
-        
+
         // TODO
         const str = new BinaryStream();
         const nbt = new NBTWriter(str, 1);
         nbt.setUseVarint(true);
         nbt.writeCompound(new NBTTagCompound());
         this.write(str.getBuffer());
-        
+
         this.writeLongLE(0n); // Block palette checksum
 
         // TODO: Not sure if a random one will work, but let's try

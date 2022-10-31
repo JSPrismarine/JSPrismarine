@@ -17,10 +17,11 @@ export default class MinecraftSession {
         this.logger = logger;
     }
 
-    public async sendDataPacket(packet: DataPacket): Promise<void> {
+    public async sendDataPacket(packet: DataPacket, comp = true): Promise<void> {
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);
+            batch.compressed = comp;
             batch.encode();
         } catch (error) {
             this.logger?.warn(

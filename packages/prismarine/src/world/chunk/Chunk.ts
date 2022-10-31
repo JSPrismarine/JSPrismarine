@@ -133,7 +133,7 @@ export default class Chunk {
             stream.writeUnsignedVarInt(1 << 1); // plains
         }
 
-        stream.writeByte(0) // border ?
+        stream.writeByte(0); // border ?
 
         // TODO: tiles
 

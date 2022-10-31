@@ -9,6 +9,7 @@ import Zlib from 'zlib';
 export default class BatchPacket extends DataPacket {
     public static NetID = 0xfe;
 
+    public compressed = true; //  TODO: better solution
     private payload = new BinaryStream();
     // Bigger compression level leads to more CPU usage and less network, and vice versa
     // TODO: batch.setCompressionLevel(), it should be dependent from Server instance
@@ -27,7 +28,7 @@ export default class BatchPacket extends DataPacket {
             this.payload.write(inflateSync(rem));
         } catch (e) {
             // TODO: awful hack to handle uncompressed game packets
-            this.payload.write(rem)
+            this.payload.write(rem);
             // throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
         }
     }
@@ -49,6 +50,7 @@ export default class BatchPacket extends DataPacket {
                 })
             );
         } catch (e) {
+            // If the decompression fails, probably the packet is uncompressed
             this.payload.write(rem);
             // throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
         }
@@ -63,7 +65,10 @@ export default class BatchPacket extends DataPacket {
     public encodePayload(): void {
         // this.append(Buffer.from(Fflate.deflateSync(this.payload, { level: 7 })));
         // Seems like Zlib runs a little bit better for deflating, will see in future with async...
-        this.write(Zlib.deflateRawSync(this.payload.getBuffer(), { level: 7 }));
+        // this.write(Zlib.deflateRawSync(this.payload.getBuffer(), { level: 7 }));
+        this.write(
+            this.compressed ? Zlib.deflateRawSync(this.payload.getBuffer(), { level: 7 }) : this.payload.getBuffer()
+        );
     }
 
     public addPacket(packet: DataPacket): void {
