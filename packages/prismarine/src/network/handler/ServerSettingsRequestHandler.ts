@@ -8,6 +8,6 @@ export default class ServerSettingsRequestHandler implements PacketHandler<Serve
     public static NetID = Identifiers.ServerSettingsRequestPacket;
 
     public async handle(_packet: ServerSettingsRequestPacket, _server: Server, session: PlayerSession): Promise<void> {
-        await session.sendSettings();
+        // TODO: await session.sendSettings();
     }
 }

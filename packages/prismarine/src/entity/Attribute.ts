@@ -63,6 +63,7 @@ export class Attribute {
         stream.writeFloatLE(this.getValue());
         stream.writeFloatLE(this.getDefault());
         McpeUtil.writeString(stream, this.getName());
+        stream.writeUnsignedVarInt(0); // TODO: modifier count
     }
 
     public getName(): string {

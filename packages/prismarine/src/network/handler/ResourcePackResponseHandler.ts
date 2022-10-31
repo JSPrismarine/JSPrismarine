@@ -75,7 +75,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // TODO: set difficulty packet
             // TODO: set commands enabled packet
 
-            await session.sendSettings();
+            // TODO: await session.sendSettings();
 
             // TODO: game rules changed packet
 

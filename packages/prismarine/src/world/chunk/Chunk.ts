@@ -116,9 +116,10 @@ export default class Chunk {
 
         // For some reasons we need this hack since 1.18
         // TODO: figure out what is this
+        // seems like the client now has some negative space
         for (let y = 0; y < 4; ++y) {
             stream.writeByte(8); // subchunk version 8
-            stream.writeByte(0); // 0 layers
+            stream.writeByte(0); // 0 layers (all air)
         }
 
         for (let i = 0; i < (forceAll ? MAX_SUBCHUNKS : this.getTopEmpty()); i++) {
@@ -127,10 +128,14 @@ export default class Chunk {
         }
 
         // TODO: 3D biomes
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < 24; i++) {
             stream.writeByte(0); // fake biome palette, non persistent
-            stream.writeVarInt(1 << 1); // plains
+            stream.writeUnsignedVarInt(1 << 1); // plains
         }
+
+        stream.writeByte(0) // border ?
+
+        // TODO: tiles
 
         return stream.getBuffer();
     }

@@ -7,6 +7,7 @@ export default class ModalFormResponsePacket extends DataPacket {
 
     public formId!: number;
     public formData!: string;
+    public cancelReason!: number;
 
     public encodePayload(): void {
         this.writeUnsignedVarInt(this.formId);
@@ -15,6 +16,9 @@ export default class ModalFormResponsePacket extends DataPacket {
 
     public decodePayload(): void {
         this.formId = this.readUnsignedVarInt();
-        this.formData = McpeUtil.readString(this);
+        const hasData = this.readBoolean();
+        if (hasData) this.formData = McpeUtil.readString(this);
+        const isCancelled = this.readBoolean();
+        if (isCancelled) this.cancelReason = this.readByte();
     }
 }

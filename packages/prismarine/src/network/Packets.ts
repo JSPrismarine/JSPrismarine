@@ -69,6 +69,7 @@ import TransferPacket from './packet/TransferPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import WorldEventPacket from './packet/WorldEventPacket';
+import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
 
 export {
     ActorFallPacket,
@@ -141,5 +142,6 @@ export {
     TransferPacket,
     UpdateAttributesPacket,
     UpdateBlockPacket,
-    WorldEventPacket
+    WorldEventPacket,
+    RequestNetworkSettingsPacket
 };
