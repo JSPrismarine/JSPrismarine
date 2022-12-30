@@ -6,11 +6,8 @@ import Vector3 from '../../../math/Vector3';
 import fs from 'fs';
 import path from 'path';
 
-const AnvilProvider = require('prismarine-provider-anvil').Anvil('1.16');
-const ReadLevel = require('prismarine-provider-anvil').level.readLevel;
-const WriteLevel = require('prismarine-provider-anvil').level.writeLevel;
-const ChunkProvider = require('prismarine-chunk')('1.16');
 
+// FIXME: to implement
 export default class Anvil extends BaseProvider {
     private anvil: any;
     private level: any;
