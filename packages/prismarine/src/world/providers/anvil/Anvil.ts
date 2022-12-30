@@ -6,7 +6,6 @@ import Vector3 from '../../../math/Vector3';
 import fs from 'fs';
 import path from 'path';
 
-
 // FIXME: to implement
 export default class Anvil extends BaseProvider {
     private anvil: any;
