@@ -2,7 +2,7 @@ declare module 'level' {
     type Options = {
         keyEncoding?: string;
         valueEncoding?: string;
-    }
+    };
 
     export default class Level {
         public constructor(path: string);
