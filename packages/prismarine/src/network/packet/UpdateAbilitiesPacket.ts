@@ -55,7 +55,7 @@ export default class UpdateAbilitiesPacket extends DataPacket {
     public commandPermission!: PermissionType;
     public playerPermission!: PlayerPermissionType;
     public targetActorUniqueId!: bigint;
-    public abilityLayers!: Array<AbilityLayer>;
+    public abilityLayers!: AbilityLayer[];
 
     public encodePayload(): void {
         this.writeLongLE(this.targetActorUniqueId);
