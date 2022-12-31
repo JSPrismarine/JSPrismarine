@@ -1,8 +1,7 @@
-import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
+import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 
 import BedrockData from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { stream } from 'winston';
 
 export interface LegacyId {
     id: number;
