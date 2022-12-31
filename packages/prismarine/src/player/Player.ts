@@ -22,6 +22,7 @@ import Timer from '../utils/Timer';
 import Vector3 from '../math/Vector3';
 import WindowManager from '../inventory/WindowManager';
 import World from '../world/World';
+import { MetadataFlag, FlagType } from '../entity/Metadata';
 
 export default class Player extends Human {
     private readonly address: InetAddress;
@@ -364,7 +365,11 @@ export default class Player extends Human {
         if (event.isCancelled()) return;
 
         this.sprinting = event.getIsSprinting();
-        await this.sendSettings();
+
+        // TODO: find a better way to put this
+        this.setDataFlag(MetadataFlag.INDEX, MetadataFlag.SPRINTING, this.isSprinting(), FlagType.BYTE);
+
+        await this.networkSession.sendMetadata();
     }
 
     public isFlying() {

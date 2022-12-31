@@ -1,9 +1,11 @@
 import ClientConnection from './network/ClientConnection';
 import Player from './player/Player';
 import assert from 'assert';
+import { PlayerListEntry } from './network/packet/PlayerListPacket';
 
 export default class SessionManager {
     private readonly connections: Map<string, ClientConnection> = new Map();
+    private readonly playerList: Map<string, PlayerListEntry> = new Map();
 
     public add(token: string, connection: ClientConnection): void {
         this.connections.set(token, connection);
@@ -19,6 +21,10 @@ export default class SessionManager {
 
     public remove(token: string): boolean {
         return this.connections.delete(token);
+    }
+
+    public getPlayerList(): Map<string, PlayerListEntry> {
+        return this.playerList;
     }
 
     public getAllPlayers(): Player[] {
