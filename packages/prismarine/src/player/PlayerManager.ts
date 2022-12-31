@@ -2,8 +2,8 @@ import Player from './Player';
 import { PlayerListEntry } from '../network/packet/PlayerListPacket';
 
 export default class PlayerManager {
-    private readonly players: Map<string, Player> = new Map() as Map<string, Player>;
-    private readonly playerList: Map<string, PlayerListEntry> = new Map() as Map<string, PlayerListEntry>;
+    private readonly players: Map<string, Player> = new Map();
+    private readonly playerList: Map<string, PlayerListEntry> = new Map();
 
     public getPlayer(address: string): Player {
         const player = this.players.get(address);

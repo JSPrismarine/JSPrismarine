@@ -22,6 +22,9 @@ export enum MetadataFlag {
     ENTITY_LEAD_HOLDER_ID = 37,
     SCALE,
     MAX_AIR = 42,
+
+    // flags
+    SPRINTING = 3,
     HAS_COLLISION = 48,
     AFFECTED_BY_GRAVITY = 49,
     BOUNDINGBOX_WIDTH = 53,

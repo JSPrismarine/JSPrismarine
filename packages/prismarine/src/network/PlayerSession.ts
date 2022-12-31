@@ -551,7 +551,7 @@ export default class PlayerSession {
         playerList.entries.push(entry);
 
         await this.server.broadcastPacket(playerList);
-        // TODO: this.server.getPlayerManager().getPlayerList().set(this.player.uuid, entry);
+        this.server.getSessionManager().getPlayerList().set(this.player.uuid, entry);
     }
 
     /**
@@ -568,7 +568,7 @@ export default class PlayerSession {
         });
         pk.entries.push(entry);
 
-        // TODO this.server.getPlayerManager().getPlayerList().delete(this.player.uuid);
+        this.server.getSessionManager().getPlayerList().delete(this.player.uuid);
 
         await Promise.all(
             this.server
@@ -584,7 +584,7 @@ export default class PlayerSession {
     public async sendPlayerList(): Promise<void> {
         const playerList = new PlayerListPacket();
         playerList.type = PlayerListAction.TYPE_ADD;
-        playerList.entries = []; /* TODO Array.from(this.server.getPlayerManager().getPlayerList().values()); */
+        playerList.entries = Array.from(this.server.getSessionManager().getPlayerList().values());
         await this.getConnection().sendDataPacket(playerList);
     }
 
