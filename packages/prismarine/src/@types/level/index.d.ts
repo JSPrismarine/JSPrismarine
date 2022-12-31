@@ -1,5 +1,5 @@
 declare module 'level' {
-    interface Options {
+    type Options = {
         keyEncoding?: string;
         valueEncoding?: string;
     }

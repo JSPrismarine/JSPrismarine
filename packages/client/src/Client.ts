@@ -1,5 +1,5 @@
 import { ConnectionPriority, InetAddress, Protocol, RakNetSession } from '@jsprismarine/raknet';
-import Dgram, { Socket } from 'dgram';
+import Dgram, { type Socket } from 'dgram';
 import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
