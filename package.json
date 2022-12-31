@@ -71,6 +71,7 @@
             "@typescript-eslint/ban-types": 0,
             "@typescript-eslint/no-implicit-any-catch": 0,
             "@typescript-eslint/no-useless-constructor": 0,
+            "@typescript-eslint/no-implicit-coercion": 0,
             "@typescript-eslint/restrict-template-expressions": 0,
             "@typescript-eslint/naming-convention": 0,
             "@typescript-eslint/no-var-requires": 0,
