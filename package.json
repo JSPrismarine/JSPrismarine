@@ -75,7 +75,7 @@
             "@typescript-eslint/consistent-generic-constructors": 0,
             "@typescript-eslint/no-redundant-type-constituents": 0,
             "@typescript-eslint/member-ordering": 0,
-            "@typescript-eslint/consistent-type-definitions": "interface",
+            "@typescript-eslint/consistent-type-definitions": 0,
             "@typescript-eslint/ban-types": 0,
             "@typescript-eslint/no-duplicate-enum-values": 0,
             "@typescript-eslint/no-implicit-any-catch": 0,
