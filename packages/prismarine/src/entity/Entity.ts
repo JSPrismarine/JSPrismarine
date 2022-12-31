@@ -54,7 +54,7 @@ export default class Entity extends Position {
         this.server = server;
 
         this.metadata.setLong(MetadataFlag.INDEX, 0n);
-        this.metadata.setShort(MetadataFlag.MAX_AIR, 400);
+        this.metadata.setShort(MetadataFlag.MAX_AIR, 300);
         this.metadata.setLong(MetadataFlag.ENTITY_LEAD_HOLDER_ID, -1n);
         this.metadata.setFloat(MetadataFlag.SCALE, 1);
         this.metadata.setFloat(MetadataFlag.BOUNDINGBOX_WIDTH, 0.6);

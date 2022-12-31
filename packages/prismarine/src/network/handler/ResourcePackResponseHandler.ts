@@ -75,7 +75,8 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // TODO: set difficulty packet
             // TODO: set commands enabled packet
 
-            // TODO: await session.sendSettings();
+            await session.sendSettings();
+            await session.sendAbilities();
 
             // TODO: game rules changed packet
 
@@ -88,6 +89,8 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // TODO: player fog packet
 
             await session.sendAttributes(player.getAttributeManager().getDefaults());
+
+            await session.sendMetadata();
 
             await session.sendCreativeContents(true);
 
@@ -117,7 +120,6 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             player.setNameTag(player.getName());
             // TODO: always visible nametag
-            await session.sendMetadata();
 
             // TODO: fix await player.getConnection().sendInventory();
 

@@ -2,7 +2,7 @@ import ActorFallPacket from './packet/ActorFallPacket';
 import AddActorPacket from './packet/AddActorPacket';
 import AddItemActorPacket from './packet/AddItemActorPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
-import AdventureSettingsPacket from './packet/AdventureSettingsPacket';
+import AdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import AnimatePacket from './packet/AnimatePacket';
 import AvailableActorIdentifiersPacket from './packet/AvailableActorIdentifiersPacket';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';

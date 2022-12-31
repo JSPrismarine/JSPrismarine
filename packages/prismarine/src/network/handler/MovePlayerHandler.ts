@@ -33,7 +33,7 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
         // Check if the position has been changed through an event listener
         // if so, reset the player position
         // if (!immutableFrom.equals(resultantVector)) {
-        await session.broadcastMove(player, MovementType.Reset);
+        // await session.broadcastMove(player, MovementType.Reset);
         // }
 
         // Make sure we actually change X or Z coordinates before

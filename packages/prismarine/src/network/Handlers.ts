@@ -1,4 +1,3 @@
-import AdventureSettingsHandler from './handler/AdventureSettingsHandler';
 import AnimateHandler from './handler/AnimateHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
@@ -24,7 +23,6 @@ import TickSyncHandler from './handler/TickSyncHandler';
 import RequestNetworkSettingsHandler from './handler/RequestNetworkSettingsHandler';
 
 export {
-    AdventureSettingsHandler,
     AnimateHandler,
     ClientCacheStatusHandler,
     CommandRequestHandler,

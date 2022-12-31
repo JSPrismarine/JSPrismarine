@@ -56,7 +56,6 @@ const Identifiers = {
     CraftingDataPacket: 0x34,
     CraftingEventPacket: 0x35,
     GuiDataPickItemPacket: 0x36,
-    AdventureSettingsPacket: 0x37,
     BlockActorDataPacket: 0x38,
     PlayerInputPacket: 0x39,
     LevelChunkPacket: 0x3a,
@@ -164,7 +163,9 @@ const Identifiers = {
     ItemComponentPacket: 0xa2,
     FilterTextPacket: 0xa3,
     ClientboundDebugRendererPacket: 0xa4,
-    RequestNetworkSettingsPacket: 0xc1
+    RequestNetworkSettingsPacket: 0xc1,
+    UpdateAdventureSettingsPacket: 0xbc,
+    UpdateAbilitiesPacket: 0xbb
 };
 
 export default Identifiers;
