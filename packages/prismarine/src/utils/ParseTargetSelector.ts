@@ -141,7 +141,7 @@ const ParseTargetSelector = ({
             // FIXME: respect limit filter
             targets = [targets[Math.floor(Math.random() * targets.length)]];
             break;
-        case 'arbitrary':
+        // TODO: case 'arbitrary':
         default:
             break;
     }
