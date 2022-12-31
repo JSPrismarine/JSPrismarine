@@ -20,7 +20,7 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
         }
 
         const networkSettings = new NetworkSettingsPacket();
-        networkSettings.compressionThreshold = CompressionThreshold.COMPRESS_EVERYTHING;
+        networkSettings.compressionThreshold = CompressionThreshold.COMPRESS_NOTHING;
         networkSettings.compressionAlgorithm = CompressionAlgorithm.ZLIB;
         networkSettings.enableClientThrottling = false;
         networkSettings.clientThrottleScalar = 0;

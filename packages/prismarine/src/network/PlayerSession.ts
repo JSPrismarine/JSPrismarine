@@ -1,4 +1,4 @@
-import AdventureSettingsPacket, { AdventureSettingsFlags } from './packet/AdventureSettingsPacket';
+import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
 import CommandParameter, { CommandParameterType } from './type/CommandParameter';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
@@ -42,6 +42,11 @@ import TextType from './type/TextType';
 import UUID from '../utils/UUID';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import { WindowIds } from '../inventory/WindowManager';
+import UpdateAbilitiesPacket, {
+    AbilityLayer,
+    AbilityLayerFlag,
+    AbilityLayerType
+} from './packet/UpdateAbilitiesPacket';
 
 const { creativeitems } = require('@jsprismarine/bedrock-data');
 
@@ -83,18 +88,52 @@ export default class PlayerSession {
      */
     public async sendSettings(player?: Player): Promise<void> {
         const target = player ?? this.player;
-        const pk = new AdventureSettingsPacket();
 
-        pk.setFlag(AdventureSettingsFlags.WorldImmutable, target.gamemode === 3);
-        pk.setFlag(AdventureSettingsFlags.NoPvp, target.gamemode === Gamemode.Spectator);
-        pk.setFlag(AdventureSettingsFlags.AutoJump, true); // TODO
-        pk.setFlag(AdventureSettingsFlags.AllowFlight, target.getAllowFlight());
-        pk.setFlag(AdventureSettingsFlags.NoClip, target.gamemode === Gamemode.Spectator);
-        pk.setFlag(AdventureSettingsFlags.Flying, target.isFlying());
+        const pk = new UpdateAdventureSettingsPacket();
+        pk.worldImmutable = target.gamemode === Gamemode.Spectator;
+        pk.noAttackingPlayers = target.gamemode === Gamemode.Spectator;
+        pk.noAttackingMobs = target.gamemode === Gamemode.Spectator;
+        pk.autoJump = true; // TODO: grab this info elsewhere
+        pk.showNameTags = true; // TODO: player may be able to hide them
 
+        await this.connection.sendDataPacket(pk);
+    }
+
+    public async sendAbilities(player?: Player): Promise<void> {
+        const target = player ?? this.player;
+
+        const pk = new UpdateAbilitiesPacket();
         pk.commandPermission = target.isOp() ? PermissionType.Operator : PermissionType.Normal;
         pk.playerPermission = target.isOp() ? PlayerPermissionType.Operator : PlayerPermissionType.Member;
-        pk.entityId = target.getRuntimeId();
+        pk.targetActorUniqueId = target.getRuntimeId();
+
+        const mainLayer = new AbilityLayer();
+        mainLayer.layerType = AbilityLayerType.BASE;
+        mainLayer.layerFlags = new Map([
+            [AbilityLayerFlag.FLY_SPEED, true],
+            [AbilityLayerFlag.WALK_SPEED, true],
+            [AbilityLayerFlag.MAY_FLY, target.getAllowFlight()],
+            [AbilityLayerFlag.FLYING, target.isFlying()],
+            [AbilityLayerFlag.NO_CLIP, target.gamemode === Gamemode.Spectator],
+            [AbilityLayerFlag.OPERATOR_COMMANDS, target.isOp()],
+            [AbilityLayerFlag.TELEPORT, target.isOp()],
+            [AbilityLayerFlag.INVULNERABLE, target.gamemode === Gamemode.Creative],
+            [AbilityLayerFlag.MUTED, false],
+            [AbilityLayerFlag.WORLD_BUILDER, false],
+            [AbilityLayerFlag.INSTABUILD, target.gamemode === Gamemode.Creative],
+            [AbilityLayerFlag.LIGHTNING, false],
+            [AbilityLayerFlag.BUILD, !(target.gamemode === Gamemode.Spectator)],
+            [AbilityLayerFlag.MINE, !(target.gamemode === Gamemode.Spectator)],
+            [AbilityLayerFlag.DOORS_AND_SWITCHES, !(target.gamemode === Gamemode.Spectator)],
+            [AbilityLayerFlag.OPEN_CONTAINERS, !(target.gamemode === Gamemode.Spectator)],
+            [AbilityLayerFlag.ATTACK_PLAYERS, !(target.gamemode === Gamemode.Spectator)],
+            [AbilityLayerFlag.ATTACK_MOBS, !(target.gamemode === Gamemode.Spectator)]
+        ]);
+        mainLayer.flySpeed = 0.05;
+        mainLayer.walkSpeed = 0.1;
+
+        pk.abilityLayers = [mainLayer];
+
         await this.connection.sendDataPacket(pk);
     }
 
