@@ -79,6 +79,7 @@
         "prefer-exponentiation-operator": 0,
         "no-return-assign": 0,
         "no-control-regex": 0,
+        "no-unused-vars": 0,
         "no-async-promise-executor": 0,
         "no-negated-condition": 0,
         "no-promise-executor-return": 0,
