@@ -27,10 +27,10 @@
 		"url": "https://github.com/JSPrismarine/JSPrismarine/issues"
 	},
 	"dependencies": {
-		"@jsprismarine/nbt": "0.1.0-rc.49",
+		"@jsprismarine/nbt": "*",
 		"fflate": "0.7.4",
 		"node-fetch": "^2.6.7",
-		"yaml": "^2.0.1"
+		"yaml": "2.2.1"
 	},
 	"gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
 }
