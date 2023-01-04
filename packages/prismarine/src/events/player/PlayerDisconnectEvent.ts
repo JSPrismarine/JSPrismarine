@@ -1,5 +1,5 @@
 import type { InetAddress } from '@jsprismarine/raknet';
-import type Player from '../../player/Player.js';
+import type Player from '../../Player.js';
 import PlayerConnectEvent from './PlayerConnectEvent.js';
 
 /**

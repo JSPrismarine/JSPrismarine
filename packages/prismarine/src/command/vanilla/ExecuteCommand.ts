@@ -2,7 +2,7 @@ import { CommandArgumentCommand, CommandArgumentEntity } from '../CommandArgumen
 import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command.js';
-import type Player from '../../player/Player.js';
+import type Player from '../../Player.js';
 
 export default class ExecuteCommand extends Command {
     public constructor() {

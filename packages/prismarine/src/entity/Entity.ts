@@ -3,7 +3,7 @@ import MetadataManager, { FlagType, MetadataFlag } from './Metadata.js';
 import AddActorPacket from '../network/packet/AddActorPacket.js';
 import AttributeManager from './Attribute.js';
 import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket.js';
-import Player from '../player/Player.js';
+import Player from '../Player.js';
 import Position from '../world/Position.js';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket.js';
 import Server from '../Server.js';

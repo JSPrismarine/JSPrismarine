@@ -1,4 +1,4 @@
-import type Player from '../../player/Player.js';
+import type Player from '../../Player.js';
 import PlayerSpawnEvent from './PlayerSpawnEvent.js';
 
 /**

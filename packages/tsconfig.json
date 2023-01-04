@@ -19,6 +19,6 @@
         "experimentalDecorators": true,
         "composite": true,
         "pretty": true,
-        "incremental": true
+        "incremental": true,
     }
 }

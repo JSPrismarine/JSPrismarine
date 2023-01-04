@@ -6,7 +6,6 @@ import { EventManager } from './events/EventManager.js';
 import FormManager from './form/FormManager.js';
 import ItemManager from './item/ItemManager.js';
 import PermissionManager from './permission/PermissionManager.js';
-import PlayerManager from './player/PlayerManager.js';
 import PluginManager from './plugin/PluginManager.js';
 import QueryManager from './query/QueryManager.js';
 import TelemeteryManager from './telemetry/TelemeteryManager.js';
@@ -24,7 +23,6 @@ export {
     ItemManager,
     PermissionManager,
     SessionManager,
-    PlayerManager,
     PluginManager,
     QueryManager,
     TelemeteryManager,

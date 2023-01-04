@@ -7,7 +7,7 @@ import CommandEnum from '../network/type/CommandEnum.js';
 import Gamemode from '../world/Gamemode.js';
 import ParseTargetSelector from '../utils/ParseTargetSelector.js';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation.js';
-import Player from '../player/Player.js';
+import Player from '../Player.js';
 import { Server } from '../Prismarine.js';
 import Vector3 from '../math/Vector3.js';
 

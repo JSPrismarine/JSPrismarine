@@ -30,7 +30,7 @@ import MovementType from './type/MovementType.js';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket.js';
 import PermissionType from './type/PermissionType.js';
 import PlayStatusPacket from './packet/PlayStatusPacket.js';
-import type Player from '../player/Player.js';
+import type Player from '../Player.js';
 import PlayerPermissionType from './type/PlayerPermissionType.js';
 import RemoveActorPacket from './packet/RemoveActorPacket.js';
 import type Server from '../Server.js';

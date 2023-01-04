@@ -10,7 +10,7 @@ import Gamemode from './Gamemode.js';
 import Generator from './Generator.js';
 import Item from '../item/Item.js';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket.js';
-import Player from '../player/Player.js';
+import Player from '../Player.js';
 import Server from '../Server.js';
 import Timer from '../utils/Timer.js';
 import UUID from '../utils/UUID.js';

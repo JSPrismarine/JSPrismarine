@@ -1,6 +1,6 @@
 import Event from '../Event.js';
 import MovementType from '../../network/type/MovementType.js';
-import type Player from '../../player/Player.js';
+import type Player from '../../Player.js';
 import Vector3 from '../../math/Vector3.js';
 
 /**

@@ -1,5 +1,5 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import type Player from '../player/Player.js';
+import type Player from '../Player.js';
 
 interface CommandProps {
     id: string;

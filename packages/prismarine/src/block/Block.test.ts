@@ -1,4 +1,4 @@
-import type Block from './Block';
+import type Block from './Block.js';
 import fs from 'fs';
 import path from 'path';
 

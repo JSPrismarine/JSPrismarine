@@ -1,7 +1,7 @@
 import { AddItemActorPacket } from '../../network/Packets.js';
 import type ContainerEntry from '../../inventory/ContainerEntry.js';
 import Entity from '../Entity.js';
-import Player from '../../player/Player.js';
+import Player from '../../Player.js';
 import type Server from '../../Server.js';
 import Vector3 from '../../math/Vector3.js';
 import type World from '../../world/World.js';

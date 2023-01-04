@@ -1,5 +1,5 @@
 import ClientConnection from './network/ClientConnection.js';
-import Player from './player/Player.js';
+import Player from './Player.js';
 import assert from 'assert';
 import { PlayerListEntry } from './network/packet/PlayerListPacket.js';
 

@@ -1,4 +1,4 @@
-import ConfigBuilder from './ConfigBuilder';
+import ConfigBuilder from './ConfigBuilder.js';
 import path from 'path';
 
 describe('config', () => {

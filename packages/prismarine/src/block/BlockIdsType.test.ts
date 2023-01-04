@@ -1,6 +1,6 @@
-import { BlockIdsType } from './BlockIdsType';
-import BlockManager from './BlockManager';
-import LoggerBuilder from '../utils/Logger';
+import { BlockIdsType } from './BlockIdsType.js';
+import BlockManager from './BlockManager.js';
+import LoggerBuilder from '../utils/Logger.js';
 
 describe('block', () => {
     describe('BlockIdsType', () => {

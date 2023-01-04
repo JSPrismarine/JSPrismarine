@@ -16,7 +16,7 @@ import ConfigBuilder from './config/ConfigBuilder.js';
 import Entity from './entity/Entity.js';
 import Item from './item/Item.js';
 import Logger from './utils/Logger.js';
-import Player from './player/Player.js';
+import Player from './Player.js';
 import PlayerSession from './network/PlayerSession.js';
 import PluginApi from './plugin/api/PluginApi.js';
 import Server from './Server.js';

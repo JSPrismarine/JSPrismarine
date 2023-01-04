@@ -1,6 +1,6 @@
 import Form from './Form.js';
 import { FormType } from './FormType.js';
-import Player from '../player/Player.js';
+import Player from '../Player.js';
 
 export default class ModalForm extends Form {
     private content: string;

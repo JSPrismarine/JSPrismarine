@@ -207,7 +207,6 @@ export default class Server {
 
             try {
                 // Read batch content and handle them
-                //@ts-ignore
                 const batched = new BatchPacket(packet.content);
 
                 // Read all packets inside batch and handle them
@@ -223,7 +222,6 @@ export default class Server {
                     }
 
                     // Get packet from registry
-                    //@ts-ignore
                     const packet = new (this.packetRegistry.getPackets().get(pid)!)(buf);
 
                     try {

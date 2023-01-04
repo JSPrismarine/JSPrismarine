@@ -1,4 +1,4 @@
-import Player from '../player/Player.js';
+import Player from '../Player.js';
 import type Server from '../Server.js';
 import cwd from '../utils/cwd.js';
 import fs from 'fs';

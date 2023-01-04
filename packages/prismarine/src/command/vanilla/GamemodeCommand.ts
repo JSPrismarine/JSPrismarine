@@ -5,7 +5,7 @@ import Chat from '../../chat/Chat.js';
 import ChatEvent from '../../events/chat/ChatEvent.js';
 import Command from '../Command.js';
 import Gamemode from '../../world/Gamemode.js';
-import Player from '../../player/Player.js';
+import Player from '../../Player.js';
 
 export default class GamemodeCommand extends Command {
     public constructor() {

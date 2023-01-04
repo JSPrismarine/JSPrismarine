@@ -5,7 +5,7 @@ import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command.js';
 import Entity from '../../entity/Entity.js';
-import Player from '../../player/Player.js';
+import Player from '../../Player.js';
 import Vector3 from '../../math/Vector3.js';
 
 export default class SummonCommand extends Command {
