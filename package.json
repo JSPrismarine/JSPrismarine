@@ -206,7 +206,7 @@
     "dependencies": {
         "@jsprismarine/bedrock-data": "^1.19.50",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
-        "@jsprismarine/jsbinaryutils": "5.2.3",
+        "@jsprismarine/jsbinaryutils": "5.3.3",
         "@types/git-rev-sync": "2.0.0",
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.5",
