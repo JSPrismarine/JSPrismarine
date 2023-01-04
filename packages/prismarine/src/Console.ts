@@ -1,8 +1,8 @@
-import Chat from './chat/Chat';
-import ChatEvent from './events/chat/ChatEvent';
-import type Entity from './entity/Entity';
-import type Server from './Server';
-import Vector3 from './math/Vector3';
+import Chat from './chat/Chat.js';
+import ChatEvent from './events/chat/ChatEvent.js';
+import type Entity from './entity/Entity.js';
+import type Server from './Server.js';
+import Vector3 from './math/Vector3.js';
 import readline from 'readline';
 
 export default class Console {

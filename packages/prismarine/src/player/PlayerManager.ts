@@ -1,5 +1,5 @@
-import Player from './Player';
-import { PlayerListEntry } from '../network/packet/PlayerListPacket';
+import Player from './Player.js';
+import { PlayerListEntry } from '../network/packet/PlayerListPacket.js';
 
 export default class PlayerManager {
     private readonly players: Map<string, Player> = new Map();

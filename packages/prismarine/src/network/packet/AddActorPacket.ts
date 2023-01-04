@@ -1,7 +1,7 @@
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
-import Vector3 from '../../math/Vector3';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
+import McpeUtil from '../NetworkUtil.js';
+import Vector3 from '../../math/Vector3.js';
 
 /**
  * Packet for adding an entity to the game.

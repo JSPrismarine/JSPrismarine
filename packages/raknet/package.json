@@ -4,6 +4,7 @@
     "description": "Basic RakNet implementation written in TypeScript",
     "main": "./dist/RakNet.js",
     "types": "./dist/RakNet.d.ts",
+    "type": "module",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "tsc --build src"
@@ -20,7 +21,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/raknet",
     "dependencies": {
-        "@jsprismarine/jsbinaryutils": "3.2.3"
+        "@jsprismarine/jsbinaryutils": "5.3.3"
     },
     "devDependencies": {
         "typescript": "4.9.4"

@@ -1,4 +1,4 @@
-import CommandEnum from './CommandEnum';
+import CommandEnum from './CommandEnum.js';
 
 export enum CommandParameterType {
     Int = 0x100000 | 0x01,
@@ -37,7 +37,7 @@ export default class CommandParameter {
         enum?: CommandEnum | null;
         postfix?: string | null;
     }) {
-        this.paramName = data?.paramName || 'paramName';
+        this.paramName = data?.paramName || 'paramName.js';
         this.paramType = data?.paramType || CommandParameterType.Value;
         this.isOptional = data?.isOptional || false;
         this.flags = data?.flags || CommandParameterFlags.NONE;

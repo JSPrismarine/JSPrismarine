@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import InetAddress from '../utils/InetAddress';
+import InetAddress from '../utils/InetAddress.js';
 
 export default class Packet extends BinaryStream {
     private readonly id: number;

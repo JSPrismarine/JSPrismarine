@@ -1,5 +1,5 @@
-import { BlockIdsType } from '../BlockIdsType';
-import Flowable from '../Flowable';
+import { BlockIdsType } from '../BlockIdsType.js';
+import Flowable from '../Flowable.js';
 
 export enum FlowerType {
     Poppy = 0,

@@ -1,5 +1,5 @@
-import { BlockIdsType } from '../BlockIdsType';
-import Transparent from '../Transparent';
+import { BlockIdsType } from '../BlockIdsType.js';
+import Transparent from '../Transparent.js';
 
 export default class Air extends Transparent {
     public constructor() {

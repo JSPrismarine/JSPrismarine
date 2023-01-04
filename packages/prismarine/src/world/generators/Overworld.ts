@@ -1,6 +1,6 @@
-import BaseGenerator from '../BaseGenerator';
-import BlockMappings from '../../block/BlockMappings';
-import Chunk from '../chunk/Chunk';
+import BaseGenerator from '../BaseGenerator.js';
+// import BlockMappings from '../../block/BlockMappings.js';
+import Chunk from '../chunk/Chunk.js';
 import Noise from 'simplex-noise';
 
 const CHUNK_WIDTH = 16;

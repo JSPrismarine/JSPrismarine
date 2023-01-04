@@ -1,10 +1,10 @@
-import * as Protocol from './protocol/Protocol';
+import * as Protocol from './protocol/Protocol.js';
 
-import RakNetSession, { RakNetPriority as ConnectionPriority } from './Session';
+import RakNetSession, { RakNetPriority as ConnectionPriority } from './Session.js';
 
-import InetAddress from './utils/InetAddress';
-import RakNetListener from './Listener';
-import ServerName from './utils/ServerName';
+import InetAddress from './utils/InetAddress.js';
+import RakNetListener from './Listener.js';
+import ServerName from './utils/ServerName.js';
 
 export const RAKNET_TPS = 10;
 export const MAX_CHANNELS = 32;

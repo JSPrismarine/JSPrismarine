@@ -1,5 +1,5 @@
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
 
 /**
  * Packet for handling changing the client's view distance.

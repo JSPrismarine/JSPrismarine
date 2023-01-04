@@ -1,6 +1,6 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import type Block from '../block/Block';
-import type Item from '../item/Item';
+// import BinaryStream from '@jsprismarine/jsbinaryutils';
+import type Block from '../block/Block.js';
+import type Item from '../item/Item.js';
 import { item_id_map } from '@jsprismarine/bedrock-data';
 
 export default class ContainerEntry {
@@ -12,7 +12,7 @@ export default class ContainerEntry {
         this.count = count;
     }
 
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: any): void {
         const itemstack = this.getItem();
 
         if (itemstack.getName() === 'minecraft:air') {

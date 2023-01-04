@@ -1,4 +1,4 @@
-import type ItemStackRequestSlotInfo from './ItemStackRequestSlotInfo';
+import type ItemStackRequestSlotInfo from './ItemStackRequestSlotInfo.js';
 
 class Destroy {
     public count: number;

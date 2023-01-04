@@ -1,4 +1,4 @@
-import LoggerBuilder from '../utils/Logger';
+import LoggerBuilder from '../utils/Logger.js';
 
 const withDeprecated = (date: Date, replacement?: string) => {
     const removedOn = new Date(date.setDate(date.getDate() + 7));

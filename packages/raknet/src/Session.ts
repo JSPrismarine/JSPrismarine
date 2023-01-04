@@ -1,19 +1,19 @@
-import ACK from './protocol/ACK';
+import ACK from './protocol/ACK.js';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BitFlags from './protocol/BitFlags';
-import ConnectedPing from './protocol/connection/ConnectedPing';
-import ConnectedPong from './protocol/connection/ConnectedPong';
-import ConnectionRequest from './protocol/login/ConnectionRequest';
-import ConnectionRequestAccepted from './protocol/login/ConnectionRequestAccepted';
-import Frame from './protocol/Frame';
-import FrameReliability from './protocol/FrameReliability';
-import FrameSet from './protocol/FrameSet';
-import InetAddress from './utils/InetAddress';
-import { MAX_CHANNELS } from './RakNet';
-import MessageHeaders from './protocol/MessageHeaders';
-import NACK from './protocol/NACK';
-import Packet from './protocol/Packet';
-import RakNetListener from './Listener';
+import BitFlags from './protocol/BitFlags.js';
+import ConnectedPing from './protocol/connection/ConnectedPing.js';
+import ConnectedPong from './protocol/connection/ConnectedPong.js';
+import ConnectionRequest from './protocol/login/ConnectionRequest.js';
+import ConnectionRequestAccepted from './protocol/login/ConnectionRequestAccepted.js';
+import Frame from './protocol/Frame.js';
+import FrameReliability from './protocol/FrameReliability.js';
+import FrameSet from './protocol/FrameSet.js';
+import InetAddress from './utils/InetAddress.js';
+import { MAX_CHANNELS } from './RakNet.js';
+import MessageHeaders from './protocol/MessageHeaders.js';
+import NACK from './protocol/NACK.js';
+import Packet from './protocol/Packet.js';
+import RakNetListener from './Listener.js';
 import { RemoteInfo } from 'dgram';
 import assert from 'assert';
 
@@ -428,7 +428,7 @@ export default class RakNetSession {
     }
 
     public close(): void {
-        const stream = new BinaryStream(Buffer.from('\u0000\u0000\u0008\u0015', 'binary'));
+        const stream = new (BinaryStream as any)(Buffer.from('\u0000\u0000\u0008\u0015', 'binary'));
         this.addFrameToQueue(new Frame().fromBinary(stream), RakNetPriority.IMMEDIATE); // Client discconect packet 0x15
     }
 

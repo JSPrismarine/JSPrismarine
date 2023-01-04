@@ -1,5 +1,5 @@
-import ContainerEntry from './ContainerEntry';
-import Inventory from './Inventory';
+import ContainerEntry from './ContainerEntry.js';
+import Inventory from './Inventory.js';
 
 export default class HumanInventory extends Inventory {
     private get handSlot() {

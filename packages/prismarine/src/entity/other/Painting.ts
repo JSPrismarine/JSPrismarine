@@ -1,9 +1,9 @@
-import Entity from '../Entity';
-import Server from '../../Server';
-import World from '../../world/World';
+import Entity from '../Entity.js';
+import Server from '../../Server.js';
+import World from '../../world/World.js';
 
 export default class Painting extends Entity {
-    public static MOB_ID = 'minecraft:painting';
+    public static MOB_ID = 'minecraft:painting.js';
 
     public constructor(world: World, server: Server) {
         super(world, server);

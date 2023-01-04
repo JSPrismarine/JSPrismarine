@@ -1,11 +1,11 @@
 import Dgram, { RemoteInfo } from 'dgram';
 
-import BitFlags from './protocol/BitFlags';
+import BitFlags from './protocol/BitFlags.js';
 import { EventEmitter } from 'events';
-import Packet from './protocol/Packet';
-import { RAKNET_TPS } from './RakNet';
-import RakNetSession from './Session';
-import UnconnectedHandler from './protocol/UnconnectedHandler';
+import Packet from './protocol/Packet.js';
+import { RAKNET_TPS } from './RakNet.js';
+import RakNetSession from './Session.js';
+import UnconnectedHandler from './protocol/UnconnectedHandler.js';
 
 export default class RakNetListener extends EventEmitter {
     private readonly guid: bigint;

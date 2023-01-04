@@ -1,7 +1,7 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
-import Player from '../../player/Player';
+import Command from '../Command.js';
+import Player from '../../player/Player.js';
 
 export default class StopCommand extends Command {
     public constructor() {
@@ -18,7 +18,7 @@ export default class StopCommand extends Command {
                 const source = context.getSource() as Player;
 
                 await source.getServer().getServer().shutdown();
-                return 'Stopping the server...';
+                return 'Stopping the server....js';
             })
         );
     }

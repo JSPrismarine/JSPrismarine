@@ -1,15 +1,15 @@
-import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
+import MetadataManager, { FlagType, MetadataFlag } from './Metadata.js';
 
-import AddActorPacket from '../network/packet/AddActorPacket';
-import AttributeManager from './Attribute';
-import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
-import Player from '../player/Player';
-import Position from '../world/Position';
-import RemoveActorPacket from '../network/packet/RemoveActorPacket';
-import Server from '../Server';
-import TextType from '../network/type/TextType';
-import Vector3 from '../math/Vector3';
-import World from '../world/World';
+import AddActorPacket from '../network/packet/AddActorPacket.js';
+import AttributeManager from './Attribute.js';
+import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket.js';
+import Player from '../player/Player.js';
+import Position from '../world/Position.js';
+import RemoveActorPacket from '../network/packet/RemoveActorPacket.js';
+import Server from '../Server.js';
+import TextType from '../network/type/TextType.js';
+import Vector3 from '../math/Vector3.js';
+import World from '../world/World.js';
 
 /**
  * The base class for all entities including `Player`.

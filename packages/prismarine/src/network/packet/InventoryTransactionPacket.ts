@@ -1,9 +1,9 @@
-import ChangeSlot from '../type/ChangeSlot';
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
-import Item from '../../item/Item';
-import NetworkTransaction from '../type/NetworkTransaction';
-import Vector3 from '../../math/Vector3';
+import ChangeSlot from '../type/ChangeSlot.js';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
+import Item from '../../item/Item.js';
+import NetworkTransaction from '../type/NetworkTransaction.js';
+import Vector3 from '../../math/Vector3.js';
 
 export enum InventoryTransactionUseItemActionType {
     ClickBlock = 0,

@@ -1,6 +1,6 @@
-import { ItemIdsType } from '../ItemIdsType';
-import { ItemTieredToolType } from '../ItemTieredToolType';
-import TieredTool from '../TieredTool';
+import { ItemIdsType } from '../ItemIdsType.js';
+import { ItemTieredToolType } from '../ItemTieredToolType.js';
+import TieredTool from '../TieredTool.js';
 
 export default class GoldenHoe extends TieredTool {
     public constructor() {

@@ -1,4 +1,4 @@
-import BlockMappings, { LegacyId } from '../../block/BlockMappings';
+import BlockMappings, { LegacyId } from '../../block/BlockMappings.js';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 

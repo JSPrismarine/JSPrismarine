@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BlockStorage from './BlockStorage';
-import { LegacyId } from '../../block/BlockMappings';
+import BlockStorage from './BlockStorage.js';
+import { LegacyId } from '../../block/BlockMappings.js';
 
 export default class SubChunk {
     private storages: Map<number, BlockStorage> = new Map();

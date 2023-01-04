@@ -1,4 +1,4 @@
-import SkinImage from './SkinImage';
+import SkinImage from './SkinImage.js';
 
 interface SkinCapeData {
     id: string;

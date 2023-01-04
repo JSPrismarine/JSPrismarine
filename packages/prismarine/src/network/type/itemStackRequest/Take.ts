@@ -1,4 +1,4 @@
-import type ItemStackRequestSlotInfo from './ItemStackRequestSlotInfo';
+import type ItemStackRequestSlotInfo from './ItemStackRequestSlotInfo.js';
 
 class Take {
     public count: number;

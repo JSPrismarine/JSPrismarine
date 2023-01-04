@@ -1,9 +1,9 @@
-import Entity from '../Entity';
-import Server from '../../Server';
-import World from '../../world/World';
+import Entity from '../Entity.js';
+import Server from '../../Server.js';
+import World from '../../world/World.js';
 
 export default class EnderCrystal extends Entity {
-    public static MOB_ID = 'minecraft:ender_crystal';
+    public static MOB_ID = 'minecraft:ender_crystal.js';
 
     public constructor(world: World, server: Server) {
         super(world, server);

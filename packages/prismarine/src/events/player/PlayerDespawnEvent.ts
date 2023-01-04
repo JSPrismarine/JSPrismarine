@@ -1,5 +1,5 @@
-import type Player from '../../player/Player';
-import PlayerSpawnEvent from './PlayerSpawnEvent';
+import type Player from '../../player/Player.js';
+import PlayerSpawnEvent from './PlayerSpawnEvent.js';
 
 /**
  * Fired just after a player despawns from the world

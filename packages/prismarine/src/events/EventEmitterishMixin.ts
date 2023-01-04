@@ -1,6 +1,4 @@
-import { Evt, to } from 'evt';
-
-import type { VoidCtx } from 'evt';
+import { type Ctx, Evt, to } from 'evt';
 
 export interface EventEmitterish<EventTypes extends [string, any]> {
     on<T extends EventTypes, K extends T[0]>(
@@ -36,7 +34,7 @@ export function EventEmitterishMixin<EventTypes extends [string, any], TBase ext
         {},
         {
             evt: Evt<EventTypes>;
-            ctx: VoidCtx;
+            ctx: Ctx;
         }
     >();
 

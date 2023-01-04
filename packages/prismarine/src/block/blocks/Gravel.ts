@@ -1,8 +1,8 @@
-import { BlockIdsType } from '../BlockIdsType';
-import { BlockToolType } from '../BlockToolType';
-import Item from '../../item/Item';
-import Server from '../../Server';
-import Solid from '../Solid';
+import { BlockIdsType } from '../BlockIdsType.js';
+import { BlockToolType } from '../BlockToolType.js';
+import Item from '../../item/Item.js';
+import Server from '../../Server.js';
+import Solid from '../Solid.js';
 
 export default class Sand extends Solid {
     public constructor(name = 'minecraft:gravel') {

@@ -1,9 +1,9 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
-import Skin from '../../utils/skin/Skin';
-import UUID from '../../utils/UUID';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
+import McpeUtil from '../NetworkUtil.js';
+import Skin from '../../utils/skin/Skin.js';
+import UUID from '../../utils/UUID.js';
 
 interface PlayerListData {
     uuid: UUID;
@@ -50,7 +50,7 @@ export class PlayerListEntry {
         this.host = isHost;
     }
 
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: any): void {
         stream.writeVarLong(this.getUniqueEntityId()!);
         McpeUtil.writeString(stream, this.getName()!);
         McpeUtil.writeString(stream, this.getXUID()!);

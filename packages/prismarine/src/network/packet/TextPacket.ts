@@ -1,7 +1,7 @@
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
-import TextType from '../type/TextType';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
+import McpeUtil from '../NetworkUtil.js';
+import TextType from '../type/TextType.js';
 
 /**
  * Packet for chat messages, announcements etc.

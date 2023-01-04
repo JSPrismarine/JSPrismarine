@@ -1,6 +1,6 @@
-import { InetAddress } from '../../RakNet';
-import MessageHeaders from '../MessageHeaders';
-import Packet from '../Packet';
+import { InetAddress } from '../../RakNet.js';
+import MessageHeaders from '../MessageHeaders.js';
+import Packet from '../Packet.js';
 
 export default class NewIncomingConnection extends Packet {
     public constructor(buffer?: Buffer) {

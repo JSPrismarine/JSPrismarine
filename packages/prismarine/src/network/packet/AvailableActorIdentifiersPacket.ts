@@ -1,7 +1,8 @@
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
 
-const EntityIdentifiers = require('@jsprismarine/bedrock-data').entity_identifiers;
+import pkg from '@jsprismarine/bedrock-data';
+const { entity_identifiers } = pkg;
 
 export default class AvailableActorIdentifiersPacket extends DataPacket {
     public static NetID = Identifiers.AvailableActorIdentifiersPacket;
@@ -9,6 +10,6 @@ export default class AvailableActorIdentifiersPacket extends DataPacket {
     private cachedNBT: any;
 
     public async encodePayload() {
-        this.write(this.cachedNBT || (this.cachedNBT = EntityIdentifiers));
+        this.write(this.cachedNBT || (this.cachedNBT = entity_identifiers));
     }
 }

@@ -1,5 +1,5 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil';
+// import BinaryStream from '@jsprismarine/jsbinaryutils';
+import McpeUtil from '../network/NetworkUtil.js';
 
 // TODO: Still missing flags
 export enum MetadataFlag {
@@ -78,7 +78,7 @@ export default class MetadataManager {
         return this.metadata;
     }
 
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: any): void {
         stream.writeUnsignedVarInt(this.getMetadata().size);
         for (const [index, value] of this.getMetadata()) {
             stream.writeUnsignedVarInt(index);

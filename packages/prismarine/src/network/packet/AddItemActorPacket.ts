@@ -1,7 +1,7 @@
-import type ContainerEntry from '../../inventory/ContainerEntry';
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
-import Vector3 from '../../math/Vector3';
+import type ContainerEntry from '../../inventory/ContainerEntry.js';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
+import Vector3 from '../../math/Vector3.js';
 
 /**
  * Packet for adding an dropped item to the game.

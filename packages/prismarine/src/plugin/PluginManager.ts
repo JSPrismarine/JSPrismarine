@@ -1,9 +1,9 @@
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
-import PluginApi from './api/PluginApi';
-import PluginFile from './PluginFile';
-import Server from '../Server';
-import Timer from '../utils/Timer';
-import cwd from '../utils/cwd';
+import PluginApi from './api/PluginApi.js';
+import PluginFile from './PluginFile.js';
+import Server from '../Server.js';
+import Timer from '../utils/Timer.js';
+import cwd from '../utils/cwd.js';
 import fs from 'fs';
 import path from 'path';
 import unzipper from 'unzipper';
@@ -107,7 +107,7 @@ export default class PluginManager {
                     `PluginManager/registerPlugin/${id}`
                 );
 
-        const pkg = require(path.join(dir, 'package.json'));
+        const pkg = await import(path.join(dir, 'package.json'));
         if (!pkg) throw new Error(`package.json is missing!`);
 
         if (!pkg.name || !pkg.prismarine) throw new Error(`package.json is invalid!`);

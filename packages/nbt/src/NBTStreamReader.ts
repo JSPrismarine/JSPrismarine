@@ -1,12 +1,12 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from './ByteOrder';
-import ByteVal from './types/ByteVal';
-import DoubleVal from './types/DoubleVal';
-import FloatVal from './types/FloatVal';
-import LongVal from './types/LongVal';
-import NumberVal from './types/NumberVal';
-import ShortVal from './types/ShortVal';
-import StringVal from './types/StringVal';
+import { ByteOrder } from './ByteOrder.js';
+import ByteVal from './types/ByteVal.js';
+import DoubleVal from './types/DoubleVal.js';
+import FloatVal from './types/FloatVal.js';
+import LongVal from './types/LongVal.js';
+import NumberVal from './types/NumberVal.js';
+import ShortVal from './types/ShortVal.js';
+import StringVal from './types/StringVal.js';
 
 export default class NBTStreamReader {
     protected input: BinaryStream;
@@ -15,7 +15,7 @@ export default class NBTStreamReader {
     private useVarint = false;
     private allocateLimit = -1;
 
-    protected constructor(input: BinaryStream, byteOrder: ByteOrder) {
+    protected constructor(input: any, byteOrder: ByteOrder) {
         this.input = input;
         this.byteOrder = byteOrder;
     }

@@ -1,7 +1,7 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
-import type Player from '../../player/Player';
+import Command from '../Command.js';
+import type Player from '../../player/Player.js';
 
 export default class ReloadCommand extends Command {
     public constructor() {

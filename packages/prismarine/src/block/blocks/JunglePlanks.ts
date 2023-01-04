@@ -1,4 +1,4 @@
-import Planks, { PlanksType } from './OakPlanks';
+import Planks, { PlanksType } from './OakPlanks.js';
 
 export default class JunglePlanks extends Planks {
     public constructor() {

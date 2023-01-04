@@ -1,10 +1,10 @@
-import Player from '../player/Player';
-import type Server from '../Server';
-import cwd from '../utils/cwd';
+import Player from '../player/Player.js';
+import type Server from '../Server.js';
+import cwd from '../utils/cwd.js';
 import fs from 'fs';
 import minifyJson from 'strip-json-comments';
 import path from 'path';
-import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
+import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent.js';
 import util from 'util';
 
 interface OpType {
@@ -178,7 +178,7 @@ export default class PermissionManager {
                 if (executer.getPermissions().includes('*')) return true;
 
                 const split = permission.split('.');
-                let scope = '';
+                let scope = '.js';
                 for (const action of split) {
                     if (scope) scope = `${scope}.${action}`;
                     else scope = action;

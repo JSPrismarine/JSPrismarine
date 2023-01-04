@@ -1,5 +1,5 @@
-import AcknowledgePacket from './AcknowledgePacket';
-import MessageHeaders from './MessageHeaders';
+import AcknowledgePacket from './AcknowledgePacket.js';
+import MessageHeaders from './MessageHeaders.js';
 
 export default class NACK extends AcknowledgePacket {
     public constructor(buffer?: Buffer) {

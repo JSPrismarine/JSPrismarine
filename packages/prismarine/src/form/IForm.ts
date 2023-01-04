@@ -1,4 +1,4 @@
-import Player from '../player/Player';
+import Player from '../player/Player.js';
 
 export default interface IForm {
     /**

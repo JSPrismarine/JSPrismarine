@@ -1,54 +1,55 @@
-import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
-import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
-import CommandParameter, { CommandParameterType } from './type/CommandParameter';
-import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
+import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket.js';
+import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments.js';
+import CommandParameter, { CommandParameterType } from './type/CommandParameter.js';
+import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket.js';
 
-import AddPlayerPacket from './packet/AddPlayerPacket';
-import Air from '../block/blocks/Air';
-import { Attribute } from '../entity/Attribute';
-import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
-import Block from '../block/Block';
-import Chunk from '../world/chunk/Chunk';
-import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
-import ClientConnection from './ClientConnection';
-import CommandData from './type/CommandData';
-import CommandEnum from './type/CommandEnum';
-import ContainerEntry from '../inventory/ContainerEntry';
-import CoordinateUtils from '../world/CoordinateUtils';
-import CreativeContentEntry from './type/CreativeContentEntry';
-import CreativeContentPacket from './packet/CreativeContentPacket';
-import DisconnectPacket from './packet/DisconnectPacket';
-import Gamemode from '../world/Gamemode';
-import IForm from '../form/IForm';
-import InventoryContentPacket from './packet/InventoryContentPacket';
-import Item from '../item/Item';
-import LevelChunkPacket from './packet/LevelChunkPacket';
-import MobEquipmentPacket from './packet/MobEquipmentPacket';
-import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
-import MovePlayerPacket from './packet/MovePlayerPacket';
-import MovementType from './type/MovementType';
-import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
-import PermissionType from './type/PermissionType';
-import PlayStatusPacket from './packet/PlayStatusPacket';
-import type Player from '../player/Player';
-import PlayerPermissionType from './type/PlayerPermissionType';
-import RemoveActorPacket from './packet/RemoveActorPacket';
-import type Server from '../Server';
-import SetActorDataPacket from './packet/SetActorDataPacket';
-import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
-import SetTimePacket from './packet/SetTimePacket';
-import TextPacket from './packet/TextPacket';
-import TextType from './type/TextType';
-import UUID from '../utils/UUID';
-import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
-import { WindowIds } from '../inventory/WindowManager';
+import AddPlayerPacket from './packet/AddPlayerPacket.js';
+import Air from '../block/blocks/Air.js';
+import { Attribute } from '../entity/Attribute.js';
+import AvailableCommandsPacket from './packet/AvailableCommandsPacket.js';
+import Block from '../block/Block.js';
+import Chunk from '../world/chunk/Chunk.js';
+import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket.js';
+import ClientConnection from './ClientConnection.js';
+import CommandData from './type/CommandData.js';
+import CommandEnum from './type/CommandEnum.js';
+import ContainerEntry from '../inventory/ContainerEntry.js';
+import CoordinateUtils from '../world/CoordinateUtils.js';
+import CreativeContentEntry from './type/CreativeContentEntry.js';
+import CreativeContentPacket from './packet/CreativeContentPacket.js';
+import DisconnectPacket from './packet/DisconnectPacket.js';
+import Gamemode from '../world/Gamemode.js';
+import IForm from '../form/IForm.js';
+import InventoryContentPacket from './packet/InventoryContentPacket.js';
+import Item from '../item/Item.js';
+import LevelChunkPacket from './packet/LevelChunkPacket.js';
+import MobEquipmentPacket from './packet/MobEquipmentPacket.js';
+import ModalFormRequestPacket from './packet/ModalFormRequestPacket.js';
+import MovePlayerPacket from './packet/MovePlayerPacket.js';
+import MovementType from './type/MovementType.js';
+import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket.js';
+import PermissionType from './type/PermissionType.js';
+import PlayStatusPacket from './packet/PlayStatusPacket.js';
+import type Player from '../player/Player.js';
+import PlayerPermissionType from './type/PlayerPermissionType.js';
+import RemoveActorPacket from './packet/RemoveActorPacket.js';
+import type Server from '../Server.js';
+import SetActorDataPacket from './packet/SetActorDataPacket.js';
+import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket.js';
+import SetTimePacket from './packet/SetTimePacket.js';
+import TextPacket from './packet/TextPacket.js';
+import TextType from './type/TextType.js';
+import UUID from '../utils/UUID.js';
+import UpdateAttributesPacket from './packet/UpdateAttributesPacket.js';
+import { WindowIds } from '../inventory/WindowManager.js';
 import UpdateAbilitiesPacket, {
     AbilityLayer,
     AbilityLayerFlag,
     AbilityLayerType
-} from './packet/UpdateAbilitiesPacket';
+} from './packet/UpdateAbilitiesPacket.js';
 
-const { creativeitems } = require('@jsprismarine/bedrock-data');
+import pkg from '@jsprismarine/bedrock-data';
+const { creativeitems } = pkg;
 
 export default class PlayerSession {
     private connection: ClientConnection;
@@ -416,7 +417,7 @@ export default class PlayerSession {
                 pk.commandData.push(cmd);
             });
         const playerEnum = new CommandEnum();
-        playerEnum.enumName = 'Player';
+        playerEnum.enumName = 'Player.js';
         playerEnum.enumValues = this.player
             .getServer()
             .getSessionManager()
@@ -476,11 +477,11 @@ export default class PlayerSession {
 
         const pk = new TextPacket();
         pk.type = type;
-        pk.sourceName = '';
+        pk.sourceName = '.js';
         pk.message = message;
         pk.needsTranslation = needsTranslation;
         pk.xuid = xuid;
-        pk.platformChatId = ''; // TODO
+        pk.platformChatId = '.js'; // TODO
         pk.parameters = parameters;
         await this.getConnection().sendDataPacket(pk);
     }
@@ -619,7 +620,7 @@ export default class PlayerSession {
 
         pk.item = this.player.getInventory()?.getItemInHand() ?? new ContainerEntry({ item: new Air(), count: 0 });
 
-        pk.deviceId = this.player.device?.id ?? '';
+        pk.deviceId = this.player.device?.id ?? '.js';
         pk.metadata = this.player.getMetadataManager();
         await player.getNetworkSession().getConnection().sendDataPacket(pk);
         // TODO: await this.sendSettings(player);

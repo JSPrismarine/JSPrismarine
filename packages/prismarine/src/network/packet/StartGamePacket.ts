@@ -1,9 +1,9 @@
-import DataPacket from './DataPacket';
-import GameruleManager from '../../world/GameruleManager';
-import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
-import Vector3 from '../../math/Vector3';
-import UUID from '../../utils/UUID';
+import DataPacket from './DataPacket.js';
+import GameruleManager from '../../world/GameruleManager.js';
+import Identifiers from '../Identifiers.js';
+import McpeUtil from '../NetworkUtil.js';
+import Vector3 from '../../math/Vector3.js';
+import UUID from '../../utils/UUID.js';
 import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 

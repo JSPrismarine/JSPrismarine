@@ -1,10 +1,10 @@
-import Anvil from './providers/anvil/Anvil';
-import Filesystem from './providers/filesystem/Filesystem';
-import GeneratorManager from './GeneratorManager';
-import Provider from './providers/Provider';
-import Server from '../Server';
-import World from './World';
-import cwd from '../utils/cwd';
+import Anvil from './providers/anvil/Anvil.js';
+import Filesystem from './providers/filesystem/Filesystem.js';
+import GeneratorManager from './GeneratorManager.js';
+import Provider from './providers/Provider.js';
+import Server from '../Server.js';
+import World from './World.js';
+import cwd from '../utils/cwd.js';
 import fs from 'fs';
 import path from 'path';
 

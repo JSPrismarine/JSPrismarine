@@ -1,9 +1,9 @@
-import Entity from '../Entity';
-import Server from '../../Server';
-import World from '../../world/World';
+import Entity from '../Entity.js';
+import Server from '../../Server.js';
+import World from '../../world/World.js';
 
 export default class Fox extends Entity {
-    public static MOB_ID = 'minecraft:fox';
+    public static MOB_ID = 'minecraft:fox.js';
 
     public constructor(world: World, server: Server) {
         super(world, server);

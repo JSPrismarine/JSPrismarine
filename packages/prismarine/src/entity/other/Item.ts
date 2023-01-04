@@ -1,13 +1,13 @@
-import { AddItemActorPacket } from '../../network/Packets';
-import type ContainerEntry from '../../inventory/ContainerEntry';
-import Entity from '../Entity';
-import Player from '../../player/Player';
-import type Server from '../../Server';
-import Vector3 from '../../math/Vector3';
-import type World from '../../world/World';
+import { AddItemActorPacket } from '../../network/Packets.js';
+import type ContainerEntry from '../../inventory/ContainerEntry.js';
+import Entity from '../Entity.js';
+import Player from '../../player/Player.js';
+import type Server from '../../Server.js';
+import Vector3 from '../../math/Vector3.js';
+import type World from '../../world/World.js';
 
 export default class Item extends Entity {
-    public static MOB_ID = 'minecraft:item';
+    public static MOB_ID = 'minecraft:item.js';
     private item: ContainerEntry;
 
     public constructor(world: World, server: Server, item: ContainerEntry) {

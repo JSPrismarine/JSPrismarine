@@ -37,7 +37,7 @@ exitHook(async () => {
         await server.bootstrap(config.getServerIp(), config.getServerPort());
     } catch (e) {
         logger.error(
-            `Cannot start the server, is it already running on the same port? (${(<Error>e).name})`,
+            `Cannot start the server, is it already running on the same port? (${(<Error>e)})`,
             'Prismarine'
         );
         await server.shutdown({ crash: true });
