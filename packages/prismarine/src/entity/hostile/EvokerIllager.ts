@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class EvokerIllager extends Entity {
-    public static MOB_ID = 'minecraft:evoker_illager.js';
+    public static MOB_ID = 'minecraft:evoker_illager';
 
     public constructor(world: World, server: Server) {
         super(world, server);

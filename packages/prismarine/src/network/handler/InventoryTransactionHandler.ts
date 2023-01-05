@@ -163,7 +163,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
                         // ? 0 or id & 0xf
                         soundPk.extraData = BlockMappings.getRuntimeId('minecraft:air'); // In this case refers to block runtime Id
-                        soundPk.entityType = ':.js';
+                        soundPk.entityType = ':';
                         soundPk.isBabyMob = false;
                         soundPk.disableRelativeVolume = false;
 

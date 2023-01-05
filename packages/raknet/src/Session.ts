@@ -190,19 +190,11 @@ export default class RakNetSession {
         }
     }
 
-    private handleNACK(_: NACK): void {
-        // TODO: properly handle NACKs
-        // for (const seq of nack.sequenceNumbers) {
-        //    console.log(`NAKC ${seq}`);
-        //    const pk = this.outputBackupQueue.get(seq) ?? null;
-        //    if (pk != null) {
-        //        pk.sequenceNumber = this.outputSequenceNumber++;
-        //        pk.reset();
-        //        pk.encode();
-        //        this.sendFrameSet(pk);
-        //        this.outputBackupQueue.delete(seq);
-        //    }
-        // }
+    private handleNACK(nack: NACK): void {
+        for (const seq of nack.sequenceNumbers) {
+            const pk = this.outputBackupQueue.get(seq);
+            pk && this.sendFrameSet(pk);
+        }
     }
 
     private receiveFrame(frame: Frame): void {
@@ -232,7 +224,7 @@ export default class RakNetSession {
             }
 
             if (orderIndex === this.inputOrderIndex[orderChannel]) {
-                this.inputHighestSequenceIndex[orderIndex] = 0;
+                this.inputHighestSequenceIndex[orderChannel] = 0;
                 this.inputOrderIndex[orderChannel] = orderIndex + 1;
 
                 this.handlePacket(frame);
@@ -246,7 +238,10 @@ export default class RakNetSession {
 
                 this.inputOrderIndex[orderChannel] = i;
             } else if (orderIndex > this.inputOrderIndex[orderChannel]) {
-                this.inputOrderingQueue.get(orderChannel)!.set(orderIndex, frame);
+                const unordered = this.inputOrderingQueue.get(orderChannel);
+                assert(typeof unordered !== 'undefined', 'Cannot find unordered packet');
+                unordered.set(orderIndex, frame);
+                this.inputOrderingQueue.set(orderChannel, unordered);
             }
         } else {
             this.handlePacket(frame);
@@ -385,7 +380,7 @@ export default class RakNetSession {
         } else {
             const value = this.fragmentsQueue.get(frame.fragmentId)!;
             value.set(frame.fragmentIndex, frame);
-            this.fragmentsQueue.set(frame.fragmentIndex, value);
+            this.fragmentsQueue.set(frame.fragmentId, value);
 
             // If we have all pieces, put them together
             if (value.size === frame.fragmentSize) {
@@ -428,7 +423,7 @@ export default class RakNetSession {
     }
 
     public close(): void {
-        const stream = new (BinaryStream as any)(Buffer.from('\u0000\u0000\u0008\u0015', 'binary'));
+        const stream = new BinaryStream(Buffer.from('\u0000\u0000\u0008\u0015', 'binary'));
         this.addFrameToQueue(new Frame().fromBinary(stream), RakNetPriority.IMMEDIATE); // Client discconect packet 0x15
     }
 

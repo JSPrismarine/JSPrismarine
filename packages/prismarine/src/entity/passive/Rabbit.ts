@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class Rabbit extends Entity {
-    public static MOB_ID = 'minecraft:rabbit.js';
+    public static MOB_ID = 'minecraft:rabbit';
 
     public constructor(world: World, server: Server) {
         super(world, server);

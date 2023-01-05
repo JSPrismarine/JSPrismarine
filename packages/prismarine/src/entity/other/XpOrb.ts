@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class ExperienceOrb extends Entity {
-    public static MOB_ID = 'minecraft:xp_orb.js';
+    public static MOB_ID = 'minecraft:xp_orb';
 
     public constructor(world: World, server: Server) {
         super(world, server);

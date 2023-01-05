@@ -1,6 +1,6 @@
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 
-// import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { BlockToolType } from '../block/BlockToolType.js';
 import { ItemEnchantmentType } from './ItemEnchantmentType.js';
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
@@ -105,7 +105,7 @@ export default class Item {
         return true;
     }
 
-    public networkSerialize(stream: any): void {
+    public networkSerialize(stream: BinaryStream): void {
         if (this.getName() === 'minecraft:air') {
             stream.writeVarInt(0);
             return;
@@ -133,7 +133,7 @@ export default class Item {
         // TODO: check for additional data
     }
 
-    public static networkDeserialize(stream: any, extra = false): Item {
+    public static networkDeserialize(stream: BinaryStream, extra = false): Item {
         const id = stream.readVarInt();
         if (id === 0) {
             // TODO: items

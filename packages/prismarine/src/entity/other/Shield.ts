@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class Shield extends Entity {
-    public static MOB_ID = 'minecraft:shield.js';
+    public static MOB_ID = 'minecraft:shield';
 
     public constructor(world: World, server: Server) {
         super(world, server);

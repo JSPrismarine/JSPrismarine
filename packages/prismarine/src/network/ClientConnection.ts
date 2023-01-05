@@ -11,12 +11,10 @@ import assert from 'assert';
  * outdated or sends invalid data during the login handshake.
  */
 export default class ClientConnection extends MinecraftSession {
-    private readonly rakNetSession: RakNetSession;
     private playerSession: PlayerSession | null = null;
 
     public constructor(session: RakNetSession, logger?: Logger) {
         super(session, logger);
-        this.rakNetSession = session;
     }
 
     /**
@@ -41,7 +39,7 @@ export default class ClientConnection extends MinecraftSession {
 
         // Force RakNet to remove the session
         // so we don't have to handle the dead session
-        this.rakNetSession.disconnect();
+        this.rakSession.disconnect();
     }
 
     public getPlayerSession(): PlayerSession | null {
@@ -49,6 +47,6 @@ export default class ClientConnection extends MinecraftSession {
     }
 
     public getRakNetSession(): RakNetSession {
-        return this.rakNetSession;
+        return this.rakSession;
     }
 }

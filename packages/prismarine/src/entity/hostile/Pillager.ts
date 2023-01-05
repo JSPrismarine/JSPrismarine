@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class Pillager extends Entity {
-    public static MOB_ID = 'minecraft:pillager.js';
+    public static MOB_ID = 'minecraft:pillager';
 
     public constructor(world: World, server: Server) {
         super(world, server);

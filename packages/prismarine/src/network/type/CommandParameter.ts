@@ -37,7 +37,7 @@ export default class CommandParameter {
         enum?: CommandEnum | null;
         postfix?: string | null;
     }) {
-        this.paramName = data?.paramName || 'paramName.js';
+        this.paramName = data?.paramName || 'paramName';
         this.paramType = data?.paramType || CommandParameterType.Value;
         this.isOptional = data?.isOptional || false;
         this.flags = data?.flags || CommandParameterFlags.NONE;

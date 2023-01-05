@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class Pig extends Entity {
-    public static MOB_ID = 'minecraft:pig.js';
+    public static MOB_ID = 'minecraft:pig';
 
     public constructor(world: World, server: Server) {
         super(world, server);

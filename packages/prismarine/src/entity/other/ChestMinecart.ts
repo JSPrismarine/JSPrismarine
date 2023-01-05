@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class ChestMinecart extends Entity {
-    public static MOB_ID = 'minecraft:chest_minecart.js';
+    public static MOB_ID = 'minecraft:chest_minecart';
 
     public constructor(world: World, server: Server) {
         super(world, server);

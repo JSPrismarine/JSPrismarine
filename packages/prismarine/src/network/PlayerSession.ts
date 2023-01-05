@@ -417,7 +417,7 @@ export default class PlayerSession {
                 pk.commandData.push(cmd);
             });
         const playerEnum = new CommandEnum();
-        playerEnum.enumName = 'Player.js';
+        playerEnum.enumName = 'Player';
         playerEnum.enumValues = this.player
             .getServer()
             .getSessionManager()
@@ -477,11 +477,11 @@ export default class PlayerSession {
 
         const pk = new TextPacket();
         pk.type = type;
-        pk.sourceName = '.js';
+        pk.sourceName = '';
         pk.message = message;
         pk.needsTranslation = needsTranslation;
         pk.xuid = xuid;
-        pk.platformChatId = '.js'; // TODO
+        pk.platformChatId = ''; // TODO
         pk.parameters = parameters;
         await this.getConnection().sendDataPacket(pk);
     }
@@ -620,7 +620,7 @@ export default class PlayerSession {
 
         pk.item = this.player.getInventory()?.getItemInHand() ?? new ContainerEntry({ item: new Air(), count: 0 });
 
-        pk.deviceId = this.player.device?.id ?? '.js';
+        pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager();
         await player.getNetworkSession().getConnection().sendDataPacket(pk);
         // TODO: await this.sendSettings(player);

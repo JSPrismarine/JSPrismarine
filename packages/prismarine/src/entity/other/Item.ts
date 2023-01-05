@@ -7,7 +7,7 @@ import Vector3 from '../../math/Vector3.js';
 import type World from '../../world/World.js';
 
 export default class Item extends Entity {
-    public static MOB_ID = 'minecraft:item.js';
+    public static MOB_ID = 'minecraft:item';
     private item: ContainerEntry;
 
     public constructor(world: World, server: Server, item: ContainerEntry) {

@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class FireworksRocket extends Entity {
-    public static MOB_ID = 'minecraft:fireworks_rocket.js';
+    public static MOB_ID = 'minecraft:fireworks_rocket';
 
     public constructor(world: World, server: Server) {
         super(world, server);

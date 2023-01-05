@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class LingeringPotion extends Entity {
-    public static MOB_ID = 'minecraft:lingering_potion.js';
+    public static MOB_ID = 'minecraft:lingering_potion';
 
     public constructor(world: World, server: Server) {
         super(world, server);

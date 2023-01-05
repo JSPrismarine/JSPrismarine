@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class ZombieHorse extends Entity {
-    public static MOB_ID = 'minecraft:zombie_horse.js';
+    public static MOB_ID = 'minecraft:zombie_horse';
 
     public constructor(world: World, server: Server) {
         super(world, server);

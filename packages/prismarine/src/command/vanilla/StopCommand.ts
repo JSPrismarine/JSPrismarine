@@ -18,7 +18,7 @@ export default class StopCommand extends Command {
                 const source = context.getSource() as Player;
 
                 await source.getServer().getServer().shutdown();
-                return 'Stopping the server....js';
+                return 'Stopping the server...';
             })
         );
     }

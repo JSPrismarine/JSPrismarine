@@ -57,7 +57,7 @@ export class Attribute {
         this.value = value;
     }
 
-    public networkSerialize(stream: any): void {
+    public networkSerialize(stream: BinaryStream): void {
         stream.writeFloatLE(this.getMin());
         stream.writeFloatLE(this.getMax());
         stream.writeFloatLE(this.getValue());

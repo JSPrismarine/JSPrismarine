@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class PolarBear extends Entity {
-    public static MOB_ID = 'minecraft:polar_bear.js';
+    public static MOB_ID = 'minecraft:polar_bear';
 
     public constructor(world: World, server: Server) {
         super(world, server);

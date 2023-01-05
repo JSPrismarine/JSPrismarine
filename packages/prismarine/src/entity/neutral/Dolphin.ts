@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class Dolphin extends Entity {
-    public static MOB_ID = 'minecraft:dolphin.js';
+    public static MOB_ID = 'minecraft:dolphin';
 
     public constructor(world: World, server: Server) {
         super(world, server);

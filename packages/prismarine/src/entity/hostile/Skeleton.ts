@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class Skeleton extends Entity {
-    public static MOB_ID = 'minecraft:skeleton.js';
+    public static MOB_ID = 'minecraft:skeleton';
 
     public constructor(world: World, server: Server) {
         super(world, server);

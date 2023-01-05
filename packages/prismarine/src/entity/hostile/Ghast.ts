@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class Ghast extends Entity {
-    public static MOB_ID = 'minecraft:ghast.js';
+    public static MOB_ID = 'minecraft:ghast';
 
     public constructor(world: World, server: Server) {
         super(world, server);

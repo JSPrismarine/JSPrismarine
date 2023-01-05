@@ -3,7 +3,7 @@ import Server from '../../Server.js';
 import World from '../../world/World.js';
 
 export default class Phantom extends Entity {
-    public static MOB_ID = 'minecraft:phantom.js';
+    public static MOB_ID = 'minecraft:phantom';
 
     public constructor(world: World, server: Server) {
         super(world, server);

@@ -178,7 +178,7 @@ export default class PermissionManager {
                 if (executer.getPermissions().includes('*')) return true;
 
                 const split = permission.split('.');
-                let scope = '.js';
+                let scope = '';
                 for (const action of split) {
                     if (scope) scope = `${scope}.${action}`;
                     else scope = action;

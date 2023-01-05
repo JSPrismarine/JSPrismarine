@@ -9,7 +9,7 @@ import { Logger } from '../Prismarine.js';
  * TODO: implement ticking, batching, queues, encryption.
  */
 export default class MinecraftSession {
-    private readonly rakSession: RakNetSession;
+    protected readonly rakSession: RakNetSession;
     private readonly logger?: Logger;
 
     public constructor(session: RakNetSession, logger?: Logger) {
