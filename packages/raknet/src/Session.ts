@@ -16,7 +16,6 @@ import Packet from './protocol/Packet.js';
 import RakNetListener from './Listener.js';
 import { RemoteInfo } from 'dgram';
 import assert from 'assert';
-import { RAKNET_TPS } from './RakNet.js';
 
 export enum RakNetPriority {
     NORMAL,
@@ -41,7 +40,7 @@ export default class RakNetSession {
     private outputSequenceNumber = 0;
     private outputReliableIndex = 0;
     private outputSequenceIndex = 0;
-    private readonly outputBackupQueue: Map<number, Array<Frame>> = new Map();
+    private readonly outputBackupQueue: Map<number, Frame[]> = new Map();
 
     private receivedFrameSequences: Set<number> = new Set();
     private lostFrameSequences: Set<number> = new Set();

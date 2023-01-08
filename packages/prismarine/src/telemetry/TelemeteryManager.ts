@@ -1,11 +1,9 @@
+import exitHook from 'async-exit-hook';
+import type PluginFile from '../plugin/PluginFile.js';
+import type Server from '../Server.js';
 import fetch, { Headers } from 'node-fetch';
 import pkg from 'node-machine-id';
 const { machineIdSync } = pkg;
-
-import exitHook from 'async-exit-hook';
-
-import type PluginFile from '../plugin/PluginFile.js';
-import type Server from '../Server.js';
 
 export default class TelemetryManager {
     private readonly id = this.generateAnonomizedId();

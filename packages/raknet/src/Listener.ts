@@ -1,10 +1,5 @@
 import { pino, type Logger } from 'pino';
-
-import { basename } from 'path';
-import { fileURLToPath } from 'url';
-
 import Dgram, { RemoteInfo } from 'dgram';
-
 import BitFlags from './protocol/BitFlags.js';
 import { EventEmitter } from 'events';
 import Packet from './protocol/Packet.js';

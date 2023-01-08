@@ -33,9 +33,8 @@ const toConsole = Object.fromEntries(
         if (colorData && i[1]) {
             const symbols = Object.getOwnPropertySymbols(colorData);
             return [i[0], (chalk as any)[i[1]][symbols[1]].open];
-        } else {
-            return [i[0], ''];
         }
+        return [i[0], ''];
     })
 );
 

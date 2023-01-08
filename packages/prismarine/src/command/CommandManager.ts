@@ -118,7 +118,7 @@ export default class CommandManager {
      * @remarks
      * This is EXCLUDING legacy commands.
      */
-    public getCommandsList(): Array<[string, /* CommandNode<Player>*/ any, CommandArgument[][]]> {
+    public getCommandsList(): Array<[string, /* CommandNode<Player> */ any, CommandArgument[][]]> {
         const parseNode = (node: /* CommandNode<Player> */ any): any[] => {
             if (node.getChildrenCount() <= 0) {
                 return [

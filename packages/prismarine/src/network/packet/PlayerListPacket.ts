@@ -50,7 +50,7 @@ export class PlayerListEntry {
         this.host = isHost;
     }
 
-    public networkSerialize(stream: any): void {
+    public networkSerialize(stream: BinaryStream): void {
         stream.writeVarLong(this.getUniqueEntityId()!);
         McpeUtil.writeString(stream, this.getName()!);
         McpeUtil.writeString(stream, this.getXUID()!);
