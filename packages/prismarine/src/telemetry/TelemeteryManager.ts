@@ -1,7 +1,7 @@
 import fetch, { Headers } from 'node-fetch';
 import pkg from 'node-machine-id';
 const { machineIdSync } = pkg;
- 
+
 import exitHook from 'async-exit-hook';
 
 import type PluginFile from '../plugin/PluginFile.js';

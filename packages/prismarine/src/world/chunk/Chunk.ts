@@ -128,7 +128,7 @@ export default class Chunk {
         }
 
         // TODO: 3D biomes
-        for (let i = 0; i < 24; i++) {
+        for (let i = 0; i < 25; i++) {
             stream.writeByte(0); // fake biome palette, non persistent
             stream.writeUnsignedVarInt(1 << 1); // plains
         }

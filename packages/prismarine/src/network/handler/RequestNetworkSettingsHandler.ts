@@ -19,11 +19,13 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
         }
 
         const networkSettings = new NetworkSettingsPacket();
-        networkSettings.compressionThreshold = CompressionThreshold.COMPRESS_NOTHING;
+        networkSettings.compressionThreshold = CompressionThreshold.COMPRESS_EVERYTHING;
         networkSettings.compressionAlgorithm = CompressionAlgorithm.ZLIB;
         networkSettings.enableClientThrottling = false;
-        networkSettings.clientThrottleScalar = 0;
         networkSettings.clientThrottleThreshold = 0;
+        networkSettings.clientThrottleScalar = 0;
+
+        connection.hasCompression = true;
 
         // Send as uncompressed, this will initialize compression
         await connection.sendDataPacket(networkSettings, false);

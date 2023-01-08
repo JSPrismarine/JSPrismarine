@@ -1,5 +1,8 @@
 import { InventoryTransactionPacket, LevelSoundEventPacket, UpdateBlockPacket } from '../Packets.js';
-import { InventoryTransactionType, InventoryTransactionUseItemActionType } from '../packet/InventoryTransactionPacket.js';
+import {
+    InventoryTransactionType,
+    InventoryTransactionUseItemActionType
+} from '../packet/InventoryTransactionPacket.js';
 
 import BlockMappings from '../../block/BlockMappings.js';
 import ContainerEntry from '../../inventory/ContainerEntry.js';

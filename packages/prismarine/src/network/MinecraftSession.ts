@@ -17,7 +17,7 @@ export default class MinecraftSession {
         this.logger = logger;
     }
 
-    public async sendDataPacket(packet: DataPacket, comp = true): Promise<void> {
+    public async sendDataPacket<T extends DataPacket>(packet: T, comp = true): Promise<void> {
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);

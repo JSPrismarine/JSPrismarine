@@ -12,8 +12,8 @@ describe('block', () => {
             const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
             const blocks = fs.readdirSync(path.resolve(__dirname, 'blocks'));
 
-            blocks.forEach(async(file) => {
-                const block = new ((await import(`./blocks/${file}`)).default)() as Block;
+            blocks.forEach(async (file) => {
+                const block = new (await import(`./blocks/${file}`)).default() as Block;
 
                 expect(IDs.has(block.getName())).toBe(false);
                 IDs.add(block.getName());

@@ -8,6 +8,7 @@
     "globals": {
         "BigInt": true
     },
+    "plugins": ["unused-imports"],
     "rules": {
         "unicorn/filename-case": 0,
         "unicorn/prevent-abbreviations": 0,
@@ -88,6 +89,11 @@
         "max-depth": 0,
         "capitalized-comments": 0,
         "no-lonely-if": 0,
-        "guard-for-in": 0
+        "guard-for-in": 0,
+        "unused-imports/no-unused-imports": "error",
+		"unused-imports/no-unused-vars": [
+			"warn",
+			{ "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+		]
     }
 }

@@ -2,7 +2,7 @@ import { Logger, Player, PlayerSession, Server } from '../Prismarine.js';
 
 import { DisconnectPacket } from './Packets.js';
 import MinecraftSession from './MinecraftSession.js';
-import { RakNetSession } from '@jsprismarine/raknet';
+import { RakNetSession, Protocol } from '@jsprismarine/raknet';
 import assert from 'assert';
 
 /**
@@ -12,6 +12,7 @@ import assert from 'assert';
  */
 export default class ClientConnection extends MinecraftSession {
     private playerSession: PlayerSession | null = null;
+    public hasCompression = false;
 
     public constructor(session: RakNetSession, logger?: Logger) {
         super(session, logger);

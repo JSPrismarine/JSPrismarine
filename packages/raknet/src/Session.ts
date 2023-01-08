@@ -16,6 +16,7 @@ import Packet from './protocol/Packet.js';
 import RakNetListener from './Listener.js';
 import { RemoteInfo } from 'dgram';
 import assert from 'assert';
+import { RAKNET_TPS } from './RakNet.js';
 
 export enum RakNetPriority {
     NORMAL,
@@ -34,15 +35,13 @@ export default class RakNetSession {
     private readonly mtuSize: number;
     protected readonly rinfo: RemoteInfo;
 
-    private readonly offlineMode: boolean;
-
     private state = RakNetStatus.CONNECTING;
 
     private outputFrameQueue = new FrameSet();
     private outputSequenceNumber = 0;
     private outputReliableIndex = 0;
     private outputSequenceIndex = 0;
-    private readonly outputBackupQueue: Map<number, FrameSet> = new Map();
+    private readonly outputBackupQueue: Map<number, Array<Frame>> = new Map();
 
     private receivedFrameSequences: Set<number> = new Set();
     private lostFrameSequences: Set<number> = new Set();
@@ -62,17 +61,20 @@ export default class RakNetSession {
     private lastUpdate: number = Date.now();
     private active = true;
 
-    public constructor(listener: RakNetListener, mtuSize: number, rinfo: RemoteInfo, offlineMode = false) {
+    public constructor(listener: RakNetListener, mtuSize: number, rinfo: RemoteInfo) {
         this.listener = listener;
 
         this.mtuSize = mtuSize;
         this.rinfo = rinfo;
-        this.offlineMode = offlineMode;
-
         this.lastUpdate = Date.now();
 
         this.channelIndex = new Array(MAX_CHANNELS).fill(0);
+
         this.inputOrderIndex = new Array(MAX_CHANNELS).fill(0);
+        for (let i = 0; i < MAX_CHANNELS; i++) {
+            this.inputOrderingQueue.set(i, new Map());
+        }
+
         this.inputHighestSequenceIndex = new Array(MAX_CHANNELS).fill(0);
     }
 
@@ -127,34 +129,24 @@ export default class RakNetSession {
     }
 
     private handleFrameSet(frameSet: FrameSet): void {
-        // Check if we already received packet and so we don't handle them
+        // TODO: additional sanity checks
         if (this.receivedFrameSequences.has(frameSet.sequenceNumber)) {
+            this.listener.getLogger().debug('Discarded duplicated packet from client=%o', this.getAddress());
             return;
         }
 
-        // Check if the packet was a missing one, so in the nack queue
         // if it was missing, remove from the queue because we received it now
-        if (this.lostFrameSequences.has(frameSet.sequenceNumber)) {
-            // May not need condition, to check
-            this.lostFrameSequences.delete(frameSet.sequenceNumber);
-        } else {
-            // For now is good like that
-            if (
-                frameSet.sequenceNumber < this.lastInputSequenceNumber ||
-                frameSet.sequenceNumber === this.lastInputSequenceNumber
-            ) {
-                return;
-            }
+        this.lostFrameSequences.delete(frameSet.sequenceNumber);
+
+        // For now is good like that
+        if (
+            frameSet.sequenceNumber < this.lastInputSequenceNumber ||
+            frameSet.sequenceNumber === this.lastInputSequenceNumber
+        ) {
+            return;
         }
 
-        // Add the packet to the 'sent' queue
-        // to let know the game we sent the packet
-        this.receivedFrameSequences.add(frameSet.sequenceNumber);
-
-        // Add the packet to the received window, a property that keeps
-        // all the sequence numbers of packets we received
-        // its function is to check if when we lost some packets
-        // check wich are really lost by searching if we received it there
+        // Add the frame to the ACK queue
         this.receivedFrameSequences.add(frameSet.sequenceNumber);
 
         // Check if there are missing packets between the received packet and the last received one
@@ -177,7 +169,7 @@ export default class RakNetSession {
 
         // Handle encapsulated
         for (const frame of frameSet.frames) {
-            this.receiveFrame(frame);
+            this.handleFrame(frame);
         }
     }
 
@@ -185,19 +177,23 @@ export default class RakNetSession {
         // TODO: ping calculation
 
         for (const seq of ack.sequenceNumbers) {
-            this.receivedFrameSequences.delete(seq);
             this.outputBackupQueue.delete(seq);
         }
     }
 
     private handleNACK(nack: NACK): void {
         for (const seq of nack.sequenceNumbers) {
-            const pk = this.outputBackupQueue.get(seq);
-            pk && this.sendFrameSet(pk);
+            if (this.outputBackupQueue.has(seq)) {
+                const lostFrames = this.outputBackupQueue.get(seq)!;
+                for (const lostFrame of lostFrames) {
+                    this.sendFrame(lostFrame, RakNetPriority.IMMEDIATE);
+                }
+                this.outputBackupQueue.delete(seq);
+            }
         }
     }
 
-    private receiveFrame(frame: Frame): void {
+    private handleFrame(frame: Frame): void {
         if (frame.isFragmented()) {
             this.handleFragment(frame);
             return;
@@ -212,17 +208,13 @@ export default class RakNetSession {
                 sequenceIndex < this.inputHighestSequenceIndex[orderChannel] ||
                 orderIndex < this.inputOrderIndex[orderChannel]
             ) {
-                // Packet is too old, discard it
+                // Sequenced packet is too old, discard it
                 return;
             }
 
             this.inputHighestSequenceIndex[orderChannel] = sequenceIndex + 1;
             this.handlePacket(frame);
         } else if (frame.isOrdered()) {
-            if (!this.inputOrderingQueue.has(orderChannel)) {
-                this.inputOrderingQueue.set(orderChannel, new Map());
-            }
-
             if (orderIndex === this.inputOrderIndex[orderChannel]) {
                 this.inputHighestSequenceIndex[orderChannel] = 0;
                 this.inputOrderIndex[orderChannel] = orderIndex + 1;
@@ -231,15 +223,15 @@ export default class RakNetSession {
                 let i = this.inputOrderIndex[orderChannel];
                 const outOfOrderQueue = this.inputOrderingQueue.get(orderChannel)!;
                 for (; outOfOrderQueue.has(i); i++) {
-                    const packet = outOfOrderQueue.get(i)!;
-                    this.handlePacket(packet);
+                    this.handlePacket(outOfOrderQueue.get(i)!);
                     outOfOrderQueue.delete(i);
                 }
 
+                // Set the updated queue
+                this.inputOrderingQueue.set(orderChannel, outOfOrderQueue);
                 this.inputOrderIndex[orderChannel] = i;
             } else if (orderIndex > this.inputOrderIndex[orderChannel]) {
-                const unordered = this.inputOrderingQueue.get(orderChannel);
-                assert(typeof unordered !== 'undefined', 'Cannot find unordered packet');
+                const unordered = this.inputOrderingQueue.get(orderChannel)!;
                 unordered.set(orderIndex, frame);
                 this.inputOrderingQueue.set(orderChannel, unordered);
             }
@@ -250,28 +242,25 @@ export default class RakNetSession {
 
     public sendFrame(frame: Frame, flags = RakNetPriority.NORMAL): void {
         assert(typeof frame.orderChannel === 'number', 'Frame OrderChannel cannot be null');
-        if (frame.isOrdered()) {
-            if (frame.isSequenced()) {
-                // Sequenced packets don't increase the ordered channel index
-                frame.orderIndex = this.channelIndex[frame.orderChannel];
-            } else {
-                frame.orderIndex = this.channelIndex[frame.orderChannel]++;
-            }
-        } else if (frame.isSequenced()) {
+        if (frame.isSequenced()) {
+            // Sequenced packets don't increase the ordered channel index
+            frame.orderIndex = this.channelIndex[frame.orderChannel];
             frame.sequenceIndex = this.outputSequenceIndex++;
+        } else if (frame.isOrdered()) {
+            // implies sequenced, but we have to distinct them
+            frame.orderIndex = this.channelIndex[frame.orderChannel]++;
         }
 
         // Split packet if bigger than MTU size
-        const maxMtu = this.mtuSize - 36;
-        if (frame.getByteLength() + 4 > maxMtu) {
+        const maxSize = this.mtuSize - 60;
+        if (frame.content.byteLength > maxSize) {
             // Split the buffer into chunks
             const buffers: Map<number, Buffer> = new Map();
-            let index = 0;
-            let splitIndex = 0;
+            let [index, splitIndex] = [0, 0];
 
             while (index < frame.content.byteLength) {
                 // Push format: [chunk index: int, chunk: buffer]
-                buffers.set(splitIndex++, frame.content.slice(index, (index += maxMtu)));
+                buffers.set(splitIndex++, frame.content.slice(index, (index += maxSize)));
             }
 
             const fragmentId = this.outputFragmentIndex++ % 65536;
@@ -291,7 +280,7 @@ export default class RakNetSession {
                 newFrame.orderChannel = frame.orderChannel;
                 newFrame.orderIndex = frame.orderIndex;
 
-                this.addFrameToQueue(newFrame, flags);
+                this.addFrameToQueue(newFrame, flags | RakNetPriority.IMMEDIATE);
             }
         } else {
             if (frame.isReliable()) {
@@ -302,7 +291,12 @@ export default class RakNetSession {
     }
 
     private addFrameToQueue(frame: Frame, priority = RakNetPriority.NORMAL): void {
-        if (this.outputFrameQueue.getByteLength() + frame.getByteLength() > this.mtuSize) {
+        let length = 4; // datagram header size
+        for (const queuedFrame of this.outputFrameQueue.frames) {
+            length += queuedFrame.getByteLength();
+        }
+
+        if (length + frame.getByteLength() > this.mtuSize - 36) {
             this.sendFrameQueue();
         }
 
@@ -328,10 +322,10 @@ export default class RakNetSession {
                 this.listener.emit('openConnection', this);
             }
         } else if (id === MessageHeaders.DISCONNECT_NOTIFICATION) {
-            this.disconnect('client disconnect');
+            this.disconnect();
         } else if (id === MessageHeaders.CONNECTED_PING) {
             this.handleConnectedPing(packet.content).then(
-                (encapsulated) => this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE),
+                (encapsulated) => this.sendFrame(encapsulated),
                 () => {}
             );
         } else if (this.state === RakNetStatus.CONNECTED) {
@@ -350,7 +344,7 @@ export default class RakNetSession {
         pk.encode();
 
         const sendPacket = new Frame();
-        sendPacket.reliability = FrameReliability.RELIABLE_ORDERED;
+        sendPacket.reliability = FrameReliability.UNRELIABLE;
         sendPacket.orderChannel = 0;
         sendPacket.content = pk.getBuffer();
 
@@ -380,7 +374,6 @@ export default class RakNetSession {
         } else {
             const value = this.fragmentsQueue.get(frame.fragmentId)!;
             value.set(frame.fragmentIndex, frame);
-            this.fragmentsQueue.set(frame.fragmentId, value);
 
             // If we have all pieces, put them together
             if (value.size === frame.fragmentSize) {
@@ -393,14 +386,15 @@ export default class RakNetSession {
 
                 const assembledFrame = new Frame();
                 assembledFrame.content = stream.getBuffer();
+
                 assembledFrame.reliability = frame.reliability;
-                if (frame.isOrdered()) {
-                    assembledFrame.orderIndex = frame.orderIndex;
-                    assembledFrame.orderChannel = frame.orderChannel;
-                }
+                assembledFrame.reliableIndex = frame.reliableIndex;
+                assembledFrame.sequenceIndex = frame.sequenceIndex;
+                assembledFrame.orderIndex = frame.orderIndex;
+                assembledFrame.orderChannel = frame.orderChannel;
 
                 this.fragmentsQueue.delete(frame.fragmentId);
-                this.receiveFrame(assembledFrame);
+                this.handleFrame(assembledFrame);
             }
         }
     }
@@ -415,7 +409,10 @@ export default class RakNetSession {
 
     private sendFrameSet(frameSet: FrameSet): void {
         this.sendPacket(frameSet);
-        this.outputBackupQueue.set(frameSet.sequenceNumber, frameSet);
+        this.outputBackupQueue.set(
+            frameSet.sequenceNumber,
+            frameSet.frames.filter((frame) => frame.isReliable())
+        );
     }
 
     private sendPacket(packet: Packet): void {
@@ -431,10 +428,13 @@ export default class RakNetSession {
      * Kick a client
      * @param reason the reason message, optional
      */
-    public disconnect(reason?: string): void {
-        this.state = RakNetStatus.DISCONNECTED;
+    public disconnect(reason = 'client disconnect'): void {
+        // TODO: rewrite, works but can be improved
         this.close();
-        this.listener.removeSession(this, reason ?? '');
+        // Send disconnect ACK
+        this.update(Date.now());
+        this.state = RakNetStatus.DISCONNECTED;
+        this.listener.removeSession(this, reason);
     }
 
     public getState(): number {

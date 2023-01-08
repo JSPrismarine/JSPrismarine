@@ -29,8 +29,12 @@ export default class CommandManager {
         const timer = new Timer();
 
         const commands = [
-            ...fs.readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'vanilla')).map((a) => `/vanilla/${a}`),
-            ...fs.readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'jsprismarine')).map((a) => `/jsprismarine/${a}`)
+            ...fs
+                .readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'vanilla'))
+                .map((a) => `/vanilla/${a}`),
+            ...fs
+                .readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'jsprismarine'))
+                .map((a) => `/jsprismarine/${a}`)
         ];
 
         // Register jsprismarine commands

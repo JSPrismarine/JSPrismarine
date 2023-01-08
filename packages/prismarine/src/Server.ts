@@ -208,6 +208,7 @@ export default class Server {
             try {
                 // Read batch content and handle them
                 const batched = new BatchPacket(packet.content);
+                batched.compressed = connection.hasCompression;
 
                 // Read all packets inside batch and handle them
                 for (const buf of await batched.asyncDecode()) {

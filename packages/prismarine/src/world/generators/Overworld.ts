@@ -35,8 +35,7 @@ export default class Overworld extends BaseGenerator {
             for (let x = 0; x < CHUNK_WIDTH; x++) {
                 for (let z = 0; z < CHUNK_LENGTH; z++) {
                     const height = Math.floor(
-                        60 +
-                            20 * this.worldNoise((cx * CHUNK_WIDTH + x) * 0.005, (cz * CHUNK_WIDTH + z) * 0.005)
+                        60 + 20 * this.worldNoise((cx * CHUNK_WIDTH + x) * 0.005, (cz * CHUNK_WIDTH + z) * 0.005)
                     );
 
                     for (let y = 0; y < height; y++) {
@@ -61,9 +60,7 @@ export default class Overworld extends BaseGenerator {
                         }
                     else {
                         const foliageMap = Math.floor(
-                            55 +
-                                20 *
-                                    this.foliagNoise((cx * CHUNK_WIDTH + x) * 0.1, (cz * CHUNK_WIDTH + z) * 0.1)
+                            55 + 20 * this.foliagNoise((cx * CHUNK_WIDTH + x) * 0.1, (cz * CHUNK_WIDTH + z) * 0.1)
                         );
 
                         // TODO: Do this properly
