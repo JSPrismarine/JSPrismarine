@@ -212,7 +212,7 @@
         "@types/unzipper": "0.10.5",
         "async-exit-hook": "2.0.1",
         "evt": "1.11.2",
-        "fast-jwt": "2.0.2",
+        "fast-jwt": "2.1.0",
         "fflate": "0.7.4",
         "git-rev-sync": "3.0.2",
         "graceful-fs": "4.2.10",
