@@ -8,6 +8,10 @@
     "globals": {
         "BigInt": true
     },
+    "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module"
+    },
     "plugins": ["unused-imports"],
     "rules": {
         "unicorn/filename-case": 0,
