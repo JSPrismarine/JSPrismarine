@@ -31,7 +31,7 @@
         "test:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --check && prettier --config .prettierrc packages/**/src/**/*.* --check",
         "format:eslint": "xo --fix packages/**/src/",
         "format:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write",
-        "coveralls": "cross-env NODE_ENV=test NODE_OPTIONS=\"--loader ts-node/esm --loader=esmock\" jest --coverage --forceExit --testLocationInResults --silent && cat ./coverage/lcov.info | coveralls"
+        "coveralls": "cross-env NODE_ENV=test NODE_OPTIONS=\"--loader ts-node/esm --loader=esmock\" jest --coverage --forceExit --testLocationInResults --silent && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
     },
     "repository": {
         "type": "git",
