@@ -125,7 +125,6 @@ export default class Chunk {
             stream.writeByte(0); // 0 layers (all air)
         }
 
-        console.log(this.getTopEmpty());
         for (let y = 0; y < this.getTopEmpty(); ++y) {
             (this.subChunks.get(y) ?? Chunk.EMPTY_SUBCHUNK).networkSerialize(stream);
         }
