@@ -41,7 +41,10 @@ export default class Chunk {
      */
     public getTopEmpty(): number {
         let topEmpty = MAX_SUBCHUNKS - 1;
-        while (topEmpty >= 0 && !this.subChunks.has(topEmpty) || (this.subChunks.has(topEmpty) && this.subChunks.get(topEmpty)!.isEmpty())) {
+        while (
+            (topEmpty >= 0 && !this.subChunks.has(topEmpty)) ||
+            (this.subChunks.has(topEmpty) && this.subChunks.get(topEmpty)!.isEmpty())
+        ) {
             topEmpty--;
         }
         return ++topEmpty;
@@ -122,7 +125,7 @@ export default class Chunk {
             stream.writeByte(0); // 0 layers (all air)
         }
 
-        console.log(this.getTopEmpty())
+        console.log(this.getTopEmpty());
         for (let y = 0; y < this.getTopEmpty(); ++y) {
             (this.subChunks.get(y) ?? Chunk.EMPTY_SUBCHUNK).networkSerialize(stream);
         }

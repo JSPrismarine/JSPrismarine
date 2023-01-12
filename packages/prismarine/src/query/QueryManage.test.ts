@@ -32,13 +32,13 @@ import Server from '../Server.js';
 
 describe('QueryManager', () => {
     it.skip('handshake', async () => {
-        // TODO 
+        // TODO
         const prismarine = new Server({
             logger: null as any,
             config: null as any,
             version: 'test'
         });
-        console.log(prismarine)
+        console.log(prismarine);
         const queryManager = new QueryManager(prismarine);
 
         let stream = new BinaryStream();
@@ -54,5 +54,5 @@ describe('QueryManager', () => {
                 'binary'
             ).toString()
         );
-    }); 
+    });
 });
