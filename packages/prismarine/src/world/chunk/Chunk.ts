@@ -12,16 +12,12 @@ export default class Chunk {
     private hasChanged: boolean;
 
     private subChunks: Map<number, SubChunk> = new Map();
+    private static readonly EMPTY_SUBCHUNK = new SubChunk();
 
     public constructor(chunkX = 0, chunkZ = 0, subChunks: Map<number, SubChunk> = new Map()) {
         this.x = chunkX;
         this.z = chunkZ;
         this.hasChanged = false;
-
-        // Initialize all empty subchunks
-        for (let y = 0; y < MAX_SUBCHUNKS; y++) {
-            this.subChunks.set(y, subChunks.get(y) ?? new SubChunk());
-        }
     }
 
     public getX(): number {
@@ -44,29 +40,29 @@ export default class Chunk {
      * Returns the highest empty sub chunk (so we don't send empty sub chunks).
      */
     public getTopEmpty(): number {
-        let topEmpty = MAX_SUBCHUNKS;
-        for (let i = 0; i <= MAX_SUBCHUNKS; i++) {
-            const subChunk = this.subChunks.get(i)!;
-            if (subChunk?.isEmpty?.()) {
-                topEmpty = i;
-            } else {
-                break;
-            }
+        let topEmpty = MAX_SUBCHUNKS - 1;
+        while (topEmpty >= 0 && !this.subChunks.has(topEmpty) || (this.subChunks.has(topEmpty) && this.subChunks.get(topEmpty)!.isEmpty())) {
+            topEmpty--;
         }
-        return topEmpty;
+        return ++topEmpty;
     }
 
     /**
-     * Returns the Chunk slice at given block height.
+     * Returns the Chunk slice at the given layer.
      *
-     * @param by - block y
+     * @param y - layer
      */
-    public getSubChunk(by: number): SubChunk {
-        const index = by >> 4; // Block to SubChunk index
-        if (!this.subChunks.has(index)) {
-            throw new Error(`Invalid subchunk height: ${index}, block height: ${by}`);
+    public getSubChunk(y: number): SubChunk | null {
+        if (y < 0 || y > MAX_SUBCHUNKS) {
+            throw new Error(`Invalid subchunk height: ${y}`);
         }
-        return this.subChunks.get(index)!;
+        return this.subChunks.get(y) ?? null;
+    }
+
+    public getOrCreateSubChunk(y: number): SubChunk {
+        const subChunk = new SubChunk();
+        this.subChunks.set(y, subChunk);
+        return subChunk;
     }
 
     public getSubChunks(): Map<number, SubChunk> {
@@ -75,13 +71,6 @@ export default class Chunk {
 
     public getHighestBlockAt(x: number, z: number): number {
         return 100;
-        // for (let y = this.subChunks.size - 1; y >= 0; y--) {
-        //    const height = this.getSubChunk(y).getHighestBlockAt(x, z) | (y << 4);
-        //    if (height !== -1) {
-        //        return height;
-        //    }
-        // }
-        // return -1;
     }
 
     /**
@@ -94,7 +83,11 @@ export default class Chunk {
      * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
     public getBlock(bx: number, by: number, bz: number, layer = 0): LegacyId {
-        return this.getSubChunk(by).getBlock(bx, by, bz, layer);
+        const subChunk = this.getSubChunk(by >> 4);
+        if (subChunk == null) {
+            return BlockMappings.getLegacyId(BlockMappings.getRuntimeId('minecraft:air'));
+        }
+        return subChunk.getBlock(bx, by & 0xf, bz, layer);
     }
 
     /**
@@ -107,11 +100,18 @@ export default class Chunk {
      * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
     public setBlock(bx: number, by: number, bz: number, block: Block, layer = 0): void {
-        this.getSubChunk(by).setBlock(bx, by, bz, BlockMappings.getRuntimeId(block.getName()), layer);
+        let subChunk = this.getSubChunk(by >> 4);
+        if (subChunk == null) {
+            if (block.getName() === 'minecraft:air') {
+                return;
+            }
+            subChunk = this.getOrCreateSubChunk(by >> 4);
+        }
+        subChunk.setBlock(bx, by & 0xf, bz, BlockMappings.getRuntimeId(block.getName()), layer);
         this.hasChanged = true;
     }
 
-    public networkSerialize(forceAll = false): Buffer {
+    public networkSerialize(_forceAll = false): Buffer {
         const stream = new BinaryStream();
 
         // For some reasons we need this hack since 1.18
@@ -122,13 +122,13 @@ export default class Chunk {
             stream.writeByte(0); // 0 layers (all air)
         }
 
-        for (let i = 0; i < (forceAll ? MAX_SUBCHUNKS : this.getTopEmpty()); i++) {
-            const subChunk = this.subChunks.get(i)!;
-            subChunk.networkSerialize(stream);
+        console.log(this.getTopEmpty())
+        for (let y = 0; y < this.getTopEmpty(); ++y) {
+            (this.subChunks.get(y) ?? Chunk.EMPTY_SUBCHUNK).networkSerialize(stream);
         }
 
         // TODO: 3D biomes
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < 24; i++) {
             stream.writeByte(0); // fake biome palette, non persistent
             stream.writeUnsignedVarInt(1 << 1); // plains
         }

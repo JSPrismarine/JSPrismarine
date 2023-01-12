@@ -12,20 +12,25 @@ const jestConfig: JestConfigWithTsJest = {
         '^.+\\.tsx?$': [
             'ts-jest', 
             {
-                useESM: true
+                useESM: true,
             }
-        ]
+        ],
     },
     rootDir: './',
-    roots: ['<rootDir>'],
-    moduleDirectories: ['node_modules', 'packages'],
-    modulePaths: ['<rootDir>/packages/'],
+    // roots: ['<rootDir>'],
+    moduleDirectories: ['node_modules', 'packages', '<rootDir>/packages/prismarine/src/utils/'],
+    modulePaths: ['<rootDir>/packages/', '<rootDir>/node_modules/@jsprismarine/jsbinaryutils', '<rootDir>/node_modules/chalk'],
     modulePathIgnorePatterns: [
         '<rootDir>/node_modules/',
         '<rootDir>/dist/',
         '<rootDir>/plugins/',
         '<rootDir>/worlds/'
     ],
+    resolver: "jest-ts-webcompat-resolver",
+    // https://github.com/kulshekhar/ts-jest/issues/1057
+    // moduleNameMapper: {
+    //    '^(\\.{1,2}/.*)\\.[jt]s$': '$1',
+    // },
     verbose: true
 };
 

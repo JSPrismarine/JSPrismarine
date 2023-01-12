@@ -1,4 +1,4 @@
-import HumanInventory from './HumanInventory';
+import HumanInventory from './HumanInventory.js';
 
 describe('inventory', () => {
     describe('PlayerInventory', () => {

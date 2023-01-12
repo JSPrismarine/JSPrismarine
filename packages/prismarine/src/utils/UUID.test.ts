@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import UUID from './UUID';
+import UUID from './UUID.js';
 
 describe('utils', () => {
     describe('UUID', () => {

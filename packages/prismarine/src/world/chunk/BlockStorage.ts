@@ -17,9 +17,9 @@ export default class BlockStorage {
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {
-        bx &= 0x0f;
-        by &= 0x0f;
-        bz &= 0x0f;
+        // bx &= 0x0f;
+        // by &= 0x0f;
+        // bz &= 0x0f;
         return ((bx << 8) + (bz << 4)) | by;
     }
 
@@ -122,5 +122,9 @@ export default class BlockStorage {
             }
         }
         return storage;
+    }
+
+    public isEmpty(): boolean {
+        return this.palette.length === 1;
     }
 }

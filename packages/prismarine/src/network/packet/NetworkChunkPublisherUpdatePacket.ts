@@ -14,6 +14,6 @@ export default class NetworkChunkPublisherUpdatePacket extends DataPacket {
         this.writeVarInt(this.y);
         this.writeVarInt(this.z);
         this.writeUnsignedVarInt(this.radius);
-        this.writeIntLE(0); // ? unknown
+        this.writeIntLE(0); // saved chunks
     }
 }

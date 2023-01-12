@@ -1,5 +1,5 @@
-import LoggerBuilder from '../utils/Logger';
-import PacketRegistry from './PacketRegistry';
+import LoggerBuilder from '../utils/Logger.js';
+import PacketRegistry from './PacketRegistry.js';
 
 describe('network', () => {
     describe('PacketRegistry', () => {

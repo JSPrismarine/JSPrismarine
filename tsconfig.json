@@ -5,6 +5,6 @@
         "rootDir": "./packages",
         "typeRoots": ["./packages/prismarine/src/@types", "./node_modules/@types"]
     },
-    "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*", "jest.config.ts"],
+    "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*", "jest.config_old.ts"],
     "references": [{ "path": "packages/prismarine/src" }, { "path": "packages/updater/src" }]
 }

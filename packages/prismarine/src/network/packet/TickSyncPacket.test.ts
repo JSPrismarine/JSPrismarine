@@ -1,4 +1,4 @@
-import TickSyncPacket from './TickSyncPacket';
+import TickSyncPacket from './TickSyncPacket.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -22,7 +22,7 @@ describe('network', () => {
                 pk.serverReceptionTimestamp = BigInt(0xfeedbabe);
                 pk.encode();
 
-                expect(dump.equals((pk as any).buffer)).toBe(true);
+                expect(dump.equals((pk as any).getBuffer())).toBe(true);
             });
         });
     });
