@@ -87,7 +87,7 @@ export default class Chunk {
      */
     public getBlock(bx: number, by: number, bz: number, layer = 0): LegacyId {
         const subChunk = this.getSubChunk(by >> 4);
-        if (subChunk == null) {
+        if (subChunk === null) {
             return BlockMappings.getLegacyId(BlockMappings.getRuntimeId('minecraft:air'));
         }
         return subChunk.getBlock(bx, by & 0xf, bz, layer);
@@ -104,7 +104,7 @@ export default class Chunk {
      */
     public setBlock(bx: number, by: number, bz: number, block: Block, layer = 0): void {
         let subChunk = this.getSubChunk(by >> 4);
-        if (subChunk == null) {
+        if (subChunk === null) {
             if (block.getName() === 'minecraft:air') {
                 return;
             }
