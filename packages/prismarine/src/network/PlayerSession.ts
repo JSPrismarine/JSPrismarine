@@ -147,17 +147,14 @@ export default class PlayerSession {
 
         for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
             for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
-                const chunkDistance = Math.round(Math.sqrt(sendZChunk * sendZChunk + sendXChunk * sendXChunk));
+                if (sendXChunk * sendXChunk + sendZChunk * sendZChunk > viewDistance * viewDistance) continue; // early exit if chunk is outside of view distance
+                const newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk];
+                const hash = CoordinateUtils.encodePos(newChunk[0], newChunk[1]);
 
-                if (chunkDistance <= viewDistance) {
-                    const newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk];
-                    const hash = CoordinateUtils.encodePos(newChunk[0], newChunk[1]);
-
-                    if (forceResend) {
-                        chunksToSend.push(newChunk);
-                    } else if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
-                        chunksToSend.push(newChunk);
-                    }
+                if (forceResend) {
+                    chunksToSend.push(newChunk);
+                } else if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
+                    chunksToSend.push(newChunk);
                 }
             }
         }
