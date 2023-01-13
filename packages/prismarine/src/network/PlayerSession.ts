@@ -153,7 +153,7 @@ export default class PlayerSession {
             const distZFirst = Math.abs(a[1] - currentZChunk);
             const distZSecond = Math.abs(b[1] - currentZChunk);
 
-            return distXFirst + distZFirst > distXSecond + distZSecond ? 1 : 0;
+            return distXFirst + distZFirst > distXSecond + distZSecond ? 1 : -1;
         });
 
         for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
