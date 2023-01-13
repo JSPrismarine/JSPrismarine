@@ -16,6 +16,7 @@ import Packet from './protocol/Packet.js';
 import RakNetListener from './Listener.js';
 import { RemoteInfo } from 'dgram';
 import assert from 'assert';
+import PacketPool from './protocol/PacketPool.js';
 
 export enum RakNetPriority {
     NORMAL,
@@ -60,6 +61,9 @@ export default class RakNetSession {
     private lastUpdate: number = Date.now();
     private active = true;
 
+    // Packet pool is the best option to reduce allocations
+    private readonly packetPool = new PacketPool();
+
     public constructor(listener: RakNetListener, mtuSize: number, rinfo: RemoteInfo) {
         this.listener = listener;
 
@@ -77,8 +81,31 @@ export default class RakNetSession {
         this.inputHighestSequenceIndex = new Array(MAX_CHANNELS).fill(0);
     }
 
+    // Lookup table for packet handlers, always O(1) in average and worst case
+    private readonly packetHandlers: { [key: number]: (buffer: Buffer) => void } = {
+        // 0x40 | 0xc0 = MessageHeaders.ACKNOWLEDGE_PACKET
+        [MessageHeaders.ACKNOWLEDGE_PACKET]: (buffer: Buffer) => {
+            const ack = this.packetPool.getAckInstance();
+            (ack as any).buffer = buffer;
+            ack.decode();
+            this.handleACK(ack);
+        },
+        [MessageHeaders.NACKNOWLEDGE_PACKET]: (buffer: Buffer) => {
+            const nack = this.packetPool.getNackInstance();
+            (nack as any).buffer = buffer;
+            nack.decode();
+            this.handleNACK(nack);
+        },
+        [BitFlags.VALID]: (buffer: Buffer) => {
+            const frameSet = this.packetPool.getFrameSetInstance();
+            (frameSet as any).buffer = buffer;
+            frameSet.decode();
+            this.handleFrameSet(frameSet);
+        },
+    };
+
     public update(timestamp: number): void {
-        if (!this.isActive() && this.lastUpdate + 10_000 < timestamp) {
+        if (!this.isActive() && !this.isDisconnected() && this.lastUpdate + 10_000 < timestamp) {
             this.disconnect('timeout');
             return;
         }
@@ -112,18 +139,12 @@ export default class RakNetSession {
         this.lastUpdate = Date.now();
 
         const header = buffer[0];
-        if (header & BitFlags.ACK) {
-            const ack = new ACK(buffer);
-            ack.decode();
-            this.handleACK(ack);
-        } else if (header & BitFlags.NACK) {
-            const nack = new NACK(buffer);
-            nack.decode();
-            this.handleNACK(nack);
+        // Mask the lower 4 bits to get the range of header values
+        const handler = this.packetHandlers[header & 0xF0];
+        if (handler) {
+            handler(buffer);
         } else {
-            const frameSet = new FrameSet(buffer);
-            frameSet.decode();
-            this.handleFrameSet(frameSet);
+            this.listener.getLogger().debug('Received an unknown packet type=%d', header);
         }
     }
 
