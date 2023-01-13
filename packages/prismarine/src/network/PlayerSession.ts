@@ -50,6 +50,7 @@ import UpdateAbilitiesPacket, {
 
 import pkg from '@jsprismarine/bedrock-data';
 const { creativeitems } = pkg;
+import Heap from 'heap';
 
 export default class PlayerSession {
     private connection: ClientConnection;
@@ -143,7 +144,16 @@ export default class PlayerSession {
         const currentZChunk = CoordinateUtils.fromBlockToChunk(this.player.getZ());
 
         const viewDistance = this.player.viewDistance;
-        const chunksToSend: number[][] = [];
+
+        const chunksToSendHeap = new Heap((a: number[], b: number[]) => {
+            const distXFirst = Math.abs(a[0] - currentXChunk);
+            const distXSecond = Math.abs(b[0] - currentXChunk);
+
+            const distZFirst = Math.abs(a[1] - currentZChunk);
+            const distZSecond = Math.abs(b[1] - currentZChunk);
+
+            return distXFirst + distZFirst > distXSecond + distZSecond ? 1 : 0;
+        });
 
         for (let sendXChunk = -viewDistance; sendXChunk <= viewDistance; sendXChunk++) {
             for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
@@ -152,49 +162,27 @@ export default class PlayerSession {
                 const hash = CoordinateUtils.encodePos(newChunk[0], newChunk[1]);
 
                 if (forceResend) {
-                    chunksToSend.push(newChunk);
+                    chunksToSendHeap.push(newChunk);
                 } else if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
-                    chunksToSend.push(newChunk);
+                    chunksToSendHeap.push(newChunk);
                 }
             }
         }
 
-        // Send closer chunks before
-        chunksToSend.sort((c1, c2) => {
-            if (c1[0] === c2[0] && c1[1] === c2[2]) {
-                return 0;
-            }
-
-            const distXFirst = Math.abs(c1[0] - currentXChunk);
-            const distXSecond = Math.abs(c2[0] - currentXChunk);
-
-            const distZFirst = Math.abs(c1[1] - currentZChunk);
-            const distZSecond = Math.abs(c2[1] - currentZChunk);
-
-            if (distXFirst + distZFirst > distXSecond + distZSecond) {
-                return 1;
-            }
-
-            if (distXFirst + distZFirst < distXSecond + distZSecond) {
-                return -1;
-            }
-
-            return 0;
-        });
-
-        for (const chunk of chunksToSend) {
-            const hash = CoordinateUtils.encodePos(chunk[0], chunk[1]);
+        while (chunksToSendHeap.size() > 0) {
+            const closestChunk = chunksToSendHeap.pop()!;
+            const hash = CoordinateUtils.encodePos(closestChunk[0], closestChunk[1]);
             if (forceResend) {
                 if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                     this.loadingChunks.add(hash);
-                    await this.requestChunk(chunk[0], chunk[1]);
+                    await this.requestChunk(closestChunk[0], closestChunk[1]);
                 } else {
-                    const loadedChunk = await this.player.getWorld().getChunk(chunk[0], chunk[1]);
+                    const loadedChunk = await this.player.getWorld().getChunk(closestChunk[0], closestChunk[1]);
                     await this.sendChunk(loadedChunk);
                 }
             } else {
                 this.loadingChunks.add(hash);
-                await this.requestChunk(chunk[0], chunk[1]);
+                await this.requestChunk(closestChunk[0], closestChunk[1]);
             }
         }
 

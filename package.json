@@ -202,6 +202,7 @@
     "devDependencies": {
         "@janniks/typedoc-plugin-monorepo": "^0.4.2-1",
         "@types/async-exit-hook": "2.0.0",
+        "@types/heap": "^0.2.31",
         "@types/jest": "29.2.5",
         "@types/node": "18.11.8",
         "coveralls": "3.1.1",
@@ -233,6 +234,7 @@
         "fflate": "0.7.4",
         "git-rev-sync": "3.0.2",
         "graceful-fs": "4.2.10",
+        "heap": "^0.2.7",
         "jest-light-runner": "^0.4.1",
         "live-plugin-manager": "0.17.1",
         "node-fetch": "3.3.0",
