@@ -1,3 +1,5 @@
+import Heap from 'heap';
+
 import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket.js';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments.js';
 import CommandParameter, { CommandParameterType } from './type/CommandParameter.js';
@@ -50,7 +52,6 @@ import UpdateAbilitiesPacket, {
 
 import pkg from '@jsprismarine/bedrock-data';
 const { creativeitems } = pkg;
-import Heap from 'heap';
 
 export default class PlayerSession {
     private connection: ClientConnection;
