@@ -217,7 +217,7 @@
         "git-rev-sync": "3.0.2",
         "graceful-fs": "4.2.10",
         "live-plugin-manager": "0.17.1",
-        "node-fetch": "2.6.7",
+        "node-fetch": "2.6.8",
         "node-machine-id": "1.1.12",
         "semver": "7.3.8",
         "set-interval-async": "3.0.3",
