@@ -1,7 +1,7 @@
-import { BatchPacket, DataPacket } from './Packets';
+import { BatchPacket, DataPacket } from './Packets.js';
 import { Protocol, RakNetSession } from '@jsprismarine/raknet';
 
-import { Logger } from '../Prismarine';
+import { Logger } from '../Prismarine.js';
 
 /**
  * Act as the first connection layer, handles everything related to batching,
@@ -9,7 +9,7 @@ import { Logger } from '../Prismarine';
  * TODO: implement ticking, batching, queues, encryption.
  */
 export default class MinecraftSession {
-    private readonly rakSession: RakNetSession;
+    protected readonly rakSession: RakNetSession;
     private readonly logger?: Logger;
 
     public constructor(session: RakNetSession, logger?: Logger) {
@@ -17,7 +17,7 @@ export default class MinecraftSession {
         this.logger = logger;
     }
 
-    public async sendDataPacket(packet: DataPacket, comp = true): Promise<void> {
+    public async sendDataPacket<T extends DataPacket>(packet: T, comp = true): Promise<void> {
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);

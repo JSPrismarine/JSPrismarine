@@ -1,7 +1,7 @@
-import ConfigBuilder from './ConfigBuilder';
-import Gamemode from '../world/Gamemode';
-import { SeedGenerator } from '../utils/Seed';
-import cwd from '../utils/cwd';
+import ConfigBuilder from './ConfigBuilder.js';
+import Gamemode from '../world/Gamemode.js';
+import { SeedGenerator } from '../utils/Seed.js';
+import cwd from '../utils/cwd.js';
 import path from 'path';
 
 export default class Config {

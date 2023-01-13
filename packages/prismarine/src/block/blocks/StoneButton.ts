@@ -1,6 +1,6 @@
-import { BlockIdsType } from '../BlockIdsType';
-import { BlockToolType } from '../BlockToolType';
-import Transparent from '../Transparent';
+import { BlockIdsType } from '../BlockIdsType.js';
+import { BlockToolType } from '../BlockToolType.js';
+import Transparent from '../Transparent.js';
 
 export default class StoneButton extends Transparent {
     public constructor() {

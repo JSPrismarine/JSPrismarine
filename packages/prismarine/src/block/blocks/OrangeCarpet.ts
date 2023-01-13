@@ -1,4 +1,4 @@
-import WhiteCarpet, { CarpetColorType } from './WhiteCarpet';
+import WhiteCarpet, { CarpetColorType } from './WhiteCarpet.js';
 
 export default class OrangeCarpet extends WhiteCarpet {
     public constructor() {

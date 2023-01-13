@@ -1,4 +1,4 @@
-import WhiteConcrete, { ConcreteColorType } from './WhiteConcrete';
+import WhiteConcrete, { ConcreteColorType } from './WhiteConcrete.js';
 
 export default class LimeConcrete extends WhiteConcrete {
     public constructor() {

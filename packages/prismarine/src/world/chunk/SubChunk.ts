@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BlockStorage from './BlockStorage';
-import { LegacyId } from '../../block/BlockMappings';
+import BlockStorage from './BlockStorage.js';
+import { LegacyId } from '../../block/BlockMappings.js';
 
 export default class SubChunk {
     private storages: Map<number, BlockStorage> = new Map();
@@ -13,7 +13,10 @@ export default class SubChunk {
      * Returns if the SubChunk is all air (basically empty).
      */
     public isEmpty(): boolean {
-        return this.storages.size === 0;
+        for (const storage of this.storages.values()) {
+            if (!storage.isEmpty()) return false;
+        }
+        return true;
     }
 
     private getStorage(index: number): BlockStorage {
@@ -42,7 +45,7 @@ export default class SubChunk {
      * @param layer - block storage layer
      */
     public getBlock(bx: number, by: number, bz: number, layer: number): LegacyId {
-        return this.getStorage(layer).getBlock(bx, by & 0xf, bz);
+        return this.getStorage(layer).getBlock(bx, by, bz);
     }
 
     /**
@@ -55,7 +58,7 @@ export default class SubChunk {
      * @param layer - block storage layer
      */
     public setBlock(bx: number, by: number, bz: number, runtimeId: number, layer: number): void {
-        this.getStorage(layer).setBlock(bx, by & 0xf, bz, runtimeId);
+        this.getStorage(layer).setBlock(bx, by, bz, runtimeId);
     }
 
     public networkSerialize(stream: BinaryStream): void {

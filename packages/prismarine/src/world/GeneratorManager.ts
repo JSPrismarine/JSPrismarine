@@ -1,7 +1,7 @@
-import * as Generators from './generators/Generators';
+import * as Generators from './generators/Generators.js';
 
-import type Generator from './Generator';
-import type Server from '../Server';
+import type Generator from './Generator.js';
+import type Server from '../Server.js';
 
 export default class GeneratorManager {
     private readonly generators: Map<string, Generator> = new Map() as Map<string, Generator>;

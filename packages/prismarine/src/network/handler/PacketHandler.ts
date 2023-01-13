@@ -1,6 +1,6 @@
-import type DataPacket from '../packet/DataPacket';
-import { PlayerSession } from '../../Prismarine';
-import type Server from '../../Server';
+import type DataPacket from '../packet/DataPacket.js';
+import { PlayerSession } from '../../Prismarine.js';
+import type Server from '../../Server.js';
 
 export default interface PacketHandler<T extends DataPacket> {
     /**

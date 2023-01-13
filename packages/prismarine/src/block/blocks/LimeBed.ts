@@ -1,4 +1,4 @@
-import WhiteBed, { BedType } from './WhiteBed';
+import WhiteBed, { BedType } from './WhiteBed.js';
 
 export default class LimeBed extends WhiteBed {
     public constructor() {

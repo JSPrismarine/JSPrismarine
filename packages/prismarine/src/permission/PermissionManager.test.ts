@@ -1,4 +1,4 @@
-import PermissionManager from './PermissionManager';
+import PermissionManager from './PermissionManager.js';
 
 describe('permission', () => {
     describe('PermissionManager', () => {

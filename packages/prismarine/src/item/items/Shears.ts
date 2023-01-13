@@ -1,5 +1,5 @@
-import { ItemIdsType } from '../ItemIdsType';
-import Tool from '../Tool';
+import { ItemIdsType } from '../ItemIdsType.js';
+import Tool from '../Tool.js';
 
 export default class Shears extends Tool {
     public constructor() {

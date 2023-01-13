@@ -1,5 +1,5 @@
-import { BlockIdsType } from '../BlockIdsType';
-import Glass from './Glass';
+import { BlockIdsType } from '../BlockIdsType.js';
+import Glass from './Glass.js';
 
 export enum StainedGlassType {
     White = 0,

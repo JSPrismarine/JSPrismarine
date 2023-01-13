@@ -1,6 +1,6 @@
 import { inflate, inflateSync } from 'fflate';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import DataPacket from './DataPacket';
+import DataPacket from './DataPacket.js';
 import Zlib from 'zlib';
 
 /**
@@ -24,13 +24,7 @@ export default class BatchPacket extends DataPacket {
 
     public decodePayload(): void {
         const rem = this.readRemaining();
-        try {
-            this.payload.write(inflateSync(rem));
-        } catch {
-            // TODO: awful hack to handle uncompressed game packets
-            this.payload.write(rem);
-            // throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
-        }
+        this.payload.write(this.compressed ? inflateSync(rem) : rem);
     }
 
     public async asyncDecode(): Promise<Buffer[]> {
@@ -40,19 +34,19 @@ export default class BatchPacket extends DataPacket {
 
         try {
             this.payload.write(
-                await new Promise((resolve, reject) => {
-                    inflate(rem, (err, data) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve(data);
-                    });
-                })
+                this.compressed
+                    ? await new Promise((resolve, reject) => {
+                          inflate(rem, (err, data) => {
+                              if (err) {
+                                  reject(err);
+                              }
+                              resolve(data);
+                          });
+                      })
+                    : rem
             );
-        } catch {
-            // If the decompression fails, probably the packet is uncompressed
-            this.payload.write(rem);
-            // throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
+        } catch (e) {
+            throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
         }
 
         return this.getPackets();

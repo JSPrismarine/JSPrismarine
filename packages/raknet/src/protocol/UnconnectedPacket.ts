@@ -1,5 +1,5 @@
-import Packet from './Packet';
-import { RAKNET_MAGIC } from '../RakNet';
+import Packet from './Packet.js';
+import { RAKNET_MAGIC } from '../RakNet.js';
 
 export default class UnconnectedPacket extends Packet {
     private magic!: Buffer;

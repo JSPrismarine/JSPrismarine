@@ -1,7 +1,7 @@
-import BaseGenerator from '../BaseGenerator';
-import BlockMappings from '../../block/BlockMappings';
-import Chunk from '../chunk/Chunk';
-import Noise from 'simplex-noise';
+import BaseGenerator from '../BaseGenerator.js';
+// import BlockMappings from '../../block/BlockMappings.js';
+import Chunk from '../chunk/Chunk.js';
+import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
 
 const CHUNK_WIDTH = 16;
 // Const CHUNK_HEIGHT = 256; 1.17: 16?
@@ -10,14 +10,14 @@ const SEA_LEVEL = 62;
 const FOLIAGE_OFFSET = 0.1337;
 
 export default class Overworld extends BaseGenerator {
-    private worldNoise: Noise | null = null;
-    private foliagNoise: Noise | null = null;
+    private worldNoise: NoiseFunction2D | null = null;
+    private foliagNoise: NoiseFunction2D | null = null;
 
     public async generateChunk(cx: number, cz: number, seed: number): Promise<Chunk> {
         return new Promise((resolve) => {
             if (!this.worldNoise || !this.foliagNoise) {
-                this.worldNoise = new Noise(`${seed}`);
-                this.foliagNoise = new Noise(`${seed * FOLIAGE_OFFSET}`);
+                this.worldNoise = createNoise2D(() => seed);
+                this.foliagNoise = createNoise2D(() => seed * FOLIAGE_OFFSET);
             }
 
             const chunk = new Chunk(cx, cz);
@@ -35,8 +35,7 @@ export default class Overworld extends BaseGenerator {
             for (let x = 0; x < CHUNK_WIDTH; x++) {
                 for (let z = 0; z < CHUNK_LENGTH; z++) {
                     const height = Math.floor(
-                        60 +
-                            20 * this.worldNoise.noise2D((cx * CHUNK_WIDTH + x) * 0.005, (cz * CHUNK_WIDTH + z) * 0.005)
+                        60 + 20 * this.worldNoise((cx * CHUNK_WIDTH + x) * 0.005, (cz * CHUNK_WIDTH + z) * 0.005)
                     );
 
                     for (let y = 0; y < height; y++) {
@@ -61,9 +60,7 @@ export default class Overworld extends BaseGenerator {
                         }
                     else {
                         const foliageMap = Math.floor(
-                            55 +
-                                20 *
-                                    this.foliagNoise.noise2D((cx * CHUNK_WIDTH + x) * 0.1, (cz * CHUNK_WIDTH + z) * 0.1)
+                            55 + 20 * this.foliagNoise((cx * CHUNK_WIDTH + x) * 0.1, (cz * CHUNK_WIDTH + z) * 0.1)
                         );
 
                         // TODO: Do this properly

@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Packet from './Packet';
+import Packet from './Packet.js';
 
 export default class AcknowledgePacket extends Packet {
     public sequenceNumbers: number[] = [];

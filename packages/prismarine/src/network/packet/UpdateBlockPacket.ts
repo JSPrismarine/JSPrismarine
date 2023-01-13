@@ -1,5 +1,5 @@
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
 
 export enum UpdateBlockLayerType {
     Normal = 0,

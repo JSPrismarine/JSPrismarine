@@ -1,4 +1,4 @@
-import StainedGlass, { StainedGlassType } from './WhiteStainedGlass';
+import StainedGlass, { StainedGlassType } from './WhiteStainedGlass.js';
 
 export default class PurpleStainedGlass extends StainedGlass {
     public constructor() {

@@ -1,5 +1,5 @@
-import Air from '../block/blocks/Air';
-import ContainerEntry from './ContainerEntry';
+import Air from '../block/blocks/Air.js';
+import ContainerEntry from './ContainerEntry.js';
 
 /**
  * Inventory.

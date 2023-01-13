@@ -88,14 +88,14 @@ export default class UUID {
         return this.parts;
     }
 
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: any): void {
         stream.writeIntLE(this.parts[1]);
         stream.writeIntLE(this.parts[0]);
         stream.writeIntLE(this.parts[3]);
         stream.writeIntLE(this.parts[2]);
     }
 
-    public static networkDeserialize(stream: BinaryStream): UUID {
+    public static networkDeserialize(stream: any): UUID {
         const part1 = stream.readIntLE();
         const part0 = stream.readIntLE();
         const part3 = stream.readIntLE();

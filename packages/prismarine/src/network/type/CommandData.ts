@@ -1,5 +1,5 @@
-import CommandEnum from './CommandEnum';
-import CommandParameter from './CommandParameter';
+import CommandEnum from './CommandEnum.js';
+import CommandParameter from './CommandParameter.js';
 
 export default class CommandData {
     public commandName = 'commandName';

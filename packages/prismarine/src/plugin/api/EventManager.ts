@@ -1,10 +1,9 @@
-import { Evt, compose } from 'evt';
+import { type Operator, Evt, compose } from 'evt';
 
-import type { EventTypes as CurrentVersionEventTypes } from '../../events/EventManager';
-import type { EventEmitterish } from '../../events/EventEmitterishMixin';
-import { EventEmitterishMixin } from '../../events/EventEmitterishMixin';
-import type { Operator } from 'evt';
-import type Server from '../../Server';
+import type { EventTypes as CurrentVersionEventTypes } from '../../events/EventManager.js';
+import type { EventEmitterish } from '../../events/EventEmitterishMixin.js';
+import { EventEmitterishMixin } from '../../events/EventEmitterishMixin.js';
+import type Server from '../../Server.js';
 
 /* README: https://gist.github.com/garronej/84dddc6dad77d9fd0ce5608148bc59c4 */
 

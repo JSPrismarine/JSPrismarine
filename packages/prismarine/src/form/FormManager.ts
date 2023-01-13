@@ -1,4 +1,4 @@
-import IForm from './IForm';
+import IForm from './IForm.js';
 
 export default class FormManager {
     private forms: Map<number, IForm> = new Map() as Map<number, IForm>;

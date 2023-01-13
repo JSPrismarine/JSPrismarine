@@ -1,7 +1,7 @@
-import LoggerBuilder from './utils/Logger';
-import Server from './Server';
+import LoggerBuilder from './utils/Logger.js';
+import Server from './Server.js';
 
-jest.mock('winston', () => ({
+/* jest.mock('winston', () => ({
     format: {
         colorize: jest.fn(),
         combine: jest.fn(),
@@ -20,11 +20,11 @@ jest.mock('winston', () => ({
         Console: jest.fn(),
         File: jest.fn()
     }
-}));
+})); */
 
 describe('Prismarine', () => {
     it.skip('server to start & exit properly', async () => {
-        jest.setTimeout(35000);
+        //TODO: jest.setTimeout(35000);
 
         const getRandomInt = (min: number, max: number) => {
             min = Math.ceil(min);

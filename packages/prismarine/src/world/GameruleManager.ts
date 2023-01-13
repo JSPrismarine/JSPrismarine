@@ -1,6 +1,6 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil';
-import Server from '../Server';
+// import BinaryStream from '@jsprismarine/jsbinaryutils';
+import McpeUtil from '../network/NetworkUtil.js';
+import Server from '../Server.js';
 
 export const GameRules = {
     CommandBlockOutput: 'commandblockoutput',
@@ -83,7 +83,7 @@ export default class GameruleManager {
         return this.rules;
     }
 
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: any): void {
         const isInt = (n: number) => {
             return n % 1 === 0;
         };

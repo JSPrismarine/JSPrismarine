@@ -1,5 +1,5 @@
-import IForm from './IForm';
-import Player from '../player/Player';
+import IForm from './IForm.js';
+import Player from '../Player.js';
 
 export default abstract class Form implements IForm {
     private title: string;

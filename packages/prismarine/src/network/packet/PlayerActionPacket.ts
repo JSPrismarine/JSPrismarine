@@ -1,6 +1,6 @@
-import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
+import BlockPosition from '../../world/BlockPosition.js';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
 
 export default class PlayerActionPacket extends DataPacket {
     public static NetID = Identifiers.PlayerActionPacket;

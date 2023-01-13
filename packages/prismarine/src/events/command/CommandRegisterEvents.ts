@@ -1,5 +1,5 @@
-import type Command from '../../command/Command';
-import Event from '../Event';
+import type Command from '../../command/Command.js';
+import Event from '../Event.js';
 
 export default class CommandRegisterEvent extends Event {
     private readonly Command;

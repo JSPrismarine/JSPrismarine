@@ -1,7 +1,7 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
-import { Player } from '../../Prismarine';
+import Command from '../Command.js';
+import { Player } from '../../Prismarine.js';
 
 export default class HelpCommand extends Command {
     public constructor() {

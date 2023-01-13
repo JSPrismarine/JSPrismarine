@@ -1,4 +1,4 @@
-import Event from '../Event';
+import Event from '../Event.js';
 import { RakNetSession } from '@jsprismarine/raknet';
 
 /**

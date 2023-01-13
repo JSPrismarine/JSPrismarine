@@ -1,18 +1,17 @@
-import BanManager from './ban/BanManager';
-import BlockManager from './block/BlockManager';
-import ChatManager from './chat/ChatManager';
-import CommandManager from './command/CommandManager';
-import { EventManager } from './events/EventManager';
-import FormManager from './form/FormManager';
-import ItemManager from './item/ItemManager';
-import PermissionManager from './permission/PermissionManager';
-import PlayerManager from './player/PlayerManager';
-import PluginManager from './plugin/PluginManager';
-import QueryManager from './query/QueryManager';
-import TelemeteryManager from './telemetry/TelemeteryManager';
-import WindowManager from './inventory/WindowManager';
-import WorldManager from './world/WorldManager';
-import SessionManager from './SessionManager';
+import BanManager from './ban/BanManager.js';
+import BlockManager from './block/BlockManager.js';
+import ChatManager from './chat/ChatManager.js';
+import CommandManager from './command/CommandManager.js';
+import { EventManager } from './events/EventManager.js';
+import FormManager from './form/FormManager.js';
+import ItemManager from './item/ItemManager.js';
+import PermissionManager from './permission/PermissionManager.js';
+import PluginManager from './plugin/PluginManager.js';
+import QueryManager from './query/QueryManager.js';
+import TelemeteryManager from './telemetry/TelemeteryManager.js';
+import WindowManager from './inventory/WindowManager.js';
+import WorldManager from './world/WorldManager.js';
+import SessionManager from './SessionManager.js';
 
 export {
     BanManager,
@@ -24,7 +23,6 @@ export {
     ItemManager,
     PermissionManager,
     SessionManager,
-    PlayerManager,
     PluginManager,
     QueryManager,
     TelemeteryManager,

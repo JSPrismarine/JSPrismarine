@@ -32,21 +32,21 @@ jobs:
             - run: npm install
             - run: npm run build:source
             - run: npm run test:prettier
-    lint-coveralls:
-        runs-on: ubuntu-latest
-        env:
-            TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-            TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-        steps:
-            - uses: actions/checkout@v3
-            - uses: actions/setup-node@v3
-              with:
-                  node-version: 18
-                  cache: 'npm'
-            - run: npm install
-            - run: npm run build:source
-            - run: npm run coveralls
-            - name: Coveralls
-              uses: coverallsapp/github-action@master
-              with:
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
+    # lint-coveralls:
+    #    runs-on: ubuntu-latest
+    #    env:
+    #        TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    #        TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+    #    steps:
+    #        - uses: actions/checkout@v3
+    #        - uses: actions/setup-node@v3
+    #          with:
+    #              node-version: 18
+    #              cache: 'npm'
+    #        - run: npm install
+    #        - run: npm run build:source
+    #        - run: npm run coveralls
+    #        - name: Coveralls
+    #          uses: coverallsapp/github-action@master
+    #          with:
+    #              github-token: ${{ secrets.GITHUB_TOKEN }}

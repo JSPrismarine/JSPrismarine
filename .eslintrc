@@ -8,6 +8,11 @@
     "globals": {
         "BigInt": true
     },
+    "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module"
+    },
+    "plugins": ["unused-imports"],
     "rules": {
         "unicorn/filename-case": 0,
         "unicorn/prevent-abbreviations": 0,
@@ -60,6 +65,7 @@
         "@typescript-eslint/no-inferrable-types": 0,
         "@typescript-eslint/no-unsafe-argument": 1,
         "@typescript-eslint/no-unused-vars": 1,
+        "@typescript-eslint/return-await": 0,
         "@typescript-eslint/no-non-null-asserted-optional-chain": 1,
         "@typescript-eslint/no-non-null-assertion": 0,
         "@typescript-eslint/no-unsafe-member-access": 1,
@@ -68,6 +74,7 @@
         "@typescript-eslint/no-unsafe-return": 1,
         "@typescript-eslint/no-unsafe-assignment": 1,
         "@typescript-eslint/no-require-imports": 1,
+        "@typescript-eslint/no-unused-expressions": 0,
         "no-redeclare": 1,
         "no-inferrable-types": 0,
         "prefer-destructuring": 0,
@@ -86,9 +93,15 @@
         "no-case-declarations": 0,
         "no-fallthrough": 0,
         "no-await-in-loop": 0,
+        "no-return-await": 0,
         "max-depth": 0,
         "capitalized-comments": 0,
         "no-lonely-if": 0,
-        "guard-for-in": 0
+        "guard-for-in": 0,
+        "unused-imports/no-unused-imports": "error",
+		"unused-imports/no-unused-vars": [
+			"warn",
+			{ "vars": "all", "varsIgnorePattern": "^_", "args": "after-used", "argsIgnorePattern": "^_" }
+		]
     }
 }

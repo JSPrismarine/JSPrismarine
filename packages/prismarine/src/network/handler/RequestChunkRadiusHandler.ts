@@ -1,9 +1,9 @@
-import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import PlayStatusType from '../type/PlayStatusType';
-import { PlayerSession } from '../../Prismarine';
-import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
-import type Server from '../../Server';
+import Identifiers from '../Identifiers.js';
+import PacketHandler from './PacketHandler.js';
+import PlayStatusType from '../type/PlayStatusType.js';
+import { PlayerSession } from '../../Prismarine.js';
+import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket.js';
+import type Server from '../../Server.js';
 
 export default class RequestChunkRadiusHandler implements PacketHandler<RequestChunkRadiusPacket> {
     public static NetID = Identifiers.RequestChunkRadiusPacket;
@@ -15,7 +15,7 @@ export default class RequestChunkRadiusHandler implements PacketHandler<RequestC
         await session.setViewDistance(viewDistance);
 
         await session.sendNetworkChunkPublisher();
-        await session.needNewChunks(true);
+        // TODO: await session.needNewChunks(true);
 
         // Summon player(s)
         const player = session.getPlayer();

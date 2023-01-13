@@ -1,7 +1,7 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Block from '../../block/Block';
-import ContainerEntry from '../../inventory/ContainerEntry';
-import Item from '../../item/Item';
+// import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Block from '../../block/Block.js';
+import ContainerEntry from '../../inventory/ContainerEntry.js';
+import Item from '../../item/Item.js';
 
 class CreativeContentEntry {
     public entryId: number;
@@ -12,12 +12,12 @@ class CreativeContentEntry {
         this.item = item;
     }
 
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: any): void {
         stream.writeVarInt(this.entryId);
         new ContainerEntry({ item: this.item, count: 1 }).networkSerialize(stream);
     }
 
-    public static networkDeserialize(stream: BinaryStream): CreativeContentEntry {
+    public static networkDeserialize(stream: any): CreativeContentEntry {
         const entryId = stream.readVarInt();
         const item = Item.networkDeserialize(stream);
         return new CreativeContentEntry(entryId, item);

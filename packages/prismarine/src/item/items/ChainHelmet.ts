@@ -1,5 +1,5 @@
-import Armor from '../Armor';
-import { ItemIdsType } from '../ItemIdsType';
+import Armor from '../Armor.js';
+import { ItemIdsType } from '../ItemIdsType.js';
 
 export default class ChainHelmet extends Armor {
     public constructor() {

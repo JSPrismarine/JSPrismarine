@@ -1,6 +1,7 @@
-import PluginApi from './api/PluginApi';
-import Server from '../Server';
+import PluginApi from './api/PluginApi.js';
+import Server from '../Server.js';
 import path from 'path';
+import { createRequire } from 'module';
 
 export class Plugin {
     public constructor(api: PluginApi) {}
@@ -21,6 +22,7 @@ export default class PluginFile {
     public constructor(server: Server, dir: string, pluginApiVersion: PluginApi) {
         this.server = server;
         this.path = dir;
+        const require = createRequire(import.meta.url);
         this.package = require(path.join(this.path, 'package.json'));
 
         if (!this.package.name) throw new Error('name is missing in package.json!');

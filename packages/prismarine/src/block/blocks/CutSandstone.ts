@@ -1,4 +1,4 @@
-import Sandstone, { SandstoneType } from './Sandstone';
+import Sandstone, { SandstoneType } from './Sandstone.js';
 
 export default class CutSandstone extends Sandstone {
     constructor() {
