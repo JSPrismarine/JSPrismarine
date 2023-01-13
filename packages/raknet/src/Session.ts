@@ -101,7 +101,7 @@ export default class RakNetSession {
             (frameSet as any).buffer = buffer;
             frameSet.decode();
             this.handleFrameSet(frameSet);
-        },
+        }
     };
 
     public update(timestamp: number): void {
@@ -140,7 +140,7 @@ export default class RakNetSession {
 
         const header = buffer[0];
         // Mask the lower 4 bits to get the range of header values
-        const handler = this.packetHandlers[header & 0xF0];
+        const handler = this.packetHandlers[header & 0xf0];
         if (handler) {
             handler(buffer);
         } else {
