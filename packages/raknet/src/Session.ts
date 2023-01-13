@@ -82,7 +82,7 @@ export default class RakNetSession {
     }
 
     // Lookup table for packet handlers, always O(1) in average and worst case
-    private readonly packetHandlers: { [key: number]: (buffer: Buffer) => void } = {
+    private readonly packetHandlers: Record<number, (buffer: Buffer) => void> = {
         // 0x40 | 0xc0 = MessageHeaders.ACKNOWLEDGE_PACKET
         [MessageHeaders.ACKNOWLEDGE_PACKET]: (buffer: Buffer) => {
             const ack = this.packetPool.getAckInstance();
