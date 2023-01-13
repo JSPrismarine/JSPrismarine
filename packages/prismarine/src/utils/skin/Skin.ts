@@ -1,11 +1,11 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../../network/NetworkUtil';
-import SkinAnimation from './SkinAnimation';
-import SkinCape from './SkinCape';
-import SkinImage from './SkinImage';
-import SkinPersona from './skin-persona/SkinPersona';
-import SkinPersonaPiece from './skin-persona/SkinPersonaPiece';
-import SkinPersonaPieceTintColor from './skin-persona/SkinPersonaPieceTintColor';
+import McpeUtil from '../../network/NetworkUtil.js';
+import SkinAnimation from './SkinAnimation.js';
+import SkinCape from './SkinCape.js';
+import SkinImage from './SkinImage.js';
+import SkinPersona from './skin-persona/SkinPersona.js';
+import SkinPersonaPiece from './skin-persona/SkinPersonaPiece.js';
+import SkinPersonaPieceTintColor from './skin-persona/SkinPersonaPieceTintColor.js';
 
 interface Image {
     ImageWidth: number;
@@ -67,8 +67,8 @@ export default class Skin {
     private premium!: boolean;
     private persona!: boolean;
     private capeOnClassicSkin!: boolean;
-    private color = '#0';
-    private armSize = 'wide';
+    private color = '#0.js';
+    private armSize = 'wide.js';
     private personaData!: SkinPersona;
 
     /**

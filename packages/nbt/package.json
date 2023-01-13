@@ -4,6 +4,7 @@
     "description": "Minecraft: Bedrock Edition NBT parser/writer",
     "main": "./dist/NBT.js",
     "types": "./dist/NBT.d.ts",
+    "type": "module",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "tsc --build src"

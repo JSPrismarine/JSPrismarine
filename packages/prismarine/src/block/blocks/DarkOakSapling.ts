@@ -1,4 +1,4 @@
-import OakSapling, { SaplingType } from './OakSapling';
+import OakSapling, { SaplingType } from './OakSapling.js';
 
 export default class DarkOakSapling extends OakSapling {
     public constructor() {

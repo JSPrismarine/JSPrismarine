@@ -1,5 +1,5 @@
-import { BlockIdsType } from '../BlockIdsType';
-import FlowingLava from './FlowingLava';
+import { BlockIdsType } from '../BlockIdsType.js';
+import FlowingLava from './FlowingLava.js';
 
 export default class Lava extends FlowingLava {
     public constructor() {

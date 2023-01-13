@@ -1,8 +1,8 @@
-import { CommandArgumentCommand, CommandArgumentEntity } from '../CommandArguments';
+import { CommandArgumentCommand, CommandArgumentEntity } from '../CommandArguments.js';
 import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
-import type Player from '../../player/Player';
+import Command from '../Command.js';
+import type Player from '../../Player.js';
 
 export default class ExecuteCommand extends Command {
     public constructor() {

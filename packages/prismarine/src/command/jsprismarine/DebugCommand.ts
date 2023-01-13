@@ -1,8 +1,8 @@
 import { CommandDispatcher, argument, greedyString, literal, string } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
-import Player from '../../player/Player';
-import { WorldData } from '../../world/WorldManager';
+import Command from '../Command.js';
+import Player from '../../Player.js';
+import { WorldData } from '../../world/WorldManager.js';
 
 export default class DebugCommand extends Command {
     public constructor() {

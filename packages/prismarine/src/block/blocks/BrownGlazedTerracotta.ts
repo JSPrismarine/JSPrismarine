@@ -1,6 +1,6 @@
-import { BlockIdsType } from '../BlockIdsType';
-import { BlockToolType } from '../BlockToolType';
-import Solid from '../Solid';
+import { BlockIdsType } from '../BlockIdsType.js';
+import { BlockToolType } from '../BlockToolType.js';
+import Solid from '../Solid.js';
 
 export default class BrownGlazedTerracotta extends Solid {
     public constructor() {

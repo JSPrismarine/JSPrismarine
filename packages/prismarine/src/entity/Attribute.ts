@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil';
+import McpeUtil from '../network/NetworkUtil.js';
 
 export const AttributeIds = {
     Absorption: 'minecraft:absorption',

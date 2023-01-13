@@ -1,7 +1,7 @@
-import { Logger, Player, PlayerSession, Server } from '../Prismarine';
+import { Logger, Player, PlayerSession, Server } from '../Prismarine.js';
 
-import { DisconnectPacket } from './Packets';
-import MinecraftSession from './MinecraftSession';
+import { DisconnectPacket } from './Packets.js';
+import MinecraftSession from './MinecraftSession.js';
 import { RakNetSession } from '@jsprismarine/raknet';
 import assert from 'assert';
 
@@ -11,12 +11,11 @@ import assert from 'assert';
  * outdated or sends invalid data during the login handshake.
  */
 export default class ClientConnection extends MinecraftSession {
-    private readonly rakNetSession: RakNetSession;
     private playerSession: PlayerSession | null = null;
+    public hasCompression = false;
 
     public constructor(session: RakNetSession, logger?: Logger) {
         super(session, logger);
-        this.rakNetSession = session;
     }
 
     /**
@@ -41,7 +40,7 @@ export default class ClientConnection extends MinecraftSession {
 
         // Force RakNet to remove the session
         // so we don't have to handle the dead session
-        this.rakNetSession.disconnect();
+        this.rakSession.disconnect();
     }
 
     public getPlayerSession(): PlayerSession | null {
@@ -49,6 +48,6 @@ export default class ClientConnection extends MinecraftSession {
     }
 
     public getRakNetSession(): RakNetSession {
-        return this.rakNetSession;
+        return this.rakSession;
     }
 }

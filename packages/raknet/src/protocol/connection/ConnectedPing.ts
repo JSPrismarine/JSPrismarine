@@ -1,5 +1,5 @@
-import MessageHeaders from '../MessageHeaders';
-import Packet from '../Packet';
+import MessageHeaders from '../MessageHeaders.js';
+import Packet from '../Packet.js';
 
 export default class ConnectedPing extends Packet {
     public constructor(buffer: Buffer) {

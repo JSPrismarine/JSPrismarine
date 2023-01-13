@@ -28,7 +28,14 @@ const chalkColorMap = {
 };
 
 const toConsole = Object.fromEntries(
-    Object.entries(chalkColorMap).map((i) => [i[0], i[1] ? (chalk as any)[i[1]]._styler.open : ''])
+    Object.entries(chalkColorMap).map((i) => {
+        const colorData = (chalk as any)[i[1]];
+        if (colorData && i[1]) {
+            const symbols = Object.getOwnPropertySymbols(colorData);
+            return [i[0], (chalk as any)[i[1]][symbols[1]].open];
+        }
+        return [i[0], ''];
+    })
 );
 
 export { chalkColorMap, toConsole };

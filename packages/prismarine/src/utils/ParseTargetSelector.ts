@@ -1,5 +1,5 @@
-import Entity from '../entity/Entity';
-import Player from '../player/Player';
+import Entity from '../entity/Entity.js';
+import Player from '../Player.js';
 
 /**
  * Parse target selector argument.

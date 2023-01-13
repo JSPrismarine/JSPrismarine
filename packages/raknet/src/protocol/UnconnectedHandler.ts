@@ -1,14 +1,14 @@
-import { InetAddress, MAX_MTU_SIZE, MINECRAFT_PROTOCOL, RakNetListener } from '../RakNet';
+import { InetAddress, MAX_MTU_SIZE, MINECRAFT_PROTOCOL, RakNetListener } from '../RakNet.js';
 
-import IncompatibleProtocolVersion from './connection/IncompatibleProtocolVersion';
-import MessageHeaders from './MessageHeaders';
-import OpenConnectionReply1 from './connection/OpenConnectionReply1';
-import OpenConnectionReply2 from './connection/OpenConnectionReply2';
-import OpenConnectionRequest1 from './connection/OpenConnectionRequest1';
-import OpenConnectionRequest2 from './connection/OpenConnectionRequest2';
+import IncompatibleProtocolVersion from './connection/IncompatibleProtocolVersion.js';
+import MessageHeaders from './MessageHeaders.js';
+import OpenConnectionReply1 from './connection/OpenConnectionReply1.js';
+import OpenConnectionReply2 from './connection/OpenConnectionReply2.js';
+import OpenConnectionRequest1 from './connection/OpenConnectionRequest1.js';
+import OpenConnectionRequest2 from './connection/OpenConnectionRequest2.js';
 import { RemoteInfo } from 'dgram';
-import UnconnectedPing from './offline/UnconnectedPing';
-import UnconnectedPong from './offline/UnconnectedPong';
+import UnconnectedPing from './offline/UnconnectedPing.js';
+import UnconnectedPong from './offline/UnconnectedPong.js';
 
 export default class UnconnectedHandler {
     private readonly listener: RakNetListener;
@@ -33,7 +33,7 @@ export default class UnconnectedHandler {
                 const guid = this.listener.getServerGuid();
 
                 pong.serverGuid = guid;
-                pong.serverName = 'MCPE;JSPrismarine;503;1.18.30;0;20;' + guid + ';Second line;Creative;';
+                pong.serverName = 'MCPE;JSPrismarine;560;1.19.51;0;20;' + guid + ';Second line;Creative;';
                 this.listener.sendPacket(pong, rinfo);
                 break;
             case MessageHeaders.OPEN_CONNECTION_REQUEST_1:
@@ -50,7 +50,7 @@ export default class UnconnectedHandler {
 
                 const reply1 = new OpenConnectionReply1();
                 reply1.serverGUID = this.listener.getServerGuid();
-                reply1.mtuSize = request1.mtuSize;
+                reply1.mtuSize = request1.mtuSize + 28;
                 this.listener.sendPacket(reply1, rinfo);
                 break;
             case MessageHeaders.OPEN_CONNECTION_REQUEST_2:

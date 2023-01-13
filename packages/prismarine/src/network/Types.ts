@@ -1,6 +1,6 @@
-import AnimateActionType from './type/AnimateActionType';
-import ChangeSlot from './type/ChangeSlot';
-import TextType from './type/TextType';
+import AnimateActionType from './type/AnimateActionType.js';
+import ChangeSlot from './type/ChangeSlot.js';
+import TextType from './type/TextType.js';
 
 export { AnimateActionType, ChangeSlot, TextType };
 

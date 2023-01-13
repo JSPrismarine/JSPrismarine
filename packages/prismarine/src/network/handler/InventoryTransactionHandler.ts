@@ -1,15 +1,18 @@
-import { InventoryTransactionPacket, LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
-import { InventoryTransactionType, InventoryTransactionUseItemActionType } from '../packet/InventoryTransactionPacket';
+import { InventoryTransactionPacket, LevelSoundEventPacket, UpdateBlockPacket } from '../Packets.js';
+import {
+    InventoryTransactionType,
+    InventoryTransactionUseItemActionType
+} from '../packet/InventoryTransactionPacket.js';
 
-import BlockMappings from '../../block/BlockMappings';
-import ContainerEntry from '../../inventory/ContainerEntry';
-import Gamemode from '../../world/Gamemode';
-import Identifiers from '../Identifiers';
-import { Item } from '../../entity/Entities';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../Prismarine';
-import type Server from '../../Server';
-import Vector3 from '../../math/Vector3';
+import BlockMappings from '../../block/BlockMappings.js';
+import ContainerEntry from '../../inventory/ContainerEntry.js';
+import Gamemode from '../../world/Gamemode.js';
+import Identifiers from '../Identifiers.js';
+import { Item } from '../../entity/Entities.js';
+import PacketHandler from './PacketHandler.js';
+import { PlayerSession } from '../../Prismarine.js';
+import type Server from '../../Server.js';
+import Vector3 from '../../math/Vector3.js';
 
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
     public static NetID = Identifiers.InventoryTransactionPacket;

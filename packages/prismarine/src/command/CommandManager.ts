@@ -1,14 +1,14 @@
 import { ArgumentCommandNode, CommandDispatcher } from '@jsprismarine/brigadier';
 
-import Chat from '../chat/Chat';
-import Command from './Command';
-import { CommandArgument } from './CommandArguments';
-import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
-import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
-import Entity from '../entity/Entity';
-import { Player } from '../Prismarine';
-import Server from '../Server';
-import Timer from '../utils/Timer';
+import Chat from '../chat/Chat.js';
+import Command from './Command.js';
+import { CommandArgument } from './CommandArguments.js';
+// import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode.js';
+import CommandRegisterEvent from '../events/command/CommandRegisterEvents.js';
+import Entity from '../entity/Entity.js';
+import { Player } from '../Prismarine.js';
+import Server from '../Server.js';
+import Timer from '../utils/Timer.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -29,8 +29,12 @@ export default class CommandManager {
         const timer = new Timer();
 
         const commands = [
-            ...fs.readdirSync(path.join(__dirname, 'vanilla')).map((a) => `/vanilla/${a}`),
-            ...fs.readdirSync(path.join(__dirname, 'jsprismarine')).map((a) => `/jsprismarine/${a}`)
+            ...fs
+                .readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'vanilla'))
+                .map((a) => `/vanilla/${a}`),
+            ...fs
+                .readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'jsprismarine'))
+                .map((a) => `/jsprismarine/${a}`)
         ];
 
         // Register jsprismarine commands
@@ -40,7 +44,7 @@ export default class CommandManager {
 
                 if (!this.server.getConfig().getEnableEval() && id.includes('EvalCommand')) return;
 
-                const Command = require(`./${id}`);
+                const Command = await import(`./${id}`);
                 const command: Command = new (Command.default || Command)();
 
                 const event = new CommandRegisterEvent(command);
@@ -114,8 +118,8 @@ export default class CommandManager {
      * @remarks
      * This is EXCLUDING legacy commands.
      */
-    public getCommandsList(): Array<[string, CommandNode<Player>, CommandArgument[][]]> {
-        const parseNode = (node: CommandNode<Player>): any[] => {
+    public getCommandsList(): Array<[string, /* CommandNode<Player> */ any, CommandArgument[][]]> {
+        const parseNode = (node: /* CommandNode<Player> */ any): any[] => {
             if (node.getChildrenCount() <= 0) {
                 return [
                     {

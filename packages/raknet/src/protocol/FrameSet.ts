@@ -1,6 +1,6 @@
-import BitFlags from './BitFlags';
-import Frame from './Frame';
-import Packet from './Packet';
+import BitFlags from './BitFlags.js';
+import Frame from './Frame.js';
+import Packet from './Packet.js';
 
 export default class FrameSet extends Packet {
     public constructor(buffer?: Buffer) {

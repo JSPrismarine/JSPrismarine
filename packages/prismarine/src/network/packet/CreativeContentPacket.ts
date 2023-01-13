@@ -1,6 +1,6 @@
-import CreativeContentEntry from '../type/CreativeContentEntry';
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
+import CreativeContentEntry from '../type/CreativeContentEntry.js';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
 
 export default class CreativeContentPacket extends DataPacket {
     public static NetID = Identifiers.CreativeContentPacket;

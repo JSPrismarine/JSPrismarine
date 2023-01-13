@@ -1,6 +1,6 @@
-import type ContainerEntry from '../../inventory/ContainerEntry';
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
+import type ContainerEntry from '../../inventory/ContainerEntry.js';
+import DataPacket from './DataPacket.js';
+import Identifiers from '../Identifiers.js';
 
 export default class MobEquipmentPacket extends DataPacket {
     public static NetID = Identifiers.MobEquipmentPacket;

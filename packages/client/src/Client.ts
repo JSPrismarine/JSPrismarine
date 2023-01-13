@@ -5,7 +5,7 @@ import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic
 
 import Crypto from 'crypto';
 import { EventEmitter } from 'events';
-import { RakNetPriority } from '@jsprismarine/raknet/src/Session';
+import { RakNetPriority } from '@jsprismarine/raknet/src/Session.js';
 
 // https://stackoverflow.com/a/1527820/3142553
 const getRandomInt = (min: number, max: number) => {

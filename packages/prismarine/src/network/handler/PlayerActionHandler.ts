@@ -1,11 +1,11 @@
-import Identifiers from '../Identifiers';
-import LevelEventType from '../type/LevelEventType';
-import PacketHandler from './PacketHandler';
-import type PlayerActionPacket from '../packet/PlayerActionPacket';
-import PlayerActionType from '../type/PlayerActionType';
-import { PlayerSession } from '../../Prismarine';
-import type Server from '../../Server';
-import WorldEventPacket from '../packet/WorldEventPacket';
+import Identifiers from '../Identifiers.js';
+import LevelEventType from '../type/LevelEventType.js';
+import PacketHandler from './PacketHandler.js';
+import type PlayerActionPacket from '../packet/PlayerActionPacket.js';
+import PlayerActionType from '../type/PlayerActionType.js';
+import { PlayerSession } from '../../Prismarine.js';
+import type Server from '../../Server.js';
+import WorldEventPacket from '../packet/WorldEventPacket.js';
 
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
     public static NetID = Identifiers.PlayerActionPacket;

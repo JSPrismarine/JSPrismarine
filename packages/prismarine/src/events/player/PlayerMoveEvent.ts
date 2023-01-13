@@ -1,7 +1,7 @@
-import Event from '../Event';
-import MovementType from '../../network/type/MovementType';
-import type Player from '../../player/Player';
-import Vector3 from '../../math/Vector3';
+import Event from '../Event.js';
+import MovementType from '../../network/type/MovementType.js';
+import type Player from '../../Player.js';
+import Vector3 from '../../math/Vector3.js';
 
 /**
  * Fired just before a player moves

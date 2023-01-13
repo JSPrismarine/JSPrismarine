@@ -4,6 +4,7 @@
     "description": "Minecraft: Bedrock Edition RakNet client",
     "main": "./dist/Client.js",
     "types": "./dist/Client.d.ts",
+    "type": "module",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "tsc --build src"

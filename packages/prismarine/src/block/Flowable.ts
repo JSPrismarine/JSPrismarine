@@ -1,4 +1,4 @@
-import Block from './Block';
+import Block from './Block.js';
 
 export default class Flowable extends Block {
     public getHardness() {

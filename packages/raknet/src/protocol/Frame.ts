@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BitFlags from './BitFlags';
-import FrameReliability from './FrameReliability';
+import BitFlags from './BitFlags.js';
+import FrameReliability from './FrameReliability.js';
 import assert from 'assert';
 
 export default class Frame {

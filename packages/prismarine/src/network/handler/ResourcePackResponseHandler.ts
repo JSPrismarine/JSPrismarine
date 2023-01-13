@@ -1,21 +1,21 @@
-import Chat, { ChatType } from '../../chat/Chat';
-import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
-import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
+import Chat, { ChatType } from '../../chat/Chat.js';
+import RespawnPacket, { RespawnState } from '../packet/RespawnPacket.js';
+import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket.js';
 
-import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
-import ChatEvent from '../../events/chat/ChatEvent';
-import Gamemode from '../../world/Gamemode';
-import Identifiers from '../Identifiers';
-import { ItemComponentPacket } from '../Packets';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../Prismarine';
-import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
-import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
-import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
-import ResourcePackStatusType from '../type/ResourcePackStatusType';
-import type Server from '../../Server';
-import StartGamePacket from '../packet/StartGamePacket';
-import Vector3 from '../../math/Vector3';
+import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket.js';
+import ChatEvent from '../../events/chat/ChatEvent.js';
+import Gamemode from '../../world/Gamemode.js';
+import Identifiers from '../Identifiers.js';
+import { ItemComponentPacket } from '../Packets.js';
+import PacketHandler from './PacketHandler.js';
+import { PlayerSession } from '../../Prismarine.js';
+import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent.js';
+import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket.js';
+import ResourcePackStackPacket from '../packet/ResourcePackStackPacket.js';
+import ResourcePackStatusType from '../type/ResourcePackStatusType.js';
+import type Server from '../../Server.js';
+import StartGamePacket from '../packet/StartGamePacket.js';
+import Vector3 from '../../math/Vector3.js';
 
 export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
     public static NetID = Identifiers.ResourcePackResponsePacket;

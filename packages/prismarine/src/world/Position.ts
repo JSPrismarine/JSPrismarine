@@ -1,5 +1,5 @@
-import Vector3 from '../math/Vector3';
-import World from './World';
+import Vector3 from '../math/Vector3.js';
+import World from './World.js';
 
 interface PositionData {
     x?: number;

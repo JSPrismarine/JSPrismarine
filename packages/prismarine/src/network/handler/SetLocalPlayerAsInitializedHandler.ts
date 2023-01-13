@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../Prismarine';
-import type Server from '../../Server';
-import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket';
+import Identifiers from '../Identifiers.js';
+import PacketHandler from './PacketHandler.js';
+import { PlayerSession } from '../../Prismarine.js';
+import type Server from '../../Server.js';
+import type SetLocalPlayerAsInitializedPacket from '../packet/SetLocalPlayerAsInitializedPacket.js';
 
 export default class SetLocalPlayerAsInitializedHandler implements PacketHandler<SetLocalPlayerAsInitializedPacket> {
     public static NetID = Identifiers.SetLocalPlayerAsInitializedPacket;

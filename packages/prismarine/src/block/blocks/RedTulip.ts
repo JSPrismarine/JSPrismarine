@@ -1,4 +1,4 @@
-import Poppy, { FlowerType } from './Poppy';
+import Poppy, { FlowerType } from './Poppy.js';
 
 export default class RedTulip extends Poppy {
     public constructor() {

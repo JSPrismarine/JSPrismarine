@@ -1,7 +1,7 @@
-import { BlockIdsType } from '../BlockIdsType';
-import type Item from '../../item/Item';
-import type Server from '../../Server';
-import Solid from '../Solid';
+import { BlockIdsType } from '../BlockIdsType.js';
+import type Item from '../../item/Item.js';
+import type Server from '../../Server.js';
+import Solid from '../Solid.js';
 
 export enum BedType {
     White = 0,

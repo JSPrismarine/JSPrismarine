@@ -1,6 +1,6 @@
-import Entity from '../entity/Entity';
-import ParseTargetSelector from './ParseTargetSelector';
-import Sheep from '../entity/passive/Sheep';
+import Entity from '../entity/Entity.js';
+import ParseTargetSelector from './ParseTargetSelector.js';
+import Sheep from '../entity/passive/Sheep.js';
 
 describe('util', () => {
     describe('ParseTargetSelector', () => {

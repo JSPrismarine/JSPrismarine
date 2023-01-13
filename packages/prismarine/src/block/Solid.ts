@@ -1,4 +1,4 @@
-import Block from './Block';
+import Block from './Block.js';
 
 /**
  * Solid blocks (eg. Stone, Dirt etc)

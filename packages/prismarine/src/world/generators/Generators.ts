@@ -1,4 +1,4 @@
-import Flat from './Flat';
-import Overworld from './Overworld';
+import Flat from './Flat.js';
+import Overworld from './Overworld.js';
 
 export { Flat, Overworld };

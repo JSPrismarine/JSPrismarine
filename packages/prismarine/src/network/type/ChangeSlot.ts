@@ -1,10 +1,10 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+// import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 class ChangeSlot {
     public containerId!: number;
     public changedSlots!: Buffer;
 
-    public decode(buffer: BinaryStream) {
+    public decode(buffer: any) {
         this.containerId = buffer.readByte();
 
         const count = buffer.readUnsignedVarInt();

@@ -1,5 +1,5 @@
-import Event from '../Event';
-import type Player from '../../player/Player';
+import Event from '../Event.js';
+import type Player from '../../Player.js';
 
 /**
  * Fired as the player toggle sprinting

@@ -1,5 +1,5 @@
-import MessageHeaders from '../MessageHeaders';
-import OfflinePacket from '../UnconnectedPacket';
+import MessageHeaders from '../MessageHeaders.js';
+import OfflinePacket from '../UnconnectedPacket.js';
 
 export default class OpenConnectionReply1 extends OfflinePacket {
     public constructor(buffer?: Buffer) {
