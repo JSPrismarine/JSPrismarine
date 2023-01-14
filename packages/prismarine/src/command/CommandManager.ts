@@ -10,7 +10,6 @@ import { Player } from '../Prismarine.js';
 import Server from '../Server.js';
 import Timer from '../utils/Timer.js';
 import fs from 'fs';
-import path from 'path';
 import url from 'url';
 
 export default class CommandManager {
