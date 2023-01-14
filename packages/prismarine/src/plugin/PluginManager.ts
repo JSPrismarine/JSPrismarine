@@ -107,7 +107,8 @@ export default class PluginManager {
                     `PluginManager/registerPlugin/${id}`
                 );
 
-        const pkg = await import(path.join(dir, 'package.json'));
+        const packagePluginFile = await fs.promises.readFile(path.join(dir, 'package.json'));
+        const pkg = JSON.parse(packagePluginFile.toString());
         if (!pkg) throw new Error(`package.json is missing!`);
 
         if (!pkg.name || !pkg.prismarine) throw new Error(`package.json is invalid!`);
