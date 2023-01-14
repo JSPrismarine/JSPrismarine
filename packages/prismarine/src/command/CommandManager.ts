@@ -11,6 +11,7 @@ import Server from '../Server.js';
 import Timer from '../utils/Timer.js';
 import fs from 'fs';
 import path from 'path';
+import url from 'url';
 
 export default class CommandManager {
     private readonly commands: Map<string, Command> = new Map();
@@ -29,11 +30,9 @@ export default class CommandManager {
         const timer = new Timer();
 
         const commands = [
+            ...fs.readdirSync(url.fileURLToPath(new URL('vanilla', import.meta.url))).map((a) => `/vanilla/${a}`),
             ...fs
-                .readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'vanilla'))
-                .map((a) => `/vanilla/${a}`),
-            ...fs
-                .readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'jsprismarine'))
+                .readdirSync(url.fileURLToPath(new URL('jsprismarine', import.meta.url)))
                 .map((a) => `/jsprismarine/${a}`)
         ];
 
