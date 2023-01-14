@@ -30,10 +30,10 @@ export default class CommandManager {
 
         const commands = [
             ...fs
-                .readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'vanilla'))
+                .readdirSync(path.join(/file:\/{1,2}(.+)\/[^/]/.exec(import.meta.url)![1], 'vanilla'))
                 .map((a) => `/vanilla/${a}`),
             ...fs
-                .readdirSync(path.join(/file:\/{2,3}(.+)\/[^/]/.exec(import.meta.url)![1], 'jsprismarine'))
+                .readdirSync(path.join(/file:\/{1,2}(.+)\/[^/]/.exec(import.meta.url)![1], 'jsprismarine'))
                 .map((a) => `/jsprismarine/${a}`)
         ];
 
