@@ -51,6 +51,7 @@ import UpdateAbilitiesPacket, {
 } from './packet/UpdateAbilitiesPacket.js';
 
 import pkg from '@jsprismarine/bedrock-data';
+import { BatchPacket } from './Packets.js';
 const { creativeitems } = pkg;
 
 export default class PlayerSession {
@@ -58,7 +59,7 @@ export default class PlayerSession {
     private readonly server: Server;
     private player: Player;
 
-    private readonly chunkSendQueue: Set<Chunk> = new Set();
+    private readonly chunkSendQueue: Chunk[] = [];
     private readonly loadedChunks: Set<bigint> = new Set();
     private readonly loadingChunks: Set<bigint> = new Set();
 
@@ -69,16 +70,26 @@ export default class PlayerSession {
     }
 
     public async update(_tick: number): Promise<void> {
-        if (this.chunkSendQueue.size > 0) {
-            for (const chunk of this.chunkSendQueue) {
-                const encodedPos = Chunk.packXZ(chunk.getX(), chunk.getZ());
-                if (!this.loadingChunks.has(encodedPos)) {
-                    this.chunkSendQueue.delete(chunk);
-                }
+        if (this.chunkSendQueue.length > 0) {
+            const batch = new BatchPacket();
+            for (let limit = 50; limit > 0 && this.chunkSendQueue.length > 0; limit--) {
+                const chunk = this.chunkSendQueue.pop()!;
 
-                await this.sendChunk(chunk);
-                this.chunkSendQueue.delete(chunk);
+                const pk = new LevelChunkPacket();
+                pk.chunkX = chunk.getX();
+                pk.chunkZ = chunk.getZ();
+                pk.clientSubChunkRequestsEnabled = false;
+                pk.subChunkCount = chunk.getTopEmpty() + 4; // add the useless layers hack
+                pk.data = chunk.networkSerialize();
+                await this.getConnection().sendDataPacket(pk, undefined, false);
+
+                const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
+                this.loadedChunks.add(hash);
+                this.loadingChunks.delete(hash);
+
+                batch.addPacket(pk);
             }
+            this.connection.sendBacth(batch);
         }
 
         await this.needNewChunks();
@@ -206,14 +217,14 @@ export default class PlayerSession {
             }
         }
 
-        if (unloaded ?? !(this.chunkSendQueue.size === 0)) {
+        if (unloaded ?? !(this.chunkSendQueue.length === 0)) {
             await this.sendNetworkChunkPublisher();
         }
     }
 
     public async requestChunk(x: number, z: number): Promise<void> {
         const chunk = await this.player.getWorld().getChunk(x, z);
-        this.chunkSendQueue.add(chunk);
+        this.chunkSendQueue.push(chunk);
     }
 
     /**
@@ -479,7 +490,7 @@ export default class PlayerSession {
         pk.clientSubChunkRequestsEnabled = false;
         pk.subChunkCount = chunk.getTopEmpty() + 4; // add the useless layers hack
         pk.data = chunk.networkSerialize();
-        await this.getConnection().sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk, undefined, false);
 
         const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
         this.loadedChunks.add(hash);
