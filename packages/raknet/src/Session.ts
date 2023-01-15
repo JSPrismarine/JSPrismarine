@@ -452,8 +452,8 @@ export default class RakNetSession {
         // TODO: rewrite, works but can be improved
         this.close();
         // Send disconnect ACK
-        this.update(Date.now());
         this.state = RakNetStatus.DISCONNECTED;
+        this.update(Date.now());
         this.listener.removeSession(this, reason);
     }
 
