@@ -71,24 +71,22 @@ export default class PlayerSession {
 
     public async update(_tick: number): Promise<void> {
         if (this.chunkSendQueue.length > 0) {
+            const chunksToSend = this.chunkSendQueue.splice(0, Math.min(this.chunkSendQueue.length, 50));
             const batch = new BatchPacket();
-            for (let limit = 50; limit > 0 && this.chunkSendQueue.length > 0; limit--) {
-                const chunk = this.chunkSendQueue.pop()!;
-
+            for (const chunk of chunksToSend) {
                 const pk = new LevelChunkPacket();
                 pk.chunkX = chunk.getX();
                 pk.chunkZ = chunk.getZ();
                 pk.clientSubChunkRequestsEnabled = false;
-                pk.subChunkCount = chunk.getTopEmpty() + 4; // add the useless layers hack
+                pk.subChunkCount = chunk.getTopEmpty() + 4;
                 pk.data = chunk.networkSerialize();
+                batch.addPacket(pk);
 
                 const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
                 this.loadedChunks.add(hash);
                 this.loadingChunks.delete(hash);
-
-                batch.addPacket(pk);
             }
-            this.connection.sendBacth(batch);
+            this.connection.sendBatch(batch, false);
         }
 
         await this.needNewChunks();

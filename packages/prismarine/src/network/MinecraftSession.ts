@@ -17,7 +17,7 @@ export default class MinecraftSession {
         this.logger = logger;
     }
 
-    public sendBacth(batch: BatchPacket, direct = true): void {
+    public sendBatch(batch: BatchPacket, direct = true): void {
         batch.encode();
         const sendPacket = new Protocol.Frame();
         sendPacket.reliability = Protocol.FrameReliability.RELIABLE_ORDERED;
