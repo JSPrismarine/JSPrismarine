@@ -81,7 +81,6 @@ export default class PlayerSession {
                 pk.clientSubChunkRequestsEnabled = false;
                 pk.subChunkCount = chunk.getTopEmpty() + 4; // add the useless layers hack
                 pk.data = chunk.networkSerialize();
-                await this.getConnection().sendDataPacket(pk, undefined, false);
 
                 const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
                 this.loadedChunks.add(hash);
