@@ -59,8 +59,8 @@ export default class PlayerSession {
     private player: Player;
 
     private readonly chunkSendQueue: Set<Chunk> = new Set();
-    private readonly loadedChunks: Set<string> = new Set();
-    private readonly loadingChunks: Set<string> = new Set();
+    private readonly loadedChunks: Set<bigint> = new Set();
+    private readonly loadingChunks: Set<bigint> = new Set();
 
     public constructor(server: Server, connection: ClientConnection, player: Player) {
         this.server = server;
@@ -71,7 +71,7 @@ export default class PlayerSession {
     public async update(_tick: number): Promise<void> {
         if (this.chunkSendQueue.size > 0) {
             for (const chunk of this.chunkSendQueue) {
-                const encodedPos = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
+                const encodedPos = Chunk.packXZ(chunk.getX(), chunk.getZ());
                 if (!this.loadingChunks.has(encodedPos)) {
                     this.chunkSendQueue.delete(chunk);
                 }
@@ -160,7 +160,7 @@ export default class PlayerSession {
             for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
                 if (sendXChunk * sendXChunk + sendZChunk * sendZChunk > viewDistance * viewDistance) continue; // early exit if chunk is outside of view distance
                 const newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk];
-                const hash = CoordinateUtils.encodePos(newChunk[0], newChunk[1]);
+                const hash = Chunk.packXZ(newChunk[0], newChunk[1]);
 
                 if (forceResend) {
                     chunksToSendHeap.push(newChunk);
@@ -172,7 +172,7 @@ export default class PlayerSession {
 
         while (chunksToSendHeap.size() > 0) {
             const closestChunk = chunksToSendHeap.pop()!;
-            const hash = CoordinateUtils.encodePos(closestChunk[0], closestChunk[1]);
+            const hash = Chunk.packXZ(closestChunk[0], closestChunk[1]);
             if (forceResend) {
                 if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                     this.loadingChunks.add(hash);
@@ -190,7 +190,7 @@ export default class PlayerSession {
         let unloaded = false;
 
         for (const hash of this.loadedChunks) {
-            const [x, z] = CoordinateUtils.decodePos(hash);
+            const [x, z] = Chunk.unpackXZ(hash);
 
             if (Math.abs(x - currentXChunk) > viewDistance || Math.abs(z - currentZChunk) > viewDistance) {
                 unloaded = true;
@@ -199,7 +199,7 @@ export default class PlayerSession {
         }
 
         for (const hash of this.loadingChunks) {
-            const [x, z] = CoordinateUtils.decodePos(hash);
+            const [x, z] = Chunk.unpackXZ(hash);
 
             if (Math.abs(x - currentXChunk) > viewDistance || Math.abs(z - currentZChunk) > viewDistance) {
                 this.loadingChunks.delete(hash);
@@ -481,7 +481,7 @@ export default class PlayerSession {
         pk.data = chunk.networkSerialize();
         await this.getConnection().sendDataPacket(pk);
 
-        const hash = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
+        const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
         this.loadedChunks.add(hash);
         this.loadingChunks.delete(hash);
     }
