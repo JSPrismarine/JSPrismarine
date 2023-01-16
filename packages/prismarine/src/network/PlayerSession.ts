@@ -51,6 +51,7 @@ import UpdateAbilitiesPacket, {
 } from './packet/UpdateAbilitiesPacket.js';
 
 import pkg from '@jsprismarine/bedrock-data';
+import { BatchPacket } from './Packets.js';
 const { creativeitems } = pkg;
 
 export default class PlayerSession {
@@ -58,9 +59,9 @@ export default class PlayerSession {
     private readonly server: Server;
     private player: Player;
 
-    private readonly chunkSendQueue: Set<Chunk> = new Set();
-    private readonly loadedChunks: Set<string> = new Set();
-    private readonly loadingChunks: Set<string> = new Set();
+    private readonly chunkSendQueue: Chunk[] = [];
+    private readonly loadedChunks: Set<bigint> = new Set();
+    private readonly loadingChunks: Set<bigint> = new Set();
 
     public constructor(server: Server, connection: ClientConnection, player: Player) {
         this.server = server;
@@ -69,16 +70,23 @@ export default class PlayerSession {
     }
 
     public async update(_tick: number): Promise<void> {
-        if (this.chunkSendQueue.size > 0) {
-            for (const chunk of this.chunkSendQueue) {
-                const encodedPos = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
-                if (!this.loadingChunks.has(encodedPos)) {
-                    this.chunkSendQueue.delete(chunk);
-                }
+        if (this.chunkSendQueue.length > 0) {
+            const chunksToSend = this.chunkSendQueue.splice(0, Math.min(this.chunkSendQueue.length, 50));
+            const batch = new BatchPacket();
+            for (const chunk of chunksToSend) {
+                const pk = new LevelChunkPacket();
+                pk.chunkX = chunk.getX();
+                pk.chunkZ = chunk.getZ();
+                pk.clientSubChunkRequestsEnabled = false;
+                pk.subChunkCount = chunk.getTopEmpty() + 4;
+                pk.data = chunk.networkSerialize();
+                batch.addPacket(pk);
 
-                await this.sendChunk(chunk);
-                this.chunkSendQueue.delete(chunk);
+                const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
+                this.loadedChunks.add(hash);
+                this.loadingChunks.delete(hash);
             }
+            this.connection.sendBatch(batch, false);
         }
 
         await this.needNewChunks();
@@ -160,7 +168,7 @@ export default class PlayerSession {
             for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
                 if (sendXChunk * sendXChunk + sendZChunk * sendZChunk > viewDistance * viewDistance) continue; // early exit if chunk is outside of view distance
                 const newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk];
-                const hash = CoordinateUtils.encodePos(newChunk[0], newChunk[1]);
+                const hash = Chunk.packXZ(newChunk[0], newChunk[1]);
 
                 if (forceResend) {
                     chunksToSendHeap.push(newChunk);
@@ -172,7 +180,7 @@ export default class PlayerSession {
 
         while (chunksToSendHeap.size() > 0) {
             const closestChunk = chunksToSendHeap.pop()!;
-            const hash = CoordinateUtils.encodePos(closestChunk[0], closestChunk[1]);
+            const hash = Chunk.packXZ(closestChunk[0], closestChunk[1]);
             if (forceResend) {
                 if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                     this.loadingChunks.add(hash);
@@ -190,7 +198,7 @@ export default class PlayerSession {
         let unloaded = false;
 
         for (const hash of this.loadedChunks) {
-            const [x, z] = CoordinateUtils.decodePos(hash);
+            const [x, z] = Chunk.unpackXZ(hash);
 
             if (Math.abs(x - currentXChunk) > viewDistance || Math.abs(z - currentZChunk) > viewDistance) {
                 unloaded = true;
@@ -199,21 +207,21 @@ export default class PlayerSession {
         }
 
         for (const hash of this.loadingChunks) {
-            const [x, z] = CoordinateUtils.decodePos(hash);
+            const [x, z] = Chunk.unpackXZ(hash);
 
             if (Math.abs(x - currentXChunk) > viewDistance || Math.abs(z - currentZChunk) > viewDistance) {
                 this.loadingChunks.delete(hash);
             }
         }
 
-        if (unloaded ?? !(this.chunkSendQueue.size === 0)) {
+        if (unloaded ?? !(this.chunkSendQueue.length === 0)) {
             await this.sendNetworkChunkPublisher();
         }
     }
 
     public async requestChunk(x: number, z: number): Promise<void> {
         const chunk = await this.player.getWorld().getChunk(x, z);
-        this.chunkSendQueue.add(chunk);
+        this.chunkSendQueue.push(chunk);
     }
 
     /**
@@ -479,9 +487,9 @@ export default class PlayerSession {
         pk.clientSubChunkRequestsEnabled = false;
         pk.subChunkCount = chunk.getTopEmpty() + 4; // add the useless layers hack
         pk.data = chunk.networkSerialize();
-        await this.getConnection().sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk, undefined, false);
 
-        const hash = CoordinateUtils.encodePos(chunk.getX(), chunk.getZ());
+        const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
         this.loadedChunks.add(hash);
         this.loadingChunks.delete(hash);
     }

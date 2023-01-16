@@ -17,7 +17,20 @@ export default class MinecraftSession {
         this.logger = logger;
     }
 
-    public async sendDataPacket<T extends DataPacket>(packet: T, comp = true): Promise<void> {
+    public sendBatch(batch: BatchPacket, direct = true): void {
+        batch.encode();
+        const sendPacket = new Protocol.Frame();
+        sendPacket.reliability = Protocol.FrameReliability.RELIABLE_ORDERED;
+        sendPacket.orderChannel = 0;
+        sendPacket.content = batch.getBuffer();
+
+        this.rakSession.sendFrame(
+            sendPacket,
+            direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.NORMAL
+        );
+    }
+
+    public async sendDataPacket<T extends DataPacket>(packet: T, comp = true, direct = true): Promise<void> {
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);
@@ -39,7 +52,10 @@ export default class MinecraftSession {
         sendPacket.orderChannel = 0;
         sendPacket.content = batch.getBuffer();
 
-        this.rakSession.sendFrame(sendPacket, Protocol.RakNetPriority.IMMEDIATE);
+        this.rakSession.sendFrame(
+            sendPacket,
+            direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.NORMAL
+        );
         this.logger?.silly(`Sent §b${packet.constructor.name}§r packet`, 'PlayerConnection/sendDataPacket');
     }
 

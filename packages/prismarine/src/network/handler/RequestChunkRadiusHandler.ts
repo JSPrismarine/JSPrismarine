@@ -15,7 +15,7 @@ export default class RequestChunkRadiusHandler implements PacketHandler<RequestC
         await session.setViewDistance(viewDistance);
 
         await session.sendNetworkChunkPublisher();
-        // TODO: await session.needNewChunks(true);
+        await session.needNewChunks(true);
 
         // Summon player(s)
         const player = session.getPlayer();

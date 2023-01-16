@@ -114,6 +114,27 @@ export default class Chunk {
         this.hasChanged = true;
     }
 
+    /**
+     * Helper method used to hash into a single 64 bits integer
+     * both Chunk X and Z coordinates.
+     * @param {number} chunkX - Target Chunk X coordinate.
+     * @param {number} chunkZ - Target Chunk Z coordinate.
+     * @returns {bigint} A 64 bit intger containing a hash of X and Z.
+     */
+    public static packXZ(chunkX: number, chunkZ: number): bigint {
+        return ((BigInt(chunkX) & 0xffffffffn) << 32n) | (BigInt(chunkZ) & 0xffffffffn);
+    }
+
+    /**
+     * Helper method used to decode a 64 bit hash containing
+     * both Chunk X and Z coordinates.
+     * @param {bigint} packed - Target Chunk coordinate hash.
+     * @returns {number[]} An array containing decoded Chunk X and Z coordinates.
+     */
+    public static unpackXZ(packed: bigint): number[] {
+        return [Number(BigInt.asIntN(32, packed >> 32n)), Number(BigInt.asIntN(32, packed & 0xffffffffn))];
+    }
+
     public networkSerialize(_forceAll = false): Buffer {
         const stream = new BinaryStream();
 

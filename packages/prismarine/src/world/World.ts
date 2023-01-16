@@ -4,7 +4,6 @@ import BaseProvider from './providers/BaseProvider.js';
 import Block from '../block/Block.js';
 import BlockMappings from '../block/BlockMappings.js';
 import Chunk from './chunk/Chunk.js';
-import CoordinateUtils from './CoordinateUtils.js';
 import Entity from '../entity/Entity.js';
 import Gamemode from './Gamemode.js';
 import Generator from './Generator.js';
@@ -60,7 +59,7 @@ export default class World {
     private path: string;
 
     private readonly entities: Map<bigint, Entity> = new Map();
-    private readonly chunks: Map<string, Chunk> = new Map();
+    private readonly chunks: Map<bigint, Chunk> = new Map();
     private readonly gameruleManager: GameruleManager;
     private currentTick = 0;
     private readonly provider: BaseProvider;
@@ -184,7 +183,7 @@ export default class World {
      * it is generated.
      */
     public async getChunk(cx: number, cz: number): Promise<Chunk> {
-        const index = CoordinateUtils.encodePos(cx, cz);
+        const index = Chunk.packXZ(cx, cz);
         if (!this.chunks.has(index)) return this.loadChunk(cx, cz);
 
         return this.chunks.get(index)!;
@@ -197,7 +196,7 @@ export default class World {
      * @param cz
      */
     public async loadChunk(cx: number, cz: number, ignoreWarn?: boolean): Promise<Chunk> {
-        const index = CoordinateUtils.encodePos(cx, cz);
+        const index = Chunk.packXZ(cx, cz);
         // Try - catch for provider errors
         const chunk = await this.provider.readChunk(cx, cz, this.seed, this.generator, this.config);
         this.chunks.set(index, chunk);
