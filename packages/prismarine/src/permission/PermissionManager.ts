@@ -1,9 +1,9 @@
 import Player from '../Player.js';
 import type Server from '../Server.js';
 import cwd from '../utils/cwd.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
-import path from 'path';
+import path from 'node:path';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent.js';
 import util from 'util';
 

@@ -1,7 +1,7 @@
 import type Block from './Block.js';
-import url from 'url';
-import fs from 'fs';
-import path from 'path';
+import url from 'node:url';
+import fs from 'node:fs';
+import path from 'node:path';
 
 describe('block', () => {
     describe('Block', () => {

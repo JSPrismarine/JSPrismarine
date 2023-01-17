@@ -14,8 +14,8 @@ import MessageHeaders from './protocol/MessageHeaders.js';
 import NACK from './protocol/NACK.js';
 import Packet from './protocol/Packet.js';
 import RakNetListener from './Listener.js';
-import { RemoteInfo } from 'dgram';
-import assert from 'assert';
+import { type RemoteInfo } from 'node:dgram';
+import assert from 'node:assert';
 import PacketPool from './protocol/PacketPool.js';
 
 export enum RakNetPriority {
@@ -138,13 +138,13 @@ export default class RakNetSession {
         this.active = true;
         this.lastUpdate = Date.now();
 
-        const header = buffer[0];
-        // Mask the lower 4 bits to get the range of header values
-        const handler = this.packetHandlers[header & 0xf0];
+        // Mask the lower 4 bits of the header
+        // to get the range of header values
+        const handler = this.packetHandlers[buffer[0] & 0xf0];
         if (handler) {
             handler(buffer);
         } else {
-            this.listener.getLogger().debug('Received an unknown packet type=%d', header);
+            this.listener.getLogger().debug('Received an unknown packet type=%d', buffer[0]);
         }
     }
 

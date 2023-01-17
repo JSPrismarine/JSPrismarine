@@ -1,5 +1,5 @@
 import Chat, { ChatType } from './chat/Chat.js';
-import { InetAddress, Protocol, RakNetListener, RakNetSession } from '@jsprismarine/raknet';
+import { InetAddress, Protocol, RakNetListener, type RakNetSession } from '@jsprismarine/raknet';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
 import BanManager from './ban/BanManager.js';

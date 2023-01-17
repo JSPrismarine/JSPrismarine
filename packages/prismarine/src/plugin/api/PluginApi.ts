@@ -3,7 +3,7 @@ import EventManager from './EventManager.js';
 import LoggerBuilder from '../../utils/Logger.js';
 import Server from '../../Server.js';
 import cwd from '../../utils/cwd.js';
-import path from 'path';
+import path from 'node:path';
 
 export default class PluginApi {
     private readonly pkg;

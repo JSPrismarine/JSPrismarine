@@ -1,5 +1,5 @@
 import { pino, type Logger } from 'pino';
-import Dgram, { RemoteInfo } from 'dgram';
+import Dgram, { type RemoteInfo } from 'node:dgram';
 import BitFlags from './protocol/BitFlags.js';
 import { EventEmitter } from 'events';
 import Packet from './protocol/Packet.js';

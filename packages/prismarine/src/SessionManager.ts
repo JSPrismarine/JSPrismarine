@@ -1,6 +1,6 @@
 import ClientConnection from './network/ClientConnection.js';
 import Player from './Player.js';
-import assert from 'assert';
+import assert from 'node:assert';
 import { PlayerListEntry } from './network/packet/PlayerListPacket.js';
 
 export default class SessionManager {

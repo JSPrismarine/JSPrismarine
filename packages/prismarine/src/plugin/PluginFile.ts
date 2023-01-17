@@ -1,6 +1,6 @@
 import PluginApi from './api/PluginApi.js';
 import Server from '../Server.js';
-import path from 'path';
+import path from 'node:path';
 import { createRequire } from 'module';
 
 export class Plugin {

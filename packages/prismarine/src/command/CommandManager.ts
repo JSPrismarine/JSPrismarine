@@ -9,8 +9,8 @@ import Entity from '../entity/Entity.js';
 import { Player } from '../Prismarine.js';
 import Server from '../Server.js';
 import Timer from '../utils/Timer.js';
-import fs from 'fs';
-import url from 'url';
+import fs from 'node:fs';
+import url from 'node:url';
 
 export default class CommandManager {
     private readonly commands: Map<string, Command> = new Map();
