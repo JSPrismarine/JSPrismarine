@@ -17,7 +17,7 @@
     "scripts": {
         "start": "node ./packages/server/dist/Server.js --warning --circular",
         "start:dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./packages/server/dist/Server.js | pino-pretty -L 10",
-        "dev": "nodemon --quiet --delay 0.25 --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run server:build && npm run start:dev\"",
+        "dev": "nodemon --quiet --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run server:build && npm run start:dev\"",
         "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run server:build && npm run start:dev",
         "build": "npm-run-all build:*",
         "build:source": "turbo run build",
@@ -30,8 +30,7 @@
         "test:eslint": "xo packages/**/src/ --ignore '*.test.*'",
         "test:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --check && prettier --config .prettierrc packages/**/src/**/*.* --check",
         "format:eslint": "xo --fix packages/**/src/",
-        "format:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write",
-        "coveralls": "cross-env NODE_ENV=test NODE_OPTIONS=\"--loader ts-node/esm --loader=esmock\" jest --coverage --forceExit --testLocationInResults --silent && cat ./coverage/lcov.info | coveralls"
+        "format:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write"
     },
     "repository": {
         "type": "git",
@@ -205,7 +204,6 @@
         "@types/heap": "^0.2.31",
         "@types/jest": "29.2.5",
         "@types/node": "18.11.8",
-        "coveralls": "3.1.1",
         "cross-env": "7.0.3",
         "eslint-plugin-unused-imports": "^2.0.0",
         "esmock": "^2.1.0",
