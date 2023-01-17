@@ -3,8 +3,8 @@ import Chunk from '../../chunk/Chunk.js';
 import Generator from '../../Generator.js';
 import type Server from '../../../Server.js';
 import Vector3 from '../../../math/Vector3.js';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // FIXME: to implement
 export default class Anvil extends BaseProvider {

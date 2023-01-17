@@ -4,7 +4,7 @@ import Chunk from '../../chunk/Chunk.js';
 import Generator from '../../Generator.js';
 import type Server from '../../../Server.js';
 import fs from 'graceful-fs';
-import path from 'path';
+import path from 'node:path';
 
 export default class Filesystem extends BaseProvider {
     private level: any = {};

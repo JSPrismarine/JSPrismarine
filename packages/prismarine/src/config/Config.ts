@@ -2,7 +2,7 @@ import ConfigBuilder from './ConfigBuilder.js';
 import Gamemode from '../world/Gamemode.js';
 import { SeedGenerator } from '../utils/Seed.js';
 import cwd from '../utils/cwd.js';
-import path from 'path';
+import path from 'node:path';
 
 export default class Config {
     private configBuilder!: ConfigBuilder;

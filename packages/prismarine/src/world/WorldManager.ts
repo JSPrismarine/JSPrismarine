@@ -5,8 +5,8 @@ import Provider from './providers/Provider.js';
 import Server from '../Server.js';
 import World from './World.js';
 import cwd from '../utils/cwd.js';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 export interface WorldData {
     seed: number;

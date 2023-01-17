@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import fs from 'node:fs';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { ByteOrder } from './ByteOrder.js';

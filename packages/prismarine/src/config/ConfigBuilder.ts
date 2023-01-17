@@ -1,7 +1,7 @@
 import YAML from 'yaml';
-import fs from 'fs';
+import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
-import path from 'path';
+import path from 'node:path';
 
 const _ = {
     get: (obj: any, path: string, defaultValue = undefined) => {

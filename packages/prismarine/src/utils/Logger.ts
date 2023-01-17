@@ -2,8 +2,8 @@ import { Logger, createLogger, format, transports } from 'winston';
 
 import colorParser from '@jsprismarine/color-parser';
 import cwd from './cwd.js';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const { combine, timestamp, printf } = format;
 

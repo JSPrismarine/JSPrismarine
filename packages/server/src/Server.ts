@@ -2,8 +2,8 @@ import { Config, Logger, Server } from '@jsprismarine/prismarine';
 
 import Updater from '@jsprismarine/updater';
 import exitHook from 'async-exit-hook';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Process metadata
 process.title = 'Prismarine';

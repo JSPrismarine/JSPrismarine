@@ -17,9 +17,9 @@ import UpdateBlockPacket from '../network/packet/UpdateBlockPacket.js';
 import Vector3 from '../math/Vector3.js';
 import WorldEventPacket from '../network/packet/WorldEventPacket.js';
 import cwd from '../utils/cwd.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
-import path from 'path';
+import path from 'node:path';
 
 interface WorldData {
     name: string;

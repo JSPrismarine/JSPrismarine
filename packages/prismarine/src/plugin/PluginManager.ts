@@ -4,8 +4,8 @@ import PluginFile from './PluginFile.js';
 import Server from '../Server.js';
 import Timer from '../utils/Timer.js';
 import cwd from '../utils/cwd.js';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import unzipper from 'unzipper';
 
 /**

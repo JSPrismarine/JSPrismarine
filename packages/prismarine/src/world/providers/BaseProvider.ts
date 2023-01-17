@@ -3,7 +3,7 @@ import Generator from '../Generator.js';
 import Provider from './Provider.js';
 import type Server from '../../Server.js';
 import type World from '../World.js';
-import fs from 'fs';
+import fs from 'node:fs';
 
 export default abstract class BaseProvider implements Provider {
     private path: string;
