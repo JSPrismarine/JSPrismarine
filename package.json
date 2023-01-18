@@ -202,7 +202,7 @@
         "@janniks/typedoc-plugin-monorepo": "^0.4.2-1",
         "@types/async-exit-hook": "2.0.0",
         "@types/heap": "^0.2.31",
-        "@types/jest": "29.2.5",
+        "@types/jest": "29.2.6",
         "@types/node": "18.11.8",
         "cross-env": "7.0.3",
         "eslint-plugin-unused-imports": "^2.0.0",
