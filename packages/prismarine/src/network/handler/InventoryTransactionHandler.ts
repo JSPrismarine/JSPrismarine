@@ -1,8 +1,5 @@
 import { InventoryTransactionPacket, LevelSoundEventPacket, UpdateBlockPacket } from '../Packets.js';
-import {
-    InventoryTransactionType,
-    InventoryTransactionUseItemActionType
-} from '../packet/InventoryTransactionPacket.js';
+import { TransactionType, UseItemAction, UseItemData } from '../packet/InventoryTransactionPacket.js';
 
 import BlockMappings from '../../block/BlockMappings.js';
 import ContainerEntry from '../../inventory/ContainerEntry.js';
@@ -22,12 +19,12 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         if (!player.isOnline()) return;
         if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world.
 
-        switch (packet.type) {
-            case InventoryTransactionType.Normal: {
+        switch (packet.transactionType) {
+            case TransactionType.NORMAL: {
                 // TODO: refactor this crap.
                 // probably base it on https://github.com/pmmp/PocketMine-MP/blob/d19db5d2e44d0925798c288247c3bddb71d23975/src/pocketmine/Player.php#L2399 or something similar.
                 let movedItem: ContainerEntry;
-                packet.actions.forEach(async (action) => {
+                packet.inventoryActions.forEach(async (action) => {
                     switch (action.sourceType) {
                         case 0: {
                             // FIXME: Hack for creative inventory
@@ -35,7 +32,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                 // from creative inventory
                                 if (player.gamemode !== 1) throw new Error(`Player isn't in creative mode`);
 
-                                const id = action.oldItem.id;
+                                const id = action.oldItem.getId();
                                 const meta = action.oldItem.meta;
 
                                 const item =
@@ -50,9 +47,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                 return;
                             }
 
-                            if (action.newItem.id === 0) {
-                                movedItem = player.getInventory().getItem(action.slot);
-                                player.getInventory().removeItem(action.slot);
+                            if (action.newItem.getId() === 0) {
+                                movedItem = player.getInventory().getItem(action.targetSlot);
+                                player.getInventory().removeItem(action.targetSlot);
                                 return;
                             }
 
@@ -63,7 +60,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                 return;
                             }
 
-                            player.getInventory().setItem(action.slot, movedItem);
+                            player.getInventory().setItem(action.targetSlot, movedItem);
                             break;
                         }
                         default:
@@ -77,41 +74,42 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 });
                 break;
             }
-            case InventoryTransactionType.UseItem: {
-                switch (packet.actionType) {
-                    case InventoryTransactionUseItemActionType.ClickBlock:
+            case TransactionType.USE_ITEM: {
+                const useItemData = <UseItemData>packet.transactionData;
+                switch (useItemData.actionType) {
+                    case UseItemAction.CLICK_BLOCK:
                         await player
                             .getWorld()
                             .useItemOn(
                                 server
                                     .getBlockManager()
-                                    .getBlockByIdAndMeta(packet.itemInHand.getId(), packet.itemInHand.meta),
-                                packet.blockPosition,
-                                packet.face,
-                                packet.clickPosition,
+                                    .getBlockByIdAndMeta(useItemData.itemInHand.getId(), useItemData.itemInHand.meta),
+                                useItemData.blockPosition,
+                                useItemData.blockFace,
+                                useItemData.clickPosition,
                                 player
                             );
                         break;
-                    case InventoryTransactionUseItemActionType.ClickAir:
+                    case UseItemAction.CLICK_AIR:
                         break;
-                    case InventoryTransactionUseItemActionType.BreakBlock: {
+                    case UseItemAction.BREAK_BLOCK: {
                         const chunk = await player
                             .getWorld()
-                            .getChunkAt(packet.blockPosition.getX(), packet.blockPosition.getZ());
+                            .getChunkAt(useItemData.blockPosition.getX(), useItemData.blockPosition.getZ());
 
                         const chunkPos = new Vector3(
-                            packet.blockPosition.getX(),
-                            packet.blockPosition.getY(),
-                            packet.blockPosition.getZ()
+                            useItemData.blockPosition.getX(),
+                            useItemData.blockPosition.getY(),
+                            useItemData.blockPosition.getZ()
                         );
 
                         const blockId = chunk.getBlock(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                         const block = server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
 
                         const pk = new UpdateBlockPacket();
-                        pk.x = packet.blockPosition.getX();
-                        pk.y = packet.blockPosition.getY();
-                        pk.z = packet.blockPosition.getZ();
+                        pk.x = useItemData.blockPosition.getX();
+                        pk.y = useItemData.blockPosition.getY();
+                        pk.z = useItemData.blockPosition.getZ();
                         // TODO: run a function from block.getBreakConsequences() because
                         // the broken block may place more blocks or run block related code
                         // for example, ice should replace itself with a water source block
@@ -145,7 +143,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                         })
                                     );
                                     await player.getWorld().addEntity(droppedItem);
-                                    await droppedItem.setPosition(packet.blockPosition);
+                                    await droppedItem.setPosition(useItemData.blockPosition);
                                 })
                             );
                         }
@@ -165,31 +163,33 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         soundPk.positionZ = player.getZ();
 
                         // ? 0 or id & 0xf
-                        soundPk.extraData = BlockMappings.getRuntimeId('minecraft:air'); // In this case refers to block runtime Id
+                        soundPk.extraData = BlockMappings.getRuntimeId(block.getName()); // In this case refers to block runtime Id
                         soundPk.entityType = ':';
                         soundPk.isBabyMob = false;
                         soundPk.disableRelativeVolume = false;
 
-                        await Promise.all([
+                        await Promise.all(
                             player.getPlayersInChunk().map(async (player) => {
                                 await player.getNetworkSession().getConnection().sendDataPacket(soundPk);
-                            }),
-                            player.getPlayersInChunk().map(async (player) => {
-                                await player.getNetworkSession().getConnection().sendDataPacket(pk);
                             })
-                        ]);
+                        );
                         break;
                     }
                     default:
                         server
                             .getLogger()
-                            ?.debug(`Unknown action type: ${packet.actionType}`, 'InventoryTransactionHandler/handle');
+                            ?.debug(
+                                `Unknown action type: ${useItemData.actionType}`,
+                                'InventoryTransactionHandler/handle'
+                            );
                 }
 
                 break;
             }
             default: {
-                server.getLogger()?.verbose(`Unknown type: ${packet.type}`, 'InventoryTransactionHandler/handle');
+                server
+                    .getLogger()
+                    ?.verbose(`Unknown type: ${packet.transactionType}`, 'InventoryTransactionHandler/handle');
                 throw new Error('Invalid InventoryTransactionType');
             }
         }

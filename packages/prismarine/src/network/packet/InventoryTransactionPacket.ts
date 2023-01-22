@@ -1,90 +1,171 @@
-import ChangeSlot from '../type/ChangeSlot.js';
 import DataPacket from './DataPacket.js';
 import Identifiers from '../Identifiers.js';
 import Item from '../../item/Item.js';
-import NetworkTransaction from '../type/NetworkTransaction.js';
 import Vector3 from '../../math/Vector3.js';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 
-export enum InventoryTransactionUseItemActionType {
-    ClickBlock = 0,
-    ClickAir = 1,
-    BreakBlock = 2
+export enum UseItemAction {
+    CLICK_BLOCK,
+    CLICK_AIR,
+    BREAK_BLOCK
 }
 
-export enum InventoryTransactionType {
-    Normal = 0,
-    Mismatch = 1,
-    UseItem = 2,
-    UseItemOnEntity = 3,
-    ReleaseItem = 4
+export enum TransactionType {
+    NORMAL,
+    MISMATCH,
+    USE_ITEM,
+    USE_ITEM_ON_ENTITY,
+    RELASE_ITEM
+}
+
+export class LegacySlotChange {
+    public constructor(public containerId: number, public slots: number[]) {}
+
+    public static fromNetwork(stream: BinaryStream): LegacySlotChange {
+        const containerId = stream.readByte();
+        const slotCount = stream.readUnsignedVarInt();
+        const slots = Array.from(stream.read(slotCount));
+        return new LegacySlotChange(containerId, slots);
+    }
+
+    public toNetwork(stream: BinaryStream): void {
+        stream.writeByte(this.containerId);
+        stream.writeUnsignedVarInt(this.slots.length);
+        stream.write(Buffer.from(this.slots));
+    }
+}
+
+export enum ActionSource {
+    INVALID = -1,
+    CONTAINER,
+    GLOBAL,
+    WORLD,
+    CREATIVE,
+    UNTRACKED_INTERACTION_UI = 100,
+    NON_IMPLEMENTED_TODO = 99999
+}
+
+export class InventoryAction {
+    public constructor(
+        public sourceType: number,
+        public windowId: number | null,
+        public sourceFlags: number | null,
+        public targetSlot: number,
+        public oldItem: Item,
+        public newItem: Item
+    ) {}
+
+    public static fromNetwork(stream: BinaryStream): InventoryAction {
+        const sourceType = stream.readUnsignedVarInt();
+        const windowId =
+            sourceType === ActionSource.CONTAINER || sourceType === ActionSource.NON_IMPLEMENTED_TODO
+                ? stream.readVarInt()
+                : null;
+        const sourceFlags = sourceType === ActionSource.WORLD ? stream.readUnsignedVarInt() : null;
+        return new InventoryAction(
+            sourceType,
+            windowId,
+            sourceFlags,
+            stream.readUnsignedVarInt(),
+            Item.networkDeserialize(stream),
+            Item.networkDeserialize(stream)
+        );
+    }
+
+    public toNetwork(stream: BinaryStream): void {
+        stream.writeUnsignedVarInt(this.sourceType);
+        [ActionSource.CONTAINER, ActionSource.NON_IMPLEMENTED_TODO].includes(this.sourceType) &&
+            stream.writeVarInt(this.windowId!);
+        this.sourceType === ActionSource.WORLD && stream.writeUnsignedVarInt(this.sourceFlags!);
+        stream.writeUnsignedVarInt(this.targetSlot);
+        this.oldItem.networkSerialize(stream);
+        this.newItem.networkSerialize(stream);
+    }
+}
+
+export interface TransactionData {
+    actionType: number;
+    hotbarSlot: number;
+    itemInHand: Item;
+}
+
+export interface UseItemData extends TransactionData {
+    blockPosition: Vector3;
+    blockFace: number;
+    playerPosition: Vector3;
+    clickPosition: Vector3;
+    blockRuntimeId: number;
+}
+
+export interface UseItemOnEntityData extends TransactionData {
+    entityRuntimeId: bigint;
+    playerPosition: Vector3;
+    clickPosition: Vector3;
+}
+
+export interface RelaseItemData extends TransactionData {
+    headRotation: Vector3;
 }
 
 export default class InventoryTransactionPacket extends DataPacket {
     public static NetID = Identifiers.InventoryTransactionPacket;
 
-    public type!: InventoryTransactionType;
-    public actions = new Map();
-    public actionType!: number;
-    public hotbarSlot!: number;
-    public itemInHand!: Item;
+    public legacyRequestId!: number;
+    public legacySlotChanges!: LegacySlotChange[];
 
-    public blockPosition: Vector3 = new Vector3();
-    public face!: number;
-    public playerPosition: Vector3 = new Vector3();
-    public clickPosition: Vector3 = new Vector3();
-    public blockRuntimeId!: number;
-    public entityId = BigInt(0);
-    public requestId!: number;
-    public changeSlot = new Map();
-    public hasItemStackIds!: boolean;
+    public transactionType!: TransactionType;
+    public inventoryActions!: InventoryAction[];
+
+    public transactionData!: TransactionData;
 
     public decodePayload() {
-        this.requestId = this.readVarInt();
-        if (this.requestId !== 0) {
-            const length = this.readUnsignedVarInt();
-            for (let i = 0; i < length; i++) {
-                this.changeSlot.set(i, new ChangeSlot().decode(this));
-            }
+        this.legacyRequestId = this.readVarInt();
+        if (this.legacyRequestId !== 0) {
+            const slotChanges = this.readUnsignedVarInt();
+            this.legacySlotChanges = Array.from({ length: slotChanges }, () => LegacySlotChange.fromNetwork(this));
         }
 
-        this.type = this.readUnsignedVarInt();
-
-        switch (this.type) {
-            case InventoryTransactionType.Normal:
-            case InventoryTransactionType.Mismatch:
-                break;
-            case InventoryTransactionType.UseItem:
-                this.actionType = this.readUnsignedVarInt();
-                this.blockPosition = new Vector3(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt());
-                this.face = this.readVarInt();
-                this.hotbarSlot = this.readVarInt();
-                this.itemInHand = Item.networkDeserialize(this);
-                this.playerPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
-                this.clickPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
-                this.blockRuntimeId = this.readUnsignedVarInt();
-                break;
-            case InventoryTransactionType.UseItemOnEntity:
-                this.entityId = this.readUnsignedVarLong();
-                this.actionType = this.readUnsignedVarInt();
-                this.hotbarSlot = this.readVarInt();
-                this.itemInHand = Item.networkDeserialize(this);
-                this.playerPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
-                this.clickPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
-                break;
-            case InventoryTransactionType.ReleaseItem:
-                this.actionType = this.readUnsignedVarInt();
-                this.hotbarSlot = this.readVarInt();
-                this.itemInHand = Item.networkDeserialize(this);
-                this.playerPosition = new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE());
-                break;
-            default:
-                break;
-        }
+        this.transactionType = this.readUnsignedVarInt();
 
         const actionsCount = this.readUnsignedVarInt();
-        for (let i = 0; i < actionsCount; i++) {
-            const networkTransaction = new NetworkTransaction().decode(this, this.hasItemStackIds);
-            this.actions.set(i, networkTransaction);
+        this.inventoryActions = Array.from({ length: actionsCount }, () => InventoryAction.fromNetwork(this));
+
+        switch (this.transactionType) {
+            case TransactionType.NORMAL:
+            case TransactionType.MISMATCH:
+                break;
+            case TransactionType.USE_ITEM:
+                this.transactionData = <UseItemData>{
+                    actionType: this.readUnsignedVarInt(),
+                    blockPosition: new Vector3(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt()),
+                    blockFace: this.readVarInt(),
+                    hotbarSlot: this.readVarInt(),
+                    itemInHand: Item.networkDeserialize(this),
+                    playerPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE()),
+                    clickPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE()),
+                    blockRuntimeId: this.readUnsignedVarInt()
+                };
+                break;
+            case TransactionType.USE_ITEM_ON_ENTITY:
+                this.transactionData = <UseItemOnEntityData>{
+                    entityRuntimeId: this.readUnsignedVarLong(),
+                    actionType: this.readUnsignedVarInt(),
+                    hotbarSlot: this.readVarInt(),
+                    itemInHand: Item.networkDeserialize(this),
+                    playerPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE()),
+                    clickPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE())
+                };
+                break;
+            case TransactionType.RELASE_ITEM:
+                this.transactionData = <RelaseItemData>{
+                    actionType: this.readUnsignedVarInt(),
+                    hotbarSlot: this.readVarInt(),
+                    itemInHand: Item.networkDeserialize(this),
+                    headRotation: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE())
+                };
+                break;
+            default:
+                throw new TypeError(`Unknown transaction type ${this.transactionType}`);
         }
     }
 }
