@@ -289,7 +289,7 @@ export default class Session {
                 // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L2963
 
                 // Skip the first index as it's already increased by itself.
-                if (i != 0) {
+                if (i !== 0) {
                     frame.reliableIndex = this.outputReliableIndex++;
                 }
 
