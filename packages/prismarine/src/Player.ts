@@ -1,7 +1,6 @@
 import { ChangeDimensionPacket, LevelChunkPacket } from './network/Packets.js';
 
 import ChatEvent from './events/chat/ChatEvent.js';
-import Chunk from './world/chunk/Chunk.js';
 import ClientConnection from './network/ClientConnection.js';
 import ContainerEntry from './inventory/ContainerEntry.js';
 import Device from './utils/Device.js';
@@ -68,7 +67,7 @@ export default class Player extends Human {
 
     public cacheSupport = false;
 
-    public currentChunk: Chunk | null = null;
+    public currentChunk: bigint | null = null;
 
     private readonly forms: FormManager;
 
@@ -426,7 +425,7 @@ export default class Player extends Human {
         await this.networkSession.broadcastMove(this, type);
     }
 
-    public setCurrentChunk(chunk: Chunk) {
+    public setCurrentChunk(chunk: bigint) {
         if (this.currentChunk === chunk) return;
         this.currentChunk = chunk;
     }

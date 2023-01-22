@@ -6,6 +6,7 @@ import PlayerMoveEvent from '../../events/player/PlayerMoveEvent.js';
 import { PlayerSession } from '../../Prismarine.js';
 import type Server from '../../Server.js';
 import Vector3 from '../../math/Vector3.js';
+import Chunk from '../../world/chunk/Chunk.js';
 
 export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket> {
     public static NetID = Identifiers.MovePlayerPacket;
@@ -66,7 +67,7 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
         // TODO: this seems awfully wasteful?
         if (updateChunk) {
             const chunk = await player.getWorld().getChunkAt(player.getX(), player.getZ());
-            player.setCurrentChunk(chunk);
+            player.setCurrentChunk(Chunk.packXZ(chunk.getX(), chunk.getZ()));
         }
     }
 }
