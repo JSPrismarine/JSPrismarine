@@ -2,6 +2,10 @@ import BitFlags from './BitFlags.js';
 import Frame from './Frame.js';
 import Packet from './Packet.js';
 
+// https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L133
+// It's the maximum number of bytes a frameset can take. (splitted reliable sequenced).
+export const MAX_HEADER_BYTE_LENGTH = 23;
+
 export default class FrameSet extends Packet {
     public constructor(buffer?: Buffer) {
         super(BitFlags.VALID, buffer);

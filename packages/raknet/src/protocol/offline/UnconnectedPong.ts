@@ -1,9 +1,9 @@
-import MessageHeaders from '../MessageHeaders.js';
-import OfflinePacket from '../UnconnectedPacket.js';
+import { MessageIdentifiers } from '../MessageIdentifiers.js';
+import OfflinePacket from '../OfflinePacket.js';
 
 export default class UnconnectedPong extends OfflinePacket {
     public constructor(buffer?: Buffer) {
-        super(MessageHeaders.UNCONNECTED_PONG, buffer);
+        super(MessageIdentifiers.UNCONNECTED_PONG, buffer);
     }
 
     public timestamp!: bigint;

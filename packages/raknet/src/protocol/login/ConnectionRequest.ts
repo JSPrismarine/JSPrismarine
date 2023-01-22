@@ -1,9 +1,9 @@
-import MessageHeaders from '../MessageHeaders.js';
+import { MessageIdentifiers } from '../MessageIdentifiers.js';
 import Packet from '../Packet.js';
 
 export default class ConnectionRequest extends Packet {
     public constructor(buffer?: Buffer) {
-        super(MessageHeaders.CONNECTION_REQUEST, buffer);
+        super(MessageIdentifiers.CONNECTION_REQUEST, buffer);
     }
 
     public clientGUID!: bigint;

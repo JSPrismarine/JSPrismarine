@@ -11,7 +11,7 @@ export default class Frame {
     public sequenceIndex: number | null = null;
 
     public orderIndex: number | null = null;
-    public orderChannel: number | null = null;
+    public orderChannel!: NonNullable<number>;
 
     public fragmentSize = 0;
     public fragmentId!: number;
@@ -115,6 +115,12 @@ export default class Frame {
             FrameReliability.RELIABLE_SEQUENCED,
             FrameReliability.RELIABLE_ORDERED_WITH_ACK_RECEIPT
         ].includes(this.reliability);
+    }
+
+    public isOrderedExclusive(): boolean {
+        return [FrameReliability.RELIABLE_ORDERED, FrameReliability.RELIABLE_ORDERED_WITH_ACK_RECEIPT].includes(
+            this.reliability
+        );
     }
 
     public isFragmented(): boolean {

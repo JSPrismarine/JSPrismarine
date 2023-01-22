@@ -1,9 +1,9 @@
-import MessageHeaders from '../MessageHeaders.js';
-import OfflinePacket from '../UnconnectedPacket.js';
+import { MessageIdentifiers } from '../MessageIdentifiers.js';
+import OfflinePacket from '../OfflinePacket.js';
 
 export default class OpenConnectionRequest1 extends OfflinePacket {
     public constructor(buffer?: Buffer) {
-        super(MessageHeaders.OPEN_CONNECTION_REQUEST_1, buffer);
+        super(MessageIdentifiers.OPEN_CONNECTION_REQUEST_1, buffer);
     }
 
     public mtuSize!: number;

@@ -1,9 +1,9 @@
-import MessageHeaders from '../MessageHeaders.js';
-import OfflinePacket from '../UnconnectedPacket.js';
+import { MessageIdentifiers } from '../MessageIdentifiers.js';
+import OfflinePacket from '../OfflinePacket.js';
 
 export default class IncompatibleProtocolVersion extends OfflinePacket {
     public constructor() {
-        super(MessageHeaders.INCOMPATIBLE_PROTOCOL_VERSION);
+        super(MessageIdentifiers.INCOMPATIBLE_PROTOCOL_VERSION);
     }
 
     public protocol!: number;
