@@ -252,7 +252,6 @@ export default class Session {
             } else if (orderIndex > this.inputOrderIndex[orderChannel]) {
                 const unordered = this.inputOrderingQueue.get(orderChannel)!;
                 unordered.set(orderIndex, frame);
-                this.inputOrderingQueue.set(orderChannel, unordered);
             }
         } else {
             this.handlePacket(frame);
