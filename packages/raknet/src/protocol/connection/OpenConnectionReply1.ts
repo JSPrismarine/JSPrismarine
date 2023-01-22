@@ -1,9 +1,9 @@
-import MessageHeaders from '../MessageHeaders.js';
-import OfflinePacket from '../UnconnectedPacket.js';
+import { MessageIdentifiers } from '../MessageIdentifiers.js';
+import OfflinePacket from '../OfflinePacket.js';
 
 export default class OpenConnectionReply1 extends OfflinePacket {
     public constructor(buffer?: Buffer) {
-        super(MessageHeaders.OPEN_CONNECTION_REPLY_1, buffer);
+        super(MessageIdentifiers.OPEN_CONNECTION_REPLY_1, buffer);
     }
 
     public serverGUID!: bigint;
@@ -19,7 +19,7 @@ export default class OpenConnectionReply1 extends OfflinePacket {
     public encodePayload(): void {
         this.writeMagic();
         this.writeLong(this.serverGUID);
-        this.writeByte(0); // Secure
+        this.writeByte(0); // Is using security
         this.writeUnsignedShort(this.mtuSize);
     }
 }

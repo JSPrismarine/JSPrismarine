@@ -1,10 +1,10 @@
 import { InetAddress } from '../../RakNet.js';
-import MessageHeaders from '../MessageHeaders.js';
+import { MessageIdentifiers } from '../MessageIdentifiers.js';
 import Packet from '../Packet.js';
 
 export default class ConnectionRequestAccepted extends Packet {
     public constructor(buffer?: Buffer) {
-        super(MessageHeaders.CONNECTION_REQUEST_ACCEPTED, buffer);
+        super(MessageIdentifiers.CONNECTION_REQUEST_ACCEPTED, buffer);
     }
 
     public clientAddress!: InetAddress;

@@ -1,9 +1,9 @@
-import MessageHeaders from '../MessageHeaders.js';
+import { MessageIdentifiers } from '../MessageIdentifiers.js';
 import Packet from '../Packet.js';
 
 export default class ConnectedPong extends Packet {
     public constructor() {
-        super(MessageHeaders.CONNECTED_PONG);
+        super(MessageIdentifiers.CONNECTED_PONG);
     }
 
     public clientTimestamp!: bigint;

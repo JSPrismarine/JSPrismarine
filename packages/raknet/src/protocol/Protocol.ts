@@ -10,10 +10,10 @@ import Frame from './Frame.js';
 import FrameReliability from './FrameReliability.js';
 import FrameSet from './FrameSet.js';
 import IncompatibleProtocolVersion from './connection/IncompatibleProtocolVersion.js';
-import MessageHeaders from './MessageHeaders.js';
+import { MessageIdentifiers } from './MessageIdentifiers.js';
 import NACK from './NACK.js';
 import NewIncomingConnection from './connection/NewIncomingConnection.js';
-import OfflinePacket from './UnconnectedPacket.js';
+import OfflinePacket from './OfflinePacket.js';
 import OpenConnectionReply1 from './connection/OpenConnectionReply1.js';
 import OpenConnectionReply2 from './connection/OpenConnectionReply2.js';
 import OpenConnectionRequest1 from './connection/OpenConnectionRequest1.js';
@@ -34,7 +34,7 @@ export {
     FrameSet,
     DisconnectNotification,
     Frame,
-    MessageHeaders,
+    MessageIdentifiers,
     IncompatibleProtocolVersion,
     NACK,
     NewIncomingConnection,

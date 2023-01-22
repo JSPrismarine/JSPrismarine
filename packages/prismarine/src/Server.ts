@@ -117,8 +117,8 @@ export default class Server {
         await this.worldManager.onEnable();
         await this.packetRegistry.onEnable();
 
-        this.raknet = new RakNetListener(false);
-        await this.raknet.start(serverIp, port);
+        this.raknet = new RakNetListener(this.getConfig().getMaxPlayers(), false);
+        this.raknet.start(serverIp, port);
 
         this.raknet.on('openConnection', async (session: RakNetSession) => {
             const event = new RaknetConnectEvent(session);
@@ -130,7 +130,7 @@ export default class Server {
             }
 
             const token = session.getAddress().toToken();
-            if (this.sessionManager.has(session.getAddress().toToken())) {
+            if (this.sessionManager.has(token)) {
                 this.logger?.error(
                     `Another client with token (${token}) is already connected!`,
                     'Server/listen/openConnection'

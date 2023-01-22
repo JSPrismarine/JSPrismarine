@@ -1,10 +1,10 @@
 import { InetAddress } from '../../RakNet.js';
-import MessageHeaders from '../MessageHeaders.js';
-import OfflinePacket from '../UnconnectedPacket.js';
+import { MessageIdentifiers } from '../MessageIdentifiers.js';
+import OfflinePacket from '../OfflinePacket.js';
 
 export default class OpenConnectionReply2 extends OfflinePacket {
     public constructor(buffer?: Buffer) {
-        super(MessageHeaders.OPEN_CONNECTION_REPLY_2, buffer);
+        super(MessageIdentifiers.OPEN_CONNECTION_REPLY_2, buffer);
     }
 
     public serverGuid!: bigint;
@@ -16,7 +16,7 @@ export default class OpenConnectionReply2 extends OfflinePacket {
         this.serverGuid = this.readLong();
         this.clientAddress = this.readAddress();
         this.mtuSize = this.readUnsignedShort();
-        this.readByte(); // Secure
+        this.readByte(); // Require security of client
     }
 
     public encodePayload(): void {
@@ -24,6 +24,6 @@ export default class OpenConnectionReply2 extends OfflinePacket {
         this.writeLong(this.serverGuid);
         this.writeAddress(this.clientAddress);
         this.writeUnsignedShort(this.mtuSize);
-        this.writeByte(0); // Secure
+        this.writeByte(0); // Require security of client
     }
 }
