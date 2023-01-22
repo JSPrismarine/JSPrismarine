@@ -1,5 +1,5 @@
 import { InventoryTransactionPacket, LevelSoundEventPacket, UpdateBlockPacket } from '../Packets.js';
-import { TransactionType, UseItemAction } from '../packet/InventoryTransactionPacket.js';
+import { TransactionType, UseItemAction, UseItemData } from '../packet/InventoryTransactionPacket.js';
 
 import BlockMappings from '../../block/BlockMappings.js';
 import ContainerEntry from '../../inventory/ContainerEntry.js';
@@ -10,7 +10,6 @@ import PacketHandler from './PacketHandler.js';
 import { PlayerSession } from '../../Prismarine.js';
 import type Server from '../../Server.js';
 import Vector3 from '../../math/Vector3.js';
-import { UseItemData } from '../packet/InventoryTransactionPacket.js';
 
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
     public static NetID = Identifiers.InventoryTransactionPacket;
