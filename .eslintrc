@@ -6,7 +6,8 @@
         "jasmine": true
     },
     "globals": {
-        "BigInt": true
+        "BigInt": true,
+        "NodeJS": true
     },
     "parserOptions": {
         "ecmaVersion": 2022,
