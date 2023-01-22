@@ -1,9 +1,9 @@
-import MessageHeaders from '../MessageHeaders.js';
+import { MessageIdentifiers } from '../MessageIdentifiers.js';
 import Packet from '../Packet.js';
 
 export default class ConnectedPing extends Packet {
     public constructor(buffer: Buffer) {
-        super(MessageHeaders.CONNECTED_PING, buffer);
+        super(MessageIdentifiers.CONNECTED_PING, buffer);
     }
 
     public clientTimestamp!: bigint;

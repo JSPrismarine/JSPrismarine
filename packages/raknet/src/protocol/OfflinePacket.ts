@@ -1,7 +1,7 @@
 import Packet from './Packet.js';
-import { RAKNET_MAGIC } from '../RakNet.js';
+import { OFFLINE_MESSAGE_DATA_ID } from '../RakNet.js';
 
-export default class UnconnectedPacket extends Packet {
+export default class OfflinePacket extends Packet {
     private magic!: Buffer;
 
     // Used to read offline packets magic (needed to validate the packet)
@@ -10,10 +10,10 @@ export default class UnconnectedPacket extends Packet {
     }
 
     public writeMagic(): void {
-        this.write(RAKNET_MAGIC);
+        this.write(OFFLINE_MESSAGE_DATA_ID);
     }
 
     public isValid(): boolean {
-        return RAKNET_MAGIC.equals(this.magic);
+        return OFFLINE_MESSAGE_DATA_ID.equals(this.magic);
     }
 }

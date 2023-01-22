@@ -7,13 +7,13 @@ import ConnectionRequest from './protocol/login/ConnectionRequest.js';
 import ConnectionRequestAccepted from './protocol/login/ConnectionRequestAccepted.js';
 import Frame from './protocol/Frame.js';
 import FrameReliability from './protocol/FrameReliability.js';
-import FrameSet from './protocol/FrameSet.js';
+import FrameSet, { MAX_HEADER_BYTE_LENGTH } from './protocol/FrameSet.js';
 import InetAddress from './utils/InetAddress.js';
-import { MAX_CHANNELS } from './RakNet.js';
-import MessageHeaders from './protocol/MessageHeaders.js';
+import { MAX_CHANNELS, UDP_HEADER_SIZE } from './RakNet.js';
+import { MessageIdentifiers } from './protocol/MessageIdentifiers.js';
 import NACK from './protocol/NACK.js';
 import Packet from './protocol/Packet.js';
-import RakNetListener from './Listener.js';
+import RakNetListener from './ServerSocket.js';
 import { type RemoteInfo } from 'node:dgram';
 import assert from 'node:assert';
 import PacketPool from './protocol/PacketPool.js';
@@ -23,25 +23,23 @@ export enum RakNetPriority {
     IMMEDIATE
 }
 
-export enum RakNetStatus {
+export enum SessionStatus {
     CONNECTING,
     CONNECTED,
     DISCONNECTING,
     DISCONNECTED
 }
 
-export default class RakNetSession {
-    private readonly listener: RakNetListener;
-    private readonly mtuSize: number;
-    protected readonly rinfo: RemoteInfo;
-
-    private state = RakNetStatus.CONNECTING;
+export default class Session {
+    private state = SessionStatus.CONNECTING;
 
     private outputFrameQueue = new FrameSet();
-    private outputSequenceNumber = 0;
+    private outputSequenceNumber = 0; // TODO: find a better name
     private outputReliableIndex = 0;
-    private outputSequenceIndex = 0;
     private readonly outputBackupQueue: Map<number, Frame[]> = new Map();
+
+    private readonly outputOrderIndex: number[];
+    private readonly outputSequenceIndex: number[];
 
     private receivedFrameSequences: Set<number> = new Set();
     private lostFrameSequences: Set<number> = new Set();
@@ -55,8 +53,6 @@ export default class RakNetSession {
     private readonly inputOrderIndex: number[];
     private inputOrderingQueue: Map<number, Map<number, Frame>> = new Map();
 
-    private readonly channelIndex: number[];
-
     // Last timestamp of packet received, helpful for timeout
     private lastUpdate: number = Date.now();
     private active = true;
@@ -64,14 +60,16 @@ export default class RakNetSession {
     // Packet pool is the best option to reduce allocations
     private readonly packetPool = new PacketPool();
 
-    public constructor(listener: RakNetListener, mtuSize: number, rinfo: RemoteInfo) {
-        this.listener = listener;
-
-        this.mtuSize = mtuSize;
-        this.rinfo = rinfo;
+    public constructor(
+        private readonly listener: RakNetListener,
+        private readonly mtuSize: number,
+        public readonly rinfo: RemoteInfo,
+        public readonly guid: bigint
+    ) {
         this.lastUpdate = Date.now();
 
-        this.channelIndex = new Array(MAX_CHANNELS).fill(0);
+        this.outputOrderIndex = new Array(MAX_CHANNELS).fill(0);
+        this.outputSequenceIndex = new Array(MAX_CHANNELS).fill(0);
 
         this.inputOrderIndex = new Array(MAX_CHANNELS).fill(0);
         for (let i = 0; i < MAX_CHANNELS; i++) {
@@ -84,13 +82,13 @@ export default class RakNetSession {
     // Lookup table for packet handlers, always O(1) in average and worst case
     private readonly packetHandlers: Record<number, (buffer: Buffer) => void> = {
         // 0x40 | 0xc0 = MessageHeaders.ACKNOWLEDGE_PACKET
-        [MessageHeaders.ACKNOWLEDGE_PACKET]: (buffer: Buffer) => {
+        [MessageIdentifiers.ACKNOWLEDGE_PACKET]: (buffer: Buffer) => {
             const ack = this.packetPool.getAckInstance();
             (ack as any).buffer = buffer;
             ack.decode();
             this.handleACK(ack);
         },
-        [MessageHeaders.NACKNOWLEDGE_PACKET]: (buffer: Buffer) => {
+        [MessageIdentifiers.NACKNOWLEDGE_PACKET]: (buffer: Buffer) => {
             const nack = this.packetPool.getNackInstance();
             (nack as any).buffer = buffer;
             nack.decode();
@@ -134,6 +132,7 @@ export default class RakNetSession {
         this.sendFrameQueue();
     }
 
+    // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L635
     public handle(buffer: Buffer): void {
         this.active = true;
         this.lastUpdate = Date.now();
@@ -262,50 +261,45 @@ export default class RakNetSession {
 
     public sendFrame(frame: Frame, flags = RakNetPriority.NORMAL): void {
         assert(typeof frame.orderChannel === 'number', 'Frame OrderChannel cannot be null');
+        // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L1625
         if (frame.isSequenced()) {
             // Sequenced packets don't increase the ordered channel index
-            frame.orderIndex = this.channelIndex[frame.orderChannel];
-            frame.sequenceIndex = this.outputSequenceIndex++;
-        } else if (frame.isOrdered()) {
+            frame.orderIndex = this.outputOrderIndex[frame.orderChannel];
+            frame.sequenceIndex = this.outputSequenceIndex[frame.orderChannel]++;
+        } else if (frame.isOrderedExclusive()) {
             // implies sequenced, but we have to distinct them
-            frame.orderIndex = this.channelIndex[frame.orderChannel]++;
+            frame.orderIndex = this.outputOrderIndex[frame.orderChannel]++;
+            this.outputSequenceIndex[frame.orderChannel] = 0;
         }
 
+        frame.reliableIndex = this.outputReliableIndex++;
+
         // Split packet if bigger than MTU size
-        const maxSize = this.mtuSize - 60;
+        const maxSize = this.mtuSize - UDP_HEADER_SIZE - MAX_HEADER_BYTE_LENGTH;
         if (frame.content.byteLength > maxSize) {
-            // Split the buffer into chunks
-            const buffers: Map<number, Buffer> = new Map();
-            let [index, splitIndex] = [0, 0];
-
-            while (index < frame.content.byteLength) {
-                // Push format: [chunk index: int, chunk: buffer]
-                buffers.set(splitIndex++, frame.content.slice(index, (index += maxSize)));
-            }
-
+            // If we use the frame as reference, we have to copy somewhere
+            // the original buffer. Then we will point to this buffer content
+            const buffer = Buffer.from(frame.content);
             const fragmentId = this.outputFragmentIndex++ % 65536;
-            for (const [index, buffer] of buffers) {
-                const newFrame = new Frame();
-                newFrame.reliability = frame.reliability;
-                newFrame.fragmentId = fragmentId;
-                newFrame.fragmentSize = buffers.size;
-                newFrame.fragmentIndex = index;
-                newFrame.content = buffer;
+            for (let i = 0; i < buffer.byteLength; i += maxSize) {
+                // Like the original raknet, we like to use a pointer to the original
+                // frame, we don't really care about side effects in this case.
+                // RakNet will allocate the whole strcture containing splits,
+                // but i think caching just the buffer is enough.
+                // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L2963
 
-                if (newFrame.isReliable()) {
-                    newFrame.reliableIndex = this.outputReliableIndex++;
+                // Skip the first index as it's already increased by itself.
+                if (i != 0) {
+                    frame.reliableIndex = this.outputReliableIndex++;
                 }
 
-                newFrame.sequenceIndex = frame.sequenceIndex;
-                newFrame.orderChannel = frame.orderChannel;
-                newFrame.orderIndex = frame.orderIndex;
-
-                this.addFrameToQueue(newFrame, flags | RakNetPriority.IMMEDIATE);
+                frame.content = buffer.slice(i, i + maxSize);
+                frame.fragmentIndex = i / maxSize;
+                frame.fragmentId = fragmentId;
+                frame.fragmentSize = Math.ceil(buffer.byteLength / maxSize);
+                this.addFrameToQueue(frame, flags | RakNetPriority.IMMEDIATE);
             }
         } else {
-            if (frame.isReliable()) {
-                frame.reliableIndex = this.outputReliableIndex++;
-            }
             this.addFrameToQueue(frame, flags);
         }
     }
@@ -330,25 +324,25 @@ export default class RakNetSession {
     private handlePacket(packet: Frame): void {
         const id = packet.content[0];
 
-        if (this.state === RakNetStatus.CONNECTING) {
-            if (id === MessageHeaders.CONNECTION_REQUEST) {
+        if (this.state === SessionStatus.CONNECTING) {
+            if (id === MessageIdentifiers.CONNECTION_REQUEST) {
                 this.handleConnectionRequest(packet.content).then(
                     (encapsulated) => this.sendFrame(encapsulated, RakNetPriority.IMMEDIATE),
                     () => {}
                 );
-            } else if (id === MessageHeaders.NEW_INCOMING_CONNECTION) {
+            } else if (id === MessageIdentifiers.NEW_INCOMING_CONNECTION) {
                 // TODO: online mode
-                this.state = RakNetStatus.CONNECTED;
+                this.state = SessionStatus.CONNECTED;
                 this.listener.emit('openConnection', this);
             }
-        } else if (id === MessageHeaders.DISCONNECT_NOTIFICATION) {
+        } else if (id === MessageIdentifiers.DISCONNECTION_NOTIFICATION) {
             this.disconnect();
-        } else if (id === MessageHeaders.CONNECTED_PING) {
+        } else if (id === MessageIdentifiers.CONNECTED_PING) {
             this.handleConnectedPing(packet.content).then(
                 (encapsulated) => this.sendFrame(encapsulated),
                 () => {}
             );
-        } else if (this.state === RakNetStatus.CONNECTED) {
+        } else if (this.state === SessionStatus.CONNECTED) {
             this.listener.emit('encapsulated', packet, this.getAddress()); // To fit in software needs later
         }
     }
@@ -452,7 +446,7 @@ export default class RakNetSession {
         // TODO: rewrite, works but can be improved
         this.close();
         // Send disconnect ACK
-        this.state = RakNetStatus.DISCONNECTED;
+        this.state = SessionStatus.DISCONNECTED;
         this.update(Date.now());
         this.listener.removeSession(this, reason);
     }
@@ -466,7 +460,7 @@ export default class RakNetSession {
     }
 
     public isDisconnected(): boolean {
-        return this.state === RakNetStatus.DISCONNECTED;
+        return this.state === SessionStatus.DISCONNECTED;
     }
 
     public getListener(): RakNetListener {

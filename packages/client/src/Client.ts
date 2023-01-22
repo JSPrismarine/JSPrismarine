@@ -3,7 +3,7 @@ import Dgram, { type Socket } from 'dgram';
 import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
-import Crypto from 'crypto';
+import Crypto, { randomBytes } from 'crypto';
 import { EventEmitter } from 'events';
 import { RakNetPriority } from '@jsprismarine/raknet/src/Session.js';
 
@@ -103,15 +103,15 @@ export default class Client extends EventEmitter {
 
         let buf;
         switch (header) {
-            case Protocol.MessageHeaders.UNCONNECTED_PONG:
+            case Protocol.MessageIdentifiers.UNCONNECTED_PONG:
                 buf = this.handleUnconnectedPong(buffer);
                 await this.sendBuffer(buf);
                 break;
-            case Protocol.MessageHeaders.OPEN_CONNECTION_REPLY_1:
+            case Protocol.MessageIdentifiers.OPEN_CONNECTION_REPLY_1:
                 buf = this.handleOpenConnectionReply1(buffer);
                 await this.sendBuffer(buf);
                 break;
-            case Protocol.MessageHeaders.OPEN_CONNECTION_REPLY_2:
+            case Protocol.MessageIdentifiers.OPEN_CONNECTION_REPLY_2:
                 this.handleOpenConnectionReply2(buffer);
                 break;
             default:
@@ -163,12 +163,17 @@ export default class Client extends EventEmitter {
         // Update session status
         this.connecting = true;
         // This.status = ConnectionStatus.Connected;
-        this.connection = new RakNetSession(this as any, DEF_MTU_SIZE, {
-            address: this.address.getAddress(),
-            port: this.address.getPort(),
-            family: 'IPv4',
-            size: 0
-        });
+        this.connection = new RakNetSession(
+            this as any,
+            DEF_MTU_SIZE,
+            {
+                address: this.address.getAddress(),
+                port: this.address.getPort(),
+                family: 'IPv4',
+                size: 0
+            },
+            randomBytes(8).readBigInt64BE()
+        );
 
         return packet.getBuffer();
     }

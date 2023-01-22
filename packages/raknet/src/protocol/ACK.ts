@@ -1,8 +1,8 @@
 import AcknowledgePacket from './AcknowledgePacket.js';
-import MessageHeaders from './MessageHeaders.js';
+import { MessageIdentifiers } from './MessageIdentifiers.js';
 
 export default class ACK extends AcknowledgePacket {
     public constructor(buffer?: Buffer) {
-        super(MessageHeaders.ACKNOWLEDGE_PACKET, buffer);
+        super(MessageIdentifiers.ACKNOWLEDGE_PACKET, buffer);
     }
 }
