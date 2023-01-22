@@ -26,6 +26,7 @@
         "unicorn/escape-case": 0,
         "unicorn/catch-error-name": 0,
         "unicorn/prefer-spread": 0,
+        "unicorn/no-empty-file": 0,
         "unicorn/prefer-date-now": 1,
         "unicorn/no-lonely-if": 1,
         "unicorn/no-array-reduce": 0,

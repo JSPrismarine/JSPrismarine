@@ -70,9 +70,9 @@ export default class OfflineHandler {
                 request.decode();
 
                 const addrSession = this.listener.getSessionByAddress(rinfo);
-                const addressInUse = addrSession != null && !addrSession.isDisconnected(); // isActive'ish
+                const addressInUse = addrSession !== null && !addrSession.isDisconnected(); // isActive'ish
                 const guidSession = this.listener.getSessionByGUID(request.clientGUID);
-                const guidInUse = guidSession != null && !guidSession.isDisconnected();
+                const guidInUse = guidSession !== null && !guidSession.isDisconnected();
 
                 const reply2 = new OpenConnectionReply2();
                 reply2.serverGuid = this.listener.getServerGuid();
@@ -83,10 +83,9 @@ export default class OfflineHandler {
                     if (addrSession === guidSession) {
                         this.listener.sendPacket(reply2, rinfo);
                         return;
-                    } else {
-                        this.sendAlreadyConnected(rinfo);
-                        return;
                     }
+                    this.sendAlreadyConnected(rinfo);
+                    return;
                 } else if ((!addressInUse && guidInUse) || (addrSession && !guidInUse)) {
                     this.sendAlreadyConnected(rinfo);
                 }
