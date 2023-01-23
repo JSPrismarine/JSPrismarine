@@ -30,7 +30,7 @@ export default class MinecraftSession {
         );
     }
 
-    public async sendDataPacket<T extends DataPacket>(packet: T, comp = true, direct = true): Promise<void> {
+    public async sendDataPacket<T extends DataPacket>(packet: T, comp = true, direct = false): Promise<void> {
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);
