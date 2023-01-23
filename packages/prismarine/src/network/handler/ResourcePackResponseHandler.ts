@@ -6,8 +6,9 @@ import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket.js';
 import ChatEvent from '../../events/chat/ChatEvent.js';
 import Gamemode from '../../world/Gamemode.js';
 import Identifiers from '../Identifiers.js';
-import { ItemComponentPacket } from '../Packets.js';
 import PacketHandler from './PacketHandler.js';
+import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket.js';
+import ItemComponentPacket from '../packet/ItemComponentPacket.js';
 import { PlayerSession } from '../../Prismarine.js';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent.js';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket.js';
@@ -84,8 +85,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             await session.sendPlayerList();
 
             await session.getConnection().sendDataPacket(new BiomeDefinitionListPacket());
-
-            // TODO: available entity identifiers
+            await session.getConnection().sendDataPacket(new AvailableActorIdentifiersPacket());
 
             // TODO: player fog packet
 
