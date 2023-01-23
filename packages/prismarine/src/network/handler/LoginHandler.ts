@@ -22,7 +22,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
                 packet.protocol < Identifiers.Protocol
                     ? PlayStatusType.LoginFailedClient
                     : PlayStatusType.LoginFailedServer;
-            await connection.sendDataPacket(playStatus);
+            await connection.sendDataPacket(playStatus, true);
             return;
         }
 
@@ -75,10 +75,6 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         resourcePacksInfo.mustAccept = false;
         resourcePacksInfo.forceAccept = false;
         resourcePacksInfo.hasScripts = false;
-        await connection.sendDataPacket(resourcePacksInfo);
-
-        // const networkSettings = new NetworkSettingsPacket();
-        // networkSettings.compressionThreshold = NetworkCompression.COMPRESS_EVERYTHING;
-        // await connection.sendDataPacket(networkSettings);
+        await connection.sendDataPacket(resourcePacksInfo, true);
     }
 }

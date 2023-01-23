@@ -632,14 +632,14 @@ export default class PlayerSession {
     public async sendPlayStatus(status: number): Promise<void> {
         const pk = new PlayStatusPacket();
         pk.status = status;
-        await this.getConnection().sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk, true);
     }
 
     public async kick(reason = 'unknown reason'): Promise<void> {
         const pk = new DisconnectPacket();
         pk.hideDisconnectionWindow = false;
         pk.message = reason;
-        await this.getConnection().sendDataPacket(pk);
+        await this.getConnection().sendDataPacket(pk, true);
     }
 
     public getConnection(): ClientConnection {
