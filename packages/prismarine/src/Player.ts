@@ -269,6 +269,18 @@ export default class Player extends Human {
         await this.networkSession.sendMessage(message, '', parameters, needsTranslation, type);
     }
 
+    /**
+     * Send a toast notification (like Xbox Live notifications)
+     * @param title the toast title
+     * @param body the toast body
+     */
+    public async sendToast(
+        title: string,
+        body: string
+    ): Promise<void> {
+        await this.networkSession.sendToast(title, body);
+    }
+
     public async setGamemode(mode: number): Promise<void> {
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.getServer().getEventManager().post(['playerSetGamemode', event]);
