@@ -42,6 +42,7 @@
 <a href="raknet_src_RakNet.RakNetSession.html#disconnect" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>disconnect</span></a>
 <a href="raknet_src_RakNet.RakNetSession.html#getAddress" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>get<wbr/>Address</span></a>
 <a href="raknet_src_RakNet.RakNetSession.html#getListener" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>get<wbr/>Listener</span></a>
+<a href="raknet_src_RakNet.RakNetSession.html#getMTU" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>getMTU</span></a>
 <a href="raknet_src_RakNet.RakNetSession.html#getState" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>get<wbr/>State</span></a>
 <a href="raknet_src_RakNet.RakNetSession.html#handle" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>handle</span></a>
 <a href="raknet_src_RakNet.RakNetSession.html#handleConnectedPing" class="tsd-index-link tsd-kind-method tsd-parent-kind-class"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg><span>handle<wbr/>Connected<wbr/>Ping</span></a>
@@ -120,7 +121,7 @@
 <li class="tsd-description">
 <h4 class="tsd-returns-title">Returns <a href="raknet_src_RakNet.InetAddress.html" class="tsd-signature-type" data-tsd-kind="Class">InetAddress</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in packages/raknet/dist/Session.d.ts:67</li></ul></aside></li></ul></section>
+<li>Defined in packages/raknet/dist/Session.d.ts:73</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="getListener" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Listener</span><a href="#getListener" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -129,6 +130,19 @@
 <h4 class="tsd-returns-title">Returns <a href="raknet_src_RakNet.RakNetListener.html" class="tsd-signature-type" data-tsd-kind="Class">RakNetListener</a></h4><aside class="tsd-sources">
 <ul>
 <li>Defined in packages/raknet/dist/Session.d.ts:66</li></ul></aside></li></ul></section>
+<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="getMTU" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><span>getMTU</span><a href="#getMTU" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+<li class="tsd-signature tsd-anchor-link" id="getMTU.getMTU-1">getMTU<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><a href="#getMTU.getMTU-1" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></li>
+<li class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Returns the maxmium transfer unit
+for this connection.</p>
+
+<h3>Returns</h3><p>the UDP adjusted.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in packages/raknet/dist/Session.d.ts:72</li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class"><a id="getState" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>State</span><a href="#getState" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
@@ -299,6 +313,7 @@
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="raknet_src_RakNet.RakNetSession.html#disconnect" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>disconnect</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="raknet_src_RakNet.RakNetSession.html#getAddress" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>get<wbr/>Address</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="raknet_src_RakNet.RakNetSession.html#getListener" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>get<wbr/>Listener</a></li>
+<li class="tsd-kind-method tsd-parent-kind-class"><a href="raknet_src_RakNet.RakNetSession.html#getMTU" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>getMTU</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="raknet_src_RakNet.RakNetSession.html#getState" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>get<wbr/>State</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="raknet_src_RakNet.RakNetSession.html#handle" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>handle</a></li>
 <li class="tsd-kind-method tsd-parent-kind-class"><a href="raknet_src_RakNet.RakNetSession.html#handleConnectedPing" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-2048-path"></use><use href="#icon-2048-text"></use></svg>handle<wbr/>Connected<wbr/>Ping</a></li>
