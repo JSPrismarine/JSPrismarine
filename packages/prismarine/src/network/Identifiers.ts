@@ -165,7 +165,8 @@ const Identifiers = {
     ClientboundDebugRendererPacket: 0xa4,
     RequestNetworkSettingsPacket: 0xc1,
     UpdateAdventureSettingsPacket: 0xbc,
-    UpdateAbilitiesPacket: 0xbb
+    UpdateAbilitiesPacket: 0xbb,
+    ToastRequestPacket: 0xba
 };
 
 export default Identifiers;
