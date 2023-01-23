@@ -148,11 +148,11 @@ export default class PlayerSession {
         await this.connection.sendDataPacket(pk);
     }
 
-    public async needNewChunks(forceResend = false): Promise<void> {
+    public async needNewChunks(forceResend = false, dist?: number): Promise<void> {
         const currentXChunk = CoordinateUtils.fromBlockToChunk(this.player.getX());
         const currentZChunk = CoordinateUtils.fromBlockToChunk(this.player.getZ());
 
-        const viewDistance = this.player.viewDistance;
+        const viewDistance = this.player.viewDistance ?? dist;
 
         const chunksToSendHeap = new Heap((a: number[], b: number[]) => {
             const distXFirst = Math.abs(a[0] - currentXChunk);
@@ -215,7 +215,7 @@ export default class PlayerSession {
         }
 
         if (unloaded ?? !(this.chunkSendQueue.length === 0)) {
-            await this.sendNetworkChunkPublisher();
+            await this.sendNetworkChunkPublisher(dist);
         }
     }
 
@@ -328,12 +328,12 @@ export default class PlayerSession {
         await this.getConnection().sendDataPacket(pk);
     }
 
-    public async sendNetworkChunkPublisher(): Promise<void> {
+    public async sendNetworkChunkPublisher(dist?: number): Promise<void> {
         const pk = new NetworkChunkPublisherUpdatePacket();
         pk.x = Math.floor(this.player.getX());
         pk.y = Math.floor(this.player.getY());
         pk.z = Math.floor(this.player.getZ());
-        pk.radius = this.player.viewDistance << 4;
+        pk.radius = (this.player.viewDistance ?? dist) << 4;
         await this.getConnection().sendDataPacket(pk);
     }
 
