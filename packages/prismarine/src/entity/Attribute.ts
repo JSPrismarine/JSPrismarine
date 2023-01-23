@@ -99,7 +99,7 @@ export default class AttributeManager {
             new Attribute({
                 name: AttributeIds.Absorption,
                 min: 0,
-                max: MAX_FLOAT32,
+                max: 16,
                 def: 0,
                 value: 0
             }),
@@ -107,13 +107,13 @@ export default class AttributeManager {
                 name: AttributeIds.PlayerSaturation,
                 min: 0,
                 max: 20,
-                def: 20,
-                value: 20
+                def: 5,
+                value: 4
             }),
             new Attribute({
                 name: AttributeIds.PlayerExhaustion,
                 min: 0,
-                max: 5,
+                max: 20,
                 def: 0,
                 value: 0
             }),
@@ -155,7 +155,7 @@ export default class AttributeManager {
             new Attribute({
                 name: AttributeIds.AttackDamage,
                 min: 0,
-                max: MAX_FLOAT32,
+                max: 1,
                 def: 1,
                 value: 1
             }),

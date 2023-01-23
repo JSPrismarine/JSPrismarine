@@ -138,7 +138,7 @@ export default class StartGamePacket extends DataPacket {
         McpeUtil.writeString(this, '');
         this.writeBoolean(false); // New inventory system
 
-        McpeUtil.writeString(this, '*');
+        McpeUtil.writeString(this, Identifiers.MinecraftVersion);
 
         // TODO
         const str = new BinaryStream();
