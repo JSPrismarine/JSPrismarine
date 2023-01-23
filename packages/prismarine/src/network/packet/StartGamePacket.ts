@@ -101,7 +101,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // Only spawn v1 villagers
         this.writeByte(0); // Disable persona skins
         this.writeByte(0); // Disable custom skins
-        McpeUtil.writeString(this, Identifiers.MinecraftVersion);
+        McpeUtil.writeString(this, '*');
 
         this.writeUnsignedIntLE(0); // Limited world height
         this.writeUnsignedIntLE(0); // Limited world length

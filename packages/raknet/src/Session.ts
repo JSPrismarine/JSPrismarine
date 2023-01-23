@@ -5,9 +5,9 @@ import ConnectedPing from './protocol/connection/ConnectedPing.js';
 import ConnectedPong from './protocol/connection/ConnectedPong.js';
 import ConnectionRequest from './protocol/login/ConnectionRequest.js';
 import ConnectionRequestAccepted from './protocol/login/ConnectionRequestAccepted.js';
-import Frame from './protocol/Frame.js';
+import Frame, { MAX_FRAME_BYTE_LENGTH } from './protocol/Frame.js';
 import FrameReliability from './protocol/FrameReliability.js';
-import FrameSet, { MAX_HEADER_BYTE_LENGTH } from './protocol/FrameSet.js';
+import FrameSet, { DATAGRAM_HEADER_BYTE_LENGTH } from './protocol/FrameSet.js';
 import InetAddress from './utils/InetAddress.js';
 import { MAX_CHANNELS, UDP_HEADER_SIZE } from './RakNet.js';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers.js';
@@ -274,7 +274,7 @@ export default class Session {
         frame.reliableIndex = this.outputReliableIndex++;
 
         // Split packet if bigger than MTU size
-        const maxSize = this.mtuSize - UDP_HEADER_SIZE - MAX_HEADER_BYTE_LENGTH;
+        const maxSize = this.getMTU() - DATAGRAM_HEADER_BYTE_LENGTH - MAX_FRAME_BYTE_LENGTH;
         if (frame.content.byteLength > maxSize) {
             // If we use the frame as reference, we have to copy somewhere
             // the original buffer. Then we will point to this buffer content
@@ -464,6 +464,15 @@ export default class Session {
 
     public getListener(): RakNetListener {
         return this.listener;
+    }
+
+    /**
+     * Returns the maxmium transfer unit
+     * for this connection.
+     * @returns {number} the UDP adjusted.
+     */
+    public getMTU(): number {
+        return this.mtuSize - UDP_HEADER_SIZE;
     }
 
     public getAddress(): InetAddress {
