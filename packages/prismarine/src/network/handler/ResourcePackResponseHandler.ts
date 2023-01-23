@@ -16,6 +16,7 @@ import ResourcePackStatusType from '../type/ResourcePackStatusType.js';
 import type Server from '../../Server.js';
 import StartGamePacket from '../packet/StartGamePacket.js';
 import Vector3 from '../../math/Vector3.js';
+import PlayStatusType from '../type/PlayStatusType.js';
 
 export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
     public static NetID = Identifiers.ResourcePackResponsePacket;
@@ -108,6 +109,16 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             respawnPacket.state = RespawnState.SERVER_READY_TO_SPAWN;
             await session.getConnection().sendDataPacket(respawnPacket);
+
+            /// TODO: general handler refactor ///
+
+            const dist = server.getConfig().getViewDistance();
+
+            await session.sendNetworkChunkPublisher(dist);
+            await session.needNewChunks(true, dist);
+
+            // todo: set health packet
+            await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
 
             server
                 .getLogger()
