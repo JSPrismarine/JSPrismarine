@@ -120,6 +120,23 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // todo: set health packet
             await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
 
+            // Summon player(s) & entities
+            await Promise.all([
+                server
+                    .getSessionManager()
+                    .getAllPlayers()
+                    .filter((p) => !(p === player))
+                    .map(async (p) => {
+                        await p.getNetworkSession().sendSpawn(player);
+                        await session.sendSpawn(p);
+                    }),
+                player
+                    .getWorld()
+                    .getEntities()
+                    .filter((e) => !e.isPlayer())
+                    .map(async (entity) => entity.sendSpawn(player))
+            ]);
+
             server
                 .getLogger()
                 ?.info(
