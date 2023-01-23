@@ -70,6 +70,7 @@ import UpdateAttributesPacket from './packet/UpdateAttributesPacket.js';
 import UpdateBlockPacket from './packet/UpdateBlockPacket.js';
 import WorldEventPacket from './packet/WorldEventPacket.js';
 import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket.js';
+import ToastRequestPacket from './packet/ToastRequestPacket.js';
 
 export {
     ActorFallPacket,
@@ -143,5 +144,6 @@ export {
     UpdateAttributesPacket,
     UpdateBlockPacket,
     WorldEventPacket,
-    RequestNetworkSettingsPacket
+    RequestNetworkSettingsPacket,
+    ToastRequestPacket
 };

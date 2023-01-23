@@ -51,7 +51,7 @@ import UpdateAbilitiesPacket, {
 } from './packet/UpdateAbilitiesPacket.js';
 
 import pkg from '@jsprismarine/bedrock-data';
-import { BatchPacket } from './Packets.js';
+import { BatchPacket, ToastRequestPacket } from './Packets.js';
 const { creativeitems } = pkg;
 
 export default class PlayerSession {
@@ -477,6 +477,20 @@ export default class PlayerSession {
         pk.xuid = xuid;
         pk.platformChatId = ''; // TODO
         pk.parameters = parameters;
+        await this.getConnection().sendDataPacket(pk);
+    }
+
+    public async sendToast(
+        title: string,
+        body: string
+    ): Promise<void> {
+        if (!title) throw new Error('A toast title is required');
+        if (!body) throw new Error('A toast body is required.');
+
+        const pk = new ToastRequestPacket();
+        pk.title = title;
+        pk.body = body;
+
         await this.getConnection().sendDataPacket(pk);
     }
 
