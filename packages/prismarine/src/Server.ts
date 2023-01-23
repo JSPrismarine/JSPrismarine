@@ -237,11 +237,11 @@ export default class Server {
 
                     try {
                         const handler = this.packetRegistry.getHandler(pid);
-                        await (handler as any).handle(packet, this, connection.getPlayerSession() ?? connection);
                         this.logger?.silly(
                             `Received §b${packet.constructor.name}§r packet`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
+                        await (handler as any).handle(packet, this, connection.getPlayerSession() ?? connection);
                     } catch (error) {
                         this.logger?.error(
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
