@@ -40,6 +40,7 @@ import SetActorDataPacket from './packet/SetActorDataPacket.js';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket.js';
 import SetTimePacket from './packet/SetTimePacket.js';
 import TextPacket from './packet/TextPacket.js';
+import ToastRequestPacket from './packet/ToastRequestPacket.js';
 import TextType from './type/TextType.js';
 import UUID from '../utils/UUID.js';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket.js';
@@ -51,7 +52,7 @@ import UpdateAbilitiesPacket, {
 } from './packet/UpdateAbilitiesPacket.js';
 
 import pkg from '@jsprismarine/bedrock-data';
-import { BatchPacket, ToastRequestPacket } from './Packets.js';
+import { BatchPacket } from './Packets.js';
 const { creativeitems } = pkg;
 
 export default class PlayerSession {
