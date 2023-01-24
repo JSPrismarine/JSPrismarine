@@ -274,10 +274,7 @@ export default class Player extends Human {
      * @param title the toast title
      * @param body the toast body
      */
-    public async sendToast(
-        title: string,
-        body: string
-    ): Promise<void> {
+    public async sendToast(title: string, body: string): Promise<void> {
         await this.networkSession.sendToast(title, body);
     }
 
