@@ -481,10 +481,7 @@ export default class PlayerSession {
         await this.getConnection().sendDataPacket(pk);
     }
 
-    public async sendToast(
-        title: string,
-        body: string
-    ): Promise<void> {
+    public async sendToast(title: string, body: string): Promise<void> {
         if (!title) throw new Error('A toast title is required');
         if (!body) throw new Error('A toast body is required.');
 
