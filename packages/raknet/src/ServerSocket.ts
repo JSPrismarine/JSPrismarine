@@ -4,7 +4,7 @@ import BitFlags from './protocol/BitFlags.js';
 import { EventEmitter } from 'events';
 import Packet from './protocol/Packet.js';
 import { RAKNET_TPS } from './RakNet.js';
-import RakNetSession from './Session.js';
+import RakNetSession from './SessionV2.js';
 import OfflineHandler from './protocol/OfflineHandler.js';
 
 export default class ServerSocket extends EventEmitter {
@@ -12,7 +12,7 @@ export default class ServerSocket extends EventEmitter {
     private readonly guid: bigint;
     private readonly sessions: Set<RakNetSession> = new Set();
     private readonly logger: Logger;
-    private ticker: NodeJS.Timer | undefined;
+    private ticker: NodeJS.Timeout | null = null;
 
     private readonly offlineHandler = new OfflineHandler(this);
 
@@ -36,11 +36,16 @@ export default class ServerSocket extends EventEmitter {
             }
         }
 
-        this.ticker = setInterval(() => {
+        const tick = () => setTimeout(() => {
             for (const session of this.sessions.values()) {
                 session.update(Date.now());
+                // session.update(Date.now());
             }
+            tick();
         }, RAKNET_TPS);
+
+        this.ticker = tick();
+        this.ticker.unref();
 
         this.socket.on('message', this.handleMessage.bind(this));
     }
@@ -69,10 +74,10 @@ export default class ServerSocket extends EventEmitter {
     public kill(): void {
         // Send last remaining packets to all players
         for (const session of this.getSessions()) {
-            session.sendFrameQueue();
+            // session.sendFrameQueue();
         }
 
-        this.ticker && clearInterval(this.ticker);
+        this.ticker && clearTimeout(this.ticker);
     }
 
     /**

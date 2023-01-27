@@ -5,6 +5,7 @@ import RakNetSession, { RakNetPriority as ConnectionPriority } from './Session.j
 import InetAddress from './utils/InetAddress.js';
 import RakNetListener from './ServerSocket.js';
 import ServerName from './utils/ServerName.js';
+import SessionV2 from './SessionV2.js';
 
 export const RAKNET_TPS = 10;
 export const MAX_CHANNELS = 32;
@@ -19,4 +20,4 @@ export const OFFLINE_MESSAGE_DATA_ID = Buffer.from(
 export const MAX_MTU_SIZE = 1492;
 export const MIN_MTU_SIZE = 400;
 
-export { RakNetSession, ConnectionPriority, Protocol, RakNetListener, InetAddress, ServerName };
+export { RakNetSession, SessionV2, ConnectionPriority, Protocol, RakNetListener, InetAddress, ServerName };
