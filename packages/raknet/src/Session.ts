@@ -19,8 +19,11 @@ import assert from 'node:assert';
 import PacketPool from './protocol/PacketPool.js';
 
 export enum RakNetPriority {
-    NORMAL,
-    IMMEDIATE
+    IMMEDIATE,
+    HIGH,
+    MEDIUM,
+    LOW,
+    NUMBER_OF_PRIORITIES
 }
 
 export enum SessionStatus {
@@ -258,7 +261,7 @@ export default class Session {
         }
     }
 
-    public sendFrame(frame: Frame, flags = RakNetPriority.NORMAL): void {
+    public sendFrame(frame: Frame, flags = RakNetPriority.MEDIUM): void {
         assert(typeof frame.orderChannel === 'number', 'Frame OrderChannel cannot be null');
         // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L1625
         if (frame.isSequenced()) {
@@ -303,7 +306,7 @@ export default class Session {
         }
     }
 
-    private addFrameToQueue(frame: Frame, priority = RakNetPriority.NORMAL): void {
+    private addFrameToQueue(frame: Frame, priority = RakNetPriority.MEDIUM): void {
         let length = 4; // datagram header size
         for (const queuedFrame of this.outputFrameQueue.frames) {
             length += queuedFrame.getByteLength();
@@ -447,7 +450,7 @@ export default class Session {
         // Send disconnect ACK
         this.state = SessionStatus.DISCONNECTED;
         this.update(Date.now());
-        this.listener.removeSession(this, reason);
+        // this.listener.removeSession(this, reason);
     }
 
     public getState(): number {

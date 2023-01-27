@@ -1,12 +1,12 @@
-import type ContainerEntry from '../../inventory/ContainerEntry.js';
 import DataPacket from './DataPacket.js';
 import Identifiers from '../Identifiers.js';
+import type Item from '../../item/Item.js';
 
 export default class MobEquipmentPacket extends DataPacket {
     public static NetID = Identifiers.MobEquipmentPacket;
 
     public runtimeEntityId!: bigint;
-    public item!: ContainerEntry;
+    public item!: Item;
     public inventorySlot!: number;
     public hotbarSlot!: number;
     public windowId!: number;

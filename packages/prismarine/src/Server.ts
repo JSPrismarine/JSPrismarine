@@ -1,6 +1,6 @@
 import Chat, { ChatType } from './chat/Chat.js';
-import { InetAddress, Protocol, RakNetListener, type RakNetSession } from '@jsprismarine/raknet';
-import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
+import { InetAddress, Protocol, RakNetListener, type RakNetSession, SessionV2 } from '@jsprismarine/raknet';
+import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/fixed';
 
 import BanManager from './ban/BanManager.js';
 import BatchPacket from './network/packet/BatchPacket.js';
@@ -52,6 +52,8 @@ export default class Server {
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
     private stopping = false;
+
+    private tickerTimer: NodeJS.Timeout | null = null;
 
     /**
      * @deprecated
@@ -120,14 +122,14 @@ export default class Server {
         this.raknet = new RakNetListener(this.getConfig().getMaxPlayers(), false);
         this.raknet.start(serverIp, port);
 
-        this.raknet.on('openConnection', async (session: RakNetSession) => {
-            const event = new RaknetConnectEvent(session);
-            await this.eventManager.emit('raknetConnect', event);
+        this.raknet.on('openConnection', async (session: SessionV2) => {
+            // const event = new RaknetConnectEvent(session);
+            // await this.eventManager.emit('raknetConnect', event);
 
-            if (event.isCancelled()) {
-                session.disconnect();
-                return;
-            }
+            // if (event.isCancelled()) {
+            //    session.disconnect();
+            //    return;
+            // }
 
             const token = session.getAddress().toToken();
             if (this.sessionManager.has(token)) {
@@ -135,7 +137,7 @@ export default class Server {
                     `Another client with token (${token}) is already connected!`,
                     'Server/listen/openConnection'
                 );
-                session.disconnect('Already connected from another location');
+                // session.disconnect('Already connected from another location');
                 return;
             }
 
@@ -195,7 +197,7 @@ export default class Server {
             );
         });
 
-        this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
+        this.raknet.on('encapsulated', async (packet: Buffer, inetAddr: InetAddress) => {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             await this.eventManager.emit('raknetEncapsulatedPacket', event);
 
@@ -207,7 +209,7 @@ export default class Server {
 
             try {
                 // Read batch content and handle them
-                const batched = new BatchPacket(packet.content);
+                const batched = new BatchPacket(packet);
                 batched.compressed = connection.hasCompression;
 
                 // Read all packets inside batch and handle them
@@ -268,21 +270,22 @@ export default class Server {
         // TODO: ticks have to be sync... what if a newer update
         // takes less to complete than the one started before?
         // will lead to desyncronized gameplay
-        let tick = 0;
-        const ticker = setIntervalAsync(async () => {
-            if (this.stopping) {
-                void clearIntervalAsync(ticker);
-                return;
-            }
 
-            const event = new TickEvent(tick);
-            await this.eventManager.emit('tick', event);
-
+        // Start ticking worlds
+        let tickCount = 0;
+        
+        const tick = () => setTimeout(() => {
+            const event = new TickEvent(tickCount);
+            this.eventManager.emit('tick', event);
             for (const world of this.worldManager.getWorlds()) {
-                await world.update(event.getTick());
+                world.update(event.getTick());
             }
-            tick += 1;
-        }, 50);
+            tickCount += 1;
+            tick();
+        });
+
+        this.tickerTimer = tick();
+        this.tickerTimer.unref();
 
         // Log experimental flags
         if (this.config.getExperimentalFlags().length >= 1) {
@@ -302,6 +305,8 @@ export default class Server {
 
         this.logger?.info('Stopping server', 'Server/kill');
         await this.console.onDisable();
+
+        this.tickerTimer && clearTimeout(this.tickerTimer);
 
         try {
             // Kick all online players

@@ -26,7 +26,7 @@ export default class Item extends Entity {
         const pk = new AddItemActorPacket();
         pk.runtimeEntityId = this.getRuntimeId();
         pk.position = new Vector3(this.getX(), this.getY(), this.getZ());
-        pk.item = this.item;
+        pk.item = this.item.getItem();
 
         await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(pk)));
     }
