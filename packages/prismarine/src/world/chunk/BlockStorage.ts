@@ -71,10 +71,8 @@ export default class BlockStorage {
         for (let w = 0; w < wordsPerChunk; w++) {
             let word = 0;
             for (let block = 0; block < blocksPerWord; block++) {
-                const state = this.blocks[position];
+                const state = this.blocks[position++];
                 word |= state << (bitsPerBlock * block);
-
-                position++;
             }
             stream.writeIntLE(word);
         }
