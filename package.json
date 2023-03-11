@@ -236,7 +236,7 @@
         "heap": "^0.2.7",
         "jest-light-runner": "^0.4.1",
         "live-plugin-manager": "0.17.1",
-        "node-fetch": "3.3.0",
+        "node-fetch": "3.3.1",
         "node-machine-id": "1.1.12",
         "semver": "7.3.8",
         "set-interval-async": "3.0.3",
