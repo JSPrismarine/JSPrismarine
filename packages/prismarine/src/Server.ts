@@ -1,6 +1,5 @@
 import Chat, { ChatType } from './chat/Chat.js';
 import { InetAddress, Protocol, RakNetListener, type RakNetSession } from '@jsprismarine/raknet';
-import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
 import BanManager from './ban/BanManager.js';
 import BatchPacket from './network/packet/BatchPacket.js';
@@ -52,6 +51,9 @@ export default class Server {
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
     private stopping = false;
+    private tickerTimer: NodeJS.Timeout | undefined;
+
+    private static readonly MINECRAFT_TICK_TIME_MS = 50;
 
     /**
      * @deprecated
@@ -264,25 +266,23 @@ export default class Server {
             }
         });
 
-        // TODO: the tick depends on the world
-        // TODO: ticks have to be sync... what if a newer update
-        // takes less to complete than the one started before?
-        // will lead to desyncronized gameplay
-        let tick = 0;
-        const ticker = setIntervalAsync(async () => {
-            if (this.stopping) {
-                void clearIntervalAsync(ticker);
-                return;
-            }
+        let tickCount = 0;
+        const tick = () =>
+            setTimeout(() => {
+                const event = new TickEvent(tickCount);
+                this.eventManager.emit('tick', event);
 
-            const event = new TickEvent(tick);
-            await this.eventManager.emit('tick', event);
+                for (const world of this.worldManager.getWorlds()) {
+                    world.update(event.getTick());
+                }
 
-            for (const world of this.worldManager.getWorlds()) {
-                await world.update(event.getTick());
-            }
-            tick += 1;
-        }, 50);
+                ++tickCount;
+                tick();
+            }, Server.MINECRAFT_TICK_TIME_MS);
+
+        // Start ticking
+        this.tickerTimer = tick();
+        this.tickerTimer.unref();
 
         // Log experimental flags
         if (this.config.getExperimentalFlags().length >= 1) {
@@ -302,6 +302,8 @@ export default class Server {
 
         this.logger?.info('Stopping server', 'Server/kill');
         await this.console.onDisable();
+
+        clearInterval(this.tickerTimer);
 
         try {
             // Kick all online players
