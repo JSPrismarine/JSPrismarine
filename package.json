@@ -228,7 +228,7 @@
         "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.5",
         "async-exit-hook": "2.0.1",
-        "evt": "2.4.15",
+        "evt": "2.4.18",
         "fast-jwt": "^2.1.0",
         "fflate": "0.7.4",
         "git-rev-sync": "3.0.2",
