@@ -12,7 +12,7 @@ export default class ServerSocket extends EventEmitter {
     private readonly guid: bigint;
     private readonly sessions: Set<RakNetSession> = new Set();
     private readonly logger: Logger;
-    private ticker: NodeJS.Timer | undefined;
+    private ticker: NodeJS.Timeout | undefined;
 
     private readonly offlineHandler = new OfflineHandler(this);
 
@@ -36,11 +36,17 @@ export default class ServerSocket extends EventEmitter {
             }
         }
 
-        this.ticker = setInterval(() => {
-            for (const session of this.sessions.values()) {
-                session.update(Date.now());
-            }
-        }, RAKNET_TPS);
+        const tick = () =>
+            setTimeout(() => {
+                for (const session of this.sessions.values()) {
+                    session.update(Date.now());
+                }
+                tick();
+            }, RAKNET_TPS);
+
+        // Start ticking
+        this.ticker = tick();
+        this.ticker.unref();
 
         this.socket.on('message', this.handleMessage.bind(this));
     }
@@ -72,7 +78,7 @@ export default class ServerSocket extends EventEmitter {
             session.sendFrameQueue();
         }
 
-        this.ticker && clearInterval(this.ticker);
+        clearTimeout(this.ticker);
     }
 
     /**

@@ -29,6 +29,7 @@
         "test:jest": "cross-env NODE_OPTIONS=\"--loader ts-node/esm --loader=esmock\" jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
         "test:eslint": "xo packages/**/src/ --ignore '*.test.*'",
         "test:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --check && prettier --config .prettierrc packages/**/src/**/*.* --check",
+        "format": "npm-run-all format:*",
         "format:eslint": "xo --fix packages/**/src/",
         "format:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write"
     },
@@ -225,7 +226,6 @@
         "@jsprismarine/brigadier": "0.2.0-rc.1",
         "@jsprismarine/jsbinaryutils": "^5.4.3",
         "@types/git-rev-sync": "2.0.0",
-        "@types/set-interval-async": "1.0.0",
         "@types/unzipper": "0.10.5",
         "async-exit-hook": "2.0.1",
         "evt": "2.4.18",
@@ -239,7 +239,6 @@
         "node-fetch": "3.3.1",
         "node-machine-id": "1.1.12",
         "semver": "7.3.8",
-        "set-interval-async": "3.0.3",
         "simplex-noise": "^4.0.1",
         "strip-json-comments": "^5.0.0",
         "unzipper": "0.10.11",
