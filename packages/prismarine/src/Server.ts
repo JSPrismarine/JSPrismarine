@@ -270,10 +270,10 @@ export default class Server {
         const tick = () =>
             setTimeout(() => {
                 const event = new TickEvent(tickCount);
-                this.eventManager.emit('tick', event);
+                void this.eventManager.emit('tick', event);
 
                 for (const world of this.worldManager.getWorlds()) {
-                    world.update(event.getTick());
+                    void world.update(event.getTick());
                 }
 
                 ++tickCount;
