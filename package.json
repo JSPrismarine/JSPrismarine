@@ -118,6 +118,7 @@
             "@typescript-eslint/padding-line-between-statements": 0,
             "@typescript-eslint/prefer-return-this-type": 0,
             "@typescript-eslint/no-unused-expressions": 0,
+            "@typescript-eslint/class-literal-property-style": 0,
             "unicorn/prefer-export-from": 0,
             "unicorn/no-await-expression-member": 0,
             "unicorn/text-encoding-identifier-case": 0,
