@@ -72,7 +72,3 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
 
 -   JSPrismarine still in active development, currently no stable version is released.
 -   The plugin API isn't stable.
-
-## Sponsors
-
--   [Candy By Sweden](https://candybysweden.com/)
