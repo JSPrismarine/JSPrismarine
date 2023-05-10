@@ -227,7 +227,7 @@
         "@jsprismarine/brigadier": "0.2.0-rc.1",
         "@jsprismarine/jsbinaryutils": "^5.4.3",
         "@types/git-rev-sync": "2.0.0",
-        "@types/unzipper": "0.10.5",
+        "@types/unzipper": "0.10.6",
         "async-exit-hook": "2.0.1",
         "evt": "2.4.18",
         "fast-jwt": "^2.1.0",
@@ -242,7 +242,7 @@
         "semver": "7.3.8",
         "simplex-noise": "^4.0.1",
         "strip-json-comments": "^5.0.0",
-        "unzipper": "0.10.11",
+        "unzipper": "0.10.14",
         "winston": "3.8.2",
         "yaml": "2.2.1"
     }
