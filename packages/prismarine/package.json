@@ -29,7 +29,7 @@
 	},
 	"dependencies": {
 		"@jsprismarine/nbt": "*",
-		"@jsprismarine/jsbinaryutils": "5.4.3",
+		"@jsprismarine/jsbinaryutils": "5.4.4",
 		"fflate": "0.7.4",
 		"node-fetch": "^3.3.0",
 		"yaml": "^2.0.1"

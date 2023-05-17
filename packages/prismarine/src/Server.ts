@@ -201,7 +201,7 @@ export default class Server {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             await this.eventManager.emit('raknetEncapsulatedPacket', event);
 
-            let connection = null;
+            let connection: ClientConnection | null;
             if ((connection = this.sessionManager.get(inetAddr.toToken()) ?? null) === null) {
                 this.logger?.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
                 return;

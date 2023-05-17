@@ -21,10 +21,10 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/nbt",
     "devDependencies": {
-        "typescript": "4.9.5"
+        "typescript": "5.0.4"
     },
     "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0",
     "dependencies": {
-        "@jsprismarine/jsbinaryutils": "5.4.3"
+        "@jsprismarine/jsbinaryutils": "5.4.4"
     }
 }

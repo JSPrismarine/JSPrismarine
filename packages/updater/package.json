@@ -21,12 +21,12 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/updater",
     "devDependencies": {
-        "typescript": "4.9.5"
+        "typescript": "5.0.4"
     },
     "dependencies": {
         "@jsprismarine/prismarine": "*",
         "node-fetch": "^3.3.0",
-        "semver": "7.3.8"
+        "semver": "7.5.1"
     },
     "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
 }
