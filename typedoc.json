@@ -1,17 +1,13 @@
 {
-    "entryPoints": [
-        "./packages/client/src/Client.ts",
-        "./packages/color-parser/src/Parser.ts",
-        "./packages/nbt/src/NBT.ts",
-        "./packages/prismarine/src/Prismarine.ts",
-        "./packages/raknet/src/RakNet.ts",
-        "./packages/server/src/Server.ts",
-        "./packages/updater/src/Updater.ts"
-    ],
+    "entryPoints": ["packages/*"],
     "tsconfig": "./tsconfig.json",
     "readme": "./README.md",
     "out": "./docs",
-    "external-modulemap": ".*packages(/[^/]+)/.*",
+    "entryPointStrategy": "packages",
+    "externalPattern": [
+        "**/node_modules/**",
+        ".*packages(/[^/]+)/.*"
+    ],
     "excludeExternals": true,
     "excludePrivate": true,
     "excludeProtected": true,
