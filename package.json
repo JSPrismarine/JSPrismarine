@@ -61,6 +61,8 @@
             "unicorn/no-lonely-if": 1,
             "unicorn/no-array-reduce": 0,
             "unicorn/no-array-for-each": 0,
+            "unicorn/no-negated-condition": 0,
+            "unicorn/no-typeof-undefined": 0,
             "unicorn/no-array-push-push": 1,
             "unicorn/no-new-array": 1,
             "unicorn/prefer-switch": 1,
