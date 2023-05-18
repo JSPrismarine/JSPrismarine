@@ -34,6 +34,8 @@
         "unicorn/no-array-push-push": 1,
         "unicorn/no-new-array": 1,
         "unicorn/prefer-switch": 1,
+        "unicorn/no-negated-condition": 0,
+        "unicorn/no-typeof-undefined": 0,
         "unicorn/numeric-separators-style": 0,
         "unicorn/prefer-module": 1,
         "unicorn/prefer-array-flat-map": 1,
