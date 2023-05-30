@@ -1,5 +1,6 @@
 {
     "extends": [
-        "github>sweet-side-of-sweden/renovate-config"
+        "github>sweet-side-of-sweden/renovate-config",
+        ":semanticCommits"
     ]
 }
