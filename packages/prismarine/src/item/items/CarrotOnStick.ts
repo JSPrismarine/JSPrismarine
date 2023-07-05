@@ -4,7 +4,7 @@ import Tool from '../Tool.js';
 export default class CarrotOnStick extends Tool {
     public constructor() {
         super({
-            name: 'minecraft:carrotonastick',
+            name: 'minecraft:carrot_on_a_stick',
             id: ItemIdsType.CarrotOnStick
         });
     }

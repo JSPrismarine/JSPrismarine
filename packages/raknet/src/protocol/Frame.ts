@@ -2,12 +2,14 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
 import BitFlags from './BitFlags.js';
 import FrameReliability from './FrameReliability.js';
 import assert from 'assert';
+import { IOrderedElement } from './datastructures/OrderingHeap.js';
+import { RakNetPriority } from '../Session.js';
 
 // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L133
 // It's the maximum number of bytes a frameset can take. (splitted reliable sequenced).
 export const MAX_FRAME_BYTE_LENGTH = 23;
 
-export default class Frame {
+export default class Frame implements IOrderedElement {
     public reliability = FrameReliability.UNRELIABLE;
 
     public reliableIndex: number | null = null;
@@ -22,6 +24,9 @@ export default class Frame {
     public fragmentIndex!: number;
 
     public content!: Buffer;
+
+    public weight!: number;
+    public priority!: RakNetPriority;
 
     public fromBinary(stream: BinaryStream): Frame {
         const header = stream.readByte();
@@ -41,6 +46,10 @@ export default class Frame {
         if (this.isOrdered()) {
             this.orderIndex = stream.readTriadLE();
             this.orderChannel = stream.readByte();
+        } else {
+            // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L2740
+            // Fallbacks to 0 as default
+            this.orderChannel = 0;
         }
 
         if ((header & BitFlags.SPLIT) > 0) {

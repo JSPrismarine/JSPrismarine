@@ -1,4 +1,4 @@
-import { Config, Logger, Server } from '@jsprismarine/prismarine';
+import { Config, Logger, Server, Protocol } from '@jsprismarine/prismarine';
 
 import Updater from '@jsprismarine/updater';
 import exitHook from 'async-exit-hook';
@@ -31,6 +31,11 @@ exitHook(async () => {
 });
 
 await updater.check();
+
+const pk = new Protocol.Packets.UpdateAttributesPacket(Buffer.from('1d0201000000000000003fcdcccc3dcdcccc3d126d696e6563726166743a6d6f76656d656e740000', 'hex'));
+pk.decode();
+
+console.log(pk);
 
 try {
     await server.bootstrap(config.getServerIp(), config.getServerPort());

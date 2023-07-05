@@ -339,7 +339,7 @@ export class BooleanArgumentCommand implements CommandArgument {
     }
 }
 
-export class PlayerArgumentCommand implements CommandArgument {
+export class PlayerArgumentCommandFix implements CommandArgument {
     private name: string;
     private optional: boolean;
     private flags: CommandParameterFlags;

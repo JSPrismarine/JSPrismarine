@@ -2,7 +2,7 @@ import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarin
 
 import Command from '../Command.js';
 import Player from '../../Player.js';
-import { PlayerArgumentCommand } from '../CommandArguments.js';
+import { PlayerArgumentCommandFix as PlayerArgumentCommand } from '../CommandArguments.js';
 
 export default class KickCommand extends Command {
     public constructor() {
