@@ -1,32 +1,31 @@
 import Identifiers from '../Identifiers.js';
+import LevelEventType from '../type/LevelEventType.js';
 import PacketHandler from './PacketHandler.js';
 import type PlayerActionPacket from '../packet/PlayerActionPacket.js';
-import { PlayerAction } from '../packet/PlayerActionPacket.js';
+import PlayerActionType from '../type/PlayerActionType.js';
 import { PlayerSession } from '../../Prismarine.js';
 import type Server from '../../Server.js';
-import WorldEventPacket, { WorldEvent } from '../packet/WorldEventPacket.js';
-import BlockMappings from '../../block/BlockMappings.js';
+import WorldEventPacket from '../packet/WorldEventPacket.js';
 
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
     public static NetID = Identifiers.PlayerActionPacket;
 
     public async handle(packet: PlayerActionPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
-
-        console.log(packet.action);
-
         switch (packet.action) {
-            case PlayerAction.START_BREAK: {
+            case PlayerActionType.StartBreak: {
                 const block = await player
                     .getWorld()
-                    .getBlock(packet.blockPosition.getX(), packet.blockPosition.getY(), packet.blockPosition.getZ());
+                    .getBlock(packet.position.getX(), packet.position.getY(), packet.position.getZ());
 
                 const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
 
                 // TODO: world.sendEvent(type, position(Vector3), data) (?)
                 const pk = new WorldEventPacket();
-                pk.eventId = WorldEvent.BLOCK_START_BREAK;
-                pk.position = packet.blockPosition;
+                pk.eventId = LevelEventType.BlockStartBreak;
+                pk.x = packet.position.getX();
+                pk.y = packet.position.getY();
+                pk.z = packet.position.getZ();
                 pk.data = 65535 / breakTime;
 
                 await Promise.all(
@@ -40,12 +39,14 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 break;
             }
 
-            case PlayerAction.ABORT_BREAK: {
+            case PlayerActionType.AbortBreak: {
                 // Gets called when player didn't finished
                 // to break the block
                 const pk = new WorldEventPacket();
-                pk.eventId = WorldEvent.BLOCK_STOP_BREAK;
-                pk.position = packet.blockPosition;
+                pk.eventId = LevelEventType.BlockStopBreak;
+                pk.x = packet.position.getX();
+                pk.y = packet.position.getY();
+                pk.z = packet.position.getZ();
                 pk.data = 0;
 
                 await Promise.all(
@@ -58,68 +59,61 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 break;
             }
 
-            case PlayerAction.STOP_BREAK: {
+            case PlayerActionType.StopBreak: {
                 // Handled in InventoryTransactionHandler
                 break;
             }
 
-            case PlayerAction.CONTINUE_DESTROY_BLOCK: {
-                console.log('CONTINUE BREAK');
+            case PlayerActionType.ContinueBreak: {
                 // This fires twice in creative.. wtf Mojang?
-                const chunk = await player
-                    .getWorld()
-                    .getChunkAt(packet.blockPosition.getX(), packet.blockPosition.getZ());
+                const chunk = await player.getWorld().getChunkAt(packet.position.getX(), packet.position.getZ());
 
-                const blockId = chunk.getBlock(
-                    packet.blockPosition.getX(),
-                    packet.blockPosition.getY(),
-                    packet.blockPosition.getZ()
-                );
+                const blockId = chunk.getBlock(packet.position.getX(), packet.position.getY(), packet.position.getZ());
 
                 // TODO
+                /*
                 const pk = new WorldEventPacket();
-                pk.eventId = WorldEvent.PARTICLE_DESTROY_BLOCK;
-                pk.position = packet.blockPosition;
-                pk.data = BlockMappings.getRuntimeId(
-                    server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta).getName()
-                );
+                pk.eventId = LevelEventType.ParticlePunchBlock;
+                pk.x = packet.position.getX();
+                pk.y = packet.position.getY();
+                pk.z = packet.position.getZ();
+                pk.data = BlockMappings.getRuntimeId();
 
                 await Promise.all(
                     player
                         .getPlayersInChunk()
-                        .map(async (nearbyPlayer) =>
-                            nearbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk)
-                        )
+                        .map(async (nearbyPlayer) => nearbyPlayer.getConnection().sendDataPacket(pk))
                 );
+                */
 
                 break;
             }
 
-            case PlayerAction.JUMP: {
+            case PlayerActionType.Jump: {
                 break;
             }
 
-            case PlayerAction.START_SPRINT: {
+            case PlayerActionType.StartSprint: {
                 await player.setSprinting(true);
                 break;
             }
 
-            case PlayerAction.START_SPRINT: {
+            case PlayerActionType.StopSprint: {
                 await player.setSprinting(false);
                 break;
             }
 
-            case PlayerAction.START_SNEAK: {
+            case PlayerActionType.StartSneak: {
                 await player.setSneaking(true);
                 break;
             }
 
-            case PlayerAction.STOP_SNEAK: {
+            case PlayerActionType.StopSneak: {
                 await player.setSneaking(false);
                 break;
             }
 
-            case PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK: {
+            case PlayerActionType.CreativeDestroyBlock: {
                 // Handled in InventoryTransactionHandler
                 break;
             }

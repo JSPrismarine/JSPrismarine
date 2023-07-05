@@ -2,7 +2,7 @@ import { Logger, Player, PlayerSession, Server } from '../Prismarine.js';
 
 import { DisconnectPacket } from './Packets.js';
 import MinecraftSession from './MinecraftSession.js';
-import { SessionV2 } from '@jsprismarine/raknet';
+import { RakNetSession } from '@jsprismarine/raknet';
 import assert from 'assert';
 
 /**
@@ -14,7 +14,7 @@ export default class ClientConnection extends MinecraftSession {
     private playerSession: PlayerSession | null = null;
     public hasCompression = false;
 
-    public constructor(session: SessionV2, logger?: Logger) {
+    public constructor(session: RakNetSession, logger?: Logger) {
         super(session, logger);
     }
 
@@ -40,14 +40,14 @@ export default class ClientConnection extends MinecraftSession {
 
         // Force RakNet to remove the session
         // so we don't have to handle the dead session
-        // TODO this.rakSession.disconnect();
+        this.rakSession.disconnect();
     }
 
     public getPlayerSession(): PlayerSession | null {
         return this.playerSession;
     }
 
-    public getRakNetSession(): SessionV2 {
+    public getRakNetSession(): RakNetSession {
         return this.rakSession;
     }
 }

@@ -1,5 +1,5 @@
 import { BatchPacket, DataPacket } from './Packets.js';
-import { Protocol, SessionV2 } from '@jsprismarine/raknet';
+import { Protocol, RakNetSession } from '@jsprismarine/raknet';
 
 import { Logger } from '../Prismarine.js';
 
@@ -9,21 +9,25 @@ import { Logger } from '../Prismarine.js';
  * TODO: implement ticking, batching, queues, encryption.
  */
 export default class MinecraftSession {
-    protected readonly rakSession: SessionV2;
+    protected readonly rakSession: RakNetSession;
     private readonly logger?: Logger;
 
-    public constructor(session: SessionV2, logger?: Logger) {
+    public constructor(session: RakNetSession, logger?: Logger) {
         this.rakSession = session;
         this.logger = logger;
     }
 
     public sendBatch(batch: BatchPacket, direct = true): void {
         batch.encode();
-        this.rakSession.send(batch.getBuffer(), direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.MEDIUM, Protocol.FrameReliability.RELIABLE_ORDERED, 0);
-        // this.rakSession.sendFrame(
-        //    sendPacket,
-        //    direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.NORMAL
-        // );
+        const sendPacket = new Protocol.Frame();
+        sendPacket.reliability = Protocol.FrameReliability.RELIABLE_ORDERED;
+        sendPacket.orderChannel = 0;
+        sendPacket.content = batch.getBuffer();
+
+        this.rakSession.sendFrame(
+            sendPacket,
+            direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.NORMAL
+        );
     }
 
     public async sendDataPacket<T extends DataPacket>(packet: T, comp = true, direct = false): Promise<void> {
@@ -43,21 +47,19 @@ export default class MinecraftSession {
         }
 
         // Add this in raknet
-        // const sendPacket = new Protocol.Frame();
-        // sendPacket.reliability = Protocol.FrameReliability.RELIABLE_ORDERED;
-        // sendPacket.orderChannel = 0;
-        // sendPacket.content = batch.getBuffer();
+        const sendPacket = new Protocol.Frame();
+        sendPacket.reliability = Protocol.FrameReliability.RELIABLE_ORDERED;
+        sendPacket.orderChannel = 0;
+        sendPacket.content = batch.getBuffer();
 
-        // this.rakSession.sendFrame(
-        //    sendPacket,
-        //    direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.NORMAL
-        // );
-
-        this.rakSession.send(batch.getBuffer(), direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.MEDIUM, Protocol.FrameReliability.RELIABLE_ORDERED, 0);
+        this.rakSession.sendFrame(
+            sendPacket,
+            direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.NORMAL
+        );
         this.logger?.silly(`Sent §b${packet.constructor.name}§r packet`, 'PlayerConnection/sendDataPacket');
     }
 
     public forceDisconnect(): void {
-        // this.rakSession.disconnect();
+        this.rakSession.disconnect();
     }
 }

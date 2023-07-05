@@ -3,7 +3,6 @@ const Gamemode = {
     Creative: 1,
     Adventure: 2,
     Spectator: 3,
-    Default: 5,
 
     getGamemodeName: (mode: number) => {
         switch (mode) {

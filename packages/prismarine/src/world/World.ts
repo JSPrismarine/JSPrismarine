@@ -149,10 +149,10 @@ export default class World {
      *
      * @param tick
      */
-    public update(tick: number): void {
+    public async update(tick: number): Promise<void> {
         // Auto save every 2 minutes
         if (this.currentTick / 20 === 2 * 60) {
-            this.save();
+            await this.save();
         }
 
         // TODO: tick chunks
@@ -161,7 +161,7 @@ export default class World {
         this.currentTick++;
 
         for (const entity of this.getEntities()) {
-            entity.update(tick);
+            await entity.update(tick);
         }
     }
 

@@ -1,5 +1,5 @@
 import Chat, { ChatType } from './chat/Chat.js';
-import { InetAddress, Protocol, RakNetListener, type RakNetSession, SessionV2 } from '@jsprismarine/raknet';
+import { InetAddress, Protocol, RakNetListener, type RakNetSession } from '@jsprismarine/raknet';
 
 import BanManager from './ban/BanManager.js';
 import BatchPacket from './network/packet/BatchPacket.js';
@@ -54,8 +54,6 @@ export default class Server {
     private tickerTimer: NodeJS.Timeout | undefined;
 
     private static readonly MINECRAFT_TICK_TIME_MS = 50;
-
-    private tickerTimer: NodeJS.Timeout | null = null;
 
     /**
      * @deprecated
@@ -124,14 +122,14 @@ export default class Server {
         this.raknet = new RakNetListener(this.getConfig().getMaxPlayers(), false);
         this.raknet.start(serverIp, port);
 
-        this.raknet.on('openConnection', async (session: SessionV2) => {
-            // const event = new RaknetConnectEvent(session);
-            // await this.eventManager.emit('raknetConnect', event);
+        this.raknet.on('openConnection', async (session: RakNetSession) => {
+            const event = new RaknetConnectEvent(session);
+            await this.eventManager.emit('raknetConnect', event);
 
-            // if (event.isCancelled()) {
-            //    session.disconnect();
-            //    return;
-            // }
+            if (event.isCancelled()) {
+                session.disconnect();
+                return;
+            }
 
             const token = session.getAddress().toToken();
             if (this.sessionManager.has(token)) {
@@ -139,7 +137,7 @@ export default class Server {
                     `Another client with token (${token}) is already connected!`,
                     'Server/listen/openConnection'
                 );
-                // session.disconnect('Already connected from another location');
+                session.disconnect('Already connected from another location');
                 return;
             }
 
@@ -199,7 +197,7 @@ export default class Server {
             );
         });
 
-        this.raknet.on('encapsulated', async (packet: Buffer, inetAddr: InetAddress) => {
+        this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             await this.eventManager.emit('raknetEncapsulatedPacket', event);
 
@@ -211,7 +209,7 @@ export default class Server {
 
             try {
                 // Read batch content and handle them
-                const batched = new BatchPacket(packet);
+                const batched = new BatchPacket(packet.content);
                 batched.compressed = connection.hasCompression;
 
                 // Read all packets inside batch and handle them
@@ -283,10 +281,6 @@ export default class Server {
             }, Server.MINECRAFT_TICK_TIME_MS);
 
         // Start ticking
-        // TODO: the tick depends on the world
-        // TODO: ticks have to be sync... what if a newer update
-        // takes less to complete than the one started before?
-        // will lead to desyncronized gameplay
         this.tickerTimer = tick();
         this.tickerTimer.unref();
 

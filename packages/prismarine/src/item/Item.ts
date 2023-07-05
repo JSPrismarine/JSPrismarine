@@ -3,8 +3,7 @@ import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { BlockToolType } from '../block/BlockToolType.js';
 import { ItemEnchantmentType } from './ItemEnchantmentType.js';
-import { items_list, item_id_map } from '@jsprismarine/bedrock-data';
-import BlockMappings from '../block/BlockMappings.js';
+import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 
 export interface ItemProps {
     id: number;
@@ -31,7 +30,7 @@ export default class Item {
         this.name = name;
         if (meta) this.meta = meta;
 
-        this.networkId = item_id_map[name] as number;
+        this.networkId = ItemIdMap[name] as number;
         // if (!this.networkId) console.log(name, id, this.networkId);
     }
 
@@ -106,28 +105,16 @@ export default class Item {
         return true;
     }
 
-    public networkSerialize(
-        stream: BinaryStream,
-        additionalData: null | ((stream: BinaryStream) => void) = null
-    ): void {
-        stream.writeVarInt(this.getNetworkId());
-        if (this.getId() === 0 || this.getName() === 'minecraft:air') {
-            // The item is Air so there's no additional data
+    public networkSerialize(stream: BinaryStream): void {
+        if (this.getName() === 'minecraft:air') {
+            stream.writeVarInt(0);
             return;
         }
 
-        stream.writeShortLE(this.getAmount());
-        stream.writeUnsignedVarInt(this.meta);
+        stream.writeVarInt(this.getNetworkId());
+        stream.writeVarInt(((this.meta & 0x7fff) << 8) | this.getAmount());
 
-        // Use a closure to add additional data
-        additionalData && additionalData(stream);
-
-        // TODO: Proper block runtime ID
-        stream.writeVarInt(BlockMappings.getRuntimeId(this.getName()));
-
-        const str = new BinaryStream();
-
-        /* if (this.nbt !== null) {
+        if (this.nbt !== null) {
             // Write the amount of tags to write
             // (1) according to vanilla
             stream.writeUnsignedShortLE(0xffff);
@@ -135,22 +122,13 @@ export default class Item {
 
             // Write hardcoded NBT tag
             // TODO: unimplemented NBT.write(nbt, true, true)
-        } */
-
-        // TODO: proper NBT
-        str.writeShortLE(0);
-
-        // CanPlace and canBreak
-        str.writeIntLE(0);
-        str.writeIntLE(0);
-
-        // TODO: check for additional data
-        if (this.getName() === 'minecraft:shield') {
-            str.writeLongLE(BigInt(0));
+        } else {
+            stream.writeUnsignedShortLE(0);
         }
 
-        stream.writeUnsignedVarInt(str.getBuffer().byteLength);
-        stream.write(str.getBuffer());
+        // CanPlace and canBreak
+        stream.writeVarInt(0);
+        stream.writeVarInt(0);
 
         // TODO: check for additional data
     }

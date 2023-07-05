@@ -3,7 +3,6 @@ import Identifiers from '../Identifiers.js';
 import Item from '../../item/Item.js';
 import Vector3 from '../../math/Vector3.js';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BlockPosition from '../../world/BlockPosition.js';
 
 export enum UseItemAction {
     CLICK_BLOCK,
@@ -91,7 +90,7 @@ export interface TransactionData {
 }
 
 export interface UseItemData extends TransactionData {
-    blockPosition: BlockPosition;
+    blockPosition: Vector3;
     blockFace: number;
     playerPosition: Vector3;
     clickPosition: Vector3;
@@ -138,7 +137,7 @@ export default class InventoryTransactionPacket extends DataPacket {
             case TransactionType.USE_ITEM:
                 this.transactionData = <UseItemData>{
                     actionType: this.readUnsignedVarInt(),
-                    blockPosition: BlockPosition.networkDeserialize(this),
+                    blockPosition: new Vector3(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt()),
                     blockFace: this.readVarInt(),
                     hotbarSlot: this.readVarInt(),
                     itemInHand: Item.networkDeserialize(this),
