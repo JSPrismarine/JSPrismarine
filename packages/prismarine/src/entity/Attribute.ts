@@ -1,4 +1,4 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import McpeUtil from '../network/NetworkUtil.js';
 
 export const AttributeIds = {
@@ -58,27 +58,12 @@ export class Attribute {
     }
 
     public networkSerialize(stream: BinaryStream): void {
-        stream.writeFloatLE(this.min);
-        stream.writeFloatLE(this.max);
-        stream.writeFloatLE(this.value);
-        stream.writeFloatLE(this.default);
-        McpeUtil.writeString(stream, this.name);
+        stream.writeFloatLE(this.getMin());
+        stream.writeFloatLE(this.getMax());
+        stream.writeFloatLE(this.getValue());
+        stream.writeFloatLE(this.getDefault());
+        McpeUtil.writeString(stream, this.getName());
         stream.writeUnsignedVarInt(0); // TODO: modifier count
-    }
-
-    public static networkDeserialize(stream: BinaryStream): Attribute {
-        const min = stream.readFloatLE();
-        const max = stream.readFloatLE();
-        const value = stream.readFloatLE();
-        const def = stream.readFloatLE();
-        const name = McpeUtil.readString(stream);
-        return new Attribute({
-            name,
-            min,
-            max,
-            def,
-            value
-        });
     }
 
     public getName(): string {
@@ -111,7 +96,7 @@ export default class AttributeManager {
      */
     public getDefaults() {
         return [
-            /* new Attribute({
+            new Attribute({
                 name: AttributeIds.Absorption,
                 min: 0,
                 max: 16,
@@ -229,13 +214,6 @@ export default class AttributeManager {
                 max: MAX_FLOAT32,
                 def: 0.02,
                 value: 0.02
-            }) */
-            new Attribute({
-                name: AttributeIds.Movement,
-                min: 0,
-                max: MAX_FLOAT32,
-                def: 0.1,
-                value: 0.1
             })
         ];
     }

@@ -3,7 +3,7 @@ import type PluginFile from '../plugin/PluginFile.js';
 import type Server from '../Server.js';
 import fetch, { Headers } from 'node-fetch';
 import pkg from 'node-machine-id';
-const { machineId } = pkg;
+const { machineIdSync } = pkg;
 
 export default class TelemetryManager {
     private readonly id = this.generateAnonomizedId();
@@ -100,8 +100,8 @@ export default class TelemetryManager {
         );
     }
 
-    public async generateAnonomizedId(): Promise<string> {
-        return machineId();
+    public generateAnonomizedId(): string {
+        return machineIdSync();
     }
 
     public async sendCrashLog(crashlog: Error, urls: string[]) {
@@ -114,7 +114,7 @@ export default class TelemetryManager {
         this.server.getLogger()?.debug(crashlog?.stack!, 'TelemetryManager/sendCrashLog');
 
         const body = {
-            id: await this.generateAnonomizedId(),
+            id: this.generateAnonomizedId(),
             version: `${this.server.getConfig().getVersion()}:${this.server.getQueryManager().git_rev}`,
             error: {
                 name: crashlog.name,

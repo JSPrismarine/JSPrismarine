@@ -6,7 +6,6 @@ import Vector3 from '../../math/Vector3.js';
 import UUID from '../../utils/UUID.js';
 import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { items_list } from '@jsprismarine/bedrock-data';
 
 export default class StartGamePacket extends DataPacket {
     public static NetID = Identifiers.StartGamePacket;
@@ -28,9 +27,6 @@ export default class StartGamePacket extends DataPacket {
 
     public gamerules!: GameruleManager;
 
-    // Cache item IDs mappings
-    public static cachedItemIds: Buffer | null = null;
-
     public encodePayload() {
         this.writeVarLong(this.entityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
@@ -51,7 +47,7 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(0); // Dimension
 
-        this.writeVarInt(/*1*/2); // Generator
+        this.writeVarInt(1); // Generator
         this.writeVarInt(this.defaultGamemode ?? 0); // Default Gamemode
         this.writeVarInt(0); // Difficulty
 
@@ -94,7 +90,7 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(1); // Player perms
 
-        this.writeUnsignedIntLE(4); // Chunk tick range
+        this.writeUnsignedIntLE(0); // Chunk tick range
 
         this.writeByte(0); // Locked behavior
         this.writeByte(0); // Locked texture
@@ -137,18 +133,10 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeUnsignedVarInt(0); // Blocks palette
 
-        // Item palette
-        if (StartGamePacket.cachedItemIds) {
-            this.write(StartGamePacket.cachedItemIds);
-        } else {
-            const palette = this.generateItemPalette();
-            StartGamePacket.cachedItemIds = palette;
-            this.write(palette);
-        }
-        // this.writeUnsignedVarInt(0)
+        this.writeUnsignedVarInt(0); // Item palette
 
         McpeUtil.writeString(this, '');
-        this.writeBoolean(true); // New inventory system
+        this.writeBoolean(false); // New inventory system
 
         McpeUtil.writeString(this, Identifiers.MinecraftVersion);
 
@@ -164,18 +152,25 @@ export default class StartGamePacket extends DataPacket {
         // TODO: Not sure if a random one will work, but let's try
         UUID.fromRandom().networkSerialize(this);
 
-        this.writeBoolean(true); // Use client side chunk generation
+        this.writeByte(0); // Use client side chunk generation
     }
 
-    private generateItemPalette(): Buffer {
-        const stream = new BinaryStream();
-        const itemMappings = Object.entries(items_list);
-        stream.writeUnsignedVarInt(itemMappings.length);
-        for (const [name, data] of itemMappings) {
-            McpeUtil.writeString(stream, name);
-            stream.writeShortLE((data as any).runtime_id as number);
-            stream.writeByte(0); // unknown
+    /*
+    TODO
+    public serializeItemTable(table: object): Buffer {
+        if (this.cachedItemPalette === null) {
+            let stream = new PacketBinaryStream();
+            let entries = Object.entries(table);
+            stream.writeUnsignedVarInt(entries.length);
+            entries.map(([name, id]) => {
+                stream.writeString(name);
+                stream.writeLShort(id);
+                stream.writeByte(0);
+            });
+            this.cachedItemPalette = stream.getBuffer();
         }
-        return stream.getBuffer();
+
+        return this.cachedItemPalette as Buffer;
     }
+    */
 }

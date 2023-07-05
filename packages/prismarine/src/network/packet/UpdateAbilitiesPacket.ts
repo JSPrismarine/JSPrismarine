@@ -41,13 +41,9 @@ export class AbilityLayer {
 
     public getEncodedFlags(): { flagsHash: number; valuesHash: number } {
         let [flagsHash, valuesHash] = [0, 0];
-        for (const [flag, value] of this.layerFlags.entries()) {
+        for (const flag of this.layerFlags.keys()) {
             flagsHash |= 1 << flag;
-            // TODO: find a better solution, may work for now but i don't like this hack
-            if ([AbilityLayerFlag.WALK_SPEED, AbilityLayerFlag.FLY_SPEED].includes(flag)) {
-                continue;
-            }
-            valuesHash |= value ? 1 << flag : 0;
+            valuesHash |= 1 << +this.layerFlags.get(flag)!;
         }
         return { flagsHash, valuesHash };
     }

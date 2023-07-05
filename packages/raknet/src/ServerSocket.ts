@@ -4,7 +4,7 @@ import BitFlags from './protocol/BitFlags.js';
 import { EventEmitter } from 'events';
 import Packet from './protocol/Packet.js';
 import { RAKNET_TPS } from './RakNet.js';
-import RakNetSession from './SessionV2.js';
+import RakNetSession from './Session.js';
 import OfflineHandler from './protocol/OfflineHandler.js';
 
 export default class ServerSocket extends EventEmitter {
@@ -75,7 +75,7 @@ export default class ServerSocket extends EventEmitter {
     public kill(): void {
         // Send last remaining packets to all players
         for (const session of this.getSessions()) {
-            // session.sendFrameQueue();
+            session.sendFrameQueue();
         }
 
         clearTimeout(this.ticker);

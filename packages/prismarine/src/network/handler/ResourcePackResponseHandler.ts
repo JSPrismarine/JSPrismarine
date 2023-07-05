@@ -46,7 +46,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             const startGame = new StartGamePacket();
             startGame.entityId = player.getRuntimeId();
             startGame.runtimeEntityId = player.getRuntimeId();
-            startGame.gamemode = Gamemode.Default;
+            startGame.gamemode = player.gamemode;
             startGame.defaultGamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
 
             const worldSpawnPos = await world.getSpawnPosition();
@@ -93,7 +93,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             await session.sendMetadata();
 
-            await session.sendCreativeContents();
+            await session.sendCreativeContents(true);
 
             // Some packets...
 
@@ -106,36 +106,36 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             respawnPacket.position = await world.getSpawnPosition();
             respawnPacket.runtimeEntityId = player.getRuntimeId();
             await session.getConnection().sendDataPacket(respawnPacket);
-            await session.getConnection().sendDataPacket(respawnPacket);
 
             respawnPacket.state = RespawnState.SERVER_READY_TO_SPAWN;
             await session.getConnection().sendDataPacket(respawnPacket);
 
             /// TODO: general handler refactor ///
 
-            // Sent to let know the client saved chunks
-            // TODO
-            session.getPlayer().sendInitialSpawnChunks().then(() => {
-                // todo: set health packet
-                session.sendPlayStatus(PlayStatusType.PlayerSpawn);
-            }).finally(() => {
-                // Summon player(s) & entities
-                Promise.all([
-                    server
-                        .getSessionManager()
-                        .getAllPlayers()
-                        .filter((p) => !(p === player))
-                        .map(async (p) => {
-                            await p.getNetworkSession().sendSpawn(player);
-                            await session.sendSpawn(p);
-                        }),
-                    player
-                        .getWorld()
-                        .getEntities()
-                        .filter((e) => !e.isPlayer())
-                        .map(async (entity) => entity.sendSpawn(player))
-                ]);
-            });
+            const dist = server.getConfig().getViewDistance();
+
+            await session.sendNetworkChunkPublisher(dist);
+            await session.needNewChunks(true, dist);
+
+            // todo: set health packet
+            await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+
+            // Summon player(s) & entities
+            await Promise.all([
+                server
+                    .getSessionManager()
+                    .getAllPlayers()
+                    .filter((p) => !(p === player))
+                    .map(async (p) => {
+                        await p.getNetworkSession().sendSpawn(player);
+                        await session.sendSpawn(p);
+                    }),
+                player
+                    .getWorld()
+                    .getEntities()
+                    .filter((e) => !e.isPlayer())
+                    .map(async (entity) => entity.sendSpawn(player))
+            ]);
 
             server
                 .getLogger()

@@ -1,6 +1,5 @@
 import ContainerEntry from './ContainerEntry.js';
 import Inventory from './Inventory.js';
-import Item from '../item/Item.js';
 
 export default class HumanInventory extends Inventory {
     private get handSlot() {
@@ -21,7 +20,7 @@ export default class HumanInventory extends Inventory {
     /**
      * Returns the item in the player hand.
      */
-    public getItemInHand(): Item {
+    public getItemInHand(): ContainerEntry {
         return this.getItem(this.handSlot);
     }
 

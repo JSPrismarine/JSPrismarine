@@ -22,12 +22,6 @@ import Vector3 from './math/Vector3.js';
 import WindowManager from './inventory/WindowManager.js';
 import World from './world/World.js';
 import { MetadataFlag, FlagType } from './entity/Metadata.js';
-import CoordinateUtils from './world/CoordinateUtils.js';
-import { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket.js';
-import Chunk from './world/chunk/Chunk.js';
-
-// Default spawn view distance used in vanilla
-export const VANILLA_DEFAULT_SPAWN_RADIUS = 4;
 
 export default class Player extends Human {
     private readonly address: InetAddress;
@@ -74,8 +68,6 @@ export default class Player extends Human {
     public cacheSupport = false;
 
     public currentChunk: bigint | null = null;
-
-    public readonly chunkSendQueue = new Set<Chunk>()
 
     private readonly forms: FormManager;
 
@@ -163,52 +155,6 @@ export default class Player extends Human {
     }
 
     /**
-     * Used to match vanilla behavior, will send chunks
-     * with an initial view radius of VANILLA_DEFAULT_SPAWN_RADIUS.
-     */
-    public async sendInitialSpawnChunks(): Promise<void> {
-        const minX = CoordinateUtils.fromBlockToChunk(this.x) - VANILLA_DEFAULT_SPAWN_RADIUS;
-        const minZ = CoordinateUtils.fromBlockToChunk(this.z) - VANILLA_DEFAULT_SPAWN_RADIUS;
-        const maxX = CoordinateUtils.fromBlockToChunk(this.x) + VANILLA_DEFAULT_SPAWN_RADIUS;
-        const maxZ = CoordinateUtils.fromBlockToChunk(this.z) + VANILLA_DEFAULT_SPAWN_RADIUS;
-
-        const savedChunks: ChunkCoord[] = [];
-        const sendQueue: Promise<Chunk>[] = [];
-        for (let chunkX = minX; chunkX <= maxX; ++chunkX) {
-            for (let chunkZ = minZ; chunkZ <= maxZ; ++chunkZ) {
-                // TODO: vanilla does not send all of them, but in a range
-                // for example it does send them from x => [-3; 3] and z => [-3; 2]
-                savedChunks.push({ x: chunkX, z: chunkZ });
-                sendQueue.push(
-                    this.getWorld().getChunk(chunkX, chunkZ)
-                );
-            }
-        }
-
-        this.networkSession.sendNetworkChunkPublisher(VANILLA_DEFAULT_SPAWN_RADIUS, savedChunks);
-        
-        const getUniqueChunks = (sendList: ChunkCoord[]) => {
-            const xSet = new Set<number>();
-            const zSet = new Set<number>();
-
-            for (const coord of sendList) {
-                xSet.add(coord.x);
-                zSet.add(coord.z);
-            }
-        
-            return Math.floor((xSet.size + zSet.size) / 2);
-        }
-
-        for (let i = 0; i < getUniqueChunks(savedChunks); ++i) {
-            this.networkSession.sendNetworkChunkPublisher(VANILLA_DEFAULT_SPAWN_RADIUS, []);
-        }
-
-        for await (const chunk of sendQueue) {
-            this.networkSession.sendChunk(chunk);
-        }
-    }
-
-    /**
      * Change the player's current world.
      *
      * @param world the new world
@@ -272,12 +218,6 @@ export default class Player extends Human {
         // 1 second * 60 = 1 minute
         if (tick % (20 * 5 * 60 * 1) === 0) {
             await this.networkSession.sendTime(tick);
-        }
-
-        for (const chunk of this.chunkSendQueue) {
-            this.networkSession.sendNetworkChunkPublisher(this.viewDistance ?? VANILLA_DEFAULT_SPAWN_RADIUS, []);
-            this.networkSession.sendChunk(chunk);
-            this.chunkSendQueue.delete(chunk);
         }
     }
 
