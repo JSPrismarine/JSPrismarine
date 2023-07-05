@@ -15,7 +15,7 @@ export default class InventoryContentPacket extends DataPacket {
         this.writeUnsignedVarInt(this.items.length);
         for (let i = 0; i < this.items.length; i++) {
             this.writeVarInt(i + 1); // Slot index
-            this.items[i].getItem().networkSerialize(this);
+            this.items[i].networkSerialize(this);
         }
     }
 }

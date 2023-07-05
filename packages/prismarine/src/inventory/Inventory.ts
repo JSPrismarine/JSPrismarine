@@ -1,6 +1,5 @@
 import Air from '../block/blocks/Air.js';
 import ContainerEntry from './ContainerEntry.js';
-import Item from '../item/Item.js';
 
 /**
  * Inventory.
@@ -39,7 +38,7 @@ export default class Inventory {
         }
 
         for (let i = 0; i < this.getSlotCount(); i++) {
-            this.setItem(i, items[i] ?? new ContainerEntry({ item: new Air() as any as Item }));
+            this.setItem(i, items[i] ?? new ContainerEntry({ item: new Air() }));
         }
     }
 
@@ -80,12 +79,14 @@ export default class Inventory {
     /**
      * Returns the item in the slot.
      */
-    public getItem(slot: number): Item {
+    public getItem(slot: number): ContainerEntry {
         if (this.content.has(slot)) {
-            return this.content.get(slot)!.getItem();
+            return this.content.get(slot)!;
         }
 
-        return new Air() as any as Item;
+        return new ContainerEntry({
+            item: new Air()
+        });
     }
 
     /**

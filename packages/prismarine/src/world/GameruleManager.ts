@@ -43,7 +43,7 @@ export default class GameruleManager {
         this.setGamerule('DoMobSpawning', true, true);
         this.setGamerule('DoTileDrops', true, true);
         this.setGamerule('DoWeatherCycle', true, true);
-        this.setGamerule('DrowningDamage', true, true);
+        this.setGamerule('DrowingDamage', true, true);
         this.setGamerule('FallDamage', true, true);
         this.setGamerule('FireDamage', true, true);
         this.setGamerule('KeepInventory', false, true);

@@ -5,6 +5,7 @@ import BlockMappings from '../../block/BlockMappings.js';
 import ContainerEntry from '../../inventory/ContainerEntry.js';
 import Gamemode from '../../world/Gamemode.js';
 import Identifiers from '../Identifiers.js';
+import { Item } from '../../entity/Entities.js';
 import PacketHandler from './PacketHandler.js';
 import { PlayerSession } from '../../Prismarine.js';
 import type Server from '../../Server.js';
@@ -39,15 +40,15 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                     server.getBlockManager().getBlockByIdAndMeta(id, meta);
                                 const count = 64;
 
-                                // movedItem = new ContainerEntry({
-                                //    item,
-                                //    count
-                                // });
+                                movedItem = new ContainerEntry({
+                                    item,
+                                    count
+                                });
                                 return;
                             }
 
                             if (action.newItem.getId() === 0) {
-                                // movedItem = player.getInventory().getItem(action.slot);
+                                movedItem = player.getInventory().getItem(action.targetSlot);
                                 player.getInventory().removeItem(action.targetSlot);
                                 return;
                             }
@@ -133,7 +134,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                 drops.map(async (block) => {
                                     if (!block) return;
 
-                                    /* const droppedItem = new Item(
+                                    const droppedItem = new Item(
                                         player.getWorld(),
                                         server,
                                         new ContainerEntry({
@@ -141,8 +142,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                             count: 1
                                         })
                                     );
-                                    await player.getWorld().addEntity(droppedItem); */
-                                    // await droppedItem.setPosition(packet.blockPosition);
+                                    await player.getWorld().addEntity(droppedItem);
+                                    await droppedItem.setPosition(useItemData.blockPosition);
                                 })
                             );
                         }

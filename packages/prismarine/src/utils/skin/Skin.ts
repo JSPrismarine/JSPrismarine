@@ -163,7 +163,7 @@ export default class Skin {
         }
 
         // Compute a full id
-        skin.fullId =  skin.id + skin.getCape().getId();
+        skin.fullId = skin.getCape().getId() + skin.id;
         return skin;
     }
 
@@ -189,8 +189,8 @@ export default class Skin {
 
         // Miscellaneus
         McpeUtil.writeString(stream, this.getGeometry());
-        McpeUtil.writeString(stream, '0.0.0'); // geometry data engine version
         McpeUtil.writeString(stream, this.getAnimationData());
+        McpeUtil.writeString(stream, ''); // geometry data engine version
         McpeUtil.writeString(stream, this.getCape().getId());
         McpeUtil.writeString(stream, this.getFullId());
         McpeUtil.writeString(stream, this.getArmSize());
@@ -223,7 +223,7 @@ export default class Skin {
         stream.writeBoolean(this.isPremium());
         stream.writeBoolean(this.isPersona());
         stream.writeBoolean(this.isCapeOnClassicSkin());
-        stream.writeBoolean(false); // Is primary user
+        stream.writeBoolean(true); // Is primary user
     }
 
     public getId(): string {
@@ -231,7 +231,7 @@ export default class Skin {
     }
 
     public getFullId(): string {
-        return this.fullId ?? this.getId() +  this.getCape().getId();
+        return this.fullId ?? this.getCape().getId() + this.getId();
     }
 
     public getPlayFabId(): string {

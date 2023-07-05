@@ -57,6 +57,7 @@ import StonePickaxe from './items/StonePickaxe.js';
 import StoneShovel from './items/StoneShovel.js';
 import StoneSword from './items/StoneSword.js';
 import Trident from './items/Trident.js';
+import TurtleHelmet from './items/TurtleHelmet.js';
 import WarpedFunghusOnStick from './items/WarpedFunghusOnStick.js';
 import WoodenAxe from './items/WoodenAxe.js';
 import WoodenHoe from './items/WoodenHoe.js';
@@ -124,6 +125,7 @@ export {
     StoneShovel,
     StoneSword,
     Trident,
+    TurtleHelmet,
     WarpedFunghusOnStick,
     WoodenAxe,
     WoodenHoe,
