@@ -1,28 +1,24 @@
-import CreativeContentEntry from '../type/CreativeContentEntry.js';
 import DataPacket from './DataPacket.js';
 import Identifiers from '../Identifiers.js';
+import Item from '../../item/Item.js';
 
 export default class CreativeContentPacket extends DataPacket {
     public static NetID = Identifiers.CreativeContentPacket;
 
-    public entries: any[] = [];
+    public items: Item[] = [];
 
-    public encodePayload() {
-        this.writeUnsignedVarInt(0);
-        /* Disabled for now cause it is not tested
+    public encodePayload(): void {
+        this.writeUnsignedVarInt(this.items.length);
 
-        this.writeUnsignedVarInt(this.entries.length);
-
-        this.entries.forEach((entry: CreativeContentEntry) => {
-            entry.networkSerialize(this);
-        });
-
-         */
+        for (let i = 0; i < this.items.length; ++i) {
+            this.writeUnsignedVarInt(i + 1); // network id
+            this.items[i].networkSerialize(this);
+        }
     }
 
-    public decodePayload() {
+    public decodePayload(): void {
         for (let i = 0; i < this.readUnsignedVarInt(); i++) {
-            this.entries.push(CreativeContentEntry.networkDeserialize(this));
+            this.items.push(Item.networkDeserialize(this));
         }
     }
 }

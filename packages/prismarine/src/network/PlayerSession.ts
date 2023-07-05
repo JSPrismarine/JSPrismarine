@@ -6,18 +6,14 @@ import CommandParameter, { CommandParameterType } from './type/CommandParameter.
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket.js';
 
 import AddPlayerPacket from './packet/AddPlayerPacket.js';
-import Air from '../block/blocks/Air.js';
 import { Attribute } from '../entity/Attribute.js';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket.js';
-import Block from '../block/Block.js';
 import Chunk from '../world/chunk/Chunk.js';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket.js';
 import ClientConnection from './ClientConnection.js';
 import CommandData from './type/CommandData.js';
 import CommandEnum from './type/CommandEnum.js';
-import ContainerEntry from '../inventory/ContainerEntry.js';
 import CoordinateUtils from '../world/CoordinateUtils.js';
-import CreativeContentEntry from './type/CreativeContentEntry.js';
 import CreativeContentPacket from './packet/CreativeContentPacket.js';
 import DisconnectPacket from './packet/DisconnectPacket.js';
 import Gamemode from '../world/Gamemode.js';
@@ -29,7 +25,7 @@ import MobEquipmentPacket from './packet/MobEquipmentPacket.js';
 import ModalFormRequestPacket from './packet/ModalFormRequestPacket.js';
 import MovePlayerPacket from './packet/MovePlayerPacket.js';
 import MovementType from './type/MovementType.js';
-import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket.js';
+import NetworkChunkPublisherUpdatePacket, { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket.js';
 import PermissionType from './type/PermissionType.js';
 import PlayStatusPacket from './packet/PlayStatusPacket.js';
 import type Player from '../Player.js';
@@ -52,6 +48,7 @@ import UpdateAbilitiesPacket, {
 } from './packet/UpdateAbilitiesPacket.js';
 
 import pkg from '@jsprismarine/bedrock-data';
+import BlockPosition from '../world/BlockPosition.js';
 import { BatchPacket } from './Packets.js';
 const { creativeitems } = pkg;
 
@@ -90,7 +87,7 @@ export default class PlayerSession {
             this.connection.sendBatch(batch, false);
         }
 
-        await this.needNewChunks();
+        this.player.viewDistance && await this.needNewChunks();
     }
 
     /**
@@ -216,7 +213,7 @@ export default class PlayerSession {
         }
 
         if (unloaded ?? !(this.chunkSendQueue.length === 0)) {
-            await this.sendNetworkChunkPublisher(dist);
+            await this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
         }
     }
 
@@ -270,15 +267,13 @@ export default class PlayerSession {
 
         // Sort based on PmmP Bedrock-data
         creativeitems.forEach((item: any) => {
-            pk.entries.push(
-                ...entries.filter((entry: any) => {
-                    return entry.meta === (item.damage || 0) && entry.id === item.id;
-                })
+            pk.items.push(
+                ...entries
+                    .filter((entry: any) => {
+                        return entry.meta === (item.damage ?? 0) && entry.getId() === item.id;
+                    })
+                    .map((entry) => new Item({ id: entry.getId(), name: entry.getName(), meta: entry.meta }))
             );
-        });
-
-        pk.entries = pk.entries.map((block: Block | Item, index: number) => {
-            return new CreativeContentEntry(index, block);
         });
 
         await this.getConnection().sendDataPacket(pk);
@@ -289,7 +284,7 @@ export default class PlayerSession {
      *
      * @param item The entity.
      */
-    public async sendHandItem(item: ContainerEntry): Promise<void> {
+    public async sendHandItem(item: Item): Promise<void> {
         const pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.player.getRuntimeId();
         pk.item = item;
@@ -326,16 +321,20 @@ export default class PlayerSession {
     public async sendGamemode(gamemode: number): Promise<void> {
         const pk = new SetPlayerGameTypePacket();
         pk.gamemode = gamemode;
-        await this.getConnection().sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk);
     }
 
-    public async sendNetworkChunkPublisher(dist?: number): Promise<void> {
+    /**
+     * Used to let the client know which chunks they keep loaded into memory.
+     * @param {number} distance - The view distance
+     * @param {ChunkCoord[]} savedChunks - Client-side saved chunks
+     */
+    public async sendNetworkChunkPublisher(distance: number, savedChunks: ChunkCoord[]): Promise<void> {
         const pk = new NetworkChunkPublisherUpdatePacket();
-        pk.x = Math.floor(this.player.getX());
-        pk.y = Math.floor(this.player.getY());
-        pk.z = Math.floor(this.player.getZ());
-        pk.radius = (this.player.viewDistance ?? dist) << 4;
-        await this.getConnection().sendDataPacket(pk);
+        pk.position = BlockPosition.fromVector3(this.player);
+        pk.radius = distance << 4;
+        pk.savedChunks = savedChunks;
+        await this.connection.sendDataPacket(pk);
     }
 
     public async sendAvailableCommands(): Promise<void> {
@@ -550,7 +549,7 @@ export default class PlayerSession {
             name: this.player.getName(),
             xuid: this.player.xuid,
             platformChatId: '', // TODO: read this value from Login
-            buildPlatform: -1,
+            buildPlatform: this.player.device ? this.player.device.os : -1,
             skin: this.player.skin!,
             isTeacher: false, // TODO: figure out where to read teacher and host
             isHost: false
@@ -624,7 +623,7 @@ export default class PlayerSession {
         pk.yaw = this.player.yaw;
         pk.headYaw = this.player.headYaw;
 
-        pk.item = this.player.getInventory()?.getItemInHand() ?? new ContainerEntry({ item: new Air(), count: 0 });
+        pk.item = this.player.getInventory().getItemInHand();
 
         pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager();

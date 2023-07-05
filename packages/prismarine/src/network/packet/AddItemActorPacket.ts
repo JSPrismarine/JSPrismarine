@@ -1,7 +1,7 @@
-import type ContainerEntry from '../../inventory/ContainerEntry.js';
 import DataPacket from './DataPacket.js';
 import Identifiers from '../Identifiers.js';
 import Vector3 from '../../math/Vector3.js';
+import type Item from '../../item/Item.js';
 
 /**
  * Packet for adding an dropped item to the game.
@@ -25,7 +25,7 @@ export default class AddItemActorPacket extends DataPacket {
 
     public uniqueEntityId!: bigint;
     public runtimeEntityId!: bigint;
-    public item!: ContainerEntry;
+    public item!: Item;
     public position!: Vector3;
     public motion = new Vector3(0, 0, 0);
 

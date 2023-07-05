@@ -4,7 +4,7 @@ import Chat from '../../chat/Chat.js';
 import ChatEvent from '../../events/chat/ChatEvent.js';
 import Command from '../Command.js';
 import Player from '../../Player.js';
-import { PlayerArgumentCommand } from '../CommandArguments.js';
+import { PlayerArgumentCommandFix as PlayerArgumentCommand } from '../CommandArguments.js';
 
 export default class OpCommand extends Command {
     public constructor() {

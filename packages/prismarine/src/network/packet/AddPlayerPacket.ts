@@ -1,9 +1,9 @@
-import ContainerEntry from '../../inventory/ContainerEntry.js';
 import DataPacket from './DataPacket.js';
 import Identifiers from '../Identifiers.js';
 import McpeUtil from '../NetworkUtil.js';
 import MetadataManager from '../../entity/Metadata.js';
-import UUID from '../../utils/UUID.js';
+import type UUID from '../../utils/UUID.js';
+import type Item from '../../item/Item.js';
 
 export default class AddPlayerPacket extends DataPacket {
     public static NetID = Identifiers.AddPlayerPacket;
@@ -26,7 +26,7 @@ export default class AddPlayerPacket extends DataPacket {
     public yaw!: number;
     public headYaw!: number;
 
-    public item!: ContainerEntry;
+    public item!: Item;
 
     public deviceId!: string;
     public buildPlatform!: number;
@@ -51,7 +51,10 @@ export default class AddPlayerPacket extends DataPacket {
         this.writeFloatLE(this.yaw);
         this.writeFloatLE(this.headYaw);
 
-        this.item.networkSerialize(this);
+        // TODO: figure out how to send AIR as item
+        this.writeVarInt(0);
+        // this.item.networkSerialize(this);
+
         this.writeVarInt(0); // TODO: gamemode
         this.metadata.networkSerialize(this);
 
