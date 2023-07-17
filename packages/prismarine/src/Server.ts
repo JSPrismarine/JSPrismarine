@@ -227,6 +227,8 @@ export default class Server {
                     // Get packet from registry
                     const packet = new (this.packetRegistry.getPackets().get(pid)!)(buf);
 
+                    console.log(packet)
+
                     try {
                         packet.decode();
                     } catch (error) {

@@ -1,10 +1,11 @@
-import { RemoteInfo } from 'node:dgram';
-import { InetAddress, RakNetListener } from './RakNet.js';
-import ReadReliabilityLayer from './ReadReliabilityLayer.js';
-import WriteReliabilityLayer from './WriteReliabilityLayer.js';
-import { MessageIdentifiers } from './protocol/MessageIdentifiers.js';
 import { ConnectionRequest, ConnectionRequestAccepted, FrameReliability } from './protocol/Protocol.js';
+import { InetAddress, RakNetListener } from './RakNet.js';
+
+import { MessageIdentifiers } from './protocol/MessageIdentifiers.js';
 import { RakNetPriority } from './Session.js';
+import ReadReliabilityLayer from './ReadReliabilityLayer.js';
+import { RemoteInfo } from 'node:dgram';
+import WriteReliabilityLayer from './WriteReliabilityLayer.js';
 
 export default class SessionV2 {
     private readonly readLayer: ReadReliabilityLayer;
@@ -64,6 +65,8 @@ export default class SessionV2 {
     }
 
     public send(buffer: Buffer, priority: RakNetPriority, reliability: FrameReliability, orderChannel: number): void {
+        console.log("Sent")
+        console.log(buffer)
         this.writeLayer.send(buffer, priority, reliability, orderChannel, Date.now());
     }
 

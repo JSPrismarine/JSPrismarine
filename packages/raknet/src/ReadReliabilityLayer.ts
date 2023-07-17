@@ -1,14 +1,16 @@
-import { RemoteInfo } from 'node:dgram';
-import CongestionManager from './CongestionManager.js';
-import BitFlags from './protocol/BitFlags.js';
-import { MessageIdentifiers } from './protocol/MessageIdentifiers.js';
 import ReliabilityLayer, { NUMBER_OF_ORDERED_STREAMS } from './ReliabilityLayer.js';
-import FrameReliability from './protocol/FrameReliability.js';
-import OrderingHeap from './protocol/datastructures/OrderingHeap.js';
-import Frame from './protocol/Frame.js';
-import Queue from './protocol/datastructures/Queue.js';
+
 import ACK from './protocol/ACK.js';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BitFlags from './protocol/BitFlags.js';
+import CongestionManager from './CongestionManager.js';
+import Frame from './protocol/Frame.js';
+import FrameReliability from './protocol/FrameReliability.js';
+import { FrameSet } from './protocol/Protocol.js';
+import { MessageIdentifiers } from './protocol/MessageIdentifiers.js';
+import OrderingHeap from './protocol/datastructures/OrderingHeap.js';
+import Queue from './protocol/datastructures/Queue.js';
+import { RemoteInfo } from 'node:dgram';
 
 export const DEFAULT_HAS_RECEIVED_PACKET_QUEUE_SIZE = 512;
 
@@ -46,14 +48,14 @@ export default class ReadReliabilityLayer extends ReliabilityLayer {
             const ack = this.packetPool.getAckInstance();
             (ack as any).buffer = buffer;
             ack.decode();
-            // console.log("GOT ACK");
+            console.log("GOT ACK: " + JSON.stringify(ack));
             // this.handleACK(ack);
         },
         [MessageIdentifiers.NACKNOWLEDGE_PACKET]: (buffer: Buffer) => {
             const nack = this.packetPool.getNackInstance();
             (nack as any).buffer = buffer;
             nack.decode();
-            // console.log("GOT NACK");
+            console.log("GOT NACK");
             // this.handleNACK(nack);
         },
         [BitFlags.VALID]: (buffer: Buffer, timestamp: number) => {
@@ -138,7 +140,7 @@ export default class ReadReliabilityLayer extends ReliabilityLayer {
                         this.hasReceivedPacketQueue.length > 0 &&
                         this.hasReceivedPacketQueue[this.hasReceivedPacketQueue.length - 1] === false
                     ) {
-                        // console.log("DIOCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+                        console.log("DIOCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
                         this.hasReceivedPacketQueue.pop();
                         ++this.receivedPacketsBaseIndex;
                     }
@@ -244,6 +246,7 @@ export default class ReadReliabilityLayer extends ReliabilityLayer {
     }
 
     public handleFragment(frame: Frame): Frame | null {
+        console.log("FRAGMENT")
         if (!this.fragmentsQueue.has(frame.fragmentId)) {
             this.fragmentsQueue.set(frame.fragmentId, new Map([[frame.fragmentIndex, frame]]));
         } else {

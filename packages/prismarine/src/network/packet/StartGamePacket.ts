@@ -1,12 +1,15 @@
+import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
+
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket.js';
 import GameruleManager from '../../world/GameruleManager.js';
 import Identifiers from '../Identifiers.js';
 import McpeUtil from '../NetworkUtil.js';
-import Vector3 from '../../math/Vector3.js';
 import UUID from '../../utils/UUID.js';
-import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { items_list } from '@jsprismarine/bedrock-data';
+import Vector3 from '../../math/Vector3.js';
+import pkg from '@jsprismarine/bedrock-data';
+
+const { items_list } = pkg;
 
 export default class StartGamePacket extends DataPacket {
     public static NetID = Identifiers.StartGamePacket;
