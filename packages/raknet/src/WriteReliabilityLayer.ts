@@ -1,11 +1,12 @@
+import FrameSet, { DATAGRAM_HEADER_BYTE_LENGTH } from './protocol/FrameSet.js';
+import ReliabilityLayer, { NUMBER_OF_ORDERED_STREAMS } from './ReliabilityLayer.js';
+
 import Frame from './protocol/Frame.js';
 import FrameReliability from './protocol/FrameReliability.js';
-import { UDP_HEADER_SIZE } from './RakNet.js';
-import ReliabilityLayer, { NUMBER_OF_ORDERED_STREAMS } from './ReliabilityLayer.js';
-import { RakNetPriority } from './Session.js';
-import FrameSet, { DATAGRAM_HEADER_BYTE_LENGTH } from './protocol/FrameSet.js';
 import { MAX_FRAME_BYTE_LENGTH } from './protocol/Frame.js';
 import OrderingHeap from './protocol/datastructures/OrderingHeap.js';
+import { RakNetPriority } from './Session.js';
+import { UDP_HEADER_SIZE } from './RakNet.js';
 
 export default class WriteReliabilityLayer extends ReliabilityLayer {
     private readonly sequencedIndex = Array.from<number>({ length: NUMBER_OF_ORDERED_STREAMS }).fill(0);
@@ -169,7 +170,13 @@ export default class WriteReliabilityLayer extends ReliabilityLayer {
                 frameSet.sequenceNumber = this.sendReliableMessageNumberIndex++;
                 frameSet.frames.push(frame);
                 frameSet.encode();
-                this.sendRaw(frameSet.getBuffer());
+                const buf = frameSet.getBuffer()
+                console.log("Sent framset raw")
+                console.log(buf)
+                this.sendRaw(buf);
+
+                console.log("Sent framset ")
+                console.log(frameSet)
             }
 
         }
