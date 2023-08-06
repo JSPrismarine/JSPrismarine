@@ -51,7 +51,9 @@ export default class Config {
         this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
         this.enableEval = this.configBuilder.get('enable-eval', false) as boolean;
         this.enableTelemetry = this.configBuilder.get('enable-telemetry', true) as boolean;
-        this.telemetryUrls = this.configBuilder.get('telemetry-urls', ['https://prismarine.filfatstudios.com']) as string[];
+        this.telemetryUrls = this.configBuilder.get('telemetry-urls', [
+            'https://prismarine.filfatstudios.com'
+        ]) as string[];
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
         this.experimentalFlags = this.configBuilder.get('experimental-flags', []) as string[];
 
