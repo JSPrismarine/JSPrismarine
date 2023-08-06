@@ -238,7 +238,7 @@
         "heap": "^0.2.7",
         "jest-light-runner": "^0.4.1",
         "live-plugin-manager": "0.17.1",
-        "node-fetch": "3.3.1",
+        "node-fetch": "3.3.2",
         "node-machine-id": "1.1.12",
         "semver": "^7.5.1",
         "simplex-noise": "^4.0.1",
