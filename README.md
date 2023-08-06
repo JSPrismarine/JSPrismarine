@@ -72,3 +72,4 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
 
 -   JSPrismarine still in active development, currently no stable version is released.
 -   The plugin API isn't stable.
+-   Development has substaintially died down, might pick up again in the future.
