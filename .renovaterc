@@ -1,7 +1,0 @@
-{
-    "extends": [
-        "github>sweet-side-of-sweden/renovate-config",
-        ":semanticCommits",
-        ":automergeMajor"
-    ]
-}
