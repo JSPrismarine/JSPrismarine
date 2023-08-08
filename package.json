@@ -237,7 +237,7 @@
         "graceful-fs": "4.2.11",
         "heap": "^0.2.7",
         "jest-light-runner": "^0.5.0",
-        "live-plugin-manager": "0.17.1",
+        "live-plugin-manager": "0.18.1",
         "node-fetch": "3.3.2",
         "node-machine-id": "1.1.12",
         "semver": "^7.5.1",
