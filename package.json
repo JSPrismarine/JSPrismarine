@@ -232,7 +232,7 @@
         "async-exit-hook": "2.0.1",
         "evt": "2.4.22",
         "fast-jwt": "^2.2.3",
-        "fflate": "0.7.4",
+        "fflate": "0.8.0",
         "git-rev-sync": "3.0.2",
         "graceful-fs": "4.2.11",
         "heap": "^0.2.7",
