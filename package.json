@@ -28,10 +28,10 @@
         "test": "npm-run-all test:*",
         "test:jest": "cross-env NODE_OPTIONS=\"--loader ts-node/esm --loader=esmock\" jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
         "test:eslint": "xo packages/**/src/ --ignore '*.test.*'",
-        "test:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --check && prettier --config .prettierrc packages/**/src/**/*.* --check",
+        "test:prettier": "prettier packages/**/src/**/*.* --check && prettier packages/**/src/**/*.* --check",
         "format": "npm-run-all format:*",
         "format:eslint": "xo --fix packages/**/src/",
-        "format:prettier": "prettier --config .prettierrc packages/**/src/**/*.* --write && prettier --config .prettierrc packages/**/src/**/*.* --write"
+        "format:prettier": "prettier packages/**/src/**/*.* --write && prettier packages/**/src/**/*.* --write"
     },
     "repository": {
         "type": "git",
