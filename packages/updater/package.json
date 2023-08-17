@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/updater",
-    "version": "0.1.0-rc.49",
+    "version": "0.1.0-rc.50",
     "description": "JSPrismarine updater",
     "main": "./dist/Updater.js",
     "types": "./dist/Updater.d.ts",
