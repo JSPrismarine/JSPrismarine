@@ -17,7 +17,7 @@ jobs:
           - run: npm run build
           - run: |
                 echo @jsprismarine:https://npm.pkg.github.com/ > .npmrc
-                echo '//npm.pkg.github.com/:_authToken=${NPM_TOKEN}' >> .npmrc
+                echo '//npm.pkg.github.com/:_authToken=${NPM_TOKEN}' >> ~/.npmrc
           - run: npm publish --workspaces
             env:
                 NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
