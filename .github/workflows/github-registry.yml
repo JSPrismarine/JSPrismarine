@@ -1,0 +1,23 @@
+name: Publish to GitHub Registry
+on:
+    release:
+        types: [created]
+jobs:
+    publish:
+      runs-on: ubuntu-latest
+      permissions:
+          contents: read
+          packages: write
+      steps:
+          - uses: actions/checkout@v3
+          - uses: actions/setup-node@v3
+            with:
+                node-version: 18
+          - run: npm install
+          - run: npm run build
+          - run: |
+                echo @jsprismarine:https://npm.pkg.github.com/ > .npmrc
+                echo '//npm.pkg.github.com/:_authToken=${NPM_TOKEN}' >> .npmrc
+          - run: npm publish --workspaces
+            env:
+                NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
