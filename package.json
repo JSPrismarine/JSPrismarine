@@ -1,7 +1,7 @@
 {
     "name": "@jsprismarine/monorepo",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
-    "funding": "https://github.com/sponsors/JSPrismarine",
+    "prettier": "@nordcom/prettier",
     "workspaces": {
         "packages": [
             "packages/**"
@@ -179,6 +179,18 @@
         "be"
     ],
     "author": "JSPrismarine",
+    "contributors": [
+        {
+            "name": "Filiph Siitam Sandström",
+            "email": "filiph@nordcom.io",
+            "url": "https://nordcom.io/"
+        },
+        {
+            "name": "Enrico Angelon",
+            "email": "enricoangelon.ea@gmail.com",
+            "url": "https://enricoangelon.it/"
+        }
+    ],
     "license": "MPL-2.0",
     "bugs": {
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
@@ -204,6 +216,7 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "devDependencies": {
+        "@nordcom/prettier": "^0.1.1",
         "@types/async-exit-hook": "2.0.0",
         "@types/heap": "^0.2.31",
         "@types/jest": "^29.5.1",
