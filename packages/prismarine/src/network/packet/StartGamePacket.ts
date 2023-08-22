@@ -1,11 +1,12 @@
+import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
+
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket.js';
 import GameruleManager from '../../world/GameruleManager.js';
 import Identifiers from '../Identifiers.js';
 import McpeUtil from '../NetworkUtil.js';
-import Vector3 from '../../math/Vector3.js';
 import UUID from '../../utils/UUID.js';
-import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import Vector3 from '../../math/Vector3.js';
 
 export default class StartGamePacket extends DataPacket {
     public static NetID = Identifiers.StartGamePacket;
@@ -61,6 +62,8 @@ export default class StartGamePacket extends DataPacket {
         this.writeBoolean(true); // Achievement disabled
 
         this.writeBoolean(false); // Is editor mode?
+        this.writeBoolean(false); // Created in editor mode?
+        this.writeBoolean(false); // Exported from editor mode?
 
         this.writeVarInt(0); // Day cycle / time
         this.writeVarInt(0); // Edu edition offer
@@ -101,6 +104,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // Only spawn v1 villagers
         this.writeByte(0); // Disable persona skins
         this.writeByte(0); // Disable custom skins
+        this.writeByte(0); // Disable emote
         McpeUtil.writeString(this, '*');
 
         this.writeUnsignedIntLE(0); // Limited world height
@@ -153,6 +157,8 @@ export default class StartGamePacket extends DataPacket {
         UUID.fromRandom().networkSerialize(this);
 
         this.writeByte(0); // Use client side chunk generation
+        this.writeByte(0); // Block NET IDs are hashes
+        this.writeByte(0); // Disable client audio
     }
 
     /*

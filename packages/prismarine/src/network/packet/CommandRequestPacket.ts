@@ -9,10 +9,12 @@ export default class CommandRequestPacket extends DataPacket {
     public commandName!: string;
     public commandOriginData!: CommandOriginData | null;
     public internal!: boolean;
+    public version!: number;
 
     public decodePayload() {
         this.commandName = McpeUtil.readString(this);
         this.commandOriginData = CommandOriginData.networkDeserialize(this);
         this.internal = this.readBoolean();
+        this.version = this.readVarInt();
     }
 }
