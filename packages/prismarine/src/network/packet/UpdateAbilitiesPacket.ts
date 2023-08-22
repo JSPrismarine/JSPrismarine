@@ -1,7 +1,7 @@
 import DataPacket from './DataPacket.js';
 import Identifiers from '../Identifiers.js';
-import PlayerPermissionType from '../type/PlayerPermissionType.js';
 import PermissionType from '../type/PermissionType.js';
+import PlayerPermissionType from '../type/PlayerPermissionType.js';
 
 export enum AbilityLayerType {
     CACHE,
@@ -29,7 +29,8 @@ export enum AbilityLayerFlag {
     WALK_SPEED,
     MUTED,
     WORLD_BUILDER,
-    NO_CLIP
+    NO_CLIP,
+    PRIVILEGED_BUILDER
 }
 
 export class AbilityLayer {

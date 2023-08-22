@@ -224,6 +224,7 @@ export default class Skin {
         stream.writeBoolean(this.isPersona());
         stream.writeBoolean(this.isCapeOnClassicSkin());
         stream.writeBoolean(true); // Is primary user
+        stream.writeBoolean(true); // Is override
     }
 
     public getId(): string {

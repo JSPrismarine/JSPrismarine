@@ -1,14 +1,17 @@
-import Heap from 'heap';
-
-import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket.js';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments.js';
 import CommandParameter, { CommandParameterType } from './type/CommandParameter.js';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket.js';
+import UpdateAbilitiesPacket, {
+    AbilityLayer,
+    AbilityLayerFlag,
+    AbilityLayerType
+} from './packet/UpdateAbilitiesPacket.js';
 
 import AddPlayerPacket from './packet/AddPlayerPacket.js';
 import Air from '../block/blocks/Air.js';
 import { Attribute } from '../entity/Attribute.js';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket.js';
+import { BatchPacket } from './Packets.js';
 import Block from '../block/Block.js';
 import Chunk from '../world/chunk/Chunk.js';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket.js';
@@ -21,6 +24,7 @@ import CreativeContentEntry from './type/CreativeContentEntry.js';
 import CreativeContentPacket from './packet/CreativeContentPacket.js';
 import DisconnectPacket from './packet/DisconnectPacket.js';
 import Gamemode from '../world/Gamemode.js';
+import Heap from 'heap';
 import IForm from '../form/IForm.js';
 import InventoryContentPacket from './packet/InventoryContentPacket.js';
 import Item from '../item/Item.js';
@@ -40,19 +44,14 @@ import SetActorDataPacket from './packet/SetActorDataPacket.js';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket.js';
 import SetTimePacket from './packet/SetTimePacket.js';
 import TextPacket from './packet/TextPacket.js';
-import ToastRequestPacket from './packet/ToastRequestPacket.js';
 import TextType from './type/TextType.js';
+import ToastRequestPacket from './packet/ToastRequestPacket.js';
 import UUID from '../utils/UUID.js';
+import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket.js';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket.js';
 import { WindowIds } from '../inventory/WindowManager.js';
-import UpdateAbilitiesPacket, {
-    AbilityLayer,
-    AbilityLayerFlag,
-    AbilityLayerType
-} from './packet/UpdateAbilitiesPacket.js';
-
 import pkg from '@jsprismarine/bedrock-data';
-import { BatchPacket } from './Packets.js';
+
 const { creativeitems } = pkg;
 
 export default class PlayerSession {
@@ -419,7 +418,8 @@ export default class PlayerSession {
             .getAllPlayers()
             .map((player) => player.getName());
         pk.softEnums = [playerEnum];
-        await this.getConnection().sendDataPacket(pk);
+        // TODO: update commands
+        // await this.getConnection().sendDataPacket(pk);
     }
 
     /**
