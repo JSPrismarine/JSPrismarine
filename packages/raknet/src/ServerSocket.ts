@@ -16,7 +16,10 @@ export default class ServerSocket extends EventEmitter {
 
     private readonly offlineHandler = new OfflineHandler(this);
 
-    public constructor(private maxConnections: number, private readonly onlineMode: boolean) {
+    public constructor(
+        private maxConnections: number,
+        private readonly onlineMode: boolean
+    ) {
         super();
         this.socket = Dgram.createSocket('udp4');
         // Dereferencing the socket will allow

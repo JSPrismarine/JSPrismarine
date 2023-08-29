@@ -316,7 +316,7 @@ export default class Entity extends Position {
             // should probably be replaced with regex.
             ((this.constructor as any).MOB_ID as string)
                 .split(':')[1]
-                .replace(/_/g, ' ')
+                .replaceAll('_', ' ')
                 .split(' ')
                 .map((word) => word[0].toUpperCase() + word.slice(1, word.length))
                 .join(' ')
@@ -343,7 +343,7 @@ export default class Entity extends Position {
     public getNearestEntity(entities: Entity[] = this.getWorld().getEntities()!) {
         const pos = new Vector3(this.getX(), this.getY(), this.getZ());
         const dist = (a: Vector3, b: Vector3) =>
-            Math.sqrt((b.getX() - a.getX()) ** 2 + (b.getY() - a.getY()) ** 2 + (b.getZ() - a.getZ()) ** 2);
+            Math.hypot(b.getX() - a.getX(), b.getY() - a.getY(), b.getZ() - a.getZ());
 
         const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
             const distances = points.map((e) => dist(target, new Vector3(e.getX(), e.getY(), e.getZ())));

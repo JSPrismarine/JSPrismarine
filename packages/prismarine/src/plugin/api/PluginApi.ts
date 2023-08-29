@@ -8,7 +8,10 @@ import path from 'node:path';
 export default class PluginApi {
     private readonly pkg;
 
-    public constructor(private server: Server, pkg: any) {
+    public constructor(
+        private server: Server,
+        pkg: any
+    ) {
         this.pkg = pkg;
     }
 

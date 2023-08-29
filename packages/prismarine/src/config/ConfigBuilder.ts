@@ -24,7 +24,7 @@ const _ = {
                         ? a[c]
                         : (a[c] = Math.abs(path[i + 1]) >> 0 === Number(path[i + 1]) ? [] : {}),
                 obj
-            )[path[path.length - 1]] = value;
+            )[path.at(-1)] = value;
         return obj;
     },
     has: (obj: any, key: string): boolean => {
