@@ -118,10 +118,18 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             session
                 .getPlayer()
                 .sendInitialSpawnChunks()
-                .then(async () => {
-                    // todo: set health packet
-                    await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
-                })
+                .then(
+                    async () => {
+                        // todo: set health packet
+                        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+                    },
+                    () =>
+                        server
+                            .getLogger()
+                            ?.error(
+                                `Failed to spawn player[${session.getConnection().getRakNetSession().getAddress()}]`
+                            )
+                )
                 .finally(async () => {
                     // Summon player(s) & entities
                     await Promise.all([

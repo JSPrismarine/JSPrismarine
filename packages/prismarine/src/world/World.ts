@@ -313,7 +313,6 @@ export default class World {
 
                 chunk.setBlock(placedPosition.getX(), placedPosition.getY(), placedPosition.getZ(), block);
                 resolve(true);
-                return;
             } catch (error) {
                 player.getServer().getLogger()?.warn(`${player.getName()} failed to place block due to ${error}`);
                 await player.sendMessage((error as any)?.message);
