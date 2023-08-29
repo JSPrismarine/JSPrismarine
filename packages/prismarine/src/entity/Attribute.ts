@@ -58,12 +58,24 @@ export class Attribute {
     }
 
     public networkSerialize(stream: BinaryStream): void {
-        stream.writeFloatLE(this.getMin());
-        stream.writeFloatLE(this.getMax());
-        stream.writeFloatLE(this.getValue());
-        stream.writeFloatLE(this.getDefault());
-        McpeUtil.writeString(stream, this.getName());
+        stream.writeFloatLE(this.min);
+        stream.writeFloatLE(this.max);
+        stream.writeFloatLE(this.value);
+        stream.writeFloatLE(this.default);
+        McpeUtil.writeString(stream, this.name);
         stream.writeUnsignedVarInt(0); // TODO: modifier count
+    }
+
+    public static networkDeserialize(stream: BinaryStream): Attribute {
+        const attr = new Attribute({
+            min: stream.readFloatLE(),
+            max: stream.readFloatLE(),
+            value: stream.readFloatLE(),
+            def: stream.readFloatLE(),
+            name: McpeUtil.readString(stream)
+        });
+        stream.readUnsignedVarInt(); // TODO: skip for now
+        return attr;
     }
 
     public getName(): string {
