@@ -1,14 +1,27 @@
-// import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Vector3 from '../math/Vector3.js';
 
 export default class BlockPosition extends Vector3 {
-    public networkSerialize(stream: any): void {
-        stream.writeVarInt(this.getX());
-        stream.writeUnsignedVarInt(this.getY());
-        stream.writeVarInt(this.getZ());
+    public override networkSerialize(stream: BinaryStream): void {
+        stream.writeVarInt(this.x);
+        stream.writeUnsignedVarInt(this.y);
+        stream.writeVarInt(this.z);
     }
 
-    public static networkDeserialize(stream: any): BlockPosition {
+    // TODO: cleanup
+
+    public signedNetworkSerialize(stream: BinaryStream): void {
+        stream.writeVarInt(this.x);
+        stream.writeVarInt(this.y);
+        stream.writeVarInt(this.z);
+    }
+
+    public static fromVector3(vec: Vector3): BlockPosition {
+        const position = vec.floor();
+        return new BlockPosition(position.getX(), position.getY(), position.getZ());
+    }
+
+    public static override networkDeserialize(stream: BinaryStream): BlockPosition {
         return new BlockPosition(stream.readVarInt(), stream.readUnsignedVarInt(), stream.readVarInt());
     }
 }
