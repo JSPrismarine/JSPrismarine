@@ -237,7 +237,7 @@
         "yarnhook": "0.6.0"
     },
     "dependencies": {
-        "@jsprismarine/bedrock-data": "^1.19.50",
+        "@jsprismarine/bedrock-data": "^1.20.15-b",
         "@jsprismarine/brigadier": "0.2.0-rc.1",
         "@jsprismarine/jsbinaryutils": "^5.4.4",
         "@types/git-rev-sync": "2.0.0",
