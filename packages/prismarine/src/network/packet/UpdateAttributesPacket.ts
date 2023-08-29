@@ -26,7 +26,7 @@ export default class UpdateAttributesPacket extends DataPacket {
         this.runtimeEntityId = this.readUnsignedVarLong();
 
         const length = this.readUnsignedVarInt();
-        // TODO: this.attributes = Array.from({ length }, () => Attribute.networkDeserialize(this));
+        this.attributes = Array.from({ length }, () => Attribute.networkDeserialize(this));
 
         this.tick = this.readUnsignedVarLong();
     }
