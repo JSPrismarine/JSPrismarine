@@ -2,13 +2,14 @@ import Chat, { ChatType } from '../../chat/Chat.js';
 import RespawnPacket, { RespawnState } from '../packet/RespawnPacket.js';
 import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket.js';
 
+import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket.js';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket.js';
 import ChatEvent from '../../events/chat/ChatEvent.js';
 import Gamemode from '../../world/Gamemode.js';
 import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket.js';
 import ItemComponentPacket from '../packet/ItemComponentPacket.js';
+import PacketHandler from './PacketHandler.js';
+import PlayStatusType from '../type/PlayStatusType.js';
 import { PlayerSession } from '../../Prismarine.js';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent.js';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket.js';
@@ -17,7 +18,6 @@ import ResourcePackStatusType from '../type/ResourcePackStatusType.js';
 import type Server from '../../Server.js';
 import StartGamePacket from '../packet/StartGamePacket.js';
 import Vector3 from '../../math/Vector3.js';
-import PlayStatusType from '../type/PlayStatusType.js';
 
 export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
     public static NetID = Identifiers.ResourcePackResponsePacket;
@@ -112,30 +112,33 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             /// TODO: general handler refactor ///
 
-            const dist = server.getConfig().getViewDistance();
-
-            await session.sendNetworkChunkPublisher(dist);
-            await session.needNewChunks(true, dist);
-
-            // todo: set health packet
-            await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
-
-            // Summon player(s) & entities
-            await Promise.all([
-                server
-                    .getSessionManager()
-                    .getAllPlayers()
-                    .filter((p) => !(p === player))
-                    .map(async (p) => {
-                        await p.getNetworkSession().sendSpawn(player);
-                        await session.sendSpawn(p);
-                    }),
-                player
-                    .getWorld()
-                    .getEntities()
-                    .filter((e) => !e.isPlayer())
-                    .map(async (entity) => entity.sendSpawn(player))
-            ]);
+            // Sent to let know the client saved chunks
+            // TODO
+            session
+                .getPlayer()
+                .sendInitialSpawnChunks()
+                .then(async () => {
+                    // todo: set health packet
+                    await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+                })
+                .finally(async () => {
+                    // Summon player(s) & entities
+                    await Promise.all([
+                        server
+                            .getSessionManager()
+                            .getAllPlayers()
+                            .filter((p) => !(p === player))
+                            .map(async (p) => {
+                                await p.getNetworkSession().sendSpawn(player);
+                                await session.sendSpawn(p);
+                            }),
+                        player
+                            .getWorld()
+                            .getEntities()
+                            .filter((e) => !e.isPlayer())
+                            .map(async (entity) => entity.sendSpawn(player))
+                    ]);
+                });
 
             server
                 .getLogger()

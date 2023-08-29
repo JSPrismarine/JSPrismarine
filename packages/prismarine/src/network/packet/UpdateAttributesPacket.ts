@@ -10,7 +10,7 @@ export default class UpdateAttributesPacket extends DataPacket {
 
     public tick!: bigint;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
         // Encode attributes
@@ -20,5 +20,14 @@ export default class UpdateAttributesPacket extends DataPacket {
         }
 
         this.writeUnsignedVarLong(this.tick);
+    }
+
+    public decodePayload(): void {
+        this.runtimeEntityId = this.readUnsignedVarLong();
+
+        const length = this.readUnsignedVarInt();
+        // TODO: this.attributes = Array.from({ length }, () => Attribute.networkDeserialize(this));
+
+        this.tick = this.readUnsignedVarLong();
     }
 }
