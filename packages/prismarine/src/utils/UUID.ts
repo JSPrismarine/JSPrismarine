@@ -23,7 +23,7 @@ export default class UUID {
     public static fromString(uuid: string, version = 4): UUID {
         if (!uuid) throw new Error('uuid is null or undefined');
 
-        return UUID.fromBinary(Buffer.from(uuid.trim().replace(/-/g, ''), 'hex'), version);
+        return UUID.fromBinary(Buffer.from(uuid.trim().replaceAll('-', ''), 'hex'), version);
     }
 
     /**
@@ -43,7 +43,7 @@ export default class UUID {
      */
     public static randomString(): string {
         let dt = Date.now();
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replaceAll(/[xy]/g, (c) => {
             const r = Math.trunc((dt + Math.random() * 16) % 16);
             dt = Math.floor(dt / 16);
             return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);

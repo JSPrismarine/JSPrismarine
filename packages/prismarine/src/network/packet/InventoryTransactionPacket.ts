@@ -20,7 +20,10 @@ export enum TransactionType {
 }
 
 export class LegacySlotChange {
-    public constructor(public containerId: number, public slots: number[]) {}
+    public constructor(
+        public containerId: number,
+        public slots: number[]
+    ) {}
 
     public static fromNetwork(stream: BinaryStream): LegacySlotChange {
         const containerId = stream.readByte();
