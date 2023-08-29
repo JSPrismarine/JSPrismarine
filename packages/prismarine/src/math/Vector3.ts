@@ -87,6 +87,8 @@ export default class Vector3 {
         return this.z;
     }
 
+    public floor = () => new Vector3(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
+
     /**
      * Compare an instance of `Vector3` with another.
      *

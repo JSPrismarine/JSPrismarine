@@ -24,7 +24,7 @@ import Server from './Server.js';
 
 describe('Prismarine', () => {
     it.skip('server to start & exit properly', async () => {
-        //TODO: jest.setTimeout(35000);
+        // TODO: jest.setTimeout(35000);
 
         const getRandomInt = (min: number, max: number) => {
             min = Math.ceil(min);
