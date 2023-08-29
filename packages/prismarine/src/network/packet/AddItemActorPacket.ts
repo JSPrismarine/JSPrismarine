@@ -1,6 +1,6 @@
-import type ContainerEntry from '../../inventory/ContainerEntry.js';
 import DataPacket from './DataPacket.js';
 import Identifiers from '../Identifiers.js';
+import type Item from '../../item/Item.js';
 import Vector3 from '../../math/Vector3.js';
 
 /**
@@ -12,7 +12,7 @@ import Vector3 from '../../math/Vector3.js';
  * | ---- |:----:|:-----:|
  * | uniqueEntityId | VarLong | |
  * | runtimeEntityId | UnsignedVarLong | |
- * | item | ContainerEntry | The item/block |
+ * | item | Item | The item/block |
  * | position | Vector3 (LFloat) | The entity's position |
  * | motion | Vector3 (LFloat) | The entity's motion |
  * | metadata |  | TODO|
@@ -25,7 +25,7 @@ export default class AddItemActorPacket extends DataPacket {
 
     public uniqueEntityId!: bigint;
     public runtimeEntityId!: bigint;
-    public item!: ContainerEntry;
+    public item!: Item;
     public position!: Vector3;
     public motion = new Vector3(0, 0, 0);
 

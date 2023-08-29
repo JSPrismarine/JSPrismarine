@@ -46,7 +46,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             const startGame = new StartGamePacket();
             startGame.entityId = player.getRuntimeId();
             startGame.runtimeEntityId = player.getRuntimeId();
-            startGame.gamemode = player.gamemode;
+            startGame.gamemode = 1;
             startGame.defaultGamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
 
             const worldSpawnPos = await world.getSpawnPosition();
@@ -93,7 +93,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             await session.sendMetadata();
 
-            await session.sendCreativeContents(true);
+            await session.sendCreativeContents();
 
             // Some packets...
 
@@ -108,6 +108,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             await session.getConnection().sendDataPacket(respawnPacket);
 
             respawnPacket.state = RespawnState.SERVER_READY_TO_SPAWN;
+            await session.getConnection().sendDataPacket(respawnPacket);
             await session.getConnection().sendDataPacket(respawnPacket);
 
             /// TODO: general handler refactor ///
