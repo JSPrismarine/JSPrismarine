@@ -9,20 +9,16 @@ import UpdateAbilitiesPacket, {
 } from './packet/UpdateAbilitiesPacket.js';
 
 import AddPlayerPacket from './packet/AddPlayerPacket.js';
-import Air from '../block/blocks/Air.js';
 import { Attribute } from '../entity/Attribute.js';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket.js';
 import { BatchPacket } from './Packets.js';
-import Block from '../block/Block.js';
 import BlockPosition from '../world/BlockPosition.js';
 import Chunk from '../world/chunk/Chunk.js';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket.js';
 import ClientConnection from './ClientConnection.js';
 import CommandData from './type/CommandData.js';
 import CommandEnum from './type/CommandEnum.js';
-import ContainerEntry from '../inventory/ContainerEntry.js';
 import CoordinateUtils from '../world/CoordinateUtils.js';
-import CreativeContentEntry from './type/CreativeContentEntry.js';
 import CreativeContentPacket from './packet/CreativeContentPacket.js';
 import DisconnectPacket from './packet/DisconnectPacket.js';
 import Gamemode from '../world/Gamemode.js';
@@ -240,7 +236,7 @@ export default class PlayerSession {
         const pk = new InventoryContentPacket();
         pk.items = this.player.getInventory().getItems(true);
         pk.windowId = WindowIds.INVENTORY; // Inventory window
-        await this.getConnection().sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk);
         await this.sendHandItem(this.player.getInventory().getItemInHand());
 
         /* TODO: not working..
@@ -259,7 +255,7 @@ export default class PlayerSession {
     public async sendCreativeContents(empty = false): Promise<void> {
         const pk = new CreativeContentPacket();
         if (empty) {
-            await this.getConnection().sendDataPacket(pk);
+            await this.connection.sendDataPacket(pk);
             return;
         }
 
@@ -270,18 +266,16 @@ export default class PlayerSession {
 
         // Sort based on PmmP Bedrock-data
         creativeitems.forEach((item: any) => {
-            pk.entries.push(
-                ...entries.filter((entry: any) => {
-                    return entry.meta === (item.damage || 0) && entry.id === item.id;
-                })
+            pk.items.push(
+                ...entries
+                    .filter((entry: any) => {
+                        return entry.meta === (item.damage ?? 0) && entry.getId() === item.id;
+                    })
+                    .map((entry) => new Item({ id: entry.getId(), name: entry.getName(), meta: entry.meta }))
             );
         });
 
-        pk.entries = pk.entries.map((block: Block | Item, index: number) => {
-            return new CreativeContentEntry(index, block);
-        });
-
-        await this.getConnection().sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk);
     }
 
     /**
@@ -289,14 +283,14 @@ export default class PlayerSession {
      *
      * @param item The entity.
      */
-    public async sendHandItem(item: ContainerEntry): Promise<void> {
+    public async sendHandItem(item: Item): Promise<void> {
         const pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.player.getRuntimeId();
         pk.item = item;
         pk.inventorySlot = this.player.getInventory().getHandSlotIndex();
         pk.hotbarSlot = this.player.getInventory().getHandSlotIndex();
         pk.windowId = 0; // Inventory ID
-        await this.getConnection().sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk);
     }
 
     public async sendForm(form: IForm): Promise<void> {
@@ -304,7 +298,7 @@ export default class PlayerSession {
         const pk = new ModalFormRequestPacket();
         pk.formId = id;
         pk.formData = form.jsonSerialize();
-        await this.getConnection().sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk);
     }
 
     /**
@@ -315,7 +309,7 @@ export default class PlayerSession {
     public async sendTime(tick: number): Promise<void> {
         const pk = new SetTimePacket();
         pk.time = tick;
-        await this.getConnection().sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk);
     }
 
     /**
@@ -326,7 +320,7 @@ export default class PlayerSession {
     public async sendGamemode(gamemode: number): Promise<void> {
         const pk = new SetPlayerGameTypePacket();
         pk.gamemode = gamemode;
-        await this.getConnection().sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk);
     }
 
     public async sendNetworkChunkPublisher(distance: number, savedChunks: ChunkCoord[]): Promise<void> {
@@ -624,7 +618,7 @@ export default class PlayerSession {
         pk.yaw = this.player.yaw;
         pk.headYaw = this.player.headYaw;
 
-        pk.item = this.player.getInventory()?.getItemInHand() ?? new ContainerEntry({ item: new Air(), count: 0 });
+        pk.item = this.player.getInventory().getItemInHand();
 
         pk.deviceId = this.player.device?.id ?? '';
         pk.metadata = this.player.getMetadataManager();
