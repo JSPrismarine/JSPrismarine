@@ -31,8 +31,8 @@
         "@jsprismarine/nbt": "*",
         "@jsprismarine/jsbinaryutils": "5.4.4",
         "fflate": "0.8.0",
-        "node-fetch": "^3.3.0",
-        "yaml": "^2.0.1"
+        "node-fetch": "3.3.0",
+        "yaml": "2.0.1"
     },
     "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
 }
