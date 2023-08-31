@@ -51,7 +51,7 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
 -   What devices devices can a player join JSPrismarine with?
     -   By default PC/Windows, Android, iOS. However with some tricks you can also join with Xbox One, Switch and the PS4.
 -   Which OSes can run JSPrismarine?
-    -   Any platform supporting Node.js v14 or later.
+    -   Any platform supporting Node.js LTS or later.
 -   Does it support plugins?
     -   Yes but JSPrismarine is in fast development-mode which means that currently SEMVER isn't strictly followed. We do however try to provide a deprecation warning two weeks ahead of removing an API function.
 -   If my question isn't listed here where should I sak?
