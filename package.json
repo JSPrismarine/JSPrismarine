@@ -247,7 +247,7 @@
         "@types/git-rev-sync": "2.0.0",
         "@types/unzipper": "0.10.7",
         "async-exit-hook": "2.0.1",
-        "evt": "2.5.0",
+        "evt": "2.5.1",
         "fast-jwt": "3.2.0",
         "fflate": "0.8.0",
         "git-rev-sync": "3.0.2",
