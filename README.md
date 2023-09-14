@@ -21,6 +21,9 @@
 <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=fixme">
   <img alt="FIXME Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/fixme?style=flat-square">
 </a>
+<a href="https://wakatime.com/badge/github/JSPrismarine/JSPrismarine">
+  <img src="https://wakatime.com/badge/github/JSPrismarine/JSPrismarine.svg?style=flat-square" alt="wakatime">
+</a>
 
 A dedicated Minecraft Bedrock Edition server written in TypeScript with focus on performance, extensibility and ease-of-use.
 
