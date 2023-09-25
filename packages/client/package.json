@@ -21,7 +21,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
     "devDependencies": {
-        "@types/set-interval-async": "1.0.0",
+        "@types/set-interval-async": "1.0.1",
         "typescript": "5.1.6"
     },
     "dependencies": {
