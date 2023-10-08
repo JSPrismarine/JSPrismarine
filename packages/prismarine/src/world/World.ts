@@ -154,7 +154,7 @@ export default class World {
 
         // Continue world time ticks
         this.currentTick++;
-        
+
         // Auto save every 2 minutes
         if (this.currentTick / 20 === 2 * 60) {
             await this.save();
