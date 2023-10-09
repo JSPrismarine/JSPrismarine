@@ -22,7 +22,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/raknet",
     "dependencies": {
         "@jsprismarine/jsbinaryutils": "5.4.4",
-        "pino": "8.15.6"
+        "pino": "8.15.7"
     },
     "devDependencies": {
         "pino-pretty": "10.2.3",
