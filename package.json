@@ -246,7 +246,7 @@
         "@jsprismarine/brigadier": "0.2.0-rc.1",
         "@jsprismarine/jsbinaryutils": "5.4.4",
         "@types/git-rev-sync": "2.0.1",
-        "@types/unzipper": "0.10.7",
+        "@types/unzipper": "0.10.8",
         "async-exit-hook": "2.0.1",
         "evt": "2.5.3",
         "fast-jwt": "3.3.1",
