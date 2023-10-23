@@ -25,33 +25,33 @@
   <img alt="Build" src="https://img.shields.io/github/actions/workflow/status/JSPrismarine/JSPrismarine/build.yml?style=flat-square&branch=master">
 </a>
 <a href="https://discord.gg/6w8JWhy">
-  <img alt="Official Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
+  <img alt="Join the Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
 </a>
 <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
-  <img alt="TODO Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo?style=flat-square">
+  <img alt="TODOs Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo?style=flat-square">
 </a>
 <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=fixme">
-  <img alt="FIXME Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/fixme?style=flat-square">
+  <img alt="FIXMEs Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/fixme?style=flat-square">
 </a>
 <a href="https://wakatime.com/badge/github/JSPrismarine/JSPrismarine">
   <img src="https://wakatime.com/badge/github/JSPrismarine/JSPrismarine.svg?style=flat-square" alt="wakatime">
 </a>
 
-<p>A dedicated Minecraft Bedrock Edition server written in TypeScript with focus on performance, extensibility and ease-of-use.</p>
+<p>JSPrismarine is dedicated Minecraft Bedrock Edition server written in TypeScript with focus on performance, extensibility and ease-of-use. It shares no code or affiliation what-so-server with the official server software from Mojang AB.</p>
 <a id="md:why-use-jsprismarine" class="tsd-anchor"></a><h2><a href="#md:why-use-jsprismarine">Why use JSPrismarine?</a></h2><ul>
 <li>Written in TypeScript which means that it&#39;s easy to use and develop plugins for. You can in theory develop plugins in any language that transpile into JavaScript (such as TypeScript, Kotlin, CoffeeScript, asm.js and many more).</li>
-<li>Open source with the permissive <a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">MPL2</a> license.</li>
+<li>Open Source with the permissive <a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">MPL2</a> license.</li>
 <li>Under active development.</li>
 </ul>
-<a id="md:getting-started" class="tsd-anchor"></a><h2><a href="#md:getting-started">Getting started</a></h2><p>Prebuilt binaries will be provided once a stable release is out, these will not require a node environment. For now however, you can either follow the steps bellow or download the <a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22">latest nightly</a> (which may or may not work).</p>
+<a id="md:getting-started" class="tsd-anchor"></a><h2><a href="#md:getting-started">Getting started</a></h2><p>Prebuilt binaries will be provided once a stable release is out, these will not require a node environment. For now however, you can either follow the steps bellow or download the <a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22">latest nightly</a> (which may or may not work before we hit <code>v1.0.0</code>).</p>
 <ul>
 <li>Linux/MacOS/Unix based OS or Windows (requires WSL)<ul>
-<li>You need <a href="https://nodejs.org">Node.js</a> v14+ and <a href="https://www.npmjs.com">npm</a> v7+.</li>
+<li>You need <a href="https://nodejs.org">Node.js</a> <code>v18</code>+ and <a href="https://www.npmjs.com">npm</a> <code>v8</code>+.</li>
 <li>Clone the repository <code>git clone https://github.com/JSPrismarine/JSPrismarine.git</code>.</li>
-<li>Go in the cloned repository <code>cd JSPrismarine</code></li>
+<li>Go in the cloned repository <code>cd JSPrismarine</code>.</li>
 <li>Install dependencies <code>npm install</code>.</li>
-<li>Before running production build you have to build it <code>npm run build</code></li>
-<li>You&#39;re done, you can run it using <code>npm run start</code> (or <code>npm run dev</code> for development)</li>
+<li>Before running production build you have to build it <code>npm run build</code>.</li>
+<li>You&#39;re done, you can run it using <code>npm run start</code> (or <code>npm run dev</code> for development).</li>
 </ul>
 </li>
 </ul>
@@ -69,7 +69,7 @@
 </ul>
 </li>
 <li>Which OSes can run JSPrismarine?<ul>
-<li>Any platform supporting Node.js LTS or later.</li>
+<li>Any platform supporting Node.js LTS (current <code>v18</code>) or later.</li>
 </ul>
 </li>
 <li>Does it support plugins?<ul>
@@ -82,9 +82,13 @@
 </li>
 <li>Why can&#39;t I join a JSPrismarine instance hosted on my Windows PC?<ul>
 <li>To join an instance of JSPrismarine hosted on the same Windows machine you need to enable Loopback by doing the following:<ul>
-<li>Open Windows PowerShell as administrator</li>
-<li>Run this command: <code>CheckNetIsolation LoopbackExempt -a -n=&quot;Microsoft.MinecraftUWP_8wekyb3d8bbwe&quot;</code></li>
-<li>Open Minecraft and add a server with the ip <code>127.0.0.1</code></li>
+<li>Open Windows PowerShell as administrator.</li>
+<li>Run this command: <code>CheckNetIsolation LoopbackExempt -a -n=&quot;Microsoft.MinecraftUWP_8wekyb3d8bbwe&quot;</code>.</li>
+<li>Open Minecraft and add a server with the ip <code>127.0.0.1</code>.</li>
+<li><blockquote>
+<p>NOTE: This is iffy on WSL2 while using the experimental bridge</p>
+</blockquote>
+</li>
 </ul>
 </li>
 </ul>
@@ -96,9 +100,9 @@
 <li><a href="documentation/experimental-flags.md">Experimental flags</a></li>
 </ul>
 <a id="md:remarks" class="tsd-anchor"></a><h2><a href="#md:remarks">Remarks</a></h2><ul>
-<li>JSPrismarine still in active development, currently no stable version is released.</li>
+<li>JSPrismarine still in early/active development, currently no stable version(s) released.</li>
 <li>The plugin API isn&#39;t stable.</li>
-<li>Development has substaintially died down, might pick up again in the future.</li>
+<li>Development has substaintially slowed down, will hopefully spped up again in the somewhat near future.</li>
 </ul>
 </div></div>
 <div class="col-sidebar">
