@@ -3,12 +3,13 @@ on:
     push:
     pull_request:
 
+env:
+    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
 jobs:
     macos-test:
         runs-on: macos-latest
-        env:
-            TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-            TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4
