@@ -1,28 +1,28 @@
 # JSPrismarine
 
 <a href="https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE">
-  <img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine?style=flat-square">
+  <img alt="License" src="https://img.shields.io/github/license/JSPrismarine/JSPrismarine">
 </a>
 <a href="https://github.com/JSPrismarine/JSPrismarine/graphs/contributors">
-  <img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D&style=flat-square">
+  <img alt="Contributors" src="https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D">
 </a>
 <a href="https://github.com/JSPrismarine/JSPrismarine/commits/master">
-  <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC&style=flat-square">
-</a>
-<a href="https://github.com/JSPrismarine/JSPrismarine/actions?query=workflow%3A%22Unit+%26+Integration+Testing%22">
-  <img alt="Build" src="https://img.shields.io/github/actions/workflow/status/JSPrismarine/JSPrismarine/build.yml?style=flat-square&branch=master">
+  <img alt="GitHub Commit Activity" src="https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC">
 </a>
 <a href="https://discord.gg/6w8JWhy">
-  <img alt="Join the Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord&style=flat-square">
+  <img alt="Join the Discord Server" src="https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord">
 </a>
 <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=todo">
-  <img alt="TODOs Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo?style=flat-square">
+  <img alt="TODOs Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo">
 </a>
 <a href="https://github.com/JSPrismarine/JSPrismarine/search?q=fixme">
-  <img alt="FIXMEs Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/fixme?style=flat-square">
+  <img alt="FIXMEs Counter" src="https://img.shields.io/github/search/JSPrismarine/JSPrismarine/fixme">
 </a>
 <a href="https://wakatime.com/badge/github/JSPrismarine/JSPrismarine">
-  <img src="https://wakatime.com/badge/github/JSPrismarine/JSPrismarine.svg?style=flat-square" alt="wakatime">
+  <img src="https://wakatime.com/badge/github/JSPrismarine/JSPrismarine.svg" alt="wakatime">
+</a>
+<a href="https://www.npmjs.com/package/@jsprismarine/prismarine">
+  <img alt="npm" src="https://img.shields.io/npm/dt/@jsprismarine/prismarine">
 </a>
 
 JSPrismarine is dedicated Minecraft Bedrock Edition server written in TypeScript with focus on performance, extensibility and ease-of-use. It shares no code or affiliation what-so-server with the official server software from Mojang AB.
