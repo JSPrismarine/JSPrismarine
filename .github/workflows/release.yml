@@ -10,7 +10,9 @@ on:
                 required: false
 
 jobs:
-    create-release:
+    release:
+        permissions:
+            contents: write
         runs-on: ubuntu-latest
         env:
             TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -37,12 +39,12 @@ jobs:
 
             - name: Create Release
               id: create_release
-              uses: zendesk/action-create-release@v2
+              uses: ncipollo/release-action@v1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
-                  tag_name: ${{ github.event.inputs.version }}
-                  release_name: ${{ github.event.inputs.version }}
+                  tag: ${{ github.event.inputs.version }}
+                  name: ${{ github.event.inputs.version }}
                   body: |
                       ${{ steps.Changelog.outputs.changelog }}
                   prerelease: ${{ github.event.inputs.prerelease }}
