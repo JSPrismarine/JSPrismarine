@@ -8,10 +8,9 @@ import ItemManager from './item/ItemManager.js';
 import PermissionManager from './permission/PermissionManager.js';
 import PluginManager from './plugin/PluginManager.js';
 import QueryManager from './query/QueryManager.js';
-import TelemeteryManager from './telemetry/TelemeteryManager.js';
+import SessionManager from './SessionManager.js';
 import WindowManager from './inventory/WindowManager.js';
 import WorldManager from './world/WorldManager.js';
-import SessionManager from './SessionManager.js';
 
 export {
     BanManager,
@@ -25,7 +24,6 @@ export {
     SessionManager,
     PluginManager,
     QueryManager,
-    TelemeteryManager,
     WindowManager,
     WorldManager
 };
