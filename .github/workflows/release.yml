@@ -9,6 +9,10 @@ on:
                 description: "Pre-release?"
                 required: false
 
+env:
+    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
 jobs:
     release:
         permissions:
@@ -45,6 +49,7 @@ jobs:
               with:
                   tag: ${{ github.event.inputs.version }}
                   name: ${{ github.event.inputs.version }}
+                  commit: "master"
                   body: |
                       ${{ steps.Changelog.outputs.changelog }}
                   prerelease: ${{ github.event.inputs.prerelease }}
