@@ -77,13 +77,6 @@ describe('Prismarine', () => {
                     return false;
                 }
 
-                public getTelemetry() {
-                    return {
-                        enabled: false,
-                        urls: []
-                    };
-                }
-
                 public getPacketCompressionLevel() {
                     return 7;
                 }

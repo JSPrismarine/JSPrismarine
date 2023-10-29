@@ -1,17 +1,16 @@
-.github**   @filiphsps
-/packages/prismarine/src/ban/**  @filiphsps
-/packages/prismarine/src/block/**  @filiphsps
-/packages/prismarine/src/command/**  @filiphsps
-/packages/prismarine/src/permission/**  @filiphsps
-/packages/prismarine/src/plugin/**  @filiphsps
-/packages/prismarine/src/query/**  @filiphsps
-/packages/prismarine/src/telemetry/**  @filiphsps
-/packages/prismarine/src/entity/**  @filiphsps
+.github**                                                   @filiphsps
+/packages/prismarine/src/ban/**                             @filiphsps
+/packages/prismarine/src/block/**                           @filiphsps
+/packages/prismarine/src/command/**                         @filiphsps
+/packages/prismarine/src/permission/**                      @filiphsps
+/packages/prismarine/src/plugin/**                          @filiphsps
+/packages/prismarine/src/query/**                           @filiphsps
+/packages/prismarine/src/entity/**                          @filiphsps
 
-/packages/prismarine/src/nbt/**  @HerryYT
-/packages/prismarine/src/network/**  @HerryYT
-/packages/prismarine/src/world/**  @HerryYT
+/packages/prismarine/src/nbt/**                             @HerryYT
+/packages/prismarine/src/network/**                         @HerryYT
+/packages/prismarine/src/world/**                           @HerryYT
 
-/packages/prismarine/src/config/**  @TheArmagan
+/packages/prismarine/src/config/**                          @TheArmagan
 
-/packages/prismarine/src/events/EventEmitterishMixin.ts  @garronej
+/packages/prismarine/src/events/EventEmitterishMixin.ts     @garronej
