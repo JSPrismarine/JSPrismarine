@@ -24,7 +24,6 @@ import RaknetConnectEvent from './events/raknet/RaknetConnectEvent.js';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent.js';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent.js';
 import SessionManager from './SessionManager.js';
-import TelemetryManager from './telemetry/TelemeteryManager.js';
 import { TickEvent } from './events/Events.js';
 import Timer from './utils/Timer.js';
 import WorldManager from './world/WorldManager.js';
@@ -37,7 +36,6 @@ export default class Server {
     private tps = 20;
     private tpsHistory!: number[];
     private readonly console: Console;
-    private readonly telemetryManager: TelemetryManager;
     private readonly eventManager = new EventManager();
     private readonly packetRegistry: PacketRegistry;
     private readonly sessionManager = new SessionManager();
@@ -69,7 +67,6 @@ export default class Server {
         this.version = version;
         this.logger = logger!;
         this.config = config;
-        this.telemetryManager = new TelemetryManager(this);
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
@@ -93,11 +90,9 @@ export default class Server {
         await this.itemManager.onEnable();
         await this.blockManager.onEnable();
         await this.commandManager.onEnable();
-        await this.telemetryManager.onEnable();
     }
 
     private async onDisable(): Promise<void> {
-        await this.telemetryManager.onDisable();
         await this.commandManager.onDisable();
         await this.blockManager.onDisable();
         await this.itemManager.onDisable();
