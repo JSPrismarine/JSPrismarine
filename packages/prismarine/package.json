@@ -2,8 +2,15 @@
     "name": "@jsprismarine/prismarine",
     "version": "0.1.0-rc.52",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
-    "main": "./dist/Prismarine.js",
-    "types": "./dist/Prismarine.d.ts",
+    "main": "dist/cjs/Prismarine.js",
+    "module": "dist/mjs/Prismarine.js",
+    "types": "./dist/mjs/Prismarine.d.ts",
+    "exports": {
+        ".": {
+            "require": "./dist/cjs/Prismarine.js",
+            "import": "./dist/mjs/Prismarine.js"
+        }
+    },
     "type": "module",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/prismarine",
@@ -12,7 +19,7 @@
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
     "scripts": {
-        "build": "tsc --build src"
+        "build": "tsc --build src/tsconfig.json && tsc --build src/tsconfig.cjs.json"
     },
     "keywords": [
         "javascript",
