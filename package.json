@@ -237,7 +237,7 @@
         "ts-node": "10.9.1",
         "turbo": "1.10.16",
         "typedoc": "0.25.3",
-        "typescript": "5.2.2",
+        "typescript": "5.3.2",
         "xo": "0.56.0",
         "yarnhook": "0.6.0"
     },
