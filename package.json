@@ -239,7 +239,7 @@
         "typedoc": "0.25.4",
         "typescript": "5.3.2",
         "xo": "0.56.0",
-        "yarnhook": "0.6.0"
+        "yarnhook": "0.6.1"
     },
     "dependencies": {
         "@jsprismarine/bedrock-data": "1.20.15-b",
