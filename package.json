@@ -223,7 +223,7 @@
         "@nordcom/prettier": "0.1.1",
         "@types/async-exit-hook": "2.0.2",
         "@types/heap": "0.2.34",
-        "@types/jest": "29.5.10",
+        "@types/jest": "29.5.11",
         "@types/node": "20.10.3",
         "cross-env": "7.0.3",
         "eslint-plugin-unused-imports": "3.0.0",
