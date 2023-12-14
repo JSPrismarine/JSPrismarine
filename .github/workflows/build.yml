@@ -21,15 +21,15 @@ jobs:
             - run: npm prune --production
             - run: npm install -g pkg
             - run: npm run package
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                   name: prismarine-x64-linux
                   path: builds/monorepo-linux
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                   name: prismarine-x64-macos
                   path: builds/monorepo-macos
-            - uses: actions/upload-artifact@v3
+            - uses: actions/upload-artifact@v4
               with:
                   name: prismarine-x64-win32
                   path: builds/monorepo-win.exe
