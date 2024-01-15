@@ -224,7 +224,7 @@
         "@types/async-exit-hook": "2.0.2",
         "@types/heap": "0.2.34",
         "@types/jest": "29.5.11",
-        "@types/node": "20.11.2",
+        "@types/node": "20.11.3",
         "cross-env": "7.0.3",
         "eslint-plugin-unused-imports": "3.0.0",
         "esmock": "2.6.2",
