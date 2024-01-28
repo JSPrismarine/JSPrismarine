@@ -1,8 +1,7 @@
 import DataPacket from './DataPacket.js';
 import Identifiers from '../Identifiers.js';
 
-import pkg from '@jsprismarine/bedrock-data';
-const { biome_definitions } = pkg;
+import { biome_definitions } from '@jsprismarine/bedrock-data';
 
 export default class BiomeDefinitionListPacket extends DataPacket {
     public static NetID = Identifiers.BiomeDefinitionListPacket;

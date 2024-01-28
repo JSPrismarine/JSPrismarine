@@ -8,24 +8,17 @@ env:
     TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
 jobs:
-    macos-test:
-        runs-on: macos-latest
+    tests:
+        strategy:
+            matrix:
+                version: [21]
+                os: [macos-latest, ubuntu-latest]
+        runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4
               with:
-                  node-version: 21
-                  cache: 'npm'
-            - run: npm install
-            - run: npm run build
-            - run: npm run test:jest
-    linux-test:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: 21
+                  node-version: ${{ matrix.version }}
                   cache: 'npm'
             - run: npm install
             - run: npm run build
