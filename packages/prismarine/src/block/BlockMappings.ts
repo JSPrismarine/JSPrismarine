@@ -1,7 +1,8 @@
-import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
+import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 
 import BedrockData from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { gunzipSync } from 'zlib';
 
 export interface LegacyId {
     id: number;
@@ -20,28 +21,16 @@ export default class BlockMappings {
 
     public static initMappings(): void {
         const stream = new BinaryStream(
-            BedrockData.canonical_block_states // Vanilla states
+            gunzipSync(BedrockData.canonical_block_states)
+             // Vanilla states
         );
-        const reader: NBTReader = new NBTReader(stream, ByteOrder.ByteOrder.LITTLE_ENDIAN);
-        reader.setUseVarint(true);
+        const reader: NBTReader = new NBTReader(stream, ByteOrder.ByteOrder.BIG_ENDIAN);
 
-        let runtimeId = 0;
-
-        do {
-            const vanillaBlock = reader.parse();
-            const vanillaBlockName = vanillaBlock.getString('name', 'unknown');
-
-            const vanillaBlockStates = vanillaBlock.getCompound('states', false);
-            if (vanillaBlockStates === null) {
-                throw new Error(`Vanilla block=${vanillaBlockName} has no states`);
-            }
-
-            // TODO: every block state implementation
-            // for (const _ of vanillaBlockStates.entries()) {
-            // }
-
-            this.registerMapping(vanillaBlockName, runtimeId++);
-        } while (!stream.feof());
+        for (const blockTag of reader.parseList<NBTTagCompound>()) {
+            const name = blockTag.getString("name", "minecraft:air");
+            const runtimeId = blockTag.getNumber("runtimeId", 0);  //TODO Air runtime ID 
+            this.registerMapping(name, runtimeId);
+        }
     }
 
     private static registerMapping(name: string, runtimeId: number): void {

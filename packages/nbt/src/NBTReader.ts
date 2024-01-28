@@ -11,7 +11,7 @@ export default class NBTReader extends NBTStreamReader {
         super(input, byteOrder);
     }
 
-    public parseList(): Set<any> {
+    public parseList<TagType>(): Set<TagType> {
         this.expectInput(this.isUsingVarint() ? 2 : 3, 'Invalid NBT Data: Not enough data to read new tag', false);
         if (this.readByteValue().getValue() !== NBTDefinitions.TAG_LIST) {
             throw new Error('Invalid NBT Data: Not list tag found');

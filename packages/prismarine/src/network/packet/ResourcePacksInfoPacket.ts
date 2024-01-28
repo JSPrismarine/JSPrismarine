@@ -11,6 +11,8 @@ export default class ResourcePacksInfoPacket extends DataPacket {
     public behaviorPackEntries = [];
     public resourcePackEntries = [];
 
+    public cdnUrls = [];
+
     public encodePayload() {
         this.writeBoolean(this.mustAccept);
         this.writeBoolean(this.hasScripts);
@@ -22,6 +24,11 @@ export default class ResourcePacksInfoPacket extends DataPacket {
 
         this.writeUnsignedShortLE(this.resourcePackEntries.length);
         for (const _resourceEntry of this.resourcePackEntries) {
+            // TODO: we don't need them for now
+        }
+
+        this.writeUnsignedVarInt(this.cdnUrls.length);
+        for (const _cdnUrl of this.cdnUrls) {
             // TODO: we don't need them for now
         }
     }
