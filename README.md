@@ -38,7 +38,7 @@ JSPrismarine is dedicated Minecraft Bedrock Edition server written in TypeScript
 Prebuilt binaries will be provided once a stable release is out, these will not require a node environment. For now however, you can either follow the steps bellow or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22) (which may or may not work before we hit `v1.0.0`).
 
 -   Linux/MacOS/Unix based OS or Windows (requires WSL)
-    -   You need [Node.js](https://nodejs.org) `v18`+ and [npm](https://www.npmjs.com) `v8`+.
+    -   You need [Node.js](https://nodejs.org) `v21`+ and [npm](https://www.npmjs.com) `v8`+.
     -   Clone the repository `git clone https://github.com/JSPrismarine/JSPrismarine.git`.
     -   Go in the cloned repository `cd JSPrismarine`.
     -   Install dependencies `npm install`.
@@ -54,7 +54,7 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
 -   What devices devices can a player join JSPrismarine with?
     -   By default PC/Windows, Android, iOS. However with some tricks you can also join with Xbox One, Switch and the PS4.
 -   Which OSes can run JSPrismarine?
-    -   Any platform supporting Node.js LTS (current `v18`) or later.
+    -   Any platform supporting Node.js v`21` or later.
 -   Does it support plugins?
     -   Yes but JSPrismarine is in fast development-mode which means that currently SEMVER isn't strictly followed. We do however try to provide a deprecation warning two weeks ahead of removing an API function.
 -   If my question isn't listed here where should I sak?

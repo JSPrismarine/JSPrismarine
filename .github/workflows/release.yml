@@ -18,28 +18,20 @@ jobs:
         permissions:
             contents: write
         runs-on: ubuntu-latest
-        env:
-            TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-            TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         steps:
             - uses: actions/checkout@v4
               with:
                   fetch-depth: 0
             - uses: actions/setup-node@v4
               with:
-                  node-version: 18
+                  node-version: 21
+                  cache: 'npm'
             - run: npm install
             - run: npm run build
 
             - run: npm prune --production
             - run: npm install -g pkg
             - run: npm run package
-
-            - name: Changelog
-              uses: scottbrenner/generate-changelog-action@master
-              id: changelog
-              env:
-                  REPO: ${{ github.repository }}
 
             - name: Create Release
               id: create_release
@@ -50,8 +42,6 @@ jobs:
                   tag: ${{ github.event.inputs.version }}
                   name: ${{ github.event.inputs.version }}
                   commit: "master"
-                  body: |
-                      ${{ steps.Changelog.outputs.changelog }}
                   prerelease: ${{ github.event.inputs.prerelease }}
 
             - name: Upload Linux Release Asset
