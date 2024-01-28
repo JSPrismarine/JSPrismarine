@@ -3,10 +3,10 @@ on:
     workflow_dispatch:
         inputs:
             version:
-                description: "Version (v0.1.0-rc.17)"
+                description: 'Version (v0.1.0-rc.17)'
                 required: true
             prerelease:
-                description: "Pre-release?"
+                description: 'Pre-release?'
                 required: false
 
 env:
@@ -29,10 +29,6 @@ jobs:
             - run: npm install
             - run: npm run build
 
-            - run: npm prune --production
-            - run: npm install -g pkg
-            - run: npm run package
-
             - name: Create Release
               id: create_release
               uses: ncipollo/release-action@v1
@@ -41,38 +37,5 @@ jobs:
               with:
                   tag: ${{ github.event.inputs.version }}
                   name: ${{ github.event.inputs.version }}
-                  commit: "master"
+                  commit: 'master'
                   prerelease: ${{ github.event.inputs.prerelease }}
-
-            - name: Upload Linux Release Asset
-              id: upload-linux-release-asset
-              uses: actions/upload-release-asset@v1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  upload_url: ${{ steps.create_release.outputs.upload_url }}
-                  asset_path: builds/monorepo-linux
-                  asset_name: prismarine-linux
-                  asset_content_type: application/bin
-
-            - name: Upload MacOS Release Asset
-              id: upload-macos-release-asset
-              uses: actions/upload-release-asset@v1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  upload_url: ${{ steps.create_release.outputs.upload_url }}
-                  asset_path: builds/monorepo-macos
-                  asset_name: prismarine-macos
-                  asset_content_type: application/bin
-
-            - name: Upload Win32 Release Asset
-              id: upload-win32-release-asset
-              uses: actions/upload-release-asset@v1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              with:
-                  upload_url: ${{ steps.create_release.outputs.upload_url }}
-                  asset_path: builds/monorepo-win.exe
-                  asset_name: prismarine-win.exe
-                  asset_content_type: application/exe

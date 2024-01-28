@@ -47,9 +47,7 @@ import UUID from '../utils/UUID.js';
 import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket.js';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket.js';
 import { WindowIds } from '../inventory/WindowManager.js';
-import pkg from '@jsprismarine/bedrock-data';
-
-const { creativeitems } = pkg;
+import { creativeitems } from '@jsprismarine/bedrock-data';
 
 export default class PlayerSession {
     private connection: ClientConnection;

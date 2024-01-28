@@ -3,11 +3,9 @@
     "version": "0.1.0-rc.52",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "prettier": "@nordcom/prettier",
-    "workspaces": {
-        "packages": [
-            "packages/**"
-        ]
-    },
+    "workspaces": [
+        "packages/*"
+    ],
     "bin": {
         "prismarine": "packages/server/dist/Server.js"
     },
@@ -24,7 +22,6 @@
         "build:source": "turbo run build",
         "build:docs": "typedoc",
         "server:build": "turbo run build --filter=@jsprismarine/server",
-        "package": "pkg package.json --out-path ./builds/",
         "watch:test": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
         "test": "concurrently npm:test:*",
         "test:jest": "cross-env NODE_OPTIONS=\"--loader ts-node/esm --loader=esmock\" jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
@@ -198,25 +195,6 @@
     "license": "MPL-2.0",
     "bugs": {
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
-    },
-    "pkg": {
-        "scripts": [
-            "./packages/server/dist/**/*.js",
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/leveldown/**/*.js",
-            "./packages/server/node_modules/@jsprismarine/prismarine/dist/**/*.js"
-        ],
-        "assets": [
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/@jsprismarine/bedrock-data/resources/biome_definitions.nbt",
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/@jsprismarine/bedrock-data/resources/entity_identifiers.nbt",
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/@jsprismarine/bedrock-data/resources/canonical_block_states.nbt",
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/@jsprismarine/bedrock-data/resources/r12_to_current_block_map.bin",
-            "./packages/server/node_modules/@jsprismarine/prismarine/node_modules/@jsprismarine/bedrock-data/block_states.dat",
-            "./node_modules/@jsprismarine/bedrock-data/resources/biome_definitions.nbt",
-            "./node_modules/@jsprismarine/bedrock-data/resources/entity_identifiers.nbt",
-            "./node_modules/@jsprismarine/bedrock-data/resources/canonical_block_states.nbt",
-            "./node_modules/@jsprismarine/bedrock-data/resources/r12_to_current_block_map.bin",
-            "./node_modules/@jsprismarine/bedrock-data/block_states.dat"
-        ]
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "devDependencies": {
