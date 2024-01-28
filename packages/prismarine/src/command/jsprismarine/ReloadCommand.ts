@@ -14,7 +14,9 @@ export default class ReloadCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<any>) {
         const execute = async (context: any) => {
-            const source: Player = context.getSource() as Player;
+            const source: Player = (context?.getSource() as Player) || null;
+
+            if (!source) throw new Error('Context/source is null or undefined');
 
             await source.sendMessage(
                 '§cPlease note that this command is not supported and may cause issues when using some plugins.'

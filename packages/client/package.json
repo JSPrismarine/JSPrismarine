@@ -25,8 +25,8 @@
         "typescript": "5.3.3"
     },
     "dependencies": {
-        "@jsprismarine/prismarine": "*",
-        "@jsprismarine/raknet": "*",
+        "@jsprismarine/prismarine": "0.1.0-rc.52",
+        "@jsprismarine/raknet": "0.1.0-rc.52",
         "set-interval-async": "3.0.3"
     },
     "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"

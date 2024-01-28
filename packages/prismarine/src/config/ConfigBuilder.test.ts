@@ -35,7 +35,7 @@ describe('config', () => {
 
         it('should properly handle invalid type', () => {
             try {
-                const config = new ConfigBuilder(path.join(process.cwd(), '.test/', 'config_test.dummy'));
+                void new ConfigBuilder(path.join(process.cwd(), '.test/', 'config_test.dummy'));
 
                 // This should never occur
                 expect(false).toBeTruthy();

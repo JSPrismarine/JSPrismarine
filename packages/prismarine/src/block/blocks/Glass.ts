@@ -16,7 +16,7 @@ export default class Glass extends Transparent {
     /**
      * Glass doesn't drop anything unless it's broken by silk touch
      */
-    public getDropsForCompatibleTool(item: Item | null, server: Server): Array<Block | Item | null> {
+    public getDropsForCompatibleTool(_item: Item | null, _server: Server): Array<Block | Item | null> {
         return [];
     }
 }

@@ -27,19 +27,19 @@ export class CommandArgumentGamemode implements CommandArgument {
     private postfix: string | null;
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
-        this.name = data?.name || 'gameMode';
-        this.optional = data?.optional || false;
-        this.flags = data?.flags || CommandParameterFlags.NONE;
-        this.postfix = data?.postfix || null;
+        this.name = data?.name ?? 'gameMode';
+        this.optional = data?.optional ?? false;
+        this.flags = data?.flags ?? CommandParameterFlags.NONE;
+        this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandContext<Player>) {
         const gm = reader.readString();
 
         Gamemode.getGamemodeId(gm);
         return gm;
     }
-    public async listSuggestions(context: any, builder: any) {
+    public async listSuggestions(_context: any, _builder: any) {
         // TODO
         return Suggestions.empty();
     }
@@ -76,13 +76,13 @@ export class CommandArgumentMob implements CommandArgument {
     private postfix: string | null;
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
-        this.name = data?.name || 'entityType';
-        this.optional = data?.optional || false;
-        this.flags = data?.flags || CommandParameterFlags.NONE;
-        this.postfix = data?.postfix || null;
+        this.name = data?.name ?? 'entityType';
+        this.optional = data?.optional ?? false;
+        this.flags = data?.flags ?? CommandParameterFlags.NONE;
+        this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandContext<Player>) {
         let str = '';
         while (true) {
             if (!reader.canRead()) break;
@@ -99,7 +99,7 @@ export class CommandArgumentMob implements CommandArgument {
 
         return str;
     }
-    public async listSuggestions(context: any, builder: any) {
+    public async listSuggestions(_context: any, _builder: any) {
         // TODO
         return Suggestions.empty();
     }
@@ -134,10 +134,10 @@ export class CommandArgumentEntity implements CommandArgument {
     private postfix: string | null;
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
-        this.name = data?.name || 'target';
-        this.optional = data?.optional || false;
-        this.flags = data?.flags || CommandParameterFlags.NONE;
-        this.postfix = data?.postfix || null;
+        this.name = data?.name ?? 'target';
+        this.optional = data?.optional ?? false;
+        this.flags = data?.flags ?? CommandParameterFlags.NONE;
+        this.postfix = data?.postfix ?? null;
     }
 
     public parse(reader: StringReader, context: CommandContext<Player>) {
@@ -195,10 +195,10 @@ export class CommandArgumentPosition extends Vector3 implements CommandArgument 
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
         super();
-        this.name = data?.name || 'position';
-        this.optional = data?.optional || false;
-        this.flags = data?.flags || CommandParameterFlags.NONE;
-        this.postfix = data?.postfix || null;
+        this.name = data?.name ?? 'position';
+        this.optional = data?.optional ?? false;
+        this.flags = data?.flags ?? CommandParameterFlags.NONE;
+        this.postfix = data?.postfix ?? null;
     }
 
     public parse(reader: StringReader, context: CommandContext<Player>) {
@@ -269,13 +269,13 @@ export class CommandArgumentCommand implements CommandArgument {
     private postfix: string | null;
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
-        this.name = data?.name || 'command';
-        this.optional = data?.optional || false;
-        this.flags = data?.flags || CommandParameterFlags.NONE;
-        this.postfix = data?.postfix || null;
+        this.name = data?.name ?? 'command';
+        this.optional = data?.optional ?? false;
+        this.flags = data?.flags ?? CommandParameterFlags.NONE;
+        this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandContext<Player>) {
         const command = reader.readString();
 
         return command;
@@ -305,13 +305,13 @@ export class BooleanArgumentCommand implements CommandArgument {
     private postfix: string | null;
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
-        this.name = data?.name || 'boolean';
-        this.optional = data?.optional || false;
-        this.flags = data?.flags || CommandParameterFlags.NONE;
-        this.postfix = data?.postfix || null;
+        this.name = data?.name ?? 'boolean';
+        this.optional = data?.optional ?? false;
+        this.flags = data?.flags ?? CommandParameterFlags.NONE;
+        this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandContext<Player>) {
         const boolean = reader.readString();
 
         if (boolean === 'true') return true;
@@ -346,13 +346,13 @@ export class PlayerArgumentCommand implements CommandArgument {
     private postfix: string | null;
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
-        this.name = data?.name || 'player';
-        this.optional = data?.optional || false;
-        this.flags = data?.flags || CommandParameterFlags.NONE;
-        this.postfix = data?.postfix || null;
+        this.name = data?.name ?? 'player';
+        this.optional = data?.optional ?? false;
+        this.flags = data?.flags ?? CommandParameterFlags.NONE;
+        this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandContext<Player>) {
         const player = reader.readString();
         return player;
     }
