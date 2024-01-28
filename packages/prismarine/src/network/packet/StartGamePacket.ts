@@ -64,7 +64,7 @@ export default class StartGamePacket extends DataPacket {
         // waiting for more info about it
         this.writeBoolean(true); // Achievement disabled
 
-        this.writeBoolean(false); // Is editor mode?
+        this.writeVarInt(0); // Editor world type?
         this.writeBoolean(false); // Created in editor mode?
         this.writeBoolean(false); // Exported from editor mode?
 
