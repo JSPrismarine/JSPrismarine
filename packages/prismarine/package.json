@@ -4,6 +4,12 @@
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "main": "./dist/Prismarine.js",
     "types": "./dist/Prismarine.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/Prismarine.js",
+            "types": "./dist/Prismarine.d.ts"
+        }
+    },
     "type": "module",
     "funding": "https://github.com/sponsors/JSPrismarine",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/prismarine",

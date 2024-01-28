@@ -16,7 +16,7 @@ jobs:
                   node-version: 21
                   cache: 'npm'
             - run: npm install
-            - run: npm run build:source
+            - run: npm run build
             - run: npm run test:eslint
     lint-prettier:
         runs-on: ubuntu-latest
@@ -30,7 +30,7 @@ jobs:
                   node-version: 21
                   cache: 'npm'
             - run: npm install
-            - run: npm run build:source
+            - run: npm run build
             - run: npm run test:prettier
     # lint-coveralls:
     #    runs-on: ubuntu-latest
