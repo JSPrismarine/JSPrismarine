@@ -39,12 +39,12 @@ export default class Command {
     /**
      * Register the command.
      */
-    public async register(dispatcher: CommandDispatcher<any>): Promise<void> {}
+    public async register(_dispatcher: CommandDispatcher<any>): Promise<void> {}
 
     /**
      * Run the command.
      *
      * @deprecated Replaced with "Command.register"
      */
-    public async execute(sender: Player, args: any[]): Promise<any> {}
+    public async execute(_sender: Player, _args: any[]): Promise<any> {}
 }

@@ -8,12 +8,18 @@ import cwd from '../utils/cwd.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
+/**
+ * Standard world data.
+ */
 export interface WorldData {
     seed: number;
     provider: string;
     generator: string;
 }
 
+/**
+ * The world manager is responsible level loading, unloading, and general level management.
+ */
 export default class WorldManager {
     private readonly worlds: Map<string, World> = new Map() as Map<string, World>;
     private defaultWorld!: World;
@@ -31,6 +37,9 @@ export default class WorldManager {
         }
     }
 
+    /**
+     * Enable the manager and load all worlds.
+     */
     public async onEnable(): Promise<void> {
         this.addProvider('Filesystem', Filesystem);
         this.addProvider('Anvil', Anvil);
@@ -44,9 +53,12 @@ export default class WorldManager {
         const worldData = this.server.getConfig().getWorlds()[defaultWorld];
         if (!worldData) throw new Error(`Invalid level-name`);
 
-        const world = await this.loadWorld(worldData, defaultWorld);
+        void (await this.loadWorld(worldData, defaultWorld));
     }
 
+    /**
+     * Signifies that the manager is being disabled and all worlds should be unloaded.
+     */
     public async onDisable(): Promise<void> {
         await Promise.all(this.getWorlds().map(async (world) => this.unloadWorld(world.getName())));
         this.providers.clear();

@@ -195,7 +195,7 @@ export default class World {
      * @param cx
      * @param cz
      */
-    public async loadChunk(cx: number, cz: number, ignoreWarn?: boolean): Promise<Chunk> {
+    public async loadChunk(cx: number, cz: number, _ignoreWarn?: boolean): Promise<Chunk> {
         const index = Chunk.packXZ(cx, cz);
         // Try - catch for provider errors
         const chunk = await this.provider.readChunk(cx, cz, this.seed, this.generator, this.config);

@@ -224,7 +224,7 @@ export default class Client extends EventEmitter {
         return this.address;
     }
 
-    public async removeConnection(connection: RakNetSession, reason?: string): Promise<void> {
+    public async removeConnection(_connection: RakNetSession, _reason?: string): Promise<void> {
         throw new Error('Method not implemented.');
     }
 }

@@ -14,7 +14,7 @@ export default class Chunk {
     private subChunks: Map<number, SubChunk> = new Map();
     private static readonly EMPTY_SUBCHUNK = new SubChunk();
 
-    public constructor(chunkX = 0, chunkZ = 0, subChunks: Map<number, SubChunk> = new Map()) {
+    public constructor(chunkX = 0, chunkZ = 0, _subChunks: Map<number, SubChunk> = new Map()) {
         this.x = chunkX;
         this.z = chunkZ;
         this.hasChanged = false;
@@ -72,7 +72,7 @@ export default class Chunk {
         return this.subChunks;
     }
 
-    public getHighestBlockAt(x: number, z: number): number {
+    public getHighestBlockAt(_x: number, _z: number): number {
         return 100;
     }
 
@@ -169,7 +169,7 @@ export default class Chunk {
      *
      * @param stream the network stream
      */
-    public static networkDeserialize(stream: BinaryStream): Chunk {
+    public static networkDeserialize(stream: BinaryStream, x?: number, z?: number): Chunk {
         stream.read(8); // skip fake subchunks
 
         const subChunks: Map<number, SubChunk> = new Map();
@@ -177,7 +177,7 @@ export default class Chunk {
             subChunks.set(i, SubChunk.networkDeserialize(stream));
         }
 
-        const chunk = new Chunk(undefined, undefined, subChunks);
+        const chunk = new Chunk(x, z, subChunks);
         return chunk;
     }
 }

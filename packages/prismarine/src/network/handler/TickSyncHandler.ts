@@ -7,7 +7,7 @@ import type TickSyncPacket from '../packet/TickSyncPacket.js';
 export default class TickSyncHandler implements PacketHandler<TickSyncPacket> {
     public static NetID = Identifiers.TickSyncPacket;
 
-    public handle(_packet: TickSyncPacket, _server: Server, session: PlayerSession): void {
+    public handle(_packet: TickSyncPacket, _server: Server, _session: PlayerSession): void {
         // TODO: stub
     }
 }
