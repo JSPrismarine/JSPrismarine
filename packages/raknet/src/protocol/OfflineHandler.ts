@@ -36,7 +36,7 @@ export default class OfflineHandler {
 
                 const guid = this.listener.getServerGuid();
                 pong.serverGuid = guid;
-                pong.serverName = 'MCPE;JSPrismarine;560;1.19.51;0;20;' + guid + ';Second line;Creative;';
+                pong.serverName = `MCPE;JSPrismarine;630;1.20.50;0;20;${guid};Second line;Creative;`; // TODO: Respect config.
 
                 this.listener.sendPacket(pong, rinfo);
                 break;
