@@ -2,6 +2,9 @@ import { BlockIdsType } from '../BlockIdsType.js';
 import { BlockToolType } from '../BlockToolType.js';
 import Solid from '../Solid.js';
 
+/**
+ * Concrete color variations.
+ */
 export enum ConcreteColorType {
     White = 0,
     Orange = 1,

@@ -74,7 +74,7 @@ export default class SubChunk {
     public static networkDeserialize(stream: BinaryStream): SubChunk {
         const subChunk = new SubChunk();
 
-        const version = stream.readByte();
+        // const version = stream.readByte();
         const layerCount = stream.readByte();
 
         for (let i = 0; i < layerCount; i++) {

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createRequire } from 'module';
 
 export class Plugin {
+    // eslint-disable-next-line unused-imports/no-unused-vars
     public constructor(api: PluginApi) {}
     public async onEnable() {}
     public async onDisable() {}

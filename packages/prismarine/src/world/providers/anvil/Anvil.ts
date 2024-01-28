@@ -79,7 +79,7 @@ export default class Anvil extends BaseProvider {
         return chunk;
     }
 
-    public async writeChunk(chunk: Chunk) {
+    public async writeChunk(_chunk: Chunk) {
         /* const ch = new ChunkProvider();
 
         const saveBlock = async (pos: Vector3) => {

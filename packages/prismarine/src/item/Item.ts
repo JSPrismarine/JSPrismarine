@@ -78,7 +78,7 @@ export default class Item {
         return 0;
     }
 
-    public hasEnchantment(enchantment: ItemEnchantmentType) {
+    public hasEnchantment(_enchantment: ItemEnchantmentType) {
         return false;
     }
 
@@ -164,8 +164,8 @@ export default class Item {
             return new Item({ id: 0, name: 'minecraft:air' });
         }
 
-        const count = stream.readUnsignedShortLE();
-        const netData = stream.readUnsignedVarInt();
+        const count = stream.readUnsignedShortLE(); // eslint-disable-line unused-imports/no-unused-vars
+        const netData = stream.readUnsignedVarInt(); // eslint-disable-line unused-imports/no-unused-vars
 
         // TODO: refactor everything basically...
         if (extra && stream.readBoolean()) {
@@ -176,15 +176,15 @@ export default class Item {
         // const amount = temp & 0xff;
         const data = temp >> 8;
 
-        let nbt = null;
+        let _nbt = null;
         const extraLen = stream.readUnsignedShortLE();
         if (extraLen === -1) {
-            const version = stream.readByte();
+            const version = stream.readByte(); // eslint-disable-line unused-imports/no-unused-vars
 
             try {
                 const nbtReader = new NBTReader(stream, ByteOrder.ByteOrder.LITTLE_ENDIAN);
                 nbtReader.setUseVarint(true);
-                nbt = nbtReader.parse();
+                _nbt = nbtReader.parse();
             } catch (e) {
                 throw new Error(`Failed to parse item stack nbt: ${e}`);
                 // TODO: Just log and return AIR

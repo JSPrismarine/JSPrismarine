@@ -19,8 +19,8 @@ describe('network', () => {
                             }
                         })
                     }),
-                    sendDataPacket: (packet: any) => {},
-                    initPlayerConnection: (server: any, player: any) => ({
+                    sendDataPacket: (_packet: any) => {},
+                    initPlayerConnection: (_server: any, _player: any) => ({
                         sendPlayStatus: (status: any) => {
                             expect(status).toStrictEqual(PlayStatusType.LoginSuccess);
                         }
@@ -33,7 +33,7 @@ describe('network', () => {
                         sendPlayStatus: (status: any) => {
                             expect(status).toBe(0);
                         },
-                        sendDataPacket: (packet: any) => {
+                        sendDataPacket: (_packet: any) => {
                             expect(player.username.name).toStrictEqual({
                                 name: 'runner'
                             });
@@ -49,7 +49,7 @@ describe('network', () => {
                     pk,
                     {
                         getBanManager: () => ({
-                            isBanned: (player: any) => {
+                            isBanned: (_player: any) => {
                                 return false;
                             }
                         }),
@@ -57,22 +57,22 @@ describe('network', () => {
                             return null;
                         },
                         getEventManager: () => ({
-                            on: (event: any, handler: any) => {}
+                            on: (_event: any, _handler: any) => {}
                         }),
                         getWorldManager: () => ({
                             getDefaultWorld: () => ({
                                 addEntity: () => {},
-                                getPlayerData(player: any) {
+                                getPlayerData(_player: any) {
                                     return { position: { x: 0, y: 0, z: 0 }, inventory: [] };
                                 }
                             })
                         }),
                         getPermissionManager: () => ({
-                            getPermissions(player: any) {
+                            getPermissions(_player: any) {
                                 return null;
                             }
                         }),
-                        getPlayerByExactName(name: string) {
+                        getPlayerByExactName(_name: string) {
                             return null;
                         }
                     } as any,
@@ -98,10 +98,10 @@ describe('network', () => {
                     getRakNetSession: () => ({
                         getAddress: () => {}
                     }),
-                    initPlayerConnection: (server: any, player: any) => ({
-                        sendPlayStatus: (status: any) => {}
+                    initPlayerConnection: (_server: any, _player: any) => ({
+                        sendPlayStatus: (_status: any) => {}
                     }),
-                    sendDataPacket: (packet: any) => {}
+                    sendDataPacket: (_packet: any) => {}
                 } as any;
 
                 const handler = new LoginHandler();
@@ -109,7 +109,7 @@ describe('network', () => {
                     pk,
                     {
                         getBanManager: () => ({
-                            isBanned: (player: any) => {
+                            isBanned: (_player: any) => {
                                 return false;
                             }
                         }),
@@ -117,22 +117,22 @@ describe('network', () => {
                             return null;
                         },
                         getEventManager: () => ({
-                            on: (event: any, handler: any) => {}
+                            on: (_event: any, _handler: any) => {}
                         }),
                         getWorldManager: () => ({
                             getDefaultWorld: () => ({
                                 addEntity: () => {},
-                                getPlayerData(player: any) {
+                                getPlayerData(_player: any) {
                                     return { position: { x: 0, y: 0, z: 0 }, inventory: [] };
                                 }
                             })
                         }),
                         getPermissionManager: () => ({
-                            getPermissions(player: any) {
+                            getPermissions(_player: any) {
                                 return null;
                             }
                         }),
-                        getPlayerByExactName(name: string) {
+                        getPlayerByExactName(_name: string) {
                             return null;
                         }
                     } as any,
@@ -159,10 +159,10 @@ describe('network', () => {
                     getRakNetSession: () => ({
                         getAddress: () => {}
                     }),
-                    initPlayerConnection: (server: any, player: any) => ({
-                        sendPlayStatus: (status: any) => {}
+                    initPlayerConnection: (_server: any, _player: any) => ({
+                        sendPlayStatus: (_status: any) => {}
                     }),
-                    sendDataPacket: (packet: any) => {}
+                    sendDataPacket: (_packet: any) => {}
                 } as any;
 
                 const handler = new LoginHandler();
@@ -170,7 +170,7 @@ describe('network', () => {
                     pk,
                     {
                         getBanManager: () => ({
-                            isBanned: (player: any) => {
+                            isBanned: (_player: any) => {
                                 return false;
                             }
                         }),
@@ -178,22 +178,22 @@ describe('network', () => {
                             return null;
                         },
                         getEventManager: () => ({
-                            on: (event: any, handler: any) => {}
+                            on: (_event: any, _handler: any) => {}
                         }),
                         getWorldManager: () => ({
                             getDefaultWorld: () => ({
                                 addEntity: () => {},
-                                getPlayerData(player: any) {
+                                getPlayerData(_player: any) {
                                     return { position: { x: 0, y: 0, z: 0 }, inventory: [] };
                                 }
                             })
                         }),
                         getPermissionManager: () => ({
-                            getPermissions(player: any) {
+                            getPermissions(_player: any) {
                                 return null;
                             }
                         }),
-                        getPlayerByExactName(name: string) {
+                        getPlayerByExactName(_name: string) {
                             return null;
                         }
                     } as any,
@@ -217,7 +217,7 @@ describe('network', () => {
                     kick: (message: any) => {
                         expect(message).toBe('Invalid username!');
                     },
-                    disconnect: (reason: any, hideReason: any) => {}
+                    disconnect: (_reason: any, _hideReason: any) => {}
                 } as any;
 
                 const handler = new LoginHandler();
@@ -252,7 +252,7 @@ describe('network', () => {
                 pk.protocol = Identifiers.Protocol + 10;
 
                 const connection = {
-                    sendDataPacket: (packet: any) => {}
+                    sendDataPacket: (_packet: any) => {}
                 } as any;
 
                 const handler = new LoginHandler();

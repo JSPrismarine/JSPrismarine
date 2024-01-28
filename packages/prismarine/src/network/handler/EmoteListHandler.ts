@@ -7,7 +7,7 @@ import type Server from '../../Server.js';
 export default class EmoteListHandler implements PacketHandler<EmoteListPacket> {
     public static NetID = Identifiers.EmoteListPacket;
 
-    public handle(_packet: EmoteListPacket, _server: Server, session: PlayerSession): void {
+    public handle(_packet: EmoteListPacket, _server: Server, _session: PlayerSession): void {
         // TODO: stub
     }
 }

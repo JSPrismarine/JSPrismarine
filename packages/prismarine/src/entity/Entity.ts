@@ -226,7 +226,7 @@ export default class Entity extends Position {
      * @param message The message
      * @param type The text type
      */
-    public sendMessage(message: string, type: TextType = TextType.Raw) {}
+    public sendMessage(_message: string, _type: TextType = TextType.Raw) {}
 
     /**
      * Get the entity's position.
@@ -328,7 +328,7 @@ export default class Entity extends Position {
      
      * @param entity the entity collided with
      */
-    public async onCollide(entity: Entity) {}
+    public async onCollide(_entity: Entity) {}
 
     /**
      * Returns the nearest entity from the current entity.

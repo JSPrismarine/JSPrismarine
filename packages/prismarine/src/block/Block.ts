@@ -91,7 +91,7 @@ export default class Block {
     /**
      * Get the Block's break time.
      */
-    public getBreakTime(item: Item | null, server: Server) {
+    public getBreakTime(_item: Item | null, _server: Server) {
         return this.getHardness(); // TODO: Fix break time calculations
 
         /* let base = this.getHardness();
@@ -138,7 +138,7 @@ export default class Block {
     /**
      * Get the Block's drop(s) if the tool is compatible.
      */
-    public getDropsForCompatibleTool(item: Item | null, server: Server): Array<Block | Item | null> {
+    public getDropsForCompatibleTool(_item: Item | null, _server: Server): Array<Block | Item | null> {
         return [this];
     }
 
@@ -159,7 +159,7 @@ export default class Block {
     /**
      * Get the Block's drop(s) if silk touch is used.
      */
-    public getSilkTouchDrops(item: Item, server: Server) {
+    public getSilkTouchDrops(_item: Item, _server: Server) {
         return [this];
     }
 

@@ -7,7 +7,7 @@ import Server from '../../Server.js';
 export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPacket> {
     public static NetID = Identifiers.MobEquipmentPacket;
 
-    public handle(_packet: MobEquipmentPacket, _server: Server, session: PlayerSession): void {
+    public handle(_packet: MobEquipmentPacket, _server: Server, _session: PlayerSession): void {
         // TODO
     }
 }

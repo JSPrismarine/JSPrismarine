@@ -28,7 +28,8 @@
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
     "dependencies": {
-        "@jsprismarine/nbt": "*",
+        "@jsprismarine/raknet": "0.1.0-rc.52",
+        "@jsprismarine/nbt": "0.1.0-rc.52",
         "@jsprismarine/jsbinaryutils": "5.4.4",
         "fflate": "0.8.1",
         "node-fetch": "3.3.2",

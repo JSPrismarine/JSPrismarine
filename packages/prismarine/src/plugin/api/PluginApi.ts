@@ -22,23 +22,24 @@ export default class PluginApi {
      * Returns an instance of the logger builder class with the plugin name prefixed
      */
     public getLogger(): LoggerBuilder {
-        const name = this.pkg.prismarine?.displayName || this.pkg.name;
+        const displayName = this.pkg?.prismarine?.displayName || this.pkg.name;
+        const name = this.pkg?.name;
 
         return {
             silly: (...args) => {
-                this.server.getLogger()?.debug(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger()?.debug(`[${displayName}] ${args}`, name);
             },
             debug: (...args) => {
-                this.server.getLogger()?.verbose(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger()?.verbose(`[${displayName}] ${args}`, name);
             },
             info: (...args) => {
-                this.server.getLogger()?.info(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger()?.info(`[${displayName}] ${args}`, name);
             },
             warn: (...args) => {
-                this.server.getLogger()?.warn(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger()?.warn(`[${displayName}] ${args}`, name);
             },
             error: (...args) => {
-                this.server.getLogger()?.error(`[${name}] ${args}`, this.pkg.name);
+                this.server.getLogger()?.error(`[${displayName}] ${args}`, name);
             }
         } as LoggerBuilder;
     }
