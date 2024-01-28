@@ -3,6 +3,7 @@
     "version": "0.1.0-rc.52",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "prettier": "@nordcom/prettier",
+    "private": true,
     "workspaces": [
         "packages/*"
     ],
@@ -18,8 +19,7 @@
         "start:dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./packages/server/dist/Server.js | pino-pretty -L 10",
         "dev": "nodemon --quiet --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run server:build && npm run start:dev\"",
         "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run server:build && npm run start:dev",
-        "build": "concurrently --raw npm:build:*",
-        "build:source": "turbo run build",
+        "build": "turbo run build",
         "build:docs": "typedoc",
         "server:build": "turbo run build --filter=@jsprismarine/server",
         "watch:test": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
