@@ -21,14 +21,13 @@ export default class BlockMappings {
 
     public static initMappings(): void {
         const stream = new BinaryStream(
-            gunzipSync(BedrockData.canonical_block_states)
-             // Vanilla states
+            gunzipSync(BedrockData.canonical_block_states) // Vanilla states
         );
         const reader: NBTReader = new NBTReader(stream, ByteOrder.ByteOrder.BIG_ENDIAN);
 
         for (const blockTag of reader.parseList<NBTTagCompound>()) {
-            const name = blockTag.getString("name", "minecraft:air");
-            const runtimeId = blockTag.getNumber("runtimeId", 0);  //TODO Air runtime ID 
+            const name = blockTag.getString('name', 'minecraft:air');
+            const runtimeId = blockTag.getNumber('runtimeId', 0); //TODO Air runtime ID
             this.registerMapping(name, runtimeId);
         }
     }
