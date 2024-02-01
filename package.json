@@ -202,7 +202,7 @@
         "@nordcom/prettier": "0.1.1",
         "@types/async-exit-hook": "2.0.2",
         "@types/heap": "0.2.34",
-        "@types/jest": "29.5.11",
+        "@types/jest": "29.5.12",
         "@types/node": "20.11.15",
         "concurrently": "8.2.2",
         "cross-env": "7.0.3",
