@@ -237,7 +237,7 @@
         "live-plugin-manager": "0.18.1",
         "node-fetch": "3.3.2",
         "node-machine-id": "1.1.12",
-        "semver": "7.5.4",
+        "semver": "7.6.0",
         "simplex-noise": "4.0.1",
         "strip-json-comments": "5.0.1",
         "unzipper": "0.10.14",
