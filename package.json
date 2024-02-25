@@ -242,6 +242,6 @@
         "strip-json-comments": "5.0.1",
         "unzipper": "0.10.14",
         "winston": "3.11.0",
-        "yaml": "2.3.4"
+        "yaml": "2.4.0"
     }
 }
