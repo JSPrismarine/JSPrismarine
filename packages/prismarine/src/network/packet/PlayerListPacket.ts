@@ -15,6 +15,7 @@ interface PlayerListData {
     skin?: Skin | null;
     isTeacher?: boolean;
     isHost?: boolean;
+    isSubClient?: boolean; // TODO
 }
 
 export class PlayerListEntry {
@@ -59,6 +60,7 @@ export class PlayerListEntry {
         this.getSkin()!.networkSerialize(stream);
         stream.writeBoolean(this.isTeacher());
         stream.writeBoolean(this.isHost());
+        stream.writeBoolean(false); // is sub client
     }
 
     public getUUID(): UUID {

@@ -54,7 +54,7 @@ export default class Player extends Human {
     public xuid = '';
     public skin: Skin | null = null;
 
-    public viewDistance: any;
+    public viewDistance = 0;
     public gamemode = 0;
 
     public pitch = 0;

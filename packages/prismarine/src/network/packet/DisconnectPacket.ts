@@ -6,20 +6,20 @@ export default class DisconnectPacket extends DataPacket {
     public static NetID = Identifiers.DisconnectPacket;
 
     public reason!: number;
-    public hideDisconnectionWindow!: boolean;
+    public skipMessage!: boolean;
     public message!: string;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarInt(this.reason);
-        this.writeBoolean(this.hideDisconnectionWindow);
+        this.writeBoolean(this.skipMessage);
 
-        if (!this.hideDisconnectionWindow) McpeUtil.writeString(this, this.message);
+        if (!this.skipMessage) McpeUtil.writeString(this, this.message);
     }
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.reason = this.readVarInt();
-        this.hideDisconnectionWindow = this.readBoolean();
+        this.skipMessage = this.readBoolean();
 
-        if (!this.hideDisconnectionWindow) this.message = McpeUtil.readString(this);
+        if (!this.skipMessage) this.message = McpeUtil.readString(this);
     }
 }

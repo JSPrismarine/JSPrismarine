@@ -6,9 +6,10 @@ export enum CompressionThreshold {
     COMPRESS_EVERYTHING
 }
 
-export enum CompressionAlgorithm {
+export enum PacketCompressionAlgorithm {
     ZLIB,
-    SNAPPY
+    SNAPPY,
+    NONE = 0xffff & 0xff // Mojang defined it as 0xFFFF but it's actually a byte :'D
 }
 
 export default class NetworkSettingsPacket extends DataPacket {
@@ -17,22 +18,22 @@ export default class NetworkSettingsPacket extends DataPacket {
     public compressionThreshold!: number;
     public compressionAlgorithm!: number;
 
-    public enableClientThrottling!: boolean;
+    public clientThrottlingEnabled!: boolean;
     public clientThrottleThreshold!: number;
     public clientThrottleScalar!: number;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.compressionThreshold = this.readUnsignedShortLE();
         this.compressionAlgorithm = this.readUnsignedShortLE();
-        this.enableClientThrottling = this.readBoolean();
+        this.clientThrottlingEnabled = this.readBoolean();
         this.clientThrottleThreshold = this.readByte();
         this.clientThrottleScalar = this.readFloatLE();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeUnsignedShortLE(this.compressionThreshold);
         this.writeUnsignedShortLE(this.compressionAlgorithm);
-        this.writeBoolean(this.enableClientThrottling);
+        this.writeBoolean(this.clientThrottlingEnabled);
         this.writeByte(this.clientThrottleThreshold);
         this.writeFloatLE(this.clientThrottleScalar);
     }
