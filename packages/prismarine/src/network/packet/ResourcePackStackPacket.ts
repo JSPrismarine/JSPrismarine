@@ -5,26 +5,26 @@ import McpeUtil from '../NetworkUtil';
 export default class ResourcePackStackPacket extends DataPacket {
     public static NetID = Identifiers.ResourcePackStackPacket;
 
-    public mustAccept!: boolean;
-    public behaviorPackStack = [];
-    public resourcePackStack = [];
+    public texturePackRequired!: boolean;
+    public addonList = [];
+    public texturePackList = [];
 
     // TODO: make a holder / manager
     public experiments: Map<string, boolean> = new Map();
     public experimentsAlreadyEnabled!: boolean;
 
     public encodePayload() {
-        this.writeBoolean(this.mustAccept);
+        this.writeBoolean(this.texturePackRequired);
 
-        this.writeUnsignedVarInt(this.behaviorPackStack.length);
-        for (const _behaviorPackStack of this.behaviorPackStack) {
+        this.writeUnsignedVarInt(this.addonList.length);
+        for (const _behaviorPackStack of this.addonList) {
             McpeUtil.writeString(this, '');
             McpeUtil.writeString(this, '');
             McpeUtil.writeString(this, '');
         }
 
-        this.writeUnsignedVarInt(this.resourcePackStack.length);
-        for (const _resourcePackStack of this.resourcePackStack) {
+        this.writeUnsignedVarInt(this.texturePackList.length);
+        for (const _resourcePackStack of this.texturePackList) {
             McpeUtil.writeString(this, '');
             McpeUtil.writeString(this, '');
             McpeUtil.writeString(this, '');

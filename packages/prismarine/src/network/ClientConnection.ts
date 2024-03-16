@@ -34,7 +34,7 @@ export default class ClientConnection extends MinecraftSession {
 
     public disconnect(reason = 'disconnect.disconnected', hideReason = true): void {
         const packet = new DisconnectPacket();
-        packet.hideDisconnectionWindow = hideReason;
+        packet.skipMessage = hideReason;
         packet.message = reason;
         void this.sendDataPacket(packet);
 
