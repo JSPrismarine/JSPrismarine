@@ -2,6 +2,8 @@ import { inflate, inflateSync } from 'fflate';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Zlib from 'zlib';
+import CompressionProvider from '../CompressionProvider.js';
+import { PacketCompressionAlgorithm } from './NetworkSettingsPacket.js';
 
 /**
  * @internal
@@ -23,27 +25,21 @@ export default class BatchPacket extends DataPacket {
     }
 
     public decodePayload(): void {
-        const rem = this.readRemaining();
-        this.payload.write(this.compressed ? inflateSync(rem) : rem);
+        this.payload.write(
+            this.compressed
+                ? CompressionProvider.fromAlgorithmSync(this.readByte())(this.readRemaining())
+                : this.readRemaining()
+        );
     }
 
     public async asyncDecode(): Promise<Buffer[]> {
         this.decodeHeader();
 
-        const rem = this.readRemaining();
-
         try {
             this.payload.write(
                 this.compressed
-                    ? await new Promise((resolve, reject) => {
-                          inflate(rem, (err, data) => {
-                              if (err) {
-                                  reject(err);
-                              }
-                              resolve(data);
-                          });
-                      })
-                    : rem
+                    ? await CompressionProvider.fromAlgorithm(this.readByte())(this.readRemaining())
+                    : this.readRemaining()
             );
         } catch (e) {
             throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
@@ -60,6 +56,9 @@ export default class BatchPacket extends DataPacket {
         // this.append(Buffer.from(Fflate.deflateSync(this.payload, { level: 7 })));
         // Seems like Zlib runs a little bit better for deflating, will see in future with async...
         // this.write(Zlib.deflateRawSync(this.payload.getBuffer(), { level: 7 }));
+        if (this.compressed) {
+            this.writeByte(PacketCompressionAlgorithm.ZLIB);
+        }
         this.write(
             this.compressed ? Zlib.deflateRawSync(this.payload.getBuffer(), { level: 7 }) : this.payload.getBuffer()
         );

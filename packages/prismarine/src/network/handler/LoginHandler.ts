@@ -72,9 +72,10 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
 
         // Finalize connection handshake
         const resourcePacksInfo = new ResourcePacksInfoPacket();
-        resourcePacksInfo.mustAccept = false;
-        resourcePacksInfo.forceAccept = false;
+        resourcePacksInfo.resourcePackRequired = false;
+        resourcePacksInfo.forceServerPacksEnabled = false;
         resourcePacksInfo.hasScripts = false;
+        resourcePacksInfo.hasAddonPacks = false;
         await connection.sendDataPacket(resourcePacksInfo, true);
     }
 }

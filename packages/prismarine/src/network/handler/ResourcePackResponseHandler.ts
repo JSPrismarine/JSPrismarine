@@ -25,7 +25,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
     public async handle(packet: ResourcePackResponsePacket, server: Server, session: PlayerSession): Promise<void> {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
             const resourcePackStack = new ResourcePackStackPacket();
-            resourcePackStack.mustAccept = false;
+            resourcePackStack.texturePackRequired = false;
             resourcePackStack.experimentsAlreadyEnabled = false;
             await session.getConnection().sendDataPacket(resourcePackStack);
         } else if (packet.status === ResourcePackStatusType.Completed) {

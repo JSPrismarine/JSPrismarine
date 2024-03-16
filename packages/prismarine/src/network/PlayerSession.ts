@@ -643,7 +643,7 @@ export default class PlayerSession {
 
     public async kick(reason = 'unknown reason'): Promise<void> {
         const pk = new DisconnectPacket();
-        pk.hideDisconnectionWindow = false;
+        pk.skipMessage = false;
         pk.message = reason;
         await this.connection.sendDataPacket(pk, true);
     }
