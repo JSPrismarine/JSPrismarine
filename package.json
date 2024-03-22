@@ -4,32 +4,39 @@
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "prettier": "@nordcom/prettier",
     "private": true,
+    "type": "module",
     "workspaces": [
         "packages/*"
     ],
     "bin": {
         "prismarine": "packages/server/dist/Server.js"
     },
+    "packageManager": "pnpm@8.15.5",
     "engines": {
-        "node": ">=21.0.0",
-        "npm": ">=8.0.0"
+        "node": ">=21.0.0"
     },
     "scripts": {
         "start": "node ./packages/server/dist/Server.js --warning --circular",
         "start:dev": "cross-env NODE_ENV=development JSP_DIR=jsp node ./packages/server/dist/Server.js | pino-pretty -L 10",
-        "dev": "nodemon --quiet --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"npm run server:build && npm run start:dev\"",
-        "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp npm run server:build && npm run start:dev",
+        "dev": "nodemon --quiet --no-stdin --watch \"./packages\" --ignore \"**/*.d.ts\" --ignore \"**/*.js\" --ignore \"**/*.md\" -e ts,js,json --exec \"pnpm run server:build && pnpm run start:dev\"",
+        "dev:no-watch": "cross-env NODE_ENV=development JSP_DIR=jsp pnpm run server:build && pnpm run start:dev",
         "build": "turbo run build",
         "build:docs": "typedoc",
         "server:build": "turbo run build --filter=@jsprismarine/server",
         "watch:test": "jest --passWithNoTests --watch --detectOpenHandles --runInBand",
-        "test": "concurrently npm:test:*",
+        "test": "concurrently pnpm:test:*",
         "test:jest": "cross-env NODE_OPTIONS=\"--loader ts-node/esm --loader=esmock\" jest --passWithNoTests --testLocationInResults --silent --detectOpenHandles --forceExit",
         "test:eslint": "xo packages/**/src/ --ignore '*.test.*'",
         "test:prettier": "prettier packages/**/src/**/*.* --check && prettier packages/**/src/**/*.* --check",
-        "format": "concurrently npm:format:*",
-        "format:eslint": "xo --fix packages/**/src/",
-        "format:prettier": "prettier packages/**/src/**/*.* --write && prettier packages/**/src/**/*.* --write"
+        "format": "concurrently pnpm:format:*",
+        "format:eslint": "xo --fix packages/**/src/*.ts",
+        "format:prettier": "prettier packages/**/src/**/*.* --write && prettier packages/**/src/**/*.* --write",
+        "version": "changeset version",
+        "postversion": "pnpm install",
+        "version:unstable": "changeset version --snapshot unstable",
+        "release": "changeset publish",
+        "release:unstable": "changeset publish --snapshot --no-git-tag --tag unstable",
+        "changeset": "changeset"
     },
     "repository": {
         "type": "git",
@@ -199,6 +206,9 @@
     },
     "homepage": "https://github.com/JSPrismarine/JSPrismarine#readme",
     "devDependencies": {
+        "@changesets/changelog-github": "0.5.0",
+        "@changesets/cli": "2.27.1",
+        "@changesets/types": "6.0.0",
         "@nordcom/prettier": "0.1.1",
         "@types/async-exit-hook": "2.0.2",
         "@types/heap": "0.2.34",
@@ -208,7 +218,9 @@
         "cross-env": "7.0.3",
         "eslint-plugin-unused-imports": "3.1.0",
         "esmock": "2.6.4",
+        "husky": "9.0.11",
         "jest": "29.7.0",
+        "lint-staged": "15.2.2",
         "nodemon": "3.1.0",
         "pino-pretty": "11.0.0",
         "prettier": "3.2.5",
@@ -217,8 +229,7 @@
         "turbo": "1.13.0",
         "typedoc": "0.25.12",
         "typescript": "5.4.3",
-        "xo": "0.58.0",
-        "yarnhook": "0.6.2"
+        "xo": "0.56.0"
     },
     "dependencies": {
         "@jsprismarine/bedrock-data": "1.20.70",

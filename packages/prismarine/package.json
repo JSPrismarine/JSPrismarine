@@ -1,7 +1,13 @@
 {
+    "$schema": "https://json.schemastore.org/package.json",
     "name": "@jsprismarine/prismarine",
+    "type": "module",
     "version": "0.1.0-rc.54",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
+    "prettier": "@nordcom/prettier",
+    "files": [
+        "dist"
+    ],
     "main": "./dist/Prismarine.js",
     "types": "./dist/Prismarine.d.ts",
     "exports": {
@@ -10,7 +16,9 @@
             "types": "./dist/Prismarine.d.ts"
         }
     },
-    "type": "module",
+    "publishConfig": {
+        "access": "public"
+    },
     "funding": "https://github.com/sponsors/JSPrismarine",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/prismarine",
     "repository": {
@@ -34,12 +42,11 @@
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
     "dependencies": {
-        "@jsprismarine/raknet": "0.1.0-rc.54",
-        "@jsprismarine/nbt": "0.1.0-rc.54",
+        "@jsprismarine/raknet": "workspace:*",
+        "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/jsbinaryutils": "5.5.3",
         "fflate": "0.8.2",
         "node-fetch": "3.3.2",
         "yaml": "2.4.1"
-    },
-    "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
+    }
 }
