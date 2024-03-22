@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest';
+
 import Identifiers from '../Identifiers';
 import LoginHandler from './LoginHandler';
 import LoginPacket from '../packet/LoginPacket';

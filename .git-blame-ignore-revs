@@ -1,2 +1,5 @@
 # chore(project): move from CJS to ESM (#886)
 3c00d74a53386e95b4ef3ba9ee4b29f5a779793c
+
+# Meta: Update build system to tsup. 
+ed511181b47a1249bc9c97b3b9756ad88d48c965
