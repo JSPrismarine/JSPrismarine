@@ -1,10 +1,10 @@
-import ClientConnection from '../ClientConnection';
+import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
 import { PlayStatusPacket } from '../Packets';
 import PlayStatusType from '../type/PlayStatusType';
 import { Player } from '@';
-import PreLoginPacketHandler from './PreLoginPacketHandler';
+import type PreLoginPacketHandler from './PreLoginPacketHandler';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import type Server from '../../Server';
 
@@ -49,7 +49,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             await oldPlayer.kick('Logged in from another location');
         } catch {}
 
-        if (!player.xuid && server?.getConfig?.().getOnlineMode?.()) {
+        if (!player.xuid && server.getConfig().getOnlineMode()) {
             await player.kick('Server is in online-mode!');
             return;
         }

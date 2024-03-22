@@ -1,13 +1,14 @@
-import { ArgumentCommandNode, CommandDispatcher } from '@jsprismarine/brigadier';
+import type { ArgumentCommandNode } from '@jsprismarine/brigadier';
+import { CommandDispatcher } from '@jsprismarine/brigadier';
 
 import Chat from '../chat/Chat';
-import Command from './Command';
-import { CommandArgument } from './CommandArguments';
+import type Command from './Command';
+import type { CommandArgument } from './CommandArguments';
 // import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
-import Entity from '../entity/Entity';
-import { Player } from '@';
-import Server from '../Server';
+import type Entity from '../entity/Entity';
+import type { Player } from '@';
+import type Server from '../Server';
 import Timer from '../utils/Timer';
 import fs from 'node:fs';
 import url from 'node:url';
@@ -85,9 +86,11 @@ export default class CommandManager {
      * Register a command into command manager by class.
      */
     public async registerClassCommand(command: Command) {
+        if (!command) throw new Error(`command is missing`);
+        if (!command.id) throw new Error(`command is missing required "id" member`);
         if (command.id.split(':').length !== 2) throw new Error(`command is missing required "namespace" part of id`);
 
-        if (!command?.register)
+        if (!command.register)
             this.server
                 .getLogger()
                 ?.warn(
@@ -95,7 +98,7 @@ export default class CommandManager {
                     'CommandManager/registerClassCommand'
                 );
 
-        await command.register?.(this.dispatcher);
+        await command.register(this.dispatcher);
         this.commands.set(command.id, command);
 
         await Promise.all(
@@ -203,9 +206,9 @@ export default class CommandManager {
     /**
      * Dispatches a command and executes them.
      *
-     * @param sender the player/console who executed the command
-     * @param target the Player/entity/console who should execute the command
-     * @param input the command input including arguments
+     * @param sender - the player/console who executed the command
+     * @param target - the Player/entity/console who should execute the command
+     * @param input - the command input including arguments
      */
     public async dispatchCommand(sender: Player, target: Entity | Player, input = '') {
         try {

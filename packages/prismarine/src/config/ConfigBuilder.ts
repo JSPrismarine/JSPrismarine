@@ -139,15 +139,15 @@ export default class ConfigBuilder {
     /**
      * Get a config value from a key.
      *
-     * @param key the config key
-     * @param defaults the default value, optional
+     * @param key - the config key
+     * @param defaults - the default value, optional
      *
      * @returns the config value
      */
     public get(key: string, defaults?: any): any {
         const data = this.getFileData();
         let result = _.get(data, key);
-        if (defaults && typeof result === 'undefined' && typeof defaults !== 'undefined') {
+        if (typeof result === 'undefined' && typeof defaults !== 'undefined') {
             const newData = _.set(data, key, defaults);
             this.setFileData(newData);
             result = defaults;
@@ -173,7 +173,7 @@ export default class ConfigBuilder {
     /**
      * Check if config value exists.
      *
-     * @param key the config key
+     * @param key - the config key
      * @returns true if the config contains that key
      */
     public has(key: string): boolean {
@@ -185,7 +185,7 @@ export default class ConfigBuilder {
     /**
      * Delete a config value.
      *
-     * @param key the config key
+     * @param key - the config key
      * @returns true if the deletion was successful
      */
     public del(key: string): boolean {

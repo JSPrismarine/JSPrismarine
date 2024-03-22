@@ -15,7 +15,8 @@ export default class SetScoreboardIdentityPacket extends DataPacket {
     public decodePayload() {
         this.action = this.readByte();
         for (let i = 0, count = this.readUnsignedVarInt(); i < count; ++i) {
-            let entry: ScoreboardIdentityPacketEntry;
+            let entry: ScoreboardIdentityPacketEntry = {} as any;
+
             entry!.entryID = this.readVarLong();
             if (this.action === 0) {
                 entry!.entityUniqueID = this.readVarLong();

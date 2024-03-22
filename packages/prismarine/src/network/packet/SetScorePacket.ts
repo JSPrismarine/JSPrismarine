@@ -20,7 +20,8 @@ export default class SetScorePacket extends DataPacket {
     public decodePayload() {
         this.action = this.readByte();
         for (let i = 0, i2 = this.readUnsignedVarInt(); i < i2; ++i) {
-            let entry: ScorePacketEntry;
+            let entry: ScorePacketEntry = {} as any;
+
             entry!.entryID = this.readVarLong();
             entry!.objectiveName = McpeUtil.readString(this);
             entry!.score = this.readIntLE();

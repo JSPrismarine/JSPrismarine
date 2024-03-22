@@ -1,7 +1,8 @@
-import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
-import Player from '../../Player';
+import type Player from '../../Player';
 
 export default class TpsCommand extends Command {
     public constructor() {
@@ -14,9 +15,9 @@ export default class TpsCommand extends Command {
 
     private formatTPS(tps: number): string {
         let color = '§4';
+
         if (tps >= 19) color = '§2';
         else if (tps >= 15) color = '§e';
-        else color = '§4';
 
         return `${color}${tps}§r`;
     }

@@ -1,6 +1,7 @@
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
 import CommandParameter, { CommandParameterType } from './type/CommandParameter';
-import NetworkChunkPublisherUpdatePacket, { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket';
+import type { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket';
+import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
 import UpdateAbilitiesPacket, {
     AbilityLayer,
@@ -9,13 +10,13 @@ import UpdateAbilitiesPacket, {
 } from './packet/UpdateAbilitiesPacket';
 
 import AddPlayerPacket from './packet/AddPlayerPacket';
-import { Attribute } from '../entity/Attribute';
+import type { Attribute } from '../entity/Attribute';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import { BatchPacket } from './Packets';
 import BlockPosition from '../world/BlockPosition';
 import Chunk from '../world/chunk/Chunk';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
-import ClientConnection from './ClientConnection';
+import type ClientConnection from './ClientConnection';
 import CommandData from './type/CommandData';
 import CommandEnum from './type/CommandEnum';
 import CoordinateUtils from '../world/CoordinateUtils';
@@ -23,7 +24,7 @@ import CreativeContentPacket from './packet/CreativeContentPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
 import Gamemode from '../world/Gamemode';
 import Heap from 'heap';
-import IForm from '../form/IForm';
+import type IForm from '../form/IForm';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import Item from '../item/Item';
 import LevelChunkPacket from './packet/LevelChunkPacket';
@@ -90,7 +91,7 @@ export default class PlayerSession {
     /**
      * Notify a client about change(s) to the adventure settings.
      *
-     * @param player The client-controlled entity
+     * @param player - The client-controlled entity
      */
     public async sendSettings(player?: Player): Promise<void> {
         const target = player ?? this.player;
@@ -128,12 +129,12 @@ export default class PlayerSession {
             [AbilityLayerFlag.WORLD_BUILDER, false],
             [AbilityLayerFlag.INSTABUILD, target.gamemode === Gamemode.Creative],
             [AbilityLayerFlag.LIGHTNING, false],
-            [AbilityLayerFlag.BUILD, !(target.gamemode === Gamemode.Spectator)],
-            [AbilityLayerFlag.MINE, !(target.gamemode === Gamemode.Spectator)],
-            [AbilityLayerFlag.DOORS_AND_SWITCHES, !(target.gamemode === Gamemode.Spectator)],
-            [AbilityLayerFlag.OPEN_CONTAINERS, !(target.gamemode === Gamemode.Spectator)],
-            [AbilityLayerFlag.ATTACK_PLAYERS, !(target.gamemode === Gamemode.Spectator)],
-            [AbilityLayerFlag.ATTACK_MOBS, !(target.gamemode === Gamemode.Spectator)]
+            [AbilityLayerFlag.BUILD, target.gamemode !== Gamemode.Spectator],
+            [AbilityLayerFlag.MINE, target.gamemode !== Gamemode.Spectator],
+            [AbilityLayerFlag.DOORS_AND_SWITCHES, target.gamemode !== Gamemode.Spectator],
+            [AbilityLayerFlag.OPEN_CONTAINERS, target.gamemode !== Gamemode.Spectator],
+            [AbilityLayerFlag.ATTACK_PLAYERS, target.gamemode !== Gamemode.Spectator],
+            [AbilityLayerFlag.ATTACK_MOBS, target.gamemode !== Gamemode.Spectator]
         ]);
         mainLayer.flySpeed = 0.05;
         mainLayer.walkSpeed = 0.1;
@@ -209,7 +210,7 @@ export default class PlayerSession {
             }
         }
 
-        if (unloaded ?? !(this.chunkSendQueue.length === 0)) {
+        if (unloaded ?? this.chunkSendQueue.length !== 0) {
             await this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
         }
     }
@@ -279,7 +280,7 @@ export default class PlayerSession {
     /**
      * Sets the item in the player hand.
      *
-     * @param item The entity.
+     * @param item - The entity.
      */
     public async sendHandItem(item: Item): Promise<void> {
         const pk = new MobEquipmentPacket();
@@ -302,7 +303,7 @@ export default class PlayerSession {
     /**
      * Set the client's current tick.
      *
-     * @param tick The tick
+     * @param tick - The tick
      */
     public async sendTime(tick: number): Promise<void> {
         const pk = new SetTimePacket();
@@ -313,7 +314,7 @@ export default class PlayerSession {
     /**
      * Set the client's gamemode.
      *
-     * @param gamemode the numeric gamemode ID
+     * @param gamemode - the numeric gamemode ID
      */
     public async sendGamemode(gamemode: number): Promise<void> {
         const pk = new SetPlayerGameTypePacket();
@@ -364,7 +365,7 @@ export default class PlayerSession {
                 command[2].forEach((arg, index) => {
                     const parameters = arg
                         .map((parameter) => {
-                            const parameters = parameter?.getParameters?.();
+                            const parameters = parameter.getParameters();
                             if (parameters) return Array.from(parameters.values());
 
                             if (parameter instanceof CommandArgumentEntity)
@@ -417,7 +418,7 @@ export default class PlayerSession {
     /**
      * Set the client's maximum view distance.
      *
-     * @param distance The view distance
+     * @param distance - The view distance
      */
     public async setViewDistance(distance: number): Promise<void> {
         this.player.viewDistance = distance;
@@ -448,10 +449,11 @@ export default class PlayerSession {
      * @remarks
      * Refactor this completely.
      *
-     * @param message The message
-     * @param xuid The source xuid
-     * @param needsTranslation If the TextType requires translation
-     * @param type The text type
+     * @param message - The message
+     * @param xuid - The source xuid
+     * @param parameters -
+     * @param needsTranslation - If the TextType requires translation
+     * @param type - The text type
      */
     public async sendMessage(
         message: string,
@@ -590,7 +592,7 @@ export default class PlayerSession {
     /**
      * Spawn the player for another player
      *
-     * @param player the player to send the AddPlayerPacket to
+     * @param player - the player to send the AddPlayerPacket to
      */
     public async sendSpawn(player: Player): Promise<void> {
         if (!player.getUUID()) {
