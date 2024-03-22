@@ -1,7 +1,7 @@
-import ClientConnection from './network/ClientConnection';
-import Player from './Player';
+import type ClientConnection from './network/ClientConnection';
+import type Player from './Player';
 import assert from 'node:assert';
-import { PlayerListEntry } from './network/packet/PlayerListPacket';
+import type { PlayerListEntry } from './network/packet/PlayerListPacket';
 
 export default class SessionManager {
     private readonly connections: Map<string, ClientConnection> = new Map();

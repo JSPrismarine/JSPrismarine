@@ -2,7 +2,7 @@ import { pino, type Logger } from 'pino';
 import Dgram, { type RemoteInfo } from 'node:dgram';
 import BitFlags from './protocol/BitFlags';
 import { EventEmitter } from 'events';
-import Packet from './protocol/Packet';
+import type Packet from './protocol/Packet';
 import { RAKNET_TPS } from './RakNet';
 import RakNetSession from './Session';
 import OfflineHandler from './protocol/OfflineHandler';

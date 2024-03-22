@@ -1,4 +1,4 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/jsbinaryutils';
 import { ByteOrder } from './ByteOrder';
 import ByteVal from './types/ByteVal';
 import DoubleVal from './types/DoubleVal';

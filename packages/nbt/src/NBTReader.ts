@@ -1,7 +1,7 @@
 /* eslint-disable complexity */
 import { Allocation } from './Allocation';
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from './ByteOrder';
+import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import type { ByteOrder } from './ByteOrder';
 import { NBTDefinitions } from './NBTDefinitions';
 import NBTStreamReader from './NBTStreamReader';
 import NBTTagCompound from './NBTTagCompound';

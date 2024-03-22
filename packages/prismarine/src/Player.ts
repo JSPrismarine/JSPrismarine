@@ -1,29 +1,30 @@
 import { ChangeDimensionPacket, LevelChunkPacket } from './network/Packets';
 import { FlagType, MetadataFlag } from './entity/Metadata';
-import ChatEvent from './events/chat/ChatEvent';
-import Chunk from './world/chunk/Chunk';
-import { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
-import ClientConnection from './network/ClientConnection';
+import type ChatEvent from './events/chat/ChatEvent';
+import type Chunk from './world/chunk/Chunk';
+import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
+import type ClientConnection from './network/ClientConnection';
 import ContainerEntry from './inventory/ContainerEntry';
 import CoordinateUtils from './world/CoordinateUtils';
-import Device from './utils/Device';
+import type Device from './utils/Device';
 import FormManager from './form/FormManager';
 import Gamemode from './world/Gamemode';
 import Human from './entity/Human';
-import { InetAddress } from '@jsprismarine/raknet';
+import type { InetAddress } from '@jsprismarine/raknet';
 import MovementType from './network/type/MovementType';
 import PlayStatusType from './network/type/PlayStatusType';
 import PlayerSession from './network/PlayerSession';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
-import Server from './Server';
-import Skin from './utils/skin/Skin';
+import type Skin from './utils/skin/Skin';
 import TextType from './network/type/TextType';
 import Timer from './utils/Timer';
 import Vector3 from './math/Vector3';
 import WindowManager from './inventory/WindowManager';
-import World from './world/World';
+import type World from './world/World';
+
+import type Server from './Server';
 
 // Default spawn view distance used in vanilla
 export const VANILLA_DEFAULT_SPAWN_RADIUS = 4;
@@ -207,7 +208,7 @@ export default class Player extends Human {
     /**
      * Change the player's current world.
      *
-     * @param world the new world
+     * @param world - the new world
      */
     public async setWorld(world: World) {
         const dim0 = new ChangeDimensionPacket();
@@ -312,7 +313,7 @@ export default class Player extends Human {
 
     /**
      * Send a chat message to the client.
-     * @param message the message
+     * @param message - the message
      */
     public async sendMessage(
         message: string,
@@ -327,8 +328,8 @@ export default class Player extends Human {
 
     /**
      * Send a toast notification (like Xbox Live notifications)
-     * @param title the toast title
-     * @param body the toast body
+     * @param title - the toast title
+     * @param body - the toast body
      */
     public async sendToast(title: string, body: string): Promise<void> {
         await this.networkSession.sendToast(title, body);
@@ -480,8 +481,8 @@ export default class Player extends Human {
      * @remarks
      * This will notify the player's client about the position change.
      *
-     * @param position The position
-     * @param type The movement type
+     * @param position - The position
+     * @param type - The movement type
      */
     public async setPosition(position: Vector3, type: MovementType = MovementType.Normal) {
         await this.setX(position.getX());

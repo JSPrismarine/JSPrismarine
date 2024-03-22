@@ -1,4 +1,4 @@
-import { InetAddress, RakNetListener } from '@jsprismarine/raknet';
+import { RakNetListener } from '@jsprismarine/raknet';
 import Chat, { ChatType } from './chat/Chat';
 import BanManager from './ban/BanManager';
 import BatchPacket from './network/packet/BatchPacket';
@@ -9,7 +9,7 @@ import ChatManager from './chat/ChatManager';
 import ClientConnection from './network/ClientConnection';
 import CommandManager from './command/CommandManager';
 import Console from './Console';
-import { DataPacket } from './network/Packets';
+import type { DataPacket } from './network/Packets';
 import { EventManager } from './events/EventManager';
 import Identifiers from './network/Identifiers';
 import ItemManager from './item/ItemManager';
@@ -27,7 +27,7 @@ import WorldManager from './world/WorldManager';
 
 import type Config from './config/Config';
 import type LoggerBuilder from './utils/Logger';
-import type { RakNetSession } from '@jsprismarine/raknet';
+import type { RakNetSession, InetAddress } from '@jsprismarine/raknet';
 
 export default class Server {
     private version!: string;
@@ -129,7 +129,7 @@ export default class Server {
 
             const token = session.getAddress().toToken();
             if (this.sessionManager.has(token)) {
-                this.logger?.error(
+                this.logger.error(
                     `Another client with token (${token}) is already connected!`,
                     'Server/listen/openConnection'
                 );
@@ -138,9 +138,9 @@ export default class Server {
             }
 
             const timer = new Timer();
-            this.logger?.debug(`${token} is attempting to connect`, 'Server/listen/openConnection');
+            this.logger.debug(`${token} is attempting to connect`, 'Server/listen/openConnection');
             this.sessionManager.add(token, new ClientConnection(session, this.logger));
-            this.logger?.verbose(`New connection handling took ${timer.stop()} ms`, 'Server/listen/openConnection');
+            this.logger.verbose(`New connection handling took ${timer.stop()} ms`, 'Server/listen/openConnection');
         });
 
         this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
@@ -178,16 +178,16 @@ export default class Server {
                 await player.getWorld().removeEntity(player);
                 this.sessionManager.remove(token);
             } catch (error) {
-                this.logger?.debug(
+                this.logger.debug(
                     `Cannot remove connection from non-existing player (${token})`,
                     'Server/listen/raknetDisconnect'
                 );
-                this.logger?.debug((error as any).stack, 'Server/listen/raknetDisconnect');
+                this.logger.debug((error as any).stack, 'Server/listen/raknetDisconnect');
             }
 
-            this.logger?.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
+            this.logger.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
 
-            this.logger?.debug(
+            this.logger.debug(
                 `Player destruction took about ${Date.now() - time} ms`,
                 'Server/listen/raknetDisconnect'
             );
@@ -199,7 +199,7 @@ export default class Server {
 
             let connection: ClientConnection | null;
             if ((connection = this.sessionManager.get(inetAddr.toToken()) ?? null) === null) {
-                this.logger?.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
+                this.logger.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
                 return;
             }
 
@@ -213,7 +213,7 @@ export default class Server {
                     const pid = buf[0]!;
 
                     if (!this.packetRegistry.getPackets().has(pid)) {
-                        this.logger?.warn(
+                        this.logger.warn(
                             `Packet 0x${pid.toString(16)} isn't implemented`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
@@ -226,7 +226,7 @@ export default class Server {
                     try {
                         packet.decode();
                     } catch (error) {
-                        this.logger?.error(
+                        this.logger.error(
                             `Error while decoding packet: ${packet.constructor.name}: ${error}`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
@@ -235,21 +235,21 @@ export default class Server {
 
                     try {
                         const handler = this.packetRegistry.getHandler(pid);
-                        this.logger?.silly(
+                        this.logger.silly(
                             `Received §b${packet.constructor.name}§r packet`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
                         await (handler as any).handle(packet, this, connection.getPlayerSession() ?? connection);
                     } catch (error) {
-                        this.logger?.error(
+                        this.logger.error(
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
-                        this.logger?.debug(`${(error as any).stack}`, 'Server/listen/raknetEncapsulatedPacket');
+                        this.logger.debug(`${(error as any).stack}`, 'Server/listen/raknetEncapsulatedPacket');
                     }
                 }
             } catch (error) {
-                this.logger?.error(error as any, 'Server/listen/raknetEncapsulatedPacket');
+                this.logger.error(error as any, 'Server/listen/raknetEncapsulatedPacket');
             }
         });
 
@@ -257,8 +257,8 @@ export default class Server {
             try {
                 await this.queryManager.onRaw(buffer, inetAddr);
             } catch (error) {
-                this.logger?.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
-                this.logger?.debug((error as any).stack, 'Server/listen/raw');
+                this.logger.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
+                this.logger.debug((error as any).stack, 'Server/listen/raw');
             }
         });
 
@@ -282,11 +282,11 @@ export default class Server {
 
         // Log experimental flags
         if (this.config.getExperimentalFlags().length >= 1) {
-            this.logger?.debug(`Enabled flags:`, 'Server/listen');
-            this.config.getExperimentalFlags().forEach((flag) => this.logger?.debug(`- ${flag}`, 'Server/listen'));
+            this.logger.debug(`Enabled flags:`, 'Server/listen');
+            this.config.getExperimentalFlags().forEach((flag) => this.logger.debug(`- ${flag}`, 'Server/listen'));
         }
 
-        this.logger?.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
+        this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
     }
 
     /**
@@ -296,7 +296,7 @@ export default class Server {
         if (this.stopping) return;
         this.stopping = true;
 
-        this.logger?.info('Stopping server', 'Server/kill');
+        this.logger.info('Stopping server', 'Server/kill');
         await this.console.onDisable();
 
         clearInterval(this.tickerTimer);
@@ -312,10 +312,10 @@ export default class Server {
 
             await this.worldManager.onDisable();
             await this.onDisable();
-            this.raknet?.kill(); // this.raknet might be undefined if we kill the server really early
+            this.raknet.kill(); // this.raknet might be undefined if we kill the server really early
             process.exit(options?.crash ? 1 : 0);
         } catch (error) {
-            this.logger?.error(error as any, 'Server/kill');
+            this.logger.error(error as any, 'Server/kill');
             process.exit(1);
         }
     }

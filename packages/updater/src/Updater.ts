@@ -1,4 +1,4 @@
-import { Config, Logger } from '@jsprismarine/prismarine';
+import type { Config, Logger } from '@jsprismarine/prismarine';
 
 import fetch from 'node-fetch';
 import semver from 'semver';
@@ -32,7 +32,7 @@ export default class Updater {
                       ).json()) as any
                   ).find?.((a: any) => a.prerelease);
 
-        if (!release?.tag_name) {
+        if (!release.tag_name) {
             this.logger.debug('Failed to check for updates!', 'Updater/check');
             if ((release as any)?.message) this.logger.debug(`Error: ${(release as any).message}`, 'Updater/check');
             return;
