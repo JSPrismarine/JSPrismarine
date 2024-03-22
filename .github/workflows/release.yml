@@ -1,40 +1,52 @@
 name: Release
+
 on:
-    workflow_dispatch:
-        inputs:
-            version:
-                description: 'Version (v0.1.0-rc.17)'
-                required: true
-            prerelease:
-                description: 'Pre-release?'
-                required: false
+    push:
+        branches:
+            - master
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
 
 env:
-    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-    TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
     release:
-        permissions:
-            contents: write
+        name: 🚚 Release
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - name: 🕶️ Checkout repository
+              uses: actions/checkout@v4
               with:
                   fetch-depth: 0
 
             - name: 📦 Install
               uses: ./.github/common/install
 
-            - run: pnpm run build
+            - name: 🔨 Build
+              run: pnpm run build
 
-            - name: Create Release
-              id: create_release
-              uses: ncipollo/release-action@v1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: 🤝 Create Release Pull Request or Publish to NPM
+              id: changesets
+              uses: changesets/action@v1
               with:
-                  tag: ${{ github.event.inputs.version }}
-                  name: ${{ github.event.inputs.version }}
-                  commit: 'master'
-                  prerelease: ${{ github.event.inputs.prerelease }}
+                  createGithubReleases: true
+                  version: pnpm run version
+                  publish: pnpm run release
+                  setupGitUser: true
+                  commit: |
+                      Changeset: Increment package & dependecy versions.
+
+                      Congratulations on the new release! 🎉
+                      This is an automated commit triggered by the `release` workflow.
+                  title: 🚀 Release packages
+
+            - name: 🫨 Create Unstable Release
+              if: steps.changesets.outputs.published != 'true'
+              run: |
+                  git checkout master
+                  pnpm run version:unstable
+                  pnpm run release:unstable

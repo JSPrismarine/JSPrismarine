@@ -26,7 +26,7 @@
         "build:docs": "typedoc",
         "server:build": "turbo run build --filter=@jsprismarine/server",
         "test": "vitest run --coverage",
-        "lint": "concurrently pnpm:lint:*",
+        "lint": "concurrently --raw pnpm:lint:*",
         "lint:prettier": "prettier packages/**/src/**/*.* --check && prettier packages/**/src/**/*.* --check",
         "lint:eslint": "xo packages/**/src/ --ignore '*.test.*'",
         "format": "concurrently pnpm:format:*",
