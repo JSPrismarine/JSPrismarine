@@ -36,6 +36,9 @@ export default class TextPacket extends DataPacket {
             case TextType.Whisper:
             case TextType.Announcement:
                 this.sourceName = McpeUtil.readString(this);
+                this.message = McpeUtil.readString(this);
+                break;
+
             case TextType.Raw:
             case TextType.Tip:
             case TextType.System:

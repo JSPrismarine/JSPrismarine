@@ -1,8 +1,8 @@
 import Anvil from './providers/anvil/Anvil';
 import Filesystem from './providers/filesystem/Filesystem';
 import GeneratorManager from './GeneratorManager';
-import Provider from './providers/Provider';
-import Server from '../Server';
+import type Provider from './providers/Provider';
+import type Server from '../Server';
 import World from './World';
 import cwd from '../utils/cwd';
 import fs from 'node:fs';
@@ -67,8 +67,8 @@ export default class WorldManager {
     /**
      * Add a provider to the internal providers map.
      *
-     * @param name the name of the provider CASE SENSITIVE
-     * @param provider the provider
+     * @param name - the name of the provider CASE SENSITIVE
+     * @param provider - the provider
      */
     public addProvider(name: string, provider: any) {
         this.providers.set(name, provider);
@@ -77,7 +77,7 @@ export default class WorldManager {
     /**
      * Remove a provider from the internal providers map.
      *
-     * @param name the name of the provider CASE SENSITIVE
+     * @param name - the name of the provider CASE SENSITIVE
      */
     public removeProvider(name: string) {
         this.providers.delete(name);
@@ -103,20 +103,23 @@ export default class WorldManager {
     /**
      * Load a world
      *
-     * @param worldData the world data including provider key, generator
-     * @param folderName the name of the folder containing the world
+     * @param worldData - the world data including provider key, generator
+     * @param folderName - the name of the folder containing the world
      */
     public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
         return new Promise(async (resolve, reject) => {
+            if (!worldData) throw new Error('Invalid world data');
+
             if (this.isWorldLoaded(folderName)) {
                 this.server
                     .getLogger()
                     ?.warn(`World §e${folderName}§r has already been loaded!`, 'WorldManager/loadWorld');
                 reject();
+                return;
             }
 
             const levelPath = path.join(cwd(), `/worlds/${folderName}/`);
-            const provider = this.providers.get(worldData?.provider ?? 'Filesystem');
+            const provider = this.providers.get(worldData.provider ?? 'Filesystem');
             const generator = this.server
                 .getWorldManager()
                 .getGeneratorManager()

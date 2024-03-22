@@ -21,16 +21,9 @@ export default class Updater {
         const release: {
             html_url: string;
             tag_name: string;
-        } =
-            this.config.getUpdateChannel() === 'release' && !semver.prerelease(this.version)?.length
-                ? await (
-                      await fetch(`https://api.github.com/repos/${this.config.getUpdateRepo()}/releases/latest`)
-                  ).json()
-                : (
-                      (await (
-                          await fetch(`https://api.github.com/repos/${this.config.getUpdateRepo()}/releases`)
-                      ).json()) as any
-                  ).find?.((a: any) => a.prerelease);
+        } = (await (
+            await fetch(`https://api.github.com/repos/${this.config.getUpdateRepo()}/releases/latest`)
+        ).json()) as any;
 
         if (!release.tag_name) {
             this.logger.debug('Failed to check for updates!', 'Updater/check');

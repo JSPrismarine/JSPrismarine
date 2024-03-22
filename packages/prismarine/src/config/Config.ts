@@ -20,7 +20,7 @@ export default class Config {
     private enableEval!: boolean;
     private packetCompressionLevel!: number;
     private updateRepo!: string;
-    private updateChannel!: string;
+    private updateChannel!: 'stable';
     private experimentalFlags!: string[];
 
     public constructor(version: string) {
@@ -52,7 +52,7 @@ export default class Config {
         this.experimentalFlags = this.configBuilder.get('experimental-flags', []) as string[];
 
         this.updateRepo = this.configBuilder.get('update-repo', 'JSPrismarine/JSPrismarine') as string;
-        this.updateChannel = this.configBuilder.get('update-channel', 'release') as string;
+        this.updateChannel = this.configBuilder.get('update-channel', 'release');
     }
 
     public onDisable() {}
@@ -101,8 +101,8 @@ export default class Config {
     /**
      * Set the default gamemode.
      *
-     * @param gamemode the gamemode
-     * @param commit if the value should be written to the `config.yml` file
+     * @param gamemode - the gamemode
+     * @param commit - if the value should be written to the `config.yml` file
      */
     public setGamemode(gamemode: number, commit = false) {
         this.gamemode = Gamemode.getGamemodeName(gamemode).toLowerCase();
@@ -122,8 +122,8 @@ export default class Config {
     /**
      * Set the motd.
      *
-     * @param motd the gamemode
-     * @param commit if the value should be written to the `config.yml` file
+     * @param motd - the gamemode
+     * @param commit - if the value should be written to the `config.yml` file
      */
     public setMotd(motd: string, commit = false) {
         this.motd = motd;
