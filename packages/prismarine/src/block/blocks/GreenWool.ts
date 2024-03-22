@@ -1,4 +1,4 @@
-import WhiteWool, { WoolColorType } from './WhiteWool.js';
+import WhiteWool, { WoolColorType } from './WhiteWool';
 
 export default class GreenWool extends WhiteWool {
     public constructor() {

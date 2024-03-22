@@ -1,11 +1,11 @@
 import { pino, type Logger } from 'pino';
 import Dgram, { type RemoteInfo } from 'node:dgram';
-import BitFlags from './protocol/BitFlags.js';
+import BitFlags from './protocol/BitFlags';
 import { EventEmitter } from 'events';
-import Packet from './protocol/Packet.js';
-import { RAKNET_TPS } from './RakNet.js';
-import RakNetSession from './Session.js';
-import OfflineHandler from './protocol/OfflineHandler.js';
+import Packet from './protocol/Packet';
+import { RAKNET_TPS } from './RakNet';
+import RakNetSession from './Session';
+import OfflineHandler from './protocol/OfflineHandler';
 
 export default class ServerSocket extends EventEmitter {
     private readonly socket: Dgram.Socket;
@@ -28,6 +28,10 @@ export default class ServerSocket extends EventEmitter {
         this.guid = Buffer.allocUnsafe(8).readBigInt64BE();
         this.logger = pino({ name: 'RakNet', base: undefined });
         this.logger.level = 'trace'; // TODO: via pino-pretty cli
+
+        if (this.onlineMode) {
+            this.logger.warn('onlineMode is currently not respected.');
+        }
     }
 
     public start(address: string, port: number): void {
@@ -56,7 +60,7 @@ export default class ServerSocket extends EventEmitter {
 
     private handleMessage(msg: Buffer, rinfo: RemoteInfo): void {
         // Directly check if it's a offline message
-        if ((msg[0] & BitFlags.VALID) === 0) {
+        if ((msg[0]! & BitFlags.VALID) === 0) {
             this.offlineHandler.process(msg, rinfo);
         } else {
             // Normally RakNet ignores unhandled packets, but we still want some logs...

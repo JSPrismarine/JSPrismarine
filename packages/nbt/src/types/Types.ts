@@ -1,9 +1,9 @@
-import ByteVal from './ByteVal.js';
-import DoubleVal from './DoubleVal.js';
-import FloatVal from './FloatVal.js';
-import LongVal from './LongVal.js';
-import NumberVal from './NumberVal.js';
-import ShortVal from './ShortVal.js';
-import StringVal from './StringVal.js';
+import ByteVal from './ByteVal';
+import DoubleVal from './DoubleVal';
+import FloatVal from './FloatVal';
+import LongVal from './LongVal';
+import NumberVal from './NumberVal';
+import ShortVal from './ShortVal';
+import StringVal from './StringVal';
 
 export { ByteVal, DoubleVal, FloatVal, LongVal, NumberVal, ShortVal, StringVal };

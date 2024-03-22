@@ -1,4 +1,4 @@
-import WhiteBed, { BedType } from './WhiteBed.js';
+import WhiteBed, { BedType } from './WhiteBed';
 
 export default class MegentaBed extends WhiteBed {
     public constructor() {

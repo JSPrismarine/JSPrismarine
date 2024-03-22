@@ -1,4 +1,6 @@
-import HumanInventory from './HumanInventory.js';
+import { describe, it, expect } from 'vitest';
+
+import HumanInventory from './HumanInventory';
 
 describe('inventory', () => {
     describe('PlayerInventory', () => {

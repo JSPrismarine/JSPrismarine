@@ -2,12 +2,32 @@
     "name": "@jsprismarine/raknet",
     "version": "0.1.0-rc.54",
     "description": "Basic RakNet implementation written in TypeScript",
-    "main": "./dist/RakNet.js",
-    "types": "./dist/RakNet.d.ts",
+    "sideEffects": false,
     "type": "module",
+    "files": [
+        "dist"
+    ],
+    "module": "./dist/RakNet.es.js",
+    "types": "./dist/RakNet.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/RakNet.es.js",
+            "module": "./dist/RakNet.es.js",
+            "require": "./dist/RakNet.cjs.js",
+            "types": "./dist/RakNet.d.ts"
+        },
+        "./*": {
+            "import": "./dist/*.es.js",
+            "module": "./dist/*.es.js",
+            "require": "./dist/*.cjs.js",
+            "types": "./dist/*.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
-        "build": "tsc --build src"
+        "build": "vite build",
+        "typecheck": "tsc -noEmit"
     },
     "repository": {
         "type": "git",
@@ -25,7 +45,10 @@
         "pino": "8.19.0"
     },
     "devDependencies": {
-        "pino-pretty": "11.0.0",
-        "typescript": "5.4.3"
+        "@types/node": "20.11.30",
+        "glob": "10.3.10",
+        "typescript": "5.4.3",
+        "vite": "5.2.3",
+        "vitest": "1.4.0"
     }
 }

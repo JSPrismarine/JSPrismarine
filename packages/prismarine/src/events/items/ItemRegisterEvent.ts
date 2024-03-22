@@ -1,5 +1,5 @@
-import Event from '../Event.js';
-import type Item from '../../item/Item.js';
+import Event from '../Event';
+import type Item from '../../item/Item';
 
 export default class ItemRegisterEvent extends Event {
     private readonly item;

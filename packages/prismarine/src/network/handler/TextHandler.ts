@@ -1,9 +1,9 @@
-import Chat from '../../chat/Chat.js';
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type Server from '../../Server.js';
-import type TextPacket from '../packet/TextPacket.js';
+import Chat from '../../chat/Chat';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import type Server from '../../Server';
+import type TextPacket from '../packet/TextPacket';
 
 export default class TextHandler implements PacketHandler<TextPacket> {
     public static NetID = Identifiers.TextPacket;

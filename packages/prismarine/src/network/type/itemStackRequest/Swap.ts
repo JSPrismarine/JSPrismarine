@@ -1,4 +1,4 @@
-import type ItemStackRequestSlotInfo from './ItemStackRequestSlotInfo.js';
+import type ItemStackRequestSlotInfo from './ItemStackRequestSlotInfo';
 
 class Swap {
     public from: ItemStackRequestSlotInfo;

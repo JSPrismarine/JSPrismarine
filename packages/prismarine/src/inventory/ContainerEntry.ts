@@ -1,4 +1,4 @@
-import type Item from '../item/Item.js';
+import type Item from '../item/Item';
 
 export default class ContainerEntry {
     private item: Item;

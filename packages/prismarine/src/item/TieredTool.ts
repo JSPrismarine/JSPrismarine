@@ -1,6 +1,6 @@
-import { ItemProps } from './Item.js';
-import { ItemTieredToolType } from './ItemTieredToolType.js';
-import Tool from './Tool.js';
+import { ItemProps } from './Item';
+import { ItemTieredToolType } from './ItemTieredToolType';
+import Tool from './Tool';
 
 export default class TieredTool extends Tool {
     private readonly tier: ItemTieredToolType = ItemTieredToolType.None;

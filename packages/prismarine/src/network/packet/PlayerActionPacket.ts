@@ -1,6 +1,6 @@
-import BlockPosition from '../../world/BlockPosition.js';
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
+import BlockPosition from '../../world/BlockPosition';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export enum PlayerAction {
     START_BREAK,

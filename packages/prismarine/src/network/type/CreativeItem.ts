@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Item from '../../item/Item.js';
+import Item from '../../item/Item';
 
 export default class CreativeItem {
     public networkId: number;

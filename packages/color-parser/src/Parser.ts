@@ -1,4 +1,4 @@
-import * as colors from './Colors.js';
+import * as colors from './Colors';
 
 const Parser = (str: string, prefix = '§', clearAtEnd = true) =>
     `${str.replaceAll(new RegExp(`\\${prefix}[\\dabcdefklmnor]`, 'gm'), (v) => {

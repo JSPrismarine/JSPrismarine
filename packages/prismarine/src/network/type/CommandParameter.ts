@@ -1,4 +1,4 @@
-import CommandEnum from './CommandEnum.js';
+import CommandEnum from './CommandEnum';
 
 export enum CommandParameterType {
     Int = 0x100000 | 0x01,

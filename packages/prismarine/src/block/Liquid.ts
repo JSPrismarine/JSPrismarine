@@ -1,6 +1,6 @@
-import Block from './Block.js';
-import Item from '../item/Item.js';
-import Server from '../Server.js';
+import Block from './Block';
+import Item from '../item/Item';
+import Server from '../Server';
 
 /**
  * Liquid blocks (eg. Water, Still Water, Lava, Still Lava)

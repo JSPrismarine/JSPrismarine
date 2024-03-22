@@ -1,6 +1,6 @@
-import { Attribute } from '../../entity/Attribute.js';
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
+import { Attribute } from '../../entity/Attribute';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class UpdateAttributesPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAttributesPacket;

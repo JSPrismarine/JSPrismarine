@@ -1,5 +1,5 @@
-import TextHandler from './TextHandler.js';
-import TextPacket from '../packet/TextPacket.js';
+import TextHandler from './TextHandler';
+import TextPacket from '../packet/TextPacket';
 
 describe('network', () => {
     describe('handler', () => {

@@ -1,4 +1,4 @@
-import Poppy, { FlowerType } from './Poppy.js';
+import Poppy, { FlowerType } from './Poppy';
 
 export default class OxeyeDaisy extends Poppy {
     public constructor() {

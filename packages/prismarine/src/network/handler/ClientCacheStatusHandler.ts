@@ -1,8 +1,8 @@
-import type ClientCacheStatusPacket from '../packet/ClientCacheStatusPacket.js';
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import PlayerSession from '../PlayerSession.js';
-import type Server from '../../Server.js';
+import type ClientCacheStatusPacket from '../packet/ClientCacheStatusPacket';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import PlayerSession from '../PlayerSession';
+import type Server from '../../Server';
 
 export default class ClientCacheStatusHandler implements PacketHandler<ClientCacheStatusPacket> {
     public static NetID = Identifiers.ClientCacheStatusPacket;

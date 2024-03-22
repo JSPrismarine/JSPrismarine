@@ -1,6 +1,6 @@
 // import BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil.js';
-import Server from '../Server.js';
+import McpeUtil from '../network/NetworkUtil';
+import Server from '../Server';
 
 export const GameRules = {
     CommandBlockOutput: 'commandblockoutput',

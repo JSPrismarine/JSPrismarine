@@ -1,10 +1,10 @@
-import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArguments.js';
+import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command.js';
-import MovementType from '../../network/type/MovementType.js';
-import Player from '../../Player.js';
-import Vector3 from '../../math/Vector3.js';
+import Command from '../Command';
+import MovementType from '../../network/type/MovementType';
+import Player from '../../Player';
+import Vector3 from '../../math/Vector3';
 
 export default class TpCommand extends Command {
     public constructor() {

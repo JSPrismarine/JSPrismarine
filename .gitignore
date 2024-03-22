@@ -17,6 +17,10 @@ permissions.json
 /logs/
 /jsp/
 
+# Build
+.tsup
+vite.config.ts.timestamp*
+
 # Turbo cache
 .turbo/
 

@@ -1,15 +1,15 @@
-import MetadataManager, { FlagType, MetadataFlag } from './Metadata.js';
+import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
 
-import AddActorPacket from '../network/packet/AddActorPacket.js';
-import AttributeManager from './Attribute.js';
-import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket.js';
-import Player from '../Player.js';
-import Position from '../world/Position.js';
-import RemoveActorPacket from '../network/packet/RemoveActorPacket.js';
-import Server from '../Server.js';
-import TextType from '../network/type/TextType.js';
-import Vector3 from '../math/Vector3.js';
-import World from '../world/World.js';
+import AddActorPacket from '../network/packet/AddActorPacket';
+import AttributeManager from './Attribute';
+import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
+import Player from '../Player';
+import Position from '../world/Position';
+import RemoveActorPacket from '../network/packet/RemoveActorPacket';
+import Server from '../Server';
+import TextType from '../network/type/TextType';
+import Vector3 from '../math/Vector3';
+import World from '../world/World';
 
 /**
  * The base class for all entities including `Player`.
@@ -317,10 +317,10 @@ export default class Entity extends Position {
             // Replace all '_' with a ' ' and capitalize each word afterwards,
             // should probably be replaced with regex.
             ((this.constructor as any).MOB_ID as string)
-                .split(':')[1]
+                .split(':')[1]!
                 .replaceAll('_', ' ')
                 .split(' ')
-                .map((word) => word[0].toUpperCase() + word.slice(1, word.length))
+                .map((word) => word[0]!.toUpperCase() + word.slice(1, word.length))
                 .join(' ')
         );
     }
@@ -350,7 +350,7 @@ export default class Entity extends Position {
         const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
             const distances = points.map((e) => dist(target, new Vector3(e.getX(), e.getY(), e.getZ())));
             const closest = Math.min(...distances);
-            return points.find((e, i) => distances[i] - closest < eps)!;
+            return points.find((e, i) => distances[i]! - closest < eps)!;
         };
 
         return [

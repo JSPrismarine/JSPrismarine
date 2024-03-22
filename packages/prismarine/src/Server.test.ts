@@ -1,31 +1,31 @@
-import LoggerBuilder from './utils/Logger.js';
-import Server from './Server.js';
+import { describe, it, expect, vi } from 'vitest';
 
-/* jest.mock('winston', () => ({
+import LoggerBuilder from './utils/Logger';
+import Server from './Server';
+
+/* vi.mock('winston', () => ({
     format: {
-        colorize: jest.fn(),
-        combine: jest.fn(),
-        label: jest.fn(),
-        timestamp: jest.fn(),
-        simple: jest.fn(),
-        printf: jest.fn()
+        colorize: vi.fn(),
+        combine: vi.fn(),
+        label: vi.fn(),
+        timestamp: vi.fn(),
+        simple: vi.fn(),
+        printf: vi.fn()
     },
-    createLogger: jest.fn().mockReturnValue({
-        silly: jest.fn(),
-        debug: jest.fn(),
-        log: jest.fn(),
-        info: jest.fn()
+    createLogger: vi.fn().mockReturnValue({
+        silly: vi.fn(),
+        debug: vi.fn(),
+        log: vi.fn(),
+        info: vi.fn()
     }),
     transports: {
-        Console: jest.fn(),
-        File: jest.fn()
+        Console: vi.fn(),
+        File: vi.fn()
     }
 })); */
 
 describe('Prismarine', () => {
     it.skip('server to start & exit properly', async () => {
-        // TODO: jest.setTimeout(35000);
-
         const getRandomInt = (min: number, max: number) => {
             min = Math.ceil(min);
             max = Math.floor(max);
@@ -83,7 +83,7 @@ describe('Prismarine', () => {
             })() as any
         });
 
-        const mockExit = jest.spyOn(process, 'exit').mockImplementation((() => {}) as any);
+        const mockExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
 
         await prismarine.bootstrap('0.0.0.0', getRandomInt(46000, 49999));
         await prismarine.shutdown();

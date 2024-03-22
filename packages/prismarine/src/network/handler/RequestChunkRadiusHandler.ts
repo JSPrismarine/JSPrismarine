@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket.js';
-import type Server from '../../Server.js';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import type RequestChunkRadiusPacket from '../packet/RequestChunkRadiusPacket';
+import type Server from '../../Server';
 
 export default class RequestChunkRadiusHandler implements PacketHandler<RequestChunkRadiusPacket> {
     public static NetID = Identifiers.RequestChunkRadiusPacket;

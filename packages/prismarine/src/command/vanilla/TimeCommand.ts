@@ -1,7 +1,7 @@
 import { CommandDispatcher, argument, integer, literal, string } from '@jsprismarine/brigadier';
 
-import Command from '../Command.js';
-import Player from '../../Player.js';
+import Command from '../Command';
+import Player from '../../Player';
 
 export default class TimeCommand extends Command {
     public constructor() {

@@ -1,9 +1,9 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import type Item from '../../item/Item.js';
-import McpeUtil from '../NetworkUtil.js';
-import MetadataManager from '../../entity/Metadata.js';
-import type UUID from '../../utils/UUID.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import type Item from '../../item/Item';
+import McpeUtil from '../NetworkUtil';
+import MetadataManager from '../../entity/Metadata';
+import type UUID from '../../utils/UUID';
 
 export default class AddPlayerPacket extends DataPacket {
     public static NetID = Identifiers.AddPlayerPacket;

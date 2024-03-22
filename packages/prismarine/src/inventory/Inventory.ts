@@ -1,6 +1,6 @@
-import Air from '../block/blocks/Air.js';
-import ContainerEntry from './ContainerEntry.js';
-import Item from '../item/Item.js';
+import Air from '../block/blocks/Air';
+import ContainerEntry from './ContainerEntry';
+import Item from '../item/Item';
 
 /**
  * Inventory.

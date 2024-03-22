@@ -1,12 +1,14 @@
+import { describe, it, expect } from 'vitest';
+
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { InetAddress } from '@jsprismarine/raknet';
-import QueryManager from './QueryManager.js';
-import Server from '../Server.js';
+import QueryManager from './QueryManager';
+import Server from '../Server';
 // import esmock from 'esmock';
 
 /* 
     TODO
-    jest.mock('../Server', () => {
+    vi.mock('../Server', () => {
     return class Prismarine {
         public constructor({ logger, config }: any) {}
 

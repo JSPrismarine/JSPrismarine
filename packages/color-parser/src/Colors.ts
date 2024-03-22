@@ -31,7 +31,7 @@ const toConsole = Object.fromEntries(
     Object.entries(chalkColorMap).map((i) => {
         const colorData = (chalk as any)[i[1]];
         if (colorData && i[1]) {
-            const symbols = Object.getOwnPropertySymbols(colorData);
+            const symbols: any = Object.getOwnPropertySymbols(colorData);
             return [i[0], (chalk as any)[i[1]][symbols[1]].open];
         }
         return [i[0], ''];

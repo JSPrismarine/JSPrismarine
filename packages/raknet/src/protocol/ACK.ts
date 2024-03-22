@@ -1,5 +1,5 @@
-import AcknowledgePacket from './AcknowledgePacket.js';
-import { MessageIdentifiers } from './MessageIdentifiers.js';
+import AcknowledgePacket from './AcknowledgePacket';
+import { MessageIdentifiers } from './MessageIdentifiers';
 
 export default class ACK extends AcknowledgePacket {
     public constructor(buffer?: Buffer) {

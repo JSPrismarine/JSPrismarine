@@ -1,8 +1,8 @@
-import * as Seed from './Seed.js';
+import * as Seed from './Seed';
 
-import ParseTargetSelector from './ParseTargetSelector.js';
-import ParseTildeCaretNotation from './ParseTildeCaretNotation.js';
-import Timer from './Timer.js';
-import UUID from './UUID.js';
+import ParseTargetSelector from './ParseTargetSelector';
+import ParseTildeCaretNotation from './ParseTildeCaretNotation';
+import Timer from './Timer';
+import UUID from './UUID';
 
 export { ParseTargetSelector, ParseTildeCaretNotation, Seed, Timer, UUID };

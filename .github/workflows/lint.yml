@@ -1,10 +1,10 @@
-name: Lintings
+name: Linting
 on:
     push:
     pull_request:
 
 jobs:
-    lint-eslint:
+    lint:
         runs-on: ubuntu-latest
         env:
             TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -15,22 +15,5 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
-            - run: pnpm run build
-
-            - run: pnpm run test:eslint
-
-    lint-prettier:
-        runs-on: ubuntu-latest
-        env:
-            TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-            TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-        steps:
-            - uses: actions/checkout@v4
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-
-            - run: pnpm run build
-
-            - run: pnpm run test:prettier
+            - run: pnpm run lint
 

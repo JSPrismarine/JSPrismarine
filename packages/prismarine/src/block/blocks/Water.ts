@@ -1,5 +1,5 @@
-import { BlockIdsType } from '../BlockIdsType.js';
-import FlowingWater from './FlowingWater.js';
+import { BlockIdsType } from '../BlockIdsType';
+import FlowingWater from './FlowingWater';
 
 export default class Water extends FlowingWater {
     public constructor() {

@@ -1,6 +1,6 @@
-import Entity from '../Entity.js';
-import Server from '../../Server.js';
-import World from '../../world/World.js';
+import Entity from '../Entity';
+import Server from '../../Server';
+import World from '../../world/World';
 
 export default class ItemFrame extends Entity {
     public static MOB_ID = 'minecraft:frame';

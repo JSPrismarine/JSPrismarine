@@ -1,12 +1,12 @@
-import Identifiers from '../Identifiers.js';
-import type MovePlayerPacket from '../packet/MovePlayerPacket.js';
-import MovementType from '../type/MovementType.js';
-import PacketHandler from './PacketHandler.js';
-import PlayerMoveEvent from '../../events/player/PlayerMoveEvent.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type Server from '../../Server.js';
-import Vector3 from '../../math/Vector3.js';
-import Chunk from '../../world/chunk/Chunk.js';
+import Identifiers from '../Identifiers';
+import type MovePlayerPacket from '../packet/MovePlayerPacket';
+import MovementType from '../type/MovementType';
+import PacketHandler from './PacketHandler';
+import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
+import { PlayerSession } from '@';
+import type Server from '../../Server';
+import Vector3 from '../../math/Vector3';
+import Chunk from '../../world/chunk/Chunk';
 
 export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket> {
     public static NetID = Identifiers.MovePlayerPacket;

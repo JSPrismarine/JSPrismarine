@@ -1,5 +1,7 @@
-import LoggerBuilder from '../utils/Logger.js';
-import PacketRegistry from './PacketRegistry.js';
+import { describe, it, expect } from 'vitest';
+
+import LoggerBuilder from '../utils/Logger';
+import PacketRegistry from './PacketRegistry';
 
 describe('network', () => {
     describe('PacketRegistry', () => {

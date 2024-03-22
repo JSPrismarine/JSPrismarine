@@ -1,5 +1,5 @@
-import { BlockIdsType } from '../BlockIdsType.js';
-import Flowable from '../Flowable.js';
+import { BlockIdsType } from '../BlockIdsType';
+import Flowable from '../Flowable';
 
 export default class DeadBush extends Flowable {
     public constructor() {

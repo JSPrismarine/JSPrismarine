@@ -1,5 +1,5 @@
-import type Console from '../Console.js';
-import type Player from '../Player.js';
+import type Console from '../Console';
+import type Player from '../Player';
 
 export enum ChatType {
     RAW = 0,

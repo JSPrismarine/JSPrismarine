@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket.js';
-import { PlayerSession } from '../../Prismarine.js';
-import Server from '../../Server.js';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
+import { PlayerSession } from '@';
+import Server from '../../Server';
 
 export default class PacketViolationWarningHandler implements PacketHandler<PacketViolationWarningPacket> {
     public static NetID = Identifiers.PacketViolationWarningPacket;

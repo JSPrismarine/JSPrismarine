@@ -1,5 +1,5 @@
-import type Chunk from '../chunk/Chunk.js';
-import type Generator from '../Generator.js';
+import type Chunk from '../chunk/Chunk';
+import type Generator from '../Generator';
 
 export default interface Provider {
     /**

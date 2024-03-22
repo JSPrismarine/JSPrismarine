@@ -1,9 +1,9 @@
-import * as Items from './Items.js';
+import * as Items from './Items';
 
-import Item from './Item.js';
-import ItemRegisterEvent from '../events/items/ItemRegisterEvent.js';
-import Server from '../Server.js';
-import Timer from '../utils/Timer.js';
+import Item from './Item';
+import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
+import Server from '../Server';
+import Timer from '../utils/Timer';
 
 // TODO: Don't dynamically import, do it like ./network/Protocol etc
 export default class ItemManager {

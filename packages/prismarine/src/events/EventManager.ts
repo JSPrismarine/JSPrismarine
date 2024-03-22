@@ -1,22 +1,22 @@
-import type BlockRegisterEvent from './block/BlockRegisterEvent.js';
-import type ChatEvent from './chat/ChatEvent.js';
-import type CommandRegisterEvent from './command/CommandRegisterEvents.js';
-import { EventEmitterishMixin } from './EventEmitterishMixin.js';
+import type BlockRegisterEvent from './block/BlockRegisterEvent';
+import type ChatEvent from './chat/ChatEvent';
+import type CommandRegisterEvent from './command/CommandRegisterEvents';
+import { EventEmitterishMixin } from './EventEmitterishMixin';
 import { Evt } from 'evt';
-import type ItemRegisterEvent from './items/ItemRegisterEvent.js';
-import type PlayerConnectEvent from './player/PlayerConnectEvent.js';
-import type PlayerDespawnEvent from './player/PlayerDespawnEvent.js';
-import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent.js';
-import type PlayerMoveEvent from './player/PlayerMoveEvent.js';
-import type PlayerSetGamemodeEvent from './player/PlayerSetGamemodeEvent.js';
-import type PlayerSpawnEvent from './player/PlayerSpawnEvent.js';
-import type PlayerToggleFlightEvent from './player/PlayerToggleFlightEvent.js';
-import type PlayerToggleSprintEvent from './player/PlayerToggleSprintEvent.js';
-import type RaknetConnectEvent from './raknet/RaknetConnectEvent.js';
-import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent.js';
-import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent.js';
-import { TickEvent } from './Events.js';
-import type playerToggleOperatorEvent from './player/PlayerToggleOperatorEvent.js';
+import type ItemRegisterEvent from './items/ItemRegisterEvent';
+import type PlayerConnectEvent from './player/PlayerConnectEvent';
+import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
+import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
+import type PlayerMoveEvent from './player/PlayerMoveEvent';
+import type PlayerSetGamemodeEvent from './player/PlayerSetGamemodeEvent';
+import type PlayerSpawnEvent from './player/PlayerSpawnEvent';
+import type PlayerToggleFlightEvent from './player/PlayerToggleFlightEvent';
+import type PlayerToggleSprintEvent from './player/PlayerToggleSprintEvent';
+import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
+import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
+import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
+import { TickEvent } from './Events';
+import type playerToggleOperatorEvent from './player/PlayerToggleOperatorEvent';
 
 export type EventTypes =
     | ['blockRegister', BlockRegisterEvent]

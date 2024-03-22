@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type Server from '../../Server.js';
-import SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket.js';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import type Server from '../../Server';
+import SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket';
 
 export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefaultGameTypePacket> {
     public static NetID = Identifiers.SetDefaultGameTypePacket;

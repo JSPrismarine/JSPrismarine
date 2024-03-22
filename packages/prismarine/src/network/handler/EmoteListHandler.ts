@@ -1,8 +1,8 @@
-import type EmoteListPacket from '../packet/EmoteListPacket.js';
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type Server from '../../Server.js';
+import type EmoteListPacket from '../packet/EmoteListPacket';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import type Server from '../../Server';
 
 export default class EmoteListHandler implements PacketHandler<EmoteListPacket> {
     public static NetID = Identifiers.EmoteListPacket;

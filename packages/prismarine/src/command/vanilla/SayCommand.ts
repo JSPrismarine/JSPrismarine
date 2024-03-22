@@ -1,8 +1,8 @@
 import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
-import Chat from '../../chat/Chat.js';
-import Command from '../Command.js';
-import Player from '../../Player.js';
+import Chat from '../../chat/Chat';
+import Command from '../Command';
+import Player from '../../Player';
 
 export default class SayCommand extends Command {
     public constructor() {

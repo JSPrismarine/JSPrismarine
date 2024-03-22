@@ -2,12 +2,32 @@
     "name": "@jsprismarine/updater",
     "version": "0.1.0-rc.54",
     "description": "JSPrismarine updater",
-    "main": "./dist/Updater.js",
-    "types": "./dist/Updater.d.ts",
+    "sideEffects": false,
     "type": "module",
+    "files": [
+        "dist"
+    ],
+    "module": "./dist/Updater.es.js",
+    "types": "./dist/Updater.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/Updater.es.js",
+            "module": "./dist/Updater.es.js",
+            "require": "./dist/Updater.cjs.js",
+            "types": "./dist/Updater.d.ts"
+        },
+        "./*": {
+            "import": "./dist/*.es.js",
+            "module": "./dist/*.es.js",
+            "require": "./dist/*.cjs.js",
+            "types": "./dist/*.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
-        "build": "tsc --build src"
+        "build": "vite build",
+        "typecheck": "tsc -noEmit"
     },
     "repository": {
         "type": "git",
@@ -21,7 +41,11 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/updater",
     "devDependencies": {
-        "typescript": "5.4.3"
+        "@types/node": "20.11.30",
+        "glob": "10.3.10",
+        "typescript": "5.4.3",
+        "vite": "5.2.3",
+        "vitest": "1.4.0"
     },
     "dependencies": {
         "@jsprismarine/prismarine": "workspace:*",

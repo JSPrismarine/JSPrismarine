@@ -1,8 +1,8 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command.js';
-import Player from '../../Player.js';
-import PluginFile from '../../plugin/PluginFile.js';
+import Command from '../Command';
+import Player from '../../Player';
+import PluginFile from '../../plugin/PluginFile';
 
 export default class PluginsCommand extends Command {
     public constructor() {

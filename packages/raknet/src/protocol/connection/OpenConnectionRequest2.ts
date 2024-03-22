@@ -1,6 +1,6 @@
-import { InetAddress } from '../../RakNet.js';
-import { MessageIdentifiers } from '../MessageIdentifiers.js';
-import OfflinePacket from '../OfflinePacket.js';
+import { InetAddress } from '../../RakNet';
+import { MessageIdentifiers } from '../MessageIdentifiers';
+import OfflinePacket from '../OfflinePacket';
 
 export default class OpenConnectionRequest2 extends OfflinePacket {
     public constructor(buffer?: Buffer) {

@@ -1,8 +1,8 @@
-import type CommandRequestPacket from '../packet/CommandRequestPacket.js';
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type Server from '../../Server.js';
+import type CommandRequestPacket from '../packet/CommandRequestPacket';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import type Server from '../../Server';
 
 export default class CommandRequestHandler implements PacketHandler<CommandRequestPacket> {
     public static NetID = Identifiers.CommandRequestPacket;

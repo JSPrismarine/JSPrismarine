@@ -1,12 +1,12 @@
-import * as Handlers from './Handlers.js';
-import * as Packets from './Packets.js';
+import * as Handlers from './Handlers';
+import * as Packets from './Packets';
 
-import Identifiers from './Identifiers.js';
-import PacketHandler from './handler/PacketHandler.js';
-import { PlayerSession } from '../Prismarine.js';
-import PreLoginPacketHandler from './handler/PreLoginPacketHandler.js';
-import type Server from '../Server.js';
-import Timer from '../utils/Timer.js';
+import Identifiers from './Identifiers';
+import PacketHandler from './handler/PacketHandler';
+import { PlayerSession } from '@';
+import PreLoginPacketHandler from './handler/PreLoginPacketHandler';
+import type Server from '../Server';
+import Timer from '../utils/Timer';
 
 export default class PacketRegistry {
     private server: Server;

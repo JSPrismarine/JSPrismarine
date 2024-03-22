@@ -1,9 +1,9 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import Item from '../../item/Item.js';
-import Vector3 from '../../math/Vector3.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import Item from '../../item/Item';
+import Vector3 from '../../math/Vector3';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BlockPosition from '../../world/BlockPosition.js';
+import BlockPosition from '../../world/BlockPosition';
 
 export enum UseItemAction {
     CLICK_BLOCK,

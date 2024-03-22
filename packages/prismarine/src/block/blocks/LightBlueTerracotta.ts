@@ -1,4 +1,4 @@
-import WhiteTerracotta, { TerracottaColorType } from './WhiteTerracotta.js';
+import WhiteTerracotta, { TerracottaColorType } from './WhiteTerracotta';
 
 export default class LightBlueTerracotta extends WhiteTerracotta {
     public constructor() {

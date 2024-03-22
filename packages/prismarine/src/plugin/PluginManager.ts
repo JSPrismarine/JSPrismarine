@@ -1,9 +1,9 @@
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
-import PluginApi from './api/PluginApi.js';
-import PluginFile from './PluginFile.js';
-import Server from '../Server.js';
-import Timer from '../utils/Timer.js';
-import cwd from '../utils/cwd.js';
+import PluginApi from './api/PluginApi';
+import PluginFile from './PluginFile';
+import Server from '../Server';
+import Timer from '../utils/Timer';
+import cwd from '../utils/cwd';
 import fs from 'node:fs';
 import path from 'node:path';
 import unzipper from 'unzipper';

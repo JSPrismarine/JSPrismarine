@@ -1,4 +1,4 @@
-import StoneSlab, { SlabType } from './StoneSlab.js';
+import StoneSlab, { SlabType } from './StoneSlab';
 
 export default class SandSlab extends StoneSlab {
     public constructor() {

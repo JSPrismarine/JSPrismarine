@@ -1,8 +1,8 @@
 import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command.js';
-import Player from '../../Player.js';
-import { PlayerArgumentCommand } from '../CommandArguments.js';
+import Command from '../Command';
+import Player from '../../Player';
+import { PlayerArgumentCommand } from '../CommandArguments';
 
 export default class BanCommand extends Command {
     public constructor() {

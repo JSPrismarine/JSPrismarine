@@ -1,6 +1,6 @@
-import type Player from '../Player.js';
-import type Server from '../Server.js';
-import cwd from '../utils/cwd.js';
+import type Player from '../Player';
+import type Server from '../Server';
+import cwd from '../utils/cwd';
 import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
 

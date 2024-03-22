@@ -1,5 +1,7 @@
+import { describe, it, expect } from 'vitest';
+
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import UUID from './UUID.js';
+import UUID from './UUID';
 
 describe('utils', () => {
     describe('UUID', () => {

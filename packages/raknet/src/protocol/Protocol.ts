@@ -1,27 +1,25 @@
-import ACK from './ACK.js';
-import AcknowledgePacket from './AcknowledgePacket.js';
-import BitFlags from './BitFlags.js';
-import ConnectedPing from './connection/ConnectedPing.js';
-import ConnectedPong from './connection/ConnectedPong.js';
-import ConnectionRequest from './login/ConnectionRequest.js';
-import ConnectionRequestAccepted from './login/ConnectionRequestAccepted.js';
-import DisconnectNotification from './DisconnectNotification.js';
-import Frame from './Frame.js';
-import FrameReliability from './FrameReliability.js';
-import FrameSet from './FrameSet.js';
-import IncompatibleProtocolVersion from './connection/IncompatibleProtocolVersion.js';
-import { MessageIdentifiers } from './MessageIdentifiers.js';
-import NACK from './NACK.js';
-import NewIncomingConnection from './connection/NewIncomingConnection.js';
-import OfflinePacket from './OfflinePacket.js';
-import OpenConnectionReply1 from './connection/OpenConnectionReply1.js';
-import OpenConnectionReply2 from './connection/OpenConnectionReply2.js';
-import OpenConnectionRequest1 from './connection/OpenConnectionRequest1.js';
-import OpenConnectionRequest2 from './connection/OpenConnectionRequest2.js';
-import Packet from './Packet.js';
-import { RakNetPriority } from '../Session.js';
-import UnconnectedPing from './offline/UnconnectedPing.js';
-import UnconnectedPong from './offline/UnconnectedPong.js';
+import ACK from './ACK';
+import AcknowledgePacket from './AcknowledgePacket';
+import BitFlags from './BitFlags';
+import ConnectedPing from './connection/ConnectedPing';
+import ConnectedPong from './connection/ConnectedPong';
+import ConnectionRequest from './login/ConnectionRequest';
+import ConnectionRequestAccepted from './login/ConnectionRequestAccepted';
+import DisconnectNotification from './DisconnectNotification';
+import Frame from './Frame';
+import FrameReliability from './FrameReliability';
+import FrameSet from './FrameSet';
+import IncompatibleProtocolVersion from './connection/IncompatibleProtocolVersion';
+import NACK from './NACK';
+import NewIncomingConnection from './connection/NewIncomingConnection';
+import OfflinePacket from './OfflinePacket';
+import OpenConnectionReply1 from './connection/OpenConnectionReply1';
+import OpenConnectionReply2 from './connection/OpenConnectionReply2';
+import OpenConnectionRequest1 from './connection/OpenConnectionRequest1';
+import OpenConnectionRequest2 from './connection/OpenConnectionRequest2';
+import Packet from './Packet';
+import UnconnectedPing from './offline/UnconnectedPing';
+import UnconnectedPong from './offline/UnconnectedPong';
 
 export {
     ACK,
@@ -34,7 +32,6 @@ export {
     FrameSet,
     DisconnectNotification,
     Frame,
-    MessageIdentifiers,
     IncompatibleProtocolVersion,
     NACK,
     NewIncomingConnection,
@@ -46,6 +43,5 @@ export {
     Packet,
     FrameReliability,
     UnconnectedPing,
-    UnconnectedPong,
-    RakNetPriority
+    UnconnectedPong
 };
