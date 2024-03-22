@@ -24,9 +24,8 @@
         "typescript": "5.4.3"
     },
     "dependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.54",
+        "@jsprismarine/prismarine": "workspace:*",
         "node-fetch": "3.3.2",
         "semver": "7.6.0"
-    },
-    "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0"
+    }
 }

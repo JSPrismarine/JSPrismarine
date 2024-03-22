@@ -1,0 +1,23 @@
+name: 📦 Install
+description: Install dependencies
+
+runs:
+    using: 'composite'
+    steps:
+        - name: 🥸 Configure Git User
+          shell: bash
+          run: |
+              git config --global user.email "opensource@nordcom.io"
+              git config --global user.name "nordcombot"
+
+        - name: 🏎️ Setup Node
+          uses: actions/setup-node@v4
+          with:
+              registry-url: 'https://registry.npmjs.org/'
+              node-version-file: '.nvmrc'
+
+        - name: 🏎️ Setup pnpm
+          uses: pnpm/action-setup@v3
+          with:
+              version: 8
+              run_install: true

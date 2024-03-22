@@ -16,14 +16,16 @@ jobs:
           packages: write
       steps:
           - uses: actions/checkout@v4
-          - uses: actions/setup-node@v4
-            with:
-                node-version: 21
-          - run: npm install
-          - run: npm run build
+
+          - name: 📦 Install
+            uses: ./.github/common/install
+
+          - run: pnpm run build
+
           - run: |
                 echo @jsprismarine:https://npm.pkg.github.com/ > .npmrc
                 echo '//npm.pkg.github.com/:_authToken=${NPM_TOKEN}' >> ~/.npmrc
+
           - run: npm publish --workspaces
             env:
                 NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}

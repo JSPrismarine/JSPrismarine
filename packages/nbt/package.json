@@ -23,7 +23,6 @@
     "devDependencies": {
         "typescript": "5.4.3"
     },
-    "gitHead": "d5c024aee5aa3dfd06ed5cde11d9ac39a4c35bb0",
     "dependencies": {
         "@jsprismarine/jsbinaryutils": "5.5.3"
     }

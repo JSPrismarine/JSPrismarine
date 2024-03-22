@@ -193,21 +193,23 @@ export default class Entity extends Position {
      * Send the position to all the players in the same world.
      */
     public async sendPosition() {
-        this.getServer()
-            .getSessionManager()
-            .getAllPlayers()
-            .filter((p) => p.getWorld().getUniqueId() === this.getWorld().getUniqueId())
-            .map(async (player) => {
-                const pk = new MoveActorAbsolutePacket();
-                pk.runtimeEntityId = this.runtimeId;
-                pk.position = this.getPosition();
+        await Promise.all(
+            this.getServer()
+                .getSessionManager()
+                .getAllPlayers()
+                .filter((p) => p.getWorld().getUniqueId() === this.getWorld().getUniqueId())
+                .map(async (player) => {
+                    const pk = new MoveActorAbsolutePacket();
+                    pk.runtimeEntityId = this.runtimeId;
+                    pk.position = this.getPosition();
 
-                // TODO
-                pk.rotationX = 0;
-                pk.rotationY = 0;
-                pk.rotationZ = 0;
-                await player.getNetworkSession().getConnection().sendDataPacket(pk);
-            });
+                    // TODO
+                    pk.rotationX = 0;
+                    pk.rotationY = 0;
+                    pk.rotationZ = 0;
+                    await player.getNetworkSession().getConnection().sendDataPacket(pk);
+                })
+        );
     }
 
     /**
