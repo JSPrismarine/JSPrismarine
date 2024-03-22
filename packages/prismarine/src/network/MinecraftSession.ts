@@ -1,5 +1,5 @@
 import { BatchPacket, DataPacket } from './Packets';
-import { Protocol, RakNetSession } from '@jsprismarine/raknet';
+import { Protocol, RakNetSession, ConnectionPriority } from '@jsprismarine/raknet';
 
 import { Logger } from '@';
 
@@ -24,10 +24,7 @@ export default class MinecraftSession {
         sendPacket.orderChannel = 0;
         sendPacket.content = batch.getBuffer();
 
-        this.rakSession.sendFrame(
-            sendPacket,
-            direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.NORMAL
-        );
+        this.rakSession.sendFrame(sendPacket, direct ? ConnectionPriority.IMMEDIATE : ConnectionPriority.NORMAL);
     }
 
     public async sendDataPacket<T extends DataPacket>(packet: T, comp = true, direct = false): Promise<void> {
@@ -52,10 +49,7 @@ export default class MinecraftSession {
         sendPacket.orderChannel = 0;
         sendPacket.content = batch.getBuffer();
 
-        this.rakSession.sendFrame(
-            sendPacket,
-            direct ? Protocol.RakNetPriority.IMMEDIATE : Protocol.RakNetPriority.NORMAL
-        );
+        this.rakSession.sendFrame(sendPacket, direct ? ConnectionPriority.IMMEDIATE : ConnectionPriority.NORMAL);
         this.logger?.silly(`Sent §b${packet.constructor.name}§r packet`, 'PlayerConnection/sendDataPacket');
     }
 

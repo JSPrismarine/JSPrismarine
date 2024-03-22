@@ -1,4 +1,4 @@
-import { ConnectionPriority, InetAddress, Protocol, RakNetSession } from '@jsprismarine/raknet';
+import { ConnectionPriority, InetAddress, Protocol, RakNetSession, MessageIdentifiers } from '@jsprismarine/raknet';
 import Dgram, { type Socket } from 'node:dgram';
 import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
@@ -101,15 +101,15 @@ export default class Client extends EventEmitter {
 
         let buf;
         switch (header) {
-            case Protocol.MessageIdentifiers.UNCONNECTED_PONG:
+            case MessageIdentifiers.UNCONNECTED_PONG:
                 buf = this.handleUnconnectedPong(buffer);
                 await this.sendBuffer(buf);
                 break;
-            case Protocol.MessageIdentifiers.OPEN_CONNECTION_REPLY_1:
+            case MessageIdentifiers.OPEN_CONNECTION_REPLY_1:
                 buf = this.handleOpenConnectionReply1(buffer);
                 await this.sendBuffer(buf);
                 break;
-            case Protocol.MessageIdentifiers.OPEN_CONNECTION_REPLY_2:
+            case MessageIdentifiers.OPEN_CONNECTION_REPLY_2:
                 this.handleOpenConnectionReply2(buffer);
                 break;
             default:
