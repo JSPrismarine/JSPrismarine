@@ -1,3 +1,5 @@
+import { describe, it, expect } from 'vitest';
+
 import TextHandler from './TextHandler';
 import TextPacket from '../packet/TextPacket';
 

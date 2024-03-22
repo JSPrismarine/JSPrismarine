@@ -3,7 +3,6 @@
     "globalDependencies": ["tsconfig.json", "package.json", "vite.config.ts"],
     "pipeline": {
         "build": {
-            "cache": false,
             "dependsOn": ["^build"],
             "outputs": ["**/dist/**", "**/docs/**", "!**/coverage/**"]
         },

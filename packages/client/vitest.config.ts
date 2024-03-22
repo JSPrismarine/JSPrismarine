@@ -13,8 +13,8 @@ export default mergeConfig(
         root: resolve(__dirname),
         resolve: {
             alias: {
-                '@': resolve(__dirname, 'src/index.ts'),
-                '@/': resolve(__dirname, 'src/')
+                '@/': resolve(__dirname, 'src/'),
+                '@': resolve(__dirname, 'src/index.ts')
             }
         },
         test: {
