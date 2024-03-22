@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/client",
-    "version": "0.1.0-rc.54",
+    "version": "0.1.0",
     "description": "Minecraft: Bedrock Edition RakNet client",
     "sideEffects": false,
     "type": "module",
