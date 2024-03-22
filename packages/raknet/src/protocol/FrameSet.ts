@@ -1,6 +1,6 @@
-import BitFlags from './BitFlags.js';
-import Frame from './Frame.js';
-import Packet from './Packet.js';
+import BitFlags from './BitFlags';
+import Frame from './Frame';
+import Packet from './Packet';
 
 // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L133
 export const DATAGRAM_HEADER_BYTE_LENGTH = 6;

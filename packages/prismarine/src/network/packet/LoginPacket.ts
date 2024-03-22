@@ -1,8 +1,8 @@
-import DataPacket from './DataPacket.js';
-import Device from '../../utils/Device.js';
-import Identifiers from '../Identifiers.js';
-import McpeUtil from '../NetworkUtil.js';
-import Skin from '../../utils/skin/Skin.js';
+import DataPacket from './DataPacket';
+import Device from '../../utils/Device';
+import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
+import Skin from '../../utils/skin/Skin';
 import fastJWT from 'fast-jwt';
 
 export default class LoginPacket extends DataPacket {

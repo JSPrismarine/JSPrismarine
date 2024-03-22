@@ -1,4 +1,4 @@
-import Event from '../Event.js';
+import Event from '../Event';
 import type { InetAddress } from '@jsprismarine/raknet';
 import { Protocol } from '@jsprismarine/raknet';
 

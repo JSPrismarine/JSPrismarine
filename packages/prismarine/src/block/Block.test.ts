@@ -1,4 +1,6 @@
-import type Block from './Block.js';
+import { describe, it, expect } from 'vitest';
+
+import type Block from './Block';
 import url from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -6,7 +8,6 @@ import path from 'node:path';
 describe('block', () => {
     describe('Block', () => {
         it('every block show have unique namespace id', async () => {
-            // jest.setTimeout(35000);
             const IDs: Set<string> = new Set();
             const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
             const blocks = fs.readdirSync(path.resolve(__dirname, 'blocks'));

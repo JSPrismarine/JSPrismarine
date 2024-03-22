@@ -1,4 +1,4 @@
-import Event from '../Event.js';
+import Event from '../Event';
 
 /**
  * Fired for every tick

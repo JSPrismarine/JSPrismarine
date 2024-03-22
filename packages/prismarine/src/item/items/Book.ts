@@ -1,5 +1,5 @@
-import Item from '../Item.js';
-import { ItemIdsType } from '../ItemIdsType.js';
+import Item from '../Item';
+import { ItemIdsType } from '../ItemIdsType';
 
 export default class Book extends Item {
     public constructor() {

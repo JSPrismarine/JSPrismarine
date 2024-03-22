@@ -1,8 +1,8 @@
-import Chat from './chat/Chat.js';
-import ChatEvent from './events/chat/ChatEvent.js';
-import type Entity from './entity/Entity.js';
-import type Server from './Server.js';
-import Vector3 from './math/Vector3.js';
+import Chat from './chat/Chat';
+import ChatEvent from './events/chat/ChatEvent';
+import type Entity from './entity/Entity';
+import type Server from './Server';
+import Vector3 from './math/Vector3';
 import readline from 'readline';
 
 export default class Console {
@@ -26,7 +26,7 @@ export default class Console {
 
         const completer = (line: string) => {
             const hits = Array.from(this.getServer().getCommandManager().getCommands().values())
-                .filter((a) => a.id.split(':')[1].startsWith(line.replace('/', '')))
+                .filter((a) => a.id.split(':')[1]!.startsWith(line.replace('/', '')))
                 .map((a) => '/' + a.id.split(':')[1]);
             return [
                 hits.length
@@ -138,7 +138,7 @@ export default class Console {
         const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
             const distances = points.map((e) => dist(target, new Vector3(e.getX(), e.getY(), e.getZ())));
             const closest = Math.min(...distances);
-            return points.find((e, i) => distances[i] - closest < eps)!;
+            return points.find((e, i) => distances[i]! - closest < eps)!;
         };
 
         return [

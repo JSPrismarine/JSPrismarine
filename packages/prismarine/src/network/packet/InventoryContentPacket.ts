@@ -1,6 +1,6 @@
-import type ContainerEntry from '../../inventory/ContainerEntry.js';
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
+import type ContainerEntry from '../../inventory/ContainerEntry';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 export default class InventoryContentPacket extends DataPacket {
     public static NetID = Identifiers.InventoryContentPacket;
@@ -15,7 +15,7 @@ export default class InventoryContentPacket extends DataPacket {
         this.writeUnsignedVarInt(this.items.length);
         for (let i = 0; i < this.items.length; i++) {
             this.writeVarInt(i + 1); // Slot index
-            this.items[i].getItem().networkSerialize(this);
+            this.items[i]!.getItem().networkSerialize(this);
         }
     }
 }

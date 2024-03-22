@@ -1,7 +1,7 @@
-import Identifiers from '../Identifiers.js';
-import LoginHandler from './LoginHandler.js';
-import LoginPacket from '../packet/LoginPacket.js';
-import PlayStatusType from '../type/PlayStatusType.js';
+import Identifiers from '../Identifiers';
+import LoginHandler from './LoginHandler';
+import LoginPacket from '../packet/LoginPacket';
+import PlayStatusType from '../type/PlayStatusType';
 
 describe('network', () => {
     describe('handler', () => {

@@ -1,5 +1,5 @@
-import AnimateActionType from './type/AnimateActionType.js';
-import TextType from './type/TextType.js';
+import AnimateActionType from './type/AnimateActionType';
+import TextType from './type/TextType';
 
 export { AnimateActionType, TextType };
 

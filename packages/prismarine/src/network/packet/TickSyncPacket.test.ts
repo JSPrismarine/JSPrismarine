@@ -1,4 +1,4 @@
-import TickSyncPacket from './TickSyncPacket.js';
+import TickSyncPacket from './TickSyncPacket';
 import fs from 'node:fs';
 import path from 'node:path';
 

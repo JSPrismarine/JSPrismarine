@@ -1,52 +1,52 @@
-import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments.js';
-import CommandParameter, { CommandParameterType } from './type/CommandParameter.js';
-import NetworkChunkPublisherUpdatePacket, { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket.js';
-import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket.js';
+import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
+import CommandParameter, { CommandParameterType } from './type/CommandParameter';
+import NetworkChunkPublisherUpdatePacket, { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket';
+import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
 import UpdateAbilitiesPacket, {
     AbilityLayer,
     AbilityLayerFlag,
     AbilityLayerType
-} from './packet/UpdateAbilitiesPacket.js';
+} from './packet/UpdateAbilitiesPacket';
 
-import AddPlayerPacket from './packet/AddPlayerPacket.js';
-import { Attribute } from '../entity/Attribute.js';
-import AvailableCommandsPacket from './packet/AvailableCommandsPacket.js';
-import { BatchPacket } from './Packets.js';
-import BlockPosition from '../world/BlockPosition.js';
-import Chunk from '../world/chunk/Chunk.js';
-import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket.js';
-import ClientConnection from './ClientConnection.js';
-import CommandData from './type/CommandData.js';
-import CommandEnum from './type/CommandEnum.js';
-import CoordinateUtils from '../world/CoordinateUtils.js';
-import CreativeContentPacket from './packet/CreativeContentPacket.js';
-import DisconnectPacket from './packet/DisconnectPacket.js';
-import Gamemode from '../world/Gamemode.js';
+import AddPlayerPacket from './packet/AddPlayerPacket';
+import { Attribute } from '../entity/Attribute';
+import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
+import { BatchPacket } from './Packets';
+import BlockPosition from '../world/BlockPosition';
+import Chunk from '../world/chunk/Chunk';
+import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
+import ClientConnection from './ClientConnection';
+import CommandData from './type/CommandData';
+import CommandEnum from './type/CommandEnum';
+import CoordinateUtils from '../world/CoordinateUtils';
+import CreativeContentPacket from './packet/CreativeContentPacket';
+import DisconnectPacket from './packet/DisconnectPacket';
+import Gamemode from '../world/Gamemode';
 import Heap from 'heap';
-import IForm from '../form/IForm.js';
-import InventoryContentPacket from './packet/InventoryContentPacket.js';
-import Item from '../item/Item.js';
-import LevelChunkPacket from './packet/LevelChunkPacket.js';
-import MobEquipmentPacket from './packet/MobEquipmentPacket.js';
-import ModalFormRequestPacket from './packet/ModalFormRequestPacket.js';
-import MovePlayerPacket from './packet/MovePlayerPacket.js';
-import MovementType from './type/MovementType.js';
-import PermissionType from './type/PermissionType.js';
-import PlayStatusPacket from './packet/PlayStatusPacket.js';
-import type Player from '../Player.js';
-import PlayerPermissionType from './type/PlayerPermissionType.js';
-import RemoveActorPacket from './packet/RemoveActorPacket.js';
-import type Server from '../Server.js';
-import SetActorDataPacket from './packet/SetActorDataPacket.js';
-import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket.js';
-import SetTimePacket from './packet/SetTimePacket.js';
-import TextPacket from './packet/TextPacket.js';
-import TextType from './type/TextType.js';
-import ToastRequestPacket from './packet/ToastRequestPacket.js';
-import UUID from '../utils/UUID.js';
-import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket.js';
-import UpdateAttributesPacket from './packet/UpdateAttributesPacket.js';
-import { WindowIds } from '../inventory/WindowManager.js';
+import IForm from '../form/IForm';
+import InventoryContentPacket from './packet/InventoryContentPacket';
+import Item from '../item/Item';
+import LevelChunkPacket from './packet/LevelChunkPacket';
+import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
+import MovePlayerPacket from './packet/MovePlayerPacket';
+import MovementType from './type/MovementType';
+import PermissionType from './type/PermissionType';
+import PlayStatusPacket from './packet/PlayStatusPacket';
+import type Player from '../Player';
+import PlayerPermissionType from './type/PlayerPermissionType';
+import RemoveActorPacket from './packet/RemoveActorPacket';
+import type Server from '../Server';
+import SetActorDataPacket from './packet/SetActorDataPacket';
+import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
+import SetTimePacket from './packet/SetTimePacket';
+import TextPacket from './packet/TextPacket';
+import TextType from './type/TextType';
+import ToastRequestPacket from './packet/ToastRequestPacket';
+import UUID from '../utils/UUID';
+import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
+import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
+import { WindowIds } from '../inventory/WindowManager';
 import { creativeitems } from '@jsprismarine/bedrock-data';
 
 export default class PlayerSession {
@@ -150,11 +150,11 @@ export default class PlayerSession {
         const viewDistance = this.player.viewDistance ?? dist;
 
         const chunksToSendHeap = new Heap((a: number[], b: number[]) => {
-            const distXFirst = Math.abs(a[0] - currentXChunk);
-            const distXSecond = Math.abs(b[0] - currentXChunk);
+            const distXFirst = Math.abs(a[0]! - currentXChunk);
+            const distXSecond = Math.abs(b[0]! - currentXChunk);
 
-            const distZFirst = Math.abs(a[1] - currentZChunk);
-            const distZSecond = Math.abs(b[1] - currentZChunk);
+            const distZFirst = Math.abs(a[1]! - currentZChunk);
+            const distZSecond = Math.abs(b[1]! - currentZChunk);
 
             return distXFirst + distZFirst > distXSecond + distZSecond ? 1 : -1;
         });
@@ -163,7 +163,7 @@ export default class PlayerSession {
             for (let sendZChunk = -viewDistance; sendZChunk <= viewDistance; sendZChunk++) {
                 if (sendXChunk * sendXChunk + sendZChunk * sendZChunk > viewDistance * viewDistance) continue; // early exit if chunk is outside of view distance
                 const newChunk = [currentXChunk + sendXChunk, currentZChunk + sendZChunk];
-                const hash = Chunk.packXZ(newChunk[0], newChunk[1]);
+                const hash = Chunk.packXZ(newChunk[0]!, newChunk[1]!);
 
                 if (forceResend) {
                     chunksToSendHeap.push(newChunk);
@@ -175,18 +175,18 @@ export default class PlayerSession {
 
         while (chunksToSendHeap.size() > 0) {
             const closestChunk = chunksToSendHeap.pop()!;
-            const hash = Chunk.packXZ(closestChunk[0], closestChunk[1]);
+            const hash = Chunk.packXZ(closestChunk[0]!, closestChunk[1]!);
             if (forceResend) {
                 if (!this.loadedChunks.has(hash) && !this.loadingChunks.has(hash)) {
                     this.loadingChunks.add(hash);
-                    await this.requestChunk(closestChunk[0], closestChunk[1]);
+                    await this.requestChunk(closestChunk[0]!, closestChunk[1]!);
                 } else {
-                    const loadedChunk = await this.player.getWorld().getChunk(closestChunk[0], closestChunk[1]);
+                    const loadedChunk = await this.player.getWorld().getChunk(closestChunk[0]!, closestChunk[1]!);
                     await this.sendChunk(loadedChunk);
                 }
             } else {
                 this.loadingChunks.add(hash);
-                await this.requestChunk(closestChunk[0], closestChunk[1]);
+                await this.requestChunk(closestChunk[0]!, closestChunk[1]!);
             }
         }
 
@@ -195,7 +195,7 @@ export default class PlayerSession {
         for (const hash of this.loadedChunks) {
             const [x, z] = Chunk.unpackXZ(hash);
 
-            if (Math.abs(x - currentXChunk) > viewDistance || Math.abs(z - currentZChunk) > viewDistance) {
+            if (Math.abs(x! - currentXChunk) > viewDistance || Math.abs(z! - currentZChunk) > viewDistance) {
                 unloaded = true;
                 this.loadedChunks.delete(hash);
             }
@@ -204,7 +204,7 @@ export default class PlayerSession {
         for (const hash of this.loadingChunks) {
             const [x, z] = Chunk.unpackXZ(hash);
 
-            if (Math.abs(x - currentXChunk) > viewDistance || Math.abs(z - currentZChunk) > viewDistance) {
+            if (Math.abs(x! - currentXChunk) > viewDistance || Math.abs(z! - currentZChunk) > viewDistance) {
                 this.loadingChunks.delete(hash);
             }
         }

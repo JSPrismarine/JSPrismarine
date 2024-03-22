@@ -1,4 +1,6 @@
-import Gamemode from './Gamemode.js';
+import { describe, it, expect } from 'vitest';
+
+import Gamemode from './Gamemode';
 
 describe('world', () => {
     describe('Gamemode', () => {

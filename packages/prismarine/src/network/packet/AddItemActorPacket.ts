@@ -1,7 +1,7 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import type Item from '../../item/Item.js';
-import Vector3 from '../../math/Vector3.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import type Item from '../../item/Item';
+import Vector3 from '../../math/Vector3';
 
 /**
  * Packet for adding an dropped item to the game.

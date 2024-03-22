@@ -1,8 +1,8 @@
-import BlockMappings, { LegacyId } from '../../block/BlockMappings.js';
+import BlockMappings, { LegacyId } from '../../block/BlockMappings';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Block from '../../block/Block.js';
-import SubChunk from './SubChunk.js';
+import Block from '../../block/Block';
+import SubChunk from './SubChunk';
 
 const MAX_SUBCHUNKS = 16;
 

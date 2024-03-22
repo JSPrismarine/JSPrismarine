@@ -1,4 +1,4 @@
-import RedSandstone, { RedSandstoneType } from './RedSandstone.js';
+import RedSandstone, { RedSandstoneType } from './RedSandstone';
 
 export default class RedChiseledSandstone extends RedSandstone {
     public constructor() {

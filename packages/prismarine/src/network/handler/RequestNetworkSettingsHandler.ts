@@ -1,9 +1,9 @@
-import Identifiers from '../Identifiers.js';
-import type Server from '../../Server.js';
-import RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket.js';
-import PreLoginPacketHandler from './PreLoginPacketHandler.js';
-import ClientConnection from '../ClientConnection.js';
-import NetworkSettingsPacket, { CompressionAlgorithm, CompressionThreshold } from '../packet/NetworkSettingsPacket.js';
+import Identifiers from '../Identifiers';
+import type Server from '../../Server';
+import RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
+import PreLoginPacketHandler from './PreLoginPacketHandler';
+import ClientConnection from '../ClientConnection';
+import NetworkSettingsPacket, { CompressionAlgorithm, CompressionThreshold } from '../packet/NetworkSettingsPacket';
 
 export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<RequestNetworkSettingsPacket> {
     public static NetID = Identifiers.RequestNetworkSettingsPacket;

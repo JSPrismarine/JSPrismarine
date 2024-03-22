@@ -1,5 +1,5 @@
-import Entity from '../entity/Entity.js';
-import Player from '../Player.js';
+import Entity from '@/entity/Entity';
+import Player from '@/Player';
 
 /**
  * Parse target selector argument.
@@ -49,12 +49,12 @@ const ParseTargetSelector = ({
     const args =
         str
             .split('[')[1]
-            ?.split(']')[0]
+            ?.split(']')[0]!
             .split(',')
             .map((arg) => ({
                 argument: arg.split('=')[0],
-                value: arg.split('=')[1].replace('!', ''),
-                reverse: arg.split('=')[1].startsWith('!')
+                value: arg.split('=')[1]!.replace('!', ''),
+                reverse: arg.split('=')[1]!.startsWith('!')
             })) || [];
 
     // Filters
@@ -139,7 +139,7 @@ const ParseTargetSelector = ({
             break;
         case 'random':
             // FIXME: respect limit filter
-            targets = [targets[Math.floor(Math.random() * targets.length)]];
+            targets = [targets[Math.floor(Math.random() * targets.length)]!];
             break;
         // TODO: case 'arbitrary':
         default:

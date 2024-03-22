@@ -1,7 +1,7 @@
-import * as Handlers from './Handlers.js';
-import * as Packets from './Packets.js';
-import * as Types from './Types.js';
+import * as Handlers from './Handlers';
+import * as Packets from './Packets';
+import * as Types from './Types';
 
-import Identifiers from './Identifiers.js';
+import Identifiers from './Identifiers';
 
 export { Packets, Handlers, Types, Identifiers };

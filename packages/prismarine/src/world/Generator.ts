@@ -1,4 +1,4 @@
-import Chunk from './chunk/Chunk.js';
+import Chunk from './chunk/Chunk';
 
 export default interface Generator {
     /**

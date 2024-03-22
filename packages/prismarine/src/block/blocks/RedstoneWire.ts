@@ -1,5 +1,5 @@
-import { BlockIdsType } from '../BlockIdsType.js';
-import Transparent from '../Transparent.js';
+import { BlockIdsType } from '../BlockIdsType';
+import Transparent from '../Transparent';
 
 export default class RedstoneWire extends Transparent {
     public constructor() {

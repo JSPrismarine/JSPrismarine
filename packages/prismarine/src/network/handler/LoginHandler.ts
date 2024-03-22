@@ -1,12 +1,12 @@
-import ClientConnection from '../ClientConnection.js';
-import Identifiers from '../Identifiers.js';
-import type LoginPacket from '../packet/LoginPacket.js';
-import { PlayStatusPacket } from '../Packets.js';
-import PlayStatusType from '../type/PlayStatusType.js';
-import { Player } from '../../Prismarine.js';
-import PreLoginPacketHandler from './PreLoginPacketHandler.js';
-import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket.js';
-import type Server from '../../Server.js';
+import ClientConnection from '../ClientConnection';
+import Identifiers from '../Identifiers';
+import type LoginPacket from '../packet/LoginPacket';
+import { PlayStatusPacket } from '../Packets';
+import PlayStatusType from '../type/PlayStatusType';
+import { Player } from '@';
+import PreLoginPacketHandler from './PreLoginPacketHandler';
+import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
+import type Server from '../../Server';
 
 export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> {
     public static NetID = Identifiers.LoginPacket;

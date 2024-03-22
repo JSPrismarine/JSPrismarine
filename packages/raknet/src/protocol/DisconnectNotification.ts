@@ -1,5 +1,5 @@
-import { MessageIdentifiers } from './MessageIdentifiers.js';
-import OfflinePacket from './OfflinePacket.js';
+import { MessageIdentifiers } from './MessageIdentifiers';
+import OfflinePacket from './OfflinePacket';
 
 export default class DisconnectNotification extends OfflinePacket {
     public constructor() {

@@ -1,4 +1,4 @@
-import Poppy, { FlowerType } from './Poppy.js';
+import Poppy, { FlowerType } from './Poppy';
 
 export default class Allium extends Poppy {
     public constructor() {

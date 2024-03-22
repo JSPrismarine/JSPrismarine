@@ -1,10 +1,10 @@
-import * as ByteOrder from './ByteOrder.js';
-import * as NBTDefinitions from './NBTDefinitions.js';
-import * as Types from './types/Types.js';
+import * as ByteOrder from './ByteOrder';
+import * as NBTDefinitions from './NBTDefinitions';
+import * as Types from './types/Types';
 
-import NBTReader from './NBTReader.js';
-import NBTStreamReader from './NBTStreamReader.js';
-import NBTTagCompound from './NBTTagCompound.js';
-import NBTWriter from './NBTWriter.js';
+import NBTReader from './NBTReader';
+import NBTStreamReader from './NBTStreamReader';
+import NBTTagCompound from './NBTTagCompound';
+import NBTWriter from './NBTWriter';
 
 export { ByteOrder, NBTDefinitions, Types, NBTReader, NBTStreamReader, NBTTagCompound, NBTWriter };

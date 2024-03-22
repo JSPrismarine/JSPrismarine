@@ -1,11 +1,9 @@
 import { ConnectionPriority, InetAddress, Protocol, RakNetSession } from '@jsprismarine/raknet';
-import Dgram, { type Socket } from 'dgram';
+import Dgram, { type Socket } from 'node:dgram';
 import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
-
-import Crypto, { randomBytes } from 'crypto';
-import { EventEmitter } from 'events';
-import { RakNetPriority } from '@jsprismarine/raknet/src/Session.js';
+import Crypto, { randomBytes } from 'node:crypto';
+import { EventEmitter } from 'node:events';
 
 // https://stackoverflow.com/a/1527820/3142553
 const getRandomInt = (min: number, max: number) => {
@@ -199,7 +197,7 @@ export default class Client extends EventEmitter {
         sendPacket.reliability = 0;
         sendPacket.content = packet.getBuffer();
 
-        this.connection?.sendFrame(sendPacket, RakNetPriority.NORMAL);
+        this.connection?.sendFrame(sendPacket, ConnectionPriority.NORMAL);
 
         this.offlineHandled = true;
         this.connected = true; // Should be... we can't rely on it

@@ -1,4 +1,4 @@
-import Sponge, { SpongeType } from './Sponge.js';
+import Sponge, { SpongeType } from './Sponge';
 
 export default class WetSponge extends Sponge {
     public constructor() {

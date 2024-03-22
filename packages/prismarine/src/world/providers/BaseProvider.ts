@@ -1,8 +1,8 @@
-import type Chunk from '../chunk/Chunk.js';
-import Generator from '../Generator.js';
-import Provider from './Provider.js';
-import type Server from '../../Server.js';
-import type World from '../World.js';
+import type Chunk from '../chunk/Chunk';
+import Generator from '../Generator';
+import Provider from './Provider';
+import type Server from '../../Server';
+import type World from '../World';
 import fs from 'node:fs';
 
 export default abstract class BaseProvider implements Provider {

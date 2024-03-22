@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import type { InetAddress } from '@jsprismarine/raknet';
-import PluginFile from '../plugin/PluginFile.js';
-import Server from '../Server.js';
+import PluginFile from '../plugin/PluginFile';
+import Server from '../Server';
 import git from 'git-rev-sync';
 
 export enum QueryType {

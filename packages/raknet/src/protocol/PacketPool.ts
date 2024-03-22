@@ -1,6 +1,6 @@
-import ACK from './ACK.js';
-import FrameSet from './FrameSet.js';
-import NACK from './NACK.js';
+import ACK from './ACK';
+import FrameSet from './FrameSet';
+import NACK from './NACK';
 
 export default class PacketPool {
     private readonly ackPool: ACK[] = [];

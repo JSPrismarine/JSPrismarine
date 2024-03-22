@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import type Item from '../../item/Item.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import type Item from '../../item/Item';
 
 export default class MobEquipmentPacket extends DataPacket {
     public static NetID = Identifiers.MobEquipmentPacket;

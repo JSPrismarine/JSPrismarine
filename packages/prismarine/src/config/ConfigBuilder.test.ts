@@ -1,4 +1,6 @@
-import ConfigBuilder from './ConfigBuilder.js';
+import { describe, it, expect } from 'vitest';
+
+import ConfigBuilder from './ConfigBuilder';
 import path from 'node:path';
 
 describe('config', () => {

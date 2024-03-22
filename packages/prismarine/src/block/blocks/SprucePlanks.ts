@@ -1,4 +1,4 @@
-import Planks, { PlanksType } from './OakPlanks.js';
+import Planks, { PlanksType } from './OakPlanks';
 
 export default class SprucePlanks extends Planks {
     public constructor() {

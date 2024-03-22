@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import MetadataManager from '../../entity/Metadata.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import MetadataManager from '../../entity/Metadata';
 
 export default class SetActorDataPacket extends DataPacket {
     public static NetID = Identifiers.SetActorDataPacket;

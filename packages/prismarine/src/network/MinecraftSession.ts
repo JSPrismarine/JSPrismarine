@@ -1,7 +1,7 @@
-import { BatchPacket, DataPacket } from './Packets.js';
+import { BatchPacket, DataPacket } from './Packets';
 import { Protocol, RakNetSession } from '@jsprismarine/raknet';
 
-import { Logger } from '../Prismarine.js';
+import { Logger } from '@';
 
 /**
  * Act as the first connection layer, handles everything related to batching,

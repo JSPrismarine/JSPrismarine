@@ -1,6 +1,6 @@
-import { BlockIdsType } from '../BlockIdsType.js';
-import { BlockToolType } from '../BlockToolType.js';
-import Flowable from '../Flowable.js';
+import { BlockIdsType } from '../BlockIdsType';
+import { BlockToolType } from '../BlockToolType';
+import Flowable from '../Flowable';
 
 export default class Cobweb extends Flowable {
     public constructor() {

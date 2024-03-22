@@ -1,12 +1,12 @@
-import WorldEventPacket, { WorldEvent } from '../packet/WorldEventPacket.js';
+import WorldEventPacket, { WorldEvent } from '../packet/WorldEventPacket';
 
-import BlockMappings from '../../block/BlockMappings.js';
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerAction } from '../packet/PlayerActionPacket.js';
-import type PlayerActionPacket from '../packet/PlayerActionPacket.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type Server from '../../Server.js';
+import BlockMappings from '../../block/BlockMappings';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import { PlayerAction } from '../packet/PlayerActionPacket';
+import type PlayerActionPacket from '../packet/PlayerActionPacket';
+import { PlayerSession } from '@';
+import type Server from '../../Server';
 
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
     public static NetID = Identifiers.PlayerActionPacket;

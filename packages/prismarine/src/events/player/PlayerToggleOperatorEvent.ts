@@ -1,5 +1,5 @@
-import Event from '../Event.js';
-import type Player from '../../Player.js';
+import Event from '../Event';
+import type Player from '../../Player';
 
 /**
  * Fired as a player's operator status is changed

@@ -1,4 +1,4 @@
-import Item, { ItemProps } from './Item.js';
+import Item, { ItemProps } from './Item';
 
 export default class Armor extends Item {
     public constructor(args: ItemProps) {

@@ -1,4 +1,4 @@
-import Dirt, { DirtType } from './Dirt.js';
+import Dirt, { DirtType } from './Dirt';
 
 export default class CoarseDirt extends Dirt {
     public constructor() {

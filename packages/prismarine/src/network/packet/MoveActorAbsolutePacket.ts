@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import type Vector3 from '../../math/Vector3.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import type Vector3 from '../../math/Vector3';
 
 export default class MoveActorAbsolutePacket extends DataPacket {
     public static NetID = Identifiers.MoveActorAbsolutePacket;

@@ -1,8 +1,8 @@
 import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command.js';
-import Identifiers from '../../network/Identifiers.js';
-import Player from '../../Player.js';
+import Command from '../Command';
+import Identifiers from '../../network/Identifiers';
+import Player from '../../Player';
 
 export default class VersionCommand extends Command {
     public constructor() {

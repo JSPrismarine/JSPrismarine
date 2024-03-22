@@ -1,10 +1,10 @@
-import * as Blocks from './Blocks.js';
+import * as Blocks from './Blocks';
 
-import Block from './Block.js';
-import { BlockIdsType } from './BlockIdsType.js';
-import BlockRegisterEvent from '../events/block/BlockRegisterEvent.js';
-import Server from '../Server.js';
-import Timer from '../utils/Timer.js';
+import Block from './Block';
+import { BlockIdsType } from './BlockIdsType';
+import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
+import Server from '../Server';
+import Timer from '../utils/Timer';
 
 export default class BlockManager {
     private readonly server: Server;

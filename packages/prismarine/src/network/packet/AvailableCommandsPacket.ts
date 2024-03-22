@@ -1,10 +1,10 @@
-import CommandData from '../type/CommandData.js';
-import CommandEnum from '../type/CommandEnum.js';
-import CommandEnumConstraint from '../type/CommandEnumConstraint.js';
-import CommandParameter from '../type/CommandParameter.js';
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import McpeUtil from '../NetworkUtil.js';
+import CommandData from '../type/CommandData';
+import CommandEnum from '../type/CommandEnum';
+import CommandEnumConstraint from '../type/CommandEnumConstraint';
+import CommandParameter from '../type/CommandParameter';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class AvailableCommandsPacket extends DataPacket {
     public static NetID = Identifiers.AvailableCommandsPacket;

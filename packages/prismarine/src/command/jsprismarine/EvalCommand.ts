@@ -1,6 +1,6 @@
 import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command.js';
+import Command from '../Command';
 
 export default class EvalCommand extends Command {
     public constructor() {

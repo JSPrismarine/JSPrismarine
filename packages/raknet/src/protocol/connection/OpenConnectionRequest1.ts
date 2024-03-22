@@ -1,5 +1,5 @@
-import { MessageIdentifiers } from '../MessageIdentifiers.js';
-import OfflinePacket from '../OfflinePacket.js';
+import { MessageIdentifiers } from '../MessageIdentifiers';
+import OfflinePacket from '../OfflinePacket';
 
 export default class OpenConnectionRequest1 extends OfflinePacket {
     public constructor(buffer?: Buffer) {

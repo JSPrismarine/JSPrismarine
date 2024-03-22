@@ -1,4 +1,4 @@
-import WhiteConcretePowder, { ConcretePowderColorType } from './WhiteConcretePowder.js';
+import WhiteConcretePowder, { ConcretePowderColorType } from './WhiteConcretePowder';
 
 export default class lightBlueConcrete extends WhiteConcretePowder {
     public constructor() {

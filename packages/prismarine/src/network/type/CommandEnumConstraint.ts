@@ -1,4 +1,4 @@
-import CommandEnum from './CommandEnum.js';
+import CommandEnum from './CommandEnum';
 
 export default class CommandEnumConstraint {
     private _enum!: CommandEnum;
@@ -25,7 +25,7 @@ export default class CommandEnumConstraint {
     }
 
     public getAffectedValue(): string {
-        return this._enum.enumValues[this.valueOffset];
+        return this._enum.enumValues[this.valueOffset]!;
     }
 
     public getConstraints(): number[] {

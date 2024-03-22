@@ -1,10 +1,10 @@
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
-import Chat from '../../chat/Chat.js';
-import ChatEvent from '../../events/chat/ChatEvent.js';
-import Command from '../Command.js';
-import Player from '../../Player.js';
-import { PlayerArgumentCommand } from '../CommandArguments.js';
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
+import Command from '../Command';
+import Player from '../../Player';
+import { PlayerArgumentCommand } from '../CommandArguments';
 
 export default class OpCommand extends Command {
     public constructor() {

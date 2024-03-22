@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Packet from './Packet.js';
+import Packet from './Packet';
 
 export default class AcknowledgePacket extends Packet {
     public sequenceNumbers: number[] = [];
@@ -33,11 +33,11 @@ export default class AcknowledgePacket extends Packet {
 
         if (count > 0) {
             let pointer = 1;
-            let start = this.sequenceNumbers[0];
-            let last = this.sequenceNumbers[0];
+            let start = this.sequenceNumbers[0]!;
+            let last = this.sequenceNumbers[0]!;
 
             while (pointer < count) {
-                const current = this.sequenceNumbers[pointer++];
+                const current = this.sequenceNumbers[pointer++]!;
                 const diff = current - last;
                 if (diff === 1) {
                     last = current;

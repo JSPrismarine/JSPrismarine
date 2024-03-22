@@ -4,17 +4,17 @@ import {
     MINECRAFT_PROTOCOL_VERSION,
     OFFLINE_MESSAGE_DATA_ID,
     UDP_HEADER_SIZE
-} from '../RakNet.js';
+} from '../RakNet';
 
-import IncompatibleProtocolVersion from './connection/IncompatibleProtocolVersion.js';
-import { MessageIdentifiers } from './MessageIdentifiers.js';
-import OpenConnectionReply1 from './connection/OpenConnectionReply1.js';
-import OpenConnectionReply2 from './connection/OpenConnectionReply2.js';
-import OpenConnectionRequest2 from './connection/OpenConnectionRequest2.js';
-import { RemoteInfo } from 'dgram';
-import UnconnectedPing from './offline/UnconnectedPing.js';
-import UnconnectedPong from './offline/UnconnectedPong.js';
-import ServerSocket from '../ServerSocket.js';
+import IncompatibleProtocolVersion from './connection/IncompatibleProtocolVersion';
+import { MessageIdentifiers } from './MessageIdentifiers';
+import OpenConnectionReply1 from './connection/OpenConnectionReply1';
+import OpenConnectionReply2 from './connection/OpenConnectionReply2';
+import OpenConnectionRequest2 from './connection/OpenConnectionRequest2';
+import { RemoteInfo } from 'node:dgram';
+import UnconnectedPing from './offline/UnconnectedPing';
+import UnconnectedPong from './offline/UnconnectedPong';
+import ServerSocket from '../ServerSocket';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class OfflineHandler {
@@ -109,7 +109,7 @@ export default class OfflineHandler {
                 this.listener.emit('raw', msg, new InetAddress(rinfo.address, rinfo.port));
                 break;
             default:
-                throw new Error(`Unknown unconnected packet with ID=${msg[0].toString(16)}`);
+                throw new Error(`Unknown unconnected packet with ID=${msg[0]!.toString(16)}`);
         }
     }
 

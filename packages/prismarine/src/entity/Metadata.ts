@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil.js';
+import McpeUtil from '../network/NetworkUtil';
 
 // TODO: Still missing flags
 export enum MetadataFlag {
