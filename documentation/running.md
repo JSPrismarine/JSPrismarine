@@ -8,16 +8,16 @@
 
 ```bash
     # Install npm dependencies
-    $ npm install
+    $ pnpm install
 ```
 
 ## 3. Running
 
 ```bash
     # Development
-    $ npm run dev
+    $ pnpm run dev
 
     # Production (you should probably be using the prebuilt version however)
-    $ npm run build
-    $ npm run start
+    $ pnpm run build
+    $ pnpm run start
 ```

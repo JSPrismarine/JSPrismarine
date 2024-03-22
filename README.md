@@ -42,8 +42,8 @@ Prebuilt binaries will be provided once a stable release is out, these will not 
     -   Clone the repository `git clone https://github.com/JSPrismarine/JSPrismarine.git`.
     -   Go in the cloned repository `cd JSPrismarine`.
     -   Install dependencies `npm install`.
-    -   Before running production build you have to build it `npm run build`.
-    -   You're done, you can run it using `npm run start` (or `npm run dev` for development).
+    -   Before running production build you have to build it `pnpm run build`.
+    -   You're done, you can run it using `pnpm run start` (or `pnpm run dev` for development).
 
 ## FAQ
 

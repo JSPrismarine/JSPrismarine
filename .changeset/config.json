@@ -1,0 +1,18 @@
+{
+    "$schema": "https://unpkg.com/@changesets/config@latest/schema.json",
+    "changelog": ["@changesets/changelog-github", { "repo": "JSPrismarine/JSPrismarine" }],
+    "commit": false,
+    "fixed": [["{,@jsprismarine/}{,*}"]],
+    "linked": [],
+    "access": "public",
+    "baseBranch": "master",
+    "updateInternalDependencies": "patch",
+    "privatePackages": {
+        "tag": true,
+        "version": true
+    },
+    "snapshot": {
+        "useCalculatedVersion": true
+    },
+    "ignore": []
+}

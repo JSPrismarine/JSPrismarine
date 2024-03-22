@@ -16,10 +16,9 @@ jobs:
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: ${{ matrix.version }}
-                  cache: 'npm'
-            - run: npm install
-            - run: npm run build
-            - run: npm run test:jest
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - run: pnpm run build
+            - run: pnpm run test:jest
