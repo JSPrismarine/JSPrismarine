@@ -1,11 +1,11 @@
-import { CommandArgumentEntity, CommandArgumentGamemode } from '../CommandArguments.js';
+import { CommandArgumentEntity, CommandArgumentGamemode } from '../CommandArguments';
 import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
 
-import Chat from '../../chat/Chat.js';
-import ChatEvent from '../../events/chat/ChatEvent.js';
-import Command from '../Command.js';
-import Gamemode from '../../world/Gamemode.js';
-import Player from '../../Player.js';
+import Chat from '../../chat/Chat';
+import ChatEvent from '../../events/chat/ChatEvent';
+import Command from '../Command';
+import Gamemode from '../../world/Gamemode';
+import Player from '../../Player';
 
 export default class GamemodeCommand extends Command {
     public constructor() {

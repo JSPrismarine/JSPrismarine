@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers.js';
-import ModalFormRequestPacket from '../packet/ModalFormRequestPacket.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import Server from '../../Server.js';
+import Identifiers from '../Identifiers';
+import ModalFormRequestPacket from '../packet/ModalFormRequestPacket';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import Server from '../../Server';
 
 export default class ModalFormResponseHandler implements PacketHandler<ModalFormRequestPacket> {
     public static NetID = Identifiers.ModalFormRequestPacket;

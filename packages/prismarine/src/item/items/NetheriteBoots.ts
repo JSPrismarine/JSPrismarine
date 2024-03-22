@@ -1,5 +1,5 @@
-import Armor from '../Armor.js';
-import { ItemIdsType } from '../ItemIdsType.js';
+import Armor from '../Armor';
+import { ItemIdsType } from '../ItemIdsType';
 
 export default class NetheriteBoots extends Armor {
     public constructor() {

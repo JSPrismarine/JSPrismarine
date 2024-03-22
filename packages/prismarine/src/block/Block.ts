@@ -1,9 +1,9 @@
 import { item_id_map as BlockIdMap } from '@jsprismarine/bedrock-data';
-import { BlockToolType } from './BlockToolType.js';
-import Item from '../item/Item.js';
-import { ItemEnchantmentType } from '../item/ItemEnchantmentType.js';
-import { ItemTieredToolType } from '../item/ItemTieredToolType.js';
-import Server from '../Server.js';
+import { BlockToolType } from './BlockToolType';
+import Item from '../item/Item';
+import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
+import { ItemTieredToolType } from '../item/ItemTieredToolType';
+import Server from '../Server';
 
 export default class Block {
     /**

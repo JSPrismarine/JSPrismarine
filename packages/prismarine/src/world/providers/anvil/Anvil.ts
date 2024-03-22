@@ -1,8 +1,8 @@
-import BaseProvider from '../BaseProvider.js';
-import Chunk from '../../chunk/Chunk.js';
-import Generator from '../../Generator.js';
-import type Server from '../../../Server.js';
-import Vector3 from '../../../math/Vector3.js';
+import BaseProvider from '../BaseProvider';
+import Chunk from '../../chunk/Chunk';
+import Generator from '../../Generator';
+import type Server from '../../../Server';
+import Vector3 from '../../../math/Vector3';
 import fs from 'node:fs';
 import path from 'node:path';
 

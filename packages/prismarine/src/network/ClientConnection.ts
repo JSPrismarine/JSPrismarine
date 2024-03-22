@@ -1,7 +1,7 @@
-import { Logger, Player, PlayerSession, Server } from '../Prismarine.js';
+import { Logger, Player, PlayerSession, Server } from '@';
 
-import { DisconnectPacket } from './Packets.js';
-import MinecraftSession from './MinecraftSession.js';
+import { DisconnectPacket } from './Packets';
+import MinecraftSession from './MinecraftSession';
 import { RakNetSession } from '@jsprismarine/raknet';
 import assert from 'assert';
 

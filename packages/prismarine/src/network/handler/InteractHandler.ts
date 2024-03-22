@@ -1,11 +1,11 @@
-import InteractPacket, { InteractAction } from '../packet/InteractPacket.js';
+import InteractPacket, { InteractAction } from '../packet/InteractPacket';
 
-import ContainerOpenPacket from '../packet/ContainerOpenPacket.js';
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type Server from '../../Server.js';
-import Vector3 from '../../math/Vector3.js';
+import ContainerOpenPacket from '../packet/ContainerOpenPacket';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import type Server from '../../Server';
+import Vector3 from '../../math/Vector3';
 
 export default class InteractHandler implements PacketHandler<InteractPacket> {
     public static NetID = Identifiers.InteractPacket;

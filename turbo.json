@@ -1,12 +1,11 @@
 {
     "$schema": "https://turborepo.org/schema.json",
+    "globalDependencies": ["tsconfig.json", "package.json", "vite.config.ts"],
     "pipeline": {
         "build": {
+            "cache": false,
             "dependsOn": ["^build"],
             "outputs": ["**/dist/**", "**/docs/**", "!**/coverage/**"]
-        },
-        "test": {
-            "outputs": []
         },
         "dev": {
             "cache": false

@@ -1,8 +1,8 @@
-import type Block from '../Block.js';
-import { BlockIdsType } from '../BlockIdsType.js';
-import type Item from '../../item/Item.js';
-import type Server from '../../Server.js';
-import Transparent from '../Transparent.js';
+import type Block from '../Block';
+import { BlockIdsType } from '../BlockIdsType';
+import type Item from '../../item/Item';
+import type Server from '../../Server';
+import Transparent from '../Transparent';
 
 export default class Glass extends Transparent {
     public constructor(name = 'minecraft:glass', id: BlockIdsType = BlockIdsType.Glass) {

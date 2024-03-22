@@ -1,4 +1,4 @@
-import BlockMappings, { LegacyId } from '../../block/BlockMappings.js';
+import BlockMappings, { LegacyId } from '../../block/BlockMappings';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
@@ -24,8 +24,8 @@ export default class BlockStorage {
     }
 
     public getBlock(bx: number, by: number, bz: number): LegacyId {
-        const paletteIndex = this.blocks[BlockStorage.getIndex(bx, by, bz)];
-        const runtimeId = this.palette[paletteIndex];
+        const paletteIndex = this.blocks[BlockStorage.getIndex(bx, by, bz)]!;
+        const runtimeId = this.palette[paletteIndex]!;
         return BlockMappings.getLegacyId(runtimeId);
     }
 
@@ -71,7 +71,7 @@ export default class BlockStorage {
         for (let w = 0; w < wordsPerChunk; w++) {
             let word = 0;
             for (let block = 0; block < blocksPerWord; block++) {
-                const state = this.blocks[position++];
+                const state = this.blocks[position++]!;
                 word |= state << (bitsPerBlock * block);
             }
             stream.writeIntLE(word);
@@ -106,7 +106,7 @@ export default class BlockStorage {
         let positon = 0;
         const storage = new BlockStorage({ palette });
         for (let w = 0; w < wordsPerChunk; w++) {
-            const word = words[w];
+            const word = words[w]!;
             for (let block = 0; block < blocksPerWord; block++) {
                 const state = (word >> ((positon % blocksPerWord) * bitsPerBlock)) & ((1 << bitsPerBlock) - 1);
 
@@ -114,7 +114,7 @@ export default class BlockStorage {
                 const y = positon & 0xf;
                 const z = (positon >> 4) & 0xf;
 
-                const translated = palette[state];
+                const translated = palette[state]!;
                 storage.setBlock(x, y, z, translated);
                 positon++;
             }

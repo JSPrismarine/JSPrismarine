@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import UUID from '../../utils/UUID.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import UUID from '../../utils/UUID';
 
 export default class EmoteListPacket extends DataPacket {
     public static NetID = Identifiers.EmoteListPacket;

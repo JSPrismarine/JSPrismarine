@@ -1,4 +1,4 @@
-import Inventory from './Inventory.js';
+import Inventory from './Inventory';
 
 export enum WindowIds {
     UNKNOWN = -1,

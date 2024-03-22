@@ -1,22 +1,22 @@
-import ACK from './protocol/ACK.js';
+import ACK from './protocol/ACK';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BitFlags from './protocol/BitFlags.js';
-import ConnectedPing from './protocol/connection/ConnectedPing.js';
-import ConnectedPong from './protocol/connection/ConnectedPong.js';
-import ConnectionRequest from './protocol/login/ConnectionRequest.js';
-import ConnectionRequestAccepted from './protocol/login/ConnectionRequestAccepted.js';
-import Frame, { MAX_FRAME_BYTE_LENGTH } from './protocol/Frame.js';
-import FrameReliability from './protocol/FrameReliability.js';
-import FrameSet, { DATAGRAM_HEADER_BYTE_LENGTH } from './protocol/FrameSet.js';
-import InetAddress from './utils/InetAddress.js';
-import { MAX_CHANNELS, UDP_HEADER_SIZE } from './RakNet.js';
-import { MessageIdentifiers } from './protocol/MessageIdentifiers.js';
-import NACK from './protocol/NACK.js';
-import Packet from './protocol/Packet.js';
-import RakNetListener from './ServerSocket.js';
+import BitFlags from './protocol/BitFlags';
+import ConnectedPing from './protocol/connection/ConnectedPing';
+import ConnectedPong from './protocol/connection/ConnectedPong';
+import ConnectionRequest from './protocol/login/ConnectionRequest';
+import ConnectionRequestAccepted from './protocol/login/ConnectionRequestAccepted';
+import Frame, { MAX_FRAME_BYTE_LENGTH } from './protocol/Frame';
+import FrameReliability from './protocol/FrameReliability';
+import FrameSet, { DATAGRAM_HEADER_BYTE_LENGTH } from './protocol/FrameSet';
+import InetAddress from './utils/InetAddress';
+import { MAX_CHANNELS, UDP_HEADER_SIZE } from './Constants';
+import { MessageIdentifiers } from './protocol/MessageIdentifiers';
+import NACK from './protocol/NACK';
+import Packet from './protocol/Packet';
+import RakNetListener from './ServerSocket';
 import { type RemoteInfo } from 'node:dgram';
 import assert from 'node:assert';
-import PacketPool from './protocol/PacketPool.js';
+import PacketPool from './protocol/PacketPool';
 
 export enum RakNetPriority {
     NORMAL,
@@ -139,7 +139,7 @@ export default class Session {
 
         // Mask the lower 4 bits of the header
         // to get the range of header values
-        const handler = this.packetHandlers[buffer[0] & 0xf0];
+        const handler = this.packetHandlers[buffer[0]! & 0xf0];
         if (handler) {
             handler(buffer);
         } else {
@@ -224,8 +224,8 @@ export default class Session {
 
         if (frame.isSequenced()) {
             if (
-                sequenceIndex < this.inputHighestSequenceIndex[orderChannel] ||
-                orderIndex < this.inputOrderIndex[orderChannel]
+                sequenceIndex < this.inputHighestSequenceIndex[orderChannel]! ||
+                orderIndex < this.inputOrderIndex[orderChannel]!
             ) {
                 // Sequenced packet is too old, discard it
                 return;
@@ -239,7 +239,7 @@ export default class Session {
                 this.inputOrderIndex[orderChannel] = orderIndex + 1;
 
                 this.handlePacket(frame);
-                let i = this.inputOrderIndex[orderChannel];
+                let i = this.inputOrderIndex[orderChannel]!;
                 const outOfOrderQueue = this.inputOrderingQueue.get(orderChannel)!;
                 for (; outOfOrderQueue.has(i); i++) {
                     this.handlePacket(outOfOrderQueue.get(i)!);
@@ -249,7 +249,7 @@ export default class Session {
                 // Set the updated queue
                 this.inputOrderingQueue.set(orderChannel, outOfOrderQueue);
                 this.inputOrderIndex[orderChannel] = i;
-            } else if (orderIndex > this.inputOrderIndex[orderChannel]) {
+            } else if (orderIndex > this.inputOrderIndex[orderChannel]!) {
                 const unordered = this.inputOrderingQueue.get(orderChannel)!;
                 unordered.set(orderIndex, frame);
             }
@@ -263,7 +263,7 @@ export default class Session {
         // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L1625
         if (frame.isSequenced()) {
             // Sequenced packets don't increase the ordered channel index
-            frame.orderIndex = this.outputOrderIndex[frame.orderChannel];
+            frame.orderIndex = this.outputOrderIndex[frame.orderChannel]!;
             frame.sequenceIndex = this.outputSequenceIndex[frame.orderChannel]++;
         } else if (frame.isOrderedExclusive()) {
             // implies sequenced, but we have to distinct them

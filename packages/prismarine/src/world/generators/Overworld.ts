@@ -1,6 +1,6 @@
-import BaseGenerator from '../BaseGenerator.js';
-// import BlockMappings from '../../block/BlockMappings.js';
-import Chunk from '../chunk/Chunk.js';
+import BaseGenerator from '../BaseGenerator';
+// import BlockMappings from '../../block/BlockMappings';
+import Chunk from '../chunk/Chunk';
 import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
 
 const CHUNK_WIDTH = 16;

@@ -1,10 +1,10 @@
 /* eslint-disable complexity */
-import { Allocation } from './Allocation.js';
+import { Allocation } from './Allocation';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from './ByteOrder.js';
-import { NBTDefinitions } from './NBTDefinitions.js';
-import NBTStreamReader from './NBTStreamReader.js';
-import NBTTagCompound from './NBTTagCompound.js';
+import { ByteOrder } from './ByteOrder';
+import { NBTDefinitions } from './NBTDefinitions';
+import NBTStreamReader from './NBTStreamReader';
+import NBTTagCompound from './NBTTagCompound';
 
 export default class NBTReader extends NBTStreamReader {
     public constructor(input: BinaryStream, byteOrder: ByteOrder) {

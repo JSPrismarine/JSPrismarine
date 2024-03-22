@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import McpeUtil from '../NetworkUtil.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import McpeUtil from '../NetworkUtil';
 
 export default class UpdateSoftEnumPacket extends DataPacket {
     public static NetID = Identifiers.UpdateSoftEnumPacket;

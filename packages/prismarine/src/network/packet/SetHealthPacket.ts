@@ -1,5 +1,5 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
 
 /**
  * Packet for handling a player's health.

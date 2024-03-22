@@ -1,4 +1,6 @@
-import Vector3 from './Vector3.js';
+import { describe, it, expect } from 'vitest';
+
+import Vector3 from './Vector3';
 
 describe('math', () => {
     describe('Vector3', () => {

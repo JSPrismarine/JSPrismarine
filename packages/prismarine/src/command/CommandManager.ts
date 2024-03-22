@@ -1,14 +1,14 @@
 import { ArgumentCommandNode, CommandDispatcher } from '@jsprismarine/brigadier';
 
-import Chat from '../chat/Chat.js';
-import Command from './Command.js';
-import { CommandArgument } from './CommandArguments.js';
-// import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode.js';
-import CommandRegisterEvent from '../events/command/CommandRegisterEvents.js';
-import Entity from '../entity/Entity.js';
-import { Player } from '../Prismarine.js';
-import Server from '../Server.js';
-import Timer from '../utils/Timer.js';
+import Chat from '../chat/Chat';
+import Command from './Command';
+import { CommandArgument } from './CommandArguments';
+// import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
+import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
+import Entity from '../entity/Entity';
+import { Player } from '@';
+import Server from '../Server';
+import Timer from '../utils/Timer';
 import fs from 'node:fs';
 import url from 'node:url';
 
@@ -28,18 +28,25 @@ export default class CommandManager {
     public async onEnable() {
         const timer = new Timer();
 
-        const commands = [
-            ...fs.readdirSync(url.fileURLToPath(new URL('vanilla', import.meta.url))).map((a) => `/vanilla/${a}`),
-            ...fs
-                .readdirSync(url.fileURLToPath(new URL('jsprismarine', import.meta.url)))
-                .map((a) => `/jsprismarine/${a}`)
-        ];
+        // FIXME: `import.meta.url` isn't defined when using cjs.
+        const commands = Array.from(
+            new Set(
+                [
+                    ...fs
+                        .readdirSync(url.fileURLToPath(new URL('vanilla', import.meta.url)))
+                        .map((a) => `/vanilla/${a}`),
+                    ...fs
+                        .readdirSync(url.fileURLToPath(new URL('jsprismarine', import.meta.url)))
+                        .map((a) => `/jsprismarine/${a}`)
+                ]
+                    .filter((a) => !a.includes('.cjs.')) // TODO: cjs?
+                    .filter((a) => a.endsWith('.js') && !a.includes('.test.'))
+            )
+        );
 
         // Register jsprismarine commands
         await Promise.all(
             commands.map(async (id: string) => {
-                if (id.includes('.test.') || id.includes('.d.ts') || id.includes('.map')) return; // Exclude test files
-
                 if (!this.server.getConfig().getEnableEval() && id.includes('EvalCommand')) return;
 
                 const Command = await import(`./${id}`);
@@ -203,7 +210,7 @@ export default class CommandManager {
     public async dispatchCommand(sender: Player, target: Entity | Player, input = '') {
         try {
             const parsed = this.dispatcher.parse(input.trim(), target as Player);
-            const id = parsed.getReader().getString().split(' ')[0];
+            const id = parsed.getReader().getString().split(' ')[0]!;
 
             // Get command from parsed string
             const command = Array.from(this.commands.values()).find(
@@ -233,7 +240,7 @@ export default class CommandManager {
             } else {
                 // Handle aliases
                 if (command?.aliases?.includes(id)) {
-                    await this.dispatchCommand(sender, target, input.replace(id, command.id.split(':')[1]));
+                    await this.dispatchCommand(sender, target, input.replace(id, command.id.split(':')[1]!));
                     return;
                 }
                 res = await Promise.all(this.dispatcher.execute(parsed));

@@ -33,7 +33,7 @@ const _ = {
         return Boolean(
             obj &&
                 (keyParts.length > 1
-                    ? _.has(obj[key.split('.')[0]], keyParts.slice(1).join('.'))
+                    ? _.has(obj[key.split('.')[0]!], keyParts.slice(1).join('.'))
                     : Object.hasOwnProperty.call(obj, key))
         );
     },

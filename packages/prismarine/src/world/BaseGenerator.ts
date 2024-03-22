@@ -1,6 +1,6 @@
-import BlockManager from '../block/BlockManager.js';
-import Chunk from './chunk/Chunk.js';
-import Generator from './Generator.js';
+import BlockManager from '../block/BlockManager';
+import Chunk from './chunk/Chunk';
+import Generator from './Generator';
 
 export default abstract class BaseGenerator implements Generator {
     private readonly blockManager: BlockManager;

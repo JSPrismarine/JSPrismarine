@@ -1,32 +1,33 @@
-import Chat, { ChatType } from './chat/Chat.js';
-import { InetAddress, Protocol, RakNetListener, type RakNetSession } from '@jsprismarine/raknet';
+import { InetAddress, RakNetListener } from '@jsprismarine/raknet';
+import Chat, { ChatType } from '@/chat/Chat';
+import BanManager from '@/ban/BanManager';
+import BatchPacket from '@/network/packet/BatchPacket';
+import BlockManager from '@/block/BlockManager';
+import BlockMappings from '@/block/BlockMappings';
+import ChatEvent from '@/events/chat/ChatEvent';
+import ChatManager from '@/chat/ChatManager';
+import ClientConnection from '@/network/ClientConnection';
+import CommandManager from '@/command/CommandManager';
+import Console from '@/Console';
+import { DataPacket } from '@/network/Packets';
+import { EventManager } from '@/events/EventManager';
+import Identifiers from '@/network/Identifiers';
+import ItemManager from '@/item/ItemManager';
+import PacketRegistry from '@/network/PacketRegistry';
+import PermissionManager from '@/permission/PermissionManager';
+import PluginManager from '@/plugin/PluginManager';
+import QueryManager from '@/query/QueryManager';
+import RaknetConnectEvent from '@/events/raknet/RaknetConnectEvent';
+import RaknetDisconnectEvent from '@/events/raknet/RaknetDisconnectEvent';
+import RaknetEncapsulatedPacketEvent from '@/events/raknet/RaknetEncapsulatedPacketEvent';
+import SessionManager from '@/SessionManager';
+import { TickEvent } from '@/events/Events';
+import Timer from '@/utils/Timer';
+import WorldManager from '@/world/WorldManager';
 
-import BanManager from './ban/BanManager.js';
-import BatchPacket from './network/packet/BatchPacket.js';
-import BlockManager from './block/BlockManager.js';
-import BlockMappings from './block/BlockMappings.js';
-import ChatEvent from './events/chat/ChatEvent.js';
-import ChatManager from './chat/ChatManager.js';
-import ClientConnection from './network/ClientConnection.js';
-import CommandManager from './command/CommandManager.js';
-import type Config from './config/Config.js';
-import Console from './Console.js';
-import { DataPacket } from './network/Packets.js';
-import { EventManager } from './events/EventManager.js';
-import Identifiers from './network/Identifiers.js';
-import ItemManager from './item/ItemManager.js';
-import type LoggerBuilder from './utils/Logger.js';
-import PacketRegistry from './network/PacketRegistry.js';
-import PermissionManager from './permission/PermissionManager.js';
-import PluginManager from './plugin/PluginManager.js';
-import QueryManager from './query/QueryManager.js';
-import RaknetConnectEvent from './events/raknet/RaknetConnectEvent.js';
-import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent.js';
-import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent.js';
-import SessionManager from './SessionManager.js';
-import { TickEvent } from './events/Events.js';
-import Timer from './utils/Timer.js';
-import WorldManager from './world/WorldManager.js';
+import type Config from '@/config/Config';
+import type LoggerBuilder from '@/utils/Logger';
+import type { RakNetSession } from '@jsprismarine/raknet';
 
 export default class Server {
     private version!: string;
@@ -192,7 +193,7 @@ export default class Server {
             );
         });
 
-        this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
+        this.raknet.on('encapsulated', async (packet: any, inetAddr: InetAddress) => {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             await this.eventManager.emit('raknetEncapsulatedPacket', event);
 
@@ -209,7 +210,7 @@ export default class Server {
 
                 // Read all packets inside batch and handle them
                 for (const buf of await batched.asyncDecode()) {
-                    const pid = buf[0];
+                    const pid = buf[0]!;
 
                     if (!this.packetRegistry.getPackets().has(pid)) {
                         this.logger?.warn(
@@ -479,15 +480,15 @@ export default class Server {
             };
 
         let one = 0;
-        for (let i = 10800; i < this.tpsHistory.length; i++) one += this.tpsHistory[i];
+        for (let i = 10800; i < this.tpsHistory.length; i++) one += this.tpsHistory[i]!;
         one = Math.round(one / 1200);
 
         let five = 0;
-        for (let i = 6000; i < this.tpsHistory.length; i++) five += this.tpsHistory[i];
+        for (let i = 6000; i < this.tpsHistory.length; i++) five += this.tpsHistory[i]!;
         five = Math.round(five / 6000);
 
         let ten = 0;
-        for (let i = 0; i < this.tpsHistory.length; i++) ten += this.tpsHistory[i];
+        for (let i = 0; i < this.tpsHistory.length; i++) ten += this.tpsHistory[i]!;
         ten = Math.round(ten / 12000);
 
         return {

@@ -1,8 +1,8 @@
 import { CommandDispatcher, argument, greedyString, literal, string } from '@jsprismarine/brigadier';
 
-import Command from '../Command.js';
-import Player from '../../Player.js';
-import { WorldData } from '../../world/WorldManager.js';
+import Command from '../Command';
+import Player from '../../Player';
+import { WorldData } from '../../world/WorldManager';
 
 export default class DebugCommand extends Command {
     public constructor() {
@@ -38,7 +38,7 @@ export default class DebugCommand extends Command {
                                     return `Moved ${source.getFormattedUsername()} to ${world.getName()}`;
                                 }
                                 case 'setConfig': {
-                                    const config = value.split(' ')[0];
+                                    const config = value.split(' ')[0]!;
                                     const data = value.replace(`${config} `, '');
 
                                     (source.getServer().getConfig() as any)[config] = data;

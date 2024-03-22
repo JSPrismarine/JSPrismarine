@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BitFlags from './BitFlags.js';
-import FrameReliability from './FrameReliability.js';
+import BitFlags from './BitFlags';
+import FrameReliability from './FrameReliability';
 import assert from 'assert';
 
 // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L133

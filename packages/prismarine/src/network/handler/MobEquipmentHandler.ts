@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers.js';
-import MobEquipmentPacket from '../packet/MobEquipmentPacket.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import Server from '../../Server.js';
+import Identifiers from '../Identifiers';
+import MobEquipmentPacket from '../packet/MobEquipmentPacket';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import Server from '../../Server';
 
 export default class MobEquipmentHandler implements PacketHandler<MobEquipmentPacket> {
     public static NetID = Identifiers.MobEquipmentPacket;

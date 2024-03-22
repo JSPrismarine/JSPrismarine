@@ -1,7 +1,7 @@
-import PluginApi from './api/PluginApi.js';
-import Server from '../Server.js';
+import PluginApi from './api/PluginApi';
+import Server from '../Server';
 import path from 'node:path';
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 
 export class Plugin {
     // eslint-disable-next-line unused-imports/no-unused-vars
@@ -14,7 +14,7 @@ export default class PluginFile {
     private readonly server: Server;
     private readonly path: string;
     private readonly package;
-    private readonly plugin: Plugin;
+    private readonly plugin!: Plugin;
 
     private readonly name: string;
     private readonly displayName: string;

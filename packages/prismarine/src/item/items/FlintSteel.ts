@@ -1,5 +1,5 @@
-import { ItemIdsType } from '../ItemIdsType.js';
-import Tool from '../Tool.js';
+import { ItemIdsType } from '../ItemIdsType';
+import Tool from '../Tool';
 
 export default class FlintSteel extends Tool {
     public constructor() {

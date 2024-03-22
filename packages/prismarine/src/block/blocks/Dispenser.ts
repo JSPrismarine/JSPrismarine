@@ -1,7 +1,7 @@
-import { BlockIdsType } from '../BlockIdsType.js';
-import { BlockToolType } from '../BlockToolType.js';
-import { ItemTieredToolType } from '../../item/ItemTieredToolType.js';
-import Solid from '../Solid.js';
+import { BlockIdsType } from '../BlockIdsType';
+import { BlockToolType } from '../BlockToolType';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import Solid from '../Solid';
 
 export default class Dispenser extends Solid {
     public constructor() {

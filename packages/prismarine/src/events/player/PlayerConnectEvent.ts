@@ -1,6 +1,6 @@
-import Event from '../Event.js';
+import Event from '../Event';
 import type { InetAddress } from '@jsprismarine/raknet';
-import type Player from '../../Player.js';
+import type Player from '../../Player';
 
 /**
  * Fired just after a client has connected to the raknet instance

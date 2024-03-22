@@ -1,7 +1,7 @@
-import Stone, { StoneType } from './Stone.js';
+import Stone, { StoneType } from './Stone';
 
-import Item from '../../item/Item.js';
-import Server from '../../Server.js';
+import Item from '../../item/Item';
+import Server from '../../Server';
 
 export default class PolishedAndesite extends Stone {
     public constructor() {

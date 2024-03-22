@@ -1,15 +1,15 @@
-import * as Entities from '../entity/Entities.js';
+import * as Entities from '../entity/Entities';
 
 import { CommandContext, StringReader, Suggestions } from '@jsprismarine/brigadier';
-import CommandParameter, { CommandParameterFlags, CommandParameterType } from '../network/type/CommandParameter.js';
+import CommandParameter, { CommandParameterFlags, CommandParameterType } from '../network/type/CommandParameter';
 
-import CommandEnum from '../network/type/CommandEnum.js';
-import Gamemode from '../world/Gamemode.js';
-import ParseTargetSelector from '../utils/ParseTargetSelector.js';
-import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation.js';
-import Player from '../Player.js';
-import { Server } from '../Prismarine.js';
-import Vector3 from '../math/Vector3.js';
+import CommandEnum from '../network/type/CommandEnum';
+import Gamemode from '../world/Gamemode';
+import ParseTargetSelector from '../utils/ParseTargetSelector';
+import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
+import Player from '../Player';
+import { Server } from '@';
+import Vector3 from '../math/Vector3';
 
 export abstract class CommandArgument {
     public getReadableType(): string {

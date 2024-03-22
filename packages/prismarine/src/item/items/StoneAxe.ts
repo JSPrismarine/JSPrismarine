@@ -1,7 +1,7 @@
-import { BlockToolType } from '../../block/BlockToolType.js';
-import { ItemIdsType } from '../ItemIdsType.js';
-import { ItemTieredToolType } from '../ItemTieredToolType.js';
-import TieredTool from '../TieredTool.js';
+import { BlockToolType } from '../../block/BlockToolType';
+import { ItemIdsType } from '../ItemIdsType';
+import { ItemTieredToolType } from '../ItemTieredToolType';
+import TieredTool from '../TieredTool';
 
 export default class StoneAxe extends TieredTool {
     public constructor() {

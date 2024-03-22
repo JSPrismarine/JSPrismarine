@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import InetAddress from '../utils/InetAddress.js';
+import InetAddress from '../utils/InetAddress';
 
 export default class Packet extends BinaryStream {
     private readonly id: number;
@@ -41,8 +41,8 @@ export default class Packet extends BinaryStream {
         const ver = this.readByte();
         if (ver === 4) {
             const ipBytes = this.read(4);
-            const addr = `${(-ipBytes[0] - 1) & 0xff}.${(-ipBytes[1] - 1) & 0xff}.${(-ipBytes[2] - 1) & 0xff}.${
-                (-ipBytes[3] - 1) & 0xff
+            const addr = `${(-ipBytes[0]! - 1) & 0xff}.${(-ipBytes[1]! - 1) & 0xff}.${(-ipBytes[2]! - 1) & 0xff}.${
+                (-ipBytes[3]! - 1) & 0xff
             }`;
             const port = this.readShort();
             return new InetAddress(addr, port, ver);

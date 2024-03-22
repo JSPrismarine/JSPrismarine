@@ -1,5 +1,5 @@
-import Entity from './Entity.js';
-import HumanInventory from '../inventory/HumanInventory.js';
+import Entity from './Entity';
+import HumanInventory from '../inventory/HumanInventory';
 
 /**
  * @internal

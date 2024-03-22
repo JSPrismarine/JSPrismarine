@@ -1,5 +1,5 @@
-import { MessageIdentifiers } from '../MessageIdentifiers.js';
-import Packet from '../Packet.js';
+import { MessageIdentifiers } from '../MessageIdentifiers';
+import Packet from '../Packet';
 
 export default class ConnectedPong extends Packet {
     public constructor() {

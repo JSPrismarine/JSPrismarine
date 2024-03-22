@@ -1,16 +1,16 @@
 import fs from 'node:fs';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from './ByteOrder.js';
-import ByteVal from './types/ByteVal.js';
-import DoubleVal from './types/DoubleVal.js';
-import FloatVal from './types/FloatVal.js';
-import LongVal from './types/LongVal.js';
-import NBTReader from './NBTReader.js';
-import NBTWriter from './NBTWriter.js';
-import NumberVal from './types/NumberVal.js';
-import ShortVal from './types/ShortVal.js';
-import StringVal from './types/StringVal.js';
+import { ByteOrder } from './ByteOrder';
+import ByteVal from './types/ByteVal';
+import DoubleVal from './types/DoubleVal';
+import FloatVal from './types/FloatVal';
+import LongVal from './types/LongVal';
+import NBTReader from './NBTReader';
+import NBTWriter from './NBTWriter';
+import NumberVal from './types/NumberVal';
+import ShortVal from './types/ShortVal';
+import StringVal from './types/StringVal';
 
 export default class NBTTagCompound {
     private name: string | null;

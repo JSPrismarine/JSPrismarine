@@ -1,4 +1,4 @@
-import SkinImage from './SkinImage.js';
+import SkinImage from './SkinImage';
 
 export default class SkinAnimation {
     private readonly image: SkinImage;

@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import Item from '../../item/Item.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import Item from '../../item/Item';
 
 export default class CreativeContentPacket extends DataPacket {
     public static NetID = Identifiers.CreativeContentPacket;
@@ -11,7 +11,7 @@ export default class CreativeContentPacket extends DataPacket {
         this.writeUnsignedVarInt(this.items.length);
         for (let i = 0; i < this.items.length; ++i) {
             this.writeUnsignedVarInt(i + 1); // network id
-            this.items[i].networkSerialize(this);
+            this.items[i]!.networkSerialize(this);
         }
     }
 

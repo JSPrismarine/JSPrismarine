@@ -11,8 +11,7 @@ jobs:
     tests:
         strategy:
             matrix:
-                version: [21]
-                os: [macos-latest, ubuntu-latest]
+                os: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v4
@@ -20,5 +19,12 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
-            - run: pnpm run build
-            - run: pnpm run test:jest
+            - name: 🔨 Build
+              run: pnpm run build
+
+            - name: 🧪 Test
+              run: pnpm run test
+
+            - name: 🦺 Report Coverage to GitHub
+              uses: davelosert/vitest-coverage-report-action@v2.3.0
+

@@ -1,7 +1,7 @@
-import DataPacket from './DataPacket.js';
-import Identifiers from '../Identifiers.js';
-import type Skin from '../../utils/skin/Skin.js';
-import UUID from '../../utils/UUID.js';
+import DataPacket from './DataPacket';
+import Identifiers from '../Identifiers';
+import type Skin from '../../utils/skin/Skin';
+import UUID from '../../utils/UUID';
 
 export default class PlayerSkinPacket extends DataPacket {
     public static NetID = Identifiers.PlayerSkinPacket;

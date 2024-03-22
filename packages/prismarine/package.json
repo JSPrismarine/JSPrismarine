@@ -1,6 +1,7 @@
 {
     "$schema": "https://json.schemastore.org/package.json",
     "name": "@jsprismarine/prismarine",
+    "sideEffects": false,
     "type": "module",
     "version": "0.1.0-rc.54",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
@@ -8,13 +9,22 @@
     "files": [
         "dist"
     ],
-    "main": "./dist/Prismarine.js",
-    "types": "./dist/Prismarine.d.ts",
+    "module": "./dist/index.es.js",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/Prismarine.js",
-            "types": "./dist/Prismarine.d.ts"
-        }
+            "import": "./dist/index.es.js",
+            "module": "./dist/index.es.js",
+            "require": "./dist/index.cjs.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./*": {
+            "import": "./dist/*.es.js",
+            "module": "./dist/*.es.js",
+            "require": "./dist/*.cjs.js",
+            "types": "./dist/*.d.ts"
+        },
+        "./package.json": "./package.json"
     },
     "publishConfig": {
         "access": "public"
@@ -26,7 +36,8 @@
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
     "scripts": {
-        "build": "tsc --build src"
+        "build": "vite build",
+        "typecheck": "tsc -noEmit"
     },
     "keywords": [
         "javascript",
@@ -41,12 +52,21 @@
     "bugs": {
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
+    "devDependencies": {
+        "@types/node": "20.11.30",
+        "glob": "10.3.10",
+        "typescript": "5.4.3",
+        "vite": "5.2.3",
+        "vitest": "1.4.0"
+    },
     "dependencies": {
-        "@jsprismarine/raknet": "workspace:*",
-        "@jsprismarine/nbt": "workspace:*",
+        "@jsprismarine/color-parser": "workspace:*",
         "@jsprismarine/jsbinaryutils": "5.5.3",
+        "@jsprismarine/nbt": "workspace:*",
+        "@jsprismarine/raknet": "workspace:*",
         "fflate": "0.8.2",
         "node-fetch": "3.3.2",
+        "simplex-noise": "4.0.1",
         "yaml": "2.4.1"
     }
 }

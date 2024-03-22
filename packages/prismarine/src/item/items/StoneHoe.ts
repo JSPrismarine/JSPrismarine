@@ -1,6 +1,6 @@
-import { ItemIdsType } from '../ItemIdsType.js';
-import { ItemTieredToolType } from '../ItemTieredToolType.js';
-import TieredTool from '../TieredTool.js';
+import { ItemIdsType } from '../ItemIdsType';
+import { ItemTieredToolType } from '../ItemTieredToolType';
+import TieredTool from '../TieredTool';
 
 export default class StoneHoe extends TieredTool {
     public constructor() {

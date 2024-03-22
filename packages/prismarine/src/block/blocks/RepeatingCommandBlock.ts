@@ -1,5 +1,5 @@
-import { BlockIdsType } from '../BlockIdsType.js';
-import Solid from '../Solid.js';
+import { BlockIdsType } from '../BlockIdsType';
+import Solid from '../Solid';
 
 export default class RepeatingCommandBlock extends Solid {
     public constructor() {

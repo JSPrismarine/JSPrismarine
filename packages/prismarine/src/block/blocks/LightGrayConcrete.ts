@@ -1,4 +1,4 @@
-import WhiteConcrete, { ConcreteColorType } from './WhiteConcrete.js';
+import WhiteConcrete, { ConcreteColorType } from './WhiteConcrete';
 
 export default class LightGrayConcrete extends WhiteConcrete {
     public constructor() {

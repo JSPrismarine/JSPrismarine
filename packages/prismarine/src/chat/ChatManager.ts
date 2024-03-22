@@ -1,6 +1,6 @@
-import Chat from './Chat.js';
-import ChatEvent from '../events/chat/ChatEvent.js';
-import type Server from '../Server.js';
+import Chat from './Chat';
+import ChatEvent from '../events/chat/ChatEvent';
+import type Server from '../Server';
 
 export default class ChatManager {
     private readonly server: Server;

@@ -1,10 +1,10 @@
-import Player from '../Player.js';
-import type Server from '../Server.js';
-import cwd from '../utils/cwd.js';
+import Player from '../Player';
+import type Server from '../Server';
+import cwd from '../utils/cwd';
 import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
 import path from 'node:path';
-import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent.js';
+import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 import util from 'util';
 
 interface OpType {

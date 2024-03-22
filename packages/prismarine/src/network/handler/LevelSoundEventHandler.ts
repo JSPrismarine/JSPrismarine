@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers.js';
-import type LevelSoundEventPacket from '../packet/LevelSoundEventPacket.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type Server from '../../Server.js';
+import Identifiers from '../Identifiers';
+import type LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import type Server from '../../Server';
 
 export default class LevelSoundEventHandler implements PacketHandler<LevelSoundEventPacket> {
     public static NetID = Identifiers.LevelSoundEventPacket;

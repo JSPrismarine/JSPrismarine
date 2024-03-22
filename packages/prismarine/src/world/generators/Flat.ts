@@ -1,6 +1,6 @@
-import BaseGenerator from '../BaseGenerator.js';
-import type Block from '../../block/Block.js';
-import Chunk from '../chunk/Chunk.js';
+import BaseGenerator from '../BaseGenerator';
+import type Block from '../../block/Block';
+import Chunk from '../chunk/Chunk';
 
 export default class Flat extends BaseGenerator {
     public async generateChunk(cx: number, cz: number, seed?: number, config?: any): Promise<Chunk> {

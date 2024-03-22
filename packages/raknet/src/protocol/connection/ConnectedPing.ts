@@ -1,5 +1,5 @@
-import { MessageIdentifiers } from '../MessageIdentifiers.js';
-import Packet from '../Packet.js';
+import { MessageIdentifiers } from '../MessageIdentifiers';
+import Packet from '../Packet';
 
 export default class ConnectedPing extends Packet {
     public constructor(buffer: Buffer) {

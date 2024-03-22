@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers.js';
-import PacketHandler from './PacketHandler.js';
-import { PlayerSession } from '../../Prismarine.js';
-import type Server from '../../Server.js';
-import type TickSyncPacket from '../packet/TickSyncPacket.js';
+import Identifiers from '../Identifiers';
+import PacketHandler from './PacketHandler';
+import { PlayerSession } from '@';
+import type Server from '../../Server';
+import type TickSyncPacket from '../packet/TickSyncPacket';
 
 export default class TickSyncHandler implements PacketHandler<TickSyncPacket> {
     public static NetID = Identifiers.TickSyncPacket;

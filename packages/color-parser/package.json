@@ -2,12 +2,32 @@
     "name": "@jsprismarine/color-parser",
     "version": "0.1.0-rc.54",
     "description": "Parse minecraft color codes",
-    "exports": "./dist/Parser.js",
-    "types": "./dist/Parser.d.ts",
+    "sideEffects": false,
     "type": "module",
+    "files": [
+        "dist"
+    ],
+    "module": "./dist/index.es.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.es.js",
+            "module": "./dist/index.es.js",
+            "require": "./dist/index.cjs.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./*": {
+            "import": "./dist/*.es.js",
+            "module": "./dist/*.es.js",
+            "require": "./dist/*.cjs.js",
+            "types": "./dist/*.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
-        "build": "tsc --build src"
+        "build": "vite build",
+        "typecheck": "tsc -noEmit"
     },
     "repository": {
         "type": "git",
@@ -21,7 +41,11 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/color-parser",
     "devDependencies": {
-        "typescript": "5.4.3"
+        "@types/node": "20.11.30",
+        "glob": "10.3.10",
+        "typescript": "5.4.3",
+        "vite": "5.2.3",
+        "vitest": "1.4.0"
     },
     "dependencies": {
         "chalk": "5.3.0"

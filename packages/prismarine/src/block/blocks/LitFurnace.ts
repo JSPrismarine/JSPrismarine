@@ -1,9 +1,9 @@
-import { BlockIdsType } from '../BlockIdsType.js';
-import { BlockToolType } from '../BlockToolType.js';
-import type Item from '../../item/Item.js';
-import { ItemTieredToolType } from '../../item/ItemTieredToolType.js';
-import type Server from '../../Server.js';
-import Solid from '../Solid.js';
+import { BlockIdsType } from '../BlockIdsType';
+import { BlockToolType } from '../BlockToolType';
+import type Item from '../../item/Item';
+import { ItemTieredToolType } from '../../item/ItemTieredToolType';
+import type Server from '../../Server';
+import Solid from '../Solid';
 
 export default class LitFurnace extends Solid {
     public constructor() {

@@ -30,12 +30,15 @@ exitHook(async () => {
     await server.shutdown();
 });
 
-await updater.check();
+(async () => {
+    await updater.check();
 
-try {
-    await server.bootstrap(config.getServerIp(), config.getServerPort());
-} catch (e) {
-    logger.error(`Cannot start the server, is it already running on the same port? (${<Error>e})`, 'Prismarine');
-    await server.shutdown({ crash: true });
-    process.exit(1);
-}
+    try {
+        await server.bootstrap(config.getServerIp(), config.getServerPort());
+    } catch (error: unknown) {
+        console.error(error);
+        logger.error(`Cannot start the server, is it already running on the same port?`, 'Prismarine');
+        await server.shutdown({ crash: true });
+        process.exit(1);
+    }
+})();

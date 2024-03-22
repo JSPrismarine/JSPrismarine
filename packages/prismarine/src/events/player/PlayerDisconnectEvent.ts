@@ -1,6 +1,6 @@
 import type { InetAddress } from '@jsprismarine/raknet';
-import type Player from '../../Player.js';
-import PlayerConnectEvent from './PlayerConnectEvent.js';
+import type Player from '../../Player';
+import PlayerConnectEvent from './PlayerConnectEvent';
 
 /**
  * Fired just before a client disconnects from the raknet instance

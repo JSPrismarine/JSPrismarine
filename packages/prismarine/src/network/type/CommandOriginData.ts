@@ -1,7 +1,7 @@
 // import BinaryStream from '@jsprismarine/jsbinaryutils';
-import CommandOriginType from './CommandOriginType.js';
-import McpeUtil from '../NetworkUtil.js';
-import UUID from '../../utils/UUID.js';
+import CommandOriginType from './CommandOriginType';
+import McpeUtil from '../NetworkUtil';
+import UUID from '../../utils/UUID';
 
 export default class CommandOriginData {
     public type!: number;

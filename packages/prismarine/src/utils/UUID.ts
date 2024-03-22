@@ -6,7 +6,7 @@ export default class UUID {
 
     public constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version = 4) {
         this.parts = [part1, part2, part3, part4];
-        this.version = version ?? (this.parts[1] & 0xf000) >> 12;
+        this.version = version ?? (this.parts[1]! & 0xf000) >> 12;
     }
 
     public equals(uuid: UUID): boolean {
@@ -58,10 +58,10 @@ export default class UUID {
 
     public toBinary(): Buffer {
         const stream = new BinaryStream();
-        stream.writeInt(this.parts[0]);
-        stream.writeInt(this.parts[1]);
-        stream.writeInt(this.parts[2]);
-        stream.writeInt(this.parts[3]);
+        stream.writeInt(this.parts[0]!);
+        stream.writeInt(this.parts[1]!);
+        stream.writeInt(this.parts[2]!);
+        stream.writeInt(this.parts[3]!);
         return stream.getBuffer();
     }
 

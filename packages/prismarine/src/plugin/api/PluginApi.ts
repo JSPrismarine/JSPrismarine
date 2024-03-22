@@ -1,8 +1,8 @@
-import ConfigBuilder from '../../config/ConfigBuilder.js';
-import EventManager from './EventManager.js';
-import LoggerBuilder from '../../utils/Logger.js';
-import Server from '../../Server.js';
-import cwd from '../../utils/cwd.js';
+import ConfigBuilder from '../../config/ConfigBuilder';
+import EventManager from './EventManager';
+import LoggerBuilder from '../../utils/Logger';
+import Server from '../../Server';
+import cwd from '../../utils/cwd';
 import path from 'node:path';
 
 export default class PluginApi {
