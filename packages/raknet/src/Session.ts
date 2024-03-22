@@ -12,8 +12,8 @@ import InetAddress from './utils/InetAddress';
 import { MAX_CHANNELS, UDP_HEADER_SIZE } from './Constants';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
 import NACK from './protocol/NACK';
-import Packet from './protocol/Packet';
-import RakNetListener from './ServerSocket';
+import type Packet from './protocol/Packet';
+import type RakNetListener from './ServerSocket';
 import { type RemoteInfo } from 'node:dgram';
 import assert from 'node:assert';
 import PacketPool from './protocol/PacketPool';
@@ -439,7 +439,7 @@ export default class Session {
 
     /**
      * Kick a client
-     * @param reason the reason message, optional
+     * @param reason - the reason message, optional
      */
     public disconnect(reason = 'client disconnect'): void {
         // TODO: rewrite, works but can be improved

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { ByteOrder } from './ByteOrder';
+import type { ByteOrder } from './ByteOrder';
 import ByteVal from './types/ByteVal';
 import DoubleVal from './types/DoubleVal';
 import FloatVal from './types/FloatVal';

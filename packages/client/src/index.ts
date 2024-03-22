@@ -96,7 +96,8 @@ export default class Client extends EventEmitter {
         const header = buffer.readUInt8(); // Read packet header
 
         if (this.connection && this.offlineHandled) {
-            return this.connection.handle(buffer);
+            this.connection.handle(buffer);
+            return;
         }
 
         let buf;
@@ -207,8 +208,6 @@ export default class Client extends EventEmitter {
      * Sends the buffer to the server
      *
      * @param buffer
-     * @param address
-     * @param port
      */
     public async sendBuffer(buffer: Buffer): Promise<void> {
         this.socket.send(buffer, 0, buffer.byteLength, this.targetAddress.getPort(), this.targetAddress.getAddress());
