@@ -5,7 +5,9 @@
     "sideEffects": false,
     "type": "module",
     "files": [
-        "dist"
+        "dist",
+        "CHANGELOG.md",
+        "README.md"
     ],
     "module": "./dist/NBT.es.js",
     "types": "./dist/NBT.d.ts",

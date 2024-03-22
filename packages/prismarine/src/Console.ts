@@ -1,9 +1,10 @@
 import Chat from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
+import Vector3 from './math/Vector3';
+import readline from 'node:readline';
+
 import type Entity from './entity/Entity';
 import type Server from './Server';
-import Vector3 from './math/Vector3';
-import readline from 'readline';
 
 export default class Console {
     private readonly server: Server;

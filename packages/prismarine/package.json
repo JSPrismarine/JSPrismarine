@@ -7,7 +7,9 @@
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "prettier": "@nordcom/prettier",
     "files": [
-        "dist"
+        "dist",
+        "CHANGELOG.md",
+        "README.md"
     ],
     "module": "./dist/index.es.js",
     "types": "./dist/index.d.ts",
