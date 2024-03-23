@@ -210,7 +210,7 @@ export default class PlayerSession {
             }
         }
 
-        if (unloaded ?? this.chunkSendQueue.length !== 0) {
+        if (!unloaded && this.chunkSendQueue.length !== 0) {
             await this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
         }
     }
