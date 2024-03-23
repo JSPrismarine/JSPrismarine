@@ -12,11 +12,12 @@ import InetAddress from './utils/InetAddress';
 import { MAX_CHANNELS, UDP_HEADER_SIZE } from './Constants';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
 import NACK from './protocol/NACK';
-import type Packet from './protocol/Packet';
-import type RakNetListener from './ServerSocket';
-import { type RemoteInfo } from 'node:dgram';
 import assert from 'node:assert';
 import PacketPool from './protocol/PacketPool';
+
+import type { RemoteInfo } from 'node:dgram';
+import type Packet from './protocol/Packet';
+import type RakNetListener from './ServerSocket';
 
 export enum RakNetPriority {
     NORMAL,

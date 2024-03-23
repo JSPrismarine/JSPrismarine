@@ -5,12 +5,22 @@ import RakNetSession, { RakNetPriority as ConnectionPriority } from './Session';
 import InetAddress from './utils/InetAddress';
 import RakNetListener from './ServerSocket';
 import ServerName from './utils/ServerName';
+import ServerSocket from './ServerSocket';
+import Session from './Session';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
 
-export { RakNetSession, ConnectionPriority, Protocol, RakNetListener, InetAddress, ServerName, MessageIdentifiers };
+export {
+    ConnectionPriority,
+    InetAddress,
+    MessageIdentifiers,
+    Protocol,
+    RakNetListener,
+    RakNetSession,
+    ServerName,
+    ServerSocket,
+    Session
+};
 
 export * from './Constants';
 export * from './Session';
-export * from './ServerSocket';
-export * from './ClientSocket';
 export * from './protocol/Protocol';
