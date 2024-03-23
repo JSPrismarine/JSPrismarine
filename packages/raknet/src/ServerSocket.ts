@@ -3,7 +3,7 @@ import Dgram, { type RemoteInfo } from 'node:dgram';
 import BitFlags from './protocol/BitFlags';
 import { EventEmitter } from 'events';
 import type Packet from './protocol/Packet';
-import { RAKNET_TPS } from './RakNet';
+import { RAKNET_TPS } from './Constants';
 import RakNetSession from './Session';
 import OfflineHandler from './protocol/OfflineHandler';
 
