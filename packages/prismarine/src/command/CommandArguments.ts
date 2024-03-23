@@ -8,7 +8,7 @@ import Gamemode from '../world/Gamemode';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import Player from '../Player';
-import { Server } from '@';
+import { Server } from '../';
 import Vector3 from '../math/Vector3';
 
 export abstract class CommandArgument {
@@ -162,7 +162,7 @@ export class CommandArgumentEntity implements CommandArgument {
                     source: context.getSource(),
                     entities: context.getSource().getWorld().getEntities()
                 });
-            } catch (error) {
+            } catch (error: unknown) {
                 if (!(error as any).message.includes('no results')) throw error;
                 return [];
             }

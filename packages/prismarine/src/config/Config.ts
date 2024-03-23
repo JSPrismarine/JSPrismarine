@@ -29,8 +29,10 @@ export default class Config {
     }
 
     public onEnable(): void {
+        const isDev = process.env.NODE_ENV === 'development';
+
         this.configBuilder = new ConfigBuilder(path.join(cwd(), 'config.yaml'));
-        (global as any).log_level = this.configBuilder.get('log-level', 'info');
+        (global as any).log_level = this.configBuilder.get('log-level', isDev ? 'debug' : 'info');
 
         this.port = this.configBuilder.get('port', 19132) as number;
         this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0') as string;
