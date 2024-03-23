@@ -1,7 +1,7 @@
 import Identifiers from '../Identifiers';
 import type LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
 import PacketHandler from './PacketHandler';
-import { PlayerSession } from '@';
+import { PlayerSession } from '../../';
 import type Server from '../../Server';
 
 export default class LevelSoundEventHandler implements PacketHandler<LevelSoundEventPacket> {

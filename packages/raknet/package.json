@@ -28,6 +28,7 @@
     },
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
+        "clean": "rimraf dist jsp tsconfig.tsbuildinfo",
         "build": "vite build",
         "typecheck": "tsc -noEmit"
     },
@@ -49,6 +50,7 @@
     "devDependencies": {
         "@types/node": "20.12.2",
         "glob": "10.3.12",
+        "rimraf": "5.0.5",
         "typescript": "5.4.3",
         "vite": "5.2.7",
         "vitest": "1.4.0"

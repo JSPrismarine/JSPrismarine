@@ -1,11 +1,11 @@
 {
     "$schema": "https://json.schemastore.org/tsconfig",
-    "extends": "./tsconfig.json",
+    "extends": "./tsconfig.build.json",
     "compilerOptions": {
         "types": ["vitest/globals"],
         "noEmit": true
     },
 
-    "include": ["packages/**/*.test.*", "apps/**/*.test.*", "apps/**/vitest.config.ts", "vitest.config.ts"],
+    "include": ["packages/src/**/*.test.*", "**/vitest.config.ts", "vitest.config.ts"],
     "exclude": ["**/.turbo", "**/build", "**/coverage", "**/dist", "**/node_modules", "**/public"]
 }

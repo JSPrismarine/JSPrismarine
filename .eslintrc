@@ -11,7 +11,7 @@
     "parserOptions": {
         "sourceType": "module",
         "ecmaVersion": "latest",
-        "project": ["./tsconfig.json", "./tsconfig.test.json", "./packages/**/tsconfig.json"]
+        "project": ["./tsconfig.json", "./tsconfig.build.json", "./tsconfig.test.json", "./packages/**/tsconfig.json"]
     },
     "rules": {
         "@typescript-eslint/consistent-type-exports": ["error", { "fixMixedExportsWithInlineTypeSpecifier": false }],

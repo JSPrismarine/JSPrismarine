@@ -42,8 +42,8 @@ export default class Updater {
             }
 
             this.logger.debug('No new version of JSPrismarine available', 'Updater/check');
-        } catch (err) {
-            this.logger.error(err as any, 'Updater/check');
+        } catch (error: unknown) {
+            this.logger.error(error, 'Updater/check');
         }
     }
 }

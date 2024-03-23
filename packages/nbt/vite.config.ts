@@ -2,7 +2,7 @@ import { globSync } from 'glob';
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { defineConfig, createLogger, mergeConfig } from 'vite';
+import { defineConfig, mergeConfig } from 'vite';
 import pkg from './package.json' assert { type: 'json' };
 
 import base from '../../vite.config';
@@ -18,9 +18,6 @@ const input = Object.fromEntries(
         return [relative('src', filenameWithoutExt), resolve(process.cwd(), file)];
     })
 );
-
-const logger = createLogger(undefined, { prefix: pkg.name });
-logger.info(JSON.stringify({ __dirname, input }, null, 4));
 
 export default mergeConfig(
     base,

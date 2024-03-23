@@ -1,5 +1,4 @@
-import type { Logger, Player, Server } from '@';
-import { PlayerSession } from '@';
+import { Logger, Player, PlayerSession, Server } from '../';
 
 import { DisconnectPacket } from './Packets';
 import MinecraftSession from './MinecraftSession';

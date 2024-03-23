@@ -313,7 +313,7 @@ export default class World {
 
                 chunk.setBlock(placedPosition.getX(), placedPosition.getY(), placedPosition.getZ(), block);
                 resolve(true);
-            } catch (error) {
+            } catch (error: unknown) {
                 player.getServer().getLogger()?.warn(`${player.getName()} failed to place block due to ${error}`);
                 await player.sendMessage((error as any)?.message);
 
@@ -529,9 +529,9 @@ export default class World {
                     4
                 )
             );
-        } catch (error) {
+        } catch (error: unknown) {
             this.server.getLogger()?.error(`Failed to save player data: ${error}`, 'World/savePlayerData');
-            this.server.getLogger()?.debug((error as any).stack, 'World/savePlayerData');
+            this.server.getLogger()?.error(error, 'World/savePlayerData');
         }
     }
 }
