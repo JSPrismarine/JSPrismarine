@@ -27,7 +27,7 @@ export default class Updater {
 
         if (!release.tag_name) {
             this.logger.debug('Failed to check for updates!', 'Updater/check');
-            if ((release as any)?.message) this.logger.debug(`Error: ${(release as any).message}`, 'Updater/check');
+            if ((release as any).message) this.logger.debug(`Error: ${(release as any).message}`, 'Updater/check');
             return;
         }
 

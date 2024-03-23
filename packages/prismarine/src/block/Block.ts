@@ -1,9 +1,9 @@
 import { item_id_map as BlockIdMap } from '@jsprismarine/bedrock-data';
 import { BlockToolType } from './BlockToolType';
-import Item from '../item/Item';
+import type Item from '../item/Item';
 import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
 import { ItemTieredToolType } from '../item/ItemTieredToolType';
-import Server from '../Server';
+import type Server from '../Server';
 
 export default class Block {
     /**
@@ -43,9 +43,8 @@ export default class Block {
     }) {
         this.id = id;
         this.name = name;
-        this.hardness = hardness ?? 0;
-        this.name = name;
         this.javaName = javaName ?? name;
+        this.hardness = hardness ?? 0;
 
         this.networkId = BlockIdMap[parentName ?? name] as number;
         // if (!this.networkId) console.log(name, id, this.networkId);
