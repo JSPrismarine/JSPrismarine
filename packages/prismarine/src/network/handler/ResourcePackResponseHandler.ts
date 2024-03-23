@@ -8,9 +8,9 @@ import ChatEvent from '../../events/chat/ChatEvent';
 import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
 import ItemComponentPacket from '../packet/ItemComponentPacket';
-import PacketHandler from './PacketHandler';
+import type PacketHandler from './PacketHandler';
 import PlayStatusType from '../type/PlayStatusType';
-import { PlayerSession } from '@';
+import type { PlayerSession } from '@';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
@@ -136,7 +136,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
                         server
                             .getSessionManager()
                             .getAllPlayers()
-                            .filter((p) => !(p === player))
+                            .filter((p) => p !== player)
                             .map(async (p) => {
                                 await p.getNetworkSession().sendSpawn(player);
                                 await session.sendSpawn(p);
