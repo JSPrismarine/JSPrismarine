@@ -10,7 +10,7 @@ import Identifiers from '../Identifiers';
 import ItemComponentPacket from '../packet/ItemComponentPacket';
 import type PacketHandler from './PacketHandler';
 import PlayStatusType from '../type/PlayStatusType';
-import type { PlayerSession } from '@';
+import type { PlayerSession } from '../../';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';

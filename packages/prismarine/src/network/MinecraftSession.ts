@@ -1,7 +1,7 @@
 import { BatchPacket, DataPacket } from './Packets';
 import { Protocol, RakNetSession, ConnectionPriority } from '@jsprismarine/raknet';
 
-import { Logger } from '@';
+import { Logger } from '../';
 
 /**
  * Act as the first connection layer, handles everything related to batching,
@@ -33,11 +33,12 @@ export default class MinecraftSession {
             batch.addPacket(packet);
             batch.compressed = comp;
             batch.encode();
-        } catch (error) {
+        } catch (error: unknown) {
+            this.logger?.error(error, 'PlayerConnection/sendDataPacket');
             this.logger?.warn(
                 `Packet §b${packet.constructor.name}§r to §b${this.rakSession
                     .getAddress()
-                    .toToken()}§r failed with: ${error}`,
+                    .toToken()}§r failed with: ${(error as Error).message}`,
                 'PlayerConnection/sendDataPacket'
             );
             return;

@@ -3,7 +3,7 @@ import Identifiers from '../Identifiers';
 import type LoginPacket from '../packet/LoginPacket';
 import { PlayStatusPacket } from '../Packets';
 import PlayStatusType from '../type/PlayStatusType';
-import { Player } from '@';
+import { Player } from '../../';
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import type Server from '../../Server';

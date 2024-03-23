@@ -40,8 +40,8 @@ export default class BatchPacket extends DataPacket {
                     ? await CompressionProvider.fromAlgorithm(this.readByte())(this.readRemaining())
                     : this.readRemaining()
             );
-        } catch (e) {
-            throw new Error(`Failed to inflate batched content (${(<Error>e).message})`);
+        } catch (error: unknown) {
+            throw new Error(`Failed to inflate batched content`, { cause: error });
         }
 
         return this.getPackets();

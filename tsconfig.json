@@ -1,49 +1,13 @@
 {
-    "$schema": "https://json.schemastore.org/tsconfig",
+    "extends": "./tsconfig.build.json",
+
     "compilerOptions": {
-        "allowJs": false,
-        "allowSyntheticDefaultImports": true,
-        "composite": true,
-        "declaration": true,
-        "declarationMap": true,
-        "downlevelIteration": false,
-        "esModuleInterop": true,
-        "experimentalDecorators": true,
-        "forceConsistentCasingInFileNames": true,
-        "incremental": true,
-        "isolatedModules": true,
-        "lib": ["ESNext", "Decorators"],
-        "module": "ESNext",
-        "moduleDetection": "force",
-        "moduleResolution": "Bundler",
-        "noImplicitAny": true,
-        "noUncheckedIndexedAccess": true,
-        //"noUnusedLocals": true,
-        //"noUnusedParameters": true,
-        "removeComments": false,
-        "resolveJsonModule": true,
-        "skipLibCheck": true,
-        "sourceMap": true,
-        "strict": true,
-        "strictBindCallApply": true,
-        "strictFunctionTypes": true,
-        "strictNullChecks": true,
-        "strictPropertyInitialization": true,
-        "target": "ESNext",
-        "tsBuildInfoFile": ".tsbuildinfo",
-        "types": [],
-        "typeRoots": [],
-        "useDefineForClassFields": true
+        "baseUrl": ".",
+        "paths": {
+            "@jsprismarine/*": ["packages/*/src"]
+        },
+        "noEmit": true
     },
-    "exclude": [
-        "**/.turbo",
-        "**/*.config.*",
-        "**/*.stories.*",
-        "**/*.test.*",
-        "**/coverage",
-        "**/dist",
-        "**/src/**/*.d.ts",
-        "node_modules"
-    ],
-    "include": ["packages", "./packages/**/src/**/*"]
+
+    "exclude": ["**/*.config.*", "**/*.stories.*", "**/*.test.*"]
 }

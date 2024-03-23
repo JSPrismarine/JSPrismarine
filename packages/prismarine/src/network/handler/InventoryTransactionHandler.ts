@@ -6,7 +6,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
 import PacketHandler from './PacketHandler';
-import { PlayerSession } from '@';
+import { PlayerSession } from '../../';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 

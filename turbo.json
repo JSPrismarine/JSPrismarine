@@ -6,7 +6,7 @@
             "dependsOn": ["^build"],
             "outputs": ["**/dist/**", "**/docs/**", "!**/coverage/**"]
         },
-        "dev": {
+        "clean": {
             "cache": false
         }
     }
