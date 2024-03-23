@@ -50,6 +50,9 @@ describe('network', () => {
                 await handler.handle(
                     pk,
                     {
+                        getConfig: () => ({
+                            getOnlineMode: () => false
+                        }),
                         getBanManager: () => ({
                             isBanned: (_player: any) => {
                                 return false;
@@ -110,6 +113,9 @@ describe('network', () => {
                 await handler.handle(
                     pk,
                     {
+                        getConfig: () => ({
+                            getOnlineMode: () => false
+                        }),
                         getBanManager: () => ({
                             isBanned: (_player: any) => {
                                 return false;
@@ -171,6 +177,9 @@ describe('network', () => {
                 await handler.handle(
                     pk,
                     {
+                        getConfig: () => ({
+                            getOnlineMode: () => false
+                        }),
                         getBanManager: () => ({
                             isBanned: (_player: any) => {
                                 return false;
