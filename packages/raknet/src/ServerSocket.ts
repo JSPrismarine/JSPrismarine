@@ -37,9 +37,9 @@ export default class ServerSocket extends EventEmitter {
     public start(address: string, port: number): void {
         try {
             this.socket.bind(port, address);
-        } catch (e) {
-            if (e instanceof Error) {
-                this.logger.error('Failed to bind socket, error message=%s', e.message);
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                this.logger.error('Failed to bind socket, error message=%s', error.message);
             }
         }
 

@@ -41,7 +41,7 @@ describe('config', () => {
 
                 // This should never occur
                 expect(false).toBeTruthy();
-            } catch (error) {
+            } catch (error: unknown) {
                 expect((error as any).message.includes('Unsupported config type.')).toBeTruthy();
             }
         });

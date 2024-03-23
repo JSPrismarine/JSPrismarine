@@ -106,9 +106,19 @@ export default class LoggerBuilder {
      * Log error messages
      * @param message
      */
-    public error = (message: string, namespace?: string) => {
-        this.logger.log('error', message, {
-            namespace
+    public error = (message: string | Error | any, namespace?: string) => {
+        if (typeof message === 'string') {
+            this.logger.log('error', message, {
+                namespace
+            });
+            return;
+        }
+        const error = message as Error;
+        console.log({
+            name: error.name,
+            stack: error.stack,
+            cause: error.cause,
+            message: error.message
         });
     };
 

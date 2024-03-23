@@ -81,7 +81,7 @@ export default class BlockManager {
             this.getBlockByIdAndMeta(block.getId(), block.getMeta());
 
             throw new Error(`Block with id ${block.getName()} (${block.getId()}:${block.getMeta()}) already exists`);
-        } catch (error) {
+        } catch (error: unknown) {
             if (!(error as any).message.includes('invalid block with ')) throw error;
         }
 

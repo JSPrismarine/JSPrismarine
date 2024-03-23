@@ -39,11 +39,11 @@ export default class PluginManager {
                 plugins.map(async (id: string) => {
                     try {
                         return await this.registerPlugin(id);
-                    } catch (error) {
+                    } catch (error: unknown) {
                         this.server
                             .getLogger()
                             ?.error(`§cFailed to load plugin ${id}: ${error}`, 'PluginManager/onEnable');
-                        this.server.getLogger()?.debug((error as any).stack, 'PluginManager/onEnable');
+                        this.server.getLogger()?.error(error, 'PluginManager/onEnable');
                     }
                 })
             )
@@ -137,12 +137,12 @@ export default class PluginManager {
 
                     try {
                         await moduleManager.installFromNpm(dependency[0], dependency[1] as string);
-                    } catch (error) {
+                    } catch (error: unknown) {
                         this.server
                             .getLogger()
                             ?.debug(`moduleManager failed with: ${error}`, 'PluginManager/registerPlugin');
-                        this.server.getLogger()?.debug((error as any).stack, 'PluginManager/registerPlugin');
-                        throw new Error(`Failed to install ${dependency[0]}: ${error}`);
+                        this.server.getLogger()?.error(error, 'PluginManager/registerPlugin');
+                        throw new Error(`Failed to install ${dependency[0]}`, { cause: error });
                     }
                 })
             );

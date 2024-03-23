@@ -185,8 +185,8 @@ export default class Item {
                 const nbtReader = new NBTReader(stream, ByteOrder.ByteOrder.LITTLE_ENDIAN);
                 nbtReader.setUseVarint(true);
                 _nbt = nbtReader.parse();
-            } catch (e) {
-                throw new Error(`Failed to parse item stack nbt: ${e}`);
+            } catch (error: unknown) {
+                throw new Error(`Failed to parse item stack nbt`, { cause: error });
                 // TODO: Just log and return AIR
             }
         }

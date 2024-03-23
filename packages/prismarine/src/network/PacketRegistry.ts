@@ -3,7 +3,7 @@ import * as Packets from './Packets';
 
 import Identifiers from './Identifiers';
 import PacketHandler from './handler/PacketHandler';
-import { PlayerSession } from '@';
+import { PlayerSession } from '../';
 import PreLoginPacketHandler from './handler/PreLoginPacketHandler';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
