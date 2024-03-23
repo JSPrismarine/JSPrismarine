@@ -5,13 +5,15 @@ import exitHook from 'async-exit-hook';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import pkg from '../package.json' assert { type: 'json' };
+
 // Process metadata
 process.title = 'Prismarine';
 
 if (process.env.JSP_DIR && !fs.existsSync(path.join(process.cwd(), process.env.JSP_DIR)))
     fs.mkdirSync(path.join(process.cwd(), process.env.JSP_DIR));
 
-const version = process.env.npm_package_version!;
+const version = pkg.version as string;
 
 const config = new Config(version);
 const logger = new Logger();

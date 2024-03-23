@@ -32,7 +32,7 @@ export default class Updater {
         }
 
         try {
-            if (semver.gt(release.tag_name, this.version)) {
+            if (semver.gt(release.tag_name.split('@').at(-1) as string, this.version)) {
                 this.logger.info(
                     `§5There's a new version of JSPrismarine available, new version: §2${release.tag_name}`,
                     'Updater/check'
