@@ -177,12 +177,12 @@ export default class Server {
                 await player.onDisable();
                 await player.getWorld().removeEntity(player);
                 this.sessionManager.remove(token);
-            } catch (error) {
+            } catch (error: unknown) {
                 this.logger.debug(
                     `Cannot remove connection from non-existing player (${token})`,
                     'Server/listen/raknetDisconnect'
                 );
-                this.logger.debug((error as any).stack, 'Server/listen/raknetDisconnect');
+                this.logger.error(error, 'Server/listen/raknetDisconnect');
             }
 
             this.logger.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
@@ -225,7 +225,8 @@ export default class Server {
 
                     try {
                         packet.decode();
-                    } catch (error) {
+                    } catch (error: unknown) {
+                        this.logger.error(error);
                         this.logger.error(
                             `Error while decoding packet: ${packet.constructor.name}: ${error}`,
                             'Server/listen/raknetEncapsulatedPacket'
@@ -240,25 +241,25 @@ export default class Server {
                             'Server/listen/raknetEncapsulatedPacket'
                         );
                         await (handler as any).handle(packet, this, connection.getPlayerSession() ?? connection);
-                    } catch (error) {
+                    } catch (error: unknown) {
                         this.logger.error(
                             `Handler error ${packet.constructor.name}-handler: (${error})`,
                             'Server/listen/raknetEncapsulatedPacket'
                         );
-                        this.logger.debug(`${(error as any).stack}`, 'Server/listen/raknetEncapsulatedPacket');
+                        this.logger.error(error, 'Server/listen/raknetEncapsulatedPacket');
                     }
                 }
-            } catch (error) {
-                this.logger.error(error as any, 'Server/listen/raknetEncapsulatedPacket');
+            } catch (error: unknown) {
+                this.logger.error(error, 'Server/listen/raknetEncapsulatedPacket');
             }
         });
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
             try {
                 await this.queryManager.onRaw(buffer, inetAddr);
-            } catch (error) {
+            } catch (error: unknown) {
+                this.logger.error(error, 'Server/listen/raw');
                 this.logger.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
-                this.logger.debug((error as any).stack, 'Server/listen/raw');
             }
         });
 
@@ -314,8 +315,8 @@ export default class Server {
             await this.onDisable();
             this.raknet.kill(); // this.raknet might be undefined if we kill the server really early
             process.exit(options?.crash ? 1 : 0);
-        } catch (error) {
-            this.logger.error(error as any, 'Server/kill');
+        } catch (error: unknown) {
+            this.logger.error(error, 'Server/kill');
             process.exit(1);
         }
     }

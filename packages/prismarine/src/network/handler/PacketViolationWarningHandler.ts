@@ -1,7 +1,7 @@
 import Identifiers from '../Identifiers';
 import PacketHandler from './PacketHandler';
 import PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
-import { PlayerSession } from '@';
+import { PlayerSession } from '../../';
 import Server from '../../Server';
 
 export default class PacketViolationWarningHandler implements PacketHandler<PacketViolationWarningPacket> {

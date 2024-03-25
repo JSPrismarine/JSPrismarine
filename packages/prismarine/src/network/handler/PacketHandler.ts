@@ -1,5 +1,5 @@
 import type DataPacket from '../packet/DataPacket';
-import { PlayerSession } from '@';
+import { PlayerSession } from '../../';
 import type Server from '../../Server';
 
 export default interface PacketHandler<T extends DataPacket> {

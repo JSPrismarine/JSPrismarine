@@ -7,7 +7,7 @@ import type { CommandArgument } from './CommandArguments';
 // import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
 import type Entity from '../entity/Entity';
-import type { Player } from '@';
+import type { Player } from '../';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
 import fs from 'node:fs';
@@ -59,9 +59,9 @@ export default class CommandManager {
 
                 try {
                     await this.registerClassCommand(command);
-                } catch (err) {
-                    this.server.getLogger()?.warn(`Failed to register command ${command.id}: ${err}`);
-                    this.server.getLogger()?.debug((err as any).stack);
+                } catch (error: unknown) {
+                    this.server.getLogger()?.error(error);
+                    this.server.getLogger()?.warn(`Failed to register command ${command.id}`);
                 }
             })
         );
@@ -278,7 +278,7 @@ export default class CommandManager {
 
                 await this.server.getChatManager().send(chat);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             if ((error as any)?.type?.message?.toString?.() === 'Unknown command') {
                 await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
                 return;
@@ -291,7 +291,7 @@ export default class CommandManager {
                     `Player ${target.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
-            this.server.getLogger()?.debug(`${(error as any).stack}`, 'CommandManager/dispatchCommand');
+            this.server.getLogger()?.error(error, 'CommandManager/dispatchCommand');
         }
     }
 }

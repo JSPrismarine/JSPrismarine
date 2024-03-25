@@ -46,8 +46,8 @@ export default class BanManager {
             );
 
             for (const player of banned) this.banned.set(player.name, player);
-        } catch (error) {
-            this.server.getLogger()?.error(error as string, 'BanManager/parseBanned');
+        } catch (error: unknown) {
+            this.server.getLogger()?.error(error, 'BanManager/parseBanned');
             throw new Error(`Invalid banned-players.json file.`);
         }
     }
