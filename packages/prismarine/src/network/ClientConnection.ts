@@ -1,10 +1,10 @@
-import type { Logger, Player, Server } from "@";
-import { PlayerSession } from "@";
+import type { Logger, Player, Server } from '@';
+import { PlayerSession } from '@';
 
-import { DisconnectPacket } from "./Packets";
-import MinecraftSession from "./MinecraftSession";
-import type { RakNetSession } from "@jsprismarine/raknet";
-import assert from "assert";
+import { DisconnectPacket } from './Packets';
+import MinecraftSession from './MinecraftSession';
+import type { RakNetSession } from '@jsprismarine/raknet';
+import assert from 'assert';
 
 /**
  * Handles the connection before the player creation itself, very helpful as
@@ -12,46 +12,43 @@ import assert from "assert";
  * outdated or sends invalid data during the login handshake.
  */
 export default class ClientConnection extends MinecraftSession {
-  private playerSession: PlayerSession | null = null;
-  public hasCompression = false;
+    private playerSession: PlayerSession | null = null;
+    public hasCompression = false;
 
-  public constructor(session: RakNetSession, logger?: Logger) {
-    super(session, logger);
-  }
+    public constructor(session: RakNetSession, logger?: Logger) {
+        super(session, logger);
+    }
 
-  /**
-   * @internal
-   *
-   * @param server - the server instance
-   * @param player - the player instance
-   * @returns the new player session
-   */
-  public initPlayerConnection(server: Server, player: Player): PlayerSession {
-    assert(this.playerSession === null, "Player session was already created");
+    /**
+     * @internal
+     *
+     * @param server - the server instance
+     * @param player - the player instance
+     * @returns the new player session
+     */
+    public initPlayerConnection(server: Server, player: Player): PlayerSession {
+        assert(this.playerSession === null, 'Player session was already created');
 
-    this.playerSession = new PlayerSession(server, this, player);
-    return this.playerSession;
-  }
+        this.playerSession = new PlayerSession(server, this, player);
+        return this.playerSession;
+    }
 
-  public disconnect(
-    reason = "disconnect.disconnected",
-    hideReason = true,
-  ): void {
-    const packet = new DisconnectPacket();
-    packet.skipMessage = hideReason;
-    packet.message = reason;
-    void this.sendDataPacket(packet);
+    public disconnect(reason = 'disconnect.disconnected', hideReason = true): void {
+        const packet = new DisconnectPacket();
+        packet.skipMessage = hideReason;
+        packet.message = reason;
+        void this.sendDataPacket(packet);
 
-    // Force RakNet to remove the session
-    // so we don't have to handle the dead session
-    this.rakSession.disconnect();
-  }
+        // Force RakNet to remove the session
+        // so we don't have to handle the dead session
+        this.rakSession.disconnect();
+    }
 
-  public getPlayerSession(): PlayerSession | null {
-    return this.playerSession;
-  }
+    public getPlayerSession(): PlayerSession | null {
+        return this.playerSession;
+    }
 
-  public getRakNetSession(): RakNetSession {
-    return this.rakSession;
-  }
+    public getRakNetSession(): RakNetSession {
+        return this.rakSession;
+    }
 }
