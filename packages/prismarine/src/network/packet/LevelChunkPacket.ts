@@ -14,7 +14,7 @@ export default class LevelChunkPacket extends DataPacket {
         this.writeVarInt(this.chunkX);
         this.writeVarInt(this.chunkZ);
 
-        this.writeVarInt(1); // DimensionID
+        this.writeVarInt(0); // DimensionID
 
         // TODO: RE this part
         if (!this.clientSubChunkRequestsEnabled) {
