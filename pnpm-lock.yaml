@@ -124,8 +124,8 @@ importers:
         specifier: 2.6.4
         version: 2.6.4
       glob:
-        specifier: 10.3.10
-        version: 10.3.10
+        specifier: 10.3.12
+        version: 10.3.12
       husky:
         specifier: 9.0.11
         version: 9.0.11
@@ -176,8 +176,8 @@ importers:
         specifier: 20.11.30
         version: 20.11.30
       glob:
-        specifier: 10.3.10
-        version: 10.3.10
+        specifier: 10.3.12
+        version: 10.3.12
       typescript:
         specifier: 5.4.3
         version: 5.4.3
@@ -198,8 +198,8 @@ importers:
         specifier: 20.11.30
         version: 20.11.30
       glob:
-        specifier: 10.3.10
-        version: 10.3.10
+        specifier: 10.3.12
+        version: 10.3.12
       typescript:
         specifier: 5.4.3
         version: 5.4.3
@@ -220,8 +220,8 @@ importers:
         specifier: 20.11.30
         version: 20.11.30
       glob:
-        specifier: 10.3.10
-        version: 10.3.10
+        specifier: 10.3.12
+        version: 10.3.12
       typescript:
         specifier: 5.4.3
         version: 5.4.3
@@ -269,8 +269,8 @@ importers:
         specifier: 20.11.30
         version: 20.11.30
       glob:
-        specifier: 10.3.10
-        version: 10.3.10
+        specifier: 10.3.12
+        version: 10.3.12
       typescript:
         specifier: 5.4.3
         version: 5.4.3
@@ -294,8 +294,8 @@ importers:
         specifier: 20.11.30
         version: 20.11.30
       glob:
-        specifier: 10.3.10
-        version: 10.3.10
+        specifier: 10.3.12
+        version: 10.3.12
       typescript:
         specifier: 5.4.3
         version: 5.4.3
@@ -328,8 +328,8 @@ importers:
         specifier: 20.11.30
         version: 20.11.30
       glob:
-        specifier: 10.3.10
-        version: 10.3.10
+        specifier: 10.3.12
+        version: 10.3.12
       typescript:
         specifier: 5.4.3
         version: 5.4.3
@@ -359,8 +359,8 @@ importers:
         specifier: 7.5.8
         version: 7.5.8
       glob:
-        specifier: 10.3.10
-        version: 10.3.10
+        specifier: 10.3.12
+        version: 10.3.12
       typescript:
         specifier: 5.4.3
         version: 5.4.3
@@ -3218,16 +3218,16 @@ packages:
       is-glob: 4.0.3
     dev: true
 
-  /glob@10.3.10:
-    resolution: {integrity: sha512-fa46+tv1Ak0UPK1TOy/pZrIybNNt4HCv7SDzwyfiOZkvZLEbjsZkJBPtDHVshZjbecAoAGSC20MjLDG/qr679g==}
+  /glob@10.3.12:
+    resolution: {integrity: sha512-TCNv8vJ+xz4QiqTpfOJA7HvYv+tNIRHKfUWw/q+v2jdgN4ebz+KY9tGx5J4rHP0o84mNP+ApH66HRX8us3Khqg==}
     engines: {node: '>=16 || 14 >=14.17'}
     hasBin: true
     dependencies:
       foreground-child: 3.1.1
       jackspeak: 2.3.6
       minimatch: 9.0.3
-      minipass: 5.0.0
-      path-scurry: 1.10.1
+      minipass: 7.0.4
+      path-scurry: 1.10.2
     dev: true
 
   /glob@7.2.3:
@@ -4116,6 +4116,12 @@ packages:
   /minipass@5.0.0:
     resolution: {integrity: sha512-3FnjYuehv9k6ovOEbyOswadCDPX1piCfhV8ncmYtHOjuPwylVWsghTLo7rabjC3Rx5xD4HDx8Wm1xnMF7S5qFQ==}
     engines: {node: '>=8'}
+    dev: false
+
+  /minipass@7.0.4:
+    resolution: {integrity: sha512-jYofLM5Dam9279rdkWzqHozUo4ybjdZmCsDHePy5V/PbBcVMiSZR97gmAy45aqi8CK1lG2ECd356FU86avfwUQ==}
+    engines: {node: '>=16 || 14 >=14.17'}
+    dev: true
 
   /minizlib@2.1.2:
     resolution: {integrity: sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==}
@@ -4453,12 +4459,12 @@ packages:
   /path-parse@1.0.7:
     resolution: {integrity: sha512-LDJzPVEEEPR+y48z93A0Ed0yXb8pAByGWo/k5YYdYgpY2/2EsOsksJrq7lOHxryrVOn1ejG6oAp8ahvOIQD8sw==}
 
-  /path-scurry@1.10.1:
-    resolution: {integrity: sha512-MkhCqzzBEpPvxxQ71Md0b1Kk51W01lrYvlMzSUaIzNsODdd7mqhiimSZlr+VegAz5Z6Vzt9Xg2ttE//XBhH3EQ==}
+  /path-scurry@1.10.2:
+    resolution: {integrity: sha512-7xTavNy5RQXnsjANvVvMkEjvloOinkAjv/Z6Ildz9v2RinZ4SBKTWFOVRbaF8p0vpHnyjV/UwNDdKuUv6M5qcA==}
     engines: {node: '>=16 || 14 >=14.17'}
     dependencies:
       lru-cache: 10.2.0
-      minipass: 5.0.0
+      minipass: 7.0.4
     dev: true
 
   /path-type@4.0.0:
