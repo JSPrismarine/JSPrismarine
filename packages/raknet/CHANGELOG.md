@@ -1,5 +1,13 @@
 # @jsprismarine/raknet
 
+## 0.1.1
+
+### Patch Changes
+
+- [`80e23e1`](https://github.com/JSPrismarine/JSPrismarine/commit/80e23e17c0111eac2df98f73cdeec5730bd9abf5) Thanks [@filiphsps](https://github.com/filiphsps)! - Include CHANGELOG.md with releases.
+
+- [`c6a627d`](https://github.com/JSPrismarine/JSPrismarine/commit/c6a627da60bae29bd0e6dfead9d44dddbeb0dafd) Thanks [@filiphsps](https://github.com/filiphsps)! - Expose more of the internals.
+
 ## 0.1.0
 
 ### Patch Changes
