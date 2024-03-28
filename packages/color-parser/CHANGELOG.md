@@ -1,5 +1,11 @@
 # @jsprismarine/color-parser
 
+## 0.1.1
+
+### Patch Changes
+
+- [`80e23e1`](https://github.com/JSPrismarine/JSPrismarine/commit/80e23e17c0111eac2df98f73cdeec5730bd9abf5) Thanks [@filiphsps](https://github.com/filiphsps)! - Include CHANGELOG.md with releases.
+
 ## 0.1.0
 
 ### Patch Changes

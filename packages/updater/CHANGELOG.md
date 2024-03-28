@@ -1,5 +1,18 @@
 # @jsprismarine/updater
 
+## 0.1.1
+
+### Patch Changes
+
+- [`323a666`](https://github.com/JSPrismarine/JSPrismarine/commit/323a666b2d4b82e399ff21711ff8cc7ca6f520dd) Thanks [@filiphsps](https://github.com/filiphsps)! - Add safety checks and fix invalid logic.
+
+- [`ff73b13`](https://github.com/JSPrismarine/JSPrismarine/commit/ff73b133659cf83e01a751b0e8bfbcfe56f88346) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix version detection.
+
+- [`80e23e1`](https://github.com/JSPrismarine/JSPrismarine/commit/80e23e17c0111eac2df98f73cdeec5730bd9abf5) Thanks [@filiphsps](https://github.com/filiphsps)! - Include CHANGELOG.md with releases.
+
+- Updated dependencies [[`323a666`](https://github.com/JSPrismarine/JSPrismarine/commit/323a666b2d4b82e399ff21711ff8cc7ca6f520dd), [`cdecbaa`](https://github.com/JSPrismarine/JSPrismarine/commit/cdecbaaf823a6f2db15e1793b50da9925deb3716), [`80e23e1`](https://github.com/JSPrismarine/JSPrismarine/commit/80e23e17c0111eac2df98f73cdeec5730bd9abf5)]:
+  - @jsprismarine/prismarine@0.1.1
+
 ## 0.1.0
 
 ### Patch Changes
