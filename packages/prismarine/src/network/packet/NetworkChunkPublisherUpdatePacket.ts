@@ -15,7 +15,7 @@ export default class NetworkChunkPublisherUpdatePacket extends DataPacket {
     public savedChunks!: ChunkCoord[];
 
     public override encodePayload(): void {
-        this.position.signedNetworkSerialize(this);
+        this.position.serialize(this);
         this.writeUnsignedVarInt(this.radius);
         this.writeUnsignedIntLE(this.savedChunks.length);
         for (const chunkCoord of this.savedChunks) {

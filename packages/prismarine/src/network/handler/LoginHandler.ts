@@ -1,12 +1,12 @@
 import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
-import type LoginPacket from '../packet/LoginPacket';
 import { PlayStatusPacket } from '../Packets';
 import PlayStatusType from '../type/PlayStatusType';
 import { Player } from '../../';
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import type Server from '../../Server';
+import { LoginPacket } from '@jsprismarine/protocol';
 
 export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> {
     public static NetID = Identifiers.LoginPacket;
@@ -17,9 +17,9 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         const playStatus = new PlayStatusPacket();
 
         // Kick client if has newer / older client version
-        if (packet.protocol !== Identifiers.Protocol) {
+        if (packet.clientNetworkVersion !== Identifiers.Protocol) {
             playStatus.status =
-                packet.protocol < Identifiers.Protocol
+                packet.clientNetworkVersion < Identifiers.Protocol
                     ? PlayStatusType.LoginFailedClient
                     : PlayStatusType.LoginFailedServer;
             await connection.sendDataPacket(playStatus, true);
@@ -27,7 +27,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         }
 
         // Kick the player if their username is invalid
-        if (!packet.displayName) {
+        /* if (!packet.displayName) {
             connection.disconnect('Invalid username!', false);
             return;
         }
@@ -41,7 +41,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         player.uuid = packet.identity;
         player.xuid = packet.XUID;
         player.skin = packet.skin;
-        player.device = packet.device;
+        player.device = packet.device; 
 
         // Player with same name is already online
         try {
@@ -76,6 +76,6 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         resourcePacksInfo.forceServerPacksEnabled = false;
         resourcePacksInfo.hasScripts = false;
         resourcePacksInfo.hasAddonPacks = false;
-        await connection.sendDataPacket(resourcePacksInfo, true);
+        await connection.sendDataPacket(resourcePacksInfo, true); */
     }
 }

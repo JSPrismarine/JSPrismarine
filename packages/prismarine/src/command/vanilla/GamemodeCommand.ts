@@ -5,8 +5,8 @@ import { argument, literal } from '@jsprismarine/brigadier';
 import Chat from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import { Command } from '../Command';
-import Gamemode from '../../world/Gamemode';
-import type Player from '../../Player';
+import Player from '../../Player';
+import { Gamemode } from '@jsprismarine/minecraft';
 
 export default class GamemodeCommand extends Command {
     public constructor() {
@@ -40,7 +40,7 @@ export default class GamemodeCommand extends Command {
             return;
         }
 
-        await target.setGamemode(Gamemode.getGamemodeId(gamemode));
+        await target.setGamemode(Gamemode.getGametypeId(gamemode));
     }
 
     public async register(dispatcher: CommandDispatcher<any>) {

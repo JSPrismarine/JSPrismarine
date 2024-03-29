@@ -270,6 +270,31 @@ importers:
         specifier: 1.4.0
         version: 1.4.0(@types/node@20.12.4)
 
+  packages/minecraft:
+    dependencies:
+      '@jsprismarine/nbt':
+        specifier: workspace:*
+        version: link:../nbt
+    devDependencies:
+      '@types/node':
+        specifier: 20.11.30
+        version: 20.11.30
+      '@types/semver':
+        specifier: 7.5.8
+        version: 7.5.8
+      glob:
+        specifier: 10.3.10
+        version: 10.3.10
+      typescript:
+        specifier: 5.4.3
+        version: 5.4.3
+      vite:
+        specifier: 5.2.6
+        version: 5.2.6(@types/node@20.11.30)
+      vitest:
+        specifier: 1.4.0
+        version: 1.4.0(@types/node@20.11.30)
+
   packages/nbt:
     dependencies:
       '@jsprismarine/jsbinaryutils':
@@ -306,9 +331,15 @@ importers:
       '@jsprismarine/jsbinaryutils':
         specifier: 5.5.3
         version: 5.5.3
+      '@jsprismarine/minecraft':
+        specifier: workspace:*
+        version: link:../minecraft
       '@jsprismarine/nbt':
         specifier: workspace:*
         version: link:../nbt
+      '@jsprismarine/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@jsprismarine/raknet':
         specifier: workspace:*
         version: link:../raknet
@@ -349,6 +380,31 @@ importers:
       vitest:
         specifier: 1.4.0
         version: 1.4.0(@types/node@20.12.4)
+
+  packages/protocol:
+    dependencies:
+      '@jsprismarine/minecraft':
+        specifier: workspace:*
+        version: link:../minecraft
+      '@jsprismarine/nbt':
+        specifier: workspace:*
+        version: link:../nbt
+    devDependencies:
+      '@types/node':
+        specifier: 20.11.30
+        version: 20.11.30
+      glob:
+        specifier: 10.3.10
+        version: 10.3.10
+      typescript:
+        specifier: 5.4.3
+        version: 5.4.3
+      vite:
+        specifier: 5.2.6
+        version: 5.2.6(@types/node@20.11.30)
+      vitest:
+        specifier: 1.4.0
+        version: 1.4.0(@types/node@20.11.30)
 
   packages/raknet:
     dependencies:

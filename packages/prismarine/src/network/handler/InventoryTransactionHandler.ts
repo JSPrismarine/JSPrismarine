@@ -3,14 +3,14 @@ import { LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
 import type { UseItemData } from '../packet/InventoryTransactionPacket';
 import { TransactionType, UseItemAction } from '../packet/InventoryTransactionPacket';
 
-import { BlockMappings } from '../../block/BlockMappings';
-import type ContainerEntry from '../../inventory/ContainerEntry';
-import Gamemode from '../../world/Gamemode';
+import BlockMappings from '../../block/BlockMappings';
+import ContainerEntry from '../../inventory/ContainerEntry';
 import Identifiers from '../Identifiers';
 import type PacketHandler from './PacketHandler';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
+import { Gamemode } from '@jsprismarine/minecraft';
 
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
     public static NetID = Identifiers.InventoryTransactionPacket;
@@ -18,7 +18,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     public async handle(packet: InventoryTransactionPacket, server: Server, connection: PlayerSession): Promise<void> {
         const player = connection.getPlayer();
         if (!player.isOnline()) return;
-        if (player.gamemode === Gamemode.Spectator) return; // Spectators shouldn't be able to interact with the world.
+        if (player.gamemode === Gamemode.Gametype.SPECTATOR) return; // Spectators shouldn't be able to interact with the world.
 
         switch (packet.transactionType) {
             case TransactionType.NORMAL: {

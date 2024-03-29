@@ -1,4 +1,4 @@
-import * as ByteOrder from './ByteOrder';
+import { ByteOrder } from './ByteOrder';
 import * as NBTDefinitions from './NBTDefinitions';
 import * as Types from './types/Types';
 

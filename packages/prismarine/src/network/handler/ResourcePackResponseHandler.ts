@@ -1,11 +1,10 @@
 import Chat, { ChatType } from '../../chat/Chat';
-import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
+// import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
 
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import ChatEvent from '../../events/chat/ChatEvent';
-import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
 import ItemComponentPacket from '../packet/ItemComponentPacket';
 import type PacketHandler from './PacketHandler';
@@ -13,21 +12,23 @@ import PlayStatusType from '../type/PlayStatusType';
 import type { PlayerSession } from '../../';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
-import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
-import type Server from '../../Server';
-import StartGamePacket from '../packet/StartGamePacket';
+import Server from '../../Server';
 import Vector3 from '../../math/Vector3';
+import { Difficulty, Dimension, Gamemode, ServerAuthMovementMode, SpawnBiome } from '@jsprismarine/minecraft';
+import { LevelSettings, SpawnSettings, SyncedPlayerMovementSettings, Vec2 } from '@jsprismarine/protocol';
+import { PlayerPermissionLevel } from '@jsprismarine/minecraft';
+import { StartGamePacket, ResourcePackStackPacket } from '@jsprismarine/protocol';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 
 export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
     public static NetID = Identifiers.ResourcePackResponsePacket;
 
     public async handle(packet: ResourcePackResponsePacket, server: Server, session: PlayerSession): Promise<void> {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
-            const resourcePackStack = new ResourcePackStackPacket();
-            resourcePackStack.texturePackRequired = false;
-            resourcePackStack.experimentsAlreadyEnabled = false;
-            await session.getConnection().sendDataPacket(resourcePackStack);
+            await session
+                .getConnection()
+                .sendDataPacket2(new ResourcePackStackPacket(false, Identifiers.MinecraftVersion));
         } else if (packet.status === ResourcePackStatusType.Completed) {
             const player = session.getPlayer();
             // Emit playerSpawn event
@@ -43,24 +44,34 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             await session.sendTime(world.getTicks());
 
-            const startGame = new StartGamePacket();
-            startGame.entityId = player.getRuntimeId();
-            startGame.runtimeEntityId = player.getRuntimeId();
-            startGame.gamemode = 1;
-            startGame.defaultGamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
-
-            const worldSpawnPos = await world.getSpawnPosition();
-            startGame.worldSpawnPos = worldSpawnPos;
-
-            startGame.playerPos = new Vector3(player.getX(), player.getY(), player.getZ());
-            startGame.pitch = player.pitch;
-            startGame.yaw = player.yaw;
-
-            startGame.levelId = world.getUniqueId();
-            startGame.worldName = world.getName();
-            startGame.seed = world.getSeed();
-            startGame.gamerules = world.getGameruleManager();
-            await session.getConnection().sendDataPacket(startGame);
+            const startGame = new StartGamePacket(
+                player.getRuntimeId(),
+                player.getRuntimeId(),
+                Gamemode.Gametype.WORLD_DEFAULT,
+                new Vector3(player.getX(), player.getY(), player.getZ()),
+                new Vec2(player.yaw, player.pitch),
+                new LevelSettings(
+                    BigInt(world.getSeed()),
+                    new SpawnSettings(SpawnBiome.DEFAULT, 'plains', Dimension.OVERWORLD),
+                    Difficulty.NORMAL,
+                    await world.getSpawnPosition(),
+                    world.getTicks(),
+                    0,
+                    0,
+                    true,
+                    new Set(),
+                    PlayerPermissionLevel.MEMBER
+                ),
+                world.getUniqueId(),
+                world.getName(),
+                new SyncedPlayerMovementSettings(ServerAuthMovementMode.CLIENT_AUTHORITATIVE, 0, false),
+                BigInt(world.getTicks()),
+                server.getVersion(),
+                new NBTTagCompound(),
+                0n,
+                false
+            );
+            await session.getConnection().sendDataPacket2(startGame);
 
             const itemComponent = new ItemComponentPacket();
             await session.getConnection().sendDataPacket(itemComponent);
@@ -101,7 +112,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             // TODO: available commands
 
-            const respawnPacket = new RespawnPacket();
+            /* const respawnPacket = new RespawnPacket();
             respawnPacket.state = RespawnState.SERVER_SEARCHING_FOR_SPAWN;
             respawnPacket.position = await world.getSpawnPosition();
             respawnPacket.runtimeEntityId = player.getRuntimeId();
@@ -109,7 +120,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             respawnPacket.state = RespawnState.SERVER_READY_TO_SPAWN;
             await session.getConnection().sendDataPacket(respawnPacket);
-            await session.getConnection().sendDataPacket(respawnPacket);
+            await session.getConnection().sendDataPacket(respawnPacket); */
 
             /// TODO: general handler refactor ///
 
