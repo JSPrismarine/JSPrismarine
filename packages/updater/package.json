@@ -47,7 +47,7 @@
         "@types/semver": "7.5.8",
         "glob": "10.3.12",
         "typescript": "5.4.3",
-        "vite": "5.2.6",
+        "vite": "5.2.7",
         "vitest": "1.4.0"
     },
     "dependencies": {
