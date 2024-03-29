@@ -8,7 +8,6 @@ import ContainerEntry from './inventory/ContainerEntry';
 import CoordinateUtils from './world/CoordinateUtils';
 import type Device from './utils/Device';
 import FormManager from './form/FormManager';
-import Gamemode from './world/Gamemode';
 import Human from './entity/Human';
 import type { InetAddress } from '@jsprismarine/raknet';
 import MovementType from './network/type/MovementType';
@@ -25,6 +24,7 @@ import WindowManager from './inventory/WindowManager';
 import type World from './world/World';
 
 import type Server from './Server';
+import { Gamemode } from '@jsprismarine/minecraft';
 
 // Default spawn view distance used in vanilla
 export const VANILLA_DEFAULT_SPAWN_RADIUS = 4;
@@ -343,7 +343,8 @@ export default class Player extends Human {
         this.gamemode = event.getGamemode();
         await this.networkSession.sendGamemode(this.gamemode);
 
-        if (this.gamemode === Gamemode.Creative || this.gamemode === Gamemode.Spectator) this.allowFight = true;
+        if (this.gamemode === Gamemode.Gametype.CREATIVE || this.gamemode === Gamemode.Gametype.SPECTATOR)
+            this.allowFight = true;
         else {
             this.allowFight = false;
             await this.setFlying(false);
@@ -353,7 +354,7 @@ export default class Player extends Human {
     }
 
     public getGamemode(): string {
-        return Gamemode.getGamemodeName(this.gamemode).toLowerCase();
+        return Gamemode.getGametypeName(this.gamemode).toLowerCase();
     }
 
     public getNetworkSession(): PlayerSession {

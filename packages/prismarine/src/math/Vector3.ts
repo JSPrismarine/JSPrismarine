@@ -1,47 +1,11 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import { Vec3 } from '@jsprismarine/protocol';
 
 /**
  * 3D Vector.
  *
  * @public
  */
-export default class Vector3 {
-    /**
-     * The X coordinate.
-     */
-    protected x: number = 0;
-
-    /**
-     * The Y coordinate.
-     */
-    protected y: number = 0;
-
-    /**
-     * The Z coordinate.
-     */
-    protected z: number = 0;
-
-    /**
-     * Create a new `Vector3` instance.
-     * @constructor
-     * @param {number} x - The X coordinate.
-     * @param {number} y - The Y coordinate.
-     * @param {number} z - The Z coordinate.
-     * @example
-     * ```typescript
-     * const vector = new Vector3(10, 20, 30);
-     * ```
-     */
-    public constructor(x: number = 0, y: number = 0, z: number = 0) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
-
-    public static fromObject(obj: { x: number; y: number; z: number }): Vector3 {
-        return new Vector3(obj.x, obj.y, obj.z);
-    }
-
+export default class Vector3 extends Vec3 {
     /**
      * Set the X coordinate.
      * @param {number} x - The X coordinate.
@@ -79,6 +43,16 @@ export default class Vector3 {
     }
 
     /**
+     * Create a new instance of `Vector3`.
+     * @param x - The x-coordinate of the vector.
+     * @param y - The y-coordinate of the vector.
+     * @param z - The z-coordinate of the vector.
+     */
+    public static fromObject(obj: { x: number; y: number; z: number }): Vector3 {
+        return new Vector3(obj.x, obj.y, obj.z);
+    }
+
+    /**
      * Get the x coordinate.
      * @returns {number} The x coordinate's value.
      */
@@ -113,24 +87,5 @@ export default class Vector3 {
      */
     public equals(vector: Vector3): boolean {
         return JSON.stringify(this) === JSON.stringify(vector);
-    }
-
-    /**
-     * Serialize this `Vector3` instance into a `BinaryStream`.
-     * @param {BinaryStream} stream - The network stream.
-     */
-    public networkSerialize(stream: BinaryStream): void {
-        stream.writeFloatLE(this.x);
-        stream.writeFloatLE(this.y);
-        stream.writeFloatLE(this.z);
-    }
-
-    /**
-     * Deserialize a `Vector3` from a `BinaryStream`.
-     * @param {BinaryStream} stream - The network stream.
-     * @returns {Vector3} The deserialized `Vector3`.
-     */
-    public static networkDeserialize(stream: BinaryStream): Vector3 {
-        return new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE());
     }
 }

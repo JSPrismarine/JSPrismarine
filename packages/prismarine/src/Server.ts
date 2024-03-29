@@ -1,7 +1,6 @@
 import { RakNetListener } from '@jsprismarine/raknet';
 import Chat, { ChatType } from './chat/Chat';
 import BanManager from './ban/BanManager';
-import BatchPacket from './network/packet/BatchPacket';
 import BlockManager from './block/BlockManager';
 import { BlockMappings } from './block/BlockMappings';
 import ChatEvent from './events/chat/ChatEvent';
@@ -201,7 +200,7 @@ export default class Server {
             );
         });
 
-        this.raknet.on('encapsulated', async (packet: any, inetAddr: InetAddress) => {
+        this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
             await this.eventManager.emit('raknetEncapsulatedPacket', event);
 
@@ -210,56 +209,7 @@ export default class Server {
                 this.logger.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
                 return;
             }
-
-            try {
-                // Read batch content and handle them
-                const batched = new BatchPacket(packet.content);
-                batched.compressed = connection.hasCompression;
-
-                // Read all packets inside batch and handle them
-                for (const buf of await batched.asyncDecode()) {
-                    const pid = buf[0]!;
-
-                    if (!this.packetRegistry.getPackets().has(pid)) {
-                        this.logger.warn(
-                            `Packet 0x${pid.toString(16)} isn't implemented`,
-                            'Server/listen/raknetEncapsulatedPacket'
-                        );
-                        continue;
-                    }
-
-                    // Get packet from registry
-                    const packet = new (this.packetRegistry.getPackets().get(pid)!)(buf);
-
-                    try {
-                        packet.decode();
-                    } catch (error: unknown) {
-                        this.logger.error(error);
-                        this.logger.error(
-                            `Error while decoding packet: ${packet.constructor.name}: ${error}`,
-                            'Server/listen/raknetEncapsulatedPacket'
-                        );
-                        continue;
-                    }
-
-                    try {
-                        const handler = this.packetRegistry.getHandler(pid);
-                        this.logger.silly(
-                            `Received §b${packet.constructor.name}§r packet`,
-                            'Server/listen/raknetEncapsulatedPacket'
-                        );
-                        await (handler as any).handle(packet, this, connection.getPlayerSession() ?? connection);
-                    } catch (error: unknown) {
-                        this.logger.error(
-                            `Handler error ${packet.constructor.name}-handler: (${error})`,
-                            'Server/listen/raknetEncapsulatedPacket'
-                        );
-                        this.logger.error(error, 'Server/listen/raknetEncapsulatedPacket');
-                    }
-                }
-            } catch (error: unknown) {
-                this.logger.error(error, 'Server/listen/raknetEncapsulatedPacket');
-            }
+            connection.handleRawPacket(packet.content);
         });
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {

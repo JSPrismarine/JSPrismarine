@@ -1,8 +1,8 @@
 import ConfigBuilder from './ConfigBuilder';
-import Gamemode from '../world/Gamemode';
 import { SeedGenerator } from '../utils/Seed';
 import cwd from '../utils/cwd';
 import path from 'node:path';
+import { Gamemode } from '@jsprismarine/minecraft';
 
 export default class Config {
     private configBuilder!: ConfigBuilder;
@@ -99,7 +99,7 @@ export default class Config {
      * @param commit - if the value should be written to the `config.yml` file
      */
     public setGamemode(gamemode: number, commit = false) {
-        this.gamemode = Gamemode.getGamemodeName(gamemode).toLowerCase();
+        this.gamemode = Gamemode.getGametypeName(gamemode).toLowerCase();
 
         if (commit) this.configBuilder.set('gamemode', this.gamemode);
     }

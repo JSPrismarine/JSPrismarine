@@ -20,8 +20,9 @@ export default class NBTTagCompound {
         return NBTTagCompound.readFromStream(new BinaryStream(fs.readFileSync(path)), byteOrder);
     }
 
-    public static readFromStream(input: BinaryStream, byteOrder: ByteOrder): NBTTagCompound {
+    public static readFromStream(input: BinaryStream, byteOrder: ByteOrder, varints = false): NBTTagCompound {
         const reader: NBTReader = new NBTReader(input, byteOrder);
+        reader.setUseVarint(varints);
         return reader.parse();
     }
 
@@ -77,8 +78,9 @@ export default class NBTTagCompound {
         return null;
     }
 
-    public writeToStream(out: BinaryStream, byteOrder: ByteOrder): void {
+    public writeToStream(out: BinaryStream, byteOrder: ByteOrder, varints = false): void {
         const writer: NBTWriter = new NBTWriter(out, byteOrder);
+        writer.setUseVarint(varints);
         writer.writeCompound(this);
     }
 

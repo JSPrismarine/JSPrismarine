@@ -3,6 +3,8 @@ import DataPacket from './DataPacket';
 import Zlib from 'zlib';
 import CompressionProvider from '../CompressionProvider.js';
 import { PacketCompressionAlgorithm } from './NetworkSettingsPacket.js';
+import { NetworkPacket } from '@jsprismarine/protocol';
+import NetworkBinaryStream from '@jsprismarine/protocol/NetworkBinaryStream';
 
 /**
  * @internal
@@ -70,6 +72,15 @@ export default class BatchPacket extends DataPacket {
 
         this.payload.writeUnsignedVarInt(packet.getBuffer().byteLength);
         this.payload.write(packet.getBuffer());
+    }
+
+    public addTempPacket(packet: NetworkPacket): void {
+        // TODO: stream pool (?)
+        const str = new NetworkBinaryStream();
+        packet.serialize(str);
+        const buf = str.getBuffer();
+        this.payload.writeUnsignedVarInt(buf.byteLength);
+        this.payload.write(buf);
     }
 
     public getPackets(): Buffer[] {

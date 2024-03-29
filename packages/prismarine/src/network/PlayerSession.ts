@@ -22,7 +22,6 @@ import CommandEnum from './type/CommandEnum';
 import CoordinateUtils from '../world/CoordinateUtils';
 import CreativeContentPacket from './packet/CreativeContentPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
-import Gamemode from '../world/Gamemode';
 import Heap from 'heap';
 import type IForm from '../form/IForm';
 import InventoryContentPacket from './packet/InventoryContentPacket';
@@ -40,7 +39,6 @@ import RemoveActorPacket from './packet/RemoveActorPacket';
 import type Server from '../Server';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
-import SetTimePacket from './packet/SetTimePacket';
 import TextPacket from './packet/TextPacket';
 import TextType from './type/TextType';
 import ToastRequestPacket from './packet/ToastRequestPacket';
@@ -49,6 +47,8 @@ import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacke
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import { WindowIds } from '../inventory/WindowManager';
 import { creativeitems } from '@jsprismarine/bedrock-data';
+import { Gamemode } from '@jsprismarine/minecraft';
+import { SetTimePacket } from '@jsprismarine/protocol';
 
 export default class PlayerSession {
     private connection: ClientConnection;
@@ -97,9 +97,9 @@ export default class PlayerSession {
         const target = player ?? this.player;
 
         const pk = new UpdateAdventureSettingsPacket();
-        pk.worldImmutable = target.gamemode === Gamemode.Spectator;
-        pk.noAttackingPlayers = target.gamemode === Gamemode.Spectator;
-        pk.noAttackingMobs = target.gamemode === Gamemode.Spectator;
+        pk.worldImmutable = target.gamemode === Gamemode.Gametype.SPECTATOR;
+        pk.noAttackingPlayers = target.gamemode === Gamemode.Gametype.SPECTATOR;
+        pk.noAttackingMobs = target.gamemode === Gamemode.Gametype.SPECTATOR;
         pk.autoJump = true; // TODO: grab this info elsewhere
         pk.showNameTags = true; // TODO: player may be able to hide them
 
@@ -121,20 +121,20 @@ export default class PlayerSession {
             [AbilityLayerFlag.WALK_SPEED, true],
             [AbilityLayerFlag.MAY_FLY, target.getAllowFlight()],
             [AbilityLayerFlag.FLYING, target.isFlying()],
-            [AbilityLayerFlag.NO_CLIP, target.gamemode === Gamemode.Spectator],
+            [AbilityLayerFlag.NO_CLIP, target.gamemode === Gamemode.Gametype.SPECTATOR],
             [AbilityLayerFlag.OPERATOR_COMMANDS, target.isOp()],
             [AbilityLayerFlag.TELEPORT, target.isOp()],
-            [AbilityLayerFlag.INVULNERABLE, target.gamemode === Gamemode.Creative],
+            [AbilityLayerFlag.INVULNERABLE, target.gamemode === Gamemode.Gametype.CREATIVE],
             [AbilityLayerFlag.MUTED, false],
             [AbilityLayerFlag.WORLD_BUILDER, false],
-            [AbilityLayerFlag.INSTABUILD, target.gamemode === Gamemode.Creative],
+            [AbilityLayerFlag.INSTABUILD, target.gamemode === Gamemode.Gametype.CREATIVE],
             [AbilityLayerFlag.LIGHTNING, false],
-            [AbilityLayerFlag.BUILD, target.gamemode !== Gamemode.Spectator],
-            [AbilityLayerFlag.MINE, target.gamemode !== Gamemode.Spectator],
-            [AbilityLayerFlag.DOORS_AND_SWITCHES, target.gamemode !== Gamemode.Spectator],
-            [AbilityLayerFlag.OPEN_CONTAINERS, target.gamemode !== Gamemode.Spectator],
-            [AbilityLayerFlag.ATTACK_PLAYERS, target.gamemode !== Gamemode.Spectator],
-            [AbilityLayerFlag.ATTACK_MOBS, target.gamemode !== Gamemode.Spectator]
+            [AbilityLayerFlag.BUILD, target.gamemode !== Gamemode.Gametype.SPECTATOR],
+            [AbilityLayerFlag.MINE, target.gamemode !== Gamemode.Gametype.SPECTATOR],
+            [AbilityLayerFlag.DOORS_AND_SWITCHES, target.gamemode !== Gamemode.Gametype.SPECTATOR],
+            [AbilityLayerFlag.OPEN_CONTAINERS, target.gamemode !== Gamemode.Gametype.SPECTATOR],
+            [AbilityLayerFlag.ATTACK_PLAYERS, target.gamemode !== Gamemode.Gametype.SPECTATOR],
+            [AbilityLayerFlag.ATTACK_MOBS, target.gamemode !== Gamemode.Gametype.SPECTATOR]
         ]);
         mainLayer.flySpeed = 0.05;
         mainLayer.walkSpeed = 0.1;
@@ -313,9 +313,7 @@ export default class PlayerSession {
      * @param tick - The tick
      */
     public async sendTime(tick: number): Promise<void> {
-        const pk = new SetTimePacket();
-        pk.time = tick;
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket2(new SetTimePacket({ time: tick }));
     }
 
     /**

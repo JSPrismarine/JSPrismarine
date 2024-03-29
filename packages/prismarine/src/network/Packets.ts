@@ -56,13 +56,11 @@ import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitiali
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetScorePacket from './packet/SetScorePacket';
 import SetScoreboardIdentityPacket from './packet/SetScoreboardIdentityPacket';
-import SetTimePacket from './packet/SetTimePacket';
 import SetTitlePacket from './packet/SetTitlePacket';
 import ShowCreditsPacket from './packet/ShowCreditsPacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
 import ShowStoreOfferPacket from './packet/ShowStoreOfferPacket';
 import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
-import StartGamePacket from './packet/StartGamePacket';
 import TextPacket from './packet/TextPacket';
 import TickSyncPacket from './packet/TickSyncPacket';
 import TransferPacket from './packet/TransferPacket';
@@ -131,13 +129,11 @@ export {
     SetPlayerGameTypePacket,
     SetScoreboardIdentityPacket,
     SetScorePacket,
-    SetTimePacket,
     SetTitlePacket,
     ShowCreditsPacket,
     ShowProfilePacket,
     ShowStoreOfferPacket,
     SpawnParticleEffectPacket,
-    StartGamePacket,
     TextPacket,
     TickSyncPacket,
     TransferPacket,

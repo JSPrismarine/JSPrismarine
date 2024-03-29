@@ -1,0 +1,56 @@
+{
+    "name": "@jsprismarine/protocol",
+    "version": "0.1.0",
+    "description": "Protocol package used by JSPrismarine packages",
+    "sideEffects": false,
+    "type": "module",
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "README.md"
+    ],
+    "module": "./dist/index.es.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.es.js",
+            "module": "./dist/index.es.js",
+            "require": "./dist/index.cjs.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./*": {
+            "import": "./dist/*.es.js",
+            "module": "./dist/*.es.js",
+            "require": "./dist/*.cjs.js",
+            "types": "./dist/*.d.ts"
+        },
+        "./package.json": "./package.json"
+    },
+    "funding": "https://github.com/sponsors/JSPrismarine",
+    "scripts": {
+        "build": "vite build",
+        "typecheck": "tsc -noEmit"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "nodejs",
+        "raknet"
+    ],
+    "author": "JSPrismarine",
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
+    "devDependencies": {
+        "@types/node": "20.11.30",
+        "glob": "10.3.10",
+        "typescript": "5.4.3",
+        "vite": "5.2.6",
+        "vitest": "1.4.0"
+    },
+    "dependencies": {
+        "@jsprismarine/nbt": "workspace:*",
+        "@jsprismarine/minecraft": "workspace:*"
+    }
+}
