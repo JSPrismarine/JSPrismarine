@@ -43,7 +43,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/color-parser",
     "devDependencies": {
-        "@types/node": "20.11.30",
+        "@types/node": "20.12.2",
         "glob": "10.3.12",
         "typescript": "5.4.3",
         "vite": "5.2.7",
