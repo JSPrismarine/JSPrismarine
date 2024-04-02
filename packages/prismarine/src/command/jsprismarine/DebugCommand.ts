@@ -1,8 +1,9 @@
-import { CommandDispatcher, argument, greedyString, literal, string } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { argument, greedyString, literal, string } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
-import Player from '../../Player';
-import { WorldData } from '../../world/WorldManager';
+import type Player from '../../Player';
+import type { WorldData } from '../../world/WorldManager';
 
 export default class DebugCommand extends Command {
     public constructor() {
@@ -63,8 +64,10 @@ export default class DebugCommand extends Command {
                         const gamerules = Array.from(world.getGameruleManager().getGamerules());
                         await source.sendMessage(`  §dGamerules§r (${gamerules.length}):`);
                         await Promise.all(
-                            gamerules.map(async ([id, value]) => {
-                                await source.sendMessage(`  - id: §a${id}§r, value: §b${value}§r`);
+                            gamerules.map(async ([id, [value, editable]]) => {
+                                await source.sendMessage(
+                                    `  - id: §a${id}§r, value: §b${value}§r, editable: §b${editable}§r`
+                                );
                             })
                         );
 

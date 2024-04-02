@@ -30,6 +30,7 @@ export default class CommandManager {
         const timer = new Timer();
 
         // FIXME: `import.meta.url` isn't defined when using cjs.
+        const fileType = import.meta.url.split('.').pop();
         const commands = Array.from(
             new Set(
                 [
@@ -40,16 +41,14 @@ export default class CommandManager {
                         .readdirSync(url.fileURLToPath(new URL('jsprismarine', import.meta.url)))
                         .map((a) => `/jsprismarine/${a}`)
                 ]
-                    .filter((a) => !a.includes('.cjs.')) // TODO: cjs?
-                    .filter((a) => a.endsWith('.js') && !a.includes('.test.'))
+                    .filter((a) => !a.includes('.test.') && !a.includes('.d.ts'))
+                    .filter((a) => a.endsWith(`.${fileType}`))
             )
         );
 
         // Register jsprismarine commands
         await Promise.all(
             commands.map(async (id: string) => {
-                if (!this.server.getConfig().getEnableEval() && id.includes('EvalCommand')) return;
-
                 const Command = await import(`./${id}`);
                 const command: Command = new (Command.default || Command)();
 
@@ -211,6 +210,8 @@ export default class CommandManager {
      */
     public async dispatchCommand(sender: Player, target: Entity | Player, input = '') {
         try {
+            if (input.startsWith('/')) input = input.slice(1);
+
             const parsed = this.dispatcher.parse(input.trim(), target as Player);
             const id = parsed.getReader().getString().split(' ')[0]!;
 
@@ -281,6 +282,7 @@ export default class CommandManager {
         } catch (error: unknown) {
             if ((error as any)?.type?.message?.toString?.() === 'Unknown command') {
                 await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
+                this.server.getLogger()?.verbose(`Unknown command: ${input}`, 'CommandManager/dispatchCommand');
                 return;
             }
 

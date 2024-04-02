@@ -17,7 +17,6 @@ export default class Config {
     private motd!: string;
     private viewDistance!: number;
     private onlineMode!: boolean;
-    private enableEval!: boolean;
     private packetCompressionLevel!: number;
     private updateRepo!: string;
     private updateChannel!: 'stable';
@@ -49,7 +48,6 @@ export default class Config {
         this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!') as string;
         this.viewDistance = this.configBuilder.get('view-distance', 10) as number;
         this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
-        this.enableEval = this.configBuilder.get('enable-eval', false) as boolean;
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
         this.experimentalFlags = this.configBuilder.get('experimental-flags', []) as string[];
 
@@ -149,15 +147,6 @@ export default class Config {
      */
     public getOnlineMode(): boolean {
         return this.onlineMode;
-    }
-
-    /**
-     * Returns true or false depending on if the `/eval` is enabled.
-     *
-     * @returns `true` if enabled, `false` otherwise
-     */
-    public getEnableEval(): boolean {
-        return this.enableEval;
     }
 
     public getPacketCompressionLevel() {
