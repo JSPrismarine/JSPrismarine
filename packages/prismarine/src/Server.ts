@@ -3,7 +3,7 @@ import Chat, { ChatType } from './chat/Chat';
 import BanManager from './ban/BanManager';
 import BatchPacket from './network/packet/BatchPacket';
 import BlockManager from './block/BlockManager';
-import BlockMappings from './block/BlockMappings';
+import { BlockMappings } from './block/BlockMappings';
 import ChatEvent from './events/chat/ChatEvent';
 import ChatManager from './chat/ChatManager';
 import ClientConnection from './network/ClientConnection';

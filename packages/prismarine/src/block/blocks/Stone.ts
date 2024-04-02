@@ -1,9 +1,9 @@
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
-import Item from '../../item/Item';
+import type Item from '../../item/Item';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
-import Server from '../../Server';
-import Solid from '../Solid';
+import type Server from '../../Server';
+import { Solid } from '../Solid';
 
 export enum StoneType {
     Stone = 0,

@@ -1,9 +1,9 @@
 import * as Blocks from './Blocks';
 
-import Block from './Block';
+import type { Block } from './Block';
 import { BlockIdsType } from './BlockIdsType';
 import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
-import Server from '../Server';
+import type Server from '../Server';
 import Timer from '../utils/Timer';
 
 export default class BlockManager {
@@ -73,7 +73,7 @@ export default class BlockManager {
     /**
      * Register a block.
      *
-     * @param block The block
+     * @param block - The block
      */
     public async registerBlock(block: Block) {
         try {

@@ -1,6 +1,7 @@
-import BlockMappings, { LegacyId } from '../../block/BlockMappings';
+import { BlockMappings } from '../../block/BlockMappings';
+import type { LegacyId } from '../../block/BlockMappings';
 
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/jsbinaryutils';
 
 interface BlockStorageData {
     blocks?: number[];

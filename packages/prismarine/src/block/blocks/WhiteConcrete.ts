@@ -1,6 +1,6 @@
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
-import Solid from '../Solid';
+import { Solid } from '../Solid';
 
 /**
  * Concrete color variations.

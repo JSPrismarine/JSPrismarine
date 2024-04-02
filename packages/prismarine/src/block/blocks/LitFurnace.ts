@@ -3,7 +3,7 @@ import { BlockToolType } from '../BlockToolType';
 import type Item from '../../item/Item';
 import { ItemTieredToolType } from '../../item/ItemTieredToolType';
 import type Server from '../../Server';
-import Solid from '../Solid';
+import { Solid } from '../Solid';
 
 export default class LitFurnace extends Solid {
     public constructor() {

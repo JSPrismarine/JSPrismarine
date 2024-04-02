@@ -1,12 +1,14 @@
-import { InventoryTransactionPacket, LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
-import { TransactionType, UseItemAction, UseItemData } from '../packet/InventoryTransactionPacket';
+import type { InventoryTransactionPacket } from '../Packets';
+import { LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
+import type { UseItemData } from '../packet/InventoryTransactionPacket';
+import { TransactionType, UseItemAction } from '../packet/InventoryTransactionPacket';
 
-import BlockMappings from '../../block/BlockMappings';
-import ContainerEntry from '../../inventory/ContainerEntry';
+import { BlockMappings } from '../../block/BlockMappings';
+import type ContainerEntry from '../../inventory/ContainerEntry';
 import Gamemode from '../../world/Gamemode';
 import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+import type PacketHandler from './PacketHandler';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 

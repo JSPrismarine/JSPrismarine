@@ -1,8 +1,8 @@
 import GameruleManager, { GameRules } from './GameruleManager';
 
 import type BaseProvider from './providers/BaseProvider';
-import type Block from '../block/Block';
-import BlockMappings from '../block/BlockMappings';
+import type { Block } from '../block/Block';
+import { BlockMappings } from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
 import type Entity from '../entity/Entity';
 import Gamemode from './Gamemode';

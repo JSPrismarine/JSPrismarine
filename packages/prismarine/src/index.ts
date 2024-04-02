@@ -1,6 +1,5 @@
-import * as Blocks from './block/Blocks';
-import * as Command from './command/Command';
-import * as Commands from './command/Commands';
+import * as Block from './block/';
+import * as Command from './command';
 import * as Entities from './entity/Entities';
 import * as Events from './events/Events';
 import * as Items from './item/Items';
@@ -11,7 +10,6 @@ import * as Utils from './utils/Utils';
 import * as World from './world';
 
 import BaseProvider from './world/providers/BaseProvider';
-import Block from './block/Block';
 import Chat from './chat/Chat';
 import Config from './config/Config';
 import ConfigBuilder from './config/ConfigBuilder';
@@ -26,10 +24,8 @@ import Server from './Server';
 export {
     BaseProvider,
     Block,
-    Blocks,
     Chat,
     Command,
-    Commands,
     Config,
     ConfigBuilder,
     Entities,

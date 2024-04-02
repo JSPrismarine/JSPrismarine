@@ -1,7 +1,7 @@
 import { ArgumentCommandNode, type CommandDispatcher } from '@jsprismarine/brigadier';
 import type Player from '../Player';
 
-interface CommandProps {
+export interface CommandProps {
     id: string;
     description?: string;
     permission?: string;
