@@ -323,9 +323,6 @@ importers:
       '@jsprismarine/raknet':
         specifier: workspace:*
         version: link:../raknet
-      '@jsprismarine/updater':
-        specifier: workspace:*
-        version: link:../updater
       async-exit-hook:
         specifier: 2.0.1
         version: 2.0.1
@@ -360,40 +357,6 @@ importers:
       vite-node:
         specifier: 1.4.0
         version: 1.4.0(@types/node@20.12.2)
-      vitest:
-        specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.2)
-
-  packages/updater:
-    dependencies:
-      '@jsprismarine/prismarine':
-        specifier: workspace:*
-        version: link:../prismarine
-      node-fetch:
-        specifier: 3.3.2
-        version: 3.3.2
-      semver:
-        specifier: 7.6.0
-        version: 7.6.0
-    devDependencies:
-      '@types/node':
-        specifier: 20.12.2
-        version: 20.12.2
-      '@types/semver':
-        specifier: 7.5.8
-        version: 7.5.8
-      glob:
-        specifier: 10.3.12
-        version: 10.3.12
-      rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
-      typescript:
-        specifier: 5.4.3
-        version: 5.4.3
-      vite:
-        specifier: 5.2.7
-        version: 5.2.7(@types/node@20.12.2)
       vitest:
         specifier: 1.4.0
         version: 1.4.0(@types/node@20.12.2)

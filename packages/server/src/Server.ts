@@ -1,6 +1,5 @@
 import { Config, Logger, Server } from '@jsprismarine/prismarine';
 
-import Updater from '@jsprismarine/updater';
 import exitHook from 'async-exit-hook';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,11 +16,6 @@ const version = pkg.version as string;
 
 const config = new Config(version);
 const logger = new Logger();
-const updater = new Updater({
-    config,
-    logger,
-    version
-});
 const server = new Server({
     config,
     logger,
@@ -33,8 +27,6 @@ exitHook(async () => {
 });
 
 (async () => {
-    await updater.check();
-
     try {
         await server.bootstrap(config.getServerIp(), config.getServerPort());
     } catch (error: unknown) {
