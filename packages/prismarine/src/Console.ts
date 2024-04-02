@@ -27,28 +27,12 @@ export default class Console {
         process.stdin.setEncoding('utf8');
         process.stdin.resume();
 
-        const completer = (line: string) => {
-            const hits = Array.from(this.getServer().getCommandManager().getCommands().values())
-                .filter((a) => a.id.split(':')[1]!.startsWith(line.replace('/', '')))
-                .map((a) => '/' + a.id.split(':')[1]);
-            return [
-                hits.length
-                    ? hits
-                    : Array.from(this.getServer().getCommandManager().getCommands().values()).map(
-                          (a) => '/' + a.id.split(':')[1]
-                      ),
-                line
-            ];
-        };
-
         this.cli = readline.createInterface({
             input: process.stdin,
-            output: process.stdout,
             terminal: true,
             prompt: '',
             crlfDelay: Number.POSITIVE_INFINITY,
-            escapeCodeTimeout: 1500,
-            completer: process.stdin.isTTY ? completer : undefined
+            escapeCodeTimeout: 1500
         });
 
         process.stdin.on('keypress', (str, key) => {
@@ -85,6 +69,8 @@ export default class Console {
         });
 
         this.cli.on('line', (input: string) => {
+            readline.moveCursor(process.stdin, -input.length, 0);
+
             if (input.startsWith('/')) {
                 void this.getServer()
                     .getCommandManager()
@@ -94,6 +80,7 @@ export default class Console {
 
             const event = new ChatEvent(new Chat(this, `${this.getFormattedUsername()} ${input}`));
             void this.getServer().getEventManager().emit('chat', event);
+            this.cli.prompt();
         });
 
         server.getEventManager().on('chat', async (evt: ChatEvent) => {

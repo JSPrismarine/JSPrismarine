@@ -35,7 +35,6 @@ export default class Server {
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
     private tps = 20;
-    private tpsHistory: number[] = [];
     private readonly console: Console;
     private readonly eventManager = new EventManager();
     private readonly packetRegistry: PacketRegistry;
@@ -52,7 +51,7 @@ export default class Server {
     private stopping = false;
     private tickerTimer: NodeJS.Timeout | undefined;
 
-    private static readonly MINECRAFT_TICK_TIME_MS = 50;
+    private static readonly MINECRAFT_TICK_TIME_MS = 1000 / 20;
 
     /**
      * @deprecated
@@ -268,6 +267,7 @@ export default class Server {
             }
         });
 
+        // TODO: calculate TPS.
         let tickCount = 0;
         const tick = () =>
             setTimeout(() => {
@@ -460,32 +460,5 @@ export default class Server {
      */
     public getTPS(): number {
         return this.tps;
-    }
-
-    /**
-     * Returns the current TPS
-     */
-    public getAverageTPS(): {
-        one: number;
-        five: number;
-        ten: number;
-    } {
-        let one = 0;
-        for (let i = 10800; i < this.tpsHistory.length; i++) one += this.tpsHistory[i]!;
-        one = Math.round(one / 1200);
-
-        let five = 0;
-        for (let i = 6000; i < this.tpsHistory.length; i++) five += this.tpsHistory[i]!;
-        five = Math.round(five / 6000);
-
-        let ten = 0;
-        for (let i = 0; i < this.tpsHistory.length; i++) ten += this.tpsHistory[i]!;
-        ten = Math.round(ten / 12000);
-
-        return {
-            one,
-            five,
-            ten
-        };
     }
 }
