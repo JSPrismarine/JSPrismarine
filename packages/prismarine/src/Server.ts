@@ -35,7 +35,7 @@ export default class Server {
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
     private tps = 20;
-    private tpsHistory!: number[];
+    private tpsHistory: number[] = [];
     private readonly console: Console;
     private readonly eventManager = new EventManager();
     private readonly packetRegistry: PacketRegistry;

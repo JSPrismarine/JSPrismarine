@@ -215,12 +215,26 @@ export default class CommandManager {
             const parsed = this.dispatcher.parse(input.trim(), target as Player);
             const id = parsed.getReader().getString().split(' ')[0]!;
 
-            // Get command from parsed string
+            this.server
+                .getLogger()
+                ?.verbose(`Dispatching command: ${input} (id: ${id})`, 'CommandManager/dispatchCommand');
+
+            // Get command from parsed string.
             const command = Array.from(this.commands.values()).find(
-                (command) => command.id.split(':').at(-1) === id || command.id === id || command.aliases?.includes(id)
+                (command) =>
+                    // Check if it matches ID without namespace.
+                    command.id.split(':').at(-1) === id ||
+                    // Check if it's an alias.
+                    command.aliases?.includes(id) ||
+                    // Last check if it's the whole ID (this is uncommon so,
+                    //  it's last to avoid the most checks).
+                    command.id === id
             );
 
-            if (!this.server.getPermissionManager().can(sender).execute(command?.permission)) {
+            // TODO: Custom error.
+            if (!command) throw new Error('Unknown command');
+
+            if (!this.server.getPermissionManager().can(sender).execute(command.permission)) {
                 await sender.sendMessage(
                     "§cI'm sorry, but you do not have permission to perform this command. " +
                         'Please contact the server administrators if you believe that this is in error.'
@@ -229,7 +243,7 @@ export default class CommandManager {
             }
 
             let res: string[] = [];
-            if (!command?.register && command?.execute) {
+            if (!command.register && command.execute) {
                 // Legacy commands
                 this.server
                     .getLogger()
@@ -241,11 +255,12 @@ export default class CommandManager {
                     )
                 );
             } else {
-                // Handle aliases
-                if (command?.aliases?.includes(id)) {
+                // Handle aliases and IDs.
+                if (command.id.split(':').at(-1) !== id) {
                     await this.dispatchCommand(sender, target, input.replace(id, command.id.split(':')[1]!));
                     return;
                 }
+
                 res = await Promise.all(this.dispatcher.execute(parsed));
             }
 
@@ -255,7 +270,7 @@ export default class CommandManager {
                 .getGamerule('sendCommandFeedback');
 
             // Make sure we don't send feedback if sendCommandFeedback is set to false
-            if (feedback)
+            if (feedback) {
                 res.forEach(async (res: any) => {
                     const chat = new Chat(
                         this.server.getConsole(),
@@ -268,7 +283,7 @@ export default class CommandManager {
                     // TODO: should this be broadcasted to the executer?
                     await this.server.getChatManager().send(chat);
                 });
-            else {
+            } else {
                 const chat = new Chat(
                     this.server.getConsole(),
                     `§o§7[${sender.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
