@@ -1,5 +1,24 @@
 # @jsprismarine/server
 
+## 0.2.0
+
+### Minor Changes
+
+- [`2859dd2`](https://github.com/JSPrismarine/JSPrismarine/commit/2859dd2d9052fe7da9c222c6cab908412fce223e) Thanks [@filiphsps](https://github.com/filiphsps)! - - Remove `async-exit-hook`.
+
+  - It got in the way of `@jsprismarine/prismarine`.
+
+- [#1249](https://github.com/JSPrismarine/JSPrismarine/pull/1249) [`6477e70`](https://github.com/JSPrismarine/JSPrismarine/commit/6477e7079ef9f8eca981f4ab539b7045ee514e2f) Thanks [@filiphsps](https://github.com/filiphsps)! - - Remove `@jsprismarine/updater`.
+  - We don't need an updater at the moment, in the future that job should probably be up to npm/jsr/etc.
+
+### Patch Changes
+
+- [#1259](https://github.com/JSPrismarine/JSPrismarine/pull/1259) [`c9d207f`](https://github.com/JSPrismarine/JSPrismarine/commit/c9d207f03417a8961557d569ec60b1091e9114c1) Thanks [@renovate](https://github.com/apps/renovate)! - Deps: Update dependency @types/node to v20.12.3.
+
+- Updated dependencies [[`f7e0fc4`](https://github.com/JSPrismarine/JSPrismarine/commit/f7e0fc414117553581aa246eedd3861b2122eadf), [`c9d207f`](https://github.com/JSPrismarine/JSPrismarine/commit/c9d207f03417a8961557d569ec60b1091e9114c1), [`6477e70`](https://github.com/JSPrismarine/JSPrismarine/commit/6477e7079ef9f8eca981f4ab539b7045ee514e2f), [`6001709`](https://github.com/JSPrismarine/JSPrismarine/commit/6001709dcfddb12e6ddf0c8fe919cabacb5d6122)]:
+  - @jsprismarine/prismarine@0.2.0
+  - @jsprismarine/raknet@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes
