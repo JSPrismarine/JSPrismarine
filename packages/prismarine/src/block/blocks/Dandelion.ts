@@ -1,5 +1,5 @@
 import { BlockIdsType } from '../BlockIdsType';
-import Flowable from '../Flowable';
+import { Flowable } from '../Flowable';
 
 export default class Dandelion extends Flowable {
     public constructor() {

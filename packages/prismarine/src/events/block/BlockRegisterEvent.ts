@@ -1,4 +1,4 @@
-import type Block from '../../block/Block';
+import type { Block } from '../../block/Block';
 import Event from '../Event';
 
 export default class BlockRegisterEvent extends Event {

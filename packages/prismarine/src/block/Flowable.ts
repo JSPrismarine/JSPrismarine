@@ -1,6 +1,6 @@
-import Block from './Block';
+import { Block } from './Block';
 
-export default class Flowable extends Block {
+export class Flowable extends Block {
     public getHardness() {
         return 0;
     }

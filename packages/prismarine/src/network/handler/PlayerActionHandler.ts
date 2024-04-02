@@ -1,11 +1,11 @@
 import WorldEventPacket, { WorldEvent } from '../packet/WorldEventPacket';
 
-import BlockMappings from '../../block/BlockMappings';
+import { BlockMappings } from '../../block/BlockMappings';
 import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
+import type PacketHandler from './PacketHandler';
 import { PlayerAction } from '../packet/PlayerActionPacket';
 import type PlayerActionPacket from '../packet/PlayerActionPacket';
-import { PlayerSession } from '../../';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {

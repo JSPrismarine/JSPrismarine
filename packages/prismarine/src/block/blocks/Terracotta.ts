@@ -1,6 +1,6 @@
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
-import Solid from '../Solid';
+import { Solid } from '../Solid';
 
 export default class Terracotta extends Solid {
     public constructor() {

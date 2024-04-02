@@ -1,5 +1,5 @@
 import BaseGenerator from '../BaseGenerator';
-import type Block from '../../block/Block';
+import type { Block } from '../../block/Block';
 import Chunk from '../chunk/Chunk';
 
 export default class Flat extends BaseGenerator {

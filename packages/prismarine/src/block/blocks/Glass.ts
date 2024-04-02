@@ -1,4 +1,4 @@
-import type Block from '../Block';
+import type { Block } from '../Block';
 import { BlockIdsType } from '../BlockIdsType';
 import type Item from '../../item/Item';
 import type Server from '../../Server';

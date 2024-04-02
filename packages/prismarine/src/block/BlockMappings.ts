@@ -1,4 +1,5 @@
-import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
+import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 
 import BedrockData from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
@@ -12,7 +13,7 @@ export interface LegacyId {
 /**
  * Class used to manage runtime Ids.
  */
-export default class BlockMappings {
+export class BlockMappings {
     // private static readonly legacyToRuntimeId: Map<number, number> = new Map();
     // private static readonly runtimeIdToLegacy: Map<number, number> = new Map();
     // block name -> runtimeId (will not support states for now :(...)

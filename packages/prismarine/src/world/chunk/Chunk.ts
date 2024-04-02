@@ -1,7 +1,8 @@
-import BlockMappings, { LegacyId } from '../../block/BlockMappings';
+import { BlockMappings } from '../../block/BlockMappings';
+import type { LegacyId } from '../../block/BlockMappings';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Block from '../../block/Block';
+import type { Block } from '../../block/Block';
 import SubChunk from './SubChunk';
 
 const MAX_SUBCHUNKS = 16;
@@ -167,7 +168,7 @@ export default class Chunk {
      * Deserialize network stream into chunk
      * useful for client applications and/or our Filesystem impl
      *
-     * @param stream the network stream
+     * @param stream - the network stream
      */
     public static networkDeserialize(stream: BinaryStream, x?: number, z?: number): Chunk {
         stream.read(8); // skip fake subchunks

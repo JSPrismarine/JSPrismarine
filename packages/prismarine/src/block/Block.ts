@@ -5,7 +5,7 @@ import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
 import { ItemTieredToolType } from '../item/ItemTieredToolType';
 import type Server from '../Server';
 
-export default class Block {
+export class Block {
     /**
      * The block's numeric block ID.
      */

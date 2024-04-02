@@ -1,5 +1,5 @@
 import { BlockIdsType } from '../BlockIdsType';
-import Flowable from '../Flowable';
+import { Flowable } from '../Flowable';
 
 export default class TallGrass extends Flowable {
     public meta = 1;

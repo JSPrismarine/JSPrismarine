@@ -1,5 +1,5 @@
 import { BlockIdsType } from '../BlockIdsType';
-import Solid from '../Solid';
+import { Solid } from '../Solid';
 
 export default class CommandBlock extends Solid {
     public constructor() {

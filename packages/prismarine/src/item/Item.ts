@@ -1,7 +1,7 @@
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import BlockMappings from '../block/BlockMappings';
+import { BlockMappings } from '../block/BlockMappings';
 import { BlockToolType } from '../block/BlockToolType';
 import type { ItemEnchantmentType } from './ItemEnchantmentType';
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';

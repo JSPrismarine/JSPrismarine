@@ -1,7 +1,7 @@
 // To any developer wanting to add a missing block please read the following first:
 //
 // We're currently matching the Java namespace values since
-// the "big flattening" hasn't occured yet on Bedrock Edition.
+// the "big flattening" hasn't occurred yet on Bedrock Edition.
 // Thanks!
 
 export enum BlockIdsType {
