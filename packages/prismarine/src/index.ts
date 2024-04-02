@@ -1,4 +1,5 @@
 import * as Blocks from './block/Blocks';
+import * as Command from './command/Command';
 import * as Commands from './command/Commands';
 import * as Entities from './entity/Entities';
 import * as Events from './events/Events';
@@ -27,6 +28,7 @@ export {
     Block,
     Blocks,
     Chat,
+    Command,
     Commands,
     Config,
     ConfigBuilder,
