@@ -2,11 +2,11 @@ import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
-import GameruleManager from '../../world/GameruleManager';
+import type GameruleManager from '../../world/GameruleManager';
 import Identifiers from '../Identifiers';
 import McpeUtil from '../NetworkUtil';
 import UUID from '../../utils/UUID';
-import Vector3 from '../../math/Vector3';
+import type Vector3 from '../../math/Vector3';
 
 export default class StartGamePacket extends DataPacket {
     public static NetID = Identifiers.StartGamePacket;
@@ -153,7 +153,7 @@ export default class StartGamePacket extends DataPacket {
         McpeUtil.writeString(this, '');
         this.writeBoolean(true); // New inventory system
 
-        McpeUtil.writeString(this, Identifiers.MinecraftVersion);
+        McpeUtil.writeString(this, Identifiers.MinecraftVersions.at(0)!);
 
         // TODO
         const str = new BinaryStream();
