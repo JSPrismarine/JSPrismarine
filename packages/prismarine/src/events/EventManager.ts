@@ -15,7 +15,7 @@ import type PlayerToggleSprintEvent from './player/PlayerToggleSprintEvent';
 import type RaknetConnectEvent from './raknet/RaknetConnectEvent';
 import type RaknetDisconnectEvent from './raknet/RaknetDisconnectEvent';
 import type RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEvent';
-import { TickEvent } from './Events';
+import type { TickEvent } from './Events';
 import type playerToggleOperatorEvent from './player/PlayerToggleOperatorEvent';
 
 export type EventTypes =

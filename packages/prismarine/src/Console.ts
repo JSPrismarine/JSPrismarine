@@ -155,7 +155,7 @@ export default class Console {
      * TODO: Customizable radius
      * TODO: Generic?
      */
-    public getNearestEntity(entities: Entity[] = this.server.getWorldManager().getDefaultWorld().getEntities()!) {
+    public getNearestEntity(entities: Entity[] = this.server.getWorldManager().getDefaultWorld()!.getEntities()!) {
         const pos = new Vector3(this.getX(), this.getY(), this.getZ());
         const dist = (a: Vector3, b: Vector3) =>
             Math.hypot(b.getX() - a.getX(), b.getY() - a.getY(), b.getZ() - a.getZ());
@@ -171,6 +171,6 @@ export default class Console {
                 pos,
                 entities.filter((a) => a.getRuntimeId() !== this.getRuntimeId())
             )
-        ].filter((a) => a);
+        ];
     }
 }

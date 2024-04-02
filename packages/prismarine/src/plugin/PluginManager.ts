@@ -1,7 +1,7 @@
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
 import PluginApi from './api/PluginApi';
 import PluginFile from './PluginFile';
-import Server from '../Server';
+import type Server from '../Server';
 import Timer from '../utils/Timer';
 import cwd from '../utils/cwd';
 import fs from 'node:fs';
@@ -44,6 +44,7 @@ export default class PluginManager {
                             .getLogger()
                             ?.error(`§cFailed to load plugin ${id}: ${error}`, 'PluginManager/onEnable');
                         this.server.getLogger()?.error(error, 'PluginManager/onEnable');
+                        return null;
                     }
                 })
             )
@@ -67,7 +68,7 @@ export default class PluginManager {
     /**
      * Register a new plugin and download the required dependencies.
      *
-     * @param id The plugin's path
+     * @param id - The plugin's path
      */
     private async registerPlugin(id: string): Promise<PluginFile | null> {
         if (id === '.extracted') return null;
@@ -213,12 +214,12 @@ export default class PluginManager {
     /**
      * Deregister a plugin.
      *
-     * @param id The plugin's path
+     * @param id - The plugin's path
      */
     private async deregisterPlugin(id: string) {
         const plugin: PluginFile = this.plugins.get(id);
         try {
-            await plugin.onDisable?.();
+            await plugin.onDisable();
         } catch (error) {
             this.server
                 .getLogger()

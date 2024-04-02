@@ -2,9 +2,9 @@ import * as Handlers from './Handlers';
 import * as Packets from './Packets';
 
 import Identifiers from './Identifiers';
-import PacketHandler from './handler/PacketHandler';
-import { PlayerSession } from '../';
-import PreLoginPacketHandler from './handler/PreLoginPacketHandler';
+import type PacketHandler from './handler/PacketHandler';
+import type { PlayerSession } from '../';
+import type PreLoginPacketHandler from './handler/PreLoginPacketHandler';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
 
@@ -29,7 +29,7 @@ export default class PacketRegistry {
 
     /**
      * Register a packet.
-     * @param packet the packet.
+     * @param packet - the packet.
      */
     public registerPacket(packet: typeof Packets.DataPacket): void {
         if (this.packets.has(packet.NetID))
@@ -43,7 +43,7 @@ export default class PacketRegistry {
 
     /**
      * Get a packet by it's network ID.
-     * @param id the NetID.
+     * @param id - the NetID.
      */
     public getPacket(id: number): any {
         if (!this.packets.has(id)) throw new Error(`Invalid packet with id ${id}!`);
@@ -53,7 +53,7 @@ export default class PacketRegistry {
 
     /**
      * Remove a packet from the registry.
-     * @param id the NetID.
+     * @param id - the NetID.
      */
     public removePacket(id: number): void {
         this.packets.delete(id);
@@ -78,8 +78,8 @@ export default class PacketRegistry {
      * Merge two handlers.
      * This is useful if you want to extend a handler without actually replacing it.
      *
-     * @param handler the first handler, executed first.
-     * @param handler2 the second handler.
+     * @param handler - the first handler, executed first.
+     * @param handler2 - the second handler.
      */
     public appendHandler(handler: PacketHandler<any>, handler2: PacketHandler<any>): PacketHandler<any> {
         const res = new (class Handler {
@@ -94,7 +94,7 @@ export default class PacketRegistry {
 
     /**
      * Remove a handler from the registry.
-     * @param id the handler id.
+     * @param id - the handler id.
      */
     public removeHandler(id: number): void {
         this.handlers.delete(id);

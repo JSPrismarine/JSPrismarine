@@ -46,7 +46,7 @@ export default class Item {
      * Get the Block's network numeric id
      */
     public getNetworkId() {
-        return this.networkId ?? this.getId();
+        return this.networkId || this.getId();
     }
 
     public isTool() {

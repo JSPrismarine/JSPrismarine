@@ -1,4 +1,4 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/jsbinaryutils';
 import McpeUtil from '../network/NetworkUtil';
 
 export const AttributeIds = {

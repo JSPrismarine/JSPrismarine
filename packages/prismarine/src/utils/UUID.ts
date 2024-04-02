@@ -6,7 +6,7 @@ export default class UUID {
 
     public constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version = 4) {
         this.parts = [part1, part2, part3, part4];
-        this.version = version ?? (this.parts[1]! & 0xf000) >> 12;
+        this.version = version || (this.parts[1]! & 0xf000) >> 12;
     }
 
     public equals(uuid: UUID): boolean {

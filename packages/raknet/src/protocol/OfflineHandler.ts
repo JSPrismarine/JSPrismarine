@@ -11,10 +11,10 @@ import { MessageIdentifiers } from './MessageIdentifiers';
 import OpenConnectionReply1 from './connection/OpenConnectionReply1';
 import OpenConnectionReply2 from './connection/OpenConnectionReply2';
 import OpenConnectionRequest2 from './connection/OpenConnectionRequest2';
-import { RemoteInfo } from 'node:dgram';
+import type { RemoteInfo } from 'node:dgram';
 import UnconnectedPing from './offline/UnconnectedPing';
 import UnconnectedPong from './offline/UnconnectedPong';
-import ServerSocket from '../ServerSocket';
+import type ServerSocket from '../ServerSocket';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
 export default class OfflineHandler {

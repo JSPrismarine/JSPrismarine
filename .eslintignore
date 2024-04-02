@@ -5,7 +5,6 @@ coverage/
 dist/
 .next/
 .now/
-storybook-static/
 public/
 .vitest/
 
@@ -14,3 +13,6 @@ public/
 *.env
 *.log
 *.bak
+
+vite.config.ts
+vitest.config.ts

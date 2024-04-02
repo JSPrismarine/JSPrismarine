@@ -33,7 +33,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         }
 
         // TODO: get rid of this trash
-        const world = server.getWorldManager().getDefaultWorld();
+        const world = server.getWorldManager().getDefaultWorld()!;
         const player = new Player(connection, world, server);
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;

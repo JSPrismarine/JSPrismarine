@@ -1,4 +1,4 @@
-import IForm from './IForm';
+import type IForm from './IForm';
 
 export default class FormManager {
     private forms: Map<number, IForm> = new Map() as Map<number, IForm>;

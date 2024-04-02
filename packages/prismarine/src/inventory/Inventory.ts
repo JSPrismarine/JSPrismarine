@@ -1,6 +1,6 @@
 import Air from '../block/blocks/Air';
 import ContainerEntry from './ContainerEntry';
-import Item from '../item/Item';
+import type Item from '../item/Item';
 
 /**
  * Inventory.
