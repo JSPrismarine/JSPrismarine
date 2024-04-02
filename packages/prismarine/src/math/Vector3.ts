@@ -1,4 +1,4 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/jsbinaryutils';
 
 /**
  * 3D Vector.
@@ -7,27 +7,32 @@ import BinaryStream from '@jsprismarine/jsbinaryutils';
  */
 export default class Vector3 {
     /**
-     * The x coordinate.
-     *
-     * @defaultValue 0
+     * The X coordinate.
      */
-    protected x: number;
+    protected x: number = 0;
 
     /**
-     * The y coordinate.
-     *
-     * @defaultValue 0
+     * The Y coordinate.
      */
-    protected y: number;
+    protected y: number = 0;
 
     /**
-     * The z coordinate.
-     *
-     * @defaultValue 0
+     * The Z coordinate.
      */
-    protected z: number;
+    protected z: number = 0;
 
-    public constructor(x = 0, y = 0, z = 0) {
+    /**
+     * Create a new `Vector3` instance.
+     * @constructor
+     * @param {number} x - The X coordinate.
+     * @param {number} y - The Y coordinate.
+     * @param {number} z - The Z coordinate.
+     * @example
+     * ```typescript
+     * const vector = new Vector3(10, 20, 30);
+     * ```
+     */
+    public constructor(x: number = 0, y: number = 0, z: number = 0) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -39,8 +44,11 @@ export default class Vector3 {
 
     /**
      * Set the X coordinate.
-     *
-     * @param x The x value
+     * @param {number} x - The X coordinate.
+     * @example
+     * ```typescript
+     * await entity.setX(10);
+     * ```
      */
     public setX(x = 0): void {
         this.x = x;
@@ -48,17 +56,23 @@ export default class Vector3 {
 
     /**
      * Set the Y coordinate.
-     *
-     * @param y The y value
+     * @param {number} y - The Y coordinate.
+     * @example
+     * ```typescript
+     * await entity.setY(10);
+     * ```
      */
     public setY(y = 0): void {
         this.y = y;
     }
 
     /**
-     * Set the z coordinate.
-     *
-     * @param z The z value
+     * Set the Z coordinate.
+     * @param {number} z - The Z coordinate.
+     * @example
+     * ```typescript
+     * await entity.setZ(10);
+     * ```
      */
     public setZ(z = 0): void {
         this.z = z;
@@ -66,8 +80,7 @@ export default class Vector3 {
 
     /**
      * Get the x coordinate.
-     *
-     * @returns The x coordinate's value
+     * @returns {number} The x coordinate's value.
      */
     public getX(): number {
         return this.x;
@@ -75,8 +88,7 @@ export default class Vector3 {
 
     /**
      * Get the y coordinate.
-     *
-     * @returns The y coordinate's value
+     * @returns {number} The y coordinate's value.
      */
     public getY(): number {
         return this.y;
@@ -84,8 +96,7 @@ export default class Vector3 {
 
     /**
      * Get the z coordinate.
-     *
-     * @returns The z coordinate's value
+     * @returns {number} The z coordinate's value.
      */
     public getZ(): number {
         return this.z;
@@ -96,7 +107,7 @@ export default class Vector3 {
     /**
      * Compare an instance of `Vector3` with another.
      *
-     * @param vector The `Vector3` to compare to
+     * @param vector - The `Vector3` to compare to
      *
      * @returns `true` if they're equal otherwise `false`.
      */
@@ -106,8 +117,7 @@ export default class Vector3 {
 
     /**
      * Serialize this `Vector3` instance into a `BinaryStream`.
-     *
-     * @param stream The network stream.
+     * @param {BinaryStream} stream - The network stream.
      */
     public networkSerialize(stream: BinaryStream): void {
         stream.writeFloatLE(this.x);
@@ -117,8 +127,8 @@ export default class Vector3 {
 
     /**
      * Deserialize a `Vector3` from a `BinaryStream`.
-     *
-     * @param stream The network stream.
+     * @param {BinaryStream} stream - The network stream.
+     * @returns {Vector3} The deserialized `Vector3`.
      */
     public static networkDeserialize(stream: BinaryStream): Vector3 {
         return new Vector3(stream.readFloatLE(), stream.readFloatLE(), stream.readFloatLE());
