@@ -104,7 +104,6 @@ export default class World {
             }
         } catch (error: unknown) {
             this.server.getLogger()?.warn(`Failed to read level.json due to ${error}`, 'World/onEnable');
-            this.server.getLogger()?.error(error, 'World/onEnable');
         }
 
         this.provider.setWorld(this);
