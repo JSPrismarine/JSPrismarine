@@ -1,5 +1,11 @@
 # @jsprismarine/nbt
 
+## 0.2.0
+
+### Patch Changes
+
+- [#1259](https://github.com/JSPrismarine/JSPrismarine/pull/1259) [`c9d207f`](https://github.com/JSPrismarine/JSPrismarine/commit/c9d207f03417a8961557d569ec60b1091e9114c1) Thanks [@renovate](https://github.com/apps/renovate)! - Deps: Update dependency @types/node to v20.12.3.
+
 ## 0.1.1
 
 ### Patch Changes
