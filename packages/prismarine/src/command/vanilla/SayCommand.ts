@@ -1,8 +1,9 @@
-import { CommandDispatcher, argument, greedyString, literal } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { argument, greedyString, literal } from '@jsprismarine/brigadier';
 
 import Chat from '../../chat/Chat';
-import Command from '../Command';
-import Player from '../../Player';
+import { Command } from '../Command';
+import type Player from '../../Player';
 
 export default class SayCommand extends Command {
     public constructor() {

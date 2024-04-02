@@ -1,9 +1,10 @@
 import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArguments';
-import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { argument, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
+import { Command } from '../Command';
 import MovementType from '../../network/type/MovementType';
-import Player from '../../Player';
+import type Player from '../../Player';
 import Vector3 from '../../math/Vector3';
 
 export default class TpCommand extends Command {
@@ -64,7 +65,7 @@ export default class TpCommand extends Command {
                                         } else position.setZ(position.getZ() + 0.5);
                                     }
 
-                                    if (!targets?.length)
+                                    if (!targets.length)
                                         throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
 
                                     targets.forEach(async (entity) =>
@@ -83,7 +84,7 @@ export default class TpCommand extends Command {
                                     const sources = context.getArgument('player') as Player[];
                                     const target = context.getArgument('target')?.[0] as Player;
 
-                                    if (!sources?.length)
+                                    if (!sources.length)
                                         throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
                                     sources.forEach(async (entity) =>
                                         entity.setPosition(target.getPosition(), MovementType.Teleport)

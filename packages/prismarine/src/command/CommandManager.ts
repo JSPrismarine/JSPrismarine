@@ -2,7 +2,7 @@ import type { ArgumentCommandNode } from '@jsprismarine/brigadier';
 import { CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
 
 import Chat from '../chat/Chat';
-import type Command from './Command';
+import type { Command } from './Command';
 import type { CommandArgument } from './CommandArguments';
 // import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvents';

@@ -8,7 +8,7 @@ interface CommandProps {
     aliases?: string[];
 }
 
-export default class Command {
+export class Command {
     /**
      * The command's id in a `[namespace]:[id]` format.
      */

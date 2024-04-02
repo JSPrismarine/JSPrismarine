@@ -1,4 +1,4 @@
-import type Command from '../../command/Command';
+import type { Command } from '../../command/Command';
 import Event from '../Event';
 
 export default class CommandRegisterEvent extends Event {

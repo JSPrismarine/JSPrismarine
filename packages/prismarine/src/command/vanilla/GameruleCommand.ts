@@ -1,7 +1,8 @@
-import { CommandDispatcher, argument, literal, string } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { argument, literal, string } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
-import Player from '../../Player';
+import { Command } from '../Command';
+import type Player from '../../Player';
 
 export default class GameruleCommand extends Command {
     public constructor() {
