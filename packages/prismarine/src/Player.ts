@@ -125,8 +125,8 @@ export default class Player extends Human {
         await this.setX(playerData.position.x);
         await this.setY(playerData.position.y);
         await this.setZ(playerData.position.z);
-        this.pitch = playerData.position.pitch ?? 0;
-        this.yaw = playerData.position.yaw ?? 0;
+        this.pitch = playerData.position.pitch;
+        this.yaw = playerData.position.yaw;
 
         playerData.inventory.forEach((item) => {
             const entry =
@@ -272,7 +272,7 @@ export default class Player extends Human {
         }
 
         for (const chunk of this.chunkSendQueue) {
-            await this.networkSession.sendNetworkChunkPublisher(this.viewDistance ?? VANILLA_DEFAULT_SPAWN_RADIUS, []);
+            await this.networkSession.sendNetworkChunkPublisher(this.viewDistance || VANILLA_DEFAULT_SPAWN_RADIUS, []);
             await this.networkSession.sendChunk(chunk);
             this.chunkSendQueue.delete(chunk);
         }

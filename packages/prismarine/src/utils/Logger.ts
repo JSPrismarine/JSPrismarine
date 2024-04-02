@@ -33,7 +33,7 @@ export default class LoggerBuilder {
     }
 
     public createLogger() {
-        if (!this.logger || this.logger.closed) {
+        if (!(this.logger as any) || this.logger.closed) {
             this.logger = createLogger({
                 transports: [
                     new transports.Console({

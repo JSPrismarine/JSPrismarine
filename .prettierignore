@@ -1,0 +1,14 @@
+# Ignore artifacts
+build
+coverage
+node_modules
+.next
+.vercel
+
+**/*.woff2
+**/*.ttf
+
+# Misc
+.DS_Store
+.swc
+.bak

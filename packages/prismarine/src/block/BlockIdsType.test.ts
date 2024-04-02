@@ -18,7 +18,7 @@ describe('block', () => {
                     return;
                 }
 
-                expect(blockManager.getBlockById(Number(blockId))?.getId()).toEqual(Number(blockId));
+                expect(blockManager.getBlockById(Number(blockId)).getId()).toEqual(Number(blockId));
             }
         });
     });

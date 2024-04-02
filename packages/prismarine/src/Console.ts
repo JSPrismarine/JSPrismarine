@@ -171,6 +171,6 @@ export default class Console {
                 pos,
                 entities.filter((a) => a.getRuntimeId() !== this.getRuntimeId())
             )
-        ].filter((a) => a);
+        ];
     }
 }

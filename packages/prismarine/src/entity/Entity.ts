@@ -91,6 +91,7 @@ export default class Entity extends Position {
      * entity.update(10);
      * ```
      */
+    // eslint-disable-next-line unused-imports/no-unused-vars
     public async update(tick: number): Promise<void> {
         const collisions = await this.getNearbyEntities(0.5);
         await Promise.all(collisions.map(async (entity) => entity.onCollide(this)));
@@ -393,7 +394,7 @@ export default class Entity extends Position {
      */
     public getFormattedUsername(): string {
         return (
-            this.metadata.getString(MetadataFlag.NAMETAG) ??
+            this.metadata.getString(MetadataFlag.NAMETAG) ||
             // Replace all '_' with a ' ' and capitalize each word afterwards,
             // should probably be replaced with regex.
             ((this.constructor as any).MOB_ID as string)

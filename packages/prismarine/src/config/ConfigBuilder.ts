@@ -123,17 +123,25 @@ export default class ConfigBuilder {
         const rawFileData = fs.readFileSync(this.path, 'utf8');
         switch (this.type) {
             case 'json':
-                resultData = JSON.parse(minifyJson(rawFileData));
+                try {
+                    resultData = JSON.parse(minifyJson(rawFileData));
+                } catch {
+                    return {};
+                }
                 break;
             case 'yaml':
-                // TODO: check indent parameter
-                resultData = YAML.parse(rawFileData);
+                try {
+                    // TODO: check indent parameter
+                    resultData = YAML.parse(rawFileData);
+                } catch {
+                    return {};
+                }
                 break;
             default:
                 throw new Error(`Unknown config type: ${this.type}!`);
         }
 
-        return resultData || {};
+        return resultData;
     }
 
     /**
