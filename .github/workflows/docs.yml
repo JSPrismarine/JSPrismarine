@@ -5,7 +5,8 @@ on:
             - master
 
 jobs:
-    artifacts:
+    build-and-publish-docs:
+        name: 📖 Build and Publish Docs
         runs-on: ubuntu-latest
         env:
             TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
