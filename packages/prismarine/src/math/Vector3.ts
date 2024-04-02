@@ -33,6 +33,10 @@ export default class Vector3 {
         this.z = z;
     }
 
+    public static fromObject(obj: { x: number; y: number; z: number }): Vector3 {
+        return new Vector3(obj.x, obj.y, obj.z);
+    }
+
     /**
      * Set the X coordinate.
      *

@@ -1,16 +1,16 @@
 import GameruleManager, { GameRules } from './GameruleManager';
 
-import BaseProvider from './providers/BaseProvider';
-import Block from '../block/Block';
+import type BaseProvider from './providers/BaseProvider';
+import type Block from '../block/Block';
 import BlockMappings from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
-import Entity from '../entity/Entity';
+import type Entity from '../entity/Entity';
 import Gamemode from './Gamemode';
-import Generator from './Generator';
+import type Generator from './Generator';
 import Item from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
-import Player from '../Player';
-import Server from '../Server';
+import type Player from '../Player';
+import type Server from '../Server';
 import Timer from '../utils/Timer';
 import UUID from '../utils/UUID';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
@@ -32,7 +32,7 @@ interface WorldData {
 }
 
 export interface LevelMeta {
-    spawn: Vector3;
+    spawn: { x: number; y: number; z: number } | undefined;
     gameRules: Array<[string, any]>;
 }
 export interface WorldPlayerData {
@@ -90,17 +90,22 @@ export default class World {
     public async onEnable(): Promise<void> {
         this.server.getEventManager().on('tick', async (evt) => this.update(evt.getTick()));
 
-        // TODO: properly read level.json
-        /* try {
+        try {
             const metaData: LevelMeta = JSON.parse(
                 await fs.promises.readFile(path.join(this.path, 'level.json'), 'utf-8')
             );
 
-            // if (metaData.spawn) this.setSpawnPosition(metaData.spawn);
+            if (metaData.spawn) this.setSpawnPosition(Vector3.fromObject(metaData.spawn));
 
-            if (metaData.gameRules)
-                metaData.gameRules.forEach(([name, [value, editable]]) => this.gameruleManager.setGamerule(name, value, editable));
-        } catch {} */
+            if (metaData.gameRules) {
+                metaData.gameRules.forEach(([name, [value, editable]]) =>
+                    this.gameruleManager.setGamerule(name, value, editable)
+                );
+            }
+        } catch (error: unknown) {
+            this.server.getLogger()?.warn(`Failed to read level.json due to ${error}`, 'World/onEnable');
+            this.server.getLogger()?.error(error, 'World/onEnable');
+        }
 
         this.provider.setWorld(this);
         await this.provider.onEnable();
@@ -247,7 +252,7 @@ export default class World {
     /**
      * Set the world's spawn position.
      *
-     * @param pos The position as a `Vector3`.
+     * @param pos - The position as a `Vector3`.
      */
     public setSpawnPosition(pos: Vector3) {
         this.spawn = pos;
@@ -510,15 +515,15 @@ export default class World {
                             .getInventory()
                             .getItems(true)
                             .map((entry, index) => {
-                                if (!entry) return;
+                                if (!entry) return null;
 
                                 const item = entry.getItem();
                                 const count = entry.getCount();
 
                                 return {
-                                    id: item?.getName(),
-                                    numeric_id: item?.getId(),
-                                    numeric_meta: item?.meta,
+                                    id: item.getName(),
+                                    numeric_id: item.getId(),
+                                    numeric_meta: item.meta,
                                     count,
                                     position: index
                                 };
