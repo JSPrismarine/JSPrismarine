@@ -1,8 +1,8 @@
 import * as Items from './Items';
 
-import Item from './Item';
+import type Item from './Item';
 import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
-import Server from '../Server';
+import type Server from '../Server';
 import Timer from '../utils/Timer';
 
 // TODO: Don't dynamically import, do it like ./network/Protocol etc
@@ -28,8 +28,8 @@ export default class ItemManager {
         this.items.clear();
     }
 
-    public getItem(name: string): Item {
-        return this.items.get(name) as Item;
+    public getItem(name: string) {
+        return this.items.get(name);
     }
 
     /**
@@ -51,7 +51,7 @@ export default class ItemManager {
     /**
      * Register an item.
      *
-     * @param item The item to be registered
+     * @param item - The item to be registered
      */
     public registerItem = async (item: Item) => {
         const event = new ItemRegisterEvent(item);

@@ -1,4 +1,4 @@
-import Player from '../Player';
+import type Player from '../Player';
 import type Server from '../Server';
 import cwd from '../utils/cwd';
 import fs from 'node:fs';
@@ -56,8 +56,8 @@ export default class PermissionManager {
      * @remarks
      * This will not be saved to the permissions.json file.
      */
-    public setPermissions(player: Player, permissions: string[]) {
-        this.permissions.set(player.getName(), permissions ?? []);
+    public setPermissions(player: Player, permissions: string[] = []) {
+        this.permissions.set(player.getName(), permissions);
     }
 
     private async parsePermissions(): Promise<void> {
@@ -173,7 +173,7 @@ export default class PermissionManager {
 
                 if (!permission) return true;
                 if (executer.isConsole()) return true;
-                if (executer.isOp?.()) return true;
+                if (executer.isOp()) return true;
                 if (executer.getPermissions().includes(permission)) return true;
                 if (executer.getPermissions().includes('*')) return true;
 

@@ -1,4 +1,5 @@
-import Item, { ItemProps } from './Item';
+import type { ItemProps } from './Item';
+import Item from './Item';
 
 export default class Tool extends Item {
     public constructor(args: ItemProps) {

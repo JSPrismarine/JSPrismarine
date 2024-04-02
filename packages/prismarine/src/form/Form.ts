@@ -1,5 +1,5 @@
-import IForm from './IForm';
-import Player from '../Player';
+import type IForm from './IForm';
+import type Player from '../Player';
 
 export default abstract class Form implements IForm {
     private title: string;
@@ -13,7 +13,7 @@ export default abstract class Form implements IForm {
     /**
      * Replaces the Form's title.
      *
-     * @param title new title
+     * @param title - new title
      */
     public setTitle(title: string): void {
         this.title = title;

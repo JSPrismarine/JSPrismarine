@@ -1,5 +1,5 @@
-import PluginApi from './api/PluginApi';
-import Server from '../Server';
+import type PluginApi from './api/PluginApi';
+import type Server from '../Server';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 

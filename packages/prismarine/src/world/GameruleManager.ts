@@ -1,6 +1,6 @@
 // import BinaryStream from '@jsprismarine/jsbinaryutils';
 import McpeUtil from '../network/NetworkUtil';
-import Server from '../Server';
+import type Server from '../Server';
 
 export const GameRules = {
     CommandBlockOutput: 'commandblockoutput',
@@ -59,8 +59,8 @@ export default class GameruleManager {
     /**
      * Sets a game rule.
      *
-     * @param name the gamerule's name
-     * @param value the value, boolean OR number
+     * @param name - the gamerule's name
+     * @param value - the value, boolean OR number
      */
     public setGamerule(name: string, value: boolean | number, editable: boolean): void {
         this.rules.set(name.toLowerCase(), [value, editable]);
@@ -69,7 +69,7 @@ export default class GameruleManager {
     /**
      * Returns the gamerule value.
      *
-     * @param name the gamerule's name
+     * @param name - the gamerule's name
      */
     public getGamerule(name: string): any {
         if (!Object.values(GameRules).includes(name.toLowerCase())) {

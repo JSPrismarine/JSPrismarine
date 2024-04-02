@@ -11,7 +11,14 @@
     "parserOptions": {
         "sourceType": "module",
         "ecmaVersion": "latest",
-        "project": ["./tsconfig.json", "./tsconfig.build.json", "./tsconfig.test.json", "./packages/**/tsconfig.json"]
+        "project": [
+            "./tsconfig.json",
+            "./tsconfig.build.json",
+            "./tsconfig.test.json",
+            "./packages/**/tsconfig.json",
+            "./packages/**/tsconfig.build.json",
+            "./packages/**/tsconfig.test.json"
+        ]
     },
     "rules": {
         "@typescript-eslint/consistent-type-exports": ["error", { "fixMixedExportsWithInlineTypeSpecifier": false }],
@@ -35,7 +42,7 @@
         "jsdoc/check-alignment": "error",
         "jsdoc/check-indentation": "off",
         "jsdoc/check-line-alignment": "error",
-        "jsdoc/check-param-names": "error",
+        "jsdoc/check-param-names": "warn",
         "jsdoc/check-property-names": "error",
         "jsdoc/check-syntax": "error",
         "jsdoc/check-types": "error",
@@ -50,7 +57,7 @@
         "no-unused-vars": "off",
         "no-useless-constructor": "off",
         "prettier/prettier": "error",
-        "semi": ["error", "always"],
+        "semi": "off",
         "sort-imports": "off",
         "standard/computed-property-even-spacing": "off",
         "unused-imports/no-unused-imports": "error",

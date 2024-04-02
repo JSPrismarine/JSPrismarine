@@ -81,7 +81,7 @@ export default class ServerName {
         return (
             [
                 'MCPE',
-                this.getMotd() ?? 'Example motd',
+                this.getMotd() || 'Example motd',
                 this.getProtocol(),
                 this.getVersion(),
                 this.getOnlinePlayerCount(),

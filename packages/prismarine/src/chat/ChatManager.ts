@@ -1,4 +1,4 @@
-import Chat from './Chat';
+import type Chat from './Chat';
 import ChatEvent from '../events/chat/ChatEvent';
 import type Server from '../Server';
 

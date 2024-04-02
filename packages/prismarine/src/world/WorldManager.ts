@@ -22,7 +22,7 @@ export interface WorldData {
  */
 export default class WorldManager {
     private readonly worlds: Map<string, World> = new Map() as Map<string, World>;
-    private defaultWorld!: World;
+    private defaultWorld: World | undefined;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
     private providers: Map<string, any> = new Map() as Map<string, any>; // TODO: this should be a manager
@@ -108,7 +108,7 @@ export default class WorldManager {
      */
     public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
         return new Promise(async (resolve, reject) => {
-            if (!worldData) throw new Error('Invalid world data');
+            if (!(worldData as any)) throw new Error('Invalid world data');
 
             if (this.isWorldLoaded(folderName)) {
                 this.server
@@ -119,19 +119,14 @@ export default class WorldManager {
             }
 
             const levelPath = path.join(cwd(), `/worlds/${folderName}/`);
-            const provider = this.providers.get(worldData.provider ?? 'Filesystem');
+            const provider = this.providers.get(worldData.provider || 'Filesystem');
             const generator = this.server
                 .getWorldManager()
                 .getGeneratorManager()
-                .getGenerator(worldData.generator ?? 'overworld');
+                .getGenerator(worldData.generator || 'overworld');
 
             if (!provider) {
                 reject(new Error(`invalid provider with id ${worldData.provider}`));
-                return;
-            }
-
-            if (!generator) {
-                reject(new Error(`invalid generator with id ${worldData.generator}`));
                 return;
             }
 
@@ -214,7 +209,7 @@ export default class WorldManager {
         return Array.from(this.worlds.values());
     }
 
-    public getDefaultWorld(): World {
+    public getDefaultWorld() {
         return this.defaultWorld;
     }
 

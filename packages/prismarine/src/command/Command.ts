@@ -50,7 +50,7 @@ export class Command {
 
     public usage(dispatcher: CommandDispatcher<any>): string {
         // TODO: Improve this, it's not really accurate right now.
-        return Array.from(dispatcher.findNode([this.id.split(':').at(-1)!]).getChildren())
+        return Array.from(dispatcher.findNode([this.id.split(':').at(-1)!])?.getChildren() || [])
             .map((child) => {
                 if (!(child instanceof ArgumentCommandNode)) return null;
                 return child.getUsageText();

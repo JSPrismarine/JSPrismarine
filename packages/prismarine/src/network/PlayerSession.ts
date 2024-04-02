@@ -148,7 +148,7 @@ export default class PlayerSession {
         const currentXChunk = CoordinateUtils.fromBlockToChunk(this.player.getX());
         const currentZChunk = CoordinateUtils.fromBlockToChunk(this.player.getZ());
 
-        const viewDistance = this.player.viewDistance ?? dist;
+        const viewDistance = this.player.viewDistance || dist || 0;
 
         const chunksToSendHeap = new Heap((a: number[], b: number[]) => {
             const distXFirst = Math.abs(a[0]! - currentXChunk);
@@ -412,7 +412,6 @@ export default class PlayerSession {
                                 })
                             ];
                         })
-                        .filter((a) => a)
                         .flat();
                     cmd.overloads[index] = parameters;
                 });
@@ -445,7 +444,7 @@ export default class PlayerSession {
     public async sendAttributes(attributes: Attribute[]): Promise<void> {
         const pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.player.getRuntimeId();
-        pk.attributes = attributes ?? this.player.getAttributeManager().getAttributes();
+        pk.attributes = attributes.length > 0 ? attributes : this.player.getAttributeManager().getAttributes();
         pk.tick = BigInt(0); // TODO
         await this.connection.sendDataPacket(pk);
     }

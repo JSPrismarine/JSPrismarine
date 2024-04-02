@@ -81,7 +81,7 @@ export default class QueryManager {
                                     (plugins.length && ': ') || ''
                                 }${plugins.join('; ')}`, // TODO
                                 'map',
-                                this.server.getWorldManager().getDefaultWorld().getName(),
+                                this.server.getWorldManager().getDefaultWorld()!.getName(),
                                 'numplayers',
                                 // this.server.getRaknet().getName().getOnlinePlayerCount(),
                                 'maxplayers',

@@ -293,7 +293,7 @@ export default class CommandManager {
             } else {
                 const chat = new Chat(
                     this.server.getConsole(),
-                    `§o§7[${sender.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
+                    `§o§7[${sender.getName()}: ${res.length > 0 ? res : `issued server command: /${input}`}]§r`,
                     [],
                     false,
                     '*.console'
