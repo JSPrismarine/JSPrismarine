@@ -3,7 +3,7 @@ import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import BlockMappings from '../block/BlockMappings';
 import { BlockToolType } from '../block/BlockToolType';
-import { ItemEnchantmentType } from './ItemEnchantmentType';
+import type { ItemEnchantmentType } from './ItemEnchantmentType';
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 
 export interface ItemProps {
@@ -32,7 +32,6 @@ export default class Item {
         if (meta) this.meta = meta;
 
         this.networkId = ItemIdMap[name] as number;
-        // if (!this.networkId) console.log(name, id, this.networkId);
     }
 
     public getName(): string {

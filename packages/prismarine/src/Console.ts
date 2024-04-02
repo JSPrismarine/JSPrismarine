@@ -54,8 +54,7 @@ export default class Console {
         process.stdin.on('keypress', (str, key) => {
             // Handle ctrl+c
             if (key.ctrl && key.name === 'c') {
-                this.cli.close();
-                process.exit();
+                this.getServer().shutdown();
             }
 
             switch (key.name) {
@@ -108,6 +107,7 @@ export default class Console {
 
     public async onDisable(): Promise<void> {
         this.cli.close();
+        this.cli.removeAllListeners();
     }
 
     public getName(): string {
