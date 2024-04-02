@@ -16,14 +16,16 @@ export default class Console {
 
         // Console command reader
         readline.emitKeypressEvents(process.stdin);
-        process.stdin.setEncoding('utf8');
 
         try {
-            if (process.stdin.isTTY) process.stdin.setRawMode(true);
+            process.stdin.setRawMode(true);
         } catch (error: unknown) {
             this.server.getLogger()?.warn(`Failed to enable stdin rawMode: ${error}!`);
             this.server.getLogger()?.error(error);
         }
+
+        process.stdin.setEncoding('utf8');
+        process.stdin.resume();
 
         const completer = (line: string) => {
             const hits = Array.from(this.getServer().getCommandManager().getCommands().values())
@@ -49,11 +51,44 @@ export default class Console {
             completer: process.stdin.isTTY ? completer : undefined
         });
 
+        process.stdin.on('keypress', (str, key) => {
+            // Handle ctrl+c
+            if (key.ctrl && key.name === 'c') {
+                this.cli.close();
+                process.exit();
+            }
+
+            switch (key.name) {
+                case 'backspace': {
+                    process.stdin.write('\b \b');
+                    break;
+                }
+                case 'tab': {
+                    // TODO: Implement tab completion.
+                    break;
+                }
+                case 'return': {
+                    break;
+                }
+
+                case 'up':
+                case 'down':
+                    break;
+
+                default: {
+                    if (key.sequence === undefined) break;
+
+                    // Print what the user is typing
+                    process.stdin.write(key.sequence);
+                }
+            }
+        });
+
         this.cli.on('line', (input: string) => {
             if (input.startsWith('/')) {
                 void this.getServer()
                     .getCommandManager()
-                    .dispatchCommand(this as any, this as any, input.slice(1));
+                    .dispatchCommand(this as any, this as any, input);
                 return;
             }
 
