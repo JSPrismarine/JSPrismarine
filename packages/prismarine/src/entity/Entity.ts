@@ -1,15 +1,14 @@
 import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
-
 import AddActorPacket from '../network/packet/AddActorPacket';
 import AttributeManager from './Attribute';
 import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
-import Player from '../Player';
+import type Player from '../Player';
 import Position from '../world/Position';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
-import Server from '../Server';
+import type Server from '../Server';
 import TextType from '../network/type/TextType';
 import Vector3 from '../math/Vector3';
-import World from '../world/World';
+import type World from '../world/World';
 
 /**
  * The base class for all entities including `Player`.
@@ -22,6 +21,9 @@ export default class Entity extends Position {
      */
     protected static MOB_ID: string;
 
+    /**
+     * The global runtime id counter.
+     */
     public static runtimeIdCount = 0n;
 
     private runtimeId: bigint;
@@ -29,23 +31,25 @@ export default class Entity extends Position {
     protected server: Server;
 
     /**
-     * @remarks
-     * TODO: proper manager
-     *
      * @deprecated
      */
     private readonly metadata: MetadataManager = new MetadataManager();
 
     /**
-     * @remarks
-     * TODO: proper manager
-     *
      * @deprecated
      */
     private readonly attributes: AttributeManager = new AttributeManager();
 
     /**
      * Entity constructor.
+     * @constructor
+     * @param {World} world - The world the entity belongs to.
+     * @param {Server} server - The server instance.
+     * @returns {Entity} The entity instance.
+     * @example
+     * ```typescript
+     * const entity = new Entity(this.world, this.server);
+     * ```
      */
     public constructor(world: World, server: Server) {
         super({ world }); // TODO
@@ -67,6 +71,12 @@ export default class Entity extends Position {
 
     /**
      * Get the entity's runtime id.
+     * @returns {bigint} The entity's runtime id.
+     * @example
+     * ```typescript
+     * const entityId = entity.getRuntimeId();
+     * console.log(entityId); // Ex. Output: 1n
+     * ```
      */
     public getRuntimeId(): bigint {
         return this.runtimeId;
@@ -74,26 +84,46 @@ export default class Entity extends Position {
 
     /**
      * Fired every tick from the event subscription in the constructor.
-     *
-     * @param _tick current tick
+     * @param {number} tick - The current tick.
+     * @returns {Promise<void>} A promise that resolves when the update is complete.
+     * @example
+     * ```typescript
+     * entity.update(10);
+     * ```
      */
-    public async update(_tick: number) {
+    public async update(tick: number): Promise<void> {
         const collisions = await this.getNearbyEntities(0.5);
-        await Promise.all(collisions.map(async (e) => e.onCollide(this)));
+        await Promise.all(collisions.map(async (entity) => entity.onCollide(this)));
     }
 
+    /**
+     * Get the server instance.
+     * @returns {Server} The server instance.
+     * @example
+     * ```typescript
+     * const server = entity.getServer();
+     * ```
+     */
     public getServer(): Server {
         return this.server;
     }
 
-    public setNameTag(name: string) {
+    /**
+     * Set the entity's name tag.
+     * @param {string} name - The name tag.
+     */
+    public setNameTag(name: string): void {
         this.metadata.setString(MetadataFlag.NAMETAG, name);
     }
 
     /**
      * @deprecated
+     * @param {number} propertyId - The property id.
+     * @param {number} flagId - The flag id.
+     * @param {boolean} [value=true] - The flag value.
+     * @param {FlagType} [propertyType=FlagType.LONG] - The property type.
      */
-    public setDataFlag(propertyId: number, flagId: number, value = true, propertyType = FlagType.LONG) {
+    public setDataFlag(propertyId: number, flagId: number, value = true, propertyType = FlagType.LONG): void {
         // All generic flags are written as Longs (bigints) 64bit
         const flagId64 = BigInt(flagId);
         // Check if the same value is already set
@@ -105,20 +135,26 @@ export default class Entity extends Position {
 
     /**
      * @deprecated
+     * @param {number} propertyId - The property id.
+     * @param {bigint} flagId - The flag id.
+     * @returns {boolean} The flag value.
      */
-    public getDataFlag(propertyId: number, flagId: bigint) {
+    public getDataFlag(propertyId: number, flagId: bigint): boolean {
         return ((this.metadata.getPropertyValue(propertyId) as bigint) & (1n << flagId)) > 0;
     }
 
     /**
      * @deprecated
+     * @param {number} flagId - The flag id.
+     * @param {boolean} [value=true] - The flag value.
      */
-    public setGenericFlag(flagId: number, value = true) {
+    public setGenericFlag(flagId: number, value = true): void {
         this.setDataFlag(flagId >= 64 ? 94 : MetadataFlag.INDEX, flagId % 64, value, FlagType.LONG);
     }
 
     /**
      * @deprecated
+     * @returns {AttributeManager} The attribute manager.
      */
     public getAttributeManager(): AttributeManager {
         return this.attributes;
@@ -126,6 +162,7 @@ export default class Entity extends Position {
 
     /**
      * @deprecated
+     * @returns {MetadataManager} The metadata manager.
      */
     public getMetadataManager(): MetadataManager {
         return this.metadata;
@@ -133,55 +170,53 @@ export default class Entity extends Position {
 
     /**
      * Spawn the entity.
-     * @param player optional - if specified, only send the packet to that player
-     *
-     * @remarks
-     * `motion`, `pitch` & `yaw` is unimplemented.
-     *
-     * @beta
+     * @todo `motion`, `pitch` & `yaw` is unimplemented.
+     * @param {Player} [player] - The player to send the packet to.
+     * @returns {Promise<void>} A promise that resolves when the entity is spawned.
      */
-    public async sendSpawn(player?: Player) {
+    public async sendSpawn(player?: Player): Promise<void> {
         const players: Player[] = player
             ? [player]
             : (this.getWorld()
                   .getEntities()
-                  .filter((e) => e.isPlayer()) as Player[]);
+                  .filter((entity) => entity.isPlayer()) as Player[]);
 
-        const pk = new AddActorPacket();
-        pk.runtimeEntityId = this.getRuntimeId();
-        pk.type = (this.constructor as any).MOB_ID; // TODO
-        pk.position = this;
+        const packet = new AddActorPacket();
+        packet.runtimeEntityId = this.getRuntimeId();
+        packet.type = (this.constructor as any).MOB_ID; // TODO
+        packet.position = this;
         // TODO: motion
-        pk.motion = new Vector3(0, 0, 0);
-        pk.pitch = 0;
-        pk.yaw = 0;
-        pk.headYaw = 0;
-        pk.metadata = this.metadata.getMetadata();
-        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(pk)));
+        packet.motion = new Vector3(0, 0, 0);
+        packet.pitch = 0;
+        packet.yaw = 0;
+        packet.headYaw = 0;
+        packet.metadata = this.metadata.getMetadata();
+        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(packet)));
     }
 
     /**
      * Despawn the entity.
-     * @param player optional - if specified, only send the packet to that player
+     * @param {Player} [player] - The player to send the packet to.
+     * @returns {Promise<void>} A promise that resolves when the entity is despawned.
      */
-    public async sendDespawn(player?: Player) {
+    public async sendDespawn(player?: Player): Promise<void> {
         const players: Player[] = player
             ? [player]
             : (this.getWorld()
                   .getEntities()
-                  .filter((e) => e.isPlayer()) as Player[]);
+                  .filter((entity) => entity.isPlayer()) as Player[]);
 
-        const pk = new RemoveActorPacket();
-        pk.uniqueEntityId = this.runtimeId;
-        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(pk)));
+        const packet = new RemoveActorPacket();
+        packet.uniqueEntityId = this.runtimeId;
+        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(packet)));
     }
 
     /**
-     * Set entity's position and notify the clients.
-     *
-     * @param position The position
+     * Set the entity's position and notify the clients.
+     * @param {Vector3} position - The position.
+     * @returns {Promise<void>} A promise that resolves when the position is set.
      */
-    public async setPosition(position: Vector3) {
+    public async setPosition(position: Vector3): Promise<void> {
         await this.setX(position.getX(), true);
         await this.setY(position.getY(), true);
         await this.setZ(position.getZ(), true);
@@ -191,49 +226,51 @@ export default class Entity extends Position {
 
     /**
      * Send the position to all the players in the same world.
+     * @returns {Promise<void>} A promise that resolves when the position is sent.
      */
-    public async sendPosition() {
+    public async sendPosition(): Promise<void> {
         await Promise.all(
             this.getServer()
                 .getSessionManager()
                 .getAllPlayers()
-                .filter((p) => p.getWorld().getUniqueId() === this.getWorld().getUniqueId())
+                .filter((player) => player.getWorld().getUniqueId() === this.getWorld().getUniqueId())
                 .map(async (player) => {
-                    const pk = new MoveActorAbsolutePacket();
-                    pk.runtimeEntityId = this.runtimeId;
-                    pk.position = this.getPosition();
+                    const packet = new MoveActorAbsolutePacket();
+                    packet.runtimeEntityId = this.runtimeId;
+                    packet.position = this.getPosition();
 
                     // TODO
-                    pk.rotationX = 0;
-                    pk.rotationY = 0;
-                    pk.rotationZ = 0;
-                    await player.getNetworkSession().getConnection().sendDataPacket(pk);
+                    packet.rotationX = 0;
+                    packet.rotationY = 0;
+                    packet.rotationZ = 0;
+                    await player.getNetworkSession().getConnection().sendDataPacket(packet);
                 })
         );
     }
 
     /**
      * Send a message to an entity.
-     *
-     * @remarks
-     * This will silently fail on non-client-controlled entities.
-     *
-     * @example
-     * Send "Hello World!" to a client:
-     *
-     * ```ts
+     * @remarks This will silently fail on non-client-controlled entities.
+     * @param {string} message - The message.
+     * @param {TextType} [type=TextType.Raw] - The text type.
+     * @example Send "Hello World!" to a client:
+     * ```typescript
      * entity.sendMessage('Hello World!');
      * ```
-     *
-     * @param message The message
-     * @param type The text type
      */
-    public sendMessage(_message: string, _type: TextType = TextType.Raw) {}
+    public sendMessage(message: string, type: TextType = TextType.Raw): void {
+        this.server
+            .getLogger()
+            ?.warn(`Entity/sendMessage is not implemented: (message: ${message}, type: ${type})`, 'Entity/sendMessage');
+    }
 
     /**
      * Get the entity's position.
-     *
-     * @returns The entity's position
+     * @returns {Vector3} The entity's position.
+     * @example
+     * ```typescript
+     * const position = entity.getPosition();
+     * ```
      */
     public getPosition(): Vector3 {
         return new Vector3(this.getX(), this.getY(), this.getZ());
@@ -241,39 +278,63 @@ export default class Entity extends Position {
 
     /**
      * Set the x position.
-     *
-     * @param x The x coordinate
-     * @param suppress If true the client won't be notified about the position change
+     * @param {number} x - The x coordinate.
+     * @param {boolean} [suppress=false] - If true, the client won't be notified about the position change.
+     * @returns {Promise<void>} A promise that resolves when the x position is set.
+     * @example
+     * ```typescript
+     * await entity.setX(10);
+     * ```
+     * @remarks This method will also send the position update to the client if `suppress` is `false`.
      */
-    public async setX(x: number, suppress?: boolean) {
+    public async setX(x: number, suppress = false): Promise<void> {
         super.setX.bind(this)(x);
         if (suppress && !this.isPlayer()) await this.sendPosition();
     }
+
     /**
      * Set the y position.
-     *
-     * @param y The y coordinate
-     * @param suppress If true the client won't be notified about the position change
+     * @param {number} y - The y coordinate.
+     * @param {boolean} [suppress=false] - If true, the client won't be notified about the position change.
+     * @returns {Promise<void>} A promise that resolves when the y position is set.
+     * @example
+     * ```typescript
+     * await entity.setY(10);
+     * ```
+     * @remarks This method will also send the position update to the client if `suppress` is `false`.
      */
-    public async setY(y: number, suppress?: boolean) {
+    public async setY(y: number, suppress = false): Promise<void> {
         super.setY.bind(this)(y);
-        if (!suppress && !this.isPlayer()) await this.sendPosition();
+        if (suppress && !this.isPlayer()) await this.sendPosition();
     }
+
     /**
      * Set the z position.
-     *
-     * @param z The z coordinate
-     * @param suppress If true the client won't be notified about the position change
+     * @param {number} z - The z coordinate.
+     * @param {boolean} [suppress=false] - If true, the client won't be notified about the position change.
+     * @returns {Promise<void>} A promise that resolves when the z position is set.
+     * @example
+     * ```typescript
+     * await entity.setZ(10);
+     * ```
+     * @remarks This method will also send the position update to the client if `suppress` is `false`.
      */
-    public async setZ(z: number, suppress?: boolean) {
+    public async setZ(z: number, suppress = false): Promise<void> {
         super.setZ.bind(this)(z);
-        if (!suppress && !this.isPlayer()) await this.sendPosition();
+        if (suppress && !this.isPlayer()) await this.sendPosition();
     }
 
     /**
      * Check if the entity is a player.
-     *
-     * @returns `true` if the entity is client-controlled otherwise `false`
+     * @returns {boolean} `true` if the entity is player-controlled, otherwise `false`.
+     * @example
+     * ```typescript
+     * if (entity.isPlayer()) {
+     *     console.log('Entity is a player');
+     * } else {
+     *     console.log('Entity is not a player');
+     * }
+     * ```
      */
     public isPlayer(): boolean {
         return false;
@@ -281,17 +342,28 @@ export default class Entity extends Position {
 
     /**
      * Check if the entity is a console instance.
-     *
-     * @returns `true` if the entity is console-controlled otherwise `false`
+     * @returns {boolean} `true` if the entity is console-controlled, otherwise `false`.
+     * @example
+     * ```typescript
+     * if (entity.isConsole()) {
+     *     console.log('Entity is a console');
+     * } else {
+     *     console.log('Entity is not a console');
+     * }
+     * ```
      */
     public isConsole(): boolean {
         return false;
     }
 
     /**
-     * Get entity type.
-     *
-     * @returns The entity's namespace ID.
+     * Get the entity type.
+     * @returns {string} The entity's namespace ID.
+     * @example
+     * ```typescript
+     * const entityType = entity.getType();
+     * console.log(`Entity type: ${entityType}`);
+     * ```
      */
     public getType(): string {
         return (this.constructor as any).MOB_ID;
@@ -299,8 +371,12 @@ export default class Entity extends Position {
 
     /**
      * Get the entity's (potentially custom) name.
-     *
-     * @returns The entity's name without formatting (usually prefix & suffix).
+     * @returns {string} The entity's name without formatting (usually prefix & suffix).
+     * @example
+     * ```typescript
+     * const name = entity.getName();
+     * console.log(`Entity name: ${name}`);
+     * ```
      */
     public getName(): string {
         return this.getFormattedUsername();
@@ -308,8 +384,12 @@ export default class Entity extends Position {
 
     /**
      * Get the entity's formatted name.
-     *
-     * @returns The entity's formatted name (including prefix & suffix).
+     * @returns {string} The entity's formatted name (including prefix & suffix).
+     * @example
+     * ```typescript
+     * const formattedName = entity.getFormattedUsername();
+     * console.log(`Entity formatted name: ${formattedName}`);
+     * ```
      */
     public getFormattedUsername(): string {
         return (
@@ -327,48 +407,58 @@ export default class Entity extends Position {
 
     /**
      * Fired when an entity collides with another entity.
-     
-     * @param entity the entity collided with
+     * @param {Entity} entity - The entity collided with.
+     * @returns {Promise<void>} A promise that resolves when the collision is handled.
+     * @example
+     * ```typescript
+     * entity.onCollide(otherEntity).then(() => {
+     *     console.log('Collision handled');
+     * });
+     * ```
      */
-    public async onCollide(_entity: Entity) {}
+    public async onCollide(entity: Entity): Promise<void> {
+        void entity; // Trick the linter.
+    }
 
     /**
      * Returns the nearest entity from the current entity.
-     *
-     * @remarks
-     * TODO: Customizable radius
-     *
-     * @param entities optional, the entities to compare the distance between
-     *
-     * @beta
+     * @todo Customizable radius
+     * @param {Entity[]} [entities=this.getWorld().getEntities()] - The entities to compare the distance between.
+     * @returns {Entity[]} The nearest entity.
+     * @example
+     * ```typescript
+     * const nearestEntity = entity.getNearestEntity();
+     * console.log('Nearest entity:', nearestEntity);
+     * ```
      */
-    public getNearestEntity(entities: Entity[] = this.getWorld().getEntities()!) {
-        const pos = new Vector3(this.getX(), this.getY(), this.getZ());
-        const dist = (a: Vector3, b: Vector3) =>
+    public getNearestEntity(entities: Entity[] = this.getWorld().getEntities()): Entity[] {
+        const position = new Vector3(this.getX(), this.getY(), this.getZ());
+        const distance = (a: Vector3, b: Vector3) =>
             Math.hypot(b.getX() - a.getX(), b.getY() - a.getY(), b.getZ() - a.getZ());
 
         const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
-            const distances = points.map((e) => dist(target, new Vector3(e.getX(), e.getY(), e.getZ())));
+            const distances = points.map((e) => distance(target, new Vector3(e.getX(), e.getY(), e.getZ())));
             const closest = Math.min(...distances);
-            return points.find((e, i) => distances[i]! - closest < eps)!;
+            return points.find((_e, i) => distances[i]! - closest < eps)!;
         };
 
         return [
             closest(
-                pos,
-                entities.filter((a) => a.runtimeId !== this.runtimeId)
+                position,
+                entities.filter((entity) => entity.runtimeId !== this.runtimeId)
             )
-        ].filter((a) => a);
+        ].filter((entity) => entity);
     }
 
     /**
-     * Get entities within radius of current entity.
-     *
-     * @param radius number
-     *
-     * @returns The entities within the specified radius sorted
-     *
-     * @beta
+     * Get entities within a radius of the current entity.
+     * @param {number} radius - The radius.
+     * @returns {Promise<Entity[]>} A promise that resolves with the entities within the specified radius.
+     * @example
+     * ```typescript
+     * const nearbyEntities = await entity.getNearbyEntities(10);
+     * console.log('Nearby entities:', nearbyEntities);
+     * ```
      */
     public async getNearbyEntities(radius: number): Promise<Entity[]> {
         const entities = this.getWorld().getEntities();

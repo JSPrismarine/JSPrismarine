@@ -7,6 +7,7 @@ import * as Managers from './Managers';
 import * as Math from './math/Math';
 import * as Protocol from './network/Protocol';
 import * as Utils from './utils/Utils';
+import * as World from './world';
 
 import BaseProvider from './world/providers/BaseProvider';
 import Block from './block/Block';
@@ -42,5 +43,6 @@ export {
     PluginApi,
     Protocol,
     Server,
-    Utils
+    Utils,
+    World
 };
