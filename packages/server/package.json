@@ -40,7 +40,9 @@
     },
     "keywords": [
         "nodejs",
-        "raknet"
+        "jsprismarine",
+        "server",
+        "bedrock"
     ],
     "author": "JSPrismarine",
     "license": "MIT",

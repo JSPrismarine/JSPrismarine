@@ -1,3 +1,4 @@
 {
-    "entryPoints": ["src/Server.ts"]
+    "entryPoints": ["src/Server.ts"],
+    "readme": "README.md"
 }

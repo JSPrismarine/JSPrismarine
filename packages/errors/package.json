@@ -37,8 +37,8 @@
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
     "keywords": [
-        "nodejs",
-        "raknet"
+        "jsprismarine",
+        "errors"
     ],
     "author": "JSPrismarine",
     "license": "MIT",
