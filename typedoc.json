@@ -1,15 +1,16 @@
 {
+    "$schema": "https://typedoc.org/schema.json",
+    "name": "JSPrismarine API Docs",
     "entryPoints": ["packages/*"],
-    "tsconfig": "./tsconfig.json",
-    "readme": "./README.md",
-    "out": "./docs",
     "entryPointStrategy": "packages",
-    "externalPattern": [
-        "**/node_modules/**",
-        ".*packages(/[^/]+)/.*"
-    ],
     "excludeExternals": true,
+    "excludeInternal": true,
     "excludePrivate": true,
     "excludeProtected": true,
-    "excludeInternal": true
+    "externalPattern": ["**/node_modules/**", ".*packages(/[^/]+)/.*"],
+    "out": "./docs",
+    "placeInternalsInOwningModule": true,
+    "plugin": ["typedoc-plugin-missing-exports"],
+    "readme": "./README.md",
+    "tsconfig": "./tsconfig.json"
 }
