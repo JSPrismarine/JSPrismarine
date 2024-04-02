@@ -28,3 +28,9 @@ jobs:
             - name: 🦺 Report Coverage to GitHub
               uses: davelosert/vitest-coverage-report-action@v2.3.0
 
+            - name: 🦺 Codecov Coverage Reports
+              uses: codecov/codecov-action@v4.0.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+
