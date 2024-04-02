@@ -1,5 +1,5 @@
-import Entity from '@/entity/Entity';
-import Player from '@/Player';
+import type Entity from '../entity/Entity';
+import type Player from '../Player';
 
 /**
  * Parse target selector argument.
