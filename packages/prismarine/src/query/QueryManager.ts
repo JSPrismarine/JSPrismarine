@@ -1,8 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import type { InetAddress } from '@jsprismarine/raknet';
-import PluginFile from '../plugin/PluginFile';
-import Server from '../Server';
-import git from 'git-rev-sync';
+import type PluginFile from '../plugin/PluginFile';
+import type Server from '../Server';
 
 export enum QueryType {
     Handshake = 0,
@@ -11,16 +10,9 @@ export enum QueryType {
 
 export default class QueryManager {
     private readonly server: Server;
-    public git_rev: string;
 
     public constructor(server: Server) {
         this.server = server;
-
-        try {
-            this.git_rev = git.short() || 'unknown';
-        } catch {
-            this.git_rev = 'unknown;';
-        }
     }
 
     public async onRaw(buffer: Buffer, rinfo: InetAddress): Promise<Buffer> {
@@ -85,11 +77,11 @@ export default class QueryManager {
                                 'version',
                                 // this.server.getRaknet().getName().getVersion(),
                                 'plugins',
-                                `JSPrismarine on Prismarine ${this.server.getConfig().getVersion()}-${this.git_rev}${
+                                `JSPrismarine on Prismarine ${this.server.getConfig().getVersion()}${
                                     (plugins.length && ': ') || ''
                                 }${plugins.join('; ')}`, // TODO
                                 'map',
-                                this.server.getWorldManager().getDefaultWorld()?.getName(),
+                                this.server.getWorldManager().getDefaultWorld().getName(),
                                 'numplayers',
                                 // this.server.getRaknet().getName().getOnlinePlayerCount(),
                                 'maxplayers',
