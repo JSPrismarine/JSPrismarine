@@ -22,6 +22,11 @@ const server = new Server({
 });
 
 (async () => {
+    process.on('uncaughtException', async (error) => {
+        console.error(error);
+        await server.shutdown({ crash: true });
+    });
+
     try {
         await server.bootstrap(config.getServerIp(), config.getServerPort());
     } catch (error: unknown) {
