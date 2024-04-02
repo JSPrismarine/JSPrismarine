@@ -5,6 +5,7 @@ on:
 
 jobs:
     lint:
+        name: 📃 Lint
         runs-on: ubuntu-latest
         env:
             TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
