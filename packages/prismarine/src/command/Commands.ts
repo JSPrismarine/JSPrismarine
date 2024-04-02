@@ -1,7 +1,6 @@
 import BanCommand from './vanilla/BanCommand';
 import DebugCommand from './jsprismarine/DebugCommand';
 import DeopCommand from './vanilla/DeopCommand';
-import EvalCommand from './jsprismarine/EvalCommand';
 import ExecuteCommand from './vanilla/ExecuteCommand';
 import GamemodeCommand from './vanilla/GamemodeCommand';
 import GameruleCommand from './vanilla/GameruleCommand';
@@ -25,7 +24,6 @@ export {
     BanCommand,
     DebugCommand,
     DeopCommand,
-    EvalCommand,
     ExecuteCommand,
     GamemodeCommand,
     GameruleCommand,
