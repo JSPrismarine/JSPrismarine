@@ -46,7 +46,6 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
     "devDependencies": {
-        "@types/async-exit-hook": "2.0.2",
         "@types/node": "20.12.2",
         "cross-env": "7.0.3",
         "glob": "10.3.12",
@@ -60,7 +59,6 @@
     },
     "dependencies": {
         "@jsprismarine/prismarine": "workspace:*",
-        "@jsprismarine/raknet": "workspace:*",
-        "async-exit-hook": "2.0.1"
+        "@jsprismarine/raknet": "workspace:*"
     }
 }
