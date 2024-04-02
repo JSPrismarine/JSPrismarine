@@ -57,6 +57,7 @@ export default class Console {
                 this.getServer().shutdown();
             }
 
+            // FIXME: Windows support.
             switch (key.name) {
                 case 'backspace': {
                     process.stdin.write('\b \b');
@@ -106,6 +107,7 @@ export default class Console {
     }
 
     public async onDisable(): Promise<void> {
+        process.stdin.removeAllListeners();
         this.cli.close();
         this.cli.removeAllListeners();
     }
