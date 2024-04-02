@@ -60,8 +60,13 @@ export default class Server {
     public static instance: Server;
 
     public constructor({ logger, config, version }: { logger?: LoggerBuilder; config: Config; version: string }) {
+        const advertisedVersion =
+            Identifiers.MinecraftVersions.length <= 1
+                ? `§ev${Identifiers.MinecraftVersions.at(0)}§r`
+                : `§ev${Identifiers.MinecraftVersions.at(0)}§r-§ev${Identifiers.MinecraftVersions.at(-1)}§r`;
+
         logger?.info(
-            `Starting JSPrismarine server version ${version} for Minecraft: Bedrock Edition v${Identifiers.MinecraftVersion} (protocol version ${Identifiers.Protocol})`,
+            `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${advertisedVersion} (protocol version §e${Identifiers.Protocol}§r)`,
             'Server'
         );
 

@@ -14,7 +14,7 @@ export default class ServerName {
         this.gamemode = server.getConfig().getGamemode();
         this.maxPlayers = server.getConfig().getMaxPlayers();
         this.protocol = (server as any).getIdentifiers().Protocol;
-        this.version = (server as any).getIdentifiers().MinecraftVersion;
+        this.version = (server as any).getIdentifiers().MinecraftVersions.at(0)!;
     }
 
     public getMotd(): string {

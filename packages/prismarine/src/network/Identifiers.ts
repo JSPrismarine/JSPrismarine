@@ -1,7 +1,6 @@
 const Identifiers = {
     Protocol: 662,
-
-    MinecraftVersion: '1.20.60',
+    MinecraftVersions: ['1.20.70', '1.20.71', '1.20.72', '1.20.73'],
 
     LoginPacket: 0x01,
     PlayStatusPacket: 0x02,
