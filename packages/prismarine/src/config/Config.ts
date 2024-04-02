@@ -19,7 +19,6 @@ export default class Config {
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
     private updateChannel!: 'stable';
-    private experimentalFlags!: string[];
 
     public constructor(version: string) {
         this.version = version;
@@ -48,7 +47,6 @@ export default class Config {
         this.viewDistance = this.configBuilder.get('view-distance', 10) as number;
         this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
-        this.experimentalFlags = this.configBuilder.get('experimental-flags', []) as string[];
     }
 
     public onDisable() {}
@@ -147,9 +145,5 @@ export default class Config {
 
     public getPacketCompressionLevel() {
         return this.packetCompressionLevel;
-    }
-
-    public getExperimentalFlags() {
-        return this.experimentalFlags;
     }
 }

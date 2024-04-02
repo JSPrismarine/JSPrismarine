@@ -53,7 +53,6 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 ## Documentation
 
 - [Running JSPrismarine](documentation/running.md)
-- [Experimental flags](documentation/experimental-flags.md)
 
 ## Remarks
 

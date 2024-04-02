@@ -286,12 +286,6 @@ export default class Server {
         this.tickerTimer = tick();
         this.tickerTimer.unref();
 
-        // Log experimental flags
-        if (this.config.getExperimentalFlags().length >= 1) {
-            this.logger.debug(`Enabled flags:`, 'Server/listen');
-            this.config.getExperimentalFlags().forEach((flag) => this.logger.debug(`- ${flag}`, 'Server/listen'));
-        }
-
         this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
     }
 
@@ -465,8 +459,6 @@ export default class Server {
      * Returns the current TPS
      */
     public getTPS(): number {
-        if (!this.config.getExperimentalFlags().includes('ticks')) return 20;
-
         return this.tps;
     }
 
@@ -478,13 +470,6 @@ export default class Server {
         five: number;
         ten: number;
     } {
-        if (!this.config.getExperimentalFlags().includes('ticks'))
-            return {
-                one: 20,
-                five: 20,
-                ten: 20
-            };
-
         let one = 0;
         for (let i = 10800; i < this.tpsHistory.length; i++) one += this.tpsHistory[i]!;
         one = Math.round(one / 1200);
