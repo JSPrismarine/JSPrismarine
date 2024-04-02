@@ -89,6 +89,7 @@ export default class Server {
 
     private async onEnable(): Promise<void> {
         this.config.onEnable();
+        await this.logger.onEnable();
         await this.permissionManager.onEnable();
         await this.pluginManager.onEnable();
         await this.banManager.onEnable();
@@ -106,6 +107,7 @@ export default class Server {
         await this.permissionManager.onDisable();
         await this.packetRegistry.onDisable();
         this.config.onDisable();
+        await this.logger.onDisable();
     }
 
     public async reload(): Promise<void> {
