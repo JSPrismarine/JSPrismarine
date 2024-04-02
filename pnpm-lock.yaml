@@ -69,6 +69,9 @@ importers:
       '@changesets/types':
         specifier: 6.0.0
         version: 6.0.0
+      '@droppedcode/typedoc-plugin-relative-includes':
+        specifier: 1.0.5
+        version: 1.0.5(typedoc@0.25.12)
       '@nordcom/prettier':
         specifier: 0.1.1
         version: 0.1.1
@@ -138,9 +141,18 @@ importers:
       typedoc:
         specifier: 0.25.12
         version: 0.25.12(typescript@5.4.3)
+      typedoc-material-theme:
+        specifier: 1.0.2
+        version: 1.0.2(typedoc@0.25.12)
+      typedoc-plugin-extras:
+        specifier: 3.0.0
+        version: 3.0.0(typedoc@0.25.12)
       typedoc-plugin-missing-exports:
         specifier: 2.2.0
         version: 2.2.0(typedoc@0.25.12)
+      typedoc-plugin-rename-defaults:
+        specifier: 0.7.0
+        version: 0.7.0(typedoc@0.25.12)
       typescript:
         specifier: 5.4.3
         version: 5.4.3
@@ -664,6 +676,14 @@ packages:
       enabled: 2.0.0
       kuler: 2.0.0
     dev: false
+
+  /@droppedcode/typedoc-plugin-relative-includes@1.0.5(typedoc@0.25.12):
+    resolution: {integrity: sha512-tfCm7K1uduKy57EV7SyhACQa4BQj87KiZVZgc5A8egCYaNVFPjv9iIPabPsAt/lbSbizB6aQ5qOInMO9Wa+pIg==}
+    peerDependencies:
+      typedoc: ^0.25.2
+    dependencies:
+      typedoc: 0.25.12(typescript@5.4.3)
+    dev: true
 
   /@es-joy/jsdoccomment@0.42.0:
     resolution: {integrity: sha512-R1w57YlVA6+YE01wch3GPYn6bCsrOV3YW/5oGGE2tmX6JcL9Nr+b5IikrjMPF+v9CV3ay+obImEdsDhovhJrzw==}
@@ -1236,6 +1256,10 @@ packages:
       fs-extra: 8.1.0
       globby: 11.1.0
       read-yaml-file: 1.1.0
+    dev: true
+
+  /@material/material-color-utilities@0.2.7:
+    resolution: {integrity: sha512-0FCeqG6WvK4/Cc06F/xXMd/pv4FeisI0c1tUpBbfhA2n9Y8eZEv4Karjbmf2ZqQCPUWMrGp8A571tCjizxoTiQ==}
     dev: true
 
   /@microsoft/api-extractor-model@7.28.13(@types/node@20.12.2):
@@ -2182,6 +2206,11 @@ packages:
   /camelcase@5.3.1:
     resolution: {integrity: sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==}
     engines: {node: '>=6'}
+    dev: true
+
+  /camelcase@8.0.0:
+    resolution: {integrity: sha512-8WB3Jcas3swSvjIeA2yvCJ+Miyz5l1ZmB6HFb9R1317dt9LCQoswg/BGrmAmkWVEszSrrg4RwmO46qIm2OEnSA==}
+    engines: {node: '>=16'}
     dev: true
 
   /chai@4.4.1:
@@ -5843,11 +5872,38 @@ packages:
       possible-typed-array-names: 1.0.0
     dev: true
 
+  /typedoc-material-theme@1.0.2(typedoc@0.25.12):
+    resolution: {integrity: sha512-/nH/twYeHrnz5sZaaXzYJ85EOgKqnbl1ivzBKmuEAga1dBsARttwQUTPKAT7XrCPD+rRcoqxuCOdXZ6EGiqRQA==}
+    engines: {node: '>=18.0.0', npm: '>=8.6.0'}
+    peerDependencies:
+      typedoc: ^0.25.3
+    dependencies:
+      '@material/material-color-utilities': 0.2.7
+      typedoc: 0.25.12(typescript@5.4.3)
+    dev: true
+
+  /typedoc-plugin-extras@3.0.0(typedoc@0.25.12):
+    resolution: {integrity: sha512-eiAe3qtm2WbV5owdncpt0zHZPqsNZH2mzNGILPd4zqrvEZie3Et9es4cpGZ+8lHO/SI0pVKwsAj7IuMxPNOdYg==}
+    peerDependencies:
+      typedoc: 0.25.x
+    dependencies:
+      typedoc: 0.25.12(typescript@5.4.3)
+    dev: true
+
   /typedoc-plugin-missing-exports@2.2.0(typedoc@0.25.12):
     resolution: {integrity: sha512-2+XR1IcyQ5UwXZVJe9NE6HrLmNufT9i5OwoIuuj79VxuA3eYq+Y6itS9rnNV1D7UeQnUSH8kISYD73gHE5zw+w==}
     peerDependencies:
       typedoc: 0.24.x || 0.25.x
     dependencies:
+      typedoc: 0.25.12(typescript@5.4.3)
+    dev: true
+
+  /typedoc-plugin-rename-defaults@0.7.0(typedoc@0.25.12):
+    resolution: {integrity: sha512-NudSQ1o/XLHNF9c4y7LzIZxfE9ltz09yCDklBPJpP5VMRvuBpYGIbQ0ZgmPz+EIV8vPx9Z/OyKwzp4HT2vDtfg==}
+    peerDependencies:
+      typedoc: 0.22.x || 0.23.x || 0.24.x || 0.25.x
+    dependencies:
+      camelcase: 8.0.0
       typedoc: 0.25.12(typescript@5.4.3)
     dev: true
 
