@@ -53,7 +53,7 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 
 ## Documentation
 
-- [Running JSPrismarine](documentation/running.md)
+- [Running JSPrismarine](docs/running.md)
 
 ## Remarks
 
