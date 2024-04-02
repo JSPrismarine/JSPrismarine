@@ -1,4 +1,4 @@
-import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { ArgumentCommandNode, type CommandDispatcher } from '@jsprismarine/brigadier';
 import type Player from '../Player';
 
 interface CommandProps {
@@ -47,4 +47,16 @@ export default class Command {
      * @deprecated Replaced with "Command.register"
      */
     public async execute(_sender: Player, _args: any[]): Promise<any> {}
+
+    public usage(dispatcher: CommandDispatcher<any>): string {
+        // TODO: Improve this, it's not really accurate right now.
+        return Array.from(dispatcher.findNode([this.id.split(':').at(-1)!]).getChildren())
+            .map((child) => {
+                if (!(child instanceof ArgumentCommandNode)) return null;
+                return child.getUsageText();
+            })
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+    }
 }
