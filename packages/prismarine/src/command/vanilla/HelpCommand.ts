@@ -1,7 +1,8 @@
-import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { literal } from '@jsprismarine/brigadier';
 
 import Command from '../Command';
-import { Player } from '../../';
+import type { Player } from '../../';
 
 export default class HelpCommand extends Command {
     public constructor() {
@@ -24,8 +25,12 @@ export default class HelpCommand extends Command {
                 .forEach(async (command) => {
                     if (!source.getServer().getPermissionManager().can(source).execute(command.permission)) return;
 
-                    // TODO: handle multiple commands with the same id but different namespaces
-                    await source.sendMessage(`§e/${command.id.split(':')[1]}:§r §7${command.description}`);
+                    const usage = command.usage(dispatcher);
+
+                    // TODO: deal with commands sharing the same name but not namespace (`minecraft:help` + `some-plugin:help`).
+                    await source.sendMessage(
+                        `§e/${command.id.split(':').at(-1)}§r${(usage && ` §b${usage}§r`) || ''}: §7${command.description}`
+                    );
                 });
         };
 
