@@ -107,7 +107,7 @@
     },
     "dependencies": {
         "@jsprismarine/bedrock-data": "1.20.70",
-        "@jsprismarine/brigadier": "0.2.0-rc.1",
+        "@jsprismarine/brigadier": "0.2.1",
         "@jsprismarine/jsbinaryutils": "5.5.3",
         "evt": "2.5.7",
         "fast-jwt": "4.0.0",

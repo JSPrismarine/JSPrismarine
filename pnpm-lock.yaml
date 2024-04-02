@@ -12,8 +12,8 @@ importers:
         specifier: 1.20.70
         version: 1.20.70
       '@jsprismarine/brigadier':
-        specifier: 0.2.0-rc.1
-        version: 0.2.0-rc.1
+        specifier: 0.2.1
+        version: 0.2.1
       '@jsprismarine/jsbinaryutils':
         specifier: 5.5.3
         version: 5.5.3
@@ -1223,8 +1223,8 @@ packages:
     resolution: {integrity: sha512-ZSNBDUQfIlbp35xOCjtTFxTBWTZC8NbR4JVowrYs4W2dauuaZ/ZGLmWfocSmScFOsO7yQ1+U0U1/VuVqNXaGqQ==}
     dev: false
 
-  /@jsprismarine/brigadier@0.2.0-rc.1:
-    resolution: {integrity: sha512-zxtiaF0RO/OTwjHeZT7/W9BAd3zw+OEb5xSNrdYfijOdry6I7y6Qabg2C9j/NHjWVklnuWKsoh9f2x9KiBAKpA==}
+  /@jsprismarine/brigadier@0.2.1:
+    resolution: {integrity: sha512-z99n5ATMzHf0CMneHQhPci7uL87gNtJbiBO+yjEFP3DPuhj1f3Kb0wVUq8Zm7XKmtMQrQIokpUARB9dNp3rVKA==}
     dependencies:
       yarnhook: 0.5.3
     dev: false
