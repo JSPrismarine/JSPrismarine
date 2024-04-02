@@ -1,7 +1,7 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
+import { Command } from '../Command';
 import Identifiers from '../../network/Identifiers';
 import type Player from '../../Player';
 

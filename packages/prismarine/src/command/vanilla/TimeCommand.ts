@@ -1,7 +1,8 @@
-import { CommandDispatcher, argument, integer, literal, string } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { argument, integer, literal, string } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
-import Player from '../../Player';
+import { Command } from '../Command';
+import type Player from '../../Player';
 
 export default class TimeCommand extends Command {
     public constructor() {
@@ -19,7 +20,7 @@ export default class TimeCommand extends Command {
                     argument('action', string()).then(
                         argument('value', integer()).executes(async (context) => {
                             const source = context.getSource() as Player;
-                            const world = source.getWorld?.() || source.getServer().getWorldManager().getDefaultWorld();
+                            const world = source.getWorld() || source.getServer().getWorldManager().getDefaultWorld();
 
                             const value = context.getArgument('value');
                             if (value < 0) throw new Error('value can not be less than 0');
@@ -46,7 +47,7 @@ export default class TimeCommand extends Command {
                 )
                 .executes(async (context) => {
                     const source = context.getSource() as Player;
-                    const world = source.getWorld?.() || source.getServer().getWorldManager().getDefaultWorld();
+                    const world = source.getWorld() || source.getServer().getWorldManager().getDefaultWorld();
 
                     await source.sendMessage(`The current time is ${world.getTicks()}`);
                 })

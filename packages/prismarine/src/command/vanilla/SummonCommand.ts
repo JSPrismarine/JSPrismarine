@@ -1,11 +1,12 @@
 import * as Entities from '../../entity/Entities';
 
 import { CommandArgumentMob } from '../CommandArguments';
-import { CommandDispatcher, argument, literal } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { argument, literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
-import Entity from '../../entity/Entity';
-import Player from '../../Player';
+import { Command } from '../Command';
+import type Entity from '../../entity/Entity';
+import type Player from '../../Player';
 import Vector3 from '../../math/Vector3';
 
 export default class SummonCommand extends Command {

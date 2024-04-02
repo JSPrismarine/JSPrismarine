@@ -1,7 +1,8 @@
-import { CommandDispatcher, literal } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { literal } from '@jsprismarine/brigadier';
 
-import Command from '../Command';
-import Player from '../../Player';
+import { Command } from '../Command';
+import type Player from '../../Player';
 
 export default class ListCommand extends Command {
     public constructor() {
