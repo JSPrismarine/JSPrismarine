@@ -1,5 +1,5 @@
 import type { ArgumentCommandNode } from '@jsprismarine/brigadier';
-import { CommandDispatcher } from '@jsprismarine/brigadier';
+import { CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
 
 import Chat from '../chat/Chat';
 import type Command from './Command';
@@ -12,6 +12,12 @@ import type Server from '../Server';
 import Timer from '../utils/Timer';
 import fs from 'node:fs';
 import url from 'node:url';
+import {
+    GenericNamespaceInvalidError,
+    CommandRegisterClassMalformedOrMissingError,
+    CommandUnknownCommandError,
+    Error
+} from '@jsprismarine/errors';
 
 export default class CommandManager {
     private readonly commands: Map<string, Command> = new Map();
@@ -85,9 +91,8 @@ export default class CommandManager {
      * Register a command into command manager by class.
      */
     public async registerClassCommand(command: Command) {
-        if (!command) throw new Error(`command is missing`);
-        if (!command.id) throw new Error(`command is missing required "id" member`);
-        if (command.id.split(':').length !== 2) throw new Error(`command is missing required "namespace" part of id`);
+        if (!command || !command.id) throw new CommandRegisterClassMalformedOrMissingError();
+        if (command.id.split(':').length !== 2) throw new GenericNamespaceInvalidError();
 
         if (!command.register)
             this.server
@@ -217,7 +222,10 @@ export default class CommandManager {
 
             this.server
                 .getLogger()
-                ?.verbose(`Dispatching command: ${input} (id: ${id})`, 'CommandManager/dispatchCommand');
+                ?.verbose(
+                    `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${id})`,
+                    'CommandManager/dispatchCommand'
+                );
 
             // Get command from parsed string.
             const command = Array.from(this.commands.values()).find(
@@ -231,8 +239,7 @@ export default class CommandManager {
                     command.id === id
             );
 
-            // TODO: Custom error.
-            if (!command) throw new Error('Unknown command');
+            if (!command) throw new CommandUnknownCommandError();
 
             if (!this.server.getPermissionManager().can(sender).execute(command.permission)) {
                 await sender.sendMessage(
@@ -295,10 +302,19 @@ export default class CommandManager {
                 await this.server.getChatManager().send(chat);
             }
         } catch (error: unknown) {
-            if ((error as any)?.type?.message?.toString?.() === 'Unknown command') {
-                await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
-                this.server.getLogger()?.verbose(`Unknown command: ${input}`, 'CommandManager/dispatchCommand');
-                return;
+            switch (true) {
+                case error instanceof CommandSyntaxException:
+                    await sender.sendMessage(`§c${error.getMessage()}`);
+                    return;
+                case error instanceof CommandUnknownCommandError:
+                    await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
+                    return;
+                case error instanceof Error:
+                    await sender.sendMessage(`§c${error.message}`);
+                    return;
+                default:
+                    this.server.getLogger()?.error(error, 'CommandManager/dispatchCommand');
+                    break;
             }
 
             await sender.sendMessage(`§c${error}`);
