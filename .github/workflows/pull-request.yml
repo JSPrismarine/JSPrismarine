@@ -1,0 +1,34 @@
+name: PRs
+
+on:
+    pull_request:
+        types: [opened, synchronize, labeled]
+
+jobs:
+    renovate:
+        name: 🔍 Update Lockfile & Add Changeset
+        runs-on: ubuntu-latest
+        if: contains(github.event.pull_request.labels.*.name, 'Dependency')
+
+        permissions:
+            contents: write
+            pull-requests: write
+
+        steps:
+            - name: 🕶️ Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  ref: ${{github.event.pull_request.head.ref}}
+                  repository: ${{github.event.pull_request.head.repo.full_name}}
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: 🚚 Update PR
+              uses: mscharley/dependency-changesets-action@v1.0.9
+              with:
+                  use-conventional-commits: false
+                  commit-message: 'Deps: Add changeset.'
+                  token: ${{ secrets.GITHUB_TOKEN }}
