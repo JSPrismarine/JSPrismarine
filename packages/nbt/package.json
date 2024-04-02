@@ -37,8 +37,9 @@
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
     "keywords": [
-        "nodejs",
-        "raknet"
+        "minecraft",
+        "nbt",
+        "bedrock"
     ],
     "author": "JSPrismarine",
     "license": "MIT",
