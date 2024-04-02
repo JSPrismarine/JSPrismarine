@@ -1,4 +1,5 @@
-import { Logger, createLogger, format, transports } from 'winston';
+import type { Logger } from 'winston';
+import { createLogger, format, transports } from 'winston';
 
 import colorParser from '@jsprismarine/color-parser';
 import cwd from './cwd';
@@ -9,7 +10,7 @@ const { combine, timestamp, printf } = format;
 
 export default class LoggerBuilder {
     public static logFile: string;
-    private readonly logger: Logger;
+    private logger!: Logger;
 
     public constructor() {
         const date = new Date();
@@ -28,50 +29,67 @@ export default class LoggerBuilder {
                 .toString()
                 .padStart(2, '0')}.log`;
 
-        this.logger = createLogger({
-            transports: [
-                new transports.Console({
-                    level: (global as any).log_level || 'info',
-                    format: combine(
-                        timestamp({ format: 'HH:mm:ss' }),
-                        format((info) => {
-                            info.level = info.level.toUpperCase();
-                            return info;
-                        })(),
-                        format.colorize(),
-                        format.simple(),
-                        printf(({ level, message, timestamp, namespace }) => {
-                            return `[${timestamp} ${level}${colorParser(
-                                `${
-                                    namespace &&
-                                    ((global as any).log_level === 'silly' ||
-                                        (global as any).log_level === 'debug' ||
-                                        (global as any).log_level === 'verbose')
-                                        ? ` ${namespace}]`
-                                        : ']'
-                                }: ${message}`
-                            )}`;
-                        })
-                    )
-                }),
-                new transports.File({
-                    level: 'debug',
-                    filename: path.join(cwd(), 'logs', `${LoggerBuilder.logFile}`),
-                    format: combine(
-                        timestamp({ format: 'HH:mm:ss.SS' }),
-                        format.simple(),
-                        printf(({ level, message, timestamp, namespace }: any) => {
-                            return `[${timestamp}] [${level}]${colorParser(
-                                `${namespace ? ` [${namespace}]` : ''}: ${message}`
-                            )}`.replaceAll(
-                                /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-                                ''
-                            );
-                        })
-                    )
-                })
-            ]
-        });
+        this.createLogger();
+    }
+
+    public createLogger() {
+        if (!this.logger || this.logger.closed) {
+            this.logger = createLogger({
+                transports: [
+                    new transports.Console({
+                        level: (global as any).log_level || 'info',
+                        format: combine(
+                            timestamp({ format: 'HH:mm:ss' }),
+                            format((info) => {
+                                info.level = info.level.toUpperCase();
+                                return info;
+                            })(),
+                            format.colorize(),
+                            format.simple(),
+                            printf(({ level, message, timestamp, namespace }) => {
+                                return `[${timestamp} ${level}${colorParser(
+                                    `${
+                                        namespace &&
+                                        ((global as any).log_level === 'silly' ||
+                                            (global as any).log_level === 'debug' ||
+                                            (global as any).log_level === 'verbose')
+                                            ? ` ${namespace}]`
+                                            : ']'
+                                    }: ${message}`
+                                )}`;
+                            })
+                        )
+                    }),
+                    new transports.File({
+                        level: 'debug',
+                        filename: path.join(cwd(), 'logs', `${LoggerBuilder.logFile}`),
+                        format: combine(
+                            timestamp({ format: 'HH:mm:ss.SS' }),
+                            format.simple(),
+                            printf(({ level, message, timestamp, namespace }: any) => {
+                                return `[${timestamp}] [${level}]${colorParser(
+                                    `${namespace ? ` [${namespace}]` : ''}: ${message}`
+                                )}`.replaceAll(
+                                    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+                                    ''
+                                );
+                            })
+                        )
+                    })
+                ]
+            });
+        }
+    }
+
+    public async onEnable(): Promise<void> {
+        this.createLogger();
+        this.logger.level = (global as any).log_level || 'info';
+    }
+
+    public async onDisable(): Promise<void> {
+        // TODO: Fix this
+        //this.logger.close();
+        //this.logger.destroy();
     }
 
     public getLog(): string | undefined {
@@ -114,6 +132,7 @@ export default class LoggerBuilder {
             return;
         }
         const error = message as Error;
+        // eslint-disable-next-line no-console
         console.log({
             name: error.name,
             stack: error.stack,
