@@ -217,7 +217,7 @@ export default class CommandManager {
 
             // Get command from parsed string
             const command = Array.from(this.commands.values()).find(
-                (command) => command.id.split(':')[1] === id || command.aliases?.includes(id)
+                (command) => command.id.split(':').at(-1) === id || command.id === id || command.aliases?.includes(id)
             );
 
             if (!this.server.getPermissionManager().can(sender).execute(command?.permission)) {

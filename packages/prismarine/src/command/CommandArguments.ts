@@ -1,13 +1,14 @@
 import * as Entities from '../entity/Entities';
 
-import { CommandContext, StringReader, Suggestions } from '@jsprismarine/brigadier';
+import type { CommandContext, StringReader } from '@jsprismarine/brigadier';
+import { Suggestions } from '@jsprismarine/brigadier';
 import CommandParameter, { CommandParameterFlags, CommandParameterType } from '../network/type/CommandParameter';
 
 import CommandEnum from '../network/type/CommandEnum';
 import Gamemode from '../world/Gamemode';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
-import Player from '../Player';
+import type Player from '../Player';
 import { Server } from '../';
 import Vector3 from '../math/Vector3';
 
@@ -15,7 +16,7 @@ export abstract class CommandArgument {
     public getReadableType(): string {
         return '';
     }
-    public getParameters(): Set<CommandParameter> {
+    public getParameters(): Set<CommandParameter> | undefined {
         return new Set();
     }
 }

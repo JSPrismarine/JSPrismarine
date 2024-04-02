@@ -40,7 +40,6 @@ describe('QueryManager', () => {
             config: null as any,
             version: 'test'
         });
-        console.log(prismarine);
         const queryManager = new QueryManager(prismarine);
 
         let stream = new BinaryStream();

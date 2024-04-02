@@ -382,7 +382,6 @@ export default class PlayerSession {
                                         paramType: CommandParameterType.Target
                                     })
                                 ];
-
                             if (parameter instanceof CommandArgumentGamemode)
                                 return [
                                     new CommandParameter({

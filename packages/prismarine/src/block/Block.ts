@@ -47,7 +47,6 @@ export default class Block {
         this.hardness = hardness ?? 0;
 
         this.networkId = BlockIdMap[parentName ?? name] as number;
-        // if (!this.networkId) console.log(name, id, this.networkId);
     }
 
     /**
