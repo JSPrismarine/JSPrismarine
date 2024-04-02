@@ -61,7 +61,6 @@
     "dependencies": {
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
-        "@jsprismarine/updater": "workspace:*",
         "async-exit-hook": "2.0.1"
     }
 }

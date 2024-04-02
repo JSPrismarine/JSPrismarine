@@ -18,7 +18,6 @@ export default class Config {
     private viewDistance!: number;
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
-    private updateRepo!: string;
     private updateChannel!: 'stable';
     private experimentalFlags!: string[];
 
@@ -50,9 +49,6 @@ export default class Config {
         this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
         this.experimentalFlags = this.configBuilder.get('experimental-flags', []) as string[];
-
-        this.updateRepo = this.configBuilder.get('update-repo', 'JSPrismarine/JSPrismarine') as string;
-        this.updateChannel = this.configBuilder.get('update-channel', 'release');
     }
 
     public onDisable() {}
@@ -151,14 +147,6 @@ export default class Config {
 
     public getPacketCompressionLevel() {
         return this.packetCompressionLevel;
-    }
-
-    public getUpdateRepo() {
-        return this.updateRepo;
-    }
-
-    public getUpdateChannel() {
-        return this.updateChannel;
     }
 
     public getExperimentalFlags() {
