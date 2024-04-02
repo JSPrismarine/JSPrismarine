@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
 import path from 'node:path';
 
-interface WorldData {
+export interface WorldData {
     name: string;
     path: string;
     server: Server;
