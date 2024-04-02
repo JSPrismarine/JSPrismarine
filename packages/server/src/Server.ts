@@ -1,6 +1,5 @@
 import { Config, Logger, Server } from '@jsprismarine/prismarine';
 
-import exitHook from 'async-exit-hook';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -22,10 +21,6 @@ const server = new Server({
     version
 });
 
-exitHook(async () => {
-    await server.shutdown();
-});
-
 (async () => {
     try {
         await server.bootstrap(config.getServerIp(), config.getServerPort());
@@ -33,6 +28,5 @@ exitHook(async () => {
         console.error(error);
         logger.error(`Cannot start the server, is it already running on the same port?`, 'Prismarine');
         await server.shutdown({ crash: true });
-        process.exit(1);
     }
 })();
