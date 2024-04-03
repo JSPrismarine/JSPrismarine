@@ -35,7 +35,8 @@ export default class Server {
     private raknet!: RakNetListener;
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
-    private tps = 20;
+    private tps = 0;
+    private tick = 0;
     private readonly console: Console;
     private readonly eventManager = new EventManager();
     private readonly packetRegistry: PacketRegistry;
@@ -194,7 +195,6 @@ export default class Server {
             }
 
             this.logger.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
-
             this.logger.debug(
                 `Player destruction took about ${Date.now() - time} ms`,
                 'Server/listen/raknetDisconnect'
@@ -271,24 +271,62 @@ export default class Server {
             }
         });
 
-        // TODO: calculate TPS.
-        let tickCount = 0;
-        const tick = () =>
-            setTimeout(() => {
-                const event = new TickEvent(tickCount);
-                void this.eventManager.emit('tick', event);
+        let startTime = Date.now();
+        let tpsStartTime = Date.now();
+        let lastTickTime = Date.now();
+        let tpsStartTick = this.tick;
+        const tick = () => {
+            if (this.stopping) return;
 
-                for (const world of this.worldManager.getWorlds()) {
-                    void world.update(event.getTick());
-                }
+            const event = new TickEvent(this.tick);
+            void this.eventManager.emit('tick', event);
 
-                ++tickCount;
-                tick();
-            }, Server.MINECRAFT_TICK_TIME_MS);
+            const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
+
+            // Update all worlds
+            for (const world of this.worldManager.getWorlds()) {
+                void world.update(event.getTick());
+            }
+
+            // Update RakNet server name
+            if (this.tick % ticksPerSecond === 0) {
+                this.raknet.setServerName(buildRakNetServerName(this));
+            }
+
+            this.tick++;
+            const endTime = Date.now();
+            const elapsedTime = endTime - startTime;
+            const expectedElapsedTime = this.tick * Server.MINECRAFT_TICK_TIME_MS;
+            const executionTime = endTime - lastTickTime;
+
+            // Adjust sleepTime based on execution speed
+            let sleepTime = Server.MINECRAFT_TICK_TIME_MS - executionTime;
+            if (elapsedTime < expectedElapsedTime) {
+                // If we're running faster than expected, increase sleepTime
+                sleepTime += expectedElapsedTime - elapsedTime;
+            } else if (elapsedTime > expectedElapsedTime) {
+                // If we're running slower than expected, decrease sleepTime but don't let it go below 0
+                sleepTime = Math.max(0, sleepTime - (elapsedTime - expectedElapsedTime));
+            }
+
+            // Calculate tps based on the actual elapsed time since the start of the tick
+            if (tpsStartTime !== endTime) {
+                this.tps = ((this.tick - tpsStartTick) * 1000) / (endTime - tpsStartTime);
+            }
+
+            if (endTime - tpsStartTime >= 1000) {
+                tpsStartTick = this.tick;
+                tpsStartTime = endTime;
+            }
+
+            this.tps = Math.min(this.tps, 20); // Ensure tps does not exceed 20
+
+            lastTickTime = endTime;
+            this.tickerTimer = setTimeout(tick, sleepTime);
+        };
 
         // Start ticking
-        this.tickerTimer = tick();
-        this.tickerTimer.unref();
+        tick();
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
     }
@@ -464,5 +502,12 @@ export default class Server {
      */
     public getTPS(): number {
         return this.tps;
+    }
+
+    /**
+     * Returns the current Tick
+     */
+    public getTick(): number {
+        return this.tick;
     }
 }
