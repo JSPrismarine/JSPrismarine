@@ -79,8 +79,8 @@ importers:
         specifier: 0.2.34
         version: 0.2.34
       '@types/node':
-        specifier: 20.12.3
-        version: 20.12.3
+        specifier: 20.12.4
+        version: 20.12.4
       '@types/unzipper':
         specifier: 0.10.9
         version: 0.10.9
@@ -164,19 +164,19 @@ importers:
         version: 5.4.3
       vite:
         specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.3)
+        version: 5.2.8(@types/node@20.12.4)
       vite-plugin-dts:
         specifier: 3.8.1
-        version: 3.8.1(@types/node@20.12.3)(typescript@5.4.3)(vite@5.2.8)
+        version: 3.8.1(@types/node@20.12.4)(typescript@5.4.3)(vite@5.2.8)
       vitest:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
 
   packages/brigadier:
     devDependencies:
       '@types/node':
-        specifier: 20.12.3
-        version: 20.12.3
+        specifier: 20.12.4
+        version: 20.12.4
       glob:
         specifier: 10.3.12
         version: 10.3.12
@@ -188,10 +188,10 @@ importers:
         version: 5.4.3
       vite:
         specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.3)
+        version: 5.2.8(@types/node@20.12.4)
       vitest:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
 
   packages/client:
     dependencies:
@@ -206,8 +206,8 @@ importers:
         version: 3.0.3
     devDependencies:
       '@types/node':
-        specifier: 20.12.3
-        version: 20.12.3
+        specifier: 20.12.4
+        version: 20.12.4
       glob:
         specifier: 10.3.12
         version: 10.3.12
@@ -219,10 +219,10 @@ importers:
         version: 5.4.3
       vite:
         specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.3)
+        version: 5.2.8(@types/node@20.12.4)
       vitest:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
 
   packages/color-parser:
     dependencies:
@@ -231,8 +231,8 @@ importers:
         version: 5.3.0
     devDependencies:
       '@types/node':
-        specifier: 20.12.3
-        version: 20.12.3
+        specifier: 20.12.4
+        version: 20.12.4
       glob:
         specifier: 10.3.12
         version: 10.3.12
@@ -244,16 +244,16 @@ importers:
         version: 5.4.3
       vite:
         specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.3)
+        version: 5.2.8(@types/node@20.12.4)
       vitest:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
 
   packages/errors:
     devDependencies:
       '@types/node':
-        specifier: 20.12.3
-        version: 20.12.3
+        specifier: 20.12.4
+        version: 20.12.4
       glob:
         specifier: 10.3.12
         version: 10.3.12
@@ -265,10 +265,10 @@ importers:
         version: 5.4.3
       vite:
         specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.3)
+        version: 5.2.8(@types/node@20.12.4)
       vitest:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
 
   packages/nbt:
     dependencies:
@@ -277,8 +277,8 @@ importers:
         version: 5.5.3
     devDependencies:
       '@types/node':
-        specifier: 20.12.3
-        version: 20.12.3
+        specifier: 20.12.4
+        version: 20.12.4
       glob:
         specifier: 10.3.12
         version: 10.3.12
@@ -290,10 +290,10 @@ importers:
         version: 5.4.3
       vite:
         specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.3)
+        version: 5.2.8(@types/node@20.12.4)
       vitest:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
 
   packages/prismarine:
     dependencies:
@@ -332,8 +332,8 @@ importers:
         specifier: 4.1.9
         version: 4.1.9
       '@types/node':
-        specifier: 20.12.3
-        version: 20.12.3
+        specifier: 20.12.4
+        version: 20.12.4
       glob:
         specifier: 10.3.12
         version: 10.3.12
@@ -345,10 +345,10 @@ importers:
         version: 5.4.3
       vite:
         specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.3)
+        version: 5.2.8(@types/node@20.12.4)
       vitest:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
 
   packages/raknet:
     dependencies:
@@ -360,8 +360,8 @@ importers:
         version: 8.19.0
     devDependencies:
       '@types/node':
-        specifier: 20.12.3
-        version: 20.12.3
+        specifier: 20.12.4
+        version: 20.12.4
       glob:
         specifier: 10.3.12
         version: 10.3.12
@@ -373,10 +373,10 @@ importers:
         version: 5.4.3
       vite:
         specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.3)
+        version: 5.2.8(@types/node@20.12.4)
       vitest:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
 
   packages/server:
     dependencies:
@@ -388,8 +388,8 @@ importers:
         version: link:../raknet
     devDependencies:
       '@types/node':
-        specifier: 20.12.3
-        version: 20.12.3
+        specifier: 20.12.4
+        version: 20.12.4
       cross-env:
         specifier: 7.0.3
         version: 7.0.3
@@ -410,13 +410,13 @@ importers:
         version: 5.4.3
       vite:
         specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.3)
+        version: 5.2.8(@types/node@20.12.4)
       vite-node:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
       vitest:
         specifier: 1.4.0
-        version: 1.4.0(@types/node@20.12.3)
+        version: 1.4.0(@types/node@20.12.4)
 
 packages:
 
@@ -1283,27 +1283,27 @@ packages:
     resolution: {integrity: sha512-0FCeqG6WvK4/Cc06F/xXMd/pv4FeisI0c1tUpBbfhA2n9Y8eZEv4Karjbmf2ZqQCPUWMrGp8A571tCjizxoTiQ==}
     dev: true
 
-  /@microsoft/api-extractor-model@7.28.13(@types/node@20.12.3):
+  /@microsoft/api-extractor-model@7.28.13(@types/node@20.12.4):
     resolution: {integrity: sha512-39v/JyldX4MS9uzHcdfmjjfS6cYGAoXV+io8B5a338pkHiSt+gy2eXQ0Q7cGFJ7quSa1VqqlMdlPrB6sLR/cAw==}
     dependencies:
       '@microsoft/tsdoc': 0.14.2
       '@microsoft/tsdoc-config': 0.16.2
-      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.3)
+      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.4)
     transitivePeerDependencies:
       - '@types/node'
     dev: true
 
-  /@microsoft/api-extractor@7.43.0(@types/node@20.12.3):
+  /@microsoft/api-extractor@7.43.0(@types/node@20.12.4):
     resolution: {integrity: sha512-GFhTcJpB+MI6FhvXEI9b2K0snulNLWHqC/BbcJtyNYcKUiw7l3Lgis5ApsYncJ0leALX7/of4XfmXk+maT111w==}
     hasBin: true
     dependencies:
-      '@microsoft/api-extractor-model': 7.28.13(@types/node@20.12.3)
+      '@microsoft/api-extractor-model': 7.28.13(@types/node@20.12.4)
       '@microsoft/tsdoc': 0.14.2
       '@microsoft/tsdoc-config': 0.16.2
-      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.3)
+      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.4)
       '@rushstack/rig-package': 0.5.2
-      '@rushstack/terminal': 0.10.0(@types/node@20.12.3)
-      '@rushstack/ts-command-line': 4.19.1(@types/node@20.12.3)
+      '@rushstack/terminal': 0.10.0(@types/node@20.12.4)
+      '@rushstack/ts-command-line': 4.19.1(@types/node@20.12.4)
       lodash: 4.17.21
       minimatch: 3.0.8
       resolve: 1.22.8
@@ -1482,7 +1482,7 @@ packages:
     dev: true
     optional: true
 
-  /@rushstack/node-core-library@4.0.2(@types/node@20.12.3):
+  /@rushstack/node-core-library@4.0.2(@types/node@20.12.4):
     resolution: {integrity: sha512-hyES82QVpkfQMeBMteQUnrhASL/KHPhd7iJ8euduwNJG4mu2GSOKybf0rOEjOm1Wz7CwJEUm9y0yD7jg2C1bfg==}
     peerDependencies:
       '@types/node': '*'
@@ -1490,7 +1490,7 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@types/node': 20.12.3
+      '@types/node': 20.12.4
       fs-extra: 7.0.1
       import-lazy: 4.0.0
       jju: 1.4.0
@@ -1506,7 +1506,7 @@ packages:
       strip-json-comments: 3.1.1
     dev: true
 
-  /@rushstack/terminal@0.10.0(@types/node@20.12.3):
+  /@rushstack/terminal@0.10.0(@types/node@20.12.4):
     resolution: {integrity: sha512-UbELbXnUdc7EKwfH2sb8ChqNgapUOdqcCIdQP4NGxBpTZV2sQyeekuK3zmfQSa/MN+/7b4kBogl2wq0vpkpYGw==}
     peerDependencies:
       '@types/node': '*'
@@ -1514,15 +1514,15 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.3)
-      '@types/node': 20.12.3
+      '@rushstack/node-core-library': 4.0.2(@types/node@20.12.4)
+      '@types/node': 20.12.4
       supports-color: 8.1.1
     dev: true
 
-  /@rushstack/ts-command-line@4.19.1(@types/node@20.12.3):
+  /@rushstack/ts-command-line@4.19.1(@types/node@20.12.4):
     resolution: {integrity: sha512-J7H768dgcpG60d7skZ5uSSwyCZs/S2HrWP1Ds8d1qYAyaaeJmpmmLr9BVw97RjFzmQPOYnoXcKA4GkqDCkduQg==}
     dependencies:
-      '@rushstack/terminal': 0.10.0(@types/node@20.12.3)
+      '@rushstack/terminal': 0.10.0(@types/node@20.12.4)
       '@types/argparse': 1.0.38
       argparse: 1.0.10
       string-argv: 0.3.2
@@ -1551,13 +1551,13 @@ packages:
   /@types/fs-extra@9.0.13:
     resolution: {integrity: sha512-nEnwB++1u5lVDM2UI4c1+5R+FYaKfaAzS4OococimjVm3nQw3TuzH5UNsocrcTBbhnerblyHj4A49qXbIiZdpA==}
     dependencies:
-      '@types/node': 20.12.3
+      '@types/node': 20.12.4
     dev: false
 
   /@types/graceful-fs@4.1.9:
     resolution: {integrity: sha512-olP3sd1qOEe5dXTSaFvQG+02VdRXcdytWLAZsAq1PecU8uqQAhkrnbli7DagjtXKW/Bl7YJbUsa8MPcuc8LHEQ==}
     dependencies:
-      '@types/node': 20.12.3
+      '@types/node': 20.12.4
     dev: true
 
   /@types/heap@0.2.34:
@@ -1591,7 +1591,7 @@ packages:
   /@types/node-fetch@2.6.11:
     resolution: {integrity: sha512-24xFj9R5+rfQJLRyM56qh+wnVSYhyXC2tkoBndtY0U+vubqNsYXGjufB2nn8Q6gt0LrARwL6UBtMCSVCwl4B1g==}
     dependencies:
-      '@types/node': 20.12.3
+      '@types/node': 20.12.4
       form-data: 4.0.0
     dev: false
 
@@ -1599,8 +1599,8 @@ packages:
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
     dev: true
 
-  /@types/node@20.12.3:
-    resolution: {integrity: sha512-sD+ia2ubTeWrOu+YMF+MTAB7E+O7qsMqAbMfW7DG3K1URwhZ5hN1pLlRVGbf4wDFzSfikL05M17EyorS86jShw==}
+  /@types/node@20.12.4:
+    resolution: {integrity: sha512-E+Fa9z3wSQpzgYQdYmme5X3OTuejnnTx88A6p6vkkJosR3KBz+HpE3kqNm98VE6cfLFcISx7zW7MsJkH6KwbTw==}
     dependencies:
       undici-types: 5.26.5
 
@@ -1614,7 +1614,7 @@ packages:
   /@types/tar@6.1.11:
     resolution: {integrity: sha512-ThA1WD8aDdVU4VLuyq5NEqriwXErF5gEIJeyT6gHBWU7JtSmW2a5qjNv3/vR82O20mW+1vhmeZJfBQPT3HCugg==}
     dependencies:
-      '@types/node': 20.12.3
+      '@types/node': 20.12.4
       minipass: 4.2.8
     dev: false
 
@@ -1625,7 +1625,7 @@ packages:
   /@types/unzipper@0.10.9:
     resolution: {integrity: sha512-vHbmFZAw8emNAOVkHVbS3qBnbr0x/qHQZ+ei1HE7Oy6Tyrptl+jpqnOX+BF5owcu/HZLOV0nJK+K9sjs1Ox2JA==}
     dependencies:
-      '@types/node': 20.12.3
+      '@types/node': 20.12.4
     dev: true
 
   /@types/url-join@4.0.1:
@@ -1851,7 +1851,7 @@ packages:
       strip-literal: 2.0.0
       test-exclude: 6.0.0
       v8-to-istanbul: 9.2.0
-      vitest: 1.4.0(@types/node@20.12.3)
+      vitest: 1.4.0(@types/node@20.12.4)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -6164,7 +6164,7 @@ packages:
     engines: {node: '>= 0.10'}
     dev: true
 
-  /vite-node@1.4.0(@types/node@20.12.3):
+  /vite-node@1.4.0(@types/node@20.12.4):
     resolution: {integrity: sha512-VZDAseqjrHgNd4Kh8icYHWzTKSCZMhia7GyHfhtzLW33fZlG9SwsB6CEhgyVOWkJfJ2pFLrp/Gj1FSfAiqH9Lw==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -6173,7 +6173,7 @@ packages:
       debug: 4.3.4(supports-color@5.5.0)
       pathe: 1.1.2
       picocolors: 1.0.0
-      vite: 5.2.8(@types/node@20.12.3)
+      vite: 5.2.8(@types/node@20.12.4)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -6185,7 +6185,7 @@ packages:
       - terser
     dev: true
 
-  /vite-plugin-dts@3.8.1(@types/node@20.12.3)(typescript@5.4.3)(vite@5.2.8):
+  /vite-plugin-dts@3.8.1(@types/node@20.12.4)(typescript@5.4.3)(vite@5.2.8):
     resolution: {integrity: sha512-zEYyQxH7lKto1VTKZHF3ZZeOPkkJgnMrePY4VxDHfDSvDjmYMMfWjZxYmNwW8QxbaItWJQhhXY+geAbyNphI7g==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
@@ -6195,14 +6195,14 @@ packages:
       vite:
         optional: true
     dependencies:
-      '@microsoft/api-extractor': 7.43.0(@types/node@20.12.3)
+      '@microsoft/api-extractor': 7.43.0(@types/node@20.12.4)
       '@rollup/pluginutils': 5.1.0
       '@vue/language-core': 1.8.27(typescript@5.4.3)
       debug: 4.3.4(supports-color@5.5.0)
       kolorist: 1.8.0
       magic-string: 0.30.8
       typescript: 5.4.3
-      vite: 5.2.8(@types/node@20.12.3)
+      vite: 5.2.8(@types/node@20.12.4)
       vue-tsc: 1.8.27(typescript@5.4.3)
     transitivePeerDependencies:
       - '@types/node'
@@ -6210,7 +6210,7 @@ packages:
       - supports-color
     dev: true
 
-  /vite@5.2.8(@types/node@20.12.3):
+  /vite@5.2.8(@types/node@20.12.4):
     resolution: {integrity: sha512-OyZR+c1CE8yeHw5V5t59aXsUPPVTHMDjEZz8MgguLL/Q7NblxhZUlTu9xSPqlsUO/y+X7dlU05jdhvyycD55DA==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -6238,7 +6238,7 @@ packages:
       terser:
         optional: true
     dependencies:
-      '@types/node': 20.12.3
+      '@types/node': 20.12.4
       esbuild: 0.20.2
       postcss: 8.4.38
       rollup: 4.13.0
@@ -6246,7 +6246,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vitest@1.4.0(@types/node@20.12.3):
+  /vitest@1.4.0(@types/node@20.12.4):
     resolution: {integrity: sha512-gujzn0g7fmwf83/WzrDTnncZt2UiXP41mHuFYFrdwaLRVQ6JYQEiME2IfEjU3vcFL3VKa75XhI3lFgn+hfVsQw==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
@@ -6271,7 +6271,7 @@ packages:
       jsdom:
         optional: true
     dependencies:
-      '@types/node': 20.12.3
+      '@types/node': 20.12.4
       '@vitest/expect': 1.4.0
       '@vitest/runner': 1.4.0
       '@vitest/snapshot': 1.4.0
@@ -6289,8 +6289,8 @@ packages:
       strip-literal: 2.0.0
       tinybench: 2.6.0
       tinypool: 0.8.2
-      vite: 5.2.8(@types/node@20.12.3)
-      vite-node: 1.4.0(@types/node@20.12.3)
+      vite: 5.2.8(@types/node@20.12.4)
+      vite-node: 1.4.0(@types/node@20.12.4)
       why-is-node-running: 2.2.2
     transitivePeerDependencies:
       - less
