@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { randomUUID } from 'node:crypto';
 
 export default class UUID {
     private readonly parts: number[] = [];
@@ -40,12 +41,7 @@ export default class UUID {
      * Generates a random UUIDv4 (string)
      */
     public static randomString(): string {
-        let dt = Date.now();
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replaceAll(/[xy]/g, (c) => {
-            const r = Math.trunc((dt + Math.random() * 16) % 16);
-            dt = Math.floor(dt / 16);
-            return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-        });
+        return randomUUID();
     }
 
     /**
