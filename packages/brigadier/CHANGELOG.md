@@ -1,5 +1,12 @@
 # @jsprismarine/client
 
+## 0.3.0
+
+### Minor Changes
+
+- [`18555da`](https://github.com/JSPrismarine/JSPrismarine/commit/18555da4a0e01bb6fe8996eef822a58bf4c18f59) Thanks [@filiphsps](https://github.com/filiphsps)! - Migrate to monorepo, this means that we now also build both `esm` and
+  `cjs` versions of this package! :rocket:
+
 ## 0.1.1
 
 ### Patch Changes

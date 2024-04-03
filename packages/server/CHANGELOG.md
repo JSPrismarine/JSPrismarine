@@ -1,5 +1,13 @@
 # @jsprismarine/server
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/prismarine@0.3.0
+  - @jsprismarine/raknet@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes
