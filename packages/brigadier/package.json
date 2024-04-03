@@ -6,6 +6,7 @@
     "type": "module",
     "files": [
         "dist",
+        "LICENSE",
         "CHANGELOG.md",
         "README.md"
     ],
@@ -42,7 +43,7 @@
     ],
     "author": "JSPrismarine",
     "license": "MIT",
-    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/brigadier",
     "devDependencies": {
         "@types/node": "20.12.2",
         "glob": "10.3.12",
