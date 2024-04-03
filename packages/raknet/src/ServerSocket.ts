@@ -5,7 +5,7 @@ import { EventEmitter } from 'events';
 import type Packet from './protocol/Packet';
 import { RAKNET_TPS } from './Constants';
 import RakNetSession from './Session';
-import OfflineHandler from './protocol/OfflineHandler';
+import { OfflineHandler } from './protocol/OfflineHandler';
 
 export default class ServerSocket extends EventEmitter {
     private readonly socket: Dgram.Socket;
@@ -13,6 +13,7 @@ export default class ServerSocket extends EventEmitter {
     private readonly sessions: Set<RakNetSession> = new Set();
     private readonly logger: Logger;
     private ticker: NodeJS.Timeout | undefined;
+    private serverName: string = 'RakNet';
 
     private readonly offlineHandler = new OfflineHandler(this);
 
@@ -30,7 +31,7 @@ export default class ServerSocket extends EventEmitter {
         this.logger.level = 'trace'; // TODO: via pino-pretty cli
 
         if (this.onlineMode) {
-            this.logger.warn('onlineMode is currently not respected.');
+            this.logger.warn('Online mode is currently not supported.');
         }
     }
 
@@ -111,6 +112,22 @@ export default class ServerSocket extends EventEmitter {
      */
     public setMaxConnections(allowed: number) {
         this.maxConnections = allowed;
+    }
+
+    /**
+     * Returns the name of the server.
+     * @returns {string} the name of the server.
+     */
+    public getServerName() {
+        return this.serverName;
+    }
+
+    /**
+     * Sets the name of the server.
+     * @param {string} name - the name of the server.
+     */
+    public setServerName(name: string) {
+        this.serverName = name;
     }
 
     public addSession(rinfo: RemoteInfo, mtuSize: number, incomingGuid: bigint) {

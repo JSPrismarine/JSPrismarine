@@ -17,7 +17,7 @@ import UnconnectedPong from './offline/UnconnectedPong';
 import type ServerSocket from '../ServerSocket';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 
-export default class OfflineHandler {
+export class OfflineHandler {
     public constructor(private readonly listener: ServerSocket) {}
 
     public process(msg: Buffer, rinfo: RemoteInfo): void {
@@ -33,11 +33,8 @@ export default class OfflineHandler {
 
                 const pong = new UnconnectedPong();
                 pong.timestamp = ping.timestamp;
-
-                const guid = this.listener.getServerGuid();
-                pong.serverGuid = guid;
-                pong.serverName = `MCPE;JSPrismarine;630;1.20.50;0;20;${guid};Second line;Creative;`; // TODO: Respect config.
-
+                pong.serverGuid = this.listener.getServerGuid();
+                pong.serverName = this.listener.getServerName();
                 this.listener.sendPacket(pong, rinfo);
                 break;
             // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L5127
