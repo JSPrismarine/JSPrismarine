@@ -1,4 +1,4 @@
-import type Server from '@/Server';
+import type Server from '../Server';
 
 /**
  * Builds the server name for RakNet.
