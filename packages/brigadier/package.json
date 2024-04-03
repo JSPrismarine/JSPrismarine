@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/brigadier",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "description": "A javascript re-implementation of Mojang's Brigadier library",
     "sideEffects": false,
     "type": "module",
