@@ -19,7 +19,7 @@ export default class TpsCommand extends Command {
         if (tps >= 19) color = '§2';
         else if (tps >= 15) color = '§e';
 
-        return `${color}${tps}§r`;
+        return `${color}${tps.toFixed(2)}§r`;
     }
 
     public async register(dispatcher: CommandDispatcher<any>) {
@@ -27,8 +27,9 @@ export default class TpsCommand extends Command {
             literal('tps').executes(async (context) => {
                 const source = context.getSource() as Player;
                 const tps = source.getServer().getTPS();
+                const tick = source.getServer().getTick();
 
-                await source.sendMessage(`TPS: ${this.formatTPS(tps)}`);
+                await source.sendMessage(`TPS: ${this.formatTPS(tps)} (Tick: ${tick})`);
             })
         );
     }
