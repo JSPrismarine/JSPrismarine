@@ -1,12 +1,12 @@
 import Identifiers from '../Identifiers';
 import type Server from '../../Server';
-import type RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
 import type ClientConnection from '../ClientConnection';
 import NetworkSettingsPacket, {
     PacketCompressionAlgorithm,
     CompressionThreshold
 } from '../packet/NetworkSettingsPacket';
+import { RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
 
 export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<RequestNetworkSettingsPacket> {
     public static NetID = Identifiers.RequestNetworkSettingsPacket;
@@ -16,10 +16,14 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
         _server: Server,
         connection: ClientConnection
     ): Promise<void> {
-        if (packet.protocolVersion !== Identifiers.Protocol) {
-            connection.disconnect(`Unsupported protocol version: ${packet.protocolVersion}`);
+        const data = packet.getPacketData()!;
+
+        if (data.clientNetworkVersion !== Identifiers.Protocol) {
+            connection.disconnect(`Unsupported protocol version: ${data.clientNetworkVersion}`);
             return;
         }
+
+        console.log('Received RequestNetworkSettingsPacket' + data.clientNetworkVersion);
 
         const networkSettings = new NetworkSettingsPacket();
         networkSettings.compressionThreshold = CompressionThreshold.COMPRESS_EVERYTHING;

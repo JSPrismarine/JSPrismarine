@@ -4,9 +4,8 @@ import type BaseProvider from './providers/BaseProvider';
 import type { Block } from '../block/Block';
 import { BlockMappings } from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
-import type Entity from '../entity/Entity';
-import Gamemode from './Gamemode';
-import type Generator from './Generator';
+import Entity from '../entity/Entity';
+import Generator from './Generator';
 import Item from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import type Player from '../Player';
@@ -20,6 +19,8 @@ import cwd from '../utils/cwd';
 import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
 import path from 'node:path';
+import BlockPosition from './BlockPosition';
+import { Gamemode } from '@jsprismarine/minecraft';
 
 export interface WorldData {
     name: string;
@@ -238,14 +239,14 @@ export default class World {
     /**
      * Returns the world default spawn position.
      */
-    public async getSpawnPosition(): Promise<Vector3> {
-        if (this.spawn) return this.spawn;
+    public async getSpawnPosition(): Promise<BlockPosition> {
+        if (this.spawn) return new BlockPosition(this.spawn.getX(), this.spawn.getY(), this.spawn.getZ());
 
         const x = 0;
         const z = 0; // TODO: replace with actual data
         const chunk = await this.getChunkAt(x, z);
         const y = chunk.getHighestBlockAt(x, z) + 1;
-        return new Vector3(z, y + 2, z);
+        return new BlockPosition(z, y + 2, z);
     }
 
     /**
@@ -260,9 +261,9 @@ export default class World {
     // TODO: move this?
     public async useItemOn(
         itemInHand: Item | Block | null,
-        blockPosition: Vector3,
+        blockPosition: BlockPosition,
         face: number,
-        clickPosition: Vector3,
+        clickPosition: BlockPosition,
         player: Player
     ): Promise<void> {
         if (itemInHand instanceof Item) return; // TODO
@@ -502,7 +503,7 @@ export default class World {
                     {
                         uuid: player.getUUID(),
                         username: player.getName(),
-                        gamemode: Gamemode.getGamemodeName(player.gamemode).toLowerCase(),
+                        gamemode: Gamemode.getGametypeName(player.gamemode).toLowerCase(),
                         position: {
                             x: player.getX(),
                             y: player.getY(),
