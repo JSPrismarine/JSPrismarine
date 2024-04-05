@@ -116,7 +116,7 @@
         "fflate": "0.8.2",
         "graceful-fs": "4.2.11",
         "heap": "0.2.7",
-        "live-plugin-manager": "0.18.1",
+        "live-plugin-manager": "0.19.0",
         "node-fetch": "3.3.2",
         "node-machine-id": "1.1.12",
         "semver": "7.6.0",
