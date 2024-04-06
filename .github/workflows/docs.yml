@@ -1,8 +1,7 @@
 name: Generate Documentations
 on:
     push:
-        branches:
-            - master
+    pull_request:
 
 jobs:
     build-and-publish-docs:
@@ -21,6 +20,7 @@ jobs:
             - run: pnpm run build:docs
             
             - uses: peaceiris/actions-gh-pages@v3
+              if: github.event_name == 'push' && github.ref == 'refs/heads/master'
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
                   publish_dir: ./dist
