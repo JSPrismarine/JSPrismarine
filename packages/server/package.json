@@ -26,7 +26,6 @@
         },
         "./package.json": "./package.json"
     },
-    "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "clean": "rimraf dist jsp tsconfig.tsbuildinfo",
         "build": "vite build",

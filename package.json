@@ -17,7 +17,7 @@
         "node": ">=21.0.0"
     },
     "scripts": {
-        "prepare": "husky install",
+        "prepare": "husky || true && husky install",
         "start": "node ./packages/server/dist/Server.es.js --warning --circular",
         "dev": "pnpm --filter ./packages/server run dev",
         "clean": "turbo run clean",
@@ -25,6 +25,7 @@
         "build:docs": "typedoc",
         "server:build": "turbo run build --filter=@jsprismarine/server",
         "test": "vitest run --coverage",
+        "typecheck": "turbo run typecheck",
         "lint": "concurrently pnpm:lint:*",
         "lint:eslint": "eslint packages/**/src/**/*.ts",
         "lint:prettier": "prettier packages/**/src/**/*.* --check",

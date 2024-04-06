@@ -36,7 +36,7 @@ export default class Config {
         this.levelName = this.configBuilder.get('level-name', 'world') as string;
         this.worlds = this.configBuilder.get('worlds', {
             world: {
-                generator: 'flat',
+                generator: 'Flat',
                 provider: 'Filesystem',
                 seed: SeedGenerator()
             }

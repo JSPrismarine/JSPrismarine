@@ -7,8 +7,7 @@ export default class GeneratorManager {
     private readonly generators: Map<string, Generator> = new Map() as Map<string, Generator>;
 
     public constructor(server: Server) {
-        this.registerClassGenerator('flat', Generators.Flat, server);
-        this.registerClassGenerator('overworld', Generators.Overworld, server);
+        this.registerClassGenerator('Flat', Generators.Flat, server);
         server.getLogger()?.verbose(`Registered §b${2}§r generator(s)!`, 'GeneratorManager');
     }
 
@@ -18,6 +17,8 @@ export default class GeneratorManager {
     }
 
     public getGenerator(id: string): Generator {
+        id = id.toLowerCase();
+
         if (!this.generators.has(id)) {
             throw new Error(`Invalid generator with id ${id}`);
         }
