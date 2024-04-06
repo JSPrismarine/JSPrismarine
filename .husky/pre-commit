@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
 . "$(dirname "$0")/_/husky.sh"
 
+pnpm run build
+pnpm run typecheck
+pnpm run test
 pnpx lint-staged --allow-empty

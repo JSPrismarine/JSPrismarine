@@ -1,12 +1,21 @@
 {
     "$schema": "https://turborepo.org/schema.json",
     "globalDependencies": ["tsconfig.json", "package.json", "vite.config.ts"],
+    "globalDotEnv": [".env"],
     "pipeline": {
         "build": {
             "dependsOn": ["^build"],
             "outputs": ["**/dist/**", "**/docs/**", "!**/coverage/**"]
         },
         "clean": {
+            "cache": false
+        },
+        "dev": {
+            "cache": false,
+            "persistent": true,
+            "dotEnv": [".env.development.local", ".env.local", ".env.development", ".env"]
+        },
+        "typecheck": {
             "cache": false
         }
     }
