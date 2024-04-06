@@ -5,22 +5,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('world', () => {
     describe('GeneratorManager', () => {
+        const server: Server = vi.fn().mockImplementation(() => ({
+            getLogger: () => ({
+                debug: () => {},
+                verbose: () => {}
+            }),
+            getBlockManager: () => ({
+                getBlock: () => {}
+            })
+        }))();
+
         let generatorManager: GeneratorManager;
-        let server: Server = vi.fn().mockImplementation(() => {
-            return {
-                getLogger: () => {
-                    return {
-                        debug: () => {},
-                        verbose: () => {}
-                    };
-                },
-                getBlockManager: () => {
-                    return {
-                        getBlock: () => {}
-                    };
-                }
-            };
-        })();
 
         beforeEach(() => {
             generatorManager = new GeneratorManager(server);
