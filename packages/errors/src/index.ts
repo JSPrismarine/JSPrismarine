@@ -3,7 +3,7 @@ import { BuiltinError } from './error';
 export enum ErrorKind {
     GENERIC_NAMESPACE_INVALID = 'GENERIC_NAMESPACE_INVALID',
 
-    COMMAND_UNKNOWN_COMMAND = 'COMMAND_UNKNOWN_Command',
+    COMMAND_UNKNOWN_COMMAND = 'COMMAND_UNKNOWN_COMMAND',
     COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING = 'COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING'
 }
 
@@ -20,7 +20,7 @@ export class Error<T = ErrorKind> extends BuiltinError {
 }
 
 export class GenericNamespaceInvalidError extends Error {
-    name = 'NamespaceInvalidError';
+    name = 'GenericNamespaceInvalidError';
     message = `The namespace is malformed or invalid.`;
     code = ErrorKind.GENERIC_NAMESPACE_INVALID;
 
@@ -31,7 +31,7 @@ export class GenericNamespaceInvalidError extends Error {
 }
 
 export class CommandUnknownCommandError extends Error {
-    name = 'UnknownCommandError';
+    name = 'CommandUnknownCommandError';
     message = `Unknown command.`;
     code = ErrorKind.COMMAND_UNKNOWN_COMMAND;
 
