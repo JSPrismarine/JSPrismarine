@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
+import { codecovVitePlugin } from '@codecov/vite-plugin';
 import pkg from './package.json' assert { type: 'json' };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -72,6 +73,11 @@ export default defineConfig({
             rollupTypes: false,
             tsconfigPath: `./tsconfig.json`,
             include: ['**/src']
+        }),
+        codecovVitePlugin({
+            enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
+            bundleName: 'JSPrismarine',
+            uploadToken: process.env.CODECOV_TOKEN
         })
     ]
 });

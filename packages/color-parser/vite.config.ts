@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig, mergeConfig } from 'vite';
 import pkg from './package.json' assert { type: 'json' };
+import { codecovVitePlugin } from '@codecov/vite-plugin';
 
 import base from '../../vite.config';
 
@@ -39,6 +40,13 @@ export default mergeConfig(
             rollupOptions: {
                 external: [...Object.keys(pkg.dependencies)]
             }
-        }
+        },
+        plugins: [
+            codecovVitePlugin({
+                enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
+                bundleName: pkg.name,
+                uploadToken: process.env.CODECOV_TOKEN
+            })
+        ]
     })
 );
