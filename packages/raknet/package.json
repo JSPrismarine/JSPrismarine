@@ -45,7 +45,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/raknet",
     "dependencies": {
         "@jsprismarine/jsbinaryutils": "5.5.3",
-        "pino": "8.19.0"
+        "pino": "8.20.0"
     },
     "devDependencies": {
         "@types/node": "20.12.5",
