@@ -73,7 +73,6 @@
         "@jsprismarine/jsbinaryutils": "5.5.3",
         "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
-        "fflate": "0.8.2",
         "graceful-fs": "4.2.11",
         "node-fetch": "3.3.2",
         "simplex-noise": "4.0.1",
