@@ -75,7 +75,6 @@
         "@jsprismarine/raknet": "workspace:*",
         "graceful-fs": "4.2.11",
         "node-fetch": "3.3.2",
-        "simplex-noise": "4.0.1",
         "yaml": "2.4.1"
     }
 }
