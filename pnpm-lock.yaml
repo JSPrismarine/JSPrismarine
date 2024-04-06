@@ -38,9 +38,6 @@ importers:
       semver:
         specifier: 7.6.0
         version: 7.6.0
-      simplex-noise:
-        specifier: 4.0.1
-        version: 4.0.1
       strip-json-comments:
         specifier: 5.0.1
         version: 5.0.1
@@ -312,9 +309,6 @@ importers:
       node-fetch:
         specifier: 3.3.2
         version: 3.3.2
-      simplex-noise:
-        specifier: 4.0.1
-        version: 4.0.1
       yaml:
         specifier: 2.4.1
         version: 2.4.1
@@ -5580,10 +5574,6 @@ packages:
     dependencies:
       semver: 7.6.0
     dev: true
-
-  /simplex-noise@4.0.1:
-    resolution: {integrity: sha512-zl/+bdSqW7HJOQ0oDbxrNYaF4F5ik0i7M6YOYmEoIJNtg16NpvWaTTM1Y7oV/7T0jFljawLgYPS81Uu2rsfo1A==}
-    dev: false
 
   /slash@3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
