@@ -3,15 +3,13 @@ import { CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadi
 
 import Chat from '../chat/Chat';
 import type { Command } from './Command';
+import * as Commands from './Commands';
 import type { CommandArgument } from './CommandArguments';
-// import CommandNode from '@jsprismarine/brigadier/dist/lib/tree/CommandNode';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
 import type Entity from '../entity/Entity';
 import type { Player } from '../';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
-import fs from 'node:fs';
-import url from 'node:url';
 import {
     GenericNamespaceInvalidError,
     CommandRegisterClassMalformedOrMissingError,
@@ -35,28 +33,12 @@ export default class CommandManager {
     public async onEnable() {
         const timer = new Timer();
 
-        // FIXME: `import.meta.url` isn't defined when using cjs.
-        const fileType = import.meta.url.split('.').pop();
-        const commands = Array.from(
-            new Set(
-                [
-                    ...fs
-                        .readdirSync(url.fileURLToPath(new URL('vanilla', import.meta.url)))
-                        .map((a) => `/vanilla/${a}`),
-                    ...fs
-                        .readdirSync(url.fileURLToPath(new URL('jsprismarine', import.meta.url)))
-                        .map((a) => `/jsprismarine/${a}`)
-                ]
-                    .filter((a) => !a.includes('.test.') && !a.includes('.d.ts'))
-                    .filter((a) => a.endsWith(`.${fileType}`))
-            )
-        );
+        const commands = Object.keys(Commands).map((key) => (Commands as any)[key] as typeof Command);
 
         // Register jsprismarine commands
         await Promise.all(
-            commands.map(async (id: string) => {
-                const Command = await import(`./${id}`);
-                const command: Command = new (Command.default || Command)();
+            commands.map(async (Command) => {
+                const command: Command = new Command({} as any);
 
                 const event = new CommandRegisterEvent(command);
                 await this.server.getEventManager().emit('commandRegister', event);
@@ -90,11 +72,11 @@ export default class CommandManager {
     /**
      * Register a command into command manager by class.
      */
-    public async registerClassCommand(command: Command) {
+    public async registerClassCommand(command?: Command) {
         if (!command || !command.id) throw new CommandRegisterClassMalformedOrMissingError();
         if (command.id.split(':').length !== 2) throw new GenericNamespaceInvalidError();
 
-        if (!command.register)
+        if (!(command as any).register)
             this.server
                 .getLogger()
                 ?.warn(
