@@ -1,14 +1,17 @@
 import * as Generators from './generators/Generators';
-
 import type Generator from './Generator';
 import type Server from '../Server';
+import type BaseGenerator from './BaseGenerator';
 
 export default class GeneratorManager {
     private readonly generators: Map<string, Generator> = new Map() as Map<string, Generator>;
 
     public constructor(server: Server) {
-        this.registerClassGenerator('Flat', Generators.Flat, server);
-        server.getLogger()?.verbose(`Registered §b${2}§r generator(s)!`, 'GeneratorManager');
+        const keys = Object.keys(Generators);
+        for (const key of keys) {
+            this.registerClassGenerator(key, (Generators as any)[key] as typeof BaseGenerator, server);
+        }
+        server.getLogger()?.verbose(`Registered §b${keys.length}§r generator(s)!`, 'GeneratorManager');
     }
 
     public registerClassGenerator(id: string, generator: any, server: Server): void {
