@@ -32,7 +32,7 @@ importers:
         version: 0.0.1-beta.5(vite@5.2.8)
       '@droppedcode/typedoc-plugin-relative-includes':
         specifier: 1.0.5
-        version: 1.0.5(typedoc@0.25.12)
+        version: 1.0.5(typedoc@0.25.13)
       '@nordcom/prettier':
         specifier: 0.1.1
         version: 0.1.1
@@ -103,20 +103,20 @@ importers:
         specifier: 1.13.2
         version: 1.13.2
       typedoc:
-        specifier: 0.25.12
-        version: 0.25.12(typescript@5.4.4)
+        specifier: 0.25.13
+        version: 0.25.13(typescript@5.4.4)
       typedoc-material-theme:
         specifier: 1.0.2
-        version: 1.0.2(typedoc@0.25.12)
+        version: 1.0.2(typedoc@0.25.13)
       typedoc-plugin-extras:
         specifier: 3.0.0
-        version: 3.0.0(typedoc@0.25.12)
+        version: 3.0.0(typedoc@0.25.13)
       typedoc-plugin-missing-exports:
         specifier: 2.2.0
-        version: 2.2.0(typedoc@0.25.12)
+        version: 2.2.0(typedoc@0.25.13)
       typedoc-plugin-rename-defaults:
         specifier: 0.7.0
-        version: 0.7.0(typedoc@0.25.12)
+        version: 0.7.0(typedoc@0.25.13)
       typescript:
         specifier: 5.4.4
         version: 5.4.4
@@ -694,12 +694,12 @@ packages:
       kuler: 2.0.0
     dev: false
 
-  /@droppedcode/typedoc-plugin-relative-includes@1.0.5(typedoc@0.25.12):
+  /@droppedcode/typedoc-plugin-relative-includes@1.0.5(typedoc@0.25.13):
     resolution: {integrity: sha512-tfCm7K1uduKy57EV7SyhACQa4BQj87KiZVZgc5A8egCYaNVFPjv9iIPabPsAt/lbSbizB6aQ5qOInMO9Wa+pIg==}
     peerDependencies:
       typedoc: ^0.25.2
     dependencies:
-      typedoc: 0.25.12(typescript@5.4.4)
+      typedoc: 0.25.13(typescript@5.4.4)
     dev: true
 
   /@es-joy/jsdoccomment@0.42.0:
@@ -5723,43 +5723,43 @@ packages:
       possible-typed-array-names: 1.0.0
     dev: true
 
-  /typedoc-material-theme@1.0.2(typedoc@0.25.12):
+  /typedoc-material-theme@1.0.2(typedoc@0.25.13):
     resolution: {integrity: sha512-/nH/twYeHrnz5sZaaXzYJ85EOgKqnbl1ivzBKmuEAga1dBsARttwQUTPKAT7XrCPD+rRcoqxuCOdXZ6EGiqRQA==}
     engines: {node: '>=18.0.0', npm: '>=8.6.0'}
     peerDependencies:
       typedoc: ^0.25.3
     dependencies:
       '@material/material-color-utilities': 0.2.7
-      typedoc: 0.25.12(typescript@5.4.4)
+      typedoc: 0.25.13(typescript@5.4.4)
     dev: true
 
-  /typedoc-plugin-extras@3.0.0(typedoc@0.25.12):
+  /typedoc-plugin-extras@3.0.0(typedoc@0.25.13):
     resolution: {integrity: sha512-eiAe3qtm2WbV5owdncpt0zHZPqsNZH2mzNGILPd4zqrvEZie3Et9es4cpGZ+8lHO/SI0pVKwsAj7IuMxPNOdYg==}
     peerDependencies:
       typedoc: 0.25.x
     dependencies:
-      typedoc: 0.25.12(typescript@5.4.4)
+      typedoc: 0.25.13(typescript@5.4.4)
     dev: true
 
-  /typedoc-plugin-missing-exports@2.2.0(typedoc@0.25.12):
+  /typedoc-plugin-missing-exports@2.2.0(typedoc@0.25.13):
     resolution: {integrity: sha512-2+XR1IcyQ5UwXZVJe9NE6HrLmNufT9i5OwoIuuj79VxuA3eYq+Y6itS9rnNV1D7UeQnUSH8kISYD73gHE5zw+w==}
     peerDependencies:
       typedoc: 0.24.x || 0.25.x
     dependencies:
-      typedoc: 0.25.12(typescript@5.4.4)
+      typedoc: 0.25.13(typescript@5.4.4)
     dev: true
 
-  /typedoc-plugin-rename-defaults@0.7.0(typedoc@0.25.12):
+  /typedoc-plugin-rename-defaults@0.7.0(typedoc@0.25.13):
     resolution: {integrity: sha512-NudSQ1o/XLHNF9c4y7LzIZxfE9ltz09yCDklBPJpP5VMRvuBpYGIbQ0ZgmPz+EIV8vPx9Z/OyKwzp4HT2vDtfg==}
     peerDependencies:
       typedoc: 0.22.x || 0.23.x || 0.24.x || 0.25.x
     dependencies:
       camelcase: 8.0.0
-      typedoc: 0.25.12(typescript@5.4.4)
+      typedoc: 0.25.13(typescript@5.4.4)
     dev: true
 
-  /typedoc@0.25.12(typescript@5.4.4):
-    resolution: {integrity: sha512-F+qhkK2VoTweDXd1c42GS/By2DvI2uDF4/EpG424dTexSHdtCH52C6IcAvMA6jR3DzAWZjHpUOW+E02kyPNUNw==}
+  /typedoc@0.25.13(typescript@5.4.4):
+    resolution: {integrity: sha512-pQqiwiJ+Z4pigfOnnysObszLiU3mVLWAExSPf+Mu06G/qsc3wzbuM56SZQvONhHLncLUhYzOVkjFFpFfL5AzhQ==}
     engines: {node: '>= 16'}
     hasBin: true
     peerDependencies:
