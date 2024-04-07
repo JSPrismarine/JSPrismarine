@@ -103,9 +103,12 @@ export default class LoggerBuilder {
     }
 
     private getNamespace = () => {
-        const caller = (new Error().stack as string).split('\n')[3]!.split('at ')[1]!;
+        const stack = (new Error().stack as string).replaceAll('\\', '/');
+        const caller = stack.split('\n')[3]!.split('at ')[1]!;
         const callerName = caller.split(' ')[0]?.split('.').join('/');
         const callerFile = caller.split(' ')[1]?.slice(1, -1).split('/').at(-1);
+
+        if (!callerName || !callerFile) return '';
         return `${callerName} (${callerFile})`;
     };
 

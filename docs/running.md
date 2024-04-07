@@ -2,7 +2,7 @@
 
 ## 1. Prerequisites
 
-*   1.1 Node 14+ & NPM 7.
+*   1.1 node `lts` and `pnpm`,
 
 ## 2. Install dependencies
 

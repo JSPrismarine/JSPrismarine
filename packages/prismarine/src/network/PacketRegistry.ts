@@ -117,8 +117,7 @@ export default class PacketRegistry {
             .verbose(
                 `Registered §b${this.packets.size}§r of §b${
                     Array.from(Object.keys(Identifiers)).length - 2
-                }§r packet(s) (took §e${timer.stop()} ms§r)!`,
-                'PacketRegistry/registerPackets'
+                }§r packet(s) (took §e${timer.stop()} ms§r)!`
             );
     }
 
@@ -133,10 +132,7 @@ export default class PacketRegistry {
 
         this.server
             .getLogger()
-            .verbose(
-                `Registered §b${this.handlers.size}§r packet handler(s) (took §e${timer.stop()} ms§r)!`,
-                'PacketRegistry/registerHandlers'
-            );
+            .verbose(`Registered §b${this.handlers.size}§r packet handler(s) (took §e${timer.stop()} ms§r)!`);
     }
 
     /**

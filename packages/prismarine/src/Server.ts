@@ -340,7 +340,7 @@ export default class Server {
         // Start ticking
         tick();
 
-        this.logger.info(`JSPrismarine is now listening on port §b${port}`, 'Server/listen');
+        this.logger.info(`JSPrismarine is now listening on port §b${port}`);
     }
 
     /**
