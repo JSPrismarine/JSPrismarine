@@ -6,7 +6,7 @@ import type { Command } from './Command';
 import * as Commands from './Commands';
 import type { CommandArgument } from './CommandArguments';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
-import type Entity from '../entity/Entity';
+import type { Entity } from '../entity/Entity';
 import type { Player } from '../';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
