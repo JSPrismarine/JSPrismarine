@@ -103,11 +103,6 @@ export default class BlockManager {
         // Dynamically register blocks
         await Promise.all(Object.entries(Blocks).map(async ([, block]) => this.registerBlock(new block())));
 
-        this.server
-            .getLogger()
-            .verbose(
-                `Registered §b${this.blocks.size}§r block(s) (took §e${timer.stop()} ms§r)!`,
-                'BlockManager/importBlocks'
-            );
+        this.server.getLogger().verbose(`Registered §b${this.blocks.size}§r block(s) (took §e${timer.stop()} ms§r)!`);
     }
 }

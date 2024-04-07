@@ -73,37 +73,11 @@ export class PluginManager {
         const timer = new Timer();
 
         let dir = path.join(cwd(), 'plugins', id);
-        if (!fs.lstatSync(dir).isDirectory()) {
-            // Invalid file
-            if (!dir.includes('.jspz')) {
-                return null;
-            }
-
-            if (!fs.existsSync(path.join(cwd(), '/plugins/.extracted/'))) {
-                fs.mkdirSync(path.join(cwd(), '/plugins/.extracted/'));
-            }
-
-            dir = path.join(cwd(), '/plugins/.extracted/', id);
-
-            this.server.getLogger().debug(`Extracting plugin with id §b${id}...`);
-            await fs
-                .createReadStream(path.join(cwd(), 'plugins/', id))
-                .pipe(unzipper.Extract({ path: dir }))
-                .promise();
-        }
 
         // Asset or config folder
         if (!fs.existsSync(path.join(dir, 'package.json'))) {
             return null;
         }
-
-        if (!dir.endsWith('.jspz'))
-            this.server
-                .getLogger()
-                .warn(
-                    `${id} isn't packaged as .jspz and should NOT be used on production servers!`,
-                    `PluginManager/registerPlugin/${id}`
-                );
 
         const packagePluginFile = await fs.promises.readFile(path.join(dir, 'package.json'));
         const pkg = JSON.parse(packagePluginFile.toString());
@@ -153,17 +127,11 @@ export class PluginManager {
 
         this.plugins.set(pkg.name, plugin);
 
-        this.server
-            .getLogger()
-            .debug(
-                `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`,
-                'PluginManager/registerPlugin'
-            );
+        this.server.getLogger().debug(`Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`);
         this.server
             .getLogger()
             .info(
-                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took §e${timer.stop()} ms§r)!`,
-                'PluginManager/registerPlugin'
+                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took §e${timer.stop()} ms§r)!`
             );
         return plugin;
     }
@@ -174,28 +142,17 @@ export class PluginManager {
         try {
             await plugin.onEnable();
         } catch (error) {
-            this.server
-                .getLogger()
-                .warn(
-                    `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
-                    'PluginManager/registerPlugin'
-                );
+            this.server.getLogger().warn(`Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`);
             return null;
         }
 
         this.plugins.set(pkg.name, plugin);
 
-        this.server
-            .getLogger()
-            .debug(
-                `Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`,
-                'PluginManager/registerPlugin'
-            );
+        this.server.getLogger().debug(`Plugin with id §b${plugin.getName()}@${plugin.getVersion()}§r registered`);
         this.server
             .getLogger()
             .info(
-                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took §e${timer.stop()} ms§r)!`,
-                'PluginManager/registerPlugin'
+                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took §e${timer.stop()} ms§r)!`
             );
         return plugin;
     }
@@ -210,12 +167,7 @@ export class PluginManager {
         try {
             await plugin.onDisable();
         } catch (error) {
-            this.server
-                .getLogger()
-                .warn(
-                    `Failed to disable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
-                    'PluginManager/deregisterPlugin'
-                );
+            this.server.getLogger().warn(`Failed to disable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`);
         }
 
         this.plugins.delete(id);
