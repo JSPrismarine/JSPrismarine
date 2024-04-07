@@ -3,7 +3,7 @@ import PluginApi from './api/PluginApi';
 import PluginFile from './PluginFile';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
-import cwd from '../utils/cwd';
+import { cwd } from '../utils/cwd';
 import fs from 'node:fs';
 import path from 'node:path';
 import unzipper from 'unzipper';
