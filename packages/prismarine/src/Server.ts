@@ -31,12 +31,10 @@ import type { RakNetSession, InetAddress } from '@jsprismarine/raknet';
 import { buildRakNetServerName } from './utils/ServerName';
 
 export default class Server {
-    private version!: string;
+    private readonly version!: string;
     private raknet!: RakNetListener;
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
-    private tps = 0;
-    private tick = 0;
     private readonly console: Console;
     private readonly eventManager = new EventManager();
     private readonly packetRegistry: PacketRegistry;
@@ -50,16 +48,28 @@ export default class Server {
     private readonly chatManager: ChatManager;
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
+
     private stopping = false;
     private tickerTimer: NodeJS.Timeout | undefined;
+    private tps = 0;
+    private tick = 0;
 
+    // TODO: Move this somewhere else.
     private static readonly MINECRAFT_TICK_TIME_MS = 1000 / 20;
 
     /**
      * @deprecated
+     * TODO: Remove this in the future.
      */
     public static instance: Server;
 
+    /**
+     * Creates a new server instance.
+     * @constructor
+     * @param {LoggerBuilder} logger - The logger.
+     * @param {Config} config - The config.
+     * @param {string} version - The server version.
+     */
     public constructor({ logger, config, version }: { logger?: LoggerBuilder; config: Config; version: string }) {
         const advertisedVersion =
             Identifiers.MinecraftVersions.length <= 1
@@ -89,6 +99,10 @@ export default class Server {
         Server.instance = this;
     }
 
+    /**
+     * Enables the server.
+     * @returns {Promise<void>} A promise that resolves when the server is enabled.
+     */
     private async onEnable(): Promise<void> {
         this.config.onEnable();
         await this.logger.onEnable();
@@ -100,6 +114,10 @@ export default class Server {
         await this.commandManager.onEnable();
     }
 
+    /**
+     * Disables the server.
+     * @returns {Promise<void>} A promise that resolves when the server is disabled.
+     */
     private async onDisable(): Promise<void> {
         await this.commandManager.onDisable();
         await this.blockManager.onDisable();
@@ -112,11 +130,21 @@ export default class Server {
         await this.logger.onDisable();
     }
 
+    /**
+     * Reloads the server.
+     * @returns {Promise<void>} A promise that resolves when the server is reloaded.
+     */
     public async reload(): Promise<void> {
         await this.onDisable();
         await this.onEnable();
     }
 
+    /**
+     * Starts the server.
+     * @param {string} [serverIp='0.0.0.0'] - The server IP.
+     * @param {number} [port=19132] - The server port.
+     * @returns {Promise<void>} A promise that resolves when the server is started.
+     */
     public async bootstrap(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.onEnable();
         BlockMappings.initMappings();
@@ -323,6 +351,7 @@ export default class Server {
 
             lastTickTime = endTime;
             this.tickerTimer = setTimeout(tick, sleepTime);
+            this.tickerTimer.unref();
         };
 
         // Start ticking
@@ -333,6 +362,10 @@ export default class Server {
 
     /**
      * Kills the server asynchronously.
+     * @param {object} [options] - The options.
+     * @param {boolean} [options.withoutSaving] - If the server should save the worlds before shutting down.
+     * @param {boolean} [options.crash] - If the server should crash.
+     * @returns {Promise<void>} A promise that resolves when the server is killed.
      */
     public async shutdown(options?: { withoutSaving?: boolean; crash?: boolean }): Promise<void> {
         if (this.stopping) return;
@@ -377,142 +410,169 @@ export default class Server {
         }
     }
 
+    /**
+     * Returns the server version.
+     * @returns {string} The server version.
+     */
     public getVersion(): string {
         return this.version;
     }
 
+    /**
+     * Returns the identifiers.
+     * @returns {Identifiers} The identifiers.
+     */
     public getIdentifiers() {
         return Identifiers;
     }
 
     /**
-     * Returns the query manager
+     * Returns the query manager.
+     * @returns {QueryManager} The query manager.
      */
     public getQueryManager(): QueryManager {
         return this.queryManager;
     }
 
     /**
-     * Returns the command manager
+     * Returns the command manager.
+     * @returns {CommandManager} The command manager.
      */
     public getCommandManager(): CommandManager {
         return this.commandManager;
     }
 
     /**
-     * Returns the player manager
+     * Returns the player manager.
+     * @returns {SessionManager} The player manager.
      */
     public getSessionManager(): SessionManager {
         return this.sessionManager;
     }
 
     /**
-     * Returns the world manager
+     * Returns the world manager.
+     * @returns {WorldManager} The world manager.
      */
     public getWorldManager(): WorldManager {
         return this.worldManager;
     }
 
     /**
-     * Returns the item manager
+     * Returns the item manager.
+     * @returns {ItemManager} The item manager.
      */
     public getItemManager(): ItemManager {
         return this.itemManager;
     }
 
     /**
-     * Returns the block manager
+     * Returns the block manager.
+     * @returns {BlockManager} The block manager.
      */
     public getBlockManager(): BlockManager {
         return this.blockManager;
     }
 
     /**
-     * Returns the logger
+     * Returns the logger.
+     * @returns {LoggerBuilder} The logger.
      */
     public getLogger(): LoggerBuilder | undefined {
         return this.logger;
     }
 
     /**
-     * Returns the packet registry
+     * Returns the packet registry.
+     * @returns {PacketRegistry} The packet registry.
      */
     public getPacketRegistry(): PacketRegistry {
         return this.packetRegistry;
     }
 
     /**
-     * Returns the raknet instance
+     * Returns the raknet instance.
+     * @returns {RakNetListener} The raknet instance.
      */
     public getRaknet() {
         return this.raknet;
     }
 
     /**
-     * Returns the plugin manager
+     * Returns the plugin manager.
+     * @returns {PluginManager} The plugin manager.
      */
     public getPluginManager(): PluginManager {
         return this.pluginManager;
     }
 
     /**
-     * Returns the event manager
+     * Returns the event manager.
+     * @returns {EventManager} The event manager.
      */
     public getEventManager(): EventManager {
         return this.eventManager;
     }
 
     /**
-     * Returns the chat manager
+     * Returns the chat manager.
+     * @returns {ChatManager} The chat manager.
      */
     public getChatManager(): ChatManager {
         return this.chatManager;
     }
 
     /**
-     * Returns the config
+     * Returns the config.
+     * @returns {Config} The config.
      */
     public getConfig(): Config {
         return this.config;
     }
 
     /**
-     * Returns the console instance
+     * Returns the console instance.
+     * @returns {Console} The console instance.
      */
     public getConsole(): Console {
         return this.console;
     }
 
     /**
-     * Returns the permission manager
+     * Returns the permission manager.
+     * @returns {PermissionManager} The permission manager.
      */
     public getPermissionManager(): PermissionManager {
         return this.permissionManager;
     }
 
     /**
-     * Returns the ban manager
+     * Returns the ban manager.
+     * @returns {BanManager} The ban manager.
      */
     public getBanManager(): BanManager {
         return this.banManager;
     }
 
     /**
-     * Returns this Prismarine instance
+     * Returns this Prismarine instance.
+     * @returns {Server} The Prismarine instance.
      */
     public getServer(): Server {
         return this;
     }
 
     /**
-     * Returns the current TPS
+     * Returns the current TPS.
+     * @returns {number} The current TPS.
      */
     public getTPS(): number {
         return this.tps;
     }
 
     /**
-     * Returns the current Tick
+     * Returns the current Tick.
+     * @returns {number} The current Tick.
      */
     public getTick(): number {
         return this.tick;
