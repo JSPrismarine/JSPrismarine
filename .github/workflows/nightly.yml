@@ -1,4 +1,4 @@
-name: Unit & Integration Tests
+name: Executable
 on:
     push:
 
