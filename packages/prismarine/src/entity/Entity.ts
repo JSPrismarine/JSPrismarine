@@ -354,7 +354,7 @@ export default class Entity extends Position {
      * ```
      */
     public isConsole(): boolean {
-        return false;
+        return this.getRuntimeId() <= 0n;
     }
 
     /**
