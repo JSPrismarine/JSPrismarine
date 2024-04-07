@@ -59,7 +59,7 @@ export default defineConfig({
             all: true,
             exclude,
             provider: 'v8',
-            reporter: ['json', 'json-summary', 'text'],
+            reporter: ['json', 'json-summary', 'text-summary'],
             reportOnFailure: true
         },
 
