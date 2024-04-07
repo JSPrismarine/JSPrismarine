@@ -21,6 +21,6 @@
     ],
     "readme": "./README.md",
     "themeColor": "#5CA48A",
-    "titleLink": "https://github.com/JSPrismarine/JSPrismarine",
+    "titleLink": "https://jsprismarine.org/",
     "tsconfig": "./tsconfig.json"
 }
