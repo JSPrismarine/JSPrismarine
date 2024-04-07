@@ -78,7 +78,6 @@
         "fast-jwt": "4.0.0",
         "graceful-fs": "4.2.11",
         "heap": "0.2.7",
-        "live-plugin-manager": "0.19.0",
         "node-fetch": "3.3.2",
         "strip-json-comments": "5.0.1",
         "unzipper": "0.10.14",
