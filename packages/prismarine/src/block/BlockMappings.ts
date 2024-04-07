@@ -1,9 +1,10 @@
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 
-import BedrockData from '@jsprismarine/bedrock-data';
+import * as BedrockData from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { gunzipSync } from 'zlib';
+import type Server from '../Server';
 
 export interface LegacyId {
     id: number;
@@ -20,16 +21,21 @@ export class BlockMappings {
     private static readonly nameToRuntime: Map<string, number> = new Map();
     private static readonly runtimeToName: Map<number, string> = new Map();
 
-    public static initMappings(): void {
-        const stream = new BinaryStream(
-            gunzipSync(BedrockData.canonical_block_states) // Vanilla states
-        );
-        const reader: NBTReader = new NBTReader(stream, ByteOrder.ByteOrder.BIG_ENDIAN);
+    public static async initMappings(server: Server) {
+        try {
+            const stream = new BinaryStream(
+                gunzipSync(BedrockData.canonical_block_states) // Vanilla states
+            );
+            const reader: NBTReader = new NBTReader(stream, ByteOrder.ByteOrder.BIG_ENDIAN);
 
-        for (const blockTag of reader.parseList<NBTTagCompound>()) {
-            const name = blockTag.getString('name', 'minecraft:air');
-            const runtimeId = blockTag.getNumber('runtimeId', 0); // TODO Air runtime ID
-            this.registerMapping(name, runtimeId);
+            for (const blockTag of reader.parseList<NBTTagCompound>()) {
+                const name = blockTag.getString('name', 'minecraft:air');
+                const runtimeId = blockTag.getNumber('runtimeId', 0); // TODO Air runtime ID
+                this.registerMapping(name, runtimeId);
+            }
+        } catch (error: unknown) {
+            server.getLogger().error('Failed to load block mappings', 'BlockMappings/initMappings');
+            server.getLogger().error(error, 'BlockMappings/initMappings');
         }
     }
 

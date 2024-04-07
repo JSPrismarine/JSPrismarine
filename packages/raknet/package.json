@@ -9,6 +9,7 @@
         "CHANGELOG.md",
         "README.md"
     ],
+    "main": "./dist/RakNet.cjs.cjs",
     "module": "./dist/RakNet.es.js",
     "types": "./dist/RakNet.d.ts",
     "exports": {
@@ -18,13 +19,13 @@
                 "./dist/RakNet.es.js"
             ],
             "module": "./dist/RakNet.es.js",
-            "require": "./dist/RakNet.cjs.js",
+            "require": "./dist/RakNet.cjs.cjs",
             "types": "./dist/RakNet.d.ts"
         },
         "./*": {
             "import": "./dist/*.es.js",
             "module": "./dist/*.es.js",
-            "require": "./dist/*.cjs.js",
+            "require": "./dist/*.cjs.cjs",
             "types": "./dist/*.d.ts"
         },
         "./package.json": "./package.json"

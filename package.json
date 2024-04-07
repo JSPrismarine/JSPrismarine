@@ -1,5 +1,5 @@
 {
-    "name": "@jsprismarine/monorepo",
+    "name": "jsprismarine",
     "version": "0.0.0",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "prettier": "@nordcom/prettier",
@@ -9,9 +9,6 @@
     "workspaces": [
         "packages/*"
     ],
-    "bin": {
-        "prismarine": "packages/server/dist/Server.es.js"
-    },
     "packageManager": "pnpm@8.15.6",
     "engines": {
         "node": ">=21.0.0"
@@ -73,9 +70,9 @@
         "@changesets/changelog-github": "0.5.0",
         "@changesets/cli": "2.27.1",
         "@changesets/types": "6.0.0",
-        "@nordcom/prettier": "0.1.1",
         "@codecov/vite-plugin": "0.0.1-beta.5",
         "@droppedcode/typedoc-plugin-relative-includes": "1.0.5",
+        "@nordcom/prettier": "0.1.1",
         "@types/heap": "0.2.34",
         "@types/node": "20.12.5",
         "@types/unzipper": "0.10.9",
@@ -111,7 +108,7 @@
         "vitest": "1.4.0"
     },
     "dependencies": {
-        "@jsprismarine/bedrock-data": "1.20.72",
+        "@jsprismarine/bedrock-data": "1.20.73",
         "@jsprismarine/brigadier": "workspace:*",
         "@jsprismarine/jsbinaryutils": "5.5.3",
         "evt": "2.5.7",
