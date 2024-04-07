@@ -8,7 +8,7 @@ export enum QueryType {
     Stats = 9
 }
 
-export default class QueryManager {
+export class QueryManager {
     private readonly server: Server;
 
     public constructor(server: Server) {

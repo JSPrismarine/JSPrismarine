@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import PermissionManager from './PermissionManager';
+import { PermissionManager } from './PermissionManager';
 
 describe('permission', () => {
     describe('PermissionManager', () => {
