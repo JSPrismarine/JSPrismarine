@@ -1,8 +1,7 @@
-const cwd = () => {
-    let dir = process.cwd();
-    if (process.env.JSP_DIR) dir = `${dir}/${process.env.JSP_DIR}`;
+import process from 'node:process';
+import path from 'node:path';
 
-    return dir;
+export const cwd = () => {
+    if (process.env.JSP_DIR) return path.join(process.cwd(), process.env.JSP_DIR);
+    else return process.cwd();
 };
-
-export default cwd;
