@@ -1,4 +1,4 @@
-# [![JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/assets/108444335/3169ac83-0427-402d-a76d-6c1bc215c583)](https://docs.prismarine.nordcom.io/)
+# [![JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/assets/108444335/3169ac83-0427-402d-a76d-6c1bc215c583)](https://prismarine.nordcom.io/)
 
 [![License](https://img.shields.io/github/license/JSPrismarine/JSPrismarine)](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE)
 [![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
@@ -19,7 +19,7 @@ JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScri
 
 ## Getting started
 
-**[You can find the documentation over at docs.prismarine.nordcom.io](https://docs.prismarine.nordcom.io/).**
+**[You can find the documentation over at docs.prismarine.nordcom.io](https://prismarine.nordcom.io/).**
 
 Prebuilt binaries will be provided once a stable release is available. For now, you can follow the steps below or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22) (which may or may not work before reaching `v1.0.0`).
 
