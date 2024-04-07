@@ -99,7 +99,7 @@
         "ts-mockito": "2.6.1",
         "typedoc-plugin-missing-exports": "2.2.0",
         "typedoc-plugin-rename-defaults": "0.7.0",
-        "typedoc": "0.25.12",
+        "typedoc": "0.25.13",
         "typescript": "5.4.4",
         "vite-plugin-dts": "3.8.1",
         "vite-tsconfig-paths": "4.3.2",
