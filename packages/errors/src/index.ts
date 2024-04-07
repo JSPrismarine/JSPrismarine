@@ -3,6 +3,8 @@ import { BuiltinError } from './error';
 export enum ErrorKind {
     GENERIC_NAMESPACE_INVALID = 'GENERIC_NAMESPACE_INVALID',
 
+    CONFIG_INVALID_DATA = 'CONFIG_INVALID_DATA',
+
     COMMAND_UNKNOWN_COMMAND = 'COMMAND_UNKNOWN_COMMAND',
     COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING = 'COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING'
 }
@@ -27,6 +29,17 @@ export class GenericNamespaceInvalidError extends Error {
     public constructor() {
         super();
         Object.setPrototypeOf(this, GenericNamespaceInvalidError.prototype);
+    }
+}
+
+export class ConfigInvalidDataError extends Error {
+    name = 'ConfigInvalidDataError';
+    message = `Invalid data provided to a config handler.`;
+    code = ErrorKind.CONFIG_INVALID_DATA;
+
+    public constructor() {
+        super();
+        Object.setPrototypeOf(this, ConfigInvalidDataError.prototype);
     }
 }
 

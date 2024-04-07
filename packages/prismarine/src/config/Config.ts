@@ -1,4 +1,4 @@
-import ConfigBuilder from './ConfigBuilder';
+import { ConfigBuilder } from './ConfigBuilder';
 import Gamemode from '../world/Gamemode';
 import { SeedGenerator } from '../utils/Seed';
 import { cwd } from '../utils/cwd';
@@ -19,7 +19,6 @@ export default class Config {
     private viewDistance!: number;
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
-    private updateChannel!: 'stable';
 
     public constructor(version: string) {
         this.version = version;
@@ -29,8 +28,8 @@ export default class Config {
     public onEnable(): void {
         const isDev = process.env.NODE_ENV === 'development';
 
-        this.configBuilder = new ConfigBuilder(path.join(cwd(), 'config.yaml'));
-        (global as any).log_level = this.configBuilder.get('log-level', isDev ? 'debug' : 'info');
+        this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
+        global.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
 
         this.port = this.configBuilder.get('port', 19132) as number;
         this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0') as string;

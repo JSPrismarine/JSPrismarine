@@ -18,7 +18,7 @@ export default class Console {
         readline.emitKeypressEvents(process.stdin);
 
         try {
-            process.stdin.setRawMode(true);
+            (process as any).stdin.setRawMode?.(true);
         } catch (error: unknown) {
             this.server.getLogger()?.warn(`Failed to enable stdin rawMode: ${error}!`);
             this.server.getLogger()?.error(error);
@@ -40,37 +40,9 @@ export default class Console {
             if (key.ctrl && key.name === 'c') {
                 this.getServer().shutdown();
             }
-
-            // FIXME: Windows support.
-            switch (key.name) {
-                case 'backspace': {
-                    process.stdin.write('\b \b');
-                    break;
-                }
-                case 'tab': {
-                    // TODO: Implement tab completion.
-                    break;
-                }
-                case 'return': {
-                    break;
-                }
-
-                case 'up':
-                case 'down':
-                    break;
-
-                default: {
-                    if (key.sequence === undefined) break;
-
-                    // Print what the user is typing
-                    process.stdin.write(key.sequence);
-                }
-            }
         });
 
         this.cli.on('line', (input: string) => {
-            readline.moveCursor(process.stdin, -input.length, 0);
-
             if (input.startsWith('/')) {
                 void this.getServer()
                     .getCommandManager()
@@ -94,9 +66,13 @@ export default class Console {
     }
 
     public async onDisable(): Promise<void> {
-        process.stdin.removeAllListeners();
         this.cli.close();
         this.cli.removeAllListeners();
+
+        process.stdin.removeAllListeners();
+        process.stdin.destroy();
+        process.stdout.removeAllListeners();
+        process.stdout.destroy();
     }
 
     public getName(): string {

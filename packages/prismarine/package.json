@@ -40,10 +40,10 @@
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
     "scripts": {
-        "clean": "rimraf dist jsp tsconfig.tsbuildinfo",
+        "clean": "rimraf dist jsp tsconfig.tsbuildinfo vite.config.ts.timestamp-*",
         "build": "vite build",
-        "typecheck": "tsc -noEmit",
-        "dev": "vite build --watch"
+        "build:watch": "vite build --watch",
+        "typecheck": "tsc -noEmit"
     },
     "keywords": [
         "javascript",

@@ -32,7 +32,7 @@
         "target": "ESNext",
         "tsBuildInfoFile": "tsconfig.tsbuildinfo",
         "types": [],
-        "typeRoots": [],
+        "typeRoots": ["./node_modules/@types", "./packages/**/src/@types"],
         "useDefineForClassFields": true
     },
 

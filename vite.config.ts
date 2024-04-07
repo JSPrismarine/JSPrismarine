@@ -1,9 +1,12 @@
+import { defineConfig } from 'vite';
+
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import { codecovVitePlugin } from '@codecov/vite-plugin';
+import tsconfigPaths from 'vite-tsconfig-paths';
+
 import pkg from './package.json' assert { type: 'json' };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -65,6 +68,9 @@ export default defineConfig({
         }
     },
     plugins: [
+        tsconfigPaths({
+            root: process.cwd()
+        }),
         dts({
             clearPureImport: false,
             copyDtsFiles: true,

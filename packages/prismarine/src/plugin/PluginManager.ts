@@ -51,7 +51,7 @@ export default class PluginManager {
         ).filter((a) => a);
         this.server
             .getLogger()
-            ?.debug(`Registered §b${res.length}§r plugin(s) (took ${timer.stop()} ms)!`, 'PluginManager/onEnable');
+            ?.debug(`Registered §b${res.length}§r plugin(s) (took §e${timer.stop()} ms§r)!`, 'PluginManager/onEnable');
     }
 
     /**
@@ -173,7 +173,7 @@ export default class PluginManager {
         this.server
             .getLogger()
             ?.info(
-                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${timer.stop()} ms)!`,
+                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took §e${timer.stop()} ms§r)!`,
                 'PluginManager/registerPlugin'
             );
         return plugin;
@@ -205,7 +205,7 @@ export default class PluginManager {
         this.server
             .getLogger()
             ?.info(
-                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took ${timer.stop()} ms)!`,
+                `Plugin §b${plugin.getDisplayName()} ${plugin.getVersion()}§r loaded successfully (took §e${timer.stop()} ms§r)!`,
                 'PluginManager/registerPlugin'
             );
         return plugin;

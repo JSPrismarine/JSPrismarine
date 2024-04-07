@@ -13,7 +13,10 @@
     "types": "./dist/RakNet.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/RakNet.es.js",
+            "import": [
+                "./src/RakNet.ts",
+                "./dist/RakNet.es.js"
+            ],
             "module": "./dist/RakNet.es.js",
             "require": "./dist/RakNet.cjs.js",
             "types": "./dist/RakNet.d.ts"
@@ -27,10 +30,10 @@
         "./package.json": "./package.json"
     },
     "scripts": {
-        "clean": "rimraf dist jsp tsconfig.tsbuildinfo",
+        "clean": "rimraf dist jsp tsconfig.tsbuildinfo vite.config.ts.timestamp-*",
         "build": "vite build",
-        "typecheck": "tsc -noEmit",
-        "dev": "vite build --watch"
+        "build:watch": "vite build --watch",
+        "typecheck": "tsc -noEmit"
     },
     "repository": {
         "type": "git",

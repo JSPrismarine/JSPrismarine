@@ -1,8 +1,9 @@
+import { defineConfig, mergeConfig } from 'vite';
 import { globSync } from 'glob';
+
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { defineConfig, mergeConfig } from 'vite';
 import pkg from './package.json' assert { type: 'json' };
 import { codecovVitePlugin } from '@codecov/vite-plugin';
 

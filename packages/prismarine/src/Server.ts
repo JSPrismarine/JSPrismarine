@@ -149,7 +149,7 @@ export default class Server {
             const timer = new Timer();
             this.logger.debug(`${token} is attempting to connect`, 'Server/listen/openConnection');
             this.sessionManager.add(token, new ClientConnection(session, this.logger));
-            this.logger.verbose(`New connection handling took ${timer.stop()} ms`, 'Server/listen/openConnection');
+            this.logger.verbose(`New connection handling took §e${timer.stop()} ms§r`, 'Server/listen/openConnection');
         });
 
         this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
@@ -359,6 +359,8 @@ export default class Server {
             try {
                 this.raknet.kill();
             } catch {}
+
+            this.getLogger()?.info('Server stopped!', 'Server/kill');
 
             process.exit(options?.crash ? 1 : 0);
         } catch (error: unknown) {
