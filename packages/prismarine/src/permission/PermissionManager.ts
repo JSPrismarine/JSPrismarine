@@ -1,11 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import util from 'node:util';
+
 import type Player from '../Player';
 import type Server from '../Server';
 import { cwd } from '../utils/cwd';
-import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
-import path from 'node:path';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
-import util from 'util';
 
 interface OpType {
     name: string;
@@ -16,22 +17,35 @@ interface OpType {
  *
  * @public
  */
-export default class PermissionManager {
+export class PermissionManager {
     private readonly server: Server;
     private readonly ops: Set<string> = new Set();
     private readonly permissions: Map<string, string[]> = new Map();
     private defaultPermissions: string[] = [];
     private defaultOperatorPermissions: string[] = [];
 
+    /**
+     * Create a new permission manager.
+     * @constructor
+     * @param {Server} server - The server instance.
+     */
     public constructor(server: Server) {
         this.server = server;
     }
 
+    /**
+     * Enable the manager and load all permissions.
+     * @returns {Promise<void>} A promise that resolves when the manager is enabled.
+     */
     public async onEnable(): Promise<void> {
         await this.parseOps();
         await this.parsePermissions();
     }
 
+    /**
+     * Signifies that the manager is being disabled and all permissions should be unloaded.
+     * @returns {Promise<void>} A promise that resolves when the manager is disabled.
+     */
     public async onDisable(): Promise<void> {
         this.ops.clear();
         this.permissions.clear();
@@ -55,6 +69,9 @@ export default class PermissionManager {
      *
      * @remarks
      * This will not be saved to the permissions.json file.
+     *
+     * @param {Player} player - The player to set permissions for.
+     * @param {string[]} [permissions=[]] - The permissions to set.
      */
     public setPermissions(player: Player, permissions: string[] = []) {
         this.permissions.set(player.getName(), permissions);
@@ -128,6 +145,13 @@ export default class PermissionManager {
         }
     }
 
+    /**
+     * Set a player as an operator.
+     *
+     * @param {string} username - The player to set as an operator.
+     * @param {boolean} op - Whether the player should be an operator.
+     * @returns {Promise<boolean>} A promise that resolves with a boolean indicating whether the operation was successful.
+     */
     public async setOp(username: string, op: boolean): Promise<boolean> {
         const target = this.server.getSessionManager().getPlayerByExactName(username); // TODO: by name not exact
         if (target) {
@@ -162,10 +186,22 @@ export default class PermissionManager {
         }
     }
 
+    /**
+     * Check if a player is an operator.
+     *
+     * @param {string} username - The player to check.
+     * @returns {boolean} Whether the player is an operator.
+     */
     public isOp(username: string): boolean {
         return this.ops.has(username);
     }
 
+    /**
+     * Check if a player can execute a command.
+     *
+     * @param {Player} executer - The player to check.
+     * @returns {object} An object with an execute method that takes a permission string and returns whether the player can execute the command.
+     */
     public can(executer: Player) {
         return {
             execute: (permission?: string) => {

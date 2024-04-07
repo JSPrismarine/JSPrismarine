@@ -1,10 +1,19 @@
+import { promisify } from 'node:util';
+
 import { inflateRaw, inflateRawSync } from 'zlib';
 import { PacketCompressionAlgorithm } from './packet/NetworkSettingsPacket.js';
-import { promisify } from 'util';
 
 const asyncInflate = promisify(inflateRaw);
 
-export default class CompressionProvider {
+/**
+ * A provider for decompressing packets.
+ */
+export class CompressionProvider {
+    /**
+     * Create a new compression provider.
+     * @param {PacketCompressionAlgorithm} algorithm - The compression algorithm to use.
+     * @returns {Function} A function that will decompress the buffer.
+     */
     public static fromAlgorithm(algorithm: PacketCompressionAlgorithm): (buffer: Buffer) => Promise<Buffer> {
         switch (algorithm) {
             case PacketCompressionAlgorithm.ZLIB:
@@ -19,7 +28,13 @@ export default class CompressionProvider {
         }
     }
 
-    // TODO: move to full async... and remove this method...
+    /**
+     * Create a new compression provider.
+     *
+     * @todo Move to full async... and remove this method...
+     * @param {PacketCompressionAlgorithm} algorithm - The compression algorithm to use.
+     * @returns {Function} A function that will decompress the buffer.
+     */
     public static fromAlgorithmSync(algorithm: PacketCompressionAlgorithm): (buffer: Buffer) => Buffer {
         switch (algorithm) {
             case PacketCompressionAlgorithm.ZLIB:

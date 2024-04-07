@@ -1,11 +1,11 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import util from 'node:util';
+
 import type Player from '../Player';
 import type Server from '../Server';
 import { cwd } from '../utils/cwd';
-import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
-
-import path from 'node:path';
-import util from 'node:util';
 
 /**
  * Ban manager.

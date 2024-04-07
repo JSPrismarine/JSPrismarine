@@ -14,9 +14,9 @@ import { EventManager } from './events/EventManager';
 import Identifiers from './network/Identifiers';
 import ItemManager from './item/ItemManager';
 import PacketRegistry from './network/PacketRegistry';
-import PermissionManager from './permission/PermissionManager';
-import PluginManager from './plugin/PluginManager';
-import QueryManager from './query/QueryManager';
+import { PermissionManager } from './permission/PermissionManager';
+import { PluginManager } from './plugin/PluginManager';
+import { QueryManager } from './query/QueryManager';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
@@ -413,6 +413,10 @@ export default class Server {
     /**
      * Returns the server version.
      * @returns {string} The server version.
+     * @example
+     * ```typescript
+     * console.log(server.getVersion());
+     * ```
      */
     public getVersion(): string {
         return this.version;
@@ -477,6 +481,15 @@ export default class Server {
     /**
      * Returns the logger.
      * @returns {LoggerBuilder} The logger.
+     * @example
+     * ```typescript
+     * // Normal log:
+     * server.getLogger().info('Hello, world!', 'MyPlugin/MyClass');
+     * // Debug log:
+     * server.getLogger().debug('Hello, world!', 'MyPlugin/MyClass');
+     * // Error log:
+     * server.getLogger().error(new Error('Hello World'), 'MyPlugin/MyClass');
+     * ```
      */
     public getLogger(): LoggerBuilder {
         return this.logger;
@@ -525,6 +538,10 @@ export default class Server {
     /**
      * Returns the config.
      * @returns {Config} The config.
+     * @example
+     * ```typescript
+     * console.log(server.getConfig().getMaxPlayers()); // 20
+     * ```
      */
     public getConfig(): Config {
         return this.config;

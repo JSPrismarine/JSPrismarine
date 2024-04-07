@@ -1,19 +1,20 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import unzipper from 'unzipper';
+
 import { PluginManager as ModuleManager } from 'live-plugin-manager';
 import PluginApi from './api/PluginApi';
 import PluginFile from './PluginFile';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
 import { cwd } from '../utils/cwd';
-import fs from 'node:fs';
-import path from 'node:path';
-import unzipper from 'unzipper';
 
 /**
  * Plugin manager.
  *
  * @public
  */
-export default class PluginManager {
+export class PluginManager {
     private readonly server: Server;
     private readonly plugins = new Map();
 
