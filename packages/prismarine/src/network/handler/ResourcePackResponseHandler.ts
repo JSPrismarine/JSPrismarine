@@ -126,8 +126,9 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
                     () =>
                         server
                             .getLogger()
-                            ?.error(
-                                `Failed to spawn player[${session.getConnection().getRakNetSession().getAddress()}]`
+                            .error(
+                                `Failed to spawn player[${session.getConnection().getRakNetSession().getAddress()}]`,
+                                'ResourcePackResponseHandler/handle'
                             )
                 )
                 .finally(async () => {
@@ -151,11 +152,11 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             server
                 .getLogger()
-                ?.info(
+                .info(
                     `§b${player.getName()}§f is attempting to join with id §b${player.getRuntimeId()}§f from ${player
                         .getAddress()
                         .getAddress()}:${player.getAddress().getPort()}`,
-                    'Handler/ResourcePackResponseHandler'
+                    'ResourcePackResponseHandler/handle'
                 );
 
             player.setNameTag(player.getName());

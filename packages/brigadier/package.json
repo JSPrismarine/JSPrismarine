@@ -43,7 +43,10 @@
     },
     "keywords": [
         "nodejs",
-        "raknet"
+        "brigadier",
+        "minecraft",
+        "minecraft-commands",
+        "commands"
     ],
     "author": "JSPrismarine",
     "license": "MIT",

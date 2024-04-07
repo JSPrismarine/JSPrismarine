@@ -151,7 +151,11 @@ export default class Server {
         await this.worldManager.onEnable();
         await this.packetRegistry.onEnable();
 
-        this.raknet = new RakNetListener(this.getConfig().getMaxPlayers(), this.getConfig().getOnlineMode());
+        this.raknet = new RakNetListener(
+            this.getConfig().getMaxPlayers(),
+            this.getConfig().getOnlineMode(),
+            this.getLogger()
+        );
         this.raknet.setServerName(buildRakNetServerName(this));
         this.raknet.start(serverIp, port);
 

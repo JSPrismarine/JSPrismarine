@@ -1,4 +1,3 @@
-import { pino, type Logger } from 'pino';
 import Dgram, { type RemoteInfo } from 'node:dgram';
 import BitFlags from './protocol/BitFlags';
 import { EventEmitter } from 'events';
@@ -7,11 +6,19 @@ import { RAKNET_TPS } from './Constants';
 import RakNetSession from './Session';
 import { OfflineHandler } from './protocol/OfflineHandler';
 
+type Logger = {
+    info: Function;
+    warn: Function;
+    error: Function;
+    verbose: Function;
+    debug: Function;
+    silly: Function;
+};
+
 export default class ServerSocket extends EventEmitter {
     private readonly socket: Dgram.Socket;
     private readonly guid: bigint;
     private readonly sessions: Set<RakNetSession> = new Set();
-    private readonly logger: Logger;
     private ticker: NodeJS.Timeout | undefined;
     private serverName: string = 'RakNet';
 
@@ -19,7 +26,8 @@ export default class ServerSocket extends EventEmitter {
 
     public constructor(
         private maxConnections: number,
-        private readonly onlineMode: boolean
+        private readonly onlineMode: boolean,
+        private readonly logger: Logger
     ) {
         super();
         this.socket = Dgram.createSocket('udp4');
@@ -27,11 +35,9 @@ export default class ServerSocket extends EventEmitter {
         // us closing the process while listening
         this.socket.unref();
         this.guid = Buffer.allocUnsafe(8).readBigInt64BE();
-        this.logger = pino({ name: 'RakNet', base: undefined });
-        this.logger.level = 'trace'; // TODO: via pino-pretty cli
 
         if (this.onlineMode) {
-            this.logger.warn('Online mode is currently not supported.');
+            this.logger.warn('Online mode is currently not supported.', 'RakNet/ServerSocket');
         }
     }
 
@@ -40,7 +46,8 @@ export default class ServerSocket extends EventEmitter {
             this.socket.bind(port, address);
         } catch (error: unknown) {
             if (error instanceof Error) {
-                this.logger.error('Failed to bind socket, error message=%s', error.message);
+                this.logger.error('Failed to bind socket, error message=%s', 'RakNet/ServerSocket/Start');
+                this.logger.error(error, 'RakNet/ServerSocket/Start');
             }
         }
 
@@ -72,9 +79,8 @@ export default class ServerSocket extends EventEmitter {
             } else {
                 // May be triggered by the ACK of disconnect packet that is received after session is closed
                 this.logger.debug(
-                    'Cannot handle Datagram for unconnected client=%s, buffer=%o',
-                    `${rinfo.address}:${rinfo.port}`,
-                    msg
+                    `Cannot handle Datagram for unconnected client=${rinfo.address}:${rinfo.port}, buffer=${msg}`,
+                    'RakNet/ServerSocket/handleMessage'
                 );
             }
         }
@@ -132,13 +138,19 @@ export default class ServerSocket extends EventEmitter {
 
     public addSession(rinfo: RemoteInfo, mtuSize: number, incomingGuid: bigint) {
         this.sessions.add(new RakNetSession(this, mtuSize, rinfo, incomingGuid));
-        this.logger.debug('Session created for client=%o, mtu=%d', `${rinfo.address}:${rinfo.port}`, mtuSize);
+        this.logger.verbose(
+            `Session created for client=${rinfo.address}:${rinfo.port}, mtu=${mtuSize}`,
+            'RakNet/ServerSocket/addSession'
+        );
     }
 
     public removeSession(session: RakNetSession, reason?: string): void {
         if (this.sessions.delete(session)) {
             this.emit('closeConnection', session.getAddress(), reason);
-            this.logger.debug('Closed session for client=%o, reason=%s', session.getAddress(), reason);
+            this.logger.verbose(
+                `Closed session for client=${session.getAddress()}, reason=${reason}`,
+                'RakNet/ServerSocket/addSession'
+            );
         }
     }
 
