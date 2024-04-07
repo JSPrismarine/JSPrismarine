@@ -10,12 +10,142 @@ import TextType from '../network/type/TextType';
 import Vector3 from '../math/Vector3';
 import type World from '../world/World';
 
+export class EntityLike extends Position {
+    /**
+     * EntityLike constructor.
+     * @constructor
+     * @param {bigint} runtimeId - The entity's runtime id.
+     * @param {Server} server - The server instance.
+     * @param {World} [world] - The world the entity belongs to.
+     * @returns {EntityLike} The entity-like instance.
+     */
+    public constructor(
+        protected readonly runtimeId: bigint,
+        protected readonly server: Server,
+        world?: World
+    ) {
+        super({ world }); // TODO
+    }
+
+    /**
+     * Get the entity's runtime id.
+     * @returns {bigint} The entity's runtime id.
+     */
+    public getRuntimeId(): bigint {
+        return this.runtimeId;
+    }
+
+    /**
+     * Get the server instance.
+     * @returns {Server} The server instance.
+     */
+    public getServer(): Server {
+        return this.server;
+    }
+
+    /**
+     * Get the entity's position.
+     * @returns {Vector3} The entity's position.
+     * @example
+     * ```typescript
+     * const position = entity.getPosition();
+     * ```
+     */
+    public getPosition(): Vector3 {
+        return new Vector3(this.getX(), this.getY(), this.getZ());
+    }
+
+    /**
+     * Fired when an entity collides with another entity.
+     * @param {Entity} entity - The entity collided with.
+     * @returns {Promise<void>} A promise that resolves when the collision is handled.
+     * @example
+     * ```typescript
+     * entity.onCollide(otherEntity).then(() => {
+     *     console.log('Collision handled');
+     * });
+     * ```
+     */
+    public async onCollide(entity: Entity): Promise<void> {
+        void entity; // Trick the linter.
+    }
+
+    /**
+     * Returns the nearest entity from the current entity.
+     * @todo Customizable radius
+     * @param {Entity[]} [entities=this.getWorld().getEntities()] - The entities to compare the distance between.
+     * @returns {Entity[]} The nearest entity.
+     * @example
+     * ```typescript
+     * const nearestEntity = entity.getNearestEntity();
+     * console.log('Nearest entity:', nearestEntity);
+     * ```
+     */
+    public getNearestEntity(entities: Entity[] = this.getWorld().getEntities()): Entity[] {
+        const position = new Vector3(this.getX(), this.getY(), this.getZ());
+        const distance = (a: Vector3, b: Vector3) =>
+            Math.hypot(b.getX() - a.getX(), b.getY() - a.getY(), b.getZ() - a.getZ());
+
+        const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
+            const distances = points.map((e) => distance(target, new Vector3(e.getX(), e.getY(), e.getZ())));
+            const closest = Math.min(...distances);
+            return points.find((_e, i) => distances[i]! - closest < eps)!;
+        };
+
+        return [
+            closest(
+                position,
+                entities.filter((entity) => entity.getRuntimeId() !== this.runtimeId)
+            )
+        ];
+    }
+
+    /**
+     * Get entities within a radius of the current entity.
+     * @param {number} radius - The radius.
+     * @returns {Promise<Entity[]>} A promise that resolves with the entities within the specified radius.
+     * @example
+     * ```typescript
+     * const nearbyEntities = await entity.getNearbyEntities(10);
+     * console.log('Nearby entities:', nearbyEntities);
+     * ```
+     */
+    public async getNearbyEntities(radius: number): Promise<Entity[]> {
+        const entities = this.getWorld().getEntities();
+        const position = this.getPosition();
+
+        const min = new Vector3(position.getX() - radius, position.getY() - radius, position.getZ() - radius);
+        const max = new Vector3(position.getX() + radius, position.getY() + radius, position.getZ() + radius);
+
+        const res = entities.filter((entity) => {
+            if (entity.getRuntimeId() === this.runtimeId) return false;
+
+            const position = entity.getPosition();
+
+            if (
+                min.getX() < position.getX() &&
+                max.getX() > position.getX() &&
+                min.getY() < position.getY() &&
+                max.getY() > position.getY() &&
+                min.getZ() < position.getZ() &&
+                max.getZ() > position.getZ()
+            )
+                return true;
+
+            return false;
+        });
+
+        // TODO: sort entities based on distance
+        return res;
+    }
+}
+
 /**
  * The base class for all entities including `Player`.
  *
  * @public
  */
-export default class Entity extends Position {
+export class Entity extends EntityLike {
     /**
      * The entity's namespace ID.
      */
@@ -26,9 +156,8 @@ export default class Entity extends Position {
      */
     public static runtimeIdCount = 0n;
 
-    private runtimeId: bigint;
-
-    protected server: Server;
+    protected readonly runtimeId: bigint;
+    protected readonly server: Server;
 
     /**
      * @deprecated
@@ -52,8 +181,8 @@ export default class Entity extends Position {
      * ```
      */
     public constructor(world: World, server: Server) {
-        super({ world }); // TODO
         Entity.runtimeIdCount += 1n;
+        super(Entity.runtimeIdCount, server, world);
         this.runtimeId = Entity.runtimeIdCount;
         this.server = server;
 
@@ -262,19 +391,7 @@ export default class Entity extends Position {
     public sendMessage(message: string, type: TextType = TextType.Raw): void {
         this.server
             .getLogger()
-            ?.warn(`Entity/sendMessage is not implemented: (message: ${message}, type: ${type})`, 'Entity/sendMessage');
-    }
-
-    /**
-     * Get the entity's position.
-     * @returns {Vector3} The entity's position.
-     * @example
-     * ```typescript
-     * const position = entity.getPosition();
-     * ```
-     */
-    public getPosition(): Vector3 {
-        return new Vector3(this.getX(), this.getY(), this.getZ());
+            .warn(`Entity/sendMessage is not implemented: (message: ${message}, type: ${type})`, 'Entity/sendMessage');
     }
 
     /**
@@ -404,89 +521,5 @@ export default class Entity extends Position {
                 .map((word) => word[0]!.toUpperCase() + word.slice(1, word.length))
                 .join(' ')
         );
-    }
-
-    /**
-     * Fired when an entity collides with another entity.
-     * @param {Entity} entity - The entity collided with.
-     * @returns {Promise<void>} A promise that resolves when the collision is handled.
-     * @example
-     * ```typescript
-     * entity.onCollide(otherEntity).then(() => {
-     *     console.log('Collision handled');
-     * });
-     * ```
-     */
-    public async onCollide(entity: Entity): Promise<void> {
-        void entity; // Trick the linter.
-    }
-
-    /**
-     * Returns the nearest entity from the current entity.
-     * @todo Customizable radius
-     * @param {Entity[]} [entities=this.getWorld().getEntities()] - The entities to compare the distance between.
-     * @returns {Entity[]} The nearest entity.
-     * @example
-     * ```typescript
-     * const nearestEntity = entity.getNearestEntity();
-     * console.log('Nearest entity:', nearestEntity);
-     * ```
-     */
-    public getNearestEntity(entities: Entity[] = this.getWorld().getEntities()): Entity[] {
-        const position = new Vector3(this.getX(), this.getY(), this.getZ());
-        const distance = (a: Vector3, b: Vector3) =>
-            Math.hypot(b.getX() - a.getX(), b.getY() - a.getY(), b.getZ() - a.getZ());
-
-        const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
-            const distances = points.map((e) => distance(target, new Vector3(e.getX(), e.getY(), e.getZ())));
-            const closest = Math.min(...distances);
-            return points.find((_e, i) => distances[i]! - closest < eps)!;
-        };
-
-        return [
-            closest(
-                position,
-                entities.filter((entity) => entity.runtimeId !== this.runtimeId)
-            )
-        ];
-    }
-
-    /**
-     * Get entities within a radius of the current entity.
-     * @param {number} radius - The radius.
-     * @returns {Promise<Entity[]>} A promise that resolves with the entities within the specified radius.
-     * @example
-     * ```typescript
-     * const nearbyEntities = await entity.getNearbyEntities(10);
-     * console.log('Nearby entities:', nearbyEntities);
-     * ```
-     */
-    public async getNearbyEntities(radius: number): Promise<Entity[]> {
-        const entities = this.getWorld().getEntities();
-        const position = this.getPosition();
-
-        const min = new Vector3(position.getX() - radius, position.getY() - radius, position.getZ() - radius);
-        const max = new Vector3(position.getX() + radius, position.getY() + radius, position.getZ() + radius);
-
-        const res = entities.filter((entity) => {
-            if (entity.runtimeId === this.runtimeId) return false;
-
-            const position = entity.getPosition();
-
-            if (
-                min.getX() < position.getX() &&
-                max.getX() > position.getX() &&
-                min.getY() < position.getY() &&
-                max.getY() > position.getY() &&
-                min.getZ() < position.getZ() &&
-                max.getZ() > position.getZ()
-            )
-                return true;
-
-            return false;
-        });
-
-        // TODO: sort entities based on distance
-        return res;
     }
 }

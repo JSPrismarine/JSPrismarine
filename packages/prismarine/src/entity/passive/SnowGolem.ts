@@ -1,6 +1,6 @@
-import Entity from '../Entity';
-import Server from '../../Server';
-import World from '../../world/World';
+import { Entity } from '../Entity';
+import type Server from '../../Server';
+import type World from '../../world/World';
 
 export default class SnowGolem extends Entity {
     public static MOB_ID = 'minecraft:snow_golem';

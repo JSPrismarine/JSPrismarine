@@ -3,15 +3,17 @@ import ChatEvent from './events/chat/ChatEvent';
 import Vector3 from './math/Vector3';
 import readline from 'node:readline';
 
-import type Entity from './entity/Entity';
+import { EntityLike } from './entity/Entity';
 import type Server from './Server';
 
-export default class Console {
-    private readonly server: Server;
+export default class Console extends EntityLike {
+    protected readonly runtimeId: bigint;
+    protected readonly server: Server;
     private cli: readline.Interface;
-    public runtimeId = BigInt(-1);
 
-    public constructor(server: Server) {
+    public constructor(server: Server, runtimeId = BigInt(-1)) {
+        super(runtimeId, server);
+        this.runtimeId = runtimeId;
         this.server = server;
 
         // Console command reader
@@ -61,10 +63,6 @@ export default class Console {
         });
     }
 
-    public getRuntimeId(): bigint {
-        return this.runtimeId;
-    }
-
     public async onDisable(): Promise<void> {
         this.cli.close();
         this.cli.removeAllListeners();
@@ -88,11 +86,7 @@ export default class Console {
     }
 
     public getWorld() {
-        return this.server.getWorldManager().getDefaultWorld();
-    }
-
-    public getServer(): Server {
-        return this.server;
+        return this.server.getWorldManager().getDefaultWorld()!;
     }
 
     public isPlayer(): boolean {
@@ -123,30 +117,5 @@ export default class Console {
 
     public isConsole(): boolean {
         return true;
-    }
-
-    /**
-     * Returns the nearest entity from the current entity
-     *
-     * TODO: Customizable radius
-     * TODO: Generic?
-     */
-    public getNearestEntity(entities: Entity[] = this.server.getWorldManager().getDefaultWorld()!.getEntities()!) {
-        const pos = new Vector3(this.getX(), this.getY(), this.getZ());
-        const dist = (a: Vector3, b: Vector3) =>
-            Math.hypot(b.getX() - a.getX(), b.getY() - a.getY(), b.getZ() - a.getZ());
-
-        const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
-            const distances = points.map((e) => dist(target, new Vector3(e.getX(), e.getY(), e.getZ())));
-            const closest = Math.min(...distances);
-            return points.find((e, i) => distances[i]! - closest < eps)!;
-        };
-
-        return [
-            closest(
-                pos,
-                entities.filter((a) => a.getRuntimeId() !== this.getRuntimeId())
-            )
-        ];
     }
 }

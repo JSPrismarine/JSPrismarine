@@ -1,7 +1,7 @@
 import { AddItemActorPacket } from '../../network/Packets';
 import type ContainerEntry from '../../inventory/ContainerEntry';
-import Entity from '../Entity';
-import Player from '../../Player';
+import { Entity } from '../Entity';
+import type Player from '../../Player';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 import type World from '../../world/World';

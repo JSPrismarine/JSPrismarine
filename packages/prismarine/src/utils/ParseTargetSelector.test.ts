@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import Entity from '../entity/Entity';
+import { Entity } from '../entity/Entity';
 import ParseTargetSelector from './ParseTargetSelector';
 import Sheep from '../entity/passive/Sheep';
 

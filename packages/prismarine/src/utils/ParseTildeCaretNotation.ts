@@ -1,4 +1,4 @@
-import type Entity from '../entity/Entity';
+import type { Entity } from '../entity/Entity';
 
 const ParseTildeCaretNotation = ({
     input,
