@@ -2,6 +2,7 @@ import YAML from 'yaml';
 import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
 import path from 'node:path';
+import { ConfigInvalidDataError } from '@jsprismarine/errors';
 
 const _ = {
     get: (obj: any, path: string, defaultValue = undefined) => {
@@ -54,10 +55,14 @@ const TypeDefaults = {
     yaml: ' '
 };
 
+export type ConfigData = {
+    [key: string]: any;
+};
+
 /**
  * General config-file handler.
  */
-export default class ConfigBuilder {
+export class ConfigBuilder {
     private type: 'yaml' | 'json';
     private path: string;
 
@@ -73,13 +78,9 @@ export default class ConfigBuilder {
             throw new Error(`Unsupported config type. (Supported types: ${Object.keys(TypeDefaults).join(', ')})`);
         }
 
-        if (!fs.existsSync(pathSplitted.dir)) {
-            fs.mkdirSync(pathSplitted.dir, { recursive: true });
-        }
-
-        if (!fs.existsSync(filePath)) {
-            fs.writeFileSync(filePath, (TypeDefaults as any)[this.type], 'utf8');
-        }
+        // Create the config directory if it doesn't exist.
+        if (!fs.existsSync(pathSplitted.dir)) fs.mkdirSync(pathSplitted.dir, { recursive: true });
+        if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, (TypeDefaults as any)[this.type], 'utf8');
 
         this.path = filePath;
     }
@@ -87,7 +88,7 @@ export default class ConfigBuilder {
     /**
      * Get path to the config file on the filesystem.
      *
-     * @returns the path to the config file
+     * @returns {string} the path to the config file
      */
     public getPath(): string {
         return this.path;
@@ -96,65 +97,65 @@ export default class ConfigBuilder {
     /**
      * Get the config format (eg. type).
      *
-     * @returns either `yaml` or `json`
+     * @returns {'yaml' | 'json'} either `yaml` or `json`
      */
     public getType(): 'yaml' | 'json' {
         return this.type;
     }
 
-    private setFileData(data = {}) {
-        let fileData = '';
+    /**
+     * @private
+     */
+    private setFileData(data: ConfigData = {}) {
+        if (!(data as any)) throw new ConfigInvalidDataError();
+        fs.writeFileSync(this.path, this.stringify(data), 'utf8');
+    }
+
+    /**
+     * @private
+     */
+    private stringify(data: ConfigData = {}) {
         switch (this.type) {
             case 'json':
-                fileData = JSON.stringify(data, null, 2);
-                break;
+                return JSON.stringify(data, null, 2);
             case 'yaml':
-                fileData = YAML.stringify(data, { indent: 2 });
-                break;
+                return YAML.stringify(data, { indent: 2 });
             default:
                 throw new Error(`Unknown config type ${this.type}!`);
         }
-
-        fs.writeFileSync(this.path, fileData, 'utf8');
     }
 
-    private getFileData(): any {
-        let resultData = {};
-        const rawFileData = fs.readFileSync(this.path, 'utf8');
+    private getFileData(): ConfigData {
+        const raw = fs.readFileSync(this.path, 'utf8');
+
         switch (this.type) {
             case 'json':
                 try {
-                    resultData = JSON.parse(minifyJson(rawFileData));
-                } catch {
-                    return {};
-                }
+                    return JSON.parse(minifyJson(raw)) || {};
+                } catch {}
                 break;
             case 'yaml':
                 try {
-                    // TODO: check indent parameter
-                    resultData = YAML.parse(rawFileData);
-                } catch {
-                    return {};
-                }
+                    return YAML.parse(raw) || {};
+                } catch {}
                 break;
             default:
                 throw new Error(`Unknown config type: ${this.type}!`);
         }
 
-        return resultData;
+        return {};
     }
 
     /**
      * Get a config value from a key.
      *
-     * @param key - the config key
-     * @param defaults - the default value, optional
-     *
-     * @returns the config value
+     * @param {string} key - the config key
+     * @param {T} defaults -
      */
-    public get(key: string, defaults?: any): any {
+    public get<T = any>(key: string, defaults?: T): T {
         const data = this.getFileData();
         let result = _.get(data, key);
+
         if (typeof result === 'undefined' && typeof defaults !== 'undefined') {
             const newData = _.set(data, key, defaults);
             this.setFileData(newData);
@@ -172,10 +173,13 @@ export default class ConfigBuilder {
     public set(key: string, value: any) {
         const data = this.getFileData();
         const newData = _.set(data, key, value);
-        this.setFileData(newData);
 
-        // TODO
-        return true;
+        try {
+            this.setFileData(newData);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     /**

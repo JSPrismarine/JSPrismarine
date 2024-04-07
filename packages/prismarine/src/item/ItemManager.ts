@@ -76,7 +76,7 @@ export default class ItemManager {
         this.server
             .getLogger()
             ?.verbose(
-                `Registered §b${this.items.size}§r item(s) (took ${timer.stop()} ms)!`,
+                `Registered §b${this.items.size}§r item(s) (took §e${timer.stop()} ms§r)!`,
                 'ItemManager/importItems'
             );
     }

@@ -56,7 +56,7 @@ export default class CommandManager {
         this.server
             .getLogger()
             ?.verbose(
-                `Registered §b${this.commands.size}§r commands(s) (took ${timer.stop()} ms)!`,
+                `Registered §b${this.commands.size}§r commands(s) (took §e${timer.stop()} ms§r)!`,
                 'CommandManager/onEnable'
             );
     }
@@ -202,12 +202,14 @@ export default class CommandManager {
             const parsed = this.dispatcher.parse(input.trim(), target as Player);
             const id = parsed.getReader().getString().split(' ')[0]!;
 
-            this.server
-                .getLogger()
-                ?.verbose(
-                    `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${id})`,
-                    'CommandManager/dispatchCommand'
-                );
+            if (!sender.isConsole()) {
+                this.server
+                    .getLogger()
+                    ?.debug(
+                        `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${id})`,
+                        'CommandManager/dispatchCommand'
+                    );
+            }
 
             // Get command from parsed string.
             const command = Array.from(this.commands.values()).find(

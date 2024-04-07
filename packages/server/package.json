@@ -27,11 +27,11 @@
         "./package.json": "./package.json"
     },
     "scripts": {
-        "clean": "rimraf dist jsp tsconfig.tsbuildinfo",
+        "clean": "rimraf dist jsp tsconfig.tsbuildinfo vite.config.ts.timestamp-*",
         "build": "vite build",
         "typecheck": "tsc -noEmit",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
-        "dev": "cross-env NODE_ENV=development JSP_DIR=jsp nodemon -I --quiet --watch '../**/src/**' --ext 'ts' --ignore '../**/*.d.ts' --exec 'vite-node ./src/Server.ts' | pino-pretty -L 10"
+        "dev": "nodemon --quiet --watch '../**/src/**' --ext 'ts' --ignore '../**/*.d.ts' --exec 'vite-node ./src/Server.ts' | pino-pretty -L 10"
     },
     "repository": {
         "type": "git",
@@ -60,6 +60,7 @@
     },
     "dependencies": {
         "@jsprismarine/prismarine": "workspace:*",
-        "@jsprismarine/raknet": "workspace:*"
+        "@jsprismarine/raknet": "workspace:*",
+        "dotenv": "16.4.5"
     }
 }

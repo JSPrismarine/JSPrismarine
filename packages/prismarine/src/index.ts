@@ -12,7 +12,7 @@ import * as World from './world';
 import BaseProvider from './world/providers/BaseProvider';
 import Chat from './chat/Chat';
 import Config from './config/Config';
-import ConfigBuilder from './config/ConfigBuilder';
+import { ConfigBuilder } from './config/ConfigBuilder';
 import Entity from './entity/Entity';
 import Item from './item/Item';
 import Logger from './utils/Logger';

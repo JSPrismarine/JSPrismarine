@@ -126,7 +126,7 @@ export default class World {
         }
 
         await Promise.all(chunksToLoad);
-        this.server.getLogger()?.verbose(`(took ${timer.stop()} ms)`, 'World/onEnable');
+        this.server.getLogger()?.verbose(`(took §e${timer.stop()} ms§r)`, 'World/onEnable');
     }
 
     public async onDisable() {
@@ -425,7 +425,7 @@ export default class World {
                 .filter((c) => c.getHasChanged())
                 .map(async (chunk) => this.provider.writeChunk(chunk))
         );
-        this.server.getLogger()?.verbose(`(took ${timer.stop()} ms)!`, 'World/saveChunks');
+        this.server.getLogger()?.verbose(`(took §e${timer.stop()} ms§r)!`, 'World/saveChunks');
     }
 
     public async save(): Promise<void> {
