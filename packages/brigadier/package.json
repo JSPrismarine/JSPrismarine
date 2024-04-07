@@ -10,6 +10,7 @@
         "CHANGELOG.md",
         "README.md"
     ],
+    "main": "./dist/index.cjs.cjs",
     "module": "./dist/index.es.js",
     "types": "./dist/index.d.ts",
     "exports": {
@@ -19,13 +20,13 @@
                 "./dist/index.es.js"
             ],
             "module": "./dist/index.es.js",
-            "require": "./dist/index.cjs.js",
+            "require": "./dist/index.cjs.cjs",
             "types": "./dist/index.d.ts"
         },
         "./*": {
             "import": "./dist/*.es.js",
             "module": "./dist/*.es.js",
-            "require": "./dist/*.cjs.js",
+            "require": "./dist/*.cjs.cjs",
             "types": "./dist/*.d.ts"
         },
         "./package.json": "./package.json"

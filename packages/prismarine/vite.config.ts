@@ -30,11 +30,12 @@ export default mergeConfig(
                 '@': resolve(__dirname, 'src/index.ts')
             }
         },
+        assetsInclude: ['node_modules/@jsprismarine/bedrock-data/{jsp,resource}/**/*'],
         build: {
             lib: {
                 entry: input,
                 formats: ['es', 'cjs'],
-                fileName: (format, name) => `${name}.${format}.js`,
+                fileName: (format, name) => `${name}.${format}.${format === 'es' ? 'js' : 'cjs'}`,
                 name: pkg.name
             },
             rollupOptions: {

@@ -9,6 +9,7 @@
         "CHANGELOG.md",
         "README.md"
     ],
+    "main": "./dist/NBT.cjs.cjs",
     "module": "./dist/NBT.es.js",
     "types": "./dist/NBT.d.ts",
     "exports": {
@@ -18,13 +19,13 @@
                 "./dist/NBT.es.js"
             ],
             "module": "./dist/NBT.es.js",
-            "require": "./dist/NBT.cjs.js",
+            "require": "./dist/NBT.cjs.cjs",
             "types": "./dist/NBT.d.ts"
         },
         "./*": {
             "import": "./dist/*.es.js",
             "module": "./dist/*.es.js",
-            "require": "./dist/*.cjs.js",
+            "require": "./dist/*.cjs.cjs",
             "types": "./dist/*.d.ts"
         },
         "./package.json": "./package.json"
