@@ -12,11 +12,12 @@ import type { Logger } from '../';
  */
 export default class MinecraftSession {
     protected readonly rakSession: RakNetSession;
-    private readonly logger?: Logger;
 
-    public constructor(session: RakNetSession, logger?: Logger) {
+    public constructor(
+        session: RakNetSession,
+        private readonly logger: Logger
+    ) {
         this.rakSession = session;
-        this.logger = logger;
     }
 
     public sendBatch(batch: BatchPacket, direct = true): void {
@@ -36,12 +37,11 @@ export default class MinecraftSession {
             batch.compressed = comp;
             batch.encode();
         } catch (error: unknown) {
-            this.logger?.error(error, 'PlayerConnection/sendDataPacket');
-            this.logger?.warn(
+            this.logger.error(error);
+            this.logger.warn(
                 `Packet §b${packet.constructor.name}§r to §b${this.rakSession
                     .getAddress()
-                    .toToken()}§r failed with: ${(error as Error).message}`,
-                'PlayerConnection/sendDataPacket'
+                    .toToken()}§r failed with: ${(error as Error).message}`
             );
             return;
         }
@@ -53,7 +53,7 @@ export default class MinecraftSession {
         sendPacket.content = batch.getBuffer();
 
         this.rakSession.sendFrame(sendPacket, direct ? ConnectionPriority.IMMEDIATE : ConnectionPriority.NORMAL);
-        this.logger?.silly(`Sent §b${packet.constructor.name}§r packet`, 'PlayerConnection/sendDataPacket');
+        this.logger.silly(`Sent §b${packet.constructor.name}§r packet`);
     }
 
     public forceDisconnect(): void {

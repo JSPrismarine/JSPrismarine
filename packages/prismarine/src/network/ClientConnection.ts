@@ -15,7 +15,7 @@ export default class ClientConnection extends MinecraftSession {
     private playerSession: PlayerSession | null = null;
     public hasCompression = false;
 
-    public constructor(session: RakNetSession, logger?: Logger) {
+    public constructor(session: RakNetSession, logger: Logger) {
         super(session, logger);
     }
 

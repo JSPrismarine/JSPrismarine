@@ -73,7 +73,7 @@ export default class GameruleManager {
      */
     public getGamerule(name: string): any {
         if (!Object.values(GameRules).includes(name.toLowerCase())) {
-            this.server.getLogger().error(`Unknown Gamerule with name ${name}`, 'GameruleManager/getGamerule');
+            this.server.getLogger().error(`Unknown Gamerule with name ${name}`);
         }
 
         return this.rules.get(name.toLowerCase());
@@ -107,9 +107,7 @@ export default class GameruleManager {
                     }
                     break;
                 default:
-                    this.server
-                        .getLogger()
-                        .error('Gamerule format not implemented', 'GameruleManager/networkSerialize');
+                    this.server.getLogger().error('Gamerule format not implemented');
             }
         }
     }
