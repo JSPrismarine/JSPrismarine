@@ -23,23 +23,22 @@ export default class PluginApi {
      */
     public getLogger(): LoggerBuilder {
         const displayName = this.pkg?.prismarine?.displayName || this.pkg.name;
-        const name = this.pkg?.name;
 
         return {
             silly: (...args) => {
-                this.server.getLogger().debug(`[${displayName}] ${args}`, name);
+                this.server.getLogger().debug(`[${displayName}] ${args}`);
             },
             debug: (...args) => {
-                this.server.getLogger().verbose(`[${displayName}] ${args}`, name);
+                this.server.getLogger().verbose(`[${displayName}] ${args}`);
             },
             info: (...args) => {
-                this.server.getLogger().info(`[${displayName}] ${args}`, name);
+                this.server.getLogger().info(`[${displayName}] ${args}`);
             },
             warn: (...args) => {
-                this.server.getLogger().warn(`[${displayName}] ${args}`, name);
+                this.server.getLogger().warn(`[${displayName}] ${args}`);
             },
             error: (...args) => {
-                this.server.getLogger().error(`[${displayName}] ${args}`, name);
+                this.server.getLogger().error(`[${displayName}] ${args}`);
             }
         } as LoggerBuilder;
     }

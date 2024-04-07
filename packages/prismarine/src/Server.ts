@@ -170,18 +170,15 @@ export default class Server {
 
             const token = session.getAddress().toToken();
             if (this.sessionManager.has(token)) {
-                this.logger.error(
-                    `Another client with token (${token}) is already connected!`,
-                    'Server/listen/openConnection'
-                );
+                this.logger.error(`Another client with token (${token}) is already connected!`);
                 session.disconnect('Already connected from another location');
                 return;
             }
 
             const timer = new Timer();
-            this.logger.debug(`${token} is attempting to connect`, 'Server/listen/openConnection');
+            this.logger.debug(`${token} is attempting to connect`);
             this.sessionManager.add(token, new ClientConnection(session, this.logger));
-            this.logger.verbose(`New connection handling took §e${timer.stop()} ms§r`, 'Server/listen/openConnection');
+            this.logger.verbose(`New connection handling took §e${timer.stop()} ms§r`);
         });
 
         this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
@@ -205,7 +202,7 @@ export default class Server {
                     const event = new ChatEvent(
                         new Chat(
                             this.console,
-                            `§e%multiplayer.player.left`,
+                            `§e%multiplayer.player.left`, // TODO: handle translations.
                             [player.getName()],
                             true,
                             '*.everyone',
@@ -219,18 +216,12 @@ export default class Server {
                 await player.getWorld().removeEntity(player);
                 this.sessionManager.remove(token);
             } catch (error: unknown) {
-                this.logger.debug(
-                    `Cannot remove connection from non-existing player (${token})`,
-                    'Server/listen/raknetDisconnect'
-                );
-                this.logger.error(error, 'Server/listen/raknetDisconnect');
+                this.logger.debug(`Cannot remove connection from non-existing player (${token})`);
+                this.logger.error(error);
             }
 
-            this.logger.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
-            this.logger.debug(
-                `Player destruction took about ${Date.now() - time} ms`,
-                'Server/listen/raknetDisconnect'
-            );
+            this.logger.debug(`${token} disconnected due to ${reason}`);
+            this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
         });
 
         this.raknet.on('encapsulated', async (packet: any, inetAddr: InetAddress) => {
@@ -253,10 +244,7 @@ export default class Server {
                     const pid = buf[0]!;
 
                     if (!this.packetRegistry.getPackets().has(pid)) {
-                        this.logger.warn(
-                            `Packet 0x${pid.toString(16)} isn't implemented`,
-                            'Server/listen/raknetEncapsulatedPacket'
-                        );
+                        this.logger.warn(`Packet 0x${pid.toString(16)} isn't implemented`);
                         continue;
                     }
 
@@ -267,30 +255,21 @@ export default class Server {
                         packet.decode();
                     } catch (error: unknown) {
                         this.logger.error(error);
-                        this.logger.error(
-                            `Error while decoding packet: ${packet.constructor.name}: ${error}`,
-                            'Server/listen/raknetEncapsulatedPacket'
-                        );
+                        this.logger.error(`Error while decoding packet: ${packet.constructor.name}: ${error}`);
                         continue;
                     }
 
                     try {
                         const handler = this.packetRegistry.getHandler(pid);
-                        this.logger.silly(
-                            `Received §b${packet.constructor.name}§r packet`,
-                            'Server/listen/raknetEncapsulatedPacket'
-                        );
+                        this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
                         await (handler as any).handle(packet, this, connection.getPlayerSession() ?? connection);
                     } catch (error: unknown) {
-                        this.logger.error(
-                            `Handler error ${packet.constructor.name}-handler: (${error})`,
-                            'Server/listen/raknetEncapsulatedPacket'
-                        );
-                        this.logger.error(error, 'Server/listen/raknetEncapsulatedPacket');
+                        this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);
+                        this.logger.error(error);
                     }
                 }
             } catch (error: unknown) {
-                this.logger.error(error, 'Server/listen/raknetEncapsulatedPacket');
+                this.logger.error(error);
             }
         });
 
@@ -298,8 +277,8 @@ export default class Server {
             try {
                 await this.queryManager.onRaw(buffer, inetAddr);
             } catch (error: unknown) {
-                this.logger.error(error, 'Server/listen/raw');
-                this.logger.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
+                this.logger.error(error);
+                this.logger.verbose(`QueryManager failed with error: ${error}`);
             }
         });
 
@@ -397,11 +376,11 @@ export default class Server {
                 this.raknet.kill();
             } catch {}
 
-            this.getLogger().info('Server stopped!', 'Server/kill');
+            this.getLogger().info('Server stopped!');
 
             process.exit(options?.crash ? 1 : 0);
         } catch (error: unknown) {
-            this.logger.error(error, 'Server/kill');
+            this.logger.error(error);
             process.exit(1);
         }
     }
@@ -488,11 +467,11 @@ export default class Server {
      * @example
      * ```typescript
      * // Normal log:
-     * server.getLogger().info('Hello, world!', 'MyPlugin/MyClass');
+     * server.getLogger().info('Hello, world!');
      * // Debug log:
-     * server.getLogger().debug('Hello, world!', 'MyPlugin/MyClass');
+     * server.getLogger().debug('Hello, world!');
      * // Error log:
-     * server.getLogger().error(new Error('Hello World'), 'MyPlugin/MyClass');
+     * server.getLogger().error(new Error('Hello World'));
      * ```
      */
     public getLogger(): LoggerBuilder {

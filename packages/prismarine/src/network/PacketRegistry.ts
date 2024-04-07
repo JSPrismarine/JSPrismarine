@@ -38,7 +38,7 @@ export default class PacketRegistry {
             );
 
         this.packets.set(packet.NetID, packet);
-        this.server.getLogger().debug(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
+        this.server.getLogger().debug(`Packet with id §b${packet.name}§r registered`);
     }
 
     /**

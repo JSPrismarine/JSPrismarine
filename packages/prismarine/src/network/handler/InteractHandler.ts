@@ -27,7 +27,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 break;
             }
             default:
-                server.getLogger().verbose(`Unknown interact action id ${packet.action}`, 'InteractHandler/handle');
+                server.getLogger().verbose(`Unknown interact action id ${packet.action}`);
         }
     }
 }

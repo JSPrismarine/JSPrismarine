@@ -89,7 +89,7 @@ export default class BlockManager {
         await this.server.getEventManager().emit('blockRegister', event);
         if (event.isCancelled()) return;
 
-        this.server.getLogger().debug(`Block with id §b${block.name}§r registered`, 'BlockManager/registerClassBlock');
+        this.server.getLogger().debug(`Block with id §b${block.name}§r registered`);
         this.blocks.set(block.name, block);
         this.javaBlocks.set(block.javaName, block);
     }

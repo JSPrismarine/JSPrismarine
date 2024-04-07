@@ -144,14 +144,14 @@ export default class Session {
         if (handler) {
             handler(buffer);
         } else {
-            this.listener.getLogger().debug('Received an unknown packet type=%d', buffer[0]);
+            this.listener.getLogger().verbose(`Received an unknown packet type=${buffer[0]}`);
         }
     }
 
     private handleFrameSet(frameSet: FrameSet): void {
         // TODO: additional sanity checks
         if (this.receivedFrameSequences.has(frameSet.sequenceNumber)) {
-            this.listener.getLogger().debug('Discarded duplicated packet from client=%o', this.getAddress());
+            this.listener.getLogger().debug(`Discarded duplicated packet from client=${this.getAddress()}`);
             return;
         }
 

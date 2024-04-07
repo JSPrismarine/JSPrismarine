@@ -31,7 +31,7 @@ const version = (pkg.version as string) || 'unknown';
     ['SIGINT', 'SIGTERM', 'uncaughtException'].forEach((signal) =>
         process.on(signal, async (error) => {
             if (error instanceof Error) {
-                logger.error(error, 'Server');
+                logger.error(error);
             }
             await server.shutdown({ crash: error === 'uncaughtException' });
         })
@@ -40,8 +40,8 @@ const version = (pkg.version as string) || 'unknown';
     try {
         await server.bootstrap(config.getServerIp(), config.getServerPort());
     } catch (error: unknown) {
-        logger.error(`Cannot start the server, is it already running on the same port?`, 'Server');
-        logger.error(error, 'Server');
+        logger.error(`Cannot start the server, is it already running on the same port?`);
+        logger.error(error);
         await server.shutdown({ crash: true });
     }
 })();

@@ -297,7 +297,7 @@ export default class CommandManager {
                     await sender.sendMessage(`§c${error.message}`);
                     return;
                 default:
-                    this.server.getLogger().error(error, 'CommandManager/dispatchCommand');
+                    this.server.getLogger().error(error);
                     break;
             }
 
@@ -308,7 +308,7 @@ export default class CommandManager {
                     `Player ${target.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
-            this.server.getLogger().error(error, 'CommandManager/dispatchCommand');
+            this.server.getLogger().error(error);
         }
     }
 }

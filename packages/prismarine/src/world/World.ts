@@ -103,7 +103,7 @@ export default class World {
                 );
             }
         } catch (error: unknown) {
-            this.server.getLogger().warn(`Failed to read level.json due to ${error}`, 'World/onEnable');
+            this.server.getLogger().warn(`Failed to read level.json due to ${error}`);
         }
 
         this.provider.setWorld(this);
@@ -111,10 +111,7 @@ export default class World {
 
         this.server
             .getLogger()
-            .info(
-                `Preparing start region for dimension §b'${this.name}'/${this.generator.constructor.name}§r`,
-                'World/onEnable'
-            );
+            .info(`Preparing start region for dimension §b'${this.name}'/${this.generator.constructor.name}§r`);
         const chunksToLoad: Array<Promise<Chunk>> = [];
         const timer = new Timer();
 
@@ -126,7 +123,7 @@ export default class World {
         }
 
         await Promise.all(chunksToLoad);
-        this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)`, 'World/onEnable');
+        this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)`);
     }
 
     public async onDisable() {
@@ -416,16 +413,14 @@ export default class World {
      */
     public async saveChunks(): Promise<void> {
         const timer = new Timer();
-        this.server
-            .getLogger()
-            .info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`, 'World/saveChunks');
+        this.server.getLogger().info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`);
 
         await Promise.all(
             Array.from(this.chunks.values())
                 .filter((c) => c.getHasChanged())
                 .map(async (chunk) => this.provider.writeChunk(chunk))
         );
-        this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)!`, 'World/saveChunks');
+        this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)!`);
     }
 
     public async save(): Promise<void> {
@@ -534,8 +529,8 @@ export default class World {
                 )
             );
         } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to save player data: ${error}`, 'World/savePlayerData');
-            this.server.getLogger().error(error, 'World/savePlayerData');
+            this.server.getLogger().error(`Failed to save player data: ${error}`);
+            this.server.getLogger().error(error);
         }
     }
 }

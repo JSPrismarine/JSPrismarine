@@ -41,18 +41,14 @@ export class PluginManager {
                     try {
                         return await this.registerPlugin(id);
                     } catch (error: unknown) {
-                        this.server
-                            .getLogger()
-                            .error(`§cFailed to load plugin ${id}: ${error}`, 'PluginManager/onEnable');
-                        this.server.getLogger().error(error, 'PluginManager/onEnable');
+                        this.server.getLogger().error(`§cFailed to load plugin ${id}: ${error}`);
+                        this.server.getLogger().error(error);
                         return null;
                     }
                 })
             )
         ).filter((a) => a);
-        this.server
-            .getLogger()
-            .debug(`Registered §b${res.length}§r plugin(s) (took §e${timer.stop()} ms§r)!`, 'PluginManager/onEnable');
+        this.server.getLogger().debug(`Registered §b${res.length}§r plugin(s) (took §e${timer.stop()} ms§r)!`);
     }
 
     /**
@@ -89,7 +85,7 @@ export class PluginManager {
 
             dir = path.join(cwd(), '/plugins/.extracted/', id);
 
-            this.server.getLogger().debug(`Extracting plugin with id §b${id}...`, 'PluginManager/registerPlugin');
+            this.server.getLogger().debug(`Extracting plugin with id §b${id}...`);
             await fs
                 .createReadStream(path.join(cwd(), 'plugins/', id))
                 .pipe(unzipper.Extract({ path: dir }))
@@ -131,8 +127,7 @@ export class PluginManager {
                         this.server
                             .getLogger()
                             .warn(
-                                `plugin §b${pkg.name} ${pkg.version}§r is trying to depend on §5${dependency[0]}§r which should be a dev-dependency!`,
-                                'PluginManager/registerPlugin'
+                                `plugin §b${pkg.name} ${pkg.version}§r is trying to depend on §5${dependency[0]}§r which should be a dev-dependency!`
                             );
                         return;
                     }
@@ -140,10 +135,8 @@ export class PluginManager {
                     try {
                         await moduleManager.installFromNpm(dependency[0], dependency[1] as string);
                     } catch (error: unknown) {
-                        this.server
-                            .getLogger()
-                            .debug(`moduleManager failed with: ${error}`, 'PluginManager/registerPlugin');
-                        this.server.getLogger().error(error, 'PluginManager/registerPlugin');
+                        this.server.getLogger().debug(`moduleManager failed with: ${error}`);
+                        this.server.getLogger().error(error);
                         throw new Error(`Failed to install ${dependency[0]}`, { cause: error });
                     }
                 })
@@ -153,13 +146,8 @@ export class PluginManager {
         try {
             await plugin.onEnable();
         } catch (error) {
-            this.server
-                .getLogger()
-                .warn(
-                    `Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`,
-                    'PluginManager/registerPlugin'
-                );
-            this.server.getLogger().debug((error as any).stack, 'PluginManager/registerPlugin');
+            this.server.getLogger().warn(`Failed to enable §b${plugin.getName()}@${plugin.getVersion()}§r: ${error}!`);
+            this.server.getLogger().debug((error as any).stack);
             return null;
         }
 

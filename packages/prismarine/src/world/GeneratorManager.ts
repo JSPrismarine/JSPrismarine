@@ -11,12 +11,12 @@ export default class GeneratorManager {
         for (const key of keys) {
             this.registerClassGenerator(key, (Generators as any)[key] as typeof BaseGenerator, server);
         }
-        server.getLogger().verbose(`Registered §b${keys.length}§r generator(s)!`, 'GeneratorManager');
+        server.getLogger().verbose(`Registered §b${keys.length}§r generator(s)!`);
     }
 
     public registerClassGenerator(id: string, generator: any, server: Server): void {
         this.generators.set(id.toLowerCase(), new generator(server.getBlockManager()));
-        server.getLogger().debug(`Generator with id §b${id}§r registered`, 'registerClassGenerator');
+        server.getLogger().debug(`Generator with id §b${id}§r registered`);
     }
 
     public getGenerator(id: string): Generator {
