@@ -2,7 +2,7 @@ import type { Logger } from 'winston';
 import { createLogger, format, transports } from 'winston';
 
 import colorParser from '@jsprismarine/color-parser';
-import cwd from './cwd';
+import { cwd } from './cwd';
 import fs from 'node:fs';
 import path from 'node:path';
 

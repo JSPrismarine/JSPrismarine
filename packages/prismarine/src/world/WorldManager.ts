@@ -3,7 +3,7 @@ import GeneratorManager from './GeneratorManager';
 import type Provider from './providers/Provider';
 import type Server from '../Server';
 import World from './World';
-import cwd from '../utils/cwd';
+import { cwd } from '../utils/cwd';
 import fs from 'node:fs';
 import path from 'node:path';
 

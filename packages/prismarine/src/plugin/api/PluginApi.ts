@@ -1,8 +1,8 @@
 import ConfigBuilder from '../../config/ConfigBuilder';
 import EventManager from './EventManager';
 import LoggerBuilder from '../../utils/Logger';
-import Server from '../../Server';
-import cwd from '../../utils/cwd';
+import type Server from '../../Server';
+import { cwd } from '../../utils/cwd';
 import path from 'node:path';
 
 export default class PluginApi {
