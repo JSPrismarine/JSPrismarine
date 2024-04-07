@@ -80,7 +80,7 @@ export class PermissionManager {
     private async parsePermissions(): Promise<void> {
         try {
             if (!fs.existsSync(path.join(cwd(), '/permissions.json'))) {
-                this.server.getLogger().warn(`Failed to load permissions list!`, 'PermissionManager/parsePermissions');
+                this.server.getLogger().warn(`Failed to load permissions list!`);
                 fs.writeFileSync(
                     path.join(cwd(), '/permissions.json'),
                     JSON.stringify(
@@ -123,7 +123,7 @@ export class PermissionManager {
                 this.permissions.set(player.name, player.permissions.length <= 0 ? [] : player.permissions)
             );
         } catch (error: unknown) {
-            this.server.getLogger().error(error, 'PermissionManager/parsePermissions');
+            this.server.getLogger().error(error);
             throw new Error(`Invalid permissions.json file.`);
         }
     }
@@ -131,7 +131,7 @@ export class PermissionManager {
     private async parseOps(): Promise<void> {
         try {
             if (!fs.existsSync(path.join(cwd(), '/ops.json'))) {
-                this.server.getLogger().warn(`Failed to load operators list!`, 'PermissionManager/parseOps');
+                this.server.getLogger().warn(`Failed to load operators list!`);
                 fs.writeFileSync(path.join(cwd(), '/ops.json'), '[]');
             }
 
@@ -140,7 +140,7 @@ export class PermissionManager {
 
             ops.map((op) => this.ops.add(op.name));
         } catch (error: unknown) {
-            this.server.getLogger().error(error, 'PermissionManager/parseOps');
+            this.server.getLogger().error(error);
             throw new Error(`Invalid ops.json file.`);
         }
     }

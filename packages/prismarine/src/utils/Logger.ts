@@ -102,13 +102,24 @@ export default class LoggerBuilder {
         }
     }
 
+    private getNamespace = () => {
+        const caller = (new Error().stack as string).split('\n')[3]!.split('at ')[1]!;
+        const callerName = caller.split(' ')[0]?.split('.').join('/');
+        const callerFile = caller.split(' ')[1]?.slice(1, -1).split('/').at(-1);
+        return `${callerName} (${callerFile})`;
+    };
+
+    private parseMessage = (input: string[]) => {
+        return input.join('§r ');
+    };
+
     /**
      * Log information messages
      * @param message
      */
-    public info = (message: string, namespace?: string) => {
-        this.logger.log('info', message, {
-            namespace
+    public info = (...message: string[]) => {
+        this.logger.log('info', this.parseMessage(message), {
+            namespace: this.getNamespace()
         });
     };
 
@@ -116,9 +127,9 @@ export default class LoggerBuilder {
      * Log warning messages
      * @param message
      */
-    public warn = (message: string, namespace?: string) => {
-        this.logger.log('warn', message, {
-            namespace
+    public warn = (...message: string[]) => {
+        this.logger.log('warn', this.parseMessage(message), {
+            namespace: this.getNamespace()
         });
     };
 
@@ -126,10 +137,10 @@ export default class LoggerBuilder {
      * Log error messages
      * @param message
      */
-    public error = (message: string | Error | any, namespace?: string) => {
+    public error = (message: string | Error | any) => {
         if (typeof message === 'string') {
             this.logger.log('error', message, {
-                namespace
+                namespace: this.getNamespace()
             });
             return;
         }
@@ -143,9 +154,9 @@ export default class LoggerBuilder {
      * Log verbose messages
      * @param message
      */
-    public verbose = (message: string, namespace?: string) => {
-        this.logger.log('verbose', message, {
-            namespace
+    public verbose = (...message: string[]) => {
+        this.logger.log('verbose', this.parseMessage(message), {
+            namespace: this.getNamespace()
         });
     };
 
@@ -153,9 +164,9 @@ export default class LoggerBuilder {
      * Log debug messages
      * @param message
      */
-    public debug = (message: string, namespace?: string) => {
-        this.logger.log('debug', message, {
-            namespace
+    public debug = (...message: string[]) => {
+        this.logger.log('debug', this.parseMessage(message), {
+            namespace: this.getNamespace()
         });
     };
 
@@ -163,9 +174,9 @@ export default class LoggerBuilder {
      * Log silly messages
      * @param message
      */
-    public silly = (message: string, namespace?: string) => {
-        this.logger.log('silly', message, {
-            namespace
+    public silly = (...message: string[]) => {
+        this.logger.log('silly', this.parseMessage(message), {
+            namespace: this.getNamespace()
         });
     };
 }

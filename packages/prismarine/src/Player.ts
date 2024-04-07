@@ -134,7 +134,7 @@ export default class Player extends Human {
                 this.getServer().getBlockManager().getBlock(item.id);
 
             if (!entry) {
-                this.getServer().getLogger().warn(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
+                this.getServer().getLogger().warn(`Item/block with id ${item.id} is invalid`);
                 return;
             }
 

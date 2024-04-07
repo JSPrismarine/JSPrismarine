@@ -126,10 +126,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
                     () =>
                         server
                             .getLogger()
-                            .error(
-                                `Failed to spawn player[${session.getConnection().getRakNetSession().getAddress()}]`,
-                                'ResourcePackResponseHandler/handle'
-                            )
+                            .error(`Failed to spawn player[${session.getConnection().getRakNetSession().getAddress()}]`)
                 )
                 .finally(async () => {
                     // Summon player(s) & entities
@@ -155,8 +152,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
                 .info(
                     `§b${player.getName()}§f is attempting to join with id §b${player.getRuntimeId()}§f from ${player
                         .getAddress()
-                        .getAddress()}:${player.getAddress().getPort()}`,
-                    'ResourcePackResponseHandler/handle'
+                        .getAddress()}:${player.getAddress().getPort()}`
                 );
 
             player.setNameTag(player.getName());
@@ -168,7 +164,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             const chatSpawnEvent = new ChatEvent(
                 new Chat(
                     server.getConsole(),
-                    `§e%multiplayer.player.joined`, // TODO: enum of client hardcoded messages
+                    `§e%multiplayer.player.joined`, // TODO: handle translations.
                     [player.getName()],
                     true,
                     '*.everyone',

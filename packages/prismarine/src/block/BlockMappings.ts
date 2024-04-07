@@ -34,8 +34,8 @@ export class BlockMappings {
                 this.registerMapping(name, runtimeId);
             }
         } catch (error: unknown) {
-            server.getLogger().error('Failed to load block mappings', 'BlockMappings/initMappings');
-            server.getLogger().error(error, 'BlockMappings/initMappings');
+            server.getLogger().error('Failed to load block mappings');
+            server.getLogger().error(error);
         }
     }
 

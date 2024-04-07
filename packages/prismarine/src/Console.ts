@@ -82,7 +82,7 @@ export default class Console extends EntityLike {
     }
 
     public async sendMessage(message: string): Promise<void> {
-        this.getServer().getLogger().info(message, 'Console');
+        this.getServer().getLogger().info(message);
     }
 
     public getWorld() {
