@@ -9,19 +9,22 @@
         "CHANGELOG.md",
         "README.md"
     ],
+    "bin": {
+        "prismarine": "./dist/Server.es.js"
+    },
     "module": "./dist/Server.es.js",
     "types": "./dist/Server.d.ts",
     "exports": {
         ".": {
             "import": "./dist/Server.es.js",
             "module": "./dist/Server.es.js",
-            "require": "./dist/Server.cjs.js",
+            "require": "./dist/Server.cjs.cjs",
             "types": "./dist/Server.d.ts"
         },
         "./*": {
             "import": "./dist/*.es.js",
             "module": "./dist/*.es.js",
-            "require": "./dist/*.cjs.js",
+            "require": "./dist/*.cjs.cjs",
             "types": "./dist/*.d.ts"
         },
         "./package.json": "./package.json"

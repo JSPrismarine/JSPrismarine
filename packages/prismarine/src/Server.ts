@@ -147,7 +147,7 @@ export default class Server {
      */
     public async bootstrap(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.onEnable();
-        BlockMappings.initMappings();
+        await BlockMappings.initMappings(this);
         await this.worldManager.onEnable();
         await this.packetRegistry.onEnable();
 
