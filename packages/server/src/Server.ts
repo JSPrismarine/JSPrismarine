@@ -1,15 +1,21 @@
 import { Config, Logger, Server } from '@jsprismarine/prismarine';
 
-import fs from 'node:fs';
 import path from 'node:path';
+import dotenv from 'dotenv';
 
 import pkg from '../package.json' assert { type: 'json' };
 
 // Process metadata
 process.title = 'Prismarine';
 
-if (process.env.JSP_DIR && !fs.existsSync(path.join(process.cwd(), process.env.JSP_DIR)))
-    fs.mkdirSync(path.join(process.cwd(), process.env.JSP_DIR));
+dotenv.config({
+    path: [
+        path.join(process.cwd(), '.env'),
+        path.join(process.cwd(), '.env.local'),
+        path.join(process.cwd(), '.env.development'),
+        path.join(process.cwd(), '.env.development.local')
+    ]
+});
 
 const version = (pkg.version as string) || 'unknown';
 
@@ -22,16 +28,17 @@ const version = (pkg.version as string) || 'unknown';
         version
     });
 
-    process.on('uncaughtException', async (error) => {
-        console.error(error);
-        await server.shutdown({ crash: true });
-    });
+    ['SIGINT', 'SIGTERM', 'uncaughtException'].forEach((signal) =>
+        process.on(signal, async (error) => {
+            await server.shutdown({ crash: error === 'uncaughtException' });
+        })
+    );
 
     try {
         await server.bootstrap(config.getServerIp(), config.getServerPort());
     } catch (error: unknown) {
-        console.error(error);
-        logger.error(`Cannot start the server, is it already running on the same port?`, 'Prismarine');
+        logger.error(`Cannot start the server, is it already running on the same port?`, 'Server');
+        logger.error(error, 'Server');
         await server.shutdown({ crash: true });
     }
 })();

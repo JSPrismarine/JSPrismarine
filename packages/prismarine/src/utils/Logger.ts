@@ -32,58 +32,60 @@ export default class LoggerBuilder {
         this.createLogger();
     }
 
+    /**
+     * Create a new logger instance
+     *
+     * @returns {void}
+     */
     public createLogger() {
-        if (!(this.logger as any) || this.logger.closed) {
-            this.logger = createLogger({
-                transports: [
-                    new transports.Console({
-                        level: (global as any).log_level || 'info',
-                        format: combine(
-                            timestamp({ format: 'HH:mm:ss' }),
-                            format((info) => {
-                                info.level = info.level.toUpperCase();
-                                return info;
-                            })(),
-                            format.colorize(),
-                            format.simple(),
-                            printf(({ level, message, timestamp, namespace }) => {
-                                return `[${timestamp} ${level}${colorParser(
-                                    `${
-                                        namespace &&
-                                        ((global as any).log_level === 'silly' ||
-                                            (global as any).log_level === 'debug' ||
-                                            (global as any).log_level === 'verbose')
-                                            ? ` ${namespace}]`
-                                            : ']'
-                                    }: ${message}`
-                                )}`;
-                            })
-                        )
-                    }),
-                    new transports.File({
-                        level: 'debug',
-                        filename: path.join(cwd(), 'logs', `${LoggerBuilder.logFile}`),
-                        format: combine(
-                            timestamp({ format: 'HH:mm:ss.SS' }),
-                            format.simple(),
-                            printf(({ level, message, timestamp, namespace }: any) => {
-                                return `[${timestamp}] [${level}]${colorParser(
-                                    `${namespace ? ` [${namespace}]` : ''}: ${message}`
-                                )}`.replaceAll(
-                                    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-                                    ''
-                                );
-                            })
-                        )
-                    })
-                ]
-            });
-        }
+        // If the logger is already created and not closed, return.
+        if ((this.logger as any) && !this.logger.closed) return;
+
+        this.logger = createLogger({
+            transports: [
+                new transports.Console({
+                    level: global.logLevel ?? 'info',
+                    format: combine(
+                        timestamp({ format: 'HH:mm:ss' }),
+                        format((info) => {
+                            info.level = info.level.toUpperCase();
+                            return info;
+                        })(),
+                        format.colorize(),
+                        format.simple(),
+                        printf(({ level, message, timestamp, namespace: ns }) => {
+                            // TODO: refactor this mess.
+                            // TODO: `padEnd` length should depend on `global.logLevel`.
+                            const showWholeNs = ns && (global.logLevel === 'silly' || global.logLevel === 'debug');
+                            const prefix = `${timestamp} ${level.padEnd(17)} ${showWholeNs ? `${ns}` : `${ns?.split?.('/')[0] || ''}`}`;
+
+                            return `[${prefix}]: ${colorParser(`${message}`)}`;
+                        })
+                    )
+                }),
+                new transports.File({
+                    level: 'debug',
+                    filename: path.join(cwd(), 'logs', `${LoggerBuilder.logFile}`),
+                    format: combine(
+                        timestamp({ format: 'HH:mm:ss.SS' }),
+                        format.simple(),
+                        printf(({ level, message, timestamp, namespace }: any) => {
+                            return `[${timestamp}] [${level}]${colorParser(
+                                `${namespace ? ` [${namespace}]` : ''}: ${message}`
+                            )}`.replaceAll(
+                                /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+                                ''
+                            );
+                        })
+                    )
+                })
+            ]
+        });
     }
 
     public async onEnable(): Promise<void> {
         this.createLogger();
-        this.logger.level = (global as any).log_level || 'info';
+        this.logger.level = global.logLevel ?? 'info';
     }
 
     public async onDisable(): Promise<void> {
@@ -131,14 +133,8 @@ export default class LoggerBuilder {
             });
             return;
         }
-        const error = message as Error;
-        // eslint-disable-next-line no-console
-        console.log({
-            name: error.name,
-            stack: error.stack,
-            cause: error.cause,
-            message: error.message
-        });
+
+        this.logger.error(message as Error);
     };
 
     /**

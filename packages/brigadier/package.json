@@ -14,7 +14,10 @@
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/index.es.js",
+            "import": [
+                "./src/index.ts",
+                "./dist/index.es.js"
+            ],
             "module": "./dist/index.es.js",
             "require": "./dist/index.cjs.js",
             "types": "./dist/index.d.ts"
@@ -28,10 +31,10 @@
         "./package.json": "./package.json"
     },
     "scripts": {
-        "clean": "rimraf dist jsp tsconfig.tsbuildinfo",
+        "clean": "rimraf dist jsp tsconfig.tsbuildinfo vite.config.ts.timestamp-*",
         "build": "vite build",
-        "typecheck": "tsc -noEmit",
-        "dev": "vite build --watch"
+        "build:watch": "vite build --watch",
+        "typecheck": "tsc -noEmit"
     },
     "repository": {
         "type": "git",

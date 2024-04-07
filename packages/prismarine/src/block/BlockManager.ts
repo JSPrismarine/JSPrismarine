@@ -106,7 +106,7 @@ export default class BlockManager {
         this.server
             .getLogger()
             ?.verbose(
-                `Registered §b${this.blocks.size}§r block(s) (took ${timer.stop()} ms)!`,
+                `Registered §b${this.blocks.size}§r block(s) (took §e${timer.stop()} ms§r)!`,
                 'BlockManager/importBlocks'
             );
     }
