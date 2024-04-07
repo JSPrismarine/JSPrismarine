@@ -17,39 +17,6 @@ importers:
       '@jsprismarine/jsbinaryutils':
         specifier: 5.5.3
         version: 5.5.3
-      evt:
-        specifier: 2.5.7
-        version: 2.5.7
-      fast-jwt:
-        specifier: 4.0.0
-        version: 4.0.0
-      graceful-fs:
-        specifier: 4.2.11
-        version: 4.2.11
-      heap:
-        specifier: 0.2.7
-        version: 0.2.7
-      live-plugin-manager:
-        specifier: 0.19.0
-        version: 0.19.0
-      node-fetch:
-        specifier: 3.3.2
-        version: 3.3.2
-      semver:
-        specifier: 7.6.0
-        version: 7.6.0
-      strip-json-comments:
-        specifier: 5.0.1
-        version: 5.0.1
-      unzipper:
-        specifier: 0.10.14
-        version: 0.10.14
-      winston:
-        specifier: 3.13.0
-        version: 3.13.0
-      yaml:
-        specifier: 2.4.1
-        version: 2.4.1
     devDependencies:
       '@changesets/changelog-github':
         specifier: 0.5.0
@@ -309,12 +276,33 @@ importers:
       '@jsprismarine/raknet':
         specifier: workspace:*
         version: link:../raknet
+      evt:
+        specifier: 2.5.7
+        version: 2.5.7
+      fast-jwt:
+        specifier: 4.0.0
+        version: 4.0.0
       graceful-fs:
         specifier: 4.2.11
         version: 4.2.11
+      heap:
+        specifier: 0.2.7
+        version: 0.2.7
+      live-plugin-manager:
+        specifier: 0.19.0
+        version: 0.19.0
       node-fetch:
         specifier: 3.3.2
         version: 3.3.2
+      strip-json-comments:
+        specifier: 5.0.1
+        version: 5.0.1
+      unzipper:
+        specifier: 0.10.14
+        version: 0.10.14
+      winston:
+        specifier: 3.13.0
+        version: 3.13.0
       yaml:
         specifier: 2.4.1
         version: 2.4.1
