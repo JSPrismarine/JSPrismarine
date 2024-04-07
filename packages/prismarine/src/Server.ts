@@ -15,7 +15,6 @@ import Identifiers from './network/Identifiers';
 import ItemManager from './item/ItemManager';
 import PacketRegistry from './network/PacketRegistry';
 import { PermissionManager } from './permission/PermissionManager';
-import { PluginManager } from './plugin/PluginManager';
 import { QueryManager } from './query/QueryManager';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
@@ -39,7 +38,6 @@ export default class Server {
     private readonly eventManager = new EventManager();
     private readonly packetRegistry: PacketRegistry;
     private readonly sessionManager = new SessionManager();
-    private readonly pluginManager: PluginManager;
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
     private readonly itemManager: ItemManager;
@@ -90,7 +88,6 @@ export default class Server {
         this.blockManager = new BlockManager(this);
         this.worldManager = new WorldManager(this);
         this.commandManager = new CommandManager(this);
-        this.pluginManager = new PluginManager(this);
         this.queryManager = new QueryManager(this);
         this.chatManager = new ChatManager(this);
         this.permissionManager = new PermissionManager(this);
@@ -107,7 +104,6 @@ export default class Server {
         this.config.onEnable();
         await this.logger.onEnable();
         await this.permissionManager.onEnable();
-        await this.pluginManager.onEnable();
         await this.banManager.onEnable();
         await this.itemManager.onEnable();
         await this.blockManager.onEnable();
@@ -123,7 +119,6 @@ export default class Server {
         await this.blockManager.onDisable();
         await this.itemManager.onDisable();
         await this.banManager.onDisable();
-        await this.pluginManager.onDisable();
         await this.permissionManager.onDisable();
         await this.packetRegistry.onDisable();
         this.config.onDisable();
@@ -492,14 +487,6 @@ export default class Server {
      */
     public getRaknet() {
         return this.raknet;
-    }
-
-    /**
-     * Returns the plugin manager.
-     * @returns {PluginManager} The plugin manager.
-     */
-    public getPluginManager(): PluginManager {
-        return this.pluginManager;
     }
 
     /**

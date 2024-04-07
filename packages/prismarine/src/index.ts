@@ -18,7 +18,6 @@ import Item from './item/Item';
 import Logger from './utils/Logger';
 import Player from './Player';
 import PlayerSession from './network/PlayerSession';
-import PluginApi from './plugin/api/PluginApi';
 import Server from './Server';
 
 export {
@@ -38,7 +37,6 @@ export {
     Math,
     Player,
     PlayerSession,
-    PluginApi,
     Protocol,
     Server,
     Utils,
