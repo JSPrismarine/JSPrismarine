@@ -372,7 +372,7 @@ export default class PlayerSession {
                 command[2].forEach((arg, index) => {
                     const parameters = arg
                         .map((parameter) => {
-                            const parameters = parameter.getParameters();
+                            const parameters = parameter.getParameters?.();
                             if (parameters) return Array.from(parameters.values());
 
                             if (parameter instanceof CommandArgumentEntity)

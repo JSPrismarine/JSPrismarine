@@ -31,7 +31,7 @@
         "build": "vite build",
         "typecheck": "tsc -noEmit",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
-        "dev": "nodemon --quiet --watch '../**/src/**' --ext 'ts' --ignore '../**/*.d.ts' --exec 'vite-node ./src/Server.ts' | pino-pretty -L 10"
+        "dev": "nodemon --quiet --watch \"../**/src/**\" --ext \"ts\" --ignore \"../**/*.d.ts\" --exec \"vite-node ./src/Server.ts\" | pino-pretty -L 10"
     },
     "repository": {
         "type": "git",

@@ -134,7 +134,9 @@ export default class LoggerBuilder {
             return;
         }
 
-        this.logger.error(message as Error);
+        // eslint-disable-next-line no-console
+        this.logger.error(message.toString());
+        console.error(message as Error);
     };
 
     /**

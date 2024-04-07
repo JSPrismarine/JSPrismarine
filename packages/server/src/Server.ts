@@ -30,6 +30,9 @@ const version = (pkg.version as string) || 'unknown';
 
     ['SIGINT', 'SIGTERM', 'uncaughtException'].forEach((signal) =>
         process.on(signal, async (error) => {
+            if (error instanceof Error) {
+                logger.error(error, 'Server');
+            }
             await server.shutdown({ crash: error === 'uncaughtException' });
         })
     );
