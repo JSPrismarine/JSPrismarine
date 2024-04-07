@@ -47,15 +47,15 @@ export default class CommandManager {
                 try {
                     await this.registerClassCommand(command);
                 } catch (error: unknown) {
-                    this.server.getLogger()?.error(error);
-                    this.server.getLogger()?.warn(`Failed to register command ${command.id}`);
+                    this.server.getLogger().error(error);
+                    this.server.getLogger().warn(`Failed to register command ${command.id}`);
                 }
             })
         );
 
         this.server
             .getLogger()
-            ?.verbose(
+            .verbose(
                 `Registered §b${this.commands.size}§r commands(s) (took §e${timer.stop()} ms§r)!`,
                 'CommandManager/onEnable'
             );
@@ -79,7 +79,7 @@ export default class CommandManager {
         if (!(command as any).register)
             this.server
                 .getLogger()
-                ?.warn(
+                .warn(
                     `Command is missing "register" member. This is unsupported!`,
                     'CommandManager/registerClassCommand'
                 );
@@ -95,7 +95,7 @@ export default class CommandManager {
 
         this.server
             .getLogger()
-            ?.debug(`Command with id §b${command.id}§r registered`, 'CommandManager/registerClassCommand');
+            .debug(`Command with id §b${command.id}§r registered`, 'CommandManager/registerClassCommand');
     }
 
     /**
@@ -205,7 +205,7 @@ export default class CommandManager {
             if (!sender.isConsole()) {
                 this.server
                     .getLogger()
-                    ?.debug(
+                    .debug(
                         `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${id})`,
                         'CommandManager/dispatchCommand'
                     );
@@ -238,7 +238,7 @@ export default class CommandManager {
                 // Legacy commands
                 this.server
                     .getLogger()
-                    ?.warn(`${id} is using the legacy command format`, 'CommandManager/dispatchCommand');
+                    .warn(`${id} is using the legacy command format`, 'CommandManager/dispatchCommand');
                 res.push(
                     await command.execute(
                         sender as any,
@@ -297,18 +297,18 @@ export default class CommandManager {
                     await sender.sendMessage(`§c${error.message}`);
                     return;
                 default:
-                    this.server.getLogger()?.error(error, 'CommandManager/dispatchCommand');
+                    this.server.getLogger().error(error, 'CommandManager/dispatchCommand');
                     break;
             }
 
             await sender.sendMessage(`§c${error}`);
             this.server
                 .getLogger()
-                ?.debug(
+                .debug(
                     `Player ${target.getFormattedUsername()} tried to execute ${input}, but it failed with the error: ${error}`,
                     'CommandManager/dispatchCommand'
                 );
-            this.server.getLogger()?.error(error, 'CommandManager/dispatchCommand');
+            this.server.getLogger().error(error, 'CommandManager/dispatchCommand');
         }
     }
 }

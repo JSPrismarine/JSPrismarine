@@ -103,7 +103,7 @@ export default class World {
                 );
             }
         } catch (error: unknown) {
-            this.server.getLogger()?.warn(`Failed to read level.json due to ${error}`, 'World/onEnable');
+            this.server.getLogger().warn(`Failed to read level.json due to ${error}`, 'World/onEnable');
         }
 
         this.provider.setWorld(this);
@@ -111,7 +111,7 @@ export default class World {
 
         this.server
             .getLogger()
-            ?.info(
+            .info(
                 `Preparing start region for dimension §b'${this.name}'/${this.generator.constructor.name}§r`,
                 'World/onEnable'
             );
@@ -126,7 +126,7 @@ export default class World {
         }
 
         await Promise.all(chunksToLoad);
-        this.server.getLogger()?.verbose(`(took §e${timer.stop()} ms§r)`, 'World/onEnable');
+        this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)`, 'World/onEnable');
     }
 
     public async onDisable() {
@@ -318,7 +318,7 @@ export default class World {
                 chunk.setBlock(placedPosition.getX(), placedPosition.getY(), placedPosition.getZ(), block);
                 resolve(true);
             } catch (error: unknown) {
-                player.getServer().getLogger()?.warn(`${player.getName()} failed to place block due to ${error}`);
+                player.getServer().getLogger().warn(`${player.getName()} failed to place block due to ${error}`);
                 await player.sendMessage((error as any)?.message);
 
                 resolve(false);
@@ -418,14 +418,14 @@ export default class World {
         const timer = new Timer();
         this.server
             .getLogger()
-            ?.info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`, 'World/saveChunks');
+            .info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`, 'World/saveChunks');
 
         await Promise.all(
             Array.from(this.chunks.values())
                 .filter((c) => c.getHasChanged())
                 .map(async (chunk) => this.provider.writeChunk(chunk))
         );
-        this.server.getLogger()?.verbose(`(took §e${timer.stop()} ms§r)!`, 'World/saveChunks');
+        this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)!`, 'World/saveChunks');
     }
 
     public async save(): Promise<void> {
@@ -478,7 +478,7 @@ export default class World {
         } catch {
             this.server
                 .getLogger()
-                ?.debug(`PlayerData is missing for player ${player.getXUID()}`, 'World/getPlayerData');
+                .debug(`PlayerData is missing for player ${player.getXUID()}`, 'World/getPlayerData');
 
             return {
                 gamemode: this.server.getConfig().getGamemode(),
@@ -534,8 +534,8 @@ export default class World {
                 )
             );
         } catch (error: unknown) {
-            this.server.getLogger()?.error(`Failed to save player data: ${error}`, 'World/savePlayerData');
-            this.server.getLogger()?.error(error, 'World/savePlayerData');
+            this.server.getLogger().error(`Failed to save player data: ${error}`, 'World/savePlayerData');
+            this.server.getLogger().error(error, 'World/savePlayerData');
         }
     }
 }

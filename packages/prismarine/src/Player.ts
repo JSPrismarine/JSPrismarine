@@ -134,7 +134,7 @@ export default class Player extends Human {
                 this.getServer().getBlockManager().getBlock(item.id);
 
             if (!entry) {
-                this.getServer().getLogger()?.warn(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
+                this.getServer().getLogger().warn(`Item/block with id ${item.id} is invalid`, 'Player/onEnable');
                 return;
             }
 
@@ -150,7 +150,7 @@ export default class Player extends Human {
         if (!this.connected)
             this.getServer()
                 .getLogger()
-                ?.debug(`(Complete player creation took ${this.joinTimer.stop()} ms)`, 'Player/onEnable');
+                .debug(`(Complete player creation took ${this.joinTimer.stop()} ms)`, 'Player/onEnable');
         this.connected = true;
     }
 
@@ -281,7 +281,7 @@ export default class Player extends Human {
     public async kick(reason = 'unknown reason'): Promise<void> {
         this.getServer()
             .getLogger()
-            ?.verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`, 'Player/kick');
+            .verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`, 'Player/kick');
         await this.networkSession.kick(reason);
     }
 

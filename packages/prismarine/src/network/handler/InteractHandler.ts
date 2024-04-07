@@ -1,9 +1,10 @@
-import InteractPacket, { InteractAction } from '../packet/InteractPacket';
+import type InteractPacket from '../packet/InteractPacket';
+import { InteractAction } from '../packet/InteractPacket';
 
 import ContainerOpenPacket from '../packet/ContainerOpenPacket';
 import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+import type PacketHandler from './PacketHandler';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 
@@ -26,7 +27,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 break;
             }
             default:
-                server.getLogger()?.verbose(`Unknown interact action id ${packet.action}`, 'InteractHandler/handle');
+                server.getLogger().verbose(`Unknown interact action id ${packet.action}`, 'InteractHandler/handle');
         }
     }
 }

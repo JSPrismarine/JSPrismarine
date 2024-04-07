@@ -27,19 +27,19 @@ export default class PluginApi {
 
         return {
             silly: (...args) => {
-                this.server.getLogger()?.debug(`[${displayName}] ${args}`, name);
+                this.server.getLogger().debug(`[${displayName}] ${args}`, name);
             },
             debug: (...args) => {
-                this.server.getLogger()?.verbose(`[${displayName}] ${args}`, name);
+                this.server.getLogger().verbose(`[${displayName}] ${args}`, name);
             },
             info: (...args) => {
-                this.server.getLogger()?.info(`[${displayName}] ${args}`, name);
+                this.server.getLogger().info(`[${displayName}] ${args}`, name);
             },
             warn: (...args) => {
-                this.server.getLogger()?.warn(`[${displayName}] ${args}`, name);
+                this.server.getLogger().warn(`[${displayName}] ${args}`, name);
             },
             error: (...args) => {
-                this.server.getLogger()?.error(`[${displayName}] ${args}`, name);
+                this.server.getLogger().error(`[${displayName}] ${args}`, name);
             }
         } as LoggerBuilder;
     }
