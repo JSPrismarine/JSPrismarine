@@ -59,7 +59,10 @@ describe('network', () => {
                             }
                         }),
                         getLogger: () => {
-                            return null;
+                            return {
+                                debug: () => {},
+                                verbose: () => {}
+                            };
                         },
                         getEventManager: () => ({
                             on: (_event: any, _handler: any) => {}
@@ -122,7 +125,10 @@ describe('network', () => {
                             }
                         }),
                         getLogger: () => {
-                            return null;
+                            return {
+                                debug: () => {},
+                                verbose: () => {}
+                            };
                         },
                         getEventManager: () => ({
                             on: (_event: any, _handler: any) => {}
@@ -186,7 +192,10 @@ describe('network', () => {
                             }
                         }),
                         getLogger: () => {
-                            return null;
+                            return {
+                                debug: () => {},
+                                verbose: () => {}
+                            };
                         },
                         getEventManager: () => ({
                             on: (_event: any, _handler: any) => {}

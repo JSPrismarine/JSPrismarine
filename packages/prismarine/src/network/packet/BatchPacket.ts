@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import DataPacket from './DataPacket';
 import Zlib from 'zlib';
-import CompressionProvider from '../CompressionProvider.js';
+import { CompressionProvider } from '../CompressionProvider.js';
 import { PacketCompressionAlgorithm } from './NetworkSettingsPacket.js';
 
 /**

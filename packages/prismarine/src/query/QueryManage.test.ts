@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { InetAddress } from '@jsprismarine/raknet';
-import QueryManager from './QueryManager';
+import { QueryManager } from './QueryManager';
 import Server from '../Server';
 // import esmock from 'esmock';
 
