@@ -1,6 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import type { InetAddress } from '@jsprismarine/raknet';
-import type PluginFile from '../plugin/PluginFile';
 import type Server from '../Server';
 
 export enum QueryType {
@@ -61,10 +60,7 @@ export class QueryManager {
                     res.writeByte(0);
                     // End padding
 
-                    const plugins = this.server
-                        .getPluginManager()
-                        .getPlugins()
-                        .map((plugin: PluginFile) => `${plugin.getDisplayName()} ${plugin.getVersion()}`);
+                    const plugins: string[] = [];
                     res.write(
                         Buffer.from(
                             `\0${[

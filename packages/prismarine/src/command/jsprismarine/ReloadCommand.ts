@@ -20,7 +20,7 @@ export default class ReloadCommand extends Command {
             if (!source) throw new Error('Context/source is null or undefined');
 
             await source.sendMessage(
-                '§cPlease note that this command is not supported and may cause issues when using some plugins.'
+                '§cPlease note that this command is not supported and may cause issues when using plugins or other modifications.'
             );
             await source.sendMessage(
                 '§cIf you encounter any issues please use the /stop command to restart your server.'

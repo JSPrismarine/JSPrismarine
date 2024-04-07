@@ -41,8 +41,6 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
   - By default, PC/Windows, Android, and iOS. With some tricks, you can also join with Xbox One, Switch, and PS4.
 - Which OSes can run JSPrismarine?
   - Any platform supporting Node.js `v21` or later.
-- Does it support plugins?
-  - Yes, but JSPrismarine is in fast development mode, so SEMVER isn't strictly followed. Deprecation warnings are provided two weeks ahead of removing an API function.
 - If my question isn't listed here, where should I ask?
   - You can join the [Discord server](https://discord.gg/fGkHZhu), or open a [GitHub issue](https://github.com/JSPrismarine/JSPrismarine/issues/new) for development-related questions.
 - Why can't I join a JSPrismarine instance hosted on my Windows PC?
