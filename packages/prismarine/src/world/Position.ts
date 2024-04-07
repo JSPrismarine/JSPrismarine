@@ -5,11 +5,11 @@ export interface PositionData {
     x?: number;
     y?: number;
     z?: number;
-    world: World;
+    world?: World;
 }
 
 export default class Position extends Vector3 {
-    private world: World;
+    private world?: World;
 
     /**
      * Create a new position
@@ -21,7 +21,7 @@ export default class Position extends Vector3 {
      * @param {World} data.world - The world of the position.
      * @returns {Position} The new position.
      */
-    public constructor({ x, y, z, world }: PositionData) {
+    public constructor({ x, y, z, world }: PositionData = {}) {
         super(x, y, z);
         this.world = world;
     }
@@ -30,8 +30,8 @@ export default class Position extends Vector3 {
      * Get the world of the position
      * @returns {World} The world of the position.
      */
-    public getWorld(): World {
-        return this.world;
+    public getWorld() {
+        return this.world!;
     }
 
     /**

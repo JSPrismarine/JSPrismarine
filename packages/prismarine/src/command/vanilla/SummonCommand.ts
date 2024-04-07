@@ -5,7 +5,7 @@ import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
 
 import { Command } from '../Command';
-import type Entity from '../../entity/Entity';
+import type { Entity } from '../../entity/Entity';
 import type Player from '../../Player';
 import Vector3 from '../../math/Vector3';
 
