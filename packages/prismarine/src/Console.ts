@@ -20,8 +20,8 @@ export default class Console {
         try {
             (process as any).stdin.setRawMode?.(true);
         } catch (error: unknown) {
-            this.server.getLogger()?.warn(`Failed to enable stdin rawMode: ${error}!`);
-            this.server.getLogger()?.error(error);
+            this.server.getLogger().warn(`Failed to enable stdin rawMode: ${error}!`);
+            this.server.getLogger().error(error);
         }
 
         process.stdin.setEncoding('utf8');
@@ -84,7 +84,7 @@ export default class Console {
     }
 
     public async sendMessage(message: string): Promise<void> {
-        this.getServer().getLogger()?.info(message, 'Console');
+        this.getServer().getLogger().info(message, 'Console');
     }
 
     public getWorld() {

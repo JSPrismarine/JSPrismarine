@@ -352,7 +352,7 @@ export default class PlayerSession {
                     this.player
                         .getServer()
                         .getLogger()
-                        ?.warn(`Can't find corresponding command class for "${command[0]}"`);
+                        .warn(`Can't find corresponding command class for "${command[0]}"`);
                     return;
                 }
 
@@ -372,7 +372,7 @@ export default class PlayerSession {
                 command[2].forEach((arg, index) => {
                     const parameters = arg
                         .map((parameter) => {
-                            const parameters = parameter.getParameters?.();
+                            const parameters = parameter.getParameters();
                             if (parameters) return Array.from(parameters.values());
 
                             if (parameter instanceof CommandArgumentEntity)
@@ -404,7 +404,7 @@ export default class PlayerSession {
                                     })
                                 ];
 
-                            this.server.getLogger()?.warn(`Invalid parameter ${parameter.constructor.name}`);
+                            this.server.getLogger().warn(`Invalid parameter ${parameter.constructor.name}`);
                             return [
                                 new CommandParameter({
                                     paramName: 'value',
@@ -610,7 +610,7 @@ export default class PlayerSession {
      */
     public async sendSpawn(player: Player): Promise<void> {
         if (!player.getUUID()) {
-            this.server.getLogger()?.error(`UUID for player ${player.getName()} is undefined`);
+            this.server.getLogger().error(`UUID for player ${player.getName()} is undefined`);
             return;
         }
 

@@ -393,7 +393,7 @@ export default class Server {
                 this.raknet.kill();
             } catch {}
 
-            this.getLogger()?.info('Server stopped!', 'Server/kill');
+            this.getLogger().info('Server stopped!', 'Server/kill');
 
             process.exit(options?.crash ? 1 : 0);
         } catch (error: unknown) {
@@ -478,7 +478,7 @@ export default class Server {
      * Returns the logger.
      * @returns {LoggerBuilder} The logger.
      */
-    public getLogger(): LoggerBuilder | undefined {
+    public getLogger(): LoggerBuilder {
         return this.logger;
     }
 

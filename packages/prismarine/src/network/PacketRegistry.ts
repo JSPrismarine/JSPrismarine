@@ -38,7 +38,7 @@ export default class PacketRegistry {
             );
 
         this.packets.set(packet.NetID, packet);
-        this.server.getLogger()?.debug(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
+        this.server.getLogger().debug(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
     }
 
     /**
@@ -65,7 +65,7 @@ export default class PacketRegistry {
         this.handlers.set(id, handler);
         this.server
             .getLogger()
-            ?.debug(`Handler with id §b${handler.constructor.name}§r registered`, 'PacketRegistry/registerHandler');
+            .debug(`Handler with id §b${handler.constructor.name}§r registered`, 'PacketRegistry/registerHandler');
     }
 
     public getHandler(id: number): PacketHandler<any> | PreLoginPacketHandler<any> {
@@ -114,7 +114,7 @@ export default class PacketRegistry {
 
         this.server
             .getLogger()
-            ?.verbose(
+            .verbose(
                 `Registered §b${this.packets.size}§r of §b${
                     Array.from(Object.keys(Identifiers)).length - 2
                 }§r packet(s) (took §e${timer.stop()} ms§r)!`,
@@ -133,7 +133,7 @@ export default class PacketRegistry {
 
         this.server
             .getLogger()
-            ?.verbose(
+            .verbose(
                 `Registered §b${this.handlers.size}§r packet handler(s) (took §e${timer.stop()} ms§r)!`,
                 'PacketRegistry/registerHandlers'
             );
