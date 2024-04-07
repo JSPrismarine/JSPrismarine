@@ -1,0 +1,43 @@
+name: Unit & Integration Tests
+on:
+    push:
+
+env:
+    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+    CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+jobs:
+    nightly:
+        name: 🚚 Build nightly executable
+        strategy:
+            matrix:
+                os: [ubuntu-latest, macos-latest]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: 🔨 Build
+              run: pnpm run build
+
+            - name: 📦 Install Bun
+              uses: oven-sh/setup-bun@v1
+              with:
+                  bun-version: canary
+
+            - name: 🔨 Build Executable
+              run: bun build --compile ./packages/server/src/Server.ts --outfile ./dist/prismarine
+
+            - name: ✅ Set Executable Permissions
+              if: (matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest')
+              run: chmod +x ./dist/prismarine
+
+            - name: 🚚 Publish Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: prismarine-${{ matrix.os }}
+                  path: ./dist/prismarine
+
