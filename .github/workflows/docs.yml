@@ -25,3 +25,5 @@ jobs:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
                   publish_dir: ./dist
                   enable_jekyll: false
+                  cname: 'docs.prismarine.nordcom.io'
+                  commit_message: ${{ github.event.head_commit.message }}
