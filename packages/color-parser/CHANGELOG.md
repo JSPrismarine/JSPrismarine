@@ -1,5 +1,15 @@
 # @jsprismarine/color-parser
 
+## 0.4.0
+
+### Minor Changes
+
+- [#1280](https://github.com/JSPrismarine/JSPrismarine/pull/1280) [`52a041c`](https://github.com/JSPrismarine/JSPrismarine/commit/52a041cfa567842ea77196c10434eb42aa9f791b) Thanks [@filiphsps](https://github.com/filiphsps)! - Add proper JSDoc.
+
+### Patch Changes
+
+- [#1279](https://github.com/JSPrismarine/JSPrismarine/pull/1279) [`4ca96b5`](https://github.com/JSPrismarine/JSPrismarine/commit/4ca96b59696dbe67e39b7f46d85fe421a74d23d5) Thanks [@filiphsps](https://github.com/filiphsps)! - Add Codecov bundler plugin to vite.
+
 ## 0.3.0
 
 ## 0.2.0
