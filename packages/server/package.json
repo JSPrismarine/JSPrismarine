@@ -48,7 +48,7 @@
     ],
     "author": "JSPrismarine",
     "license": "MIT",
-    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/server",
     "devDependencies": {
         "@types/node": "20.12.5",
         "cross-env": "7.0.3",
