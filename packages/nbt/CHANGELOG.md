@@ -1,5 +1,11 @@
 # @jsprismarine/nbt
 
+## 0.4.0
+
+### Patch Changes
+
+- [#1279](https://github.com/JSPrismarine/JSPrismarine/pull/1279) [`4ca96b5`](https://github.com/JSPrismarine/JSPrismarine/commit/4ca96b59696dbe67e39b7f46d85fe421a74d23d5) Thanks [@filiphsps](https://github.com/filiphsps)! - Add Codecov bundler plugin to vite.
+
 ## 0.3.0
 
 ## 0.2.0
