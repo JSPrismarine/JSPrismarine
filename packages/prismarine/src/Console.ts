@@ -1,4 +1,4 @@
-import Chat from './chat/Chat';
+import { Chat } from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
 import Vector3 from './math/Vector3';
 import readline from 'node:readline';
@@ -52,7 +52,12 @@ export default class Console extends EntityLike {
                 return;
             }
 
-            const event = new ChatEvent(new Chat(this, `${this.getFormattedUsername()} ${input}`));
+            const event = new ChatEvent(
+                new Chat({
+                    sender: this,
+                    message: `${this.getFormattedUsername()} ${input}`
+                })
+            );
             void this.getServer().getEventManager().emit('chat', event);
             this.cli.prompt();
         });

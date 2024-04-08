@@ -1,7 +1,6 @@
 import type { ArgumentCommandNode } from '@jsprismarine/brigadier';
 import { CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
-
-import Chat from '../chat/Chat';
+import { Chat } from '../chat/Chat';
 import type { Command } from './Command';
 import * as Commands from './Commands';
 import type { CommandArgument } from './CommandArguments';
@@ -260,25 +259,21 @@ export default class CommandManager {
             // Make sure we don't send feedback if sendCommandFeedback is set to false
             if (feedback) {
                 res.forEach(async (res: any) => {
-                    const chat = new Chat(
-                        this.server.getConsole(),
-                        `§o§7[${target.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
-                        [],
-                        false,
-                        '*.ops'
-                    );
+                    const chat = new Chat({
+                        sender: this.server.getConsole(),
+                        message: `§o§7[${target.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
+                        channel: '*.ops'
+                    });
 
                     // TODO: should this be broadcasted to the executer?
                     await this.server.getChatManager().send(chat);
                 });
             } else {
-                const chat = new Chat(
-                    this.server.getConsole(),
-                    `§o§7[${sender.getName()}: ${res.length > 0 ? res : `issued server command: /${input}`}]§r`,
-                    [],
-                    false,
-                    '*.console'
-                );
+                const chat = new Chat({
+                    sender: this.server.getConsole(),
+                    message: `§o§7[${sender.getName()}: ${res.length > 0 ? res : `issued server command: /${input}`}]§r`,
+                    channel: '*.console'
+                });
 
                 await this.server.getChatManager().send(chat);
             }

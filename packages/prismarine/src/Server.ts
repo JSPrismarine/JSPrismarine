@@ -1,11 +1,11 @@
 import { RakNetListener } from '@jsprismarine/raknet';
-import Chat, { ChatType } from './chat/Chat';
+import { Chat, ChatType } from './chat/Chat';
 import BanManager from './ban/BanManager';
 import BatchPacket from './network/packet/BatchPacket';
 import BlockManager from './block/BlockManager';
 import { BlockMappings } from './block/BlockMappings';
 import ChatEvent from './events/chat/ChatEvent';
-import ChatManager from './chat/ChatManager';
+import { ChatManager } from './chat/ChatManager';
 import ClientConnection from './network/ClientConnection';
 import CommandManager from './command/CommandManager';
 import Console from './Console';
@@ -182,14 +182,13 @@ export default class Server {
                 if (player.getName()) {
                     // Announce disconnection
                     const event = new ChatEvent(
-                        new Chat(
-                            this.console,
-                            `§e%multiplayer.player.left`, // TODO: handle translations.
-                            [player.getName()],
-                            true,
-                            '*.everyone',
-                            ChatType.TRANSLATION
-                        )
+                        new Chat({
+                            sender: this.console,
+                            message: `§e%multiplayer.player.left`,
+                            parameters: [player.getName()],
+                            needsTranslation: true,
+                            type: ChatType.TRANSLATION
+                        })
                     );
                     await this.eventManager.emit('chat', event);
                 }

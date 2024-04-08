@@ -1,7 +1,7 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, greedyString, literal } from '@jsprismarine/brigadier';
 
-import Chat from '../../chat/Chat';
+import { Chat } from '../../chat/Chat';
 import { Command } from '../Command';
 import type Player from '../../Player';
 
@@ -21,7 +21,7 @@ export default class SayCommand extends Command {
                     const source = context.getSource() as Player;
                     const message = context.getArgument('message') as string;
 
-                    const chat = new Chat(source, `§5[${source.getName()}] ${message}`);
+                    const chat = new Chat({ sender: source, message: `§5[${source.getName()}] ${message}` });
                     await source.getServer().getChatManager().send(chat);
                 })
             )

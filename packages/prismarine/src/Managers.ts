@@ -1,6 +1,6 @@
 import BanManager from './ban/BanManager';
 import BlockManager from './block/BlockManager';
-import ChatManager from './chat/ChatManager';
+import { ChatManager } from './chat/ChatManager';
 import CommandManager from './command/CommandManager';
 import { EventManager } from './events/EventManager';
 import FormManager from './form/FormManager';

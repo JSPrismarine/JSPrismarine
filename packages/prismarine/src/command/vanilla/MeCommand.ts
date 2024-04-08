@@ -1,7 +1,7 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, greedyString, literal } from '@jsprismarine/brigadier';
 
-import Chat from '../../chat/Chat';
+import { Chat } from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import { Command } from '../Command';
 import type Player from '../../Player';
@@ -23,7 +23,12 @@ export default class MeCommand extends Command {
                     const message = context.getArgument('message') as string;
                     const messageToSend = `*${source.getName()}: ${message}`;
 
-                    const event = new ChatEvent(new Chat(source, messageToSend));
+                    const event = new ChatEvent(
+                        new Chat({
+                            sender: source,
+                            message: messageToSend
+                        })
+                    );
                     await source.getServer().getEventManager().emit('chat', event);
                 })
             )

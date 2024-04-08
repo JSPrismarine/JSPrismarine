@@ -1,4 +1,4 @@
-import Chat, { ChatType } from '../../chat/Chat';
+import { Chat, ChatType } from '../../chat/Chat';
 import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
 
@@ -162,14 +162,13 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             // Announce connection
             const chatSpawnEvent = new ChatEvent(
-                new Chat(
-                    server.getConsole(),
-                    `§e%multiplayer.player.joined`, // TODO: handle translations.
-                    [player.getName()],
-                    true,
-                    '*.everyone',
-                    ChatType.TRANSLATION
-                )
+                new Chat({
+                    sender: server.getConsole(),
+                    message: `§e%multiplayer.player.joined`,
+                    parameters: [player.getName()],
+                    needsTranslation: true,
+                    type: ChatType.TRANSLATION
+                })
             );
             await server.getEventManager().emit('chat', chatSpawnEvent);
         }

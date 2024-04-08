@@ -1,7 +1,7 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
 
-import Chat from '../../chat/Chat';
+import { Chat } from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import { Command } from '../Command';
 import type Player from '../../Player';
@@ -30,7 +30,11 @@ export default class OpCommand extends Command {
 
                     if (target) {
                         const event = new ChatEvent(
-                            new Chat(source, '§eYou are now op!', [], false, `*.player.${target.getName()}`)
+                            new Chat({
+                                sender: source,
+                                message: '§eYou are now op!',
+                                channel: `*.player.${target.getName()}`
+                            })
                         );
                         await target.getServer().getEventManager().emit('chat', event);
                     }
