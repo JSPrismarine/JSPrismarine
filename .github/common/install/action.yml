@@ -16,6 +16,11 @@ runs:
               version: 8
               run_install: false
 
+        - name: 🏎️ Setup Bun
+          uses: oven-sh/setup-bun@v1
+          with:
+              bun-version: canary
+
         - name: Get pnpm store directory
           shell: bash
           run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV

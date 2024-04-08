@@ -29,6 +29,7 @@
         "format": "concurrently pnpm:format:*",
         "format:eslint": "eslint  --fix packages/**/src/**/*.ts",
         "format:prettier": "prettier --write packages/**/src/**/*.*",
+        "package": "bun build --minify --sourcemap --compile ./packages/server/src/Server.ts --outfile ./dist/prismarine",
         "version": "changeset version",
         "postversion": "pnpm install",
         "version:unstable": "changeset version --snapshot unstable",

@@ -108,7 +108,7 @@ export default class LoggerBuilder {
         const callerName = caller.split(' ')[0]?.split('.').join('/');
         const callerFile = caller.split(' ')[1]?.slice(1, -1).split('/').at(-1);
 
-        if (!callerName || !callerFile) return '';
+        if (!callerName || !callerFile || callerName.includes('<anonymous>')) return '';
         return `${callerName} (${callerFile})`;
     };
 
