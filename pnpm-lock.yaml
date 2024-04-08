@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@jsprismarine/bedrock-data':
-        specifier: 1.20.73
-        version: 1.20.73
+        specifier: 1.20.73-b
+        version: 1.20.73-b
       '@jsprismarine/brigadier':
         specifier: workspace:*
         version: link:packages/brigadier
@@ -1236,8 +1236,8 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.15
     dev: true
 
-  /@jsprismarine/bedrock-data@1.20.73:
-    resolution: {integrity: sha512-nFYr6xBsDwQGQWZy97gC3bl5rrZz3Yk2Sqotqh3Cn1XKIpnTGOLniPfKf5pun8L35bVLTeStW7VDDZtL1k84qg==}
+  /@jsprismarine/bedrock-data@1.20.73-b:
+    resolution: {integrity: sha512-/ZoWhHT010X2vvzxRVcNmDmrKpbC7LZmC/QUcK+jy1s6681eVeiAAMVda0/o/6iv+QDhwbL7O34maA9iIlUP4A==}
     dev: false
 
   /@jsprismarine/jsbinaryutils@5.5.3:
