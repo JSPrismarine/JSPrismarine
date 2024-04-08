@@ -8,7 +8,8 @@ export enum ChatType {
     SYSTEM = 6,
     ANNOUNCEMENT = 8
 }
-export default class Chat {
+
+export class Chat {
     private readonly channel: string;
     private readonly sender: Player | Console;
     private readonly message: string;
@@ -16,20 +17,27 @@ export default class Chat {
     private readonly needsTranslation: boolean;
     private readonly type: ChatType;
 
-    public constructor(
-        sender: Player | Console,
-        message: string,
-        parameters: string[] = [],
-        needsTranslation = false,
-        channel = '*.everyone',
-        type = ChatType.CHAT
-    ) {
-        this.sender = sender;
-        this.channel = channel;
+    public constructor({
+        channel,
+        message,
+        needsTranslation,
+        parameters,
+        sender,
+        type
+    }: {
+        channel?: string;
+        message: string;
+        needsTranslation?: boolean;
+        parameters?: string[];
+        sender: Player | Console;
+        type?: ChatType;
+    }) {
+        this.channel = channel ?? '*.everyone';
         this.message = message;
-        this.parameters = parameters;
-        this.needsTranslation = needsTranslation;
-        this.type = type;
+        this.needsTranslation = needsTranslation ?? false; // TODO: handle translations.
+        this.parameters = parameters ?? [];
+        this.sender = sender;
+        this.type = type ?? ChatType.CHAT;
     }
 
     public getChannel(): string {

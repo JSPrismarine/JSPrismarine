@@ -10,7 +10,7 @@ import * as Utils from './utils/Utils';
 import * as World from './world';
 
 import BaseProvider from './world/providers/BaseProvider';
-import Chat from './chat/Chat';
+import { Chat } from './chat/Chat';
 import Config from './config/Config';
 import { ConfigBuilder } from './config/ConfigBuilder';
 import { Entity } from './entity/Entity';

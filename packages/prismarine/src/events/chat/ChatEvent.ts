@@ -1,4 +1,4 @@
-import type Chat from '../../chat/Chat';
+import type { Chat } from '../../chat/Chat';
 import Event from '../Event';
 
 export default class ChatEvent extends Event {
