@@ -23,17 +23,8 @@ jobs:
             - name: 🔨 Build
               run: pnpm run build
 
-            - name: 📦 Install Bun
-              uses: oven-sh/setup-bun@v1
-              with:
-                  bun-version: canary
-
             - name: 🔨 Build Executable
-              run: bun build --compile ./packages/server/src/Server.ts --outfile ./dist/prismarine
-
-            - name: ✅ Set Executable Permissions
-              if: (matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest')
-              run: chmod +x ./dist/prismarine
+              run: pnpm run package
 
             - name: 🚚 Publish Artifact
               uses: actions/upload-artifact@v4
