@@ -9,14 +9,14 @@ import Gamemode from '../world/Gamemode';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import type Player from '../Player';
-import { Server } from '../';
+import type Server from '../Server';
 import Vector3 from '../math/Vector3';
 
 export abstract class CommandArgument {
     public getReadableType(): string {
         return '';
     }
-    public getParameters(): Set<CommandParameter> | undefined {
+    public getParameters(server: Server): Set<CommandParameter> | undefined {
         return new Set();
     }
 }
@@ -362,11 +362,11 @@ export class PlayerArgumentCommand implements CommandArgument {
         return this.name;
     }
 
-    public getParameters(): Set<CommandParameter> {
+    public getParameters(server: Server): Set<CommandParameter> {
         const playerEnum = new CommandEnum();
         playerEnum.enumName = 'Player';
         try {
-            playerEnum.enumValues = Server.instance
+            playerEnum.enumValues = server
                 .getSessionManager()
                 .getAllPlayers()
                 .map((player) => player.getName());

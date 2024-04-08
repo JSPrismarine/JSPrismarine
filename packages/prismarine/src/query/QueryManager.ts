@@ -65,23 +65,24 @@ export class QueryManager {
                         Buffer.from(
                             `\0${[
                                 'hostname',
-                                // this.server.getRaknet().getName().getMotd(), TODO
+                                this.server.getConfig().getMotd(),
                                 'gametype',
                                 'SMP',
                                 'game_id',
                                 'MINECRAFTPE',
                                 'version',
-                                // this.server.getRaknet().getName().getVersion(),
+                                this.server.getVersion(),
                                 'plugins',
-                                `JSPrismarine on Prismarine ${this.server.getConfig().getVersion()}${
+                                `JSPrismarine on Prismarine ${this.server.getVersion()}${
                                     (plugins.length && ': ') || ''
                                 }${plugins.join('; ')}`, // TODO
                                 'map',
                                 this.server.getWorldManager().getDefaultWorld()!.getName(),
                                 'numplayers',
+                                0,
                                 // this.server.getRaknet().getName().getOnlinePlayerCount(),
                                 'maxplayers',
-                                // this.server.getRaknet().getName().getMaxPlayerCount(),
+                                this.server.getConfig().getMaxPlayers(),
                                 'hostport',
                                 this.server.getConfig().getServerPort(),
                                 'hostip',

@@ -8,7 +8,6 @@ import path from 'node:path';
 export default class Config {
     private configBuilder!: ConfigBuilder;
 
-    private version!: string;
     private port!: number;
     private serverIp!: string;
     private levelName!: string;
@@ -20,8 +19,7 @@ export default class Config {
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
 
-    public constructor(version: string) {
-        this.version = version;
+    public constructor() {
         this.onEnable();
     }
 
@@ -50,10 +48,6 @@ export default class Config {
     }
 
     public onDisable() {}
-
-    public getVersion() {
-        return this.version;
-    }
 
     public getServerPort(): number {
         return this.port;

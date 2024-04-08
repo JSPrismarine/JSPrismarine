@@ -32,7 +32,7 @@ export default class Chat {
         this.type = type;
     }
 
-    public getChannel() {
+    public getChannel(): string {
         return this.channel;
     }
 
@@ -40,7 +40,7 @@ export default class Chat {
         return this.sender;
     }
 
-    public getMessage() {
+    public getMessage(): string {
         return this.message;
     }
 
@@ -52,7 +52,7 @@ export default class Chat {
         return this.needsTranslation;
     }
 
-    public getType() {
+    public getType(): ChatType {
         return this.type;
     }
 }

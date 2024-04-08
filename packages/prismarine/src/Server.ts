@@ -29,8 +29,9 @@ import type LoggerBuilder from './utils/Logger';
 import type { RakNetSession, InetAddress } from '@jsprismarine/raknet';
 import { buildRakNetServerName } from './utils/ServerName';
 
+import { version } from '../package.json' assert { type: 'json' };
+
 export default class Server {
-    private readonly version!: string;
     private raknet!: RakNetListener;
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
@@ -56,31 +57,19 @@ export default class Server {
     private static readonly MINECRAFT_TICK_TIME_MS = 1000 / 20;
 
     /**
-     * @deprecated
-     * TODO: Remove this in the future.
-     */
-    public static instance: Server;
-
-    /**
      * Creates a new server instance.
      * @constructor
      * @param {LoggerBuilder} logger - The logger.
      * @param {Config} config - The config.
      * @param {string} version - The server version.
      */
-    public constructor({ logger, config, version }: { logger?: LoggerBuilder; config: Config; version: string }) {
-        const advertisedVersion =
-            Identifiers.MinecraftVersions.length <= 1
-                ? `§ev${Identifiers.MinecraftVersions.at(0)}§r`
-                : `§ev${Identifiers.MinecraftVersions.at(0)}§r-§ev${Identifiers.MinecraftVersions.at(-1)}§r`;
-
-        logger?.info(
-            `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${advertisedVersion} (protocol version §e${Identifiers.Protocol}§r)`,
+    public constructor({ logger, config }: { logger: LoggerBuilder; config: Config }) {
+        logger.info(
+            `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`,
             'Server'
         );
 
-        this.version = version;
-        this.logger = logger!;
+        this.logger = logger;
         this.config = config;
         this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
@@ -92,8 +81,6 @@ export default class Server {
         this.chatManager = new ChatManager(this);
         this.permissionManager = new PermissionManager(this);
         this.banManager = new BanManager(this);
-
-        Server.instance = this;
     }
 
     /**
@@ -397,14 +384,14 @@ export default class Server {
      * ```
      */
     public getVersion(): string {
-        return this.version;
+        return version;
     }
 
     /**
      * Returns the identifiers.
      * @returns {Identifiers} The identifiers.
      */
-    public getIdentifiers() {
+    public getIdentifiers(): typeof Identifiers {
         return Identifiers;
     }
 
@@ -550,18 +537,18 @@ export default class Server {
     }
 
     /**
-     * Returns the current TPS.
-     * @returns {number} The current TPS.
-     */
-    public getTPS(): number {
-        return this.tps;
-    }
-
-    /**
      * Returns the current Tick.
      * @returns {number} The current Tick.
      */
     public getTick(): number {
         return this.tick;
+    }
+
+    /**
+     * Returns the current TPS.
+     * @returns {number} The current TPS.
+     */
+    public getTPS(): number {
+        return this.tps;
     }
 }
