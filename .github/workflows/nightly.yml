@@ -12,21 +12,22 @@ jobs:
         name: 🚚 Build nightly executable
         strategy:
             matrix:
-                os: [ubuntu-latest, macos-latest]
+                os: [ubuntu-latest, macos-latest, windows-latest]
         runs-on: ${{ matrix.os }}
+        continue-on-error: true
         steps:
             - uses: actions/checkout@v4
 
             - name: 📦 Install
               uses: ./.github/common/install
 
-            - name: 🔨 Build
-              run: pnpm run build
-
             - name: 🔨 Build Executable
+              id: build
+              continue-on-error: true
               run: pnpm run package
 
             - name: 🚚 Publish Artifact
+              if: ${{ steps.build.outcome == 'success' }}
               uses: actions/upload-artifact@v4
               with:
                   name: prismarine-${{ matrix.os }}
