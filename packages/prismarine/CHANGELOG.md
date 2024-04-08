@@ -1,5 +1,27 @@
 # @jsprismarine/prismarine
 
+## 0.4.0
+
+### Patch Changes
+
+- [#1279](https://github.com/JSPrismarine/JSPrismarine/pull/1279) [`4ca96b5`](https://github.com/JSPrismarine/JSPrismarine/commit/4ca96b59696dbe67e39b7f46d85fe421a74d23d5) Thanks [@filiphsps](https://github.com/filiphsps)! - Add Codecov bundler plugin to vite.
+
+- [`fad26e2`](https://github.com/JSPrismarine/JSPrismarine/commit/fad26e2affc095a94cfaed417891bbc9605af589) Thanks [@filiphsps](https://github.com/filiphsps)! - - Remove `Server.instance`.
+
+  - Remove passing of version from `@jsprismarine/server` to `@jsprismarine/prismarine`.
+
+- [`91b556d`](https://github.com/JSPrismarine/JSPrismarine/commit/91b556de0064b8e670ea46b61f0c51817ea7b425) Thanks [@filiphsps](https://github.com/filiphsps)! - Resolve `js/insecure-randomness`.
+
+- [#1280](https://github.com/JSPrismarine/JSPrismarine/pull/1280) [`c7965d4`](https://github.com/JSPrismarine/JSPrismarine/commit/c7965d446ce591b29e71a75bfed0ae6ca5ef91cb) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix bug resulting in config sometimes being null.
+  Fix cases where stdin would continue being held by the process.
+  Fix `isConsole` util function on `Entity`.
+  Improve console logging.
+- Updated dependencies [[`4ca96b5`](https://github.com/JSPrismarine/JSPrismarine/commit/4ca96b59696dbe67e39b7f46d85fe421a74d23d5), [`52a041c`](https://github.com/JSPrismarine/JSPrismarine/commit/52a041cfa567842ea77196c10434eb42aa9f791b)]:
+  - @jsprismarine/color-parser@0.4.0
+  - @jsprismarine/errors@0.4.0
+  - @jsprismarine/raknet@0.4.0
+  - @jsprismarine/nbt@0.4.0
+
 ## 0.3.0
 
 ### Patch Changes
