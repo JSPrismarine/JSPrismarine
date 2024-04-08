@@ -3,7 +3,7 @@ import { Config, Logger, Server } from '@jsprismarine/prismarine';
 import path from 'node:path';
 import dotenv from 'dotenv';
 
-import pkg from '../package.json' assert { type: 'json' };
+const isDev = process.env.NODE_ENV === 'development';
 
 // Process metadata
 process.title = 'Prismarine';
@@ -12,20 +12,20 @@ dotenv.config({
     path: [
         path.join(process.cwd(), '.env'),
         path.join(process.cwd(), '.env.local'),
-        path.join(process.cwd(), '.env.development'),
-        path.join(process.cwd(), '.env.development.local')
+        ...((isDev && [
+            path.join(process.cwd(), '.env.development'),
+            path.join(process.cwd(), '.env.development.local')
+        ]) ||
+            [])
     ]
 });
 
-const version = (pkg.version as string) || 'unknown';
-
 (async () => {
-    const config = new Config(version);
+    const config = new Config();
     const logger = new Logger();
     const server = new Server({
         config,
-        logger,
-        version
+        logger
     });
 
     ['SIGINT', 'SIGTERM', 'uncaughtException'].forEach((signal) =>

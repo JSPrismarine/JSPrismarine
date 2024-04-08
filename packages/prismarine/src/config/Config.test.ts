@@ -7,11 +7,7 @@ describe('config', () => {
         let config: Config;
 
         beforeEach(() => {
-            config = new Config('1.0.0');
-        });
-
-        it('should have the correct version', () => {
-            expect(config.getVersion()).toBe('1.0.0');
+            config = new Config();
         });
 
         it('should have the default server port', () => {
