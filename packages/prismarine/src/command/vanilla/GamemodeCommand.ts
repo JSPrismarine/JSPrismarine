@@ -26,7 +26,7 @@ export default class GamemodeCommand extends Command {
                     channel: `*.player.${source.getName()}`
                 })
             );
-            await source.getServer().getEventManager().emit('chat', event);
+            await source.getServer().emit('chat', event);
             return;
         }
 
@@ -39,7 +39,7 @@ export default class GamemodeCommand extends Command {
                     channel: `*.player.${source.getName()}`
                 })
             );
-            await source.getServer().getEventManager().emit('chat', event);
+            await source.getServer().emit('chat', event);
             return;
         }
 

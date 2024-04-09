@@ -10,7 +10,7 @@ import ClientConnection from './network/ClientConnection';
 import CommandManager from './command/CommandManager';
 import Console from './Console';
 import type { DataPacket } from './network/Packets';
-import { EventManager } from './events/EventManager';
+import { EventEmitter } from './events/EventEmitter';
 import Identifiers from './network/Identifiers';
 import ItemManager from './item/ItemManager';
 import PacketRegistry from './network/PacketRegistry';
@@ -31,12 +31,11 @@ import { buildRakNetServerName } from './utils/ServerName';
 
 import { version } from '../package.json' assert { type: 'json' };
 
-export default class Server {
+export default class Server extends EventEmitter {
     private raknet!: RakNetListener;
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
     private readonly console: Console;
-    private readonly eventManager = new EventManager();
     private readonly packetRegistry: PacketRegistry;
     private readonly sessionManager = new SessionManager();
     private readonly commandManager: CommandManager;
@@ -64,6 +63,8 @@ export default class Server {
      * @param {string} version - The server version.
      */
     public constructor({ logger, config }: { logger: LoggerBuilder; config: Config }) {
+        super();
+
         logger.info(
             `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`,
             'Server'
@@ -143,7 +144,7 @@ export default class Server {
 
         this.raknet.on('openConnection', async (session: RakNetSession) => {
             const event = new RaknetConnectEvent(session);
-            await this.eventManager.emit('raknetConnect', event);
+            await this.emit('raknetConnect', event);
 
             if (event.isCancelled()) {
                 session.disconnect();
@@ -165,7 +166,7 @@ export default class Server {
 
         this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
             const event = new RaknetDisconnectEvent(inetAddr, reason);
-            await this.eventManager.emit('raknetDisconnect', event);
+            await this.emit('raknetDisconnect', event);
 
             const time = Date.now();
             const token = inetAddr.toToken();
@@ -190,7 +191,7 @@ export default class Server {
                             type: ChatType.TRANSLATION
                         })
                     );
-                    await this.eventManager.emit('chat', event);
+                    await this.emit('chat', event);
                 }
 
                 await player.onDisable();
@@ -207,7 +208,7 @@ export default class Server {
 
         this.raknet.on('encapsulated', async (packet: any, inetAddr: InetAddress) => {
             const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
-            await this.eventManager.emit('raknetEncapsulatedPacket', event);
+            await this.emit('raknetEncapsulatedPacket', event);
 
             let connection: ClientConnection | null;
             if ((connection = this.sessionManager.get(inetAddr.toToken()) ?? null) === null) {
@@ -271,7 +272,7 @@ export default class Server {
             if (this.stopping) return;
 
             const event = new TickEvent(this.tick);
-            void this.eventManager.emit('tick', event);
+            void this.emit('tick', event);
 
             const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
 
@@ -473,14 +474,6 @@ export default class Server {
      */
     public getRaknet() {
         return this.raknet;
-    }
-
-    /**
-     * Returns the event manager.
-     * @returns {EventManager} The event manager.
-     */
-    public getEventManager(): EventManager {
-        return this.eventManager;
     }
 
     /**

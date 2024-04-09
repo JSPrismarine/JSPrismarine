@@ -1,4 +1,4 @@
-import Event from '../Event';
+import { Event } from '../Event';
 import MovementType from '../../network/type/MovementType';
 import type Player from '../../Player';
 import Vector3 from '../../math/Vector3';

@@ -1,9 +1,9 @@
 import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
-import PacketHandler from './PacketHandler';
+import type PacketHandler from './PacketHandler';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
-import { PlayerSession } from '../../';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
 import Chunk from '../../world/chunk/Chunk';
@@ -24,7 +24,7 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
 
         // Emit move event
         const event = new PlayerMoveEvent(player, resultantVector, packet.mode);
-        server.getEventManager().post(['playerMove', event]);
+        server.post(['playerMove', event]);
         if (event.isCancelled()) {
             // Reset the player position
             await session.broadcastMove(player, MovementType.Reset);

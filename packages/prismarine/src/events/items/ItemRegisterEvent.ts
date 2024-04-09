@@ -1,4 +1,4 @@
-import Event from '../Event';
+import { Event } from '../Event';
 import type Item from '../../item/Item';
 
 export default class ItemRegisterEvent extends Event {
