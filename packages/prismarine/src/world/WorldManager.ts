@@ -115,11 +115,11 @@ export default class WorldManager {
             }
 
             const levelPath = path.join(cwd(), `/worlds/${folderName}/`);
-            const provider = this.providers.get(worldData.provider || 'Filesystem');
+            const provider = this.providers.get(worldData.provider ?? 'Filesystem');
             const generator = this.server
                 .getWorldManager()
                 .getGeneratorManager()
-                .getGenerator(worldData.generator || 'overworld');
+                .getGenerator(worldData.generator ?? 'Flat');
 
             if (!provider) {
                 reject(new Error(`invalid provider with id ${worldData.provider}`));
