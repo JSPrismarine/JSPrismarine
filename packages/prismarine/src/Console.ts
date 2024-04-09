@@ -138,7 +138,7 @@ export default class Console {
     }
 
     public getPosition(): Vector3 {
-        return new Vector3();
+        return new Vector3(0, 0, 0);
     }
 
     public getType() {

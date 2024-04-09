@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
-import { PlayerSession } from '../../';
-import Server from '../../Server';
+/* import Identifiers from '../Identifiers';
+import type PacketHandler from './PacketHandler';
+import type PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
+import type { PlayerSession } from '../../';
+import type Server from '../../Server';
 
 export default class PacketViolationWarningHandler implements PacketHandler<PacketViolationWarningPacket> {
     public static NetID = Identifiers.PacketViolationWarningPacket;
@@ -16,4 +16,4 @@ export default class PacketViolationWarningHandler implements PacketHandler<Pack
                 }, severity: ${packet.severity}`
             );
     }
-}
+} */

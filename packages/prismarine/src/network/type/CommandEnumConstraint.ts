@@ -1,4 +1,4 @@
-import CommandEnum from './CommandEnum';
+import type CommandEnum from './CommandEnum';
 
 export default class CommandEnumConstraint {
     private _enum!: CommandEnum;

@@ -1,12 +1,14 @@
-import type { Logger, Player, Server } from '../';
+import type { Logger, Player } from '../';
+import { Server } from '../';
 import { PlayerSession } from '../';
 
-import { BatchPacket, DisconnectPacket } from './Packets';
 import MinecraftSession from './MinecraftSession';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import assert from 'assert';
-import { NetworkBinaryStream } from '@jsprismarine/protocol';
+import type { NetworkPacket } from '@jsprismarine/protocol';
+import { DisconnectPacket } from '@jsprismarine/protocol';
 import PacketRegistry2 from './PacketRegistry2';
+import { DisconnectReason } from '@jsprismarine/minecraft';
 
 /**
  * Handles the connection before the player creation itself, very helpful as
@@ -15,31 +17,29 @@ import PacketRegistry2 from './PacketRegistry2';
  */
 export default class ClientConnection extends MinecraftSession {
     private playerSession: PlayerSession | null = null;
-    private hasCompression = false;
 
     public constructor(session: RakNetSession, logger?: Logger) {
         super(session, logger);
     }
 
-    public handleRawPacket(buffer: Buffer): void {
-        const batch = new BatchPacket(buffer);
-        batch.compressed = this.hasCompression;
-        (async () => {
-            const buffers = await batch.asyncDecode();
-            for (const buffer of buffers) {
-                try {
-                    this.handldeNetworkPacket(buffer);
-                } catch (error) {
-                    throw error;
-                }
-            }
-        }).bind(this)();
+    public tick(): void {
+        // process underlying network layer
+        super.tick();
+
+        while (this.inPacketQueue.length > 0) {
+            let packet = this.inPacketQueue.shift()!;
+            this.handleNetworkPacket(packet);
+        }
     }
 
-    private handldeNetworkPacket(buffer: Buffer): void {
-        const packet = PacketRegistry2.getPacket(buffer.readUint8());
-        packet.deserialize(new NetworkBinaryStream(buffer));
-        PacketRegistry2.getHandler(packet.id)?.handle(packet, Server.instance, this as any);
+    private handleNetworkPacket(packet: { id: number; packetData: unknown }): void {
+        // TODO: proper registry impelmantation
+        PacketRegistry2.getHandler(packet.id)?.handle(packet.packetData, Server.instance, this as any);
+    }
+
+    public sendNetworkPacket(packet: NetworkPacket<unknown>): void {
+        this.outPacketQueue.push(packet);
+        this.triggerOutputProcessing();
     }
 
     /**
@@ -56,11 +56,13 @@ export default class ClientConnection extends MinecraftSession {
         return this.playerSession;
     }
 
-    public disconnect(reason = 'disconnect.disconnected', hideReason = true): void {
-        const packet = new DisconnectPacket();
-        packet.skipMessage = hideReason;
-        packet.message = reason;
-        void this.sendDataPacket(packet);
+    public disconnect(message: string, reason = DisconnectReason.DISCONNECTED): void {
+        // TODO: rethink this
+        if (this.playerSession !== null) {
+            this.playerSession.getPlayer().onDisable();
+        }
+
+        this.sendNetworkPacket(new DisconnectPacket({ reason, skipMessage: false, message }));
 
         // Force RakNet to remove the session
         // so we don't have to handle the dead session

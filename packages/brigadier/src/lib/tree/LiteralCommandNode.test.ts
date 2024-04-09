@@ -2,7 +2,7 @@ import { assert, expect, describe, beforeEach, it } from 'vitest';
 import testEquality from '../util/isEqual.test';
 import CommandDispatcher from '../CommandDispatcher';
 import RootCommandNode from '../tree/RootCommandNode';
-import LiteralCommandNode from '../tree/LiteralCommandNode';
+import type LiteralCommandNode from '../tree/LiteralCommandNode';
 import CommandContextBuilder from '../context/CommandContextBuilder';
 import CommandSyntaxException from '../exceptions/CommandSyntaxException';
 import Suggestion from '../suggestion/Suggestion';

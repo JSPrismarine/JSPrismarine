@@ -15,6 +15,8 @@ import type { StackPack } from './StackPack';
 import { ResourcePackResponse } from './ResourcePackResponse';
 import type { CommandPermissionLevel } from './CommandPermissionLevel';
 import { BuildPlatform } from './BuildPlatform';
+import { LevelEvent } from './LevelEvent';
+import { PacketCompressionAlgorithm } from './PacketCompressionAlgorithm';
 
 export type { Experiment, BlockProperty, BehaviorPack, ResourcePack, StackPack };
 export {
@@ -29,5 +31,7 @@ export {
     DisconnectReason,
     ResourcePackResponse,
     CommandPermissionLevel,
-    BuildPlatform
+    BuildPlatform,
+    LevelEvent,
+    PacketCompressionAlgorithm
 };

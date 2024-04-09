@@ -1,5 +1,5 @@
 import Event from '../Event';
-import { RakNetSession } from '@jsprismarine/raknet';
+import type { RakNetSession } from '@jsprismarine/raknet';
 
 /**
  * Fired just as a new client connects to the raknet server instance.

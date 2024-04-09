@@ -1,5 +1,6 @@
-import { NetworkPacket, PacketIdentifier, NetworkBinaryStream } from '../';
-import { DisconnectReason } from '@jsprismarine/minecraft';
+import type { NetworkBinaryStream } from '../';
+import { NetworkPacket, PacketIdentifier } from '../';
+import type { DisconnectReason } from '@jsprismarine/minecraft';
 
 interface BasePacketData {
     reason: DisconnectReason;

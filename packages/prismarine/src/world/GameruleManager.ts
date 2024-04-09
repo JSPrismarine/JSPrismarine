@@ -1,6 +1,5 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil';
 import type Server from '../Server';
+import type { NetworkBinaryStream } from '@jsprismarine/protocol';
 
 export const GameRules = {
     CommandBlockOutput: 'commandblockoutput',
@@ -83,14 +82,14 @@ export default class GameruleManager {
         return this.rules;
     }
 
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: NetworkBinaryStream): void {
         const isInt = (n: number) => {
             return n % 1 === 0;
         };
 
         stream.writeUnsignedVarInt(this.getGamerules().size);
         for (const [name, [value, editable]] of this.getGamerules()) {
-            McpeUtil.writeString(stream, name.toLowerCase());
+            stream.writeString(name.toLowerCase());
             stream.writeBoolean(editable);
             switch (typeof value) {
                 case 'boolean':

@@ -1,3 +1,3 @@
 {
-    "entryPoints": ["src/Updater.ts"]
+    "entryPoints": ["src/index.ts"]
 }

@@ -2,19 +2,15 @@ import GameruleManager, { GameRules } from './GameruleManager';
 
 import type BaseProvider from './providers/BaseProvider';
 import type { Block } from '../block/Block';
-import { BlockMappings } from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
-import Entity from '../entity/Entity';
-import Generator from './Generator';
+import type Entity from '../entity/Entity';
+import type Generator from './Generator';
 import Item from '../item/Item';
-import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import type Player from '../Player';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
-import UUID from '../utils/UUID';
-import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
+import { UUID } from '../utils/UUID';
 import Vector3 from '../math/Vector3';
-import WorldEventPacket from '../network/packet/WorldEventPacket';
 import cwd from '../utils/cwd';
 import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
@@ -218,15 +214,10 @@ export default class World {
      * @param data
      */
     public sendWorldEvent(position: Vector3 | null, worldEvent: number, data: number): void {
-        const worldEventPacket = new WorldEventPacket();
-        worldEventPacket.eventId = worldEvent;
-        worldEventPacket.data = data;
-        if (position !== null) {
-            // TODO: this.getChunkAt(position.getX(), position.getZ()).
-            // Save player into the chunk directly
-        } else {
-            // To all players
-        }
+        /* const worldEventPacket = new LevelEventGenericPacket({
+            eventId: worldEvent,
+            eventData: data,
+        }); */
     }
 
     /**
@@ -326,7 +317,7 @@ export default class World {
             }
         });
 
-        if (!success) {
+        /* if (!success) {
             if (placedPosition.getY() < 0) return;
 
             const blockUpdate = new UpdateBlockPacket();
@@ -347,10 +338,10 @@ export default class World {
 
         await Promise.all(
             this.server
-                .getSessionManager()
-                .getAllPlayers()
+                .getPlayerManager()
+                .getOnlinePlayers()
                 .map(async (onlinePlayer) =>
-                    onlinePlayer.getNetworkSession().getConnection().sendDataPacket(blockUpdate)
+                    onlinePlayer.getNetworkSession().getConnection().sendNetworkPacket(blockUpdate)
                 )
         );
 
@@ -369,8 +360,8 @@ export default class World {
         await Promise.all(
             player
                 .getPlayersInChunk()
-                .map(async (narbyPlayer) => narbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk))
-        );
+                .map(async (narbyPlayer) => narbyPlayer.getNetworkSession().getConnection().sendNetworkPacket(pk))
+        ); */
     }
 
     public async sendTime(): Promise<void> {
@@ -386,7 +377,7 @@ export default class World {
      * Adds an entity to the level.
      */
     public async addEntity(entity: Entity): Promise<void> {
-        if (!entity.isPlayer()) await entity.sendSpawn();
+        // TODO if (!entity.isPlayer()) await entity.sendSpawn();
 
         this.entities.set(entity.getRuntimeId(), entity);
         // const chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
@@ -397,7 +388,7 @@ export default class World {
      * Removes an entity from the level.
      */
     public async removeEntity(entity: Entity): Promise<void> {
-        if (!entity.isPlayer()) await entity.sendDespawn();
+        //TODO if (!entity.isPlayer()) await entity.sendDespawn();
 
         this.entities.delete(entity.getRuntimeId());
     }
@@ -432,8 +423,8 @@ export default class World {
     public async save(): Promise<void> {
         // Save chunks
         this.server
-            .getSessionManager()
-            .getAllPlayers()
+            .getPlayerManager()
+            .getOnlinePlayers()
             .forEach(async (player) => {
                 await this.savePlayerData(player);
             });
@@ -509,7 +500,7 @@ export default class World {
                             y: player.getY(),
                             z: player.getZ(),
                             pitch: player.pitch,
-                            yaw: player.yaw
+                            yaw: player.bodyYaw
                         },
                         inventory: player
                             .getInventory()

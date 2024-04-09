@@ -2,9 +2,9 @@ import Vector3 from '../math/Vector3';
 import type World from './World';
 
 export interface PositionData {
-    x?: number;
-    y?: number;
-    z?: number;
+    x: number;
+    y: number;
+    z: number;
     world: World;
 }
 

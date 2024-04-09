@@ -1,8 +1,8 @@
-import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+/* import Identifiers from '../Identifiers';
+import type PacketHandler from './PacketHandler';
+import { type PlayerSession } from '../../';
 import type Server from '../../Server';
-import SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket';
+import type SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket';
 
 export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefaultGameTypePacket> {
     public static NetID = Identifiers.SetDefaultGameTypePacket;
@@ -13,13 +13,11 @@ export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefau
         }
 
         server.getConfig().setGamemode(packet.gamemode, true);
-        await Promise.all(
-            server
-                .getSessionManager()
-                .getAllPlayers()
-                .map(async (player) => {
-                    await player.setGamemode(packet.gamemode);
-                })
-        );
+        server
+            .getPlayerManager()
+            .getOnlinePlayers()
+            .map((player) => {
+                player.setGamemode(packet.gamemode);
+            })
     }
-}
+} */

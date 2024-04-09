@@ -1,7 +1,7 @@
-import type CommandRequestPacket from '../packet/CommandRequestPacket';
+/* import type CommandRequestPacket from '../packet/CommandRequestPacket';
 import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+import type PacketHandler from './PacketHandler';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 
 export default class CommandRequestHandler implements PacketHandler<CommandRequestPacket> {
@@ -11,4 +11,4 @@ export default class CommandRequestHandler implements PacketHandler<CommandReque
         const player = session.getPlayer();
         await player.getServer().getCommandManager().dispatchCommand(player, player, packet.commandName.slice(1));
     }
-}
+} */

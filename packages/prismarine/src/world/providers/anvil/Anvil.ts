@@ -1,6 +1,6 @@
 import BaseProvider from '../BaseProvider';
 import Chunk from '../../chunk/Chunk';
-import Generator from '../../Generator';
+import type Generator from '../../Generator';
 import type Server from '../../../Server';
 import Vector3 from '../../../math/Vector3';
 import fs from 'node:fs';

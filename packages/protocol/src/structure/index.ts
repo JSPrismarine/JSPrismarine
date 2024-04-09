@@ -13,6 +13,7 @@ import PropertySyncData from './PropertySyncData';
 import SerializedAbilitiesData from './SerializedAbilitiesData';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
 import ActorLink from './ActorLink';
+import { ChunkPos } from './ChunkPos';
 
 export {
     Vec2,
@@ -29,5 +30,6 @@ export {
     PropertySyncData,
     SerializedAbilitiesData,
     SerializedAbilityLayer,
-    ActorLink
+    ActorLink,
+    ChunkPos
 };

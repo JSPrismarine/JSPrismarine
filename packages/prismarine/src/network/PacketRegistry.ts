@@ -1,7 +1,5 @@
 import * as Handlers from './Handlers';
-import * as Packets from './Packets';
 
-import Identifiers from './Identifiers';
 import type PacketHandler from './handler/PacketHandler';
 import type { PlayerSession } from '../';
 import type PreLoginPacketHandler from './handler/PreLoginPacketHandler';
@@ -10,7 +8,6 @@ import Timer from '../utils/Timer';
 
 export default class PacketRegistry {
     private server: Server;
-    private readonly packets: Map<number, typeof Packets.DataPacket> = new Map();
     private readonly handlers: Map<number, PacketHandler<any>> = new Map();
 
     public constructor(server: Server) {
@@ -18,45 +15,11 @@ export default class PacketRegistry {
     }
 
     public async onEnable() {
-        await this.registerPackets();
         await this.registerHandlers();
     }
 
     public async onDisable() {
         this.handlers.clear();
-        this.packets.clear();
-    }
-
-    /**
-     * Register a packet.
-     * @param packet - the packet.
-     */
-    public registerPacket(packet: typeof Packets.DataPacket): void {
-        if (this.packets.has(packet.NetID))
-            throw new Error(
-                `Packet ${packet.name} is trying to use id ${packet.NetID.toString(16)} which already exists!`
-            );
-
-        this.packets.set(packet.NetID, packet);
-        this.server.getLogger()?.debug(`Packet with id §b${packet.name}§r registered`, 'PacketRegistry/registerPacket');
-    }
-
-    /**
-     * Get a packet by it's network ID.
-     * @param id - the NetID.
-     */
-    public getPacket(id: number): any {
-        if (!this.packets.has(id)) throw new Error(`Invalid packet with id ${id}!`);
-
-        return this.packets.get(id)!;
-    }
-
-    /**
-     * Remove a packet from the registry.
-     * @param id - the NetID.
-     */
-    public removePacket(id: number): void {
-        this.packets.delete(id);
     }
 
     public registerHandler(id: number, handler: PacketHandler<any>): void {
@@ -101,28 +64,6 @@ export default class PacketRegistry {
     }
 
     /**
-     * Dynamically register all packets exported by './Protocol'.
-     */
-    private async registerPackets(): Promise<void> {
-        const timer = new Timer();
-
-        // Dynamically register packets
-        // We need to manually ignore DataPacket & BatchPacket
-        Object.entries(Packets)
-            .filter(([, value]) => value.name !== 'DataPacket' && value.name !== 'BatchPacket')
-            .map(([, value]) => this.registerPacket(value));
-
-        this.server
-            .getLogger()
-            ?.verbose(
-                `Registered §b${this.packets.size}§r of §b${
-                    Array.from(Object.keys(Identifiers)).length - 2
-                }§r packet(s) (took ${timer.stop()} ms)!`,
-                'PacketRegistry/registerPackets'
-            );
-    }
-
-    /**
      * Dynamically register all handlers exported by './Handlers'.
      */
     private async registerHandlers(): Promise<void> {
@@ -137,13 +78,6 @@ export default class PacketRegistry {
                 `Registered §b${this.handlers.size}§r packet handler(s) (took ${timer.stop()} ms)!`,
                 'PacketRegistry/registerHandlers'
             );
-    }
-
-    /**
-     * Get all packets from the registry.
-     */
-    public getPackets() {
-        return this.packets;
     }
 
     /**

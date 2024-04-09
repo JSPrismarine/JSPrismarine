@@ -1,11 +1,6 @@
-import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArguments';
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, literal } from '@jsprismarine/brigadier';
 
 import { Command } from '../Command';
-import MovementType from '../../network/type/MovementType';
-import type Player from '../../Player';
-import Vector3 from '../../math/Vector3';
 
 export default class TpCommand extends Command {
     public constructor() {
@@ -18,7 +13,7 @@ export default class TpCommand extends Command {
     }
 
     public async register(dispatcher: CommandDispatcher<any>) {
-        dispatcher.register(
+        /* dispatcher.register(
             literal('tp')
                 .then(
                     argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
@@ -108,6 +103,6 @@ export default class TpCommand extends Command {
                             return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;
                         })
                 )
-        );
+        ); */
     }
 }

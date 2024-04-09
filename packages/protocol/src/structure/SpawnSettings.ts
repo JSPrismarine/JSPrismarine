@@ -1,6 +1,7 @@
+import type { NetworkBinaryStream } from '../';
 import { NetworkStructure } from '../';
-import NetworkBinaryStream from '../NetworkBinaryStream';
-import { Dimension, SpawnBiome } from '@jsprismarine/minecraft';
+import type { SpawnBiome } from '@jsprismarine/minecraft';
+import { type Dimension } from '@jsprismarine/minecraft';
 
 /**
  * Represents the network structure of the spawn settings of a world.

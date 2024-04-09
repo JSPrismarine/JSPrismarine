@@ -1,10 +1,10 @@
-import Command from '../Command';
-import RedirectModifier from '../RedirectModifier';
-import SingleRedirectModifier from '../SingleRedirectModifier';
+import type Command from '../Command';
+import type RedirectModifier from '../RedirectModifier';
+import type SingleRedirectModifier from '../SingleRedirectModifier';
 import CommandNode from '../tree/CommandNode';
 import RootCommandNode from '../tree/RootCommandNode';
-import Predicate from '../Predicate';
-import CommandContext from '../context/CommandContext';
+import type Predicate from '../Predicate';
+import type CommandContext from '../context/CommandContext';
 
 abstract class ArgumentBuilder<S, T extends ArgumentBuilder<S, T>> {
     private args: RootCommandNode<S> = new RootCommandNode();

@@ -1,7 +1,6 @@
-import { NetworkPacket } from '@jsprismarine/protocol';
-import ClientConnection from '../ClientConnection';
-import { Server } from '@';
+import type { Server } from '../../';
+import type ClientConnection from '../ClientConnection';
 
-export default interface PreLoginPacketHandler<T extends NetworkPacket<unknown>> {
-    handle(packet: T, server: Server, connection: ClientConnection): Promise<void>;
+export default interface PreLoginPacketHandler<T extends object> {
+    handle(data: T, server: Server, connection: ClientConnection): Promise<void>;
 }

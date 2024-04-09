@@ -26,7 +26,7 @@ export default class BanCommand extends Command {
                             try {
                                 const target = source
                                     .getServer()
-                                    .getSessionManager()
+                                    .getPlayerManager()
                                     .getPlayerByExactName(context.getArgument('player')); // TODO: by name not exact
                                 await target.kick(`You have been banned from the server due to: \n\n${reason}!`);
                             } catch {}
@@ -41,7 +41,7 @@ export default class BanCommand extends Command {
                         try {
                             const target = source
                                 .getServer()
-                                .getSessionManager()
+                                .getPlayerManager()
                                 .getPlayerByExactName(context.getArgument('player')); // TODO: by name not exact
                             await target.kick(`You have been banned!`);
                         } catch {}

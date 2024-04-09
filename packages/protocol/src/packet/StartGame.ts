@@ -1,16 +1,16 @@
+import { NBTTagCompound, ByteOrder } from '@jsprismarine/nbt';
 import {
-    Vec2,
-    Vec3,
-    SyncedPlayerMovementSettings,
     ItemData,
-    UUID,
-    LevelSettings,
     NetworkPacket,
     PacketIdentifier,
+    SyncedPlayerMovementSettings,
+    Vec2,
+    Vec3,
+    UUID,
+    LevelSettings,
     NetworkBinaryStream
 } from '../';
 import { BlockProperty } from '@jsprismarine/minecraft';
-import { NBTTagCompound, ByteOrder } from '@jsprismarine/nbt';
 
 interface PacketData {
     targetActorUniqueId: bigint;

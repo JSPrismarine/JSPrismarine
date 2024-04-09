@@ -1,6 +1,7 @@
-import { NetworkPacket, PacketIdentifier, NetworkBinaryStream } from '../';
+import type { NetworkBinaryStream } from '../';
+import { NetworkPacket, PacketIdentifier } from '../';
 
-interface PacketData {
+export interface PacketData {
     clientNetworkVersion: number;
     connectionRequest: string;
 }

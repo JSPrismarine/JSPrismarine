@@ -1,4 +1,4 @@
-import AnimatePacket from '../packet/AnimatePacket';
+/* import AnimatePacket from '../packet/AnimatePacket';
 import Identifiers from '../Identifiers';
 import type PacketHandler from './PacketHandler';
 import type PlayerSession from '../PlayerSession';
@@ -15,10 +15,10 @@ export default class AnimateHandler implements PacketHandler<AnimatePacket> {
 
         await Promise.all(
             server
-                .getSessionManager()
-                .getAllPlayers()
+                .getPlayerManager()
+                .getOnlinePlayers()
                 .filter((onlinePlayer) => onlinePlayer !== player)
-                .map(async (otherPlayer) => otherPlayer.getNetworkSession().getConnection().sendDataPacket(pk))
+                .map(async (otherPlayer) => otherPlayer.getNetworkSession().getConnection().sendNetworkPacket(pk))
         );
     }
-}
+} */

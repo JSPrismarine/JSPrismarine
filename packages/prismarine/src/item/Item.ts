@@ -5,6 +5,7 @@ import { BlockMappings } from '../block/BlockMappings';
 import { BlockToolType } from '../block/BlockToolType';
 import type { ItemEnchantmentType } from './ItemEnchantmentType';
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { NetworkItemStackDescriptor } from '@jsprismarine/protocol';
 
 export interface ItemProps {
     id: number;
@@ -15,8 +16,8 @@ export interface ItemProps {
     durability?: number;
 }
 
-export default class Item {
-    private id: number;
+export default class Item extends NetworkItemStackDescriptor {
+    public id: number;
     private networkId: number;
     private name: string;
     public meta = 0;
@@ -27,6 +28,7 @@ export default class Item {
     public count = 1;
 
     public constructor({ id, name, meta }: ItemProps) {
+        super(id, 0, 0, false, 0);
         this.id = id;
         this.name = name;
         if (meta) this.meta = meta;
@@ -181,7 +183,7 @@ export default class Item {
             const version = stream.readByte(); // eslint-disable-line unused-imports/no-unused-vars
 
             try {
-                const nbtReader = new NBTReader(stream, ByteOrder.ByteOrder.LITTLE_ENDIAN);
+                const nbtReader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
                 nbtReader.setUseVarint(true);
                 _nbt = nbtReader.parse();
             } catch (error: unknown) {

@@ -1,5 +1,6 @@
-import { NetworkBinaryStream, NetworkPacket, PacketIdentifier } from '../';
-import { BehaviorPack, ResourcePack } from '@jsprismarine/minecraft';
+import type { NetworkBinaryStream } from '../';
+import { NetworkPacket, PacketIdentifier } from '../';
+import type { BehaviorPack, ResourcePack } from '@jsprismarine/minecraft';
 
 interface PacketData {
     resourcePackRequired: boolean;

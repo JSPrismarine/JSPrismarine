@@ -1,15 +1,13 @@
-import StringReader from "../StringReader"
-import CommandContext from "../context/CommandContext"
-import Suggestions from "../suggestion/Suggestions"
-import SuggestionsBuilder from "../suggestion/SuggestionsBuilder"
-import ArgumentType from "./ArgumentType"
+import type StringReader from '../StringReader';
+import type CommandContext from '../context/CommandContext';
+import type Suggestions from '../suggestion/Suggestions';
+import type SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
+import type ArgumentType from './ArgumentType';
 
-const EXAMPLES = ["true", "false"];
+const EXAMPLES = ['true', 'false'];
 
 export default class BoolArgumentType implements ArgumentType<boolean> {
-
-    private constructor () {
-    }
+    private constructor() {}
 
     public static bool(): BoolArgumentType {
         return new BoolArgumentType();
@@ -24,12 +22,12 @@ export default class BoolArgumentType implements ArgumentType<boolean> {
     }
 
     public listSuggestions(context: CommandContext<any>, builder: SuggestionsBuilder): Promise<Suggestions> {
-        if ("true".startsWith(builder.getRemaining().toLowerCase())) {
-            builder.suggest("true");
+        if ('true'.startsWith(builder.getRemaining().toLowerCase())) {
+            builder.suggest('true');
         }
 
-        if ("false".startsWith(builder.getRemaining().toLowerCase())) {
-            builder.suggest("false");
+        if ('false'.startsWith(builder.getRemaining().toLowerCase())) {
+            builder.suggest('false');
         }
 
         return builder.buildPromise();

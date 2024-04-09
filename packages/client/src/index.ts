@@ -1,6 +1,6 @@
 import { ConnectionPriority, InetAddress, Protocol, RakNetSession, MessageIdentifiers } from '@jsprismarine/raknet';
 import Dgram, { type Socket } from 'node:dgram';
-import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
+import { Logger } from '@jsprismarine/prismarine';
 import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 import Crypto, { randomBytes } from 'node:crypto';
 import { EventEmitter } from 'node:events';
@@ -76,12 +76,13 @@ export default class Client extends EventEmitter {
             }
 
             if (this.connected && !this.loginHandled) {
-                const pk = new JSPProtocol.Packets.LoginPacket();
-                pk.encode();
+                // TODO
+                // const pk = new JSPProtocol.Packets.LoginPacket();
+                // pk.encode();
 
                 const sendPk = new Protocol.Frame();
                 sendPk.reliability = 0;
-                sendPk.content = pk.getBuffer();
+                // sendPk.content = pk.getBuffer();
 
                 this.connection!.sendFrame(sendPk, ConnectionPriority.NORMAL); // Packet needs to be splitted
                 this.loginHandled = true;

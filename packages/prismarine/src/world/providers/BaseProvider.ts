@@ -1,6 +1,6 @@
 import type Chunk from '../chunk/Chunk';
-import Generator from '../Generator';
-import Provider from './Provider';
+import type Generator from '../Generator';
+import type Provider from './Provider';
 import type Server from '../../Server';
 import type World from '../World';
 import fs from 'node:fs';
@@ -42,15 +42,15 @@ export default abstract class BaseProvider implements Provider {
     /**
      * Returns a chunk decoded from the provider.
      *
-     * @param cx the chunk x coordinate.
-     * @param cz the chunk y coordinate.
+     * @param cx - the chunk x coordinate.
+     * @param cz - the chunk y coordinate.
      */
     public abstract readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk>;
 
     /**
      * Writes a chunk.
      *
-     * @param chunk the chunk data.
+     * @param chunk - the chunk data.
      */
     public abstract writeChunk(chunk: Chunk): Promise<void>;
 }

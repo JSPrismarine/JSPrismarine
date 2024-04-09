@@ -1,99 +1,65 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import { randomUUID } from 'node:crypto';
+import { UUID as NetUUID } from '@jsprismarine/protocol';
+import { randomUUID } from 'crypto';
 
-export default class UUID {
-    private readonly parts: number[] = [];
-    private readonly version: number;
-
-    public constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version = 4) {
-        this.parts = [part1, part2, part3, part4];
-        this.version = version || (this.parts[1]! & 0xf000) >> 12;
-    }
-
-    public equals(uuid: UUID): boolean {
-        return (
-            this.parts.length === uuid.parts.length && this.parts.every((value, index) => value === uuid.parts[index])
-        );
-    }
-
+/**
+ * Represents a UUIDv4.
+ */
+export class UUID extends NetUUID {
     /**
-     * Creates an UUID from a string hex representation
+     * Generates a new UUIDv4 using random values.
+     *
+     * @returns A new UUIDv4 instance.
      */
-    public static fromString(uuid: string, version = 4): UUID {
-        if (!uuid) throw new Error('uuid is null or undefined');
-
-        return UUID.fromBinary(Buffer.from(uuid.trim().replaceAll('-', ''), 'hex'), version);
+    public static fromRandom(): UUID {
+        const uuid = randomUUID().replace(/-/g, '');
+        return new UUID(BigInt('0x' + uuid.slice(0, 16)), BigInt('0x' + uuid.slice(16, 32)));
     }
 
     /**
-     * Creates an UUID from a binary representation
-     */
-    public static fromBinary(uuid: Buffer, version: number): UUID {
-        if (uuid.byteLength !== 16) {
-            throw new Error('UUID must have 16 bytes');
-        }
-
-        const stream = new BinaryStream(uuid);
-        return new UUID(stream.readInt(), stream.readInt(), stream.readInt(), stream.readInt(), version);
-    }
-
-    /**
-     * Generates a random UUIDv4 (string)
+     * Generates a random UUIDv4 string.
+     *
+     * @returns A randomly generated UUIDv4.
      */
     public static randomString(): string {
         return randomUUID();
     }
 
     /**
-     * Generates a random UUIDv4
+     * Creates a new UUID instance from a string representation.
+     * @param uuid - The string representation of the UUIDv4.
+     * @returns A new UUID instance.
      */
-    public static fromRandom(): UUID {
-        const stringUUID = UUID.randomString();
-        return UUID.fromString(stringUUID, 3);
+    public static fromString(uuid: string): UUID {
+        uuid = uuid.replace(/-/g, '');
+        return new UUID(BigInt('0x' + uuid.slice(0, 16)), BigInt('0x' + uuid.slice(16, 32)));
     }
 
-    public toBinary(): Buffer {
-        const stream = new BinaryStream();
-        stream.writeInt(this.parts[0]!);
-        stream.writeInt(this.parts[1]!);
-        stream.writeInt(this.parts[2]!);
-        stream.writeInt(this.parts[3]!);
-        return stream.getBuffer();
-    }
-
+    /**
+     * Converts the UUID to a string representation.
+     * @returns The string representation of the UUID.
+     */
     public toString(): string {
-        const hex = this.toBinary().toString('hex');
-
-        // Xxxxxxxx-xxxx-Mxxx-Nxxx-xxxxxxxxxxxx 8-4-4-4-12
-        const parts = [];
-        parts.push(hex.slice(0, 8));
-        parts.push(hex.slice(8, 8 + 4));
-        parts.push(hex.slice(12, 12 + 4));
-        parts.push(hex.slice(16, 16 + 4));
-        parts.push(hex.slice(20, 20 + 12));
-        return parts.join('-');
+        const most = this.most.toString(16);
+        const least = this.least.toString(16);
+        return (
+            most.slice(0, 8) +
+            '-' +
+            most.slice(8, 12) +
+            '-' +
+            most.slice(12, 16) +
+            '-' +
+            least.slice(0, 4) +
+            '-' +
+            least.slice(4, 16)
+        );
     }
 
-    public getVersion(): number {
-        return this.version;
-    }
-
-    public getParts(): number[] {
-        return this.parts;
-    }
-
-    public networkSerialize(stream: any): void {
-        stream.writeIntLE(this.parts[1]);
-        stream.writeIntLE(this.parts[0]);
-        stream.writeIntLE(this.parts[3]);
-        stream.writeIntLE(this.parts[2]);
-    }
-
-    public static networkDeserialize(stream: any): UUID {
-        const part1 = stream.readIntLE();
-        const part0 = stream.readIntLE();
-        const part3 = stream.readIntLE();
-        const part2 = stream.readIntLE();
-        return new UUID(part0, part1, part2, part3);
+    /**
+     * Checks if the current UUID is equal to the provided UUID.
+     * @param uuid - The UUID to compare with.
+     * @returns `true` if the UUIDs are equal, `false` otherwise.
+     */
+    public equals(uuid: UUID): boolean {
+        return this.most === uuid.most && this.least === uuid.least;
     }
 }

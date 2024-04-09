@@ -1,12 +1,7 @@
 import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
-import AddActorPacket from '../network/packet/AddActorPacket';
 import AttributeManager from './Attribute';
-import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
-import type Player from '../Player';
 import Position from '../world/Position';
-import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import type Server from '../Server';
-import TextType from '../network/type/TextType';
 import Vector3 from '../math/Vector3';
 import type World from '../world/World';
 
@@ -30,6 +25,12 @@ export default class Entity extends Position {
 
     protected server: Server;
 
+    // TODO: Keep these here for now,
+    // until they're properly implemented.
+    public headYaw = 0;
+    public bodyYaw = 0;
+    public rotation = new Vector3(0, 0, 0);
+
     /**
      * @deprecated
      */
@@ -52,7 +53,7 @@ export default class Entity extends Position {
      * ```
      */
     public constructor(world: World, server: Server) {
-        super({ world }); // TODO
+        super({ x: 0, y: 0, z: 0, world }); // TODO
         Entity.runtimeIdCount += 1n;
         this.runtimeId = Entity.runtimeIdCount;
         this.server = server;
@@ -91,8 +92,8 @@ export default class Entity extends Position {
      * entity.update(10);
      * ```
      */
-    // eslint-disable-next-line unused-imports/no-unused-vars
     public async update(tick: number): Promise<void> {
+        void tick; // Trick the linter.
         const collisions = await this.getNearbyEntities(0.5);
         await Promise.all(collisions.map(async (entity) => entity.onCollide(this)));
     }
@@ -170,49 +171,6 @@ export default class Entity extends Position {
     }
 
     /**
-     * Spawn the entity.
-     * @todo `motion`, `pitch` & `yaw` is unimplemented.
-     * @param {Player} [player] - The player to send the packet to.
-     * @returns {Promise<void>} A promise that resolves when the entity is spawned.
-     */
-    public async sendSpawn(player?: Player): Promise<void> {
-        const players: Player[] = player
-            ? [player]
-            : (this.getWorld()
-                  .getEntities()
-                  .filter((entity) => entity.isPlayer()) as Player[]);
-
-        const packet = new AddActorPacket();
-        packet.runtimeEntityId = this.getRuntimeId();
-        packet.type = (this.constructor as any).MOB_ID; // TODO
-        packet.position = this;
-        // TODO: motion
-        packet.motion = new Vector3(0, 0, 0);
-        packet.pitch = 0;
-        packet.yaw = 0;
-        packet.headYaw = 0;
-        packet.metadata = this.metadata.getMetadata();
-        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(packet)));
-    }
-
-    /**
-     * Despawn the entity.
-     * @param {Player} [player] - The player to send the packet to.
-     * @returns {Promise<void>} A promise that resolves when the entity is despawned.
-     */
-    public async sendDespawn(player?: Player): Promise<void> {
-        const players: Player[] = player
-            ? [player]
-            : (this.getWorld()
-                  .getEntities()
-                  .filter((entity) => entity.isPlayer()) as Player[]);
-
-        const packet = new RemoveActorPacket();
-        packet.uniqueEntityId = this.runtimeId;
-        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(packet)));
-    }
-
-    /**
      * Set the entity's position and notify the clients.
      * @param {Vector3} position - The position.
      * @returns {Promise<void>} A promise that resolves when the position is set.
@@ -222,47 +180,7 @@ export default class Entity extends Position {
         await this.setY(position.getY(), true);
         await this.setZ(position.getZ(), true);
 
-        await this.sendPosition();
-    }
-
-    /**
-     * Send the position to all the players in the same world.
-     * @returns {Promise<void>} A promise that resolves when the position is sent.
-     */
-    public async sendPosition(): Promise<void> {
-        await Promise.all(
-            this.getServer()
-                .getSessionManager()
-                .getAllPlayers()
-                .filter((player) => player.getWorld().getUniqueId() === this.getWorld().getUniqueId())
-                .map(async (player) => {
-                    const packet = new MoveActorAbsolutePacket();
-                    packet.runtimeEntityId = this.runtimeId;
-                    packet.position = this.getPosition();
-
-                    // TODO
-                    packet.rotationX = 0;
-                    packet.rotationY = 0;
-                    packet.rotationZ = 0;
-                    await player.getNetworkSession().getConnection().sendDataPacket(packet);
-                })
-        );
-    }
-
-    /**
-     * Send a message to an entity.
-     * @remarks This will silently fail on non-client-controlled entities.
-     * @param {string} message - The message.
-     * @param {TextType} [type=TextType.Raw] - The text type.
-     * @example Send "Hello World!" to a client:
-     * ```typescript
-     * entity.sendMessage('Hello World!');
-     * ```
-     */
-    public sendMessage(message: string, type: TextType = TextType.Raw): void {
-        this.server
-            .getLogger()
-            ?.warn(`Entity/sendMessage is not implemented: (message: ${message}, type: ${type})`, 'Entity/sendMessage');
+        //TODO: await this.sendPosition();
     }
 
     /**
@@ -290,7 +208,7 @@ export default class Entity extends Position {
      */
     public async setX(x: number, suppress = false): Promise<void> {
         super.setX.bind(this)(x);
-        if (suppress && !this.isPlayer()) await this.sendPosition();
+        //TODO if (suppress && !this.isPlayer()) await this.sendPosition();
     }
 
     /**
@@ -306,7 +224,7 @@ export default class Entity extends Position {
      */
     public async setY(y: number, suppress = false): Promise<void> {
         super.setY.bind(this)(y);
-        if (suppress && !this.isPlayer()) await this.sendPosition();
+        //TODO if (suppress && !this.isPlayer()) await this.sendPosition();
     }
 
     /**
@@ -322,7 +240,7 @@ export default class Entity extends Position {
      */
     public async setZ(z: number, suppress = false): Promise<void> {
         super.setZ.bind(this)(z);
-        if (suppress && !this.isPlayer()) await this.sendPosition();
+        //TODO if (suppress && !this.isPlayer()) await this.sendPosition();
     }
 
     /**

@@ -1,2 +1,1 @@
-export default interface CommandExceptionType {
-}
+export default interface CommandExceptionType {}

@@ -106,8 +106,8 @@ export default class CommandManager {
 
         await Promise.all(
             this.server
-                .getSessionManager()
-                .getAllPlayers()
+                .getPlayerManager()
+                .getOnlinePlayers()
                 .map(async (player) => player.getNetworkSession().sendAvailableCommands())
         );
 

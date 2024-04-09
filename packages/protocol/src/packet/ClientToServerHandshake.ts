@@ -1,4 +1,5 @@
-import { NetworkPacket, PacketIdentifier, NetworkBinaryStream } from '../';
+import type { NetworkBinaryStream } from '../';
+import { NetworkPacket, PacketIdentifier } from '../';
 
 /**
  * Sets up encryption and authenticates in educational version once at level startup from client.

@@ -1,7 +1,7 @@
-import Identifiers from '../Identifiers';
-import ModalFormRequestPacket from '../packet/ModalFormRequestPacket';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+/*import Identifiers from '../Identifiers';
+import type ModalFormRequestPacket from '../packet/ModalFormRequestPacket';
+import type PacketHandler from './PacketHandler';
+import type { PlayerSession } from '../../';
 import Server from '../../Server';
 
 export default class ModalFormResponseHandler implements PacketHandler<ModalFormRequestPacket> {
@@ -15,4 +15,4 @@ export default class ModalFormResponseHandler implements PacketHandler<ModalForm
         form.handleResponse(player, JSON.parse(packet.formData));
         player.getFormManager().deleteForm(formId);
     }
-}
+}*/

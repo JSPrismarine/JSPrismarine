@@ -1,4 +1,5 @@
-import { NetworkBinaryStream, NetworkPacket, PacketIdentifier } from '../';
+import type { NetworkBinaryStream } from '../';
+import { NetworkPacket, PacketIdentifier } from '../';
 
 interface PacketData {
     time: number;

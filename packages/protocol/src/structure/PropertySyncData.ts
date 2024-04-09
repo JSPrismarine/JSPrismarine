@@ -1,4 +1,5 @@
-import { NetworkBinaryStream, NetworkStructure } from '../';
+import type { NetworkBinaryStream } from '../';
+import { NetworkStructure } from '../';
 
 /**
  * Represents a network structure of property sync data.

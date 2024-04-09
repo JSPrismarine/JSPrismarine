@@ -1,5 +1,4 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil';
+import type { NetworkBinaryStream } from '@jsprismarine/protocol';
 
 export const AttributeIds = {
     Absorption: 'minecraft:absorption',
@@ -57,22 +56,22 @@ export class Attribute {
         this.value = value;
     }
 
-    public networkSerialize(stream: BinaryStream): void {
+    public networkSerialize(stream: NetworkBinaryStream): void {
         stream.writeFloatLE(this.min);
         stream.writeFloatLE(this.max);
         stream.writeFloatLE(this.value);
         stream.writeFloatLE(this.default);
-        McpeUtil.writeString(stream, this.name);
+        stream.writeString(this.name);
         stream.writeUnsignedVarInt(0); // TODO: modifier count
     }
 
-    public static networkDeserialize(stream: BinaryStream): Attribute {
+    public static networkDeserialize(stream: NetworkBinaryStream): Attribute {
         const attr = new Attribute({
             min: stream.readFloatLE(),
             max: stream.readFloatLE(),
             value: stream.readFloatLE(),
             def: stream.readFloatLE(),
-            name: McpeUtil.readString(stream)
+            name: stream.readString()
         });
         stream.readUnsignedVarInt(); // TODO: skip for now
         return attr;

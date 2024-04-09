@@ -31,10 +31,12 @@ export default class SummonCommand extends Command {
 
                         if (!entityId.includes(':')) {
                             entity = Object.entries(Entities).find(
-                                ([, value]) => value.MOB_ID === `minecraft:${entityId}`
+                                ([, value]) => (value as any).MOB_ID === `minecraft:${entityId}`
                             )?.[1];
                         } else {
-                            entity = Object.entries(Entities).find(([, value]) => value.MOB_ID === entityId)?.[1];
+                            entity = Object.entries(Entities).find(
+                                ([, value]) => (value as any).MOB_ID === entityId
+                            )?.[1];
                         }
 
                         if (!entity) throw new Error(`No such entity "${entityId}"!`);

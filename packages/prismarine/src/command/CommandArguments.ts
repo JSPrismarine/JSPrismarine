@@ -8,6 +8,7 @@ import CommandEnum from '../network/type/CommandEnum';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import type Player from '../Player';
+import type { Entity } from '../';
 import { Server } from '../';
 import Vector3 from '../math/Vector3';
 import { Gamemode } from '@jsprismarine/minecraft';
@@ -115,7 +116,9 @@ export class CommandArgumentMob implements CommandArgument {
     public getParameters(): Set<CommandParameter> {
         const entityTypeEnum = new CommandEnum();
         entityTypeEnum.enumName = 'EntityType';
-        entityTypeEnum.enumValues = Object.entries(Entities).map(([, entity]) => entity.MOB_ID);
+        entityTypeEnum.enumValues = Object.entries(Entities).map(([, entity]) =>
+            (entity as unknown as Entity).getType()
+        );
         return new Set([
             new CommandParameter({
                 paramName: this.name,
@@ -168,7 +171,7 @@ export class CommandArgumentEntity implements CommandArgument {
                 return [];
             }
 
-        return [context.getSource().getServer().getSessionManager().getPlayerByExactName(player)]; // TODO: by name not exact
+        return [context.getSource().getServer().getPlayerManager().getPlayerByExactName(player)]; // TODO: by name not exact
     }
 
     public getReadableType(): string {
@@ -195,7 +198,7 @@ export class CommandArgumentPosition extends Vector3 implements CommandArgument 
     private postfix: string | null;
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
-        super();
+        super(0, 0, 0);
         this.name = data?.name ?? 'position';
         this.optional = data?.optional ?? false;
         this.flags = data?.flags ?? CommandParameterFlags.NONE;
@@ -367,8 +370,8 @@ export class PlayerArgumentCommand implements CommandArgument {
         playerEnum.enumName = 'Player';
         try {
             playerEnum.enumValues = Server.instance
-                .getSessionManager()
-                .getAllPlayers()
+                .getPlayerManager()
+                .getOnlinePlayers()
                 .map((player) => player.getName());
         } catch {
             playerEnum.enumValues = [];

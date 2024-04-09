@@ -1,4 +1,4 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/jsbinaryutils';
 import Item from '../../item/Item';
 
 export default class CreativeItem {
