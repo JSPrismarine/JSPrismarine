@@ -17,7 +17,7 @@ export default class ListCommand extends Command {
         dispatcher.register(
             literal('list').executes(async (context) => {
                 const source = context.getSource() as Player;
-                const players = source.getServer().getSessionManager().getAllPlayers();
+                const players = source.getServer().getPlayerManager().getOnlinePlayers();
                 const playerArray = Array.from(players);
                 const maxPlayers = 0; // TODO
                 const counter = playerArray.length;

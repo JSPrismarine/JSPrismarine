@@ -1,5 +1,5 @@
+import type { NetworkBinaryStream } from '../';
 import { NetworkPacket, Vec2, Vec3 } from '../';
-import NetworkBinaryStream from '../NetworkBinaryStream';
 import { PacketIdentifier } from '../PacketIdentifier';
 import { PlayerPositionMode } from '@jsprismarine/minecraft';
 
@@ -24,7 +24,7 @@ interface PacketDataWithTeleport extends BasePacketData {
     sourceActorType: number;
 }
 
-type PacketData = PacketDataWithTeleport | PacketDataWithoutTeleport;
+export type PacketData = PacketDataWithTeleport | PacketDataWithoutTeleport;
 
 /**
  * This is the packet that keeps track of position, rotation, head rotation, if the actor is on ground, and if it is riding something.

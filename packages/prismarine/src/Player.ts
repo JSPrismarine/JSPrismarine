@@ -1,8 +1,6 @@
-import { ChangeDimensionPacket, LevelChunkPacket } from './network/Packets';
 import { FlagType, MetadataFlag } from './entity/Metadata';
-import type ChatEvent from './events/chat/ChatEvent';
+import ChatEvent from './events/chat/ChatEvent';
 import type Chunk from './world/chunk/Chunk';
-import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import type ClientConnection from './network/ClientConnection';
 import ContainerEntry from './inventory/ContainerEntry';
 import CoordinateUtils from './world/CoordinateUtils';
@@ -10,26 +8,27 @@ import type Device from './utils/Device';
 import FormManager from './form/FormManager';
 import Human from './entity/Human';
 import type { InetAddress } from '@jsprismarine/raknet';
-import MovementType from './network/type/MovementType';
-import PlayStatusType from './network/type/PlayStatusType';
 import PlayerSession from './network/PlayerSession';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
 import type Skin from './utils/skin/Skin';
-import TextType from './network/type/TextType';
 import Timer from './utils/Timer';
-import Vector3 from './math/Vector3';
+import type Vector3 from './math/Vector3';
 import WindowManager from './inventory/WindowManager';
 import type World from './world/World';
 
 import type Server from './Server';
-import { Gamemode } from '@jsprismarine/minecraft';
+import { Gamemode, PlayerPositionMode } from '@jsprismarine/minecraft';
+import Chat, { ChatType } from './chat/Chat';
+import { ChunkPos, MessageType } from '@jsprismarine/protocol';
 
 // Default spawn view distance used in vanilla
 export const VANILLA_DEFAULT_SPAWN_RADIUS = 4;
 
 export default class Player extends Human {
+    public static MOB_ID = 'minecraft:player';
+
     private readonly address: InetAddress;
     private readonly networkSession: PlayerSession;
     private permissions: string[];
@@ -58,8 +57,6 @@ export default class Player extends Human {
     public gamemode = 0;
 
     public pitch = 0;
-    public yaw = 0;
-    public headYaw = 0;
 
     private onGround = false;
     private sprinting = false;
@@ -102,9 +99,9 @@ export default class Player extends Human {
                 (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
                 evt.getChat().getChannel() === `*.player.${this.getName()}`
             )
-                await this.sendMessage(
+                this.sendMessage(
                     evt.getChat().getMessage(),
-                    evt.getChat().getType() as number as TextType,
+                    evt.getChat().getType() as number as MessageType,
                     evt.getChat().getParameters(),
                     evt.getChat().isNeedsTranslation()
                 );
@@ -125,8 +122,8 @@ export default class Player extends Human {
         await this.setX(playerData.position.x);
         await this.setY(playerData.position.y);
         await this.setZ(playerData.position.z);
-        this.pitch = playerData.position.pitch;
-        this.yaw = playerData.position.yaw;
+        this.pitch = playerData.position.pitch ?? 0;
+        this.bodyYaw = playerData.position.yaw ?? 0;
 
         playerData.inventory.forEach((item) => {
             const entry =
@@ -156,8 +153,32 @@ export default class Player extends Human {
 
     public async onDisable() {
         if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
-        this.server.getEventManager().removeListener('chat', this.chatHandler);
+        this.getWorld().removeEntity(this); // this method needs to be refactored as well
 
+        // despawn the player to all online players
+        await this.getNetworkSession().removeFromPlayerList();
+        for (const onlinePlayer of this.server.getPlayerManager().getOnlinePlayers()) {
+            await this.getNetworkSession().sendDespawn(onlinePlayer);
+        }
+
+        const eventManager = this.server.getEventManager();
+
+        // TODO: use the method `sendMessage`
+        // and rewrite this mess :(
+        // Announce disconnection
+        const event = new ChatEvent(
+            new Chat(
+                this.server.getConsole(),
+                `§e%multiplayer.player.left`,
+                [this.getName()],
+                true,
+                '*.everyone',
+                ChatType.TRANSLATION
+            )
+        );
+        await eventManager.emit('chat', event);
+
+        eventManager.removeListener('chat', this.chatHandler);
         this.connected = false;
     }
 
@@ -171,47 +192,48 @@ export default class Player extends Human {
         const maxX = CoordinateUtils.fromBlockToChunk(this.x) + VANILLA_DEFAULT_SPAWN_RADIUS;
         const maxZ = CoordinateUtils.fromBlockToChunk(this.z) + VANILLA_DEFAULT_SPAWN_RADIUS;
 
-        const savedChunks: ChunkCoord[] = [];
+        const savedChunks: ChunkPos[] = [];
         const sendQueue: Array<Promise<Chunk>> = [];
         for (let chunkX = minX; chunkX <= maxX; ++chunkX) {
             for (let chunkZ = minZ; chunkZ <= maxZ; ++chunkZ) {
                 // TODO: vanilla does not send all of them, but in a range
                 // for example it does send them from x => [-3; 3] and z => [-3; 2]
-                savedChunks.push({ x: chunkX, z: chunkZ });
+                savedChunks.push(new ChunkPos(chunkX, chunkZ));
                 sendQueue.push(this.getWorld().getChunk(chunkX, chunkZ));
             }
         }
 
-        await this.networkSession.sendNetworkChunkPublisher(VANILLA_DEFAULT_SPAWN_RADIUS, savedChunks);
+        this.networkSession.sendNetworkChunkPublisher(VANILLA_DEFAULT_SPAWN_RADIUS, savedChunks);
 
-        const getUniqueChunks = (sendList: ChunkCoord[]) => {
+        const getUniqueChunks = (sendList: ChunkPos[]) => {
             const xSet = new Set<number>();
             const zSet = new Set<number>();
 
             for (const coord of sendList) {
-                xSet.add(coord.x);
-                zSet.add(coord.z);
+                xSet.add(coord.cx);
+                zSet.add(coord.cz);
             }
 
             return Math.floor((xSet.size + zSet.size) / 2);
         };
 
         for (let i = 0; i < getUniqueChunks(savedChunks); ++i) {
-            await this.networkSession.sendNetworkChunkPublisher(VANILLA_DEFAULT_SPAWN_RADIUS, []);
+            this.networkSession.sendNetworkChunkPublisher(VANILLA_DEFAULT_SPAWN_RADIUS, []);
         }
 
         for await (const chunk of sendQueue) {
-            await this.networkSession.sendChunk(chunk);
+            this.networkSession.sendChunk(chunk);
         }
     }
 
     /**
      * Change the player's current world.
+     * TODO: remove!!! NO NETWORK CODE IN THIS CLASS.
      *
      * @param world - the new world
      */
     public async setWorld(world: World) {
-        const dim0 = new ChangeDimensionPacket();
+        /* const dim0 = new ChangeDimensionPacket();
         dim0.dimension = 0;
         dim0.position = this;
         dim0.respawn = false;
@@ -222,9 +244,9 @@ export default class Player extends Human {
         dim1.respawn = false;
 
         await this.networkSession.getConnection().sendDataPacket(dim0);
-        await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.networkSession.sendPlayStatus(PlayStatus.PLAYER_SPAWN);
         await this.networkSession.getConnection().sendDataPacket(dim1);
-        await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.networkSession.sendPlayStatus(PlayStatus.PLAYER_SPAWN);
 
         await this.getWorld().removeEntity(this);
         await world.addEntity(this);
@@ -244,15 +266,15 @@ export default class Player extends Human {
         }
 
         await this.networkSession.getConnection().sendDataPacket(dim1);
-        await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.networkSession.sendPlayStatus(PlayStatus.PLAYER_SPAWN);
         await this.networkSession.getConnection().sendDataPacket(dim0);
-        await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.networkSession.sendPlayStatus(PlayStatus.PLAYER_SPAWN);
 
         this.currentChunk = null;
         await this.networkSession.clearChunks();
         await this.networkSession.needNewChunks();
         await this.onEnable();
-        await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.networkSession.sendPlayStatus(PlayStatus.PLAYER_SPAWN); */
     }
 
     public isOnline() {
@@ -268,12 +290,12 @@ export default class Player extends Human {
         // 1 second / 20 = 1 tick, 20 * 5 = 1 second
         // 1 second * 60 = 1 minute
         if (tick % (20 * 5 * 60 * 1) === 0) {
-            await this.networkSession.sendTime(tick);
+            this.networkSession.sendTime(tick);
         }
 
         for (const chunk of this.chunkSendQueue) {
-            await this.networkSession.sendNetworkChunkPublisher(this.viewDistance || VANILLA_DEFAULT_SPAWN_RADIUS, []);
-            await this.networkSession.sendChunk(chunk);
+            this.networkSession.sendNetworkChunkPublisher(this.viewDistance ?? VANILLA_DEFAULT_SPAWN_RADIUS, []);
+            this.networkSession.sendChunk(chunk);
             this.chunkSendQueue.delete(chunk);
         }
     }
@@ -282,7 +304,7 @@ export default class Player extends Human {
         this.getServer()
             .getLogger()
             ?.verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`, 'Player/kick');
-        await this.networkSession.kick(reason);
+        this.networkSession.kick(reason);
     }
 
     public async sendSettings(): Promise<void> {
@@ -302,8 +324,8 @@ export default class Player extends Human {
     // TODO: move to world
     public getPlayersInChunk(): Player[] {
         return this.getServer()
-            .getSessionManager()
-            .getAllPlayers()
+            .getPlayerManager()
+            .getOnlinePlayers()
             .filter((player) => player.getCurrentChunk() === this.getCurrentChunk());
     }
 
@@ -315,15 +337,15 @@ export default class Player extends Human {
      * Send a chat message to the client.
      * @param message - the message
      */
-    public async sendMessage(
+    public sendMessage(
         message: string,
-        type: TextType = TextType.Raw,
+        type: MessageType = MessageType.RAW,
         parameters: string[] = [],
         needsTranslation = false
-    ): Promise<void> {
+    ): void {
         // TODO: Do this properly like java edition,
         // in other words, the message should be JSON formatted.
-        await this.networkSession.sendMessage(message, '', parameters, needsTranslation, type);
+        this.networkSession.sendMessage(message, '', parameters, needsTranslation, type);
     }
 
     /**
@@ -335,22 +357,22 @@ export default class Player extends Human {
         await this.networkSession.sendToast(title, body);
     }
 
-    public async setGamemode(mode: number): Promise<void> {
+    public setGamemode(mode: number): void {
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.getServer().getEventManager().post(['playerSetGamemode', event]);
         if (event.isCancelled()) return;
 
         this.gamemode = event.getGamemode();
-        await this.networkSession.sendGamemode(this.gamemode);
+        this.networkSession.sendGamemode(this.gamemode);
 
-        if (this.gamemode === Gamemode.Gametype.CREATIVE || this.gamemode === Gamemode.Gametype.SPECTATOR)
+        if (this.gamemode === Gamemode.Gametype.CREATIVE || this.gamemode === Gamemode.Gametype.SPECTATOR) {
             this.allowFight = true;
-        else {
+        } else {
             this.allowFight = false;
-            await this.setFlying(false);
+            this.setFlying(false);
         }
 
-        await this.sendSettings();
+        this.sendSettings();
     }
 
     public getGamemode(): string {
@@ -378,14 +400,10 @@ export default class Player extends Human {
     }
 
     public getUUID(): string {
-        if (!this.uuid) throw new Error('uuid is missing!');
-
         return this.uuid;
     }
 
     public getXUID(): string {
-        if (!this.xuid) throw new Error('xuid is missing!');
-
         return this.xuid;
     }
 
@@ -485,7 +503,7 @@ export default class Player extends Human {
      * @param position - The position
      * @param type - The movement type
      */
-    public async setPosition(position: Vector3, type: MovementType = MovementType.Normal) {
+    public async setPosition(position: Vector3, type: PlayerPositionMode = PlayerPositionMode.NORMAL) {
         await this.setX(position.getX());
         await this.setY(position.getY());
         await this.setZ(position.getZ());

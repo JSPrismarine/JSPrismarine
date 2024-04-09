@@ -1,7 +1,6 @@
-import ContainerClosePacket from '../packet/ContainerClosePacket';
-import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+/* import Identifiers from '../Identifiers';
+import type PacketHandler from './PacketHandler';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 
 export default class ContainerCloseHandler implements PacketHandler<ContainerClosePacket> {
@@ -10,6 +9,6 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
     public async handle(packet: ContainerClosePacket, _server: Server, session: PlayerSession): Promise<void> {
         const pk = new ContainerClosePacket();
         pk.windowId = packet.windowId;
-        await session.getConnection().sendDataPacket(pk);
+        await session.getConnection().sendNetworkPacket(pk);
     }
-}
+} */

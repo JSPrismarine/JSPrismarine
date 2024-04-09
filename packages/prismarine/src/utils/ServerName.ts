@@ -16,10 +16,9 @@ import type Server from '../Server';
  * 8. [MOTD]
  * 9. [Gamemode]
  */
-export const buildRakNetServerName = (server: Server): string => {
-    const guid = server.getRaknet().getServerGuid();
+export const buildRakNetServerName = (server: Server, guid: bigint): string => {
     const config = server.getConfig();
-    const onlinePlayers = server.getSessionManager().getAllPlayers().length;
+    const onlinePlayers = server.getPlayerManager().getOnlinePlayers().length;
     const { Protocol, MinecraftVersions } = server.getIdentifiers();
 
     return `MCPE;JSPrismarine;${Protocol};${MinecraftVersions.at(0)};${onlinePlayers};${config.getMaxPlayers()};${guid};${config.getMotd()};${config.getGamemode()};`;

@@ -1,6 +1,7 @@
+import { BuildPlatform, Gamemode } from '@jsprismarine/minecraft';
+import type { NetworkBinaryStream } from '../';
 import {
     ActorLink,
-    NetworkBinaryStream,
     NetworkItemStackDescriptor,
     NetworkPacket,
     PacketIdentifier,
@@ -10,7 +11,6 @@ import {
     Vec2,
     Vec3
 } from '../';
-import { BuildPlatform, Gamemode } from '@jsprismarine/minecraft';
 
 interface PacketData {
     uuid: UUID;

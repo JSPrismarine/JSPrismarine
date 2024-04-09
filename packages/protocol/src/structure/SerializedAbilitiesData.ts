@@ -1,5 +1,6 @@
-import { NetworkBinaryStream, NetworkStructure } from '../';
-import { CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
+import type { NetworkBinaryStream } from '../';
+import { NetworkStructure } from '../';
+import type { CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
 
 export default class SerializedAbilitiesData extends NetworkStructure {

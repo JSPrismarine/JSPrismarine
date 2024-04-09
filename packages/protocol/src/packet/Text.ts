@@ -1,4 +1,5 @@
-import { NetworkBinaryStream, NetworkPacket, PacketIdentifier } from '../';
+import type { NetworkBinaryStream } from '../';
+import { NetworkPacket, PacketIdentifier } from '../';
 
 export enum MessageType {
     RAW,
@@ -43,7 +44,7 @@ interface PacketDataWithParameters extends BasePacketData {
     parameterList: Array<string>;
 }
 
-type PacketData = PacketDataOnlyMessage | PacketDataWithName | PacketDataWithParameters;
+export type PacketData = PacketDataOnlyMessage | PacketDataWithName | PacketDataWithParameters;
 
 /**
  * Used for commands, messages, and other info printed to the screen. Most of which are server->client or server broadcasted to all clients.

@@ -1,6 +1,6 @@
 import { inflateRaw, inflateRawSync } from 'zlib';
-import { PacketCompressionAlgorithm } from './packet/NetworkSettingsPacket.js';
 import { promisify } from 'util';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 
 const asyncInflate = promisify(inflateRaw);
 

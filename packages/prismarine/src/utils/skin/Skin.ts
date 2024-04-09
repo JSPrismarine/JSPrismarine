@@ -1,11 +1,10 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../../network/NetworkUtil';
 import SkinAnimation from './SkinAnimation';
 import SkinCape from './SkinCape';
 import SkinImage from './SkinImage';
 import SkinPersona from './skin-persona/SkinPersona';
 import SkinPersonaPiece from './skin-persona/SkinPersonaPiece';
 import SkinPersonaPieceTintColor from './skin-persona/SkinPersonaPieceTintColor';
+import type { NetworkBinaryStream } from '@jsprismarine/protocol';
 
 interface Image {
     ImageWidth: number;
@@ -167,10 +166,10 @@ export default class Skin {
         return skin;
     }
 
-    public networkSerialize(stream: BinaryStream): void {
-        McpeUtil.writeString(stream, this.getId());
-        McpeUtil.writeString(stream, this.getPlayFabId());
-        McpeUtil.writeString(stream, this.getResourcePatch());
+    public networkSerialize(stream: NetworkBinaryStream): void {
+        stream.writeString(this.getId());
+        stream.writeString(this.getPlayFabId());
+        stream.writeString(this.getResourcePatch());
 
         // Skin image
         this.getImage().networkSerialize(stream);
@@ -188,31 +187,31 @@ export default class Skin {
         this.getCape().getImage().networkSerialize(stream);
 
         // Miscellaneus
-        McpeUtil.writeString(stream, this.getGeometry());
-        McpeUtil.writeString(stream, '0.0.0'); // geometry data engine version
-        McpeUtil.writeString(stream, this.getAnimationData());
-        McpeUtil.writeString(stream, this.getCape().getId());
-        McpeUtil.writeString(stream, this.getFullId());
-        McpeUtil.writeString(stream, this.getArmSize());
-        McpeUtil.writeString(stream, this.getColor());
+        stream.writeString(this.getGeometry());
+        stream.writeString('0.0.0'); // geometry data engine version
+        stream.writeString(this.getAnimationData());
+        stream.writeString(this.getCape().getId());
+        stream.writeString(this.getFullId());
+        stream.writeString(this.getArmSize());
+        stream.writeString(this.getColor());
 
         // Hack to keep less useless data in software
         if (this.isPersona()) {
             stream.writeUnsignedIntLE(this.getPersonaData().getPieces().size);
             for (const personaPiece of this.getPersonaData().getPieces()) {
-                McpeUtil.writeString(stream, personaPiece.getPieceId());
-                McpeUtil.writeString(stream, personaPiece.getPieceType());
-                McpeUtil.writeString(stream, personaPiece.getPackId());
+                stream.writeString(personaPiece.getPieceId());
+                stream.writeString(personaPiece.getPieceType());
+                stream.writeString(personaPiece.getPackId());
                 stream.writeBoolean(personaPiece.isDefault());
-                McpeUtil.writeString(stream, personaPiece.getProductId());
+                stream.writeString(personaPiece.getProductId());
             }
 
             stream.writeUnsignedIntLE(this.getPersonaData().getTintColors().size);
             for (const tint of this.getPersonaData().getTintColors()) {
-                McpeUtil.writeString(stream, tint.getPieceType());
+                stream.writeString(tint.getPieceType());
                 stream.writeUnsignedIntLE(tint.getColors().length);
                 for (const color of tint.getColors()) {
-                    McpeUtil.writeString(stream, color);
+                    stream.writeString(color);
                 }
             }
         } else {

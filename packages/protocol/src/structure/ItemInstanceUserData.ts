@@ -1,4 +1,5 @@
-import { NetworkBinaryStream, NetworkStructure } from '../';
+import type { NetworkBinaryStream } from '../';
+import { NetworkStructure } from '../';
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 
 interface ItemInstanceUserDataConfig {

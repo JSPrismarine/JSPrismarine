@@ -1,13 +1,14 @@
-import { assert, expect, describe, beforeEach, it } from 'vitest';
+import { assert, describe, beforeEach, it } from 'vitest';
 import testEquality from '../util/isEqual.test';
 import { DefaultType } from '../arguments/ArgumentType';
-import Command from '../Command';
-import CommandNode from '../tree/CommandNode';
+import type Command from '../Command';
+import type CommandNode from '../tree/CommandNode';
 import RootCommandNode from '../tree/RootCommandNode';
 import CommandDispatcher from '../CommandDispatcher';
-import ArgumentCommandNode from '../tree/ArgumentCommandNode';
+import type ArgumentCommandNode from '../tree/ArgumentCommandNode';
 import CommandContextBuilder from '../context/CommandContextBuilder';
-import RequiredArgumentBuilder, { argument } from '../builder/RequiredArgumentBuilder';
+import type RequiredArgumentBuilder from '../builder/RequiredArgumentBuilder';
+import { argument } from '../builder/RequiredArgumentBuilder';
 import SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
 import StringReader from '../StringReader';
 

@@ -1,10 +1,10 @@
-import type { InventoryTransactionPacket } from '../Packets';
+/* import type { InventoryTransactionPacket } from '../Packets';
 import { LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
 import type { UseItemData } from '../packet/InventoryTransactionPacket';
 import { TransactionType, UseItemAction } from '../packet/InventoryTransactionPacket';
 
 import BlockMappings from '../../block/BlockMappings';
-import ContainerEntry from '../../inventory/ContainerEntry';
+import Conta typeinerEntry from '../../inventory/ContainerEntry';
 import Identifiers from '../Identifiers';
 import type PacketHandler from './PacketHandler';
 import type { PlayerSession } from '../../';
@@ -147,7 +147,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                     await droppedItem.setPosition(useItemData.blockPosition); 
                                 })
                             );
-                        } */
+                        } 
 
                         chunk.setBlock(
                             chunkPos.getX(),
@@ -195,4 +195,4 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             }
         }
     }
-}
+} */

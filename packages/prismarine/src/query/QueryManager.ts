@@ -34,12 +34,12 @@ export default class QueryManager {
                     res.writeByte(9);
                     res.writeInt(sessionId);
                     res.write(Buffer.from(`9513307\0`, 'binary'));
-                    this.server.getRaknet().sendBuffer(res.getBuffer(), {
+                    /* this.server.getRaknet().sendBuffer(res.getBuffer(), {
                         address: rinfo.getAddress(),
                         port: rinfo.getPort(),
                         family: 'IPv4',
                         size: 0
-                    });
+                    }); */
                     resolve(res.getBuffer());
                     return;
                 }
@@ -111,18 +111,18 @@ export default class QueryManager {
                     res.write(
                         Buffer.from(
                             `${this.server
-                                .getSessionManager()
-                                .getAllPlayers()
+                                .getPlayerManager()
+                                .getOnlinePlayers()
                                 .map((player) => `${player.getName()}\0`)}\0`,
                             'binary'
                         )
                     );
-                    this.server.getRaknet().sendBuffer(res.getBuffer(), {
+                    /* this.server.getRaknet().sendBuffer(res.getBuffer(), {
                         address: rinfo.getAddress(),
                         port: rinfo.getPort(),
                         family: 'IPv4',
                         size: 0
-                    });
+                    }); */
 
                     resolve(res.getBuffer());
                     return;

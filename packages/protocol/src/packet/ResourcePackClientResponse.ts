@@ -1,7 +1,8 @@
-import { NetworkPacket, PacketIdentifier, NetworkBinaryStream } from '../';
-import { ResourcePackResponse } from '@jsprismarine/minecraft';
+import type { NetworkBinaryStream } from '../';
+import { NetworkPacket, PacketIdentifier } from '../';
+import type { ResourcePackResponse } from '@jsprismarine/minecraft';
 
-interface PacketData {
+export interface PacketData {
     response: ResourcePackResponse;
     downloadingPacks: Array<string>;
 }

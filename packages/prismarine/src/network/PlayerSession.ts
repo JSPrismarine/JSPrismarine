@@ -1,54 +1,40 @@
-import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
-import CommandParameter, { CommandParameterType } from './type/CommandParameter';
-import type { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket';
-import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
-import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
-import UpdateAbilitiesPacket, {
-    AbilityLayer,
-    AbilityLayerFlag,
-    AbilityLayerType
-} from './packet/UpdateAbilitiesPacket';
-
-import AddPlayerPacket from './packet/AddPlayerPacket';
 import type { Attribute } from '../entity/Attribute';
-import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
-import { BatchPacket } from './Packets';
 import BlockPosition from '../world/BlockPosition';
 import Chunk from '../world/chunk/Chunk';
-import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import type ClientConnection from './ClientConnection';
-import CommandData from './type/CommandData';
-import CommandEnum from './type/CommandEnum';
 import CoordinateUtils from '../world/CoordinateUtils';
-import CreativeContentPacket from './packet/CreativeContentPacket';
-import DisconnectPacket from './packet/DisconnectPacket';
 import Heap from 'heap';
 import type IForm from '../form/IForm';
-import InventoryContentPacket from './packet/InventoryContentPacket';
-import Item from '../item/Item';
-import LevelChunkPacket from './packet/LevelChunkPacket';
-import MobEquipmentPacket from './packet/MobEquipmentPacket';
-import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
-import MovePlayerPacket from './packet/MovePlayerPacket';
-import MovementType from './type/MovementType';
-import PermissionType from './type/PermissionType';
-import PlayStatusPacket from './packet/PlayStatusPacket';
+import type Item from '../item/Item';
 import type Player from '../Player';
-import PlayerPermissionType from './type/PlayerPermissionType';
-import RemoveActorPacket from './packet/RemoveActorPacket';
 import type Server from '../Server';
-import SetActorDataPacket from './packet/SetActorDataPacket';
-import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
-import TextPacket from './packet/TextPacket';
-import TextType from './type/TextType';
-import ToastRequestPacket from './packet/ToastRequestPacket';
-import UUID from '../utils/UUID';
-import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
-import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
-import { WindowIds } from '../inventory/WindowManager';
-import { creativeitems } from '@jsprismarine/bedrock-data';
-import { Gamemode } from '@jsprismarine/minecraft';
-import { SetTimePacket } from '@jsprismarine/protocol';
+import { UUID } from '../utils/UUID';
+import {
+    CommandPermissionLevel,
+    Dimension,
+    DisconnectReason,
+    PlayerPermissionLevel,
+    PlayerPositionMode
+} from '@jsprismarine/minecraft';
+import {
+    AddActorPacket,
+    AddPlayerPacket,
+    DisconnectPacket,
+    MessageType,
+    MovePlayerPacket,
+    PlayStatusPacket,
+    PropertySyncData,
+    SerializedAbilitiesData,
+    SetTimePacket,
+    Vec3,
+    PlayStatus,
+    LevelChunkPacket,
+    NetworkChunkPublisherUpdatePacket,
+    ChunkPos,
+    ChunkRadiusUpdatedPacket,
+    TextPacket
+} from '@jsprismarine/protocol';
+import type { Entity } from '../';
 
 export default class PlayerSession {
     private connection: ClientConnection;
@@ -68,24 +54,49 @@ export default class PlayerSession {
     public async update(_tick: number): Promise<void> {
         if (this.chunkSendQueue.length > 0) {
             const chunksToSend = this.chunkSendQueue.splice(0, Math.min(this.chunkSendQueue.length, 50));
-            const batch = new BatchPacket();
             for (const chunk of chunksToSend) {
-                const pk = new LevelChunkPacket();
-                pk.chunkX = chunk.getX();
-                pk.chunkZ = chunk.getZ();
-                pk.clientSubChunkRequestsEnabled = false;
-                pk.subChunkCount = chunk.getTopEmpty() + 4;
-                pk.data = chunk.networkSerialize();
-                batch.addPacket(pk);
+                this.connection.sendNetworkPacket(
+                    new LevelChunkPacket({
+                        chunkPosition: new ChunkPos(chunk.getX(), chunk.getZ()),
+                        dimensionId: Dimension.OVERWORLD,
+                        subChunksRequested: false,
+                        cacheEnabled: false,
+                        serializedChunk: chunk.networkSerialize(),
+                        subChunkCount: chunk.getTopEmpty() + 4 // TODO: remove this hack (properly implement it)
+                    })
+                );
 
                 const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
                 this.loadedChunks.add(hash);
                 this.loadingChunks.delete(hash);
             }
-            this.connection.sendBatch(batch, false);
         }
 
         this.player.viewDistance && (await this.needNewChunks());
+    }
+
+    /**
+     * Shows/spawns an entity to the player.
+     * @param entity - The entity to be shown.
+     * @param velocity - The velocity/motion of the entity (optional).
+     */
+    public showEntity(entity: Entity, velocity?: Vec3): void {
+        this.connection.sendNetworkPacket(
+            new AddActorPacket({
+                targetActorUniqueId: entity.getRuntimeId(),
+                targetActorRuntimeId: entity.getRuntimeId(),
+                actorType: entity.constructor.prototype.MOB_ID,
+                position: entity,
+                velocity: velocity ?? new Vec3(0, 0, 0),
+                actorLinks: [], // TODO: get from entity
+                attributes: [], // TODO: get from entity
+                headYaw: entity.headYaw,
+                bodyYaw: entity.bodyYaw,
+                metadata: [], // TODO: get from entity
+                rotation: entity,
+                synchedProperties: new PropertySyncData([], [])
+            })
+        );
     }
 
     /**
@@ -94,7 +105,7 @@ export default class PlayerSession {
      * @param player - The client-controlled entity
      */
     public async sendSettings(player?: Player): Promise<void> {
-        const target = player ?? this.player;
+        /* const target = player ?? this.player;
 
         const pk = new UpdateAdventureSettingsPacket();
         pk.worldImmutable = target.gamemode === Gamemode.Gametype.SPECTATOR;
@@ -103,11 +114,11 @@ export default class PlayerSession {
         pk.autoJump = true; // TODO: grab this info elsewhere
         pk.showNameTags = true; // TODO: player may be able to hide them
 
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk); */
     }
 
     public async sendAbilities(player?: Player): Promise<void> {
-        const target = player ?? this.player;
+        /* const target = player ?? this.player;
 
         const pk = new UpdateAbilitiesPacket();
         pk.commandPermission = target.isOp() ? PermissionType.Operator : PermissionType.Normal;
@@ -141,7 +152,7 @@ export default class PlayerSession {
 
         pk.abilityLayers = [mainLayer];
 
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk); */
     }
 
     public async needNewChunks(forceResend = false, dist?: number): Promise<void> {
@@ -183,7 +194,7 @@ export default class PlayerSession {
                     await this.requestChunk(closestChunk[0]!, closestChunk[1]!);
                 } else {
                     const loadedChunk = await this.player.getWorld().getChunk(closestChunk[0]!, closestChunk[1]!);
-                    await this.sendChunk(loadedChunk);
+                    this.sendChunk(loadedChunk);
                 }
             } else {
                 this.loadingChunks.add(hash);
@@ -211,7 +222,7 @@ export default class PlayerSession {
         }
 
         if (!unloaded && this.chunkSendQueue.length !== 0) {
-            await this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
+            this.sendNetworkChunkPublisher(dist ?? viewDistance, []);
         }
     }
 
@@ -232,12 +243,11 @@ export default class PlayerSession {
     }
 
     public async sendInventory(): Promise<void> {
-        const pk = new InventoryContentPacket();
+        /* const pk = new InventoryContentPacket();
         pk.items = this.player.getInventory().getItems(true);
         pk.windowId = WindowIds.INVENTORY; // Inventory window
         await this.connection.sendDataPacket(pk);
-        await this.sendHandItem(this.player.getInventory().getItemInHand());
-
+        await this.sendHandItem(this.player.getInventory().getItemInHand()); */
         /* TODO: not working..
         pk = new InventoryContentPacket();
         pk.items = []; // TODO
@@ -252,7 +262,7 @@ export default class PlayerSession {
     }
 
     public async sendCreativeContents(empty = false): Promise<void> {
-        const pk = new CreativeContentPacket();
+        /* const pk = new CreativeContentPacket();
         if (empty) {
             await this.connection.sendDataPacket(pk);
             return;
@@ -281,7 +291,7 @@ export default class PlayerSession {
             );
         });
 
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk); */
     }
 
     /**
@@ -290,21 +300,21 @@ export default class PlayerSession {
      * @param item - The entity.
      */
     public async sendHandItem(item: Item): Promise<void> {
-        const pk = new MobEquipmentPacket();
+        /* const pk = new MobEquipmentPacket();
         pk.runtimeEntityId = this.player.getRuntimeId();
         pk.item = item;
         pk.inventorySlot = this.player.getInventory().getHandSlotIndex();
         pk.hotbarSlot = this.player.getInventory().getHandSlotIndex();
         pk.windowId = 0; // Inventory ID
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk); */
     }
 
     public async sendForm(form: IForm): Promise<void> {
-        const id = this.player.getFormManager().addForm(form);
+        /* const id = this.player.getFormManager().addForm(form);
         const pk = new ModalFormRequestPacket();
         pk.formId = id;
         pk.formData = form.jsonSerialize();
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk); */
     }
 
     /**
@@ -312,8 +322,8 @@ export default class PlayerSession {
      *
      * @param tick - The tick
      */
-    public async sendTime(tick: number): Promise<void> {
-        await this.connection.sendDataPacket2(new SetTimePacket({ time: tick }));
+    public sendTime(tick: number): void {
+        this.connection.sendNetworkPacket(new SetTimePacket({ time: tick }));
     }
 
     /**
@@ -321,22 +331,24 @@ export default class PlayerSession {
      *
      * @param gamemode - the numeric gamemode ID
      */
-    public async sendGamemode(gamemode: number): Promise<void> {
-        const pk = new SetPlayerGameTypePacket();
+    public sendGamemode(gamemode: number): void {
+        /* const pk = new SetPlayerGameTypePacket();
         pk.gamemode = gamemode;
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk); */
     }
 
-    public async sendNetworkChunkPublisher(distance: number, savedChunks: ChunkCoord[]): Promise<void> {
-        const pk = new NetworkChunkPublisherUpdatePacket();
-        pk.position = BlockPosition.fromVector3(this.player);
-        pk.radius = distance << 4;
-        pk.savedChunks = savedChunks;
-        await this.connection.sendDataPacket(pk);
+    public sendNetworkChunkPublisher(distance: number, savedChunks: ChunkPos[]): void {
+        this.connection.sendNetworkPacket(
+            new NetworkChunkPublisherUpdatePacket({
+                newViewPosition: BlockPosition.fromVector3(this.player),
+                newViewRadius: distance << 4,
+                serverBuilChunksList: savedChunks
+            })
+        );
     }
 
-    public async sendAvailableCommands(): Promise<void> {
-        const pk = new AvailableCommandsPacket();
+    public sendAvailableCommands(): void {
+        /* const pk = new AvailableCommandsPacket();
 
         this.server
             .getCommandManager()
@@ -419,40 +431,42 @@ export default class PlayerSession {
         playerEnum.enumName = 'Player';
         playerEnum.enumValues = this.player
             .getServer()
-            .getSessionManager()
+            .getPlayerManager()
             .getAllPlayers()
             .map((player) => player.getName());
         pk.softEnums = [playerEnum];
         // TODO: update commands
-        // await this.getConnection().sendDataPacket(pk);
+        // await this.getConnection().sendDataPacket(pk); */
     }
 
     /**
-     * Set the client's maximum view distance.
+     * Sets the clientside view distance.
      *
      * @param distance - The view distance
      */
-    public async setViewDistance(distance: number): Promise<void> {
+    public setViewDistance(distance: number): void {
         this.player.viewDistance = distance;
-        const pk = new ChunkRadiusUpdatedPacket();
-        pk.radius = distance;
-        await this.connection.sendDataPacket(pk);
+        this.connection.sendNetworkPacket(
+            new ChunkRadiusUpdatedPacket({
+                chunkRadius: distance
+            })
+        );
     }
 
-    public async sendAttributes(attributes: Attribute[]): Promise<void> {
-        const pk = new UpdateAttributesPacket();
+    public sendAttributes(attributes: Attribute[]): void {
+        /* const pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.player.getRuntimeId();
         pk.attributes = attributes.length > 0 ? attributes : this.player.getAttributeManager().getAttributes();
         pk.tick = BigInt(0); // TODO
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk); */
     }
 
-    public async sendMetadata(): Promise<void> {
-        const pk = new SetActorDataPacket();
+    public sendMetadata(): void {
+        /* const pk = new SetActorDataPacket();
         pk.runtimeEntityId = this.player.getRuntimeId();
         pk.metadata = this.player.getMetadataManager();
         pk.tick = BigInt(0); // TODO
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk); */
     }
 
     /**
@@ -467,45 +481,49 @@ export default class PlayerSession {
      * @param needsTranslation - If the TextType requires translation
      * @param type - The text type
      */
-    public async sendMessage(
+    public sendMessage(
         message: string,
         xuid = '',
         parameters: string[] = [],
         needsTranslation = false,
-        type = TextType.Raw
-    ): Promise<void> {
+        type = MessageType.RAW | MessageType.ANNOUNCEMENT
+    ) {
         if (!message) throw new Error('A message is required');
-
-        const pk = new TextPacket();
-        pk.type = type;
-        pk.sourceName = '';
-        pk.message = message;
-        pk.needsTranslation = needsTranslation;
-        pk.xuid = xuid;
-        pk.platformChatId = ''; // TODO
-        pk.parameters = parameters;
-        await this.connection.sendDataPacket(pk);
+        this.connection.sendNetworkPacket(
+            new TextPacket({
+                message,
+                messageType: type,
+                localize: needsTranslation,
+                senderXUID: xuid,
+                platformId: '',
+                parameterList: parameters,
+                playerName: ''
+            })
+        );
     }
 
     public async sendToast(title: string, body: string): Promise<void> {
-        if (!title) throw new Error('A toast title is required');
+        /* if (!title) throw new Error('A toast title is required');
         if (!body) throw new Error('A toast body is required.');
 
         const pk = new ToastRequestPacket();
         pk.title = title;
         pk.body = body;
 
-        await this.connection.sendDataPacket(pk);
+        await this.connection.sendDataPacket(pk); */
     }
 
-    public async sendChunk(chunk: Chunk): Promise<void> {
-        const pk = new LevelChunkPacket();
-        pk.chunkX = chunk.getX();
-        pk.chunkZ = chunk.getZ();
-        pk.clientSubChunkRequestsEnabled = false;
-        pk.subChunkCount = chunk.getTopEmpty() + 4; // add the useless layers hack
-        pk.data = chunk.networkSerialize();
-        await this.connection.sendDataPacket(pk, undefined, false);
+    public sendChunk(chunk: Chunk): void {
+        this.connection.sendNetworkPacket(
+            new LevelChunkPacket({
+                chunkPosition: new ChunkPos(chunk.getX(), chunk.getZ()),
+                dimensionId: Dimension.OVERWORLD,
+                subChunksRequested: false,
+                cacheEnabled: false,
+                serializedChunk: chunk.networkSerialize(),
+                subChunkCount: chunk.getTopEmpty() + 4 // add the useless layers hack
+            })
+        );
 
         const hash = Chunk.packXZ(chunk.getX(), chunk.getZ());
         this.loadedChunks.add(hash);
@@ -515,31 +533,21 @@ export default class PlayerSession {
     /**
      * Broadcast the movement to a defined player
      */
-    public async broadcastMove(player: Player, mode = MovementType.Normal): Promise<void> {
-        const pk = new MovePlayerPacket();
-        pk.runtimeEntityId = player.getRuntimeId();
-
-        pk.positionX = player.getX();
-        pk.positionY = player.getY();
-        pk.positionZ = player.getZ();
-
-        pk.pitch = player.pitch;
-        pk.yaw = player.yaw;
-        pk.headYaw = player.headYaw;
-
-        pk.mode = mode;
-
-        pk.onGround = player.isOnGround();
-
-        // TODO
-        if (mode === MovementType.Teleport) {
-            pk.teleportCause = 0;
-            pk.teleportItemId = 0;
-        }
-
-        pk.ridingEntityRuntimeId = BigInt(0);
-        pk.tick = BigInt(0); // TODO
-        await this.connection.sendDataPacket(pk);
+    public broadcastMove(player: Player, mode = PlayerPositionMode.NORMAL): void {
+        this.connection.sendNetworkPacket(
+            new MovePlayerPacket({
+                actorRuntimeId: player.getRuntimeId(),
+                position: player,
+                rotation: player.rotation,
+                headYaw: player.headYaw,
+                positionMode: mode,
+                onGround: player.isOnGround(),
+                ridingRuntimeId: 0n,
+                tick: 0n,
+                teleportationCause: 0,
+                sourceActorType: 0
+            })
+        );
     }
 
     /**
@@ -547,7 +555,7 @@ export default class PlayerSession {
      * the server and also to the player itself.
      */
     public async addToPlayerList(): Promise<void> {
-        const playerList = new PlayerListPacket();
+        /* const playerList = new PlayerListPacket();
         playerList.type = PlayerListAction.TYPE_ADD;
 
         const entry = new PlayerListEntry({
@@ -564,14 +572,14 @@ export default class PlayerSession {
         playerList.entries.push(entry);
 
         await this.server.broadcastPacket(playerList);
-        this.server.getSessionManager().getPlayerList().set(this.player.uuid, entry);
+        this.server.getPlayerManager().getPlayerList().set(this.player.uuid, entry); */
     }
 
     /**
      * Removes a player from other players list
      */
     public async removeFromPlayerList(): Promise<void> {
-        if (!this.player.uuid) return;
+        /* if (!this.player.uuid) return;
 
         const pk = new PlayerListPacket();
         pk.type = PlayerListAction.TYPE_REMOVE;
@@ -588,17 +596,17 @@ export default class PlayerSession {
                 .getSessionManager()
                 .getAllPlayers()
                 .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(pk))
-        );
+        ); */
     }
 
     /**
      * Sends the full player list to the player.
      */
-    public async sendPlayerList(): Promise<void> {
-        const playerList = new PlayerListPacket();
-        playerList.type = PlayerListAction.TYPE_ADD;
-        playerList.entries = Array.from(this.server.getSessionManager().getPlayerList().values());
-        await this.connection.sendDataPacket(playerList);
+    public sendPlayerList(): void {
+        // const playerList = new PlayerListPacket();
+        // playerList.type = PlayerListAction.TYPE_ADD;
+        // playerList.entries = Array.from(this.server.getSessionManager().getPlayerList().values());
+        // await this.connection.sendDataPacket(playerList);
     }
 
     /**
@@ -607,57 +615,53 @@ export default class PlayerSession {
      * @param player - the player to send the AddPlayerPacket to
      */
     public async sendSpawn(player: Player): Promise<void> {
-        if (!player.getUUID()) {
-            this.server.getLogger()?.error(`UUID for player ${player.getName()} is undefined`);
-            return;
-        }
-
-        const pk = new AddPlayerPacket();
-        pk.uuid = UUID.fromString(this.player.getUUID()); // TODO: temp solution
-        pk.runtimeEntityId = this.player.getRuntimeId();
-        pk.name = this.player.getName();
-
-        pk.positionX = this.player.getX();
-        pk.positionY = this.player.getY();
-        pk.positionZ = this.player.getZ();
-
-        // TODO: motion
-        pk.motionX = 0;
-        pk.motionY = 0;
-        pk.motionZ = 0;
-
-        pk.pitch = this.player.pitch;
-        pk.yaw = this.player.yaw;
-        pk.headYaw = this.player.headYaw;
-
-        pk.item = this.player.getInventory().getItemInHand();
-
-        pk.deviceId = this.player.device?.id ?? '';
-        pk.metadata = this.player.getMetadataManager();
-        await player.getNetworkSession().getConnection().sendDataPacket(pk);
-        // TODO: await this.sendSettings(player);
+        player
+            .getNetworkSession()
+            .getConnection()
+            .sendNetworkPacket(
+                new AddPlayerPacket({
+                    uuid: UUID.fromString(this.player.getUUID()),
+                    playerName: this.player.getName(),
+                    targetRuntimeId: this.player.getRuntimeId(),
+                    position: this.player,
+                    carriedItem: this.player.getInventory().getItemInHand(),
+                    gamemode: this.player.gamemode,
+                    metadata: [], // TODO: metadata
+                    propertySyncData: new PropertySyncData([], []),
+                    abilitiesData: new SerializedAbilitiesData(
+                        this.player.getRuntimeId(),
+                        PlayerPermissionLevel.MEMBER,
+                        CommandPermissionLevel.OWNER,
+                        []
+                    ),
+                    platformChatId: '', // TODO: read this value from Login
+                    velocity: new Vec3(0, 0, 0),
+                    rotation: this.player.rotation,
+                    headYaw: this.player.headYaw,
+                    actorLinks: [], // TODO: actor links
+                    deviceId: this.player.device?.id ?? '',
+                    buildPlatform: this.player.device ? this.player.device.os : -1
+                })
+            );
     }
 
     /**
      * Despawn the player entity from another player
      */
     public async sendDespawn(player: Player): Promise<void> {
-        const pk = new RemoveActorPacket();
-        pk.uniqueEntityId = this.player.getRuntimeId(); // We use runtime as unique
-        await player.getNetworkSession().getConnection().sendDataPacket(pk);
+        // const pk = new RemoveActorPacket();
+        // pk.uniqueEntityId = this.player.getRuntimeId(); // We use runtime as unique
+        // player.getNetworkSession().getConnection().sendNetworkPacket(pk);
     }
 
-    public async sendPlayStatus(status: number): Promise<void> {
-        const pk = new PlayStatusPacket();
-        pk.status = status;
-        await this.connection.sendDataPacket(pk, true);
+    public sendPlayStatus(status: PlayStatus): void {
+        this.connection.sendNetworkPacket(new PlayStatusPacket({ status }));
     }
 
-    public async kick(reason = 'unknown reason'): Promise<void> {
-        const pk = new DisconnectPacket();
-        pk.skipMessage = false;
-        pk.message = reason;
-        await this.connection.sendDataPacket(pk, true);
+    public kick(reason = 'unknown reason'): void {
+        this.connection.sendNetworkPacket(
+            new DisconnectPacket({ reason: DisconnectReason.DISCONNECTED, skipMessage: false, message: reason })
+        );
     }
 
     public getConnection(): ClientConnection {

@@ -1,5 +1,5 @@
-import SkinPersonaPiece from './SkinPersonaPiece';
-import SkinPersonaPieceTintColor from './SkinPersonaPieceTintColor';
+import type SkinPersonaPiece from './SkinPersonaPiece';
+import type SkinPersonaPieceTintColor from './SkinPersonaPieceTintColor';
 
 export default class SkinPersona {
     private readonly pieces: Set<SkinPersonaPiece> = new Set();

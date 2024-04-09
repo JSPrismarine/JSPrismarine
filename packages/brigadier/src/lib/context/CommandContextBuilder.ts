@@ -1,12 +1,12 @@
-import Command from '../Command';
+import type Command from '../Command';
 import StringRange from './StringRange';
-import CommandNode from '../tree/CommandNode';
+import type CommandNode from '../tree/CommandNode';
 import CommandContext from './CommandContext';
-import ParsedArgument from './ParsedArgument';
+import type ParsedArgument from './ParsedArgument';
 import SuggestionContext from './SuggestionContext';
 import ParsedCommandNode from './ParsedCommandNode';
-import CommandDispatcher from '../CommandDispatcher';
-import RedirectModifier from '../RedirectModifier';
+import type CommandDispatcher from '../CommandDispatcher';
+import type RedirectModifier from '../RedirectModifier';
 
 export default class CommandContextBuilder<S> {
     private args: Map<String, ParsedArgument<S, any>> = new Map();

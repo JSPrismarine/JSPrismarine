@@ -8,19 +8,19 @@ import NetworkStructure from '../NetworkStructure';
 export default class Vec2 extends NetworkStructure {
     /**
      * Creates a new instance of Vec2.
-     * @param x The x-coordinate of the vector.
-     * @param y The y-coordinate of the vector.
+     * @param x - The x-coordinate of the vector.
+     * @param y - The y-coordinate of the vector.
      */
     public constructor(
-        protected x: number,
-        protected y: number
+        public x: number,
+        public y: number
     ) {
         super();
     }
 
     /**
      * Serializes the vector into a binary stream.
-     * @param stream The binary stream to serialize into.
+     * @param stream - The binary stream to serialize into.
      */
     public serialize(stream: BinaryStream): void {
         stream.writeFloatLE(this.x);
@@ -29,7 +29,7 @@ export default class Vec2 extends NetworkStructure {
 
     /**
      * Deserializes the vector from a binary stream.
-     * @param stream The binary stream to deserialize from.
+     * @param stream - The binary stream to deserialize from.
      */
     public deserialize(stream: BinaryStream): void {
         this.x = stream.readFloatLE();

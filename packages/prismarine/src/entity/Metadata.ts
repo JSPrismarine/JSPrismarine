@@ -1,5 +1,4 @@
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil';
 
 // TODO: Still missing flags
 export enum MetadataFlag {
@@ -94,7 +93,7 @@ export default class MetadataManager {
                     stream.writeVarLong(value[1] as bigint);
                     break;
                 case FlagType.STRING:
-                    McpeUtil.writeString(stream, value[1] as string);
+                    // McpeUtil.writeString(stream, value[1] as string);
                     break;
                 case FlagType.SHORT:
                     stream.writeUnsignedShortLE(value[1] as number);

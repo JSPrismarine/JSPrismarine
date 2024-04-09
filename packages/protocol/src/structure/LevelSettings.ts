@@ -1,9 +1,7 @@
-import NetworkStructure from '../NetworkStructure';
-import NetworkBinaryStream from '../NetworkBinaryStream';
-import { Generator, Difficulty, Gamemode, PlayerPermissionLevel } from '@jsprismarine/minecraft';
-import SpawnSettings from './SpawnSettings';
-import BlockPos from './BlockPos';
-import { Experiments } from '../';
+import type SpawnSettings from './SpawnSettings';
+import { BlockPos, Experiments, NetworkBinaryStream, NetworkStructure } from '../';
+import type { Difficulty, PlayerPermissionLevel } from '@jsprismarine/minecraft';
+import { Gamemode, Generator} from '@jsprismarine/minecraft';
 
 export enum EditorWorldType {
     NON_EDITOR,

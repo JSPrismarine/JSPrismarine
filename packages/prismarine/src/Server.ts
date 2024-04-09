@@ -1,14 +1,9 @@
-import { RakNetListener } from '@jsprismarine/raknet';
-import Chat, { ChatType } from './chat/Chat';
 import BanManager from './ban/BanManager';
 import BlockManager from './block/BlockManager';
 import { BlockMappings } from './block/BlockMappings';
-import ChatEvent from './events/chat/ChatEvent';
 import ChatManager from './chat/ChatManager';
-import ClientConnection from './network/ClientConnection';
 import CommandManager from './command/CommandManager';
 import Console from './Console';
-import type { DataPacket } from './network/Packets';
 import { EventManager } from './events/EventManager';
 import Identifiers from './network/Identifiers';
 import ItemManager from './item/ItemManager';
@@ -16,22 +11,18 @@ import PacketRegistry from './network/PacketRegistry';
 import PermissionManager from './permission/PermissionManager';
 import PluginManager from './plugin/PluginManager';
 import QueryManager from './query/QueryManager';
-import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
-import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
-import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
-import SessionManager from './SessionManager';
 import { TickEvent } from './events/Events';
-import Timer from './utils/Timer';
 import WorldManager from './world/WorldManager';
 
 import type Config from './config/Config';
 import type LoggerBuilder from './utils/Logger';
-import type { RakNetSession, InetAddress } from '@jsprismarine/raknet';
-import { buildRakNetServerName } from './utils/ServerName';
+import { InterfaceRegistry } from './network/interface/InterfaceRegistry';
+import { RaknetInterface } from './network/interface/RaknetInterface';
+import type { NetworkPacket } from '@jsprismarine/protocol';
+import PlayerManager from './PlayerManager';
 
 export default class Server {
     private version!: string;
-    private raknet!: RakNetListener;
     private readonly logger: LoggerBuilder;
     private readonly config: Config;
     private tps = 0;
@@ -39,7 +30,8 @@ export default class Server {
     private readonly console: Console;
     private readonly eventManager = new EventManager();
     private readonly packetRegistry: PacketRegistry;
-    private readonly sessionManager = new SessionManager();
+    private readonly playerManager = new PlayerManager();
+    private readonly networkInterface = new InterfaceRegistry();
     private readonly pluginManager: PluginManager;
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
@@ -122,104 +114,16 @@ export default class Server {
         await this.worldManager.onEnable();
         await this.packetRegistry.onEnable();
 
-        this.raknet = new RakNetListener(this.getConfig().getMaxPlayers(), this.getConfig().getOnlineMode());
-        this.raknet.setServerName(buildRakNetServerName(this));
-        this.raknet.start(serverIp, port);
-
-        this.raknet.on('openConnection', async (session: RakNetSession) => {
-            const event = new RaknetConnectEvent(session);
-            await this.eventManager.emit('raknetConnect', event);
-
-            if (event.isCancelled()) {
-                session.disconnect();
-                return;
-            }
-
-            const token = session.getAddress().toToken();
-            if (this.sessionManager.has(token)) {
-                this.logger.error(
-                    `Another client with token (${token}) is already connected!`,
-                    'Server/listen/openConnection'
-                );
-                session.disconnect('Already connected from another location');
-                return;
-            }
-
-            const timer = new Timer();
-            this.logger.debug(`${token} is attempting to connect`, 'Server/listen/openConnection');
-            this.sessionManager.add(token, new ClientConnection(session, this.logger));
-            this.logger.verbose(`New connection handling took ${timer.stop()} ms`, 'Server/listen/openConnection');
-        });
-
-        this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
-            const event = new RaknetDisconnectEvent(inetAddr, reason);
-            await this.eventManager.emit('raknetDisconnect', event);
-
-            const time = Date.now();
-            const token = inetAddr.toToken();
-            try {
-                const player = this.sessionManager.getPlayer(token);
-
-                // De-spawn the player to all online players
-                await player.getNetworkSession().removeFromPlayerList();
-                for (const onlinePlayer of this.sessionManager.getAllPlayers()) {
-                    await player.getNetworkSession().sendDespawn(onlinePlayer);
-                }
-
-                // Sometimes we fail at decoding the username for whatever reason
-                if (player.getName()) {
-                    // Announce disconnection
-                    const event = new ChatEvent(
-                        new Chat(
-                            this.console,
-                            `§e%multiplayer.player.left`,
-                            [player.getName()],
-                            true,
-                            '*.everyone',
-                            ChatType.TRANSLATION
-                        )
-                    );
-                    await this.eventManager.emit('chat', event);
-                }
-
-                await player.onDisable();
-                await player.getWorld().removeEntity(player);
-                this.sessionManager.remove(token);
-            } catch (error: unknown) {
-                this.logger.debug(
-                    `Cannot remove connection from non-existing player (${token})`,
-                    'Server/listen/raknetDisconnect'
-                );
-                this.logger.error(error, 'Server/listen/raknetDisconnect');
-            }
-
-            this.logger.debug(`${token} disconnected due to ${reason}`, 'Server/listen/raknetDisconnect');
-            this.logger.debug(
-                `Player destruction took about ${Date.now() - time} ms`,
-                'Server/listen/raknetDisconnect'
-            );
-        });
-
-        this.raknet.on('encapsulated', async (packet: Protocol.Frame, inetAddr: InetAddress) => {
-            const event = new RaknetEncapsulatedPacketEvent(inetAddr, packet);
-            await this.eventManager.emit('raknetEncapsulatedPacket', event);
-
-            let connection: ClientConnection | null;
-            if ((connection = this.sessionManager.get(inetAddr.toToken()) ?? null) === null) {
-                this.logger.error(`Got a packet from a closed connection (${inetAddr.toToken()})`);
-                return;
-            }
-            connection.handleRawPacket(packet.content);
-        });
-
-        this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
-            try {
-                await this.queryManager.onRaw(buffer, inetAddr);
-            } catch (error: unknown) {
-                this.logger.error(error, 'Server/listen/raw');
-                this.logger.verbose(`QueryManager failed with error: ${error}`, 'Server/listen/raw');
-            }
-        });
+        // TODO: better implementation, just a prototype for now to simplify the handling
+        this.networkInterface.registerInterface(
+            new RaknetInterface(this.eventManager, this.logger, this.queryManager, {
+                address: serverIp,
+                port,
+                maxConnections: this.getConfig().getMaxPlayers(),
+                offlineMode: false
+            })
+        );
+        this.networkInterface.initialize();
 
         let startTime = Date.now();
         let tpsStartTime = Date.now();
@@ -233,6 +137,10 @@ export default class Server {
 
             const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
 
+            for (const intf of this.networkInterface.getInterfaces().values()) {
+                intf.tick();
+            }
+
             // Update all worlds
             for (const world of this.worldManager.getWorlds()) {
                 void world.update(event.getTick());
@@ -240,7 +148,7 @@ export default class Server {
 
             // Update RakNet server name
             if (this.tick % ticksPerSecond === 0) {
-                this.raknet.setServerName(buildRakNetServerName(this));
+                // TODO: this.getNetworkInterfaces().setServerName(buildRakNetServerName(this));
             }
 
             this.tick++;
@@ -295,7 +203,7 @@ export default class Server {
 
         try {
             // Kick all online players
-            for (const player of this.sessionManager.getAllPlayers()) {
+            for (const player of this.playerManager.getOnlinePlayers()) {
                 await player.kick('Server closed.');
             }
 
@@ -304,7 +212,7 @@ export default class Server {
 
             await this.worldManager.onDisable();
             await this.onDisable();
-            this.raknet.kill(); // this.raknet might be undefined if we kill the server really early
+            this.networkInterface.shutdown();
             process.exit(options?.crash ? 1 : 0);
         } catch (error: unknown) {
             this.logger.error(error, 'Server/kill');
@@ -312,11 +220,11 @@ export default class Server {
         }
     }
 
-    public async broadcastPacket<T extends DataPacket>(dataPacket: T): Promise<void> {
+    public async broadcastPacket<T extends NetworkPacket<unknown>>(packet: T): Promise<void> {
         // Maybe i can improve this by using the UDP broadcast, all unconnected clients
         // will ignore the connected packet probably, but may cause issues.
-        for (const onlinePlayer of this.sessionManager.getAllPlayers()) {
-            await onlinePlayer.getNetworkSession().getConnection().sendDataPacket(dataPacket);
+        for (const onlinePlayer of this.playerManager.getOnlinePlayers()) {
+            onlinePlayer.getNetworkSession().getConnection().sendNetworkPacket(packet);
         }
     }
 
@@ -345,8 +253,8 @@ export default class Server {
     /**
      * Returns the player manager
      */
-    public getSessionManager(): SessionManager {
-        return this.sessionManager;
+    public getPlayerManager(): PlayerManager {
+        return this.playerManager;
     }
 
     /**
@@ -385,10 +293,10 @@ export default class Server {
     }
 
     /**
-     * Returns the raknet instance
+     * Returns the registered network instances
      */
-    public getRaknet() {
-        return this.raknet;
+    public getNetworkInterfaces() {
+        return this.networkInterface.getInterfaces();
     }
 
     /**

@@ -1,5 +1,6 @@
-import { Experiments, NetworkBinaryStream, NetworkPacket, PacketIdentifier } from '../';
-import { StackPack } from '@jsprismarine/minecraft';
+import type { NetworkBinaryStream } from '../';
+import { Experiments, NetworkPacket, PacketIdentifier } from '../';
+import type { StackPack } from '@jsprismarine/minecraft';
 
 interface PacketData {
     texturePackRequired: boolean;

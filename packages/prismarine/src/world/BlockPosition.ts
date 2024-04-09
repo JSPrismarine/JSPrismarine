@@ -1,4 +1,4 @@
-import Vector3 from '../math/Vector3';
+import type Vector3 from '../math/Vector3';
 import { BlockPos } from '@jsprismarine/protocol';
 
 /**

@@ -1,30 +1,34 @@
 import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
-import { PlayStatusPacket } from '../Packets';
-import PlayStatusType from '../type/PlayStatusType';
-import { Player } from '../../';
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
-import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import type Server from '../../Server';
-import { LoginPacket } from '@jsprismarine/protocol';
+import type { PacketData } from '@jsprismarine/protocol';
+import { PlayStatusPacket, PlayStatus } from '@jsprismarine/protocol';
 
-export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> {
+export default class LoginHandler implements PreLoginPacketHandler<PacketData.Login> {
     public static NetID = Identifiers.LoginPacket;
 
-    public async handle(packet: LoginPacket, server: Server, connection: ClientConnection): Promise<void> {
+    public async handle(data: PacketData.Login, server: Server, connection: ClientConnection): Promise<void> {
         // TODO: Check if player count >= max players
 
-        const playStatus = new PlayStatusPacket();
-
-        // Kick client if has newer / older client version
-        if (packet.clientNetworkVersion !== Identifiers.Protocol) {
-            playStatus.status =
-                packet.clientNetworkVersion < Identifiers.Protocol
-                    ? PlayStatusType.LoginFailedClient
-                    : PlayStatusType.LoginFailedServer;
-            await connection.sendDataPacket(playStatus, true);
+        if (data.clientNetworkVersion !== Identifiers.Protocol) {
+            if (data.clientNetworkVersion < Identifiers.Protocol) {
+                connection.sendNetworkPacket(
+                    new PlayStatusPacket({
+                        status: PlayStatus.LOGIN_FAILED_CLIENT_OLD
+                    })
+                );
+            } else if (data.clientNetworkVersion > Identifiers.Protocol) {
+                connection.sendNetworkPacket(
+                    new PlayStatusPacket({
+                        status: PlayStatus.LOGIN_FAILED_SERVER_OLD
+                    })
+                );
+            }
             return;
         }
+
+        // console.log('got login');
 
         // Kick the player if their username is invalid
         /* if (!packet.displayName) {
@@ -62,7 +66,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         if (reason !== false) {
             await player.kick(`You have been banned${reason ? ` for reason: ${reason}` : ''}!`);
             return;
-        }
+        } 
 
         // Update the player connection to be recognized as a connected player
         const session = connection.initPlayerConnection(server, player);

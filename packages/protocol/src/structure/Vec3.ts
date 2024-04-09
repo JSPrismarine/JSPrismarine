@@ -15,7 +15,7 @@ export default class Vec3 extends Vec2 {
     public constructor(
         x: number,
         y: number,
-        protected z: number
+        public z: number
     ) {
         super(x, y);
     }

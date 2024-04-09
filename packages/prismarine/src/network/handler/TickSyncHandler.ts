@@ -1,13 +1,13 @@
 import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+import { type PlayerSession } from '../../';
 import type Server from '../../Server';
-import type TickSyncPacket from '../packet/TickSyncPacket';
+import type PacketHandler from './PacketHandler';
+import type { PacketData } from '@jsprismarine/protocol';
 
-export default class TickSyncHandler implements PacketHandler<TickSyncPacket> {
+export default class TickSyncHandler implements PacketHandler<PacketData.TickSync> {
     public static NetID = Identifiers.TickSyncPacket;
 
-    public handle(_packet: TickSyncPacket, _server: Server, _session: PlayerSession): void {
+    public handle(_data: PacketData.TickSync, _server: Server, _session: PlayerSession): void {
         // TODO: stub
     }
 }

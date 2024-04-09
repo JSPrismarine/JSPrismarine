@@ -2,39 +2,36 @@ import Identifiers from '../Identifiers';
 import type Server from '../../Server';
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
 import type ClientConnection from '../ClientConnection';
-import NetworkSettingsPacket, {
-    PacketCompressionAlgorithm,
-    CompressionThreshold
-} from '../packet/NetworkSettingsPacket';
-import { RequestNetworkSettingsPacket } from '@jsprismarine/protocol';
+import type { PacketData } from '@jsprismarine/protocol';
+import { NetworkSettingsPacket } from '@jsprismarine/protocol';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 
-export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<RequestNetworkSettingsPacket> {
+export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<PacketData.RequestNetworkSettings> {
     public static NetID = Identifiers.RequestNetworkSettingsPacket;
 
     public async handle(
-        packet: RequestNetworkSettingsPacket,
+        data: PacketData.RequestNetworkSettings,
         _server: Server,
         connection: ClientConnection
     ): Promise<void> {
-        const data = packet.getPacketData()!;
-
         if (data.clientNetworkVersion !== Identifiers.Protocol) {
             connection.disconnect(`Unsupported protocol version: ${data.clientNetworkVersion}`);
             return;
         }
 
-        console.log('Received RequestNetworkSettingsPacket' + data.clientNetworkVersion);
-
-        const networkSettings = new NetworkSettingsPacket();
-        networkSettings.compressionThreshold = CompressionThreshold.COMPRESS_EVERYTHING;
-        networkSettings.compressionAlgorithm = PacketCompressionAlgorithm.ZLIB;
-        networkSettings.clientThrottlingEnabled = false;
-        networkSettings.clientThrottleThreshold = 0;
-        networkSettings.clientThrottleScalar = 0;
-
-        connection.hasCompression = true;
+        // console.log('Received RequestNetworkSettingsPacket' + data.clientNetworkVersion);
 
         // Send as uncompressed, this will initialize compression
-        await connection.sendDataPacket(networkSettings, false);
+        connection.sendNetworkPacket(
+            new NetworkSettingsPacket({
+                compressionThreshold: 1,
+                compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+                clientThrottleEnabled: false,
+                clientThrottleThreshold: 0,
+                clientThrottleScalar: 0
+            })
+        );
+
+        connection.enableCompression();
     }
 }

@@ -1,6 +1,6 @@
+import type { NetworkBinaryStream } from '../';
 import { NetworkStructure } from '../';
-import NetworkBinaryStream from '../NetworkBinaryStream';
-import { ServerAuthMovementMode } from '@jsprismarine/minecraft';
+import { type ServerAuthMovementMode } from '@jsprismarine/minecraft';
 
 /**
  * Represents the network structure of synced player movement settings.

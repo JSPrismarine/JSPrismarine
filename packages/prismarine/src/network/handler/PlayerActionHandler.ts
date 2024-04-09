@@ -1,4 +1,4 @@
-import WorldEventPacket, { WorldEvent } from '../packet/WorldEventPacket';
+/* import WorldEventPacket, { WorldEvent } from '../packet/WorldEventPacket';
 
 import { BlockMappings } from '../../block/BlockMappings';
 import Identifiers from '../Identifiers';
@@ -32,7 +32,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                     player
                         .getPlayersInChunk()
                         .map(async (nearbyPlayer) =>
-                            nearbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk)
+                            nearbyPlayer.getNetworkSession().getConnection().sendNetworkPacket(pk)
                         )
                 );
 
@@ -86,7 +86,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                     player
                         .getPlayersInChunk()
                         .map(async (nearbyPlayer) =>
-                            nearbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk)
+                            nearbyPlayer.getNetworkSession().getConnection().sendNetworkPacket(pk)
                         )
                 );
 
@@ -122,4 +122,4 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             }
         }
     }
-}
+} */

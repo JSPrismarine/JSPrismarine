@@ -8,7 +8,7 @@ import ItemManager from './item/ItemManager';
 import PermissionManager from './permission/PermissionManager';
 import PluginManager from './plugin/PluginManager';
 import QueryManager from './query/QueryManager';
-import SessionManager from './SessionManager';
+import SessionManager from './PlayerManager';
 import WindowManager from './inventory/WindowManager';
 import WorldManager from './world/WorldManager';
 

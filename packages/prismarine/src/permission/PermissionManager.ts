@@ -129,7 +129,7 @@ export default class PermissionManager {
     }
 
     public async setOp(username: string, op: boolean): Promise<boolean> {
-        const target = this.server.getSessionManager().getPlayerByExactName(username); // TODO: by name not exact
+        const target = this.server.getPlayerManager().getPlayerByExactName(username); // TODO: by name not exact
         if (target) {
             const event = new playerToggleOperatorEvent(target, op);
             this.server.getEventManager().post(['playerToggleOperator', event]);
