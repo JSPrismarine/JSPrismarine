@@ -75,7 +75,7 @@
         "@droppedcode/typedoc-plugin-relative-includes": "1.0.5",
         "@nordcom/prettier": "0.1.1",
         "@types/heap": "0.2.34",
-        "@types/node": "20.12.5",
+        "@types/node": "20.12.6",
         "@typescript-eslint/eslint-plugin": "7.6.0",
         "@typescript-eslint/parser": "7.6.0",
         "@vitest/coverage-v8": "1.4.0",
