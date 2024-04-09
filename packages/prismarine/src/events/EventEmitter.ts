@@ -1,6 +1,6 @@
 import type BlockRegisterEvent from './block/BlockRegisterEvent';
 import type ChatEvent from './chat/ChatEvent';
-import type CommandRegisterEvent from './command/CommandRegisterEvents';
+import type CommandRegisterEvent from './command/CommandRegisterEvent';
 import { EventEmitterishMixin } from './EventEmitterishMixin';
 import { Evt } from 'evt';
 import type ItemRegisterEvent from './items/ItemRegisterEvent';
@@ -46,6 +46,6 @@ class EventManagerWithoutEventEmitterishMethods extends Evt<EventTypes> {
     public readonly evtThirdParty = Evt.asNonPostable(Evt.create<[string, any]>());
 }
 
-export const EventManager = EventEmitterishMixin(EventManagerWithoutEventEmitterishMethods, ({ instance }) => instance);
+export const EventEmitter = EventEmitterishMixin(EventManagerWithoutEventEmitterishMethods, ({ instance }) => instance);
 
-export type EventManager = InstanceType<typeof EventManager>;
+export type EventEmitter = InstanceType<typeof EventEmitter>;

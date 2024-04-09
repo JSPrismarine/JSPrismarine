@@ -88,7 +88,7 @@ export default class World {
     }
 
     public async onEnable(): Promise<void> {
-        this.server.getEventManager().on('tick', async (evt) => this.update(evt.getTick()));
+        this.server.on('tick', async (evt) => this.update(evt.getTick()));
 
         try {
             const metaData: LevelMeta = JSON.parse(

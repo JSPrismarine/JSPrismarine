@@ -1,5 +1,5 @@
 import type { Chat } from '../../chat/Chat';
-import Event from '../Event';
+import { Event } from '../Event';
 
 export default class ChatEvent extends Event {
     private readonly chat;

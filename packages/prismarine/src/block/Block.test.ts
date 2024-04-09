@@ -18,9 +18,8 @@ describe('block', () => {
             getSessionManager: () => ({
                 getAllPlayers: () => []
             }),
-            getEventManager: () => ({
-                emit: () => {}
-            })
+            on: vi.fn(),
+            emit: vi.fn().mockResolvedValue({})
         }))();
 
         it('every block show have unique namespace id', async () => {

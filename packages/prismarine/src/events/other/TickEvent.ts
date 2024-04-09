@@ -1,4 +1,4 @@
-import Event from '../Event';
+import { Event } from '../Event';
 
 /**
  * Fired for every tick

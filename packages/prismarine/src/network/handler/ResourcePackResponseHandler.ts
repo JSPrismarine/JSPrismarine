@@ -32,7 +32,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             const player = session.getPlayer();
             // Emit playerSpawn event
             const spawnEvent = new PlayerSpawnEvent(player);
-            server.getEventManager().post(['playerSpawn', spawnEvent]);
+            server.post(['playerSpawn', spawnEvent]);
             if (spawnEvent.isCancelled()) return;
 
             // TODO: send inventory slots
@@ -170,7 +170,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
                     type: ChatType.TRANSLATION
                 })
             );
-            await server.getEventManager().emit('chat', chatSpawnEvent);
+            await server.emit('chat', chatSpawnEvent);
         }
     }
 }

@@ -86,7 +86,7 @@ export default class BlockManager {
         }
 
         const event = new BlockRegisterEvent(block);
-        await this.server.getEventManager().emit('blockRegister', event);
+        await this.server.emit('blockRegister', event);
         if (event.isCancelled()) return;
 
         this.server.getLogger().debug(`Block with id §b${block.name}§r registered`);

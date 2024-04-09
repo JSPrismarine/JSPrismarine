@@ -11,6 +11,6 @@ export class ChatManager {
 
     public async send(chat: Chat) {
         const event = new ChatEvent(chat);
-        await this.server.getEventManager().emit('chat', event);
+        await this.server.emit('chat', event);
     }
 }
