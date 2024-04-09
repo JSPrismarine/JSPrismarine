@@ -110,7 +110,7 @@ export default class Player extends Human {
                 );
         };
 
-        server.getEventManager().on('chat', this.chatHandler);
+        server.on('chat', this.chatHandler);
     }
 
     public async onEnable() {
@@ -156,7 +156,7 @@ export default class Player extends Human {
 
     public async onDisable() {
         if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
-        this.server.getEventManager().removeListener('chat', this.chatHandler);
+        this.server.removeListener('chat', this.chatHandler);
 
         this.connected = false;
     }
@@ -337,7 +337,7 @@ export default class Player extends Human {
 
     public async setGamemode(mode: number): Promise<void> {
         const event = new PlayerSetGamemodeEvent(this, mode);
-        this.getServer().getEventManager().post(['playerSetGamemode', event]);
+        this.getServer().post(['playerSetGamemode', event]);
         if (event.isCancelled()) return;
 
         this.gamemode = event.getGamemode();
@@ -426,7 +426,7 @@ export default class Player extends Human {
         if (sprinting === this.isSprinting()) return;
 
         const event = new PlayerToggleSprintEvent(this, sprinting);
-        this.getServer().getEventManager().post(['playerToggleSprint', event]);
+        this.getServer().post(['playerToggleSprint', event]);
         if (event.isCancelled()) return;
 
         this.sprinting = event.getIsSprinting();
@@ -449,7 +449,7 @@ export default class Player extends Human {
         }
 
         const event = new PlayerToggleFlightEvent(this, flying);
-        this.getServer().getEventManager().post(['playerToggleFlight', event]);
+        this.getServer().post(['playerToggleFlight', event]);
         if (event.isCancelled()) return;
 
         this.flying = event.getIsFlying();

@@ -1,5 +1,5 @@
 import type { Block } from '../../block/Block';
-import Event from '../Event';
+import { Event } from '../Event';
 
 export default class BlockRegisterEvent extends Event {
     private readonly block;

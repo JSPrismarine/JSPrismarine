@@ -14,9 +14,8 @@ describe('command', () => {
             getSessionManager: () => ({
                 getAllPlayers: () => []
             }),
-            getEventManager: () => ({
-                emit: () => {}
-            })
+            on: vi.fn(),
+            emit: vi.fn().mockResolvedValue({})
         }))();
 
         it('should register commands on enable', async () => {

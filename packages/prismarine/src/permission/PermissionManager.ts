@@ -156,7 +156,7 @@ export class PermissionManager {
         const target = this.server.getSessionManager().getPlayerByExactName(username); // TODO: by name not exact
         if (target) {
             const event = new playerToggleOperatorEvent(target, op);
-            this.server.getEventManager().post(['playerToggleOperator', event]);
+            this.server.post(['playerToggleOperator', event]);
             if (event.isCancelled()) return false;
 
             await target.getNetworkSession().sendAvailableCommands();

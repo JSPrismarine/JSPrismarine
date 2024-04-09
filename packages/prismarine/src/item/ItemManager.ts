@@ -55,12 +55,10 @@ export default class ItemManager {
      */
     public registerItem = async (item: Item) => {
         const event = new ItemRegisterEvent(item);
-        await this.server.getEventManager().emit('itemRegister', event);
+        await this.server.emit('itemRegister', event);
         if (event.isCancelled()) return;
 
-        this.server
-            .getLogger()
-            ?.debug(`Item with id §b${item.getName()}§r registered`, 'ItemManager/registerClassItem');
+        this.server.getLogger().debug(`Item with id §b${item.getName()}§r registered`, 'ItemManager/registerClassItem');
         this.items.set(item.getName(), item);
     };
 
@@ -73,6 +71,6 @@ export default class ItemManager {
         // Dynamically register blocks
         await Promise.all(Object.entries(Items).map(async ([, item]) => this.registerItem(new item())));
 
-        this.server.getLogger()?.verbose(`Registered §b${this.items.size}§r item(s) (took §e${timer.stop()} ms§r)!`);
+        this.server.getLogger().verbose(`Registered §b${this.items.size}§r item(s) (took §e${timer.stop()} ms§r)!`);
     }
 }

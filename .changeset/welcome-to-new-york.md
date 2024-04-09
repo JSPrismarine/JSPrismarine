@@ -2,4 +2,4 @@
 "@jsprismarine/prismarine": patch
 ---
 
-Refactor Chat constructor
+Refactor Chat constructor.

@@ -58,11 +58,11 @@ export default class Console extends EntityLike {
                     message: `${this.getFormattedUsername()} ${input}`
                 })
             );
-            void this.getServer().getEventManager().emit('chat', event);
+            void this.getServer().emit('chat', event);
             this.cli.prompt();
         });
 
-        server.getEventManager().on('chat', async (evt: ChatEvent) => {
+        server.on('chat', async (evt: ChatEvent) => {
             if (evt.isCancelled()) return;
             await this.sendMessage(evt.getChat().getMessage());
         });

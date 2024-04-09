@@ -29,7 +29,7 @@ export default class MeCommand extends Command {
                             message: messageToSend
                         })
                     );
-                    await source.getServer().getEventManager().emit('chat', event);
+                    await source.getServer().emit('chat', event);
                 })
             )
         );

@@ -4,7 +4,7 @@ import { Chat } from '../chat/Chat';
 import type { Command } from './Command';
 import * as Commands from './Commands';
 import type { CommandArgument } from './CommandArguments';
-import CommandRegisterEvent from '../events/command/CommandRegisterEvents';
+import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
 import type { Entity } from '../entity/Entity';
 import type { Player } from '../';
 import type Server from '../Server';
@@ -40,7 +40,7 @@ export default class CommandManager {
                 const command: Command = new Command({} as any);
 
                 const event = new CommandRegisterEvent(command);
-                await this.server.getEventManager().emit('commandRegister', event);
+                await this.server.emit('commandRegister', event);
                 if (event.isCancelled()) return;
 
                 try {

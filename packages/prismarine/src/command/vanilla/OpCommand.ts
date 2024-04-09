@@ -36,7 +36,7 @@ export default class OpCommand extends Command {
                                 channel: `*.player.${target.getName()}`
                             })
                         );
-                        await target.getServer().getEventManager().emit('chat', event);
+                        await target.getServer().emit('chat', event);
                     }
 
                     return `Made ${context.getArgument('player')} a server operator`;
