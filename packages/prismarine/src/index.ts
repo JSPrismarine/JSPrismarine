@@ -4,7 +4,7 @@ import * as Entities from './entity/Entities';
 import * as Events from './events/Events';
 import * as Items from './item/Items';
 import * as Managers from './Managers';
-import * as Math from './math/Math';
+import * as Math from './math/';
 import * as Protocol from './network/Protocol';
 import * as Utils from './utils/Utils';
 import * as World from './world';

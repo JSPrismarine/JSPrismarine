@@ -355,9 +355,6 @@ export default class Server extends EventEmitter {
                 await player.kick('Server closed.');
             }
 
-            // Save all worlds.
-            await this.worldManager.save();
-
             // Disable all managers.
             await this.onDisable();
 

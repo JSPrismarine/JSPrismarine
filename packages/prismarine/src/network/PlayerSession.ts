@@ -553,7 +553,7 @@ export default class PlayerSession {
         playerList.type = PlayerListAction.TYPE_ADD;
 
         const entry = new PlayerListEntry({
-            uuid: UUID.fromString(this.player.uuid),
+            uuid: UUID.fromString(this.player.getUUID()),
             uniqueEntityid: this.player.getRuntimeId(),
             name: this.player.getName(),
             xuid: this.player.xuid,
@@ -566,15 +566,13 @@ export default class PlayerSession {
         playerList.entries.push(entry);
 
         await this.server.broadcastPacket(playerList);
-        this.server.getSessionManager().getPlayerList().set(this.player.uuid, entry);
+        this.server.getSessionManager().getPlayerList().set(this.player.getUUID(), entry);
     }
 
     /**
      * Removes a player from other players list
      */
     public async removeFromPlayerList(): Promise<void> {
-        if (!this.player.uuid) return;
-
         const pk = new PlayerListPacket();
         pk.type = PlayerListAction.TYPE_REMOVE;
 
@@ -583,7 +581,7 @@ export default class PlayerSession {
         });
         pk.entries.push(entry);
 
-        this.server.getSessionManager().getPlayerList().delete(this.player.uuid);
+        this.server.getSessionManager().getPlayerList().delete(this.player.getUUID());
 
         await Promise.all(
             this.server

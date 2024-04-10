@@ -13,7 +13,7 @@ abstract class ArgumentBuilder<S, T extends ArgumentBuilder<S, T>> {
 
     private requirement!: Predicate<S>;
 
-    private target!: CommandNode<S>;
+    private target: CommandNode<S> | null = null;
 
     private modifier: RedirectModifier<S> | null = null;
 
@@ -22,7 +22,7 @@ abstract class ArgumentBuilder<S, T extends ArgumentBuilder<S, T>> {
     public abstract getThis(): T;
 
     public then(arg: ArgumentBuilder<S, any> | CommandNode<S>): T {
-        if (!(this.target == null)) {
+        if (this.target != null) {
             throw new Error('Cannot add children to a redirected node');
         }
 
@@ -73,7 +73,7 @@ abstract class ArgumentBuilder<S, T extends ArgumentBuilder<S, T>> {
         return this.getThis();
     }
 
-    public getRedirect(): CommandNode<S> {
+    public getRedirect() {
         return this.target;
     }
 

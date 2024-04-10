@@ -1,14 +1,10 @@
 import Vector3 from '../math/Vector3';
 import type World from './World';
-
-export interface PositionData {
-    x?: number;
-    y?: number;
-    z?: number;
-    world?: World;
-}
+import type Server from '../Server';
 
 export default class Position extends Vector3 {
+    protected readonly server: Server;
+
     private world?: World;
 
     /**
@@ -21,9 +17,26 @@ export default class Position extends Vector3 {
      * @param {World} data.world - The world of the position.
      * @returns {Position} The new position.
      */
-    public constructor({ x, y, z, world }: PositionData = {}) {
+    public constructor({
+        x,
+        y,
+        z,
+        world,
+        server
+    }: {
+        x?: number;
+        y?: number;
+        z?: number;
+        world?: World;
+        server: Server;
+    }) {
         super(x, y, z);
         this.world = world;
+        this.server = server;
+    }
+
+    toString() {
+        return `${super.toString()}, world: §b${this.world?.getName() || 'none'}§r`;
     }
 
     /**
@@ -31,7 +44,7 @@ export default class Position extends Vector3 {
      * @returns {World} The world of the position.
      */
     public getWorld() {
-        return this.world!;
+        return this.world ?? this.server.getWorldManager().getDefaultWorld();
     }
 
     /**

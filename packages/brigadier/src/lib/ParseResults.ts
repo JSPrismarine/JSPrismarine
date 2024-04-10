@@ -13,8 +13,8 @@ export default class ParseResults<S> {
 
     public constructor(
         context: CommandContextBuilder<S>,
-        reader: ImmutableStringReader,
-        exceptions: Map<CommandNode<S>, CommandSyntaxException>
+        reader?: ImmutableStringReader,
+        exceptions?: Map<CommandNode<S>, CommandSyntaxException>
     ) {
         this.context = context;
         this.reader = reader || new StringReader('');

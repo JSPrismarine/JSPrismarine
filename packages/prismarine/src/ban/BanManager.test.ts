@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import BanManager from './BanManager';
 import type Server from '../Server';
+import { cwd } from '../utils/cwd';
 
 describe('ban', () => {
     describe('BanManager', () => {
@@ -48,9 +49,9 @@ describe('ban', () => {
                 const readFileSyncSpy = vi.spyOn(fs, 'readFileSync').mockReturnValue('[]');
                 const parseSpy = vi.spyOn(JSON, 'parse').mockReturnValue([]);
                 await banManager['parseBanned']();
-                expect(existsSyncSpy).toHaveBeenCalledWith(path.join(process.cwd(), '/banned-players.json'));
+                expect(existsSyncSpy).toHaveBeenCalledWith(path.resolve(cwd(), '/banned-players.json'));
                 expect(getLoggerSpy).toHaveBeenCalledWith();
-                expect(readFileSyncSpy).toHaveBeenCalledWith(path.join(process.cwd(), '/banned-players.json'));
+                expect(readFileSyncSpy).toHaveBeenCalledWith(path.resolve(cwd(), '/banned-players.json'));
                 expect(parseSpy).toHaveBeenCalledWith('[]');
                 expect(banManager['banned'].size).toBe(0);
             });
@@ -60,9 +61,9 @@ describe('ban', () => {
                 const getLoggerSpy = vi.spyOn(banManager['server'], 'getLogger');
                 const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync');
                 await banManager['parseBanned']();
-                expect(existsSyncSpy).toHaveBeenCalledWith(path.join(process.cwd(), '/banned-players.json'));
+                expect(existsSyncSpy).toHaveBeenCalledWith(path.resolve(cwd(), '/banned-players.json'));
                 expect(getLoggerSpy).toHaveBeenCalledWith();
-                expect(writeFileSyncSpy).toHaveBeenCalledWith(path.join(process.cwd(), '/banned-players.json'), '[]');
+                expect(writeFileSyncSpy).toHaveBeenCalledWith(path.resolve(cwd(), '/banned-players.json'), '[]');
                 expect(banManager['banned'].size).toBe(0);
             });
         });

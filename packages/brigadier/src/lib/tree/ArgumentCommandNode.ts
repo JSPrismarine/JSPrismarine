@@ -26,7 +26,7 @@ export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
         type: ArgumentType<T>,
         command: Command<S>,
         requirement: Predicate<S>,
-        redirect: CommandNode<S>,
+        redirect: CommandNode<S> | null,
         modifier: RedirectModifier<S> | null,
         forks: boolean,
         customSuggestions: SuggestionProvider<S>

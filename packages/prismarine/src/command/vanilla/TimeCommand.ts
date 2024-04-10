@@ -20,7 +20,7 @@ export default class TimeCommand extends Command {
                     argument('action', string()).then(
                         argument('value', integer()).executes(async (context) => {
                             const source = context.getSource() as Player;
-                            const world = source.getWorld() || source.getServer().getWorldManager().getDefaultWorld();
+                            const world = source.getWorld();
 
                             const value = context.getArgument('value');
                             if (value < 0) throw new Error('value can not be less than 0');

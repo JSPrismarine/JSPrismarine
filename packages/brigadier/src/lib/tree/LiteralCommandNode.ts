@@ -18,7 +18,7 @@ export default class LiteralCommandNode<S> extends CommandNode<S> {
         literal: string,
         command: Command<S>,
         requirement: Predicate<S>,
-        redirect: CommandNode<S>,
+        redirect: CommandNode<S> | null,
         modifier: RedirectModifier<S> | null,
         forks: boolean
     ) {

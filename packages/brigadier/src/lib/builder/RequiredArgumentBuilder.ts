@@ -15,7 +15,7 @@ export default class RequiredArgumentBuilder<S, T> extends ArgumentBuilder<S, Re
     }
 
     public static argument<S, T>(name: string, type: ArgumentType<T>) {
-        return new RequiredArgumentBuilder<S, T>(name, type);
+        return new RequiredArgumentBuilder(name, type);
     }
 
     public suggests(provider: SuggestionProvider<S>) {

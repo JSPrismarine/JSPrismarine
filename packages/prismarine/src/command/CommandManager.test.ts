@@ -22,10 +22,10 @@ describe('command', () => {
             const commandManager = new CommandManager(server);
 
             // Mock the registerClassCommand method
-            commandManager.registerClassCommand = vi.fn();
+            commandManager.registerCommand = vi.fn();
             await commandManager.onEnable();
 
-            expect(commandManager.registerClassCommand).toHaveBeenCalledTimes(Object.keys(Commands).length);
+            expect(commandManager.registerCommand).toHaveBeenCalledTimes(Object.keys(Commands).length);
         });
 
         it('should clear commands on disable', async () => {
@@ -44,7 +44,7 @@ describe('command', () => {
                 id: 'test:command'
             });
 
-            await commandManager.registerClassCommand(command);
+            await commandManager.registerCommand(command);
 
             expect(commandManager.getCommands().get('test:command')).toBe(command);
         });
