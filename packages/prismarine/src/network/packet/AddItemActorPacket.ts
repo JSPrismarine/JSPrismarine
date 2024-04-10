@@ -1,6 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import type Item from '../../item/Item';
+import type { Item } from '../../item/Item';
 import Vector3 from '../../math/Vector3';
 
 /**
@@ -17,8 +17,6 @@ import Vector3 from '../../math/Vector3';
  * | motion | Vector3 (LFloat) | The entity's motion |
  * | metadata |  | TODO|
  * | isFromFishing | Boolean | |
- *
- * @public
  */
 export default class AddItemActorPacket extends DataPacket {
     public static NetID = Identifiers.AddItemActorPacket;

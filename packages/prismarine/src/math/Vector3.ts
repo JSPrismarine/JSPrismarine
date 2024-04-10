@@ -2,8 +2,6 @@ import type BinaryStream from '@jsprismarine/jsbinaryutils';
 
 /**
  * 3D Vector.
- *
- * @public
  */
 export default class Vector3 {
     /**

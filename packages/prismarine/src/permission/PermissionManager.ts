@@ -14,8 +14,6 @@ interface OpType {
 
 /**
  * Permission manager.
- *
- * @public
  */
 export class PermissionManager {
     private readonly server: Server;

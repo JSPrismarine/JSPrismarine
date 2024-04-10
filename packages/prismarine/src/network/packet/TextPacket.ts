@@ -5,8 +5,6 @@ import TextType from '../type/TextType';
 
 /**
  * Packet for chat messages, announcements etc.
- *
- * @public
  */
 export default class TextPacket extends DataPacket {
     public static NetID = Identifiers.TextPacket;

@@ -1,6 +1,6 @@
 import type BlockManager from '../block/BlockManager';
 import type Chunk from './chunk/Chunk';
-import type Generator from './Generator';
+import type { Generator } from './Generator';
 
 export default abstract class BaseGenerator implements Generator {
     private readonly blockManager: BlockManager;

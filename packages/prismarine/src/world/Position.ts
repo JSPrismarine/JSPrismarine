@@ -1,6 +1,6 @@
 import Vector3 from '../math/Vector3';
-import type World from './World';
-import type Server from '../Server';
+import type { World } from './';
+import type { Server } from '../';
 
 export default class Position extends Vector3 {
     protected readonly server: Server;

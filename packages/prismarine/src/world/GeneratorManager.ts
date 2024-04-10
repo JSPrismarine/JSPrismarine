@@ -1,9 +1,9 @@
 import * as Generators from './generators/Generators';
-import type Generator from './Generator';
+import type { Generator } from './';
 import type Server from '../Server';
 import type BaseGenerator from './BaseGenerator';
 
-export default class GeneratorManager {
+export class GeneratorManager {
     private readonly generators: Map<string, Generator> = new Map() as Map<string, Generator>;
 
     public constructor(server: Server) {

@@ -1,7 +1,7 @@
 import type { ItemProps } from './Item';
-import Item from './Item';
+import { Item } from './Item';
 
-export default class Armor extends Item {
+export class Armor extends Item {
     public constructor(args: ItemProps) {
         super(args);
     }

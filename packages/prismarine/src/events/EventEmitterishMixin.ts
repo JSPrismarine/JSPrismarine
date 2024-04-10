@@ -1,5 +1,8 @@
 import { type Ctx, Evt, to } from 'evt';
 
+/**
+ * @private
+ */
 export interface EventEmitterish<EventTypes extends [string, any]> {
     on<T extends EventTypes, K extends T[0]>(
         id: K,

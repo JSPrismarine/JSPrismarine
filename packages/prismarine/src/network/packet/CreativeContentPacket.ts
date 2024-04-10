@@ -1,6 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import Item from '../../item/Item';
+import { Item } from '../../item/Item';
 
 export default class CreativeContentPacket extends DataPacket {
     public static NetID = Identifiers.CreativeContentPacket;

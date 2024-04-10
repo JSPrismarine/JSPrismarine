@@ -1,16 +1,20 @@
 import Air from '../block/blocks/Air';
 import ContainerEntry from './ContainerEntry';
-import type Item from '../item/Item';
+import type { Item } from '../item/Item';
 
 /**
  * Inventory.
- *
- * @public
  */
 export default class Inventory {
-    private readonly slots: number;
     /**
-     * (Slot number - Item in the slot)
+     * Number of slots.
+     * @private
+     */
+    private readonly slots: number;
+
+    /**
+     * <Slot number, Item in the slot>
+     * @private
      */
     private readonly content: Map<number, ContainerEntry> = new Map() as Map<number, ContainerEntry>;
 
@@ -21,8 +25,7 @@ export default class Inventory {
 
     /**
      * Get window id.
-     *
-     * TODO: implement this
+     * @todo: implement this.
      */
     public getId(): number {
         return 0;
@@ -30,11 +33,11 @@ export default class Inventory {
 
     /**
      * Adds an array of items into the inventory.
+     * @param {ContainerEntry[]} [items=[]] - the entires.
      */
     public setItems(items: ContainerEntry[] = []) {
         if (items.length > this.slots) {
-            // If the inventory slots are less
-            // than items cut the items array
+            // If the inventory slots are less than items cut the items array.
             items = items.slice(0, this.slots);
         }
 
@@ -45,6 +48,8 @@ export default class Inventory {
 
     /**
      * Returns all the items inside the inventory.
+     * @param {boolean} [includeAir=false] - if air should be accounted for.
+     * @returns {ContainerEntry[]} the entries.
      */
     public getItems(includeAir = false): ContainerEntry[] {
         if (includeAir) {
@@ -56,6 +61,8 @@ export default class Inventory {
 
     /**
      * Sets an item in the inventory content.
+     * @param {number} slot - the slot.
+     * @param {ContainerEntry} item - the item.
      */
     public setItem(slot: number, item: ContainerEntry) {
         if (slot > this.slots) {
@@ -68,6 +75,7 @@ export default class Inventory {
 
     /**
      * Add an item to the first available slot
+     * @param {ContainerEntry} item - the item.
      */
     public addItem(item: ContainerEntry) {
         for (let i = 0; i < this.slots; i++)
@@ -79,16 +87,19 @@ export default class Inventory {
 
     /**
      * Returns the item in the slot.
+     * @param {number} slot - the slot.
+     * @returns {Item | Air} the item in the slot.
      */
     public getItem(slot: number): Item {
         if (this.content.has(slot)) {
-            return this.content.get(slot)!.getItem();
+            return this.content.get(slot)!.getItem()!;
         }
         return new Air() as any as Item;
     }
 
     /**
      * Removes an item from a slot and returns it.
+     * @param {number} slot - the slot.
      */
     public removeItem(slot: number) {
         if (!this.content.has(slot)) {
@@ -102,6 +113,7 @@ export default class Inventory {
 
     /**
      * Returns the slot count of the inventory.
+     * @returns {number} the slot count.
      */
     public getSlotCount(): number {
         return this.slots;

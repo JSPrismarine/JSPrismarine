@@ -1,5 +1,5 @@
 import { Block } from './Block';
-import type Item from '../item/Item';
+import type { Item } from '../item/Item';
 import type Server from '../Server';
 
 /**

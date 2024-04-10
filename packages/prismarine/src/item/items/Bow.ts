@@ -9,7 +9,7 @@ export default class Bow extends Tool {
         });
     }
 
-    public getBurntime() {
+    public getBurnTime() {
         return 300;
     }
 

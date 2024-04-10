@@ -3,8 +3,6 @@ import Identifiers from '../Identifiers';
 
 /**
  * Packet for handling a player's health.
- *
- * @public
  */
 export default class SetHealthPacket extends DataPacket {
     public static NetID = Identifiers.SetHealthPacket;

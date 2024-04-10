@@ -7,8 +7,6 @@ const SUBCLIENT_MASK = 0x03;
 
 /**
  * The base class for all packets.
- *
- * @public
  */
 export default class DataPacket extends BinaryStream {
     /**

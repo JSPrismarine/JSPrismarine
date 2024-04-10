@@ -4,7 +4,7 @@ import { Entity } from '../Entity';
 import type Player from '../../Player';
 import Vector3 from '../../math/Vector3';
 
-export default class Item extends Entity {
+export class Item extends Entity {
     public static MOB_ID = 'minecraft:item';
     private item?: ContainerEntry;
 

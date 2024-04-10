@@ -5,7 +5,7 @@ import { TransactionType, UseItemAction } from '../packet/InventoryTransactionPa
 
 import { BlockMappings } from '../../block/BlockMappings';
 import type ContainerEntry from '../../inventory/ContainerEntry';
-import Gamemode from '../../world/Gamemode';
+import { Gamemode } from '../../world/';
 import Identifiers from '../Identifiers';
 import type PacketHandler from './PacketHandler';
 import type { PlayerSession } from '../../';

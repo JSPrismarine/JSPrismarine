@@ -22,8 +22,6 @@ import type Player from '../Player';
  * `@e[type=player,gamemode=creative,limit=3]`
  *
  * @returns The entities matching the target query
- *
- * @public
  */
 const ParseTargetSelector = ({
     input,

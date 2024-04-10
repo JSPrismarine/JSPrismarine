@@ -15,7 +15,7 @@ export interface ItemProps {
     durability?: number;
 }
 
-export default class Item {
+export class Item {
     private id: number;
     private networkId: number;
     private name: string;
@@ -57,7 +57,7 @@ export default class Item {
         return false;
     }
 
-    public getBurntime() {
+    public getBurnTime() {
         return 0;
     }
 

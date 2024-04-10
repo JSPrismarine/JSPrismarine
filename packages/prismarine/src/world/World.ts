@@ -4,9 +4,9 @@ import type BaseProvider from './providers/BaseProvider';
 import type { Block } from '../block/Block';
 import { BlockMappings } from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
-import Gamemode from './Gamemode';
-import type Generator from './Generator';
-import Item from '../item/Item';
+import { Gamemode } from './';
+import type { Generator } from './Generator';
+import { Item } from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import type Player from '../Player';
 import type Server from '../Server';
@@ -64,7 +64,7 @@ export interface WorldPlayerData {
     }>;
 }
 
-export default class World {
+export class World {
     private readonly uuid: string = UUID.randomString();
     private name: string;
     private path: string;

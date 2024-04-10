@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { Block } from './Block';
-import Item from '../item/Item';
+import { Item } from '../item/Item';
 import type Server from '../Server';
 
 describe('block', () => {

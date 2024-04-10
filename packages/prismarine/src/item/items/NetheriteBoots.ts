@@ -1,4 +1,4 @@
-import Armor from '../Armor';
+import { Armor } from '../Armor';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class NetheriteBoots extends Armor {

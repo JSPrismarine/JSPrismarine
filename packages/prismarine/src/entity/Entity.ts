@@ -154,8 +154,6 @@ export class EntityLike extends Position {
 
 /**
  * The base class for all entities including `Player`.
- *
- * @public
  */
 export class Entity extends EntityLike {
     /**

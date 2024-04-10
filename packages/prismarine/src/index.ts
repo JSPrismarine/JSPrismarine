@@ -1,20 +1,21 @@
-import * as Block from './block/';
-import * as Command from './command';
+export * from './block/';
+export * from './config/';
+export * from './command/';
+export * from './item/';
+export * from './world/';
+
 import * as Entities from './entity/Entities';
 import * as Events from './events/Events';
-import * as Items from './item/Items';
 import * as Managers from './Managers';
 import * as Math from './math/';
 import * as Protocol from './network/Protocol';
 import * as Utils from './utils/Utils';
-import * as World from './world';
 
 import BaseProvider from './world/providers/BaseProvider';
 import { Chat } from './chat/Chat';
-import Config from './config/Config';
 import { ConfigBuilder } from './config/ConfigBuilder';
+import Console from './Console';
 import { Entity } from './entity/Entity';
-import Item from './item/Item';
 import Logger from './utils/Logger';
 import Player from './Player';
 import PlayerSession from './network/PlayerSession';
@@ -22,16 +23,12 @@ import Server from './Server';
 
 export {
     BaseProvider,
-    Block,
     Chat,
-    Command,
-    Config,
     ConfigBuilder,
+    Console,
     Entities,
     Entity,
     Events,
-    Item,
-    Items,
     Logger,
     Managers,
     Math,
@@ -39,6 +36,5 @@ export {
     PlayerSession,
     Protocol,
     Server,
-    Utils,
-    World
+    Utils
 };

@@ -1,4 +1,8 @@
 export class Event {
+    /**
+     * Set to true if a subscriber has cancelled the event.
+     * @private
+     */
     private cancelled = false;
 
     /**

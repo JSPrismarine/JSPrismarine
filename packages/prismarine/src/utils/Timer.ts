@@ -1,7 +1,5 @@
 /**
  * Timer/Performance measurement utility.
- *
- * @public
  */
 export default class Timer {
     /**

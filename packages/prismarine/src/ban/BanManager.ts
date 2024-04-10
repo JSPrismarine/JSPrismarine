@@ -9,8 +9,6 @@ import minifyJson from 'strip-json-comments';
 
 /**
  * Ban manager.
- *
- * @public
  */
 export default class BanManager {
     private readonly server: Server;

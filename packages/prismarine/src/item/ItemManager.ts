@@ -1,6 +1,6 @@
 import * as Items from './Items';
 
-import type Item from './Item';
+import type { Item } from './Item';
 import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
@@ -8,14 +8,21 @@ import Timer from '../utils/Timer';
 // TODO: Don't dynamically import, do it like ./network/Protocol etc
 export default class ItemManager {
     private readonly server: Server;
-    private readonly items = new Map();
+    private readonly items = new Map<string, Item>();
 
+    /**
+     * Construct an ItemManager.
+     * @param {Server} server -
+     * @returns {ItemManager}
+     * @constructor
+     */
     public constructor(server: Server) {
         this.server = server;
     }
 
     /**
      * OnEnable hook.
+     * @async
      */
     public async onEnable() {
         await this.importItems();
@@ -23,17 +30,25 @@ export default class ItemManager {
 
     /**
      * OnDisable hook.
+     * @async
      */
     public async onDisable() {
         this.items.clear();
     }
 
-    public getItem(name: string) {
-        return this.items.get(name);
+    /**
+     * Get an item from it's name.
+     * @param {string} name - tha item's name.
+     * @returns {Item | null} the item.
+     */
+    public getItem(name: string): Item | null {
+        return this.items.get(name) ?? null;
     }
 
     /**
      * Get item by numeric id
+     * @param {number} id - tha item's ID.
+     * @returns {Item | null} the item.
      */
     public getItemById(id: number): Item | null {
         return this.getItems().find((a) => a.getId() === id) ?? null;
@@ -41,17 +56,17 @@ export default class ItemManager {
 
     /**
      * Get all items.
-     *
-     * @returns all registered items.
+     * @returns {Item[]} all registered items.
      */
     public getItems(): Item[] {
-        return Array.from(this.items.values()) as Item[];
+        return Array.from(this.items.values());
     }
 
     /**
      * Register an item.
-     *
-     * @param item - The item to be registered
+     * @param {Item} item - The item to be registered
+     * @returns {Promise<void>} The promise.
+     * @async
      */
     public registerItem = async (item: Item) => {
         const event = new ItemRegisterEvent(item);

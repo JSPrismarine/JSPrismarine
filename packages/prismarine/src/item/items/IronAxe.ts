@@ -1,7 +1,7 @@
 import { BlockToolType } from '../../block/BlockToolType';
 import { ItemIdsType } from '../ItemIdsType';
 import { ItemTieredToolType } from '../ItemTieredToolType';
-import TieredTool from '../TieredTool';
+import { TieredTool } from '../TieredTool';
 
 export default class IronAxe extends TieredTool {
     public constructor() {

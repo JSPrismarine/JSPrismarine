@@ -1,7 +1,7 @@
 import BaseProvider from '../BaseProvider';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import Chunk from '../../chunk/Chunk';
-import type Generator from '../../Generator';
+import type { Generator } from '../../Generator';
 import type Server from '../../../Server';
 import fs from 'graceful-fs';
 import path from 'node:path';

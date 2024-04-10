@@ -5,7 +5,7 @@ import { argument, literal } from '@jsprismarine/brigadier';
 import { Chat } from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import { Command } from '../Command';
-import Gamemode from '../../world/Gamemode';
+import { Gamemode } from '../../world/';
 import type Player from '../../Player';
 
 export default class GamemodeCommand extends Command {

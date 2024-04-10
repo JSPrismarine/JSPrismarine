@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import Position from './Position';
+import { Position } from './';
 import type Server from '../Server';
-import type World from './World';
+import type { World } from './';
 
 describe('world', () => {
     describe('Position', () => {
