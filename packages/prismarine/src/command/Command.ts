@@ -1,5 +1,4 @@
 import { ArgumentCommandNode, type CommandDispatcher } from '@jsprismarine/brigadier';
-import type Player from '../Player';
 
 export interface CommandProps {
     id: string;
@@ -44,13 +43,6 @@ export class Command {
      * Register the command.
      */
     public async register(_dispatcher: CommandDispatcher<any>): Promise<void> {}
-
-    /**
-     * Run the command.
-     *
-     * @deprecated Replaced with "Command.register"
-     */
-    public async execute(_sender: Player, _args: any[]): Promise<any> {}
 
     public usage(dispatcher: CommandDispatcher<any>): string {
         // TODO: Improve this, it's not really accurate right now.
