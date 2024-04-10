@@ -4,12 +4,10 @@ import SessionManager from './SessionManager';
 import BanManager from './ban/BanManager';
 import BlockManager from './block/BlockManager';
 import { BlockMappings } from './block/BlockMappings';
-import { Chat, ChatType } from './chat/Chat';
 import { ChatManager } from './chat/ChatManager';
 import { CommandManager } from './command/CommandManager';
 import { EventEmitter } from './events/EventEmitter';
 import { TickEvent } from './events/Events';
-import ChatEvent from './events/chat/ChatEvent';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
@@ -176,38 +174,16 @@ export default class Server extends EventEmitter {
 
             const time = Date.now();
             const token = inetAddr.toToken();
-            try {
-                const player = this.sessionManager.getPlayer(token);
 
-                // De-spawn the player to all online players
-                await player.getNetworkSession().removeFromPlayerList();
-                for (const onlinePlayer of this.sessionManager.getAllPlayers()) {
-                    await player.getNetworkSession().sendDespawn(onlinePlayer);
-                }
-
-                // Sometimes we fail at decoding the username for whatever reason
-                if (player.getName()) {
-                    // Announce disconnection
-                    const event = new ChatEvent(
-                        new Chat({
-                            sender: this.console,
-                            message: `§e%multiplayer.player.left`,
-                            parameters: [player.getName()],
-                            needsTranslation: true,
-                            type: ChatType.TRANSLATION
-                        })
-                    );
-                    await this.emit('chat', event);
-                }
-
-                await player.disable();
-                await player.getWorld().removeEntity(player);
-                this.sessionManager.remove(token);
-            } catch (error: unknown) {
+            const session = this.sessionManager.get(token);
+            if (!session) {
                 this.logger.debug(`Cannot remove connection from non-existing player (${token})`);
-                this.logger.error(error);
+                return;
             }
 
+            await session.closePlayerSession();
+
+            this.sessionManager.remove(token);
             this.logger.debug(`${token} disconnected due to ${reason}`);
             this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
         });
