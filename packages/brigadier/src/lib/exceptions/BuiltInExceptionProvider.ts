@@ -1,43 +1,42 @@
-import DynamicCommandExceptionType from "./DynamicCommandExceptionType"
-import SimpleCommandExceptionType from "./SimpleCommandExceptionType"
+import type DynamicCommandExceptionType from './DynamicCommandExceptionType';
+import type SimpleCommandExceptionType from './SimpleCommandExceptionType';
 
-export default interface BuiltInExceptionProvider {		
-	
-	floatTooLow(): DynamicCommandExceptionType;
-	
-	floatTooHigh(): DynamicCommandExceptionType;
-	
-	integerTooLow(): DynamicCommandExceptionType;
-	
-	integerTooHigh(): DynamicCommandExceptionType;	
-	
-	literalIncorrect(): DynamicCommandExceptionType;
-	
-	readerExpectedStartOfQuote(): SimpleCommandExceptionType;
-	
-	readerExpectedEndOfQuote(): SimpleCommandExceptionType;
-	
-	readerInvalidEscape(): DynamicCommandExceptionType;
-	
-	readerInvalidBool(): DynamicCommandExceptionType;
-	
-	readerInvalidInt(): DynamicCommandExceptionType;
-	
-	readerExpectedInt(): SimpleCommandExceptionType;
+export default interface BuiltInExceptionProvider {
+    floatTooLow(): DynamicCommandExceptionType;
 
-	readerInvalidFloat(): DynamicCommandExceptionType;
-	
-	readerExpectedFloat(): SimpleCommandExceptionType;
-	
-	readerExpectedBool(): SimpleCommandExceptionType;
-	
-	readerExpectedSymbol(): DynamicCommandExceptionType;
-	
-	dispatcherUnknownCommand(): SimpleCommandExceptionType;
-	
-	dispatcherUnknownArgument(): SimpleCommandExceptionType;
-	
-	dispatcherExpectedArgumentSeparator(): SimpleCommandExceptionType;
-	
-	dispatcherParseException(): DynamicCommandExceptionType;		
+    floatTooHigh(): DynamicCommandExceptionType;
+
+    integerTooLow(): DynamicCommandExceptionType;
+
+    integerTooHigh(): DynamicCommandExceptionType;
+
+    literalIncorrect(): DynamicCommandExceptionType;
+
+    readerExpectedStartOfQuote(): SimpleCommandExceptionType;
+
+    readerExpectedEndOfQuote(): SimpleCommandExceptionType;
+
+    readerInvalidEscape(): DynamicCommandExceptionType;
+
+    readerInvalidBool(): DynamicCommandExceptionType;
+
+    readerInvalidInt(): DynamicCommandExceptionType;
+
+    readerExpectedInt(): SimpleCommandExceptionType;
+
+    readerInvalidFloat(): DynamicCommandExceptionType;
+
+    readerExpectedFloat(): SimpleCommandExceptionType;
+
+    readerExpectedBool(): SimpleCommandExceptionType;
+
+    readerExpectedSymbol(): DynamicCommandExceptionType;
+
+    dispatcherUnknownCommand(): SimpleCommandExceptionType;
+
+    dispatcherUnknownArgument(): SimpleCommandExceptionType;
+
+    dispatcherExpectedArgumentSeparator(): SimpleCommandExceptionType;
+
+    dispatcherParseException(): DynamicCommandExceptionType;
 }

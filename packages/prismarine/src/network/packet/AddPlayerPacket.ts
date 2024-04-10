@@ -2,7 +2,7 @@ import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import type Item from '../../item/Item';
 import McpeUtil from '../NetworkUtil';
-import MetadataManager from '../../entity/Metadata';
+import type MetadataManager from '../../entity/Metadata';
 import type UUID from '../../utils/UUID';
 
 export default class AddPlayerPacket extends DataPacket {

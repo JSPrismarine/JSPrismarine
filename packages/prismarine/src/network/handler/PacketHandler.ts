@@ -1,13 +1,13 @@
 import type DataPacket from '../packet/DataPacket';
-import { PlayerSession } from '../../';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 
 export default interface PacketHandler<T extends DataPacket> {
     /**
      * Handle a data packet.
-     * @param packet Instance of packet we need to handle
-     * @param server The server instance
-     * @param session The player session
+     * @param packet - Instance of packet we need to handle
+     * @param server - The server instance
+     * @param session - The player session
      */
     handle(packet: T, server: Server, session: PlayerSession): Promise<void> | void;
 

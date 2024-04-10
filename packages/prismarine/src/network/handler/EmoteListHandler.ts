@@ -1,7 +1,7 @@
 import type EmoteListPacket from '../packet/EmoteListPacket';
 import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+import type PacketHandler from './PacketHandler';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 
 export default class EmoteListHandler implements PacketHandler<EmoteListPacket> {

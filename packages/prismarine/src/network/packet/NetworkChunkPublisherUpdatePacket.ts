@@ -1,6 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import BlockPosition from '../../world/BlockPosition';
+import type BlockPosition from '../../world/BlockPosition';
 
 export interface ChunkCoord {
     x: number;

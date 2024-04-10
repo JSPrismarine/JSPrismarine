@@ -1,8 +1,8 @@
 import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+import type PacketHandler from './PacketHandler';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import SetPlayerGameTypePacket from '../packet/SetPlayerGameTypePacket';
+import type SetPlayerGameTypePacket from '../packet/SetPlayerGameTypePacket';
 
 export default class SetPlayerGameTypeHandler implements PacketHandler<SetPlayerGameTypePacket> {
     public static NetID = Identifiers.SetPlayerGameTypePacket;

@@ -1,5 +1,5 @@
-import ArgumentType from '../arguments/ArgumentType';
-import SuggestionProvider from '../suggestion/SuggestionProvider';
+import type ArgumentType from '../arguments/ArgumentType';
+import type SuggestionProvider from '../suggestion/SuggestionProvider';
 import ArgumentCommandNode from '../tree/ArgumentCommandNode';
 import ArgumentBuilder from './ArgumentBuilder';
 
