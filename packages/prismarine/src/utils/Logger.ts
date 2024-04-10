@@ -1,12 +1,37 @@
 import type { Logger } from 'winston';
 import { createLogger, format, transports } from 'winston';
-
+import Transport from 'winston-transport';
 import colorParser from '@jsprismarine/color-parser';
-import { cwd } from './cwd';
+
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { cwd } from './cwd';
+import type Console from '../Console';
+
 const { combine, timestamp, printf } = format;
+
+class PrismarineTransport extends Transport {
+    public console: Console | undefined;
+    private buffer: any[] = [];
+
+    log(info: any, next: () => void) {
+        if (!this.console) {
+            this.buffer.push(info);
+            return next();
+        }
+
+        if (this.buffer.length > 0) {
+            for (const message of this.buffer) {
+                this.console.write(message[Symbol.for('message')]);
+            }
+            this.buffer = [];
+        }
+
+        this.console.write(info[Symbol.for('message')]);
+        next();
+    }
+}
 
 export default class LoggerBuilder {
     public static logFile: string;
@@ -42,24 +67,23 @@ export default class LoggerBuilder {
         if ((this.logger as any) && !this.logger.closed) return;
 
         this.logger = createLogger({
+            level: global.logLevel ?? 'info',
+            format: combine(
+                timestamp({ format: 'HH:mm:ss' }),
+                format((info) => {
+                    info.level = info.level.toUpperCase();
+                    return info;
+                })(),
+                format.colorize(),
+                format.simple()
+            ),
             transports: [
-                new transports.Console({
-                    level: global.logLevel ?? 'info',
+                new PrismarineTransport({
                     format: combine(
-                        timestamp({ format: 'HH:mm:ss' }),
-                        format((info) => {
-                            info.level = info.level.toUpperCase();
-                            return info;
-                        })(),
-                        format.colorize(),
-                        format.simple(),
                         printf(({ level, message, timestamp, namespace: ns }) => {
-                            // TODO: refactor this mess.
-                            // TODO: `padEnd` length should depend on `global.logLevel`.
-                            const showWholeNs = ns && (global.logLevel === 'silly' || global.logLevel === 'debug');
-                            const prefix = `${timestamp} ${level.padEnd(17)} ${showWholeNs ? `${ns}` : `${ns?.split?.('/')[0] || ''}`}`;
+                            const prefix = `${timestamp} ${level} ${ns}`;
 
-                            return `[${prefix}]: ${colorParser(`${message}`)}`;
+                            return colorParser(`[${prefix}§r]: ${message}§r`);
                         })
                     )
                 }),
@@ -67,8 +91,6 @@ export default class LoggerBuilder {
                     level: 'debug',
                     filename: path.join(cwd(), 'logs', `${LoggerBuilder.logFile}`),
                     format: combine(
-                        timestamp({ format: 'HH:mm:ss.SS' }),
-                        format.simple(),
                         printf(({ level, message, timestamp, namespace }: any) => {
                             return `[${timestamp}] [${level}]${colorParser(
                                 `${namespace ? ` [${namespace}]` : ''}: ${message}`
@@ -81,6 +103,13 @@ export default class LoggerBuilder {
                 })
             ]
         });
+    }
+
+    public onLine(listener: (line: string) => void): void {
+        this.logger.on('data', (data) => listener(data.message.toString()));
+    }
+    public setConsole(console: Console) {
+        (this.logger.transports[0] as PrismarineTransport).console = console;
     }
 
     public async onEnable(): Promise<void> {
@@ -104,12 +133,23 @@ export default class LoggerBuilder {
 
     private getNamespace = () => {
         const stack = (new Error().stack as string).replaceAll('\\', '/');
-        const caller = stack.split('\n')[3]!.split('at ')[1]!;
-        const callerName = caller.split(' ')[0]?.split('.').join('/');
-        const callerFile = caller.split(' ')[1]?.slice(1, -1).split('/').at(-1);
 
-        if (!callerName || !callerFile || callerName.includes('<anonymous>')) return '';
-        return `${callerName} (${callerFile})`;
+        const caller = (stack.split('\n')[3] || '').trim();
+        if (!caller) return '';
+
+        // Get path inside of the parentheses in the caller string, excluding the line:col.
+        const file = caller.match(/\(([^)]+)\)/)?.[1]?.split('src/')[1] || '';
+        if (!file) return '';
+
+        // Get path and line:col from the file string, then remove the file extension.
+        const path = file.split(':').slice(0, -2).join(':').slice(0, -3);
+        const lineCol = file.split(':').slice(-2).join(':');
+
+        if (this.logger.level === 'silly' || this.logger.level === 'debug' || this.logger.level === 'verbose') {
+            return `${path}.ts:${lineCol}`;
+        }
+
+        return path.split('/').at(-1) || '';
     };
 
     private parseMessage = (input: string[]) => {
@@ -150,7 +190,7 @@ export default class LoggerBuilder {
 
         // eslint-disable-next-line no-console
         this.logger.error(message.toString());
-        console.error(message as Error);
+        if (message.stack) this.logger.error(message.stack);
     };
 
     /**

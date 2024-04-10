@@ -19,11 +19,9 @@ export default class Config {
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
 
-    public constructor() {
-        this.onEnable();
-    }
+    public constructor() {}
 
-    public onEnable(): void {
+    public async onEnable(): Promise<void> {
         const isDev = process.env.NODE_ENV === 'development';
 
         this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
@@ -47,24 +45,32 @@ export default class Config {
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
     }
 
-    public onDisable() {}
+    public async onDisable(): Promise<void> {}
 
+    /**
+     * Get the server's port.
+     * @returns {number} The server's port
+     * @remarks The default port is `19132`.
+     */
     public getServerPort(): number {
         return this.port;
     }
 
+    /**
+     * Get the server's IP address.
+     * @remarks The default IP address is `0.0.0.0`
+     * @returns {string} The server's IP address
+     */
     public getServerIp(): string {
         return this.serverIp;
     }
 
     /**
      * Returns the default world's name (`id`).
-     *
+     * @returns The world's name as a `string`
      * @remarks
      * If the world doesn't exist as a part of the `worlds` array the `worldManager` will
      * fail to initialize.
-     *
-     * @returns The world's name as a `string`
      */
     public getLevelName(): string {
         return this.levelName;
