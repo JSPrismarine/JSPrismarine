@@ -6,8 +6,9 @@ describe('config', () => {
     describe('Config', () => {
         let config: Config;
 
-        beforeEach(() => {
+        beforeEach(async () => {
             config = new Config();
+            await config.onEnable();
         });
 
         it('should have the default server port', () => {

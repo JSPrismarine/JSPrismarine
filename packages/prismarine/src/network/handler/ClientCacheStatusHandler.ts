@@ -1,7 +1,7 @@
 import type ClientCacheStatusPacket from '../packet/ClientCacheStatusPacket';
 import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import PlayerSession from '../PlayerSession';
+import type PacketHandler from './PacketHandler';
+import type PlayerSession from '../PlayerSession';
 import type Server from '../../Server';
 
 export default class ClientCacheStatusHandler implements PacketHandler<ClientCacheStatusPacket> {

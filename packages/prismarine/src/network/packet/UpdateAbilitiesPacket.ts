@@ -1,7 +1,7 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import PermissionType from '../type/PermissionType';
-import PlayerPermissionType from '../type/PlayerPermissionType';
+import type PermissionType from '../type/PermissionType';
+import type PlayerPermissionType from '../type/PlayerPermissionType';
 
 export enum AbilityLayerType {
     CACHE,

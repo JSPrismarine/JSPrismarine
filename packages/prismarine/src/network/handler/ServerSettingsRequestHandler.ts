@@ -1,6 +1,6 @@
 import Identifiers from '../Identifiers';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
+import type PacketHandler from './PacketHandler';
+import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import type ServerSettingsRequestPacket from '../packet/ServerSettingsRequestPacket';
 
