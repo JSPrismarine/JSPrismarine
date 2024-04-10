@@ -31,11 +31,12 @@ export class Attribute {
     /**
      * Class used to store Attribute data.
      *
-     * @param name - Attribute identifier
-     * @param min - Attribute minimum value
-     * @param max - Attribute maximum value
-     * @param def - Attribute default value
-     * @param value - Attribute current value
+     * @param {object} data - The attribute data.
+     * @param {string} data.name - The name of the attribute.
+     * @param {number} data.min - The minimum value of the attribute.
+     * @param {number} data.max - The maximum value of the attribute.
+     * @param {number} data.def - The default value of the attribute.
+     * @param {number} data.value - The current value of the attribute.
      */
     public constructor({
         name,

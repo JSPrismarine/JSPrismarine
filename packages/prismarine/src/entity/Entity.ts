@@ -8,23 +8,35 @@ import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import type Server from '../Server';
 import TextType from '../network/type/TextType';
 import Vector3 from '../math/Vector3';
-import type World from '../world/World';
+import UUID from '../utils/UUID';
 
 export class EntityLike extends Position {
+    protected readonly uuid: string;
+    protected readonly runtimeId: bigint;
+    protected readonly server: Server;
+
     /**
      * EntityLike constructor.
      * @constructor
-     * @param {bigint} runtimeId - The entity's runtime id.
-     * @param {Server} server - The server instance.
-     * @param {World} [world] - The world the entity belongs to.
+     * @param {object} options - The entity-like options.
+     * @param {string} options.uuid - The entity's runtime id.
+     * @param {bigint} options.runtimeId - The entity's runtime id.
+     * @param {Server} options.server - The server instance.
+     * @param {World} [options.world] - The world the entity belongs to.
      * @returns {EntityLike} The entity-like instance.
      */
-    public constructor(
-        protected readonly runtimeId: bigint,
-        protected readonly server: Server,
-        world?: World
-    ) {
-        super({ world }); // TODO
+    public constructor({
+        uuid,
+        runtimeId,
+        ...options
+    }: ConstructorParameters<typeof Position>[0] & {
+        uuid?: string;
+        runtimeId: bigint;
+    }) {
+        super(options); // TODO
+        this.server = options.server;
+        this.uuid = uuid ?? UUID.randomString();
+        this.runtimeId = runtimeId;
     }
 
     /**
@@ -156,9 +168,6 @@ export class Entity extends EntityLike {
      */
     public static runtimeIdCount = 0n;
 
-    protected readonly runtimeId: bigint;
-    protected readonly server: Server;
-
     /**
      * @deprecated
      */
@@ -172,19 +181,25 @@ export class Entity extends EntityLike {
     /**
      * Entity constructor.
      * @constructor
-     * @param {World} world - The world the entity belongs to.
-     * @param {Server} server - The server instance.
+     * @param {object} options - The entity options.
+     * @param {World} options.world - The world the entity belongs to.
+     * @param {Server} options.server - The server instance.
+     * @param {string} [options.uuid] - The entity's UUID.
      * @returns {Entity} The entity instance.
      * @example
      * ```typescript
-     * const entity = new Entity(this.world, this.server);
+     * const entity = new Entity({
+     *     world: server.getWorldManager().getDefaultWorld(),
+     *     server
+     * });
      * ```
      */
-    public constructor(world: World, server: Server) {
+    public constructor({ ...options }: Omit<ConstructorParameters<typeof EntityLike>[0], 'runtimeId'>) {
         Entity.runtimeIdCount += 1n;
-        super(Entity.runtimeIdCount, server, world);
-        this.runtimeId = Entity.runtimeIdCount;
-        this.server = server;
+        super({
+            ...options,
+            runtimeId: Entity.runtimeIdCount
+        });
 
         this.metadata.setLong(MetadataFlag.INDEX, 0n);
         this.metadata.setShort(MetadataFlag.MAX_AIR, 300);
@@ -198,6 +213,14 @@ export class Entity extends EntityLike {
         this.setGenericFlag(MetadataFlag.HAS_COLLISION, true);
     }
 
+    get [Symbol.toStringTag]() {
+        return `Entity(${this.toString()})`;
+    }
+
+    toString() {
+        return `uuid: §a${this.getUUID()}§r, id: §a${this.getRuntimeId()}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, ${super.toString()}`;
+    }
+
     /**
      * Get the entity's runtime id.
      * @returns {bigint} The entity's runtime id.
@@ -209,6 +232,14 @@ export class Entity extends EntityLike {
      */
     public getRuntimeId(): bigint {
         return this.runtimeId;
+    }
+
+    /**
+     * Get the entity's UUID.
+     * @returns {string} The entity's UUID.
+     */
+    public getUUID(): string {
+        return this.uuid;
     }
 
     /**
@@ -363,7 +394,7 @@ export class Entity extends EntityLike {
             this.getServer()
                 .getSessionManager()
                 .getAllPlayers()
-                .filter((player) => player.getWorld().getUniqueId() === this.getWorld().getUniqueId())
+                .filter((player) => player.getWorld().getUUID() === this.getWorld().getUUID())
                 .map(async (player) => {
                     const packet = new MoveActorAbsolutePacket();
                     packet.runtimeEntityId = this.runtimeId;

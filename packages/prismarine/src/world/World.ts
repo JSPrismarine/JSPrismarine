@@ -4,7 +4,6 @@ import type BaseProvider from './providers/BaseProvider';
 import type { Block } from '../block/Block';
 import { BlockMappings } from '../block/BlockMappings';
 import Chunk from './chunk/Chunk';
-import type { Entity } from '../entity/Entity';
 import Gamemode from './Gamemode';
 import type Generator from './Generator';
 import Item from '../item/Item';
@@ -17,8 +16,11 @@ import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import Vector3 from '../math/Vector3';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
 import { cwd } from '../utils/cwd';
-import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
+import * as Entities from '../entity/Entities';
+import type { Entity } from '../entity/Entity';
+
+import fs from 'node:fs';
 import path from 'node:path';
 
 export interface WorldData {
@@ -34,6 +36,15 @@ export interface WorldData {
 export interface LevelMeta {
     spawn: { x: number; y: number; z: number } | undefined;
     gameRules: Array<[string, any]>;
+    entities: Array<{
+        uuid: string;
+        type: string;
+        position: {
+            x: number;
+            y: number;
+            z: number;
+        };
+    }>;
 }
 export interface WorldPlayerData {
     gamemode: string;
@@ -54,7 +65,7 @@ export interface WorldPlayerData {
 }
 
 export default class World {
-    private readonly uniqueId: string = UUID.randomString();
+    private readonly uuid: string = UUID.randomString();
     private name: string;
     private path: string;
 
@@ -90,20 +101,29 @@ export default class World {
     public async onEnable(): Promise<void> {
         this.server.on('tick', async (evt) => this.update(evt.getTick()));
 
-        try {
-            const metaData: LevelMeta = JSON.parse(
-                await fs.promises.readFile(path.join(this.path, 'level.json'), 'utf-8')
+        const level = await this.getLevelData();
+        if (level.spawn) this.setSpawnPosition(Vector3.fromObject(level.spawn));
+        if (level.gameRules) {
+            level.gameRules.forEach(([name, [value, editable]]) =>
+                this.gameruleManager.setGamerule(name, value, editable)
             );
+        }
+        if (level.entities) {
+            for (const entityData of level.entities) {
+                const Entity = Array.from(Object.values(Entities)).find((e) => e.MOB_ID === entityData.type);
+                if (!Entity) {
+                    this.server.getLogger().warn(`Entity type ${entityData.type} not found`);
+                    continue;
+                }
 
-            if (metaData.spawn) this.setSpawnPosition(Vector3.fromObject(metaData.spawn));
-
-            if (metaData.gameRules) {
-                metaData.gameRules.forEach(([name, [value, editable]]) =>
-                    this.gameruleManager.setGamerule(name, value, editable)
+                await this.addEntity(
+                    new Entity({
+                        world: this,
+                        server: this.server,
+                        uuid: entityData.uuid
+                    })
                 );
             }
-        } catch (error: unknown) {
-            this.server.getLogger().warn(`Failed to read level.json due to ${error}`);
         }
 
         this.provider.setWorld(this);
@@ -127,17 +147,7 @@ export default class World {
     }
 
     public async onDisable() {
-        await fs.promises.writeFile(
-            path.join(this.path, 'level.json'),
-            JSON.stringify(
-                {
-                    spawn: await this.getSpawnPosition(),
-                    gamerules: Array.from(this.getGameruleManager().getGamerules())
-                },
-                null,
-                4
-            )
-        );
+        await this.save();
         await this.provider.onDisable();
     }
 
@@ -176,7 +186,10 @@ export default class World {
      */
     public async getBlock(bx: number, by: number, bz: number, layer = 0): Promise<Block> {
         const blockId = (await this.getChunkAt(bx, bz)).getBlock(bx, by, bz, layer);
-        return this.server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
+        const block = this.server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
+
+        if (!block) return this.server.getBlockManager().getBlock('minecraft:air');
+        return block;
     }
 
     /**
@@ -432,6 +445,7 @@ export default class World {
                 await this.savePlayerData(player);
             });
         await this.saveChunks();
+        await this.saveLevelData();
     }
 
     public getGameruleManager(): GameruleManager {
@@ -451,8 +465,8 @@ export default class World {
     }
 
     // This is used for example in start game packet
-    public getUniqueId(): string {
-        return this.uniqueId;
+    public getUUID(): string {
+        return this.uuid;
     }
 
     public getName(): string {
@@ -463,13 +477,45 @@ export default class World {
         return this.seed;
     }
 
+    private async getLevelData() {
+        try {
+            const raw = fs.promises.readFile(path.resolve(this.path, 'level.json'), 'utf-8');
+            return JSON.parse(minifyJson(raw.toString())) as Partial<LevelMeta>;
+        } catch {
+            this.server.getLogger().warn(`Failed to read level data`);
+            return {};
+        }
+    }
+
+    public async saveLevelData(): Promise<void> {
+        const data = {
+            spawn: await this.getSpawnPosition(),
+            gamerules: Array.from(this.getGameruleManager().getGamerules()),
+            entities: this.getEntities()
+                .filter((entity) => !entity.isPlayer() && !entity.isConsole())
+                .map((entity) => ({
+                    uuid: entity.getUUID(),
+                    type: entity.getType(),
+                    position: {
+                        x: entity.getX(),
+                        y: entity.getY(),
+                        z: entity.getZ()
+                    }
+                }))
+        };
+
+        try {
+            await fs.promises.writeFile(path.resolve(this.path, 'level.json'), JSON.stringify(data, null, 4));
+        } catch (error: unknown) {
+            this.server.getLogger().error(`Failed to save level data`);
+            this.server.getLogger().error(error);
+        }
+    }
+
     public async getPlayerData(player: Player): Promise<WorldPlayerData> {
         try {
-            const playerData = fs.readFileSync(
-                path.join(cwd(), 'worlds', this.getName(), 'playerdata', `${player.getXUID()}.json`)
-            );
-
-            return JSON.parse(minifyJson(playerData.toString('utf-8'))) as WorldPlayerData;
+            const raw = fs.readFileSync(path.resolve(this.path, 'playerdata', `${player.getXUID()}.json`, 'utf-8'));
+            return JSON.parse(minifyJson(raw.toString())) as WorldPlayerData;
         } catch {
             this.server
                 .getLogger()
@@ -490,46 +536,42 @@ export default class World {
     }
 
     public async savePlayerData(player: Player): Promise<void> {
+        const data = {
+            uuid: player.getUUID(),
+            username: player.getName(),
+            gamemode: Gamemode.getGamemodeName(player.gamemode).toLowerCase(),
+            position: {
+                x: player.getX(),
+                y: player.getY(),
+                z: player.getZ(),
+                pitch: player.pitch,
+                yaw: player.yaw
+            },
+            inventory: player
+                .getInventory()
+                .getItems(true)
+                .map((entry, index) => {
+                    const item = entry.getItem();
+                    const count = entry.getCount();
+
+                    return {
+                        id: item.getName(),
+                        numeric_id: item.getId(),
+                        numeric_meta: item.meta,
+                        count,
+                        position: index
+                    };
+                })
+                .filter((a) => (a as any)?.numeric_id > 0)
+        } as WorldPlayerData;
+
         try {
             fs.writeFileSync(
-                path.join(cwd(), 'worlds', this.getName(), 'playerdata', `${player.getXUID()}.json`),
-                JSON.stringify(
-                    {
-                        uuid: player.getUUID(),
-                        username: player.getName(),
-                        gamemode: Gamemode.getGamemodeName(player.gamemode).toLowerCase(),
-                        position: {
-                            x: player.getX(),
-                            y: player.getY(),
-                            z: player.getZ(),
-                            pitch: player.pitch,
-                            yaw: player.yaw
-                        },
-                        inventory: player
-                            .getInventory()
-                            .getItems(true)
-                            .map((entry, index) => {
-                                if (!entry) return null;
-
-                                const item = entry.getItem();
-                                const count = entry.getCount();
-
-                                return {
-                                    id: item.getName(),
-                                    numeric_id: item.getId(),
-                                    numeric_meta: item.meta,
-                                    count,
-                                    position: index
-                                };
-                            })
-                            .filter((a) => a && a.numeric_id > 0) as any
-                    } as WorldPlayerData,
-                    null,
-                    4
-                )
+                path.resolve(this.path, 'playerdata', `${player.getXUID()}.json`),
+                JSON.stringify(data, null, 4)
             );
         } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to save player data: ${error}`);
+            this.server.getLogger().error(`Failed to save player data`);
             this.server.getLogger().error(error);
         }
     }

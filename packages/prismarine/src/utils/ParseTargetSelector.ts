@@ -146,7 +146,7 @@ const ParseTargetSelector = ({
             break;
     }
 
-    targets = targets.filter((a) => a).slice(0, limit);
+    targets = targets.slice(0, limit);
     if (targets.length <= 0) throw new Error('no results');
     return targets;
 };

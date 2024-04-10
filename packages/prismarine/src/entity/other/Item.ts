@@ -2,21 +2,26 @@ import { AddItemActorPacket } from '../../network/Packets';
 import type ContainerEntry from '../../inventory/ContainerEntry';
 import { Entity } from '../Entity';
 import type Player from '../../Player';
-import type Server from '../../Server';
 import Vector3 from '../../math/Vector3';
-import type World from '../../world/World';
 
 export default class Item extends Entity {
     public static MOB_ID = 'minecraft:item';
-    private item: ContainerEntry;
+    private item?: ContainerEntry;
 
-    public constructor(world: World, server: Server, item: ContainerEntry) {
-        super(world, server);
+    public constructor({
+        item,
+        ...options
+    }: ConstructorParameters<typeof Entity>[0] & {
+        item?: ContainerEntry;
+    }) {
+        super(options);
 
         this.item = item;
     }
 
     public async sendSpawn(player?: Player) {
+        if (!this.item) return;
+
         const players: Player[] = player
             ? [player]
             : (this.getWorld()
@@ -46,7 +51,9 @@ export default class Item extends Entity {
             if (entity.getType() !== this.getType()) return false;
 
             const item = entity as Item;
-            if (item.item.getItem().getName() !== this.item.getItem().getName()) return false;
+            if (!item.item) return false;
+
+            if (item.item.getItem().getName() !== this.item?.getItem().getName()) return false;
 
             return true;
         }) as Item[];
@@ -82,7 +89,7 @@ export default class Item extends Entity {
         await this.getWorld().removeEntity(this);
 
         const player = entity as Player;
-        player.getInventory().addItem(this.item);
+        if (this.item) player.getInventory().addItem(this.item);
         await player.getNetworkSession().sendInventory();
     }
 }

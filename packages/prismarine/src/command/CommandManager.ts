@@ -171,7 +171,7 @@ export default class CommandManager {
 
                 return branches.map((branch) => [command.getName(), command, branch]);
             })
-            .filter((a) => a);
+            .filter((a) => a as any);
 
         res.toString = () => {
             return `${this.getCommandsList()

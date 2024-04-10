@@ -12,8 +12,8 @@ import path from 'node:path';
  */
 export interface WorldData {
     seed: number;
-    provider: string;
-    generator: string;
+    provider?: string;
+    generator?: string;
 }
 
 /**
@@ -133,11 +133,11 @@ export default class WorldManager {
             generator,
             config: worldData
         });
-        this.worlds.set(world.getUniqueId(), world);
+        this.worlds.set(world.getUUID(), world);
 
         // First level to be loaded is also the default one
         if (!this.defaultWorld) {
-            this.defaultWorld = this.worlds.get(world.getUniqueId())!;
+            this.defaultWorld = this.worlds.get(world.getUUID())!;
             this.server.getLogger().info(`Loaded §b${folderName}§r as default world!`);
         }
 
@@ -163,24 +163,20 @@ export default class WorldManager {
         }
 
         await world.onDisable();
-        this.worlds.delete(world.getUniqueId());
+        this.worlds.delete(world.getUUID());
         this.server.getLogger().verbose(`Successfully unloaded world §b${folderName}§f!`);
     }
 
     /**
      * Returns whatever the world is loaded or not.
+     * @returns {boolean} true if the world is loaded, false otherwise
      */
     public isWorldLoaded(folderName: string): boolean {
-        for (const world of this.worlds.values()) {
-            if (world.getName().toLowerCase() === folderName.toLowerCase()) {
-                return true;
-            }
+        const world = Array.from(this.worlds.values()).find(
+            (world) => world.getName().toLowerCase() === folderName.toLowerCase()
+        );
 
-            if (world.getUniqueId() === folderName) {
-                return true;
-            }
-        }
-
+        if (world) return true;
         return false;
     }
 
@@ -199,7 +195,7 @@ export default class WorldManager {
     }
 
     public getDefaultWorld() {
-        return this.defaultWorld;
+        return this.defaultWorld!;
     }
 
     public getGeneratorManager(): GeneratorManager {

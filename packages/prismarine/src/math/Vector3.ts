@@ -33,9 +33,13 @@ export default class Vector3 {
      * ```
      */
     public constructor(x: number = 0, y: number = 0, z: number = 0) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+        this.setX(x);
+        this.setY(y);
+        this.setZ(z);
+    }
+
+    toString() {
+        return `x: §b${this.x}§r, y: §b${this.y}§r, z: §b${this.z}§r`;
     }
 
     public static fromObject(obj: { x: number; y: number; z: number }): Vector3 {

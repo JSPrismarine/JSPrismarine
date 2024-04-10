@@ -23,7 +23,10 @@ export default class Console extends EntityLike {
     private history: string[] = [];
 
     public constructor(server: Server, runtimeId = BigInt(-1)) {
-        super(runtimeId, server);
+        super({
+            server,
+            runtimeId
+        });
 
         process.stdin.setRawMode(true);
 

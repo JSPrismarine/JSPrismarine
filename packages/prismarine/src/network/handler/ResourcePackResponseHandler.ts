@@ -56,7 +56,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             startGame.pitch = player.pitch;
             startGame.yaw = player.yaw;
 
-            startGame.levelId = world.getUniqueId();
+            startGame.levelId = world.getUUID();
             startGame.worldName = world.getName();
             startGame.seed = world.getSeed();
             startGame.gamerules = world.getGameruleManager();

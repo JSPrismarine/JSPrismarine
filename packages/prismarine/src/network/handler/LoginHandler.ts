@@ -34,11 +34,15 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
 
         // TODO: get rid of this trash
         const world = server.getWorldManager().getDefaultWorld()!;
-        const player = new Player(connection, world, server);
+        const player = new Player({
+            connection,
+            world,
+            server,
+            uuid: packet.identity
+        });
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;
         player.randomId = packet.clientRandomId;
-        player.uuid = packet.identity;
         player.xuid = packet.XUID;
         player.skin = packet.skin;
         player.device = packet.device;

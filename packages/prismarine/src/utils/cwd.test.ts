@@ -5,9 +5,10 @@ import { cwd } from './cwd';
 import process from 'node:process';
 import { resolve } from 'node:path';
 
-describe('urils', () => {
+describe('utils', () => {
     describe('cwd', () => {
         it('should return the current working directory', () => {
+            vi.unstubAllEnvs();
             const result = cwd();
             expect(result).toBe(process.cwd());
         });

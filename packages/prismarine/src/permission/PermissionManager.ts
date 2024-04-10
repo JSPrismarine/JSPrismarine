@@ -108,18 +108,18 @@ export class PermissionManager {
             }
 
             const readFile = util.promisify(fs.readFile);
-            const permissionsObject: {
+            const permissionsObject: Partial<{
                 defaultPermissions: string[];
                 defaultOperatorPermissions: string[];
                 players: Array<{
                     name: string;
                     permissions: string[];
                 }>;
-            } = JSON.parse(minifyJson((await readFile(path.join(cwd(), '/permissions.json'))).toString()));
+            }> = JSON.parse(minifyJson((await readFile(path.join(cwd(), '/permissions.json'))).toString()));
 
             this.defaultPermissions = permissionsObject.defaultPermissions || [];
             this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
-            permissionsObject.players.map((player) =>
+            permissionsObject.players?.map((player) =>
                 this.permissions.set(player.name, player.permissions.length <= 0 ? [] : player.permissions)
             );
         } catch (error: unknown) {
@@ -154,13 +154,11 @@ export class PermissionManager {
      */
     public async setOp(username: string, op: boolean): Promise<boolean> {
         const target = this.server.getSessionManager().getPlayerByExactName(username); // TODO: by name not exact
-        if (target) {
-            const event = new playerToggleOperatorEvent(target, op);
-            this.server.post(['playerToggleOperator', event]);
-            if (event.isCancelled()) return false;
+        const event = new playerToggleOperatorEvent(target, op);
+        this.server.post(['playerToggleOperator', event]);
+        if (event.isCancelled()) return false;
 
-            await target.getNetworkSession().sendAvailableCommands();
-        }
+        await target.getNetworkSession().sendAvailableCommands();
 
         if (op) this.ops.add(username);
         else this.ops.delete(username);
@@ -179,7 +177,7 @@ export class PermissionManager {
                 )
             );
 
-            if (target) await target.sendSettings();
+            await target.sendSettings();
             return true;
         } catch {
             return false;
@@ -202,7 +200,7 @@ export class PermissionManager {
      * @param {Player} executer - The player to check.
      * @returns {object} An object with an execute method that takes a permission string and returns whether the player can execute the command.
      */
-    public can(executer: Player) {
+    public can(executer?: Player) {
         return {
             execute: (permission?: string) => {
                 if (!executer) throw new Error(`Executer can't be undefined or null`);
