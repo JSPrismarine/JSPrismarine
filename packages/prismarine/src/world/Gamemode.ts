@@ -1,4 +1,4 @@
-const Gamemode = {
+export const Gamemode = {
     Survival: 0,
     Creative: 1,
     Adventure: 2,
@@ -38,5 +38,3 @@ const Gamemode = {
         }
     }
 };
-
-export default Gamemode;

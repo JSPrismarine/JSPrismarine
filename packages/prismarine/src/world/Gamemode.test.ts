@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import Gamemode from './Gamemode';
+import { Gamemode } from './';
 
 describe('world', () => {
     describe('Gamemode', () => {

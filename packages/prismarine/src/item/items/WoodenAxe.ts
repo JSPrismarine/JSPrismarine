@@ -1,7 +1,7 @@
 import { BlockToolType } from '../../block/BlockToolType';
 import { ItemIdsType } from '../ItemIdsType';
 import { ItemTieredToolType } from '../ItemTieredToolType';
-import TieredTool from '../TieredTool';
+import { TieredTool } from '../TieredTool';
 
 export default class WoodenAxe extends TieredTool {
     public constructor() {
@@ -14,7 +14,7 @@ export default class WoodenAxe extends TieredTool {
         );
     }
 
-    public getBurntime() {
+    public getBurnTime() {
         return 200;
     }
 

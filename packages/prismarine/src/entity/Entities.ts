@@ -43,7 +43,7 @@ import Horse from './passive/Horse';
 import Husk from './hostile/Husk';
 import IceBomb from './other/IceBomb';
 import IronGolem from './neutral/IronGolem';
-import Item from './other/Item';
+import { Item } from './other/Item';
 import LeashKnot from './other/LeashKnot';
 import LightningBolt from './other/LightningBolt';
 import LingeringPotion from './other/LingeringPotion';

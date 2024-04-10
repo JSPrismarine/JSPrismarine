@@ -3,18 +3,14 @@ import { Config, Logger, Server } from '@jsprismarine/prismarine';
 import path from 'node:path';
 import dotenv from 'dotenv';
 
-const isDev = process.env.NODE_ENV === 'development';
 process.title = 'JSPrismarine';
 
 dotenv.config({
     path: [
         path.join(process.cwd(), '.env'),
         path.join(process.cwd(), '.env.local'),
-        ...((isDev && [
-            path.join(process.cwd(), '.env.development'),
-            path.join(process.cwd(), '.env.development.local')
-        ]) ||
-            [])
+        path.join(process.cwd(), '.env.development'),
+        path.join(process.cwd(), '.env.development.local')
     ]
 });
 
@@ -55,3 +51,5 @@ dotenv.config({
         await server.shutdown({ crash: true });
     }
 })();
+
+export {};

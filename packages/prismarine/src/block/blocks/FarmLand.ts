@@ -1,6 +1,6 @@
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
-import type Item from '../../item/Item';
+import type { Item } from '../../item/Item';
 import type Server from '../../Server';
 import { Solid } from '../Solid';
 

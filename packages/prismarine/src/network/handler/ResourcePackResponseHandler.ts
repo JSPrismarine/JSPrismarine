@@ -5,7 +5,7 @@ import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPac
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import ChatEvent from '../../events/chat/ChatEvent';
-import Gamemode from '../../world/Gamemode';
+import { Gamemode } from '../../world/';
 import Identifiers from '../Identifiers';
 import ItemComponentPacket from '../packet/ItemComponentPacket';
 import type PacketHandler from './PacketHandler';

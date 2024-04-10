@@ -9,8 +9,6 @@ import Identifiers from '../Identifiers';
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
  * | Radius | VarInt | The view-distance |
- *
- * @public
  */
 export default class ChunkRadiusUpdatedPacket extends DataPacket {
     public static NetID = Identifiers.ChunkRadiusUpdatedPacket;

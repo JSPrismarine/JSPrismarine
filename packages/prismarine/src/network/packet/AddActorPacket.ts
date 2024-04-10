@@ -18,8 +18,6 @@ import Vector3 from '../../math/Vector3';
  * | pitch | LFloat |  |
  * | yaw | LFloat |  |
  * | headYaw | LFloat |  |
- *
- * @public
  */
 export default class AddActorPacket extends DataPacket {
     public static NetID = Identifiers.AddActorPacket;

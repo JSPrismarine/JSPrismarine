@@ -5,7 +5,7 @@ import { Suggestions } from '@jsprismarine/brigadier';
 import CommandParameter, { CommandParameterFlags, CommandParameterType } from '../network/type/CommandParameter';
 
 import CommandEnum from '../network/type/CommandEnum';
-import Gamemode from '../world/Gamemode';
+import { Gamemode } from '../world/';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import type Player from '../Player';

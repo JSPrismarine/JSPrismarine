@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import Config from './Config';
+import { Config } from './Config';
 
 describe('config', () => {
     describe('Config', () => {

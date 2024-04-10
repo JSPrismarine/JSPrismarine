@@ -9,7 +9,7 @@ export default class Crossbow extends Tool {
         });
     }
 
-    public getBurntime() {
+    public getBurnTime() {
         return 200;
     }
 

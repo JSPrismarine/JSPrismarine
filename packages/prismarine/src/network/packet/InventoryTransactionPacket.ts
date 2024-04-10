@@ -1,6 +1,6 @@
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import Item from '../../item/Item';
+import { Item } from '../../item/Item';
 import Vector3 from '../../math/Vector3';
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
 import BlockPosition from '../../world/BlockPosition';

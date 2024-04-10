@@ -1,6 +1,6 @@
 import Stone, { StoneType } from './Stone';
 
-import type Item from '../../item/Item';
+import type { Item } from '../../item/Item';
 import type Server from '../../Server';
 
 export default class Diorite extends Stone {

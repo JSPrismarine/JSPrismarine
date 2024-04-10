@@ -3,8 +3,6 @@ import type { RakNetSession } from '@jsprismarine/raknet';
 
 /**
  * Fired just as a new client connects to the raknet server instance.
- *
- * @public
  */
 export default class RaknetConnectEvent extends Event {
     private readonly session: RakNetSession;

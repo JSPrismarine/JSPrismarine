@@ -1,9 +1,10 @@
 import Filesystem from './providers/filesystem/Filesystem';
-import GeneratorManager from './GeneratorManager';
+import { GeneratorManager } from './';
 import type Provider from './providers/Provider';
 import type Server from '../Server';
-import World from './World';
+import { World } from './';
 import { cwd } from '../utils/cwd';
+
 import fs from 'node:fs';
 import path from 'node:path';
 

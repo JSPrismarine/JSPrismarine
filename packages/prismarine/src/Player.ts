@@ -8,7 +8,7 @@ import ContainerEntry from './inventory/ContainerEntry';
 import CoordinateUtils from './world/CoordinateUtils';
 import type Device from './utils/Device';
 import FormManager from './form/FormManager';
-import Gamemode from './world/Gamemode';
+import { Gamemode } from './world/';
 import Human from './entity/Human';
 import type { InetAddress } from '@jsprismarine/raknet';
 import MovementType from './network/type/MovementType';
@@ -22,11 +22,13 @@ import TextType from './network/type/TextType';
 import Timer from './utils/Timer';
 import Vector3 from './math/Vector3';
 import WindowManager from './inventory/WindowManager';
-import type World from './world/World';
+import type { World } from './world/';
 
 import type Server from './Server';
 
-// Default spawn view distance used in vanilla
+/**
+ * Default spawn view distance used in vanilla
+ */
 export const VANILLA_DEFAULT_SPAWN_RADIUS = 4;
 
 export default class Player extends Human {

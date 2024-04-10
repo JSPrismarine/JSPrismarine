@@ -1,4 +1,4 @@
-import Item from '../Item';
+import { Item } from '../Item';
 import { ItemIdsType } from '../ItemIdsType';
 
 export default class Book extends Item {

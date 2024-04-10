@@ -14,7 +14,7 @@
         "node": ">=21.0.0"
     },
     "scripts": {
-        "prepare": "husky || true && husky install",
+        "prepare": "husky || true",
         "start": "node ./packages/server/dist/Server.es.js --warning --circular",
         "dev": "pnpm --filter ./packages/server run dev",
         "dev:no-watch": "pnpm --filter ./packages/server run dev:no-watch",

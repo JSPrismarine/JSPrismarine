@@ -24,7 +24,7 @@ import { TickEvent } from './events/Events';
 import Timer from './utils/Timer';
 import WorldManager from './world/WorldManager';
 
-import type Config from './config/Config';
+import type { Config } from './config/Config';
 import type LoggerBuilder from './utils/Logger';
 import type { RakNetSession, InetAddress } from '@jsprismarine/raknet';
 import { buildRakNetServerName } from './utils/ServerName';

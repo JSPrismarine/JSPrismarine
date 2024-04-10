@@ -1,6 +1,6 @@
 import type ContainerEntry from './ContainerEntry';
 import Inventory from './Inventory';
-import type Item from '../item/Item';
+import type { Item } from '../item/Item';
 
 export default class HumanInventory extends Inventory {
     private get handSlot() {
