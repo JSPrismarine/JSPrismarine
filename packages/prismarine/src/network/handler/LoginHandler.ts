@@ -1,12 +1,12 @@
+import { Player } from '../../';
+import type Server from '../../Server';
 import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
-import type LoginPacket from '../packet/LoginPacket';
 import { PlayStatusPacket } from '../Packets';
-import PlayStatusType from '../type/PlayStatusType';
-import { Player } from '../../';
-import type PreLoginPacketHandler from './PreLoginPacketHandler';
+import type LoginPacket from '../packet/LoginPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
-import type Server from '../../Server';
+import PlayStatusType from '../type/PlayStatusType';
+import type PreLoginPacketHandler from './PreLoginPacketHandler';
 
 export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> {
     public static NetID = Identifiers.LoginPacket;
@@ -58,7 +58,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             return;
         }
 
-        await player.onEnable();
+        await player.enable();
 
         // TODO: encryption handshake
 

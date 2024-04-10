@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
 
+import minifyJson from 'strip-json-comments';
 import type Player from '../Player';
 import type Server from '../Server';
 import { cwd } from '../utils/cwd';
-import minifyJson from 'strip-json-comments';
 
 /**
  * Ban manager.
@@ -23,11 +23,11 @@ export default class BanManager {
         this.server = server;
     }
 
-    public async onEnable() {
+    public async enable() {
         await this.parseBanned();
     }
 
-    public async onDisable() {
+    public async disable() {
         this.banned.clear();
     }
 

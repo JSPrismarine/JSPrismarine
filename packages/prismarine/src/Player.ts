@@ -124,7 +124,7 @@ export default class Player extends Human {
         server.on('chat', this.chatHandler);
     }
 
-    public async onEnable() {
+    public async enable() {
         this.permissions = await this.getServer().getPermissionManager().getPermissions(this);
 
         const playerData = await this.getWorld().getPlayerData(this);
@@ -165,7 +165,7 @@ export default class Player extends Human {
         this.connected = true;
     }
 
-    public async onDisable() {
+    public async disable() {
         if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
         this.server.removeListener('chat', this.chatHandler);
 
@@ -262,7 +262,7 @@ export default class Player extends Human {
         this.currentChunk = null;
         await this.networkSession.clearChunks();
         await this.networkSession.needNewChunks();
-        await this.onEnable();
+        await this.enable();
         await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
     }
 

@@ -1,8 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import LoggerBuilder from '../utils/Logger';
 import { BlockIdsType } from './BlockIdsType';
 import BlockManager from './BlockManager';
-import LoggerBuilder from '../utils/Logger';
 
 describe('block', () => {
     describe('BlockIdsType', () => {
@@ -11,7 +11,7 @@ describe('block', () => {
             const blockManager = new BlockManager({
                 getLogger: () => new LoggerBuilder()
             } as any);
-            await blockManager.onEnable();
+            await blockManager.enable();
 
             for (const blockId in BlockIdsType) {
                 if (Number.isNaN(Number(blockId))) {

@@ -1,32 +1,32 @@
 import { RakNetListener } from '@jsprismarine/raknet';
-import { Chat, ChatType } from './chat/Chat';
+import Console from './Console';
+import SessionManager from './SessionManager';
 import BanManager from './ban/BanManager';
-import BatchPacket from './network/packet/BatchPacket';
 import BlockManager from './block/BlockManager';
 import { BlockMappings } from './block/BlockMappings';
-import ChatEvent from './events/chat/ChatEvent';
+import { Chat, ChatType } from './chat/Chat';
 import { ChatManager } from './chat/ChatManager';
-import ClientConnection from './network/ClientConnection';
 import { CommandManager } from './command/CommandManager';
-import Console from './Console';
-import type { DataPacket } from './network/Packets';
 import { EventEmitter } from './events/EventEmitter';
-import Identifiers from './network/Identifiers';
-import ItemManager from './item/ItemManager';
-import PacketRegistry from './network/PacketRegistry';
-import { PermissionManager } from './permission/PermissionManager';
-import { QueryManager } from './query/QueryManager';
+import { TickEvent } from './events/Events';
+import ChatEvent from './events/chat/ChatEvent';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
-import SessionManager from './SessionManager';
-import { TickEvent } from './events/Events';
+import ItemManager from './item/ItemManager';
+import ClientConnection from './network/ClientConnection';
+import Identifiers from './network/Identifiers';
+import PacketRegistry from './network/PacketRegistry';
+import type { DataPacket } from './network/Packets';
+import BatchPacket from './network/packet/BatchPacket';
+import { PermissionManager } from './permission/PermissionManager';
+import { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
 import WorldManager from './world/WorldManager';
 
+import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import type { Config } from './config/Config';
 import type LoggerBuilder from './utils/Logger';
-import type { RakNetSession, InetAddress } from '@jsprismarine/raknet';
 import { buildRakNetServerName } from './utils/ServerName';
 
 import { version } from '../package.json' assert { type: 'json' };
@@ -87,15 +87,15 @@ export default class Server extends EventEmitter {
      * Enables the server.
      * @returns {Promise<void>} A promise that resolves when the server is enabled.
      */
-    private async onEnable(): Promise<void> {
-        await this.config.onEnable();
-        await this.console.onEnable();
-        await this.logger.onEnable();
-        await this.permissionManager.onEnable();
-        await this.banManager.onEnable();
-        await this.itemManager.onEnable();
-        await this.blockManager.onEnable();
-        await this.commandManager.onEnable();
+    private async enable(): Promise<void> {
+        await this.config.enable();
+        await this.console.enable();
+        await this.logger.enable();
+        await this.permissionManager.enable();
+        await this.banManager.enable();
+        await this.itemManager.enable();
+        await this.blockManager.enable();
+        await this.commandManager.enable();
     }
 
     /**
@@ -103,17 +103,17 @@ export default class Server extends EventEmitter {
      * @param {boolean} isReload - If the server is being reloaded.
      * @returns {Promise<void>} A promise that resolves when the server is disabled.
      */
-    private async onDisable(isReload: boolean = false): Promise<void> {
-        await this.worldManager.onDisable();
-        await this.commandManager.onDisable();
-        await this.blockManager.onDisable();
-        await this.itemManager.onDisable();
-        await this.banManager.onDisable();
-        await this.permissionManager.onDisable();
-        await this.packetRegistry.onDisable();
-        await this.config.onDisable();
-        await this.logger.onDisable();
-        await this.console.onDisable(isReload);
+    private async disable(isReload: boolean = false): Promise<void> {
+        await this.worldManager.disable();
+        await this.commandManager.disable();
+        await this.blockManager.disable();
+        await this.itemManager.disable();
+        await this.banManager.disable();
+        await this.permissionManager.disable();
+        await this.packetRegistry.disable();
+        await this.config.disable();
+        await this.logger.disable();
+        await this.console.disable(isReload);
 
         // Finally, remove all listeners.
         this.removeAllListeners();
@@ -124,8 +124,8 @@ export default class Server extends EventEmitter {
      * @returns {Promise<void>} A promise that resolves when the server is reloaded.
      */
     public async reload(): Promise<void> {
-        await this.onDisable(true);
-        await this.onEnable();
+        await this.disable(true);
+        await this.enable();
     }
 
     /**
@@ -135,10 +135,10 @@ export default class Server extends EventEmitter {
      * @returns {Promise<void>} A promise that resolves when the server is started.
      */
     public async bootstrap(serverIp = '0.0.0.0', port = 19132): Promise<void> {
-        await this.onEnable();
+        await this.enable();
         await BlockMappings.initMappings(this);
-        await this.worldManager.onEnable();
-        await this.packetRegistry.onEnable();
+        await this.worldManager.enable();
+        await this.packetRegistry.enable();
 
         this.raknet = new RakNetListener(
             this.getConfig().getMaxPlayers(),
@@ -200,7 +200,7 @@ export default class Server extends EventEmitter {
                     await this.emit('chat', event);
                 }
 
-                await player.onDisable();
+                await player.disable();
                 await player.getWorld().removeEntity(player);
                 this.sessionManager.remove(token);
             } catch (error: unknown) {
@@ -345,7 +345,7 @@ export default class Server extends EventEmitter {
         this.stopping = true;
 
         this.logger.info('Stopping server', 'Server/kill');
-        await this.console.onDisable();
+        await this.console.disable();
 
         clearInterval(this.tickerTimer);
 
@@ -356,7 +356,7 @@ export default class Server extends EventEmitter {
             }
 
             // Disable all managers.
-            await this.onDisable();
+            await this.disable();
 
             // `this.raknet` might be undefined if we kill the server really early.
             try {
