@@ -1,7 +1,7 @@
 {
     "$schema": "https://typedoc.org/schema.json",
     "name": "JSPrismarine",
-    "customTitle": "JSPrismarine — a TypeScript Minecraft: Bedrock Edition Server",
+    "customTitle": "JSPrismarine",
     "entryPoints": ["packages/*"],
     "entryPointStrategy": "packages",
     "excludeExternals": true,
