@@ -14,7 +14,7 @@ declare module 'node:readline' {
             write: (data: string) => void;
         };
         input: any;
-        _refreshLine: () => void;
+        _refreshLine?(): void;
     }
 }
 
@@ -76,8 +76,7 @@ export default class Console extends EntityLike {
         this.cli.on('line', (input: string) => {
             if (input.trim() === '') return;
 
-            // Prevent double prompt, this only occurs when using nodemon.
-            // this.cli.output.write(`\x1b[1A`);
+            this.cli.output.write(`\x1b[2D`);
 
             // Handle commands.
             if (input.startsWith('/')) {
@@ -114,6 +113,9 @@ export default class Console extends EntityLike {
 
         this.cli.removeAllListeners();
         this.cli.close();
+
+        process.stdin.removeAllListeners();
+        process.stdout.removeAllListeners();
     }
 
     public write(line: string): void {
@@ -123,7 +125,7 @@ export default class Console extends EntityLike {
         // Write the line.
         this.cli.output.write(`\r${line}\n\r`);
 
-        this.cli._refreshLine();
+        this.cli._refreshLine?.();
         this.cli.prompt();
     }
 
