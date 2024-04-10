@@ -1,7 +1,7 @@
-import type Chunk from '../chunk/Chunk';
 import type { Generator, World } from '../';
-import type Provider from './Provider';
 import type { Server } from '../../';
+import type Chunk from '../chunk/Chunk';
+import type Provider from './Provider';
 
 import fs from 'node:fs';
 
@@ -25,8 +25,8 @@ export default abstract class BaseProvider implements Provider {
         return this.world;
     }
 
-    public async onEnable() {}
-    public async onDisable() {}
+    public async enable() {}
+    public async disable() {}
 
     public getServer(): Server {
         return this.server;

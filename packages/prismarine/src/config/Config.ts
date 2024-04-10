@@ -1,7 +1,7 @@
-import { ConfigBuilder } from './ConfigBuilder';
-import { Gamemode } from '../world/';
 import { SeedGenerator } from '../utils/Seed';
 import { cwd } from '../utils/cwd';
+import { Gamemode } from '../world/';
+import { ConfigBuilder } from './ConfigBuilder';
 
 import path from 'node:path';
 
@@ -21,7 +21,7 @@ export class Config {
 
     public constructor() {}
 
-    public async onEnable(): Promise<void> {
+    public async enable(): Promise<void> {
         const isDev = process.env.NODE_ENV === 'development';
 
         this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
@@ -45,7 +45,7 @@ export class Config {
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
     }
 
-    public async onDisable(): Promise<void> {}
+    public async disable(): Promise<void> {}
 
     /**
      * Get the server's port.

@@ -1,9 +1,9 @@
 import * as Items from './Items';
 
-import type { Item } from './Item';
-import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
 import type Server from '../Server';
+import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
 import Timer from '../utils/Timer';
+import type { Item } from './Item';
 
 // TODO: Don't dynamically import, do it like ./network/Protocol etc
 export default class ItemManager {
@@ -24,7 +24,7 @@ export default class ItemManager {
      * OnEnable hook.
      * @async
      */
-    public async onEnable() {
+    public async enable() {
         await this.importItems();
     }
 
@@ -32,7 +32,7 @@ export default class ItemManager {
      * OnDisable hook.
      * @async
      */
-    public async onDisable() {
+    public async disable() {
         this.items.clear();
     }
 

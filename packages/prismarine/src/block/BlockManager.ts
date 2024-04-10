@@ -1,10 +1,10 @@
 import * as Blocks from './Blocks';
 
+import type Server from '../Server';
+import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
+import Timer from '../utils/Timer';
 import type { Block } from './Block';
 import { BlockIdsType } from './BlockIdsType';
-import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
-import type Server from '../Server';
-import Timer from '../utils/Timer';
 
 export default class BlockManager {
     private readonly server: Server;
@@ -18,14 +18,14 @@ export default class BlockManager {
     /**
      * OnEnable hook.
      */
-    public async onEnable() {
+    public async enable() {
         await this.importBlocks();
     }
 
     /**
      * OnDisable hook.
      */
-    public async onDisable() {
+    public async disable() {
         this.blocks.clear();
     }
 

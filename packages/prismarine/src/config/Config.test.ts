@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Config } from './Config';
 
@@ -8,7 +8,7 @@ describe('config', () => {
 
         beforeEach(async () => {
             config = new Config();
-            await config.onEnable();
+            await config.enable();
         });
 
         it('should have the default server port', () => {
