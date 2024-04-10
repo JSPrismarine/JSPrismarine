@@ -1,8 +1,8 @@
-import { AddItemActorPacket } from '../../network/Packets';
-import type ContainerEntry from '../../inventory/ContainerEntry';
-import { Entity } from '../Entity';
 import type Player from '../../Player';
+import type ContainerEntry from '../../inventory/ContainerEntry';
 import Vector3 from '../../math/Vector3';
+import { AddItemActorPacket } from '../../network/Packets';
+import { Entity } from '../Entity';
 
 export class Item extends Entity {
     public static MOB_ID = 'minecraft:item';
@@ -65,31 +65,5 @@ export class Item extends Entity {
         // TODO: move them closer to each other instead of teleporting
         // Interpolate?
         await this.setPosition(new Vector3(position.getX(), position.getY(), position.getZ()));
-    }
-
-    public async onCollide(entity: Entity) {
-        if (!entity.isPlayer()) {
-            /* if (entity.getType() === 'minecraft:item') {
-                const item = entity as Item;
-
-                if (item.item.getItem().getName() !== this.item.getItem().getName()) return;
-
-                // Remove the other entity.
-                await this.getWorld().removeEntity(entity);
-
-                // Increase our count
-                this.item.setCount(this.item.getCount() + item.item.getCount());
-
-                this.sendSpawn();
-            } */
-
-            return;
-        }
-
-        await this.getWorld().removeEntity(this);
-
-        const player = entity as Player;
-        if (this.item) player.getInventory().addItem(this.item);
-        await player.getNetworkSession().sendInventory();
     }
 }

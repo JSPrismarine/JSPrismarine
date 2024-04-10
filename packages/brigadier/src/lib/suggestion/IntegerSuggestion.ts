@@ -19,7 +19,7 @@ export default class IntegerSuggestion extends Suggestion {
 
         if (!(o instanceof IntegerSuggestion)) return false;
 
-        return this.value == o.value && super.equals(o);
+        return this.value == o.value && super.equals.bind(this)(o);
     }
 
     public toString(): String {
@@ -44,7 +44,7 @@ export default class IntegerSuggestion extends Suggestion {
             return this.value < o.value ? 1 : -1;
         }
 
-        return super.compareTo(o);
+        return super.compareTo.bind(this)(o);
     }
 
     public compareToIgnoreCase(b: Suggestion): number {
