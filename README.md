@@ -19,9 +19,9 @@ JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScri
 
 ## Getting started
 
-**[You can find the documentation over at docs.jsprismarine.org](https://docs.jsprismarine.org/).**
+**[You can find the documentation over at jsprismarine.org/docs](https://jsprismarine.org/docs/).**
 
-Prebuilt binaries will be provided once a stable release is available. For now, you can follow the steps below or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions?query=branch%3Amaster+workflow%3A%22Build+artifacts%22) (which may or may not work before reaching `v1.0.0`).
+Prebuilt binaries will be provided once a stable release is available. For now, you can follow the steps below or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions/workflows/nightly.yml?query=branch%3Amaster) (which may or may not work before reaching `v1.0.0`).
 
 - Linux/MacOS/Unix based OS or Windows (requires WSL)
   - You need [Node.js](https://nodejs.org) `v21`+ and [pnpm](https://pnpm.io).
@@ -38,7 +38,7 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 - Is JSPrismarine for `Minecraft: Bedrock Edition` or `Minecraft: Java Edition`?
   - JSPrismarine is made for `Minecraft: Bedrock Edition`, but there may be plugins available to provide a `Minecraft: Java Edition` implementation.
 - What devices can a player join JSPrismarine with?
-  - By default, PC/Windows, Android, and iOS. With some tricks, you can also join with Xbox One, Switch, and PS4.
+  - By default, PC/Windows, Android, and iOS. With some tricks, you can also join with Xbox, Switch, and even Playstation.
 - Which OSes can run JSPrismarine?
   - Any platform supporting Node.js `v21` or later.
 - If my question isn't listed here, where should I ask?
@@ -52,10 +52,8 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 
 ## Documentation
 
-- [Running JSPrismarine](docs/running.md)
+- [Running JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/running.md)
 
 ## Remarks
 
 - JSPrismarine is still in early/active development, and no stable versions have been released yet.
-- The plugin API is not stable.
-- Development has substantially slowed down, but it is expected to speed up again in the near future.
