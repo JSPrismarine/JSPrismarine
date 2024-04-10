@@ -29,7 +29,7 @@ export default class HelpCommand extends Command {
 
                     // TODO: deal with commands sharing the same name but not namespace (`minecraft:help` + `some-plugin:help`).
                     await source.sendMessage(
-                        `§e/${command.id.split(':').at(-1)}§r${(usage && ` §b${usage}§r`) || ''}: §7${command.description}`
+                        `§e/${command.name}§r${(usage && ` §b${usage}§r`) || ''}: §7${command.description}`
                     );
                 });
         };

@@ -104,6 +104,7 @@ export default class Server extends EventEmitter {
      * @returns {Promise<void>} A promise that resolves when the server is disabled.
      */
     private async onDisable(isReload: boolean = false): Promise<void> {
+        await this.worldManager.onDisable();
         await this.commandManager.onDisable();
         await this.blockManager.onDisable();
         await this.itemManager.onDisable();
@@ -113,6 +114,9 @@ export default class Server extends EventEmitter {
         await this.config.onDisable();
         await this.logger.onDisable();
         await this.console.onDisable(isReload);
+
+        // Finally, remove all listeners.
+        this.removeAllListeners();
     }
 
     /**
@@ -333,11 +337,10 @@ export default class Server extends EventEmitter {
     /**
      * Kills the server asynchronously.
      * @param {object} [options] - The options.
-     * @param {boolean} [options.withoutSaving] - If the server should save the worlds before shutting down.
      * @param {boolean} [options.crash] - If the server should crash.
      * @returns {Promise<void>} A promise that resolves when the server is killed.
      */
-    public async shutdown(options?: { withoutSaving?: boolean; crash?: boolean }): Promise<void> {
+    public async shutdown(options?: { crash?: boolean }): Promise<void> {
         if (this.stopping) return;
         this.stopping = true;
 
@@ -347,23 +350,23 @@ export default class Server extends EventEmitter {
         clearInterval(this.tickerTimer);
 
         try {
-            // Kick all online players
+            // Kick all online players.
             for (const player of this.sessionManager.getAllPlayers()) {
                 await player.kick('Server closed.');
             }
 
-            // Save all worlds
-            if (!options?.withoutSaving) await this.worldManager.save();
+            // Save all worlds.
+            await this.worldManager.save();
 
-            await this.worldManager.onDisable();
+            // Disable all managers.
             await this.onDisable();
 
-            // FIXME: this.raknet might be undefined if we kill the server really early.
+            // `this.raknet` might be undefined if we kill the server really early.
             try {
                 this.raknet.kill();
             } catch {}
 
-            this.getLogger().info('Server stopped!');
+            this.getLogger().info('Server stopped, Goodbye!\n');
 
             process.exit(options?.crash ? 1 : 0);
         } catch (error: unknown) {
