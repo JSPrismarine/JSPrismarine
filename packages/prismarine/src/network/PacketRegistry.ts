@@ -1,12 +1,12 @@
 import * as Handlers from './Handlers';
 import * as Packets from './Packets';
 
-import Identifiers from './Identifiers';
-import type PacketHandler from './handler/PacketHandler';
 import type { PlayerSession } from '../';
-import type PreLoginPacketHandler from './handler/PreLoginPacketHandler';
 import type Server from '../Server';
 import Timer from '../utils/Timer';
+import Identifiers from './Identifiers';
+import type PacketHandler from './handler/PacketHandler';
+import type PreLoginPacketHandler from './handler/PreLoginPacketHandler';
 
 export default class PacketRegistry {
     private server: Server;
@@ -17,12 +17,12 @@ export default class PacketRegistry {
         this.server = server;
     }
 
-    public async onEnable() {
+    public async enable() {
         await this.registerPackets();
         await this.registerHandlers();
     }
 
-    public async onDisable() {
+    public async disable() {
         this.handlers.clear();
         this.packets.clear();
     }

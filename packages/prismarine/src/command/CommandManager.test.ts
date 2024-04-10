@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CommandManager, Command, Commands } from './';
 import type { Server } from '../';
+import { Command, CommandManager, Commands } from './';
 
 describe('command', () => {
     describe('CommandManager', () => {
@@ -21,7 +21,7 @@ describe('command', () => {
 
             // Mock the registerClassCommand method
             commandManager.registerCommand = vi.fn();
-            await commandManager.onEnable();
+            await commandManager.enable();
 
             expect(commandManager.registerCommand).toHaveBeenCalledTimes(Object.keys(Commands).length);
         });
@@ -30,7 +30,7 @@ describe('command', () => {
             const commandManager = new CommandManager(server);
 
             (commandManager as any).commands.set('test', new Command({} as any));
-            await commandManager.onDisable();
+            await commandManager.disable();
 
             expect(commandManager.getCommands().size).toBe(0);
         });

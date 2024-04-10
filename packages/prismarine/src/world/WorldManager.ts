@@ -1,9 +1,8 @@
-import Filesystem from './providers/filesystem/Filesystem';
-import { GeneratorManager } from './';
-import type Provider from './providers/Provider';
 import type Server from '../Server';
-import { World } from './';
 import { cwd } from '../utils/cwd';
+import { GeneratorManager, World } from './';
+import type Provider from './providers/Provider';
+import Filesystem from './providers/filesystem/Filesystem';
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -40,7 +39,7 @@ export default class WorldManager {
     /**
      * Enable the manager and load all worlds.
      */
-    public async onEnable(): Promise<void> {
+    public async enable(): Promise<void> {
         this.addProvider('Filesystem', Filesystem);
 
         const defaultWorld = this.server.getConfig().getLevelName();
@@ -58,7 +57,7 @@ export default class WorldManager {
     /**
      * Signifies that the manager is being disabled and all worlds should be unloaded.
      */
-    public async onDisable(): Promise<void> {
+    public async disable(): Promise<void> {
         await Promise.all(this.getWorlds().map(async (world) => this.unloadWorld(world.getName())));
         this.providers.clear();
     }
@@ -144,7 +143,7 @@ export default class WorldManager {
 
         this.server.getLogger().verbose(`World §b${folderName}§r successfully loaded!`);
 
-        await world.onEnable();
+        await world.enable();
         return world;
     }
 
@@ -163,7 +162,7 @@ export default class WorldManager {
             return;
         }
 
-        await world.onDisable();
+        await world.disable();
         this.worlds.delete(world.getUUID());
         this.server.getLogger().verbose(`Successfully unloaded world §b${folderName}§f!`);
     }

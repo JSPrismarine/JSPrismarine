@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import BanManager from './BanManager';
 import type Server from '../Server';
 import { cwd } from '../utils/cwd';
+import BanManager from './BanManager';
 
 describe('ban', () => {
     describe('BanManager', () => {
@@ -30,14 +30,14 @@ describe('ban', () => {
         describe('onEnable', () => {
             it('should call parseBanned', async () => {
                 const parseBannedSpy = vi.spyOn(banManager, 'parseBanned' as const as keyof BanManager);
-                await banManager.onEnable();
+                await banManager.enable();
                 expect(parseBannedSpy).toHaveBeenCalled();
             });
         });
 
         describe('onDisable', () => {
             it('should clear the banned map', async () => {
-                banManager.onDisable();
+                banManager.disable();
                 expect(banManager['banned'].size).toBe(0);
             });
         });

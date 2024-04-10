@@ -36,7 +36,7 @@ export class PermissionManager implements Service {
      * @returns {Promise<void>} A promise that resolves when the manager is enabled.
      * @async
      */
-    public async onEnable(): Promise<void> {
+    public async enable(): Promise<void> {
         await this.parseOps();
         await this.parsePermissions();
     }
@@ -46,7 +46,7 @@ export class PermissionManager implements Service {
      * @returns {Promise<void>} A promise that resolves when the manager is disabled.
      * @async
      */
-    public async onDisable(): Promise<void> {
+    public async disable(): Promise<void> {
         this.ops.clear();
         this.permissions.clear();
         this.defaultPermissions = [];

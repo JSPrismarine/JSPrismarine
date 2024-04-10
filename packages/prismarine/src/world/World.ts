@@ -1,24 +1,24 @@
 import GameruleManager, { GameRules } from './GameruleManager';
 
-import type BaseProvider from './providers/BaseProvider';
-import type { Block } from '../block/Block';
-import { BlockMappings } from '../block/BlockMappings';
-import Chunk from './chunk/Chunk';
-import { Gamemode } from './';
-import type { Generator } from './Generator';
-import { Item } from '../item/Item';
-import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
+import minifyJson from 'strip-json-comments';
 import type Player from '../Player';
 import type Server from '../Server';
-import Timer from '../utils/Timer';
-import UUID from '../utils/UUID';
-import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
-import Vector3 from '../math/Vector3';
-import WorldEventPacket from '../network/packet/WorldEventPacket';
-import { cwd } from '../utils/cwd';
-import minifyJson from 'strip-json-comments';
+import type { Block } from '../block/Block';
+import { BlockMappings } from '../block/BlockMappings';
 import * as Entities from '../entity/Entities';
 import type { Entity } from '../entity/Entity';
+import { Item } from '../item/Item';
+import Vector3 from '../math/Vector3';
+import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
+import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
+import WorldEventPacket from '../network/packet/WorldEventPacket';
+import Timer from '../utils/Timer';
+import UUID from '../utils/UUID';
+import { cwd } from '../utils/cwd';
+import { Gamemode } from './';
+import type { Generator } from './Generator';
+import Chunk from './chunk/Chunk';
+import type BaseProvider from './providers/BaseProvider';
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -98,7 +98,7 @@ export class World {
         }
     }
 
-    public async onEnable(): Promise<void> {
+    public async enable(): Promise<void> {
         this.server.on('tick', async (evt) => this.update(evt.getTick()));
 
         const level = await this.getLevelData();
@@ -127,7 +127,7 @@ export class World {
         }
 
         this.provider.setWorld(this);
-        await this.provider.onEnable();
+        await this.provider.enable();
 
         this.server
             .getLogger()
@@ -146,9 +146,9 @@ export class World {
         this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)`);
     }
 
-    public async onDisable() {
+    public async disable() {
         await this.save();
-        await this.provider.onDisable();
+        await this.provider.disable();
     }
 
     public getGenerator(): Generator {

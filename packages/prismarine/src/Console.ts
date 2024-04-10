@@ -1,7 +1,7 @@
+import readline from 'node:readline';
 import { Chat } from './chat/Chat';
 import ChatEvent from './events/chat/ChatEvent';
 import Vector3 from './math/Vector3';
-import readline from 'node:readline';
 
 import { EntityLike } from './entity/Entity';
 import type Server from './Server';
@@ -101,7 +101,7 @@ export default class Console extends EntityLike {
         this.cli.on('close', async () => await this.server.shutdown());
     }
 
-    public async onEnable(): Promise<void> {
+    public async enable(): Promise<void> {
         this.server.on('chat', async (evt: ChatEvent) => {
             if (evt.isCancelled()) return;
             await this.sendMessage(evt.getChat().getMessage());
@@ -109,7 +109,7 @@ export default class Console extends EntityLike {
         this.server.getLogger().setConsole(this);
     }
 
-    public async onDisable(isReload: boolean = false): Promise<void> {
+    public async disable(isReload: boolean = false): Promise<void> {
         if (!isReload) return;
 
         this.cli.removeAllListeners();

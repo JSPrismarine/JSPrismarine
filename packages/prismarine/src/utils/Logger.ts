@@ -1,13 +1,13 @@
+import colorParser from '@jsprismarine/color-parser';
 import type { Logger } from 'winston';
 import { createLogger, format, transports } from 'winston';
 import Transport from 'winston-transport';
-import colorParser from '@jsprismarine/color-parser';
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { cwd } from './cwd';
 import type Console from '../Console';
+import { cwd } from './cwd';
 
 const { combine, timestamp, printf } = format;
 
@@ -112,12 +112,12 @@ export default class LoggerBuilder {
         (this.logger.transports[0] as PrismarineTransport).console = console;
     }
 
-    public async onEnable(): Promise<void> {
+    public async enable(): Promise<void> {
         this.createLogger();
         this.logger.level = global.logLevel ?? 'info';
     }
 
-    public async onDisable(): Promise<void> {
+    public async disable(): Promise<void> {
         // TODO: Fix this
         //this.logger.close();
         //this.logger.destroy();
