@@ -345,7 +345,7 @@ export default class PlayerSession {
             .getCommandsList()
             .forEach((command) => {
                 const commandClass = Array.from(this.server.getCommandManager().getCommands().values()).find(
-                    (cmd) => cmd.id.split(':')[1] === command[0]
+                    (cmd) => cmd.name === command[0]
                 );
 
                 if (!commandClass) {

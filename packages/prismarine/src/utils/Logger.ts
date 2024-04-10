@@ -29,7 +29,7 @@ class PrismarineTransport extends Transport {
         }
 
         this.console.write(info[Symbol.for('message')]);
-        next();
+        return next();
     }
 }
 
