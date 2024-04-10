@@ -1,46 +1,29 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { InetAddress } from '@jsprismarine/raknet';
-import { QueryManager } from './QueryManager';
-import Server from '../Server';
-// import esmock from 'esmock';
 
-/* 
-    TODO
-    vi.mock('../Server', () => {
-    return class Prismarine {
-        public constructor({ logger, config }: any) {}
-
-        public getRaknet() {
-            return new (class Raknet {
-                public sendBuffer(buffer: Buffer) {}
-            })();
-        }
-    };
-}); */
-
-/* const Server = await esmock('../Server', {}, () => {
-    return class Prismarine {
-        public constructor({ logger, config }: any) {}
-
-        public getRaknet() {
-            return new (class Raknet {
-                public sendBuffer(buffer: Buffer) {}
-            })();
-        }
-    };
-}) */
+import { QueryManager } from '../';
+import type { Server } from '../';
 
 describe('QueryManager', () => {
-    it.skip('handshake', async () => {
-        // TODO
-        const prismarine = new Server({
-            logger: null as any,
-            config: null as any,
-            version: 'test'
-        });
-        const queryManager = new QueryManager(prismarine);
+    const server: Server = vi.fn().mockImplementation(() => ({
+        getLogger: () => ({
+            debug: vi.fn(),
+            verbose: vi.fn()
+        }),
+        getSessionManager: () => ({
+            getAllPlayers: () => []
+        }),
+        getRaknet: () => ({
+            sendBuffer: vi.fn()
+        }),
+        on: vi.fn(),
+        emit: vi.fn().mockResolvedValue({})
+    }))();
+
+    it('handshake', async () => {
+        const queryManager = new QueryManager(server);
 
         let stream = new BinaryStream();
         stream.writeUnsignedShort(65277);

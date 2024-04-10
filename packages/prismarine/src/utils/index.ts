@@ -6,3 +6,6 @@ import Timer from './Timer';
 import UUID from './UUID';
 
 export { ParseTargetSelector, ParseTildeCaretNotation, Seed, Timer, UUID };
+
+export * from './Service';
+export * from './cwd';

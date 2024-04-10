@@ -1,0 +1,68 @@
+{
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.locale": "en",
+    "typescript.surveys.enabled": false,
+    "git.autofetch": "all",
+    "git.countBadge": "tracked",
+    "git.fetchOnPull": true,
+    "git.inputValidationSubjectLength": 72,
+    "git.inputValidationLength": 72,
+    "git.inputValidation": true,
+    "git.showPushSuccessNotification": true,
+    "github.copilot.enable": {
+        "plaintext": "true",
+        "markdown": "true"
+    },
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+        "source.organizeImports": "explicit",
+        "source.sortMembers": "explicit"
+    },
+    "files.associations": {
+        "**/*.hbs": "plaintext",
+        "LICENSE": "plaintext",
+        ".eslintrc": "json",
+        ".renovaterc": "json"
+    },
+    "files.autoSave": "off",
+    "files.trimTrailingWhitespace": true,
+    "files.eol": "\n",
+    "files.trimFinalNewlines": false,
+    "[plaintext]": {
+        "editor.formatOnSave": false
+    },
+    "[git-commit]": {
+        "editor.rulers": [72],
+        "editor.wordWrap": "off",
+        "workbench.editor.restoreViewState": false
+    },
+    "cSpell.words": [
+        "Despawn",
+        "despawned",
+        "Elytra",
+        "Gamemode",
+        "gamerule",
+        "gamerules",
+        "Inet",
+        "jsbinaryutils",
+        "jsprismarine",
+        "prismarine",
+        "raknet",
+        "SUBCHUNK",
+        "SUBCHUNKS"
+    ],
+    "typescript.preferences.importModuleSpecifier": "non-relative",
+    "github.copilot.chat.localeOverride": "en",
+    "github.copilot.advanced": {
+        "length": 1500,
+        "temperature": "0.75"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+    }
+}

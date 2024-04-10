@@ -1,12 +1,12 @@
 node_modules/
 
+.test/
+.vitest/
 build/
 coverage/
 dist/
-.next/
-.now/
+jsp/
 public/
-.vitest/
 
 *.json
 *.lock

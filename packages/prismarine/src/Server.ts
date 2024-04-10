@@ -7,7 +7,7 @@ import { BlockMappings } from './block/BlockMappings';
 import ChatEvent from './events/chat/ChatEvent';
 import { ChatManager } from './chat/ChatManager';
 import ClientConnection from './network/ClientConnection';
-import CommandManager from './command/CommandManager';
+import { CommandManager } from './command/CommandManager';
 import Console from './Console';
 import type { DataPacket } from './network/Packets';
 import { EventEmitter } from './events/EventEmitter';

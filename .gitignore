@@ -25,7 +25,6 @@ vite.config.ts.timestamp*
 
 # Text editors/IDE things
 .idea
-.vscode
 .DS_Store
 report.*.json
 *.cpuprofile

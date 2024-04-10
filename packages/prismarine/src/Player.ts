@@ -1,28 +1,27 @@
-import { ChangeDimensionPacket, LevelChunkPacket } from './network/Packets';
+import type { InetAddress } from '@jsprismarine/raknet';
+import Human from './entity/Human';
 import { FlagType, MetadataFlag } from './entity/Metadata';
 import type ChatEvent from './events/chat/ChatEvent';
-import type Chunk from './world/chunk/Chunk';
-import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
-import type ClientConnection from './network/ClientConnection';
-import ContainerEntry from './inventory/ContainerEntry';
-import CoordinateUtils from './world/CoordinateUtils';
-import type Device from './utils/Device';
-import FormManager from './form/FormManager';
-import { Gamemode } from './world/';
-import Human from './entity/Human';
-import type { InetAddress } from '@jsprismarine/raknet';
-import MovementType from './network/type/MovementType';
-import PlayStatusType from './network/type/PlayStatusType';
-import PlayerSession from './network/PlayerSession';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
-import type Skin from './utils/skin/Skin';
-import TextType from './network/type/TextType';
-import Timer from './utils/Timer';
-import Vector3 from './math/Vector3';
+import ContainerEntry from './inventory/ContainerEntry';
 import WindowManager from './inventory/WindowManager';
+import Vector3 from './math/Vector3';
+import type ClientConnection from './network/ClientConnection';
+import { ChangeDimensionPacket, LevelChunkPacket } from './network/Packets';
+import PlayerSession from './network/PlayerSession';
+import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
+import MovementType from './network/type/MovementType';
+import PlayStatusType from './network/type/PlayStatusType';
+import TextType from './network/type/TextType';
+import type Device from './utils/Device';
+import Timer from './utils/Timer';
+import type Skin from './utils/skin/Skin';
 import type { World } from './world/';
+import { Gamemode } from './world/';
+import CoordinateUtils from './world/CoordinateUtils';
+import type Chunk from './world/chunk/Chunk';
 
 import type Server from './Server';
 
@@ -77,8 +76,6 @@ export default class Player extends Human {
     public readonly chunkSendQueue = new Set<Chunk>();
     public currentChunk: bigint | null = null;
 
-    private readonly forms: FormManager;
-
     private chatHandler: (event: ChatEvent) => void;
 
     /**
@@ -103,7 +100,6 @@ export default class Player extends Human {
         this.address = connection.getRakNetSession().getAddress();
         this.networkSession = new PlayerSession(server, connection, this);
         this.windows = new WindowManager();
-        this.forms = new FormManager();
         this.permissions = [];
         this.joinTimer.reset();
 
@@ -301,7 +297,7 @@ export default class Player extends Human {
     }
 
     public async sendSettings(): Promise<void> {
-        /* 
+        /*
             TODO
             await Promise.all(
             this.getServer()
@@ -395,10 +391,6 @@ export default class Player extends Human {
         if (!this.xuid) throw new Error('xuid is missing!');
 
         return this.xuid;
-    }
-
-    public getFormManager(): FormManager {
-        return this.forms;
     }
 
     public getWindows(): WindowManager {

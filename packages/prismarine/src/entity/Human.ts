@@ -1,5 +1,5 @@
-import { Entity } from './Entity';
 import HumanInventory from '../inventory/HumanInventory';
+import { Entity } from './';
 
 /**
  * @internal

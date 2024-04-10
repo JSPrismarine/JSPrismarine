@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import CommandManager from './CommandManager';
-import * as Commands from './Commands';
-import { Command } from './Command';
-import type Server from '../Server';
+import { CommandManager, Command, Commands } from './';
+import type { Server } from '../';
 
 describe('command', () => {
     describe('CommandManager', () => {

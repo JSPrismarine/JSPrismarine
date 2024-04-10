@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
 
-import type Player from '../Player';
-import type Server from '../Server';
-import { cwd } from '../utils/cwd';
 import minifyJson from 'strip-json-comments';
+
+import type { Player, Server, Service } from '../';
+import { cwd } from '../';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 
 interface OpType {
@@ -15,7 +15,7 @@ interface OpType {
 /**
  * Permission manager.
  */
-export class PermissionManager {
+export class PermissionManager implements Service {
     private readonly server: Server;
     private readonly ops: Set<string> = new Set();
     private readonly permissions: Map<string, string[]> = new Map();
@@ -34,6 +34,7 @@ export class PermissionManager {
     /**
      * Enable the manager and load all permissions.
      * @returns {Promise<void>} A promise that resolves when the manager is enabled.
+     * @async
      */
     public async onEnable(): Promise<void> {
         await this.parseOps();
@@ -43,6 +44,7 @@ export class PermissionManager {
     /**
      * Signifies that the manager is being disabled and all permissions should be unloaded.
      * @returns {Promise<void>} A promise that resolves when the manager is disabled.
+     * @async
      */
     public async onDisable(): Promise<void> {
         this.ops.clear();
@@ -50,10 +52,20 @@ export class PermissionManager {
         this.defaultPermissions = [];
     }
 
+    /**
+     * Get the default permissions.
+     * @returns {string[]} The default permissions.
+     */
     public getDefaultPermissions(): string[] {
         return this.defaultPermissions;
     }
 
+    /**
+     * Get a player's permissions.
+     * @param {Player} player - The player to get permissions for.
+     * @returns {Promise<string[]>} A promise that resolves with the player's permissions.
+     * @async
+     */
     public async getPermissions(player: Player): Promise<string[]> {
         return [
             ...this.defaultPermissions,
