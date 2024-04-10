@@ -1,7 +1,7 @@
 import type { InetAddress } from '@jsprismarine/raknet';
 import Human from './entity/Human';
 import { FlagType, MetadataFlag } from './entity/Metadata';
-import type ChatEvent from './events/chat/ChatEvent';
+import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
@@ -9,20 +9,21 @@ import ContainerEntry from './inventory/ContainerEntry';
 import WindowManager from './inventory/WindowManager';
 import Vector3 from './math/Vector3';
 import type ClientConnection from './network/ClientConnection';
+import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import { ChangeDimensionPacket, LevelChunkPacket } from './network/Packets';
 import PlayerSession from './network/PlayerSession';
-import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import MovementType from './network/type/MovementType';
 import PlayStatusType from './network/type/PlayStatusType';
 import TextType from './network/type/TextType';
 import type Device from './utils/Device';
-import Timer from './utils/Timer';
 import type Skin from './utils/skin/Skin';
+import Timer from './utils/Timer';
 import type { World } from './world/';
 import { Gamemode } from './world/';
-import CoordinateUtils from './world/CoordinateUtils';
 import type Chunk from './world/chunk/Chunk';
+import CoordinateUtils from './world/CoordinateUtils';
 
+import { Chat, ChatType } from './chat/Chat';
 import type Server from './Server';
 
 /**
@@ -167,8 +168,27 @@ export default class Player extends Human {
 
     public async disable() {
         if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
-        this.server.removeListener('chat', this.chatHandler);
+        await this.getWorld().removeEntity(this);
 
+        // De-spawn the player to all online players
+        await this.getNetworkSession().removeFromPlayerList();
+        for (const onlinePlayer of this.server.getSessionManager().getAllPlayers()) {
+            await this.getNetworkSession().sendDespawn(onlinePlayer);
+        }
+
+        // Announce disconnection
+        const event = new ChatEvent(
+            new Chat({
+                sender: this.server.getConsole(),
+                message: `§e%multiplayer.player.left`,
+                parameters: [this.getName()],
+                needsTranslation: true,
+                type: ChatType.TRANSLATION
+            })
+        );
+        await this.server.emit('chat', event);
+
+        this.server.removeListener('chat', this.chatHandler);
         this.connected = false;
     }
 
