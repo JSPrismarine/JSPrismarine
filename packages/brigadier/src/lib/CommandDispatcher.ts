@@ -76,9 +76,9 @@ export default class CommandDispatcher<S> {
         let next: CommandContext<S>[] | null = null;
         while ((contexts as any) !== null) {
             for (let i = 0; i < contexts.length; i++) {
-                let context = contexts[i]!; // FIXME
-                let child = context.getChild();
-                if (child) {
+                let context = contexts[i]; // FIXME
+                let child = context?.getChild();
+                if (context && child) {
                     forked = forked || context.isForked();
                     if (child.hasNodes()) {
                         foundCommand = true;
@@ -102,7 +102,7 @@ export default class CommandDispatcher<S> {
                             }
                         }
                     }
-                } else if (context.getCommand()) {
+                } else if (context?.getCommand()) {
                     foundCommand = true;
                     try {
                         let value = context.getCommand()(context);
