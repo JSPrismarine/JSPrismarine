@@ -4,9 +4,7 @@ import path from 'node:path';
 import dotenv from 'dotenv';
 
 const isDev = process.env.NODE_ENV === 'development';
-
-// Process metadata
-process.title = 'Prismarine';
+process.title = 'JSPrismarine';
 
 dotenv.config({
     path: [
@@ -28,7 +26,17 @@ dotenv.config({
         logger
     });
 
-    ['SIGINT', 'SIGTERM', 'uncaughtException'].forEach((signal) =>
+    [
+        'SIGABRT',
+        'SIGBREAK',
+        'SIGINT',
+        'SIGKILL',
+        'SIGQUIT',
+        'SIGSEGV',
+        'SIGTERM',
+        'SIGSTOP',
+        'uncaughtException'
+    ].forEach((signal) =>
         process.on(signal, async (error) => {
             if (error instanceof Error) {
                 logger.error(error);

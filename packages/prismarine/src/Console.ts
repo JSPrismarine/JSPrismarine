@@ -20,23 +20,38 @@ declare module 'node:readline' {
 
 export default class Console extends EntityLike {
     public readonly cli: readline.Interface;
+    private history: string[] = [];
 
     public constructor(server: Server, runtimeId = BigInt(-1)) {
         super(runtimeId, server);
 
-        process.stdin.setRawMode?.(true);
+        process.stdin.setRawMode(true);
 
         this.cli = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
             terminal: true,
             prompt: '> ',
+            tabSize: 4,
             crlfDelay: Number.POSITIVE_INFINITY,
-            escapeCodeTimeout: 1500
+            escapeCodeTimeout: 1500,
+            removeHistoryDuplicates: true,
+
+            // TODO: Handle arguments.
+            completer: async (line: string, callback) => {
+                const commands = Array.from(this.getServer().getCommandManager().getCommands().values()).map(
+                    (command) => `/${command.name}`
+                );
+
+                const completions = [...this.history, '/', ...commands];
+                const hits = completions.filter((c) => c.startsWith(line));
+                return callback(null, [hits.length ? hits : completions, line]);
+            }
         });
 
+        this.cli.on('history', (history) => (this.history = history));
+
         this.cli.on('keypress', async (_, key) => {
-            console.log(key);
             switch (key.name) {
                 case 'c': {
                     if (key.ctrl) {
@@ -76,15 +91,15 @@ export default class Console extends EntityLike {
         });
 
         this.cli.on('close', async () => await this.server.shutdown());
+    }
 
+    public async onEnable(): Promise<void> {
         this.server.on('chat', async (evt: ChatEvent) => {
             if (evt.isCancelled()) return;
             await this.sendMessage(evt.getChat().getMessage());
         });
         this.server.getLogger().setConsole(this);
     }
-
-    public async onEnable(): Promise<void> {}
 
     public async onDisable(isReload: boolean = false): Promise<void> {
         if (!isReload) return;

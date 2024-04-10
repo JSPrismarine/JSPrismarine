@@ -14,6 +14,10 @@ export class Command {
      */
     public id: string;
 
+    public get name(): string {
+        return this.id.split(':').at(-1)!;
+    }
+
     /**
      * The command's description.
      */
@@ -50,7 +54,7 @@ export class Command {
 
     public usage(dispatcher: CommandDispatcher<any>): string {
         // TODO: Improve this, it's not really accurate right now.
-        return Array.from(dispatcher.findNode([this.id.split(':').at(-1)!])?.getChildren() || [])
+        return Array.from(dispatcher.findNode([this.name])?.getChildren() || [])
             .map((child) => {
                 if (!(child instanceof ArgumentCommandNode)) return null;
                 return child.getUsageText();

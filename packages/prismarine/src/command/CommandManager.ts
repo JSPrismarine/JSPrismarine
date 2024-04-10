@@ -211,7 +211,7 @@ export default class CommandManager {
             const command = Array.from(this.commands.values()).find(
                 (command) =>
                     // Check if it matches ID without namespace.
-                    command.id.split(':').at(-1) === id ||
+                    command.name === id ||
                     // Check if it's an alias.
                     command.aliases?.includes(id) ||
                     // Last check if it's the whole ID (this is uncommon so,
@@ -243,8 +243,8 @@ export default class CommandManager {
                 );
             } else {
                 // Handle aliases and IDs.
-                if (command.id.split(':').at(-1) !== id) {
-                    await this.dispatchCommand(sender, target, input.replace(id, command.id.split(':')[1]!));
+                if (command.name !== id) {
+                    await this.dispatchCommand(sender, target, input.replace(id, command.name));
                     return;
                 }
 
