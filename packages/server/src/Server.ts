@@ -36,14 +36,16 @@ dotenv.config({
         'SIGTERM',
         'SIGSTOP',
         'uncaughtException'
-    ].forEach((signal) =>
-        process.on(signal, async (error) => {
-            if (error instanceof Error) {
-                logger.error(error);
-            }
-            await server.shutdown({ crash: error === 'uncaughtException' });
-        })
-    );
+    ].forEach((signal) => {
+        try {
+            process.on(signal, async (error) => {
+                if (error instanceof Error) {
+                    logger.error(error);
+                }
+                await server.shutdown({ crash: error === 'uncaughtException' });
+            });
+        } catch {}
+    });
 
     try {
         await server.bootstrap(config.getServerIp(), config.getServerPort());
