@@ -1,5 +1,5 @@
-import type Server from '../Server';
-import { cwd } from '../utils/cwd';
+import type { Server, Service } from '../';
+import { cwd, withCwd } from '../utils/cwd';
 import { GeneratorManager, World } from './';
 import type Provider from './providers/Provider';
 import Filesystem from './providers/filesystem/Filesystem';
@@ -19,7 +19,7 @@ export interface WorldData {
 /**
  * The world manager is responsible level loading, unloading, and general level management.
  */
-export default class WorldManager {
+export default class WorldManager implements Service {
     private readonly worlds: Map<string, World> = new Map() as Map<string, World>;
     private defaultWorld: World | undefined;
     private readonly genManager: GeneratorManager;
@@ -30,10 +30,8 @@ export default class WorldManager {
         this.server = server;
         this.genManager = new GeneratorManager(server);
 
-        // Create folders
-        if (!fs.existsSync(path.join(cwd(), '/worlds'))) {
-            fs.mkdirSync(path.join(cwd(), '/worlds'));
-        }
+        // Create the worlds directory if it doesn't exist.
+        if (!fs.existsSync(withCwd('worlds'))) fs.mkdirSync(withCwd('worlds'), { recursive: true });
     }
 
     /**

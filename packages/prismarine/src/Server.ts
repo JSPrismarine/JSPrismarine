@@ -98,10 +98,10 @@ export default class Server extends EventEmitter {
 
     /**
      * Disables the server.
-     * @param {boolean} isReload - If the server is being reloaded.
+     * @param {boolean} [_isReload=false] - If the server is being reloaded.
      * @returns {Promise<void>} A promise that resolves when the server is disabled.
      */
-    private async disable(isReload: boolean = false): Promise<void> {
+    private async disable(_isReload: boolean = false): Promise<void> {
         await this.worldManager.disable();
         await this.commandManager.disable();
         await this.blockManager.disable();
@@ -111,7 +111,7 @@ export default class Server extends EventEmitter {
         await this.packetRegistry.disable();
         await this.config.disable();
         await this.logger.disable();
-        await this.console.disable(isReload);
+        await this.console.disable();
 
         // Finally, remove all listeners.
         this.removeAllListeners();

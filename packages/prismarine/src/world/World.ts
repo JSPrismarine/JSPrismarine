@@ -1,9 +1,11 @@
 import GameruleManager, { GameRules } from './GameruleManager';
 
+import fs from 'node:fs';
+
 import minifyJson from 'strip-json-comments';
-import type Player from '../Player';
-import type Server from '../Server';
-import type { Block } from '../block/Block';
+
+import type { Block, Player, Server, Service } from '../';
+import { Gamemode, Timer, UUID } from '../';
 import { BlockMappings } from '../block/BlockMappings';
 import * as Entities from '../entity/Entities';
 import type { Entity } from '../entity/Entity';
@@ -12,16 +14,13 @@ import Vector3 from '../math/Vector3';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
-import Timer from '../utils/Timer';
-import UUID from '../utils/UUID';
-import { cwd } from '../utils/cwd';
-import { Gamemode } from './';
+import { cwd, withCwd } from '../utils/cwd';
 import type { Generator } from './Generator';
 import Chunk from './chunk/Chunk';
 import type BaseProvider from './providers/BaseProvider';
 
-import fs from 'node:fs';
-import path from 'node:path';
+const LEVEL_DATA_FILE_NAME = 'level.json';
+const WORLDS_FOLDER_NAME = 'worlds';
 
 export interface WorldData {
     name: string;
@@ -33,7 +32,7 @@ export interface WorldData {
     config?: any;
 }
 
-export interface LevelMeta {
+export interface LevelData {
     spawn: { x: number; y: number; z: number } | undefined;
     gameRules: Array<[string, any]>;
     entities: Array<{
@@ -64,10 +63,9 @@ export interface WorldPlayerData {
     }>;
 }
 
-export class World {
+export class World implements Service {
     private readonly uuid: string = UUID.randomString();
     private name: string;
-    private path: string;
 
     private readonly entities: Map<bigint, Entity> = new Map();
     private readonly chunks: Map<bigint, Chunk> = new Map();
@@ -80,9 +78,8 @@ export class World {
     private readonly config: Object;
     private spawn: Vector3 | null = null;
 
-    public constructor({ name, server, path: levelPath, provider, seed, generator, config }: WorldData) {
+    public constructor({ name, server, provider, seed, generator, config }: WorldData) {
         this.name = name;
-        this.path = levelPath;
         this.server = server;
         this.provider = provider;
         this.gameruleManager = new GameruleManager(server);
@@ -92,10 +89,9 @@ export class World {
 
         this.gameruleManager.setGamerule(GameRules.ShowCoordinates, true, true);
 
-        // Create player data folder
-        if (!fs.existsSync(path.join(cwd(), 'worlds', name, '/playerdata'))) {
-            fs.mkdirSync(path.join(cwd(), 'worlds', name, '/playerdata'));
-        }
+        // Create folders if they don't exist.
+        const path = withCwd(cwd(), WORLDS_FOLDER_NAME, this.name, 'playerdata');
+        if (!fs.existsSync(path)) fs.mkdirSync(path, { recursive: true });
     }
 
     public async enable(): Promise<void> {
@@ -479,8 +475,8 @@ export class World {
 
     private async getLevelData() {
         try {
-            const raw = fs.promises.readFile(path.resolve(this.path, 'level.json'), 'utf-8');
-            return JSON.parse(minifyJson(raw.toString())) as Partial<LevelMeta>;
+            const raw = fs.promises.readFile(withCwd(LEVEL_DATA_FILE_NAME), 'utf-8');
+            return JSON.parse(minifyJson(raw.toString())) as Partial<LevelData>;
         } catch {
             this.server.getLogger().warn(`Failed to read level data`);
             return {};
@@ -505,7 +501,7 @@ export class World {
         };
 
         try {
-            await fs.promises.writeFile(path.resolve(this.path, 'level.json'), JSON.stringify(data, null, 4));
+            await fs.promises.writeFile(withCwd(LEVEL_DATA_FILE_NAME), JSON.stringify(data, null, 4));
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save level data`);
             this.server.getLogger().error(error);
@@ -514,7 +510,9 @@ export class World {
 
     public async getPlayerData(player: Player): Promise<WorldPlayerData> {
         try {
-            const raw = fs.readFileSync(path.resolve(this.path, 'playerdata', `${player.getXUID()}.json`, 'utf-8'));
+            const raw = fs.readFileSync(
+                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID()}.json`, 'utf-8')
+            );
             return JSON.parse(minifyJson(raw.toString())) as WorldPlayerData;
         } catch {
             this.server
@@ -567,7 +565,7 @@ export class World {
 
         try {
             fs.writeFileSync(
-                path.resolve(this.path, 'playerdata', `${player.getXUID()}.json`),
+                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID()}.json`),
                 JSON.stringify(data, null, 4)
             );
         } catch (error: unknown) {

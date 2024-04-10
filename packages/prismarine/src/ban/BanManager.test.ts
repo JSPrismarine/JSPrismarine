@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import fs from 'node:fs';
-import path from 'node:path';
 
 import type Server from '../Server';
-import { cwd } from '../utils/cwd';
+import { withCwd } from '../utils/cwd';
 import BanManager from './BanManager';
 
 describe('ban', () => {
@@ -49,9 +48,9 @@ describe('ban', () => {
                 const readFileSyncSpy = vi.spyOn(fs, 'readFileSync').mockReturnValue('[]');
                 const parseSpy = vi.spyOn(JSON, 'parse').mockReturnValue([]);
                 await banManager['parseBanned']();
-                expect(existsSyncSpy).toHaveBeenCalledWith(path.resolve(cwd(), '/banned-players.json'));
+                expect(existsSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'));
                 expect(getLoggerSpy).toHaveBeenCalledWith();
-                expect(readFileSyncSpy).toHaveBeenCalledWith(path.resolve(cwd(), '/banned-players.json'));
+                expect(readFileSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'));
                 expect(parseSpy).toHaveBeenCalledWith('[]');
                 expect(banManager['banned'].size).toBe(0);
             });
@@ -61,9 +60,9 @@ describe('ban', () => {
                 const getLoggerSpy = vi.spyOn(banManager['server'], 'getLogger');
                 const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync');
                 await banManager['parseBanned']();
-                expect(existsSyncSpy).toHaveBeenCalledWith(path.resolve(cwd(), '/banned-players.json'));
+                expect(existsSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'));
                 expect(getLoggerSpy).toHaveBeenCalledWith();
-                expect(writeFileSyncSpy).toHaveBeenCalledWith(path.resolve(cwd(), '/banned-players.json'), '[]');
+                expect(writeFileSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'), '[]');
                 expect(banManager['banned'].size).toBe(0);
             });
         });
