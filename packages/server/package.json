@@ -34,7 +34,7 @@
         "build": "vite build",
         "typecheck": "tsc -noEmit",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
-        "dev": "nodemon -I --quiet --watch \"../**/src/**\" --ext \"ts\" --ignore \"../**/*.d.ts\" --exec \"vite-node ./src/Server.ts\"",
+        "dev": "nodemon --no-stdin --spawn -I --quiet --watch \"../**/src/**\" --ext \"ts\" --ignore \"../**/*.d.ts\" --exec \"vite-node ./src/Server.ts\"",
         "dev:no-watch": "vite-node ./src/Server.ts"
     },
     "repository": {

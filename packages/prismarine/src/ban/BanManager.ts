@@ -1,11 +1,12 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import util from 'node:util';
 
 import minifyJson from 'strip-json-comments';
 import type Player from '../Player';
 import type Server from '../Server';
-import { cwd } from '../utils/cwd';
+import { withCwd } from '../utils/cwd';
+
+const FILE_NAME = 'banned-players.json';
 
 /**
  * Ban manager.
@@ -33,7 +34,7 @@ export default class BanManager {
 
     private async parseBanned() {
         try {
-            const dir = path.resolve(cwd(), '/banned-players.json');
+            const dir = withCwd(FILE_NAME);
             if (!fs.existsSync(dir)) {
                 this.server.getLogger().warn(`Failed to load ban list!`);
                 fs.writeFileSync(dir, '[]');
@@ -55,7 +56,7 @@ export default class BanManager {
 
         const writeFile = util.promisify(fs.writeFile);
         await writeFile(
-            path.join(cwd(), '/banned-players.json'),
+            withCwd(FILE_NAME),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({
                     name: entry[0],
@@ -73,7 +74,7 @@ export default class BanManager {
 
         const writeFile = util.promisify(fs.writeFile);
         await writeFile(
-            path.join(cwd(), '/banned-players.json'),
+            withCwd(FILE_NAME),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({
                     name: entry[0],
