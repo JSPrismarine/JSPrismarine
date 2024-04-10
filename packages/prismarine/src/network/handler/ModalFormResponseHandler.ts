@@ -1,8 +1,8 @@
 import Identifiers from '../Identifiers';
-import ModalFormRequestPacket from '../packet/ModalFormRequestPacket';
-import PacketHandler from './PacketHandler';
-import { PlayerSession } from '../../';
-import Server from '../../Server';
+import type ModalFormRequestPacket from '../packet/ModalFormRequestPacket';
+import type PacketHandler from './PacketHandler';
+import type { PlayerSession } from '../../';
+import type Server from '../../Server';
 
 export default class ModalFormResponseHandler implements PacketHandler<ModalFormRequestPacket> {
     public static NetID = Identifiers.ModalFormRequestPacket;

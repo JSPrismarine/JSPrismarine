@@ -1,5 +1,5 @@
-import Message from '../Message';
-import StringRange from '../context/StringRange';
+import type Message from '../Message';
+import type StringRange from '../context/StringRange';
 import Suggestion from './Suggestion';
 
 export default class IntegerSuggestion extends Suggestion {

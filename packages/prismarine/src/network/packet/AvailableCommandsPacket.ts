@@ -1,7 +1,7 @@
-import CommandData from '../type/CommandData';
-import CommandEnum from '../type/CommandEnum';
-import CommandEnumConstraint from '../type/CommandEnumConstraint';
-import CommandParameter from '../type/CommandParameter';
+import type CommandData from '../type/CommandData';
+import type CommandEnum from '../type/CommandEnum';
+import type CommandEnumConstraint from '../type/CommandEnumConstraint';
+import type CommandParameter from '../type/CommandParameter';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import McpeUtil from '../NetworkUtil';

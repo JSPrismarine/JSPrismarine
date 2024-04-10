@@ -1,4 +1,4 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/jsbinaryutils';
 import McpeUtil from '../../network/NetworkUtil';
 import SkinAnimation from './SkinAnimation';
 import SkinCape from './SkinCape';
