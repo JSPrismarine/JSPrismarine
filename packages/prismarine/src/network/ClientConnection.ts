@@ -1,10 +1,10 @@
 import type { Logger, Player, Server } from '../';
 import { PlayerSession } from '../';
 
-import { DisconnectPacket } from './Packets';
-import MinecraftSession from './MinecraftSession';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import assert from 'assert';
+import MinecraftSession from './MinecraftSession';
+import { DisconnectPacket } from './Packets';
 
 /**
  * Handles the connection before the player creation itself, very helpful as
@@ -33,15 +33,24 @@ export default class ClientConnection extends MinecraftSession {
         return this.playerSession;
     }
 
+    public async closePlayerSession(): Promise<void> {
+        if (this.playerSession !== null) {
+            await this.playerSession.getPlayer().disable();
+            this.playerSession = null;
+        }
+    }
+
     public disconnect(reason = 'disconnect.disconnected', hideReason = true): void {
         const packet = new DisconnectPacket();
         packet.skipMessage = hideReason;
         packet.message = reason;
         void this.sendDataPacket(packet);
 
+        this.closePlayerSession();
+
         // Force RakNet to remove the session
         // so we don't have to handle the dead session
-        this.rakSession.disconnect();
+        this.forceDisconnect();
     }
 
     public getPlayerSession(): PlayerSession | null {
