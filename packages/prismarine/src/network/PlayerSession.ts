@@ -1,5 +1,4 @@
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
-import CommandParameter, { CommandParameterType } from './type/CommandParameter';
 import type { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
@@ -8,47 +7,46 @@ import UpdateAbilitiesPacket, {
     AbilityLayerFlag,
     AbilityLayerType
 } from './packet/UpdateAbilitiesPacket';
+import CommandParameter, { CommandParameterType } from './type/CommandParameter';
 
-import AddPlayerPacket from './packet/AddPlayerPacket';
+import { creativeitems } from '@jsprismarine/bedrock-data';
+import Heap from 'heap';
+import type Player from '../Player';
+import type Server from '../Server';
 import type { Attribute } from '../entity/Attribute';
-import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
-import { BatchPacket } from './Packets';
+import { WindowIds } from '../inventory/WindowManager';
+import { Item } from '../item/Item';
+import UUID from '../utils/UUID';
+import { Gamemode } from '../world/';
 import BlockPosition from '../world/BlockPosition';
-import Chunk from '../world/chunk/Chunk';
-import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
-import type ClientConnection from './ClientConnection';
-import CommandData from './type/CommandData';
-import CommandEnum from './type/CommandEnum';
 import CoordinateUtils from '../world/CoordinateUtils';
+import Chunk from '../world/chunk/Chunk';
+import type ClientConnection from './ClientConnection';
+import { BatchPacket } from './Packets';
+import AddPlayerPacket from './packet/AddPlayerPacket';
+import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
+import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
-import { Gamemode } from '../world/';
-import Heap from 'heap';
-import type IForm from '../form/IForm';
 import InventoryContentPacket from './packet/InventoryContentPacket';
-import { Item } from '../item/Item';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
-import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
-import MovementType from './type/MovementType';
-import PermissionType from './type/PermissionType';
 import PlayStatusPacket from './packet/PlayStatusPacket';
-import type Player from '../Player';
-import PlayerPermissionType from './type/PlayerPermissionType';
 import RemoveActorPacket from './packet/RemoveActorPacket';
-import type Server from '../Server';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetTimePacket from './packet/SetTimePacket';
 import TextPacket from './packet/TextPacket';
-import TextType from './type/TextType';
 import ToastRequestPacket from './packet/ToastRequestPacket';
-import UUID from '../utils/UUID';
 import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
-import { WindowIds } from '../inventory/WindowManager';
-import { creativeitems } from '@jsprismarine/bedrock-data';
+import CommandData from './type/CommandData';
+import CommandEnum from './type/CommandEnum';
+import MovementType from './type/MovementType';
+import PermissionType from './type/PermissionType';
+import PlayerPermissionType from './type/PlayerPermissionType';
+import TextType from './type/TextType';
 
 export default class PlayerSession {
     private connection: ClientConnection;
@@ -296,14 +294,6 @@ export default class PlayerSession {
         pk.inventorySlot = this.player.getInventory().getHandSlotIndex();
         pk.hotbarSlot = this.player.getInventory().getHandSlotIndex();
         pk.windowId = 0; // Inventory ID
-        await this.connection.sendDataPacket(pk);
-    }
-
-    public async sendForm(form: IForm): Promise<void> {
-        const id = this.player.getFormManager().addForm(form);
-        const pk = new ModalFormRequestPacket();
-        pk.formId = id;
-        pk.formData = form.jsonSerialize();
         await this.connection.sendDataPacket(pk);
     }
 

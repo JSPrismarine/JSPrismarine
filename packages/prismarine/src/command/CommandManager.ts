@@ -1,22 +1,19 @@
 import type { ArgumentCommandNode } from '@jsprismarine/brigadier';
 import { CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
-import { Chat } from '../chat/Chat';
-import type { Command } from './Command';
-import * as Commands from './Commands';
-import type { CommandArgument } from './CommandArguments';
-import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
-import type { Entity } from '../entity/Entity';
-import type { Player } from '../';
-import type Server from '../Server';
-import Timer from '../utils/Timer';
 import {
-    GenericNamespaceInvalidError,
     CommandRegisterClassMalformedOrMissingError,
     CommandUnknownCommandError,
-    Error
+    Error,
+    GenericNamespaceInvalidError
 } from '@jsprismarine/errors';
 
-export default class CommandManager {
+import type { Command, CommandArgument, Entity, Player, Server, Service } from '../';
+import { Chat } from '../';
+import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
+import Timer from '../utils/Timer';
+import { Commands } from './';
+
+export class CommandManager implements Service {
     private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
     private dispatcher!: CommandDispatcher<Player>;
@@ -26,9 +23,6 @@ export default class CommandManager {
         this.dispatcher = new CommandDispatcher();
     }
 
-    /**
-     * OnEnable hook.
-     */
     public async onEnable() {
         const timer = new Timer();
 
@@ -57,9 +51,6 @@ export default class CommandManager {
             .verbose(`Registered §b${this.commands.size}§r commands(s) (took §e${timer.stop()} ms§r)!`);
     }
 
-    /**
-     * OnDisable hook.
-     */
     public async onDisable() {
         this.commands.clear();
         // TODO: clear commands in dispatcher

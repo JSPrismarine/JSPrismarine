@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "aaron-bond.better-comments",
+        "bierner.markdown-preview-github-styles",
+        "dbaeumer.vscode-eslint",
+        "jgclark.vscode-todo-highlight",
+        "mikestead.dotenv",
+        "rvest.vs-code-prettier-eslint"
+    ]
+}
