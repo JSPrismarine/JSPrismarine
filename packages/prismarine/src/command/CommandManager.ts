@@ -44,7 +44,7 @@ export default class CommandManager {
                 if (event.isCancelled()) return;
 
                 try {
-                    await this.registerClassCommand(command);
+                    await this.registerCommand(command);
                 } catch (error: unknown) {
                     this.server.getLogger().error(error);
                     this.server.getLogger().warn(`Failed to register command ${command.id}`);
@@ -68,17 +68,12 @@ export default class CommandManager {
     /**
      * Register a command into command manager by class.
      */
-    public async registerClassCommand(command?: Command) {
+    public async registerCommand(command?: Command) {
         if (!command || !command.id) throw new CommandRegisterClassMalformedOrMissingError();
         if (command.id.split(':').length !== 2) throw new GenericNamespaceInvalidError();
 
         if (!(command as any).register)
-            this.server
-                .getLogger()
-                .warn(
-                    `Command is missing "register" member. This is unsupported!`,
-                    'CommandManager/registerClassCommand'
-                );
+            this.server.getLogger().warn(`Command is missing "register" member. This is unsupported!`);
         else await command.register(this.dispatcher);
         this.commands.set(command.id, command);
 
@@ -89,9 +84,29 @@ export default class CommandManager {
                 .map(async (player) => player.getNetworkSession().sendAvailableCommands())
         );
 
-        this.server
-            .getLogger()
-            .debug(`Command with id §b${command.id}§r registered`, 'CommandManager/registerClassCommand');
+        this.server.getLogger().debug(`Command with id §b${command.id}§r registered`);
+    }
+
+    /**
+     * Get a registered command by ID.
+     * @remarks This is case-insensitive, works with or without namespace, and also with aliases.
+     * @param {string} id - The command ID.
+     * @returns {Command} The command if found, otherwise undefined.
+     */
+    public getCommand(id: string): Command {
+        const command = Array.from(this.commands.values()).find(
+            (command) =>
+                // Check if it matches ID without namespace.
+                command.name === id ||
+                // Check if it's an alias.
+                command.aliases?.includes(id) ||
+                // Last check if it's the whole ID (this is uncommon so,
+                //  it's last to avoid the most checks).
+                command.id === id
+        );
+
+        if (!command) throw new CommandUnknownCommandError();
+        return command;
     }
 
     /**
@@ -208,19 +223,9 @@ export default class CommandManager {
             }
 
             // Get command from parsed string.
-            const command = Array.from(this.commands.values()).find(
-                (command) =>
-                    // Check if it matches ID without namespace.
-                    command.name === id ||
-                    // Check if it's an alias.
-                    command.aliases?.includes(id) ||
-                    // Last check if it's the whole ID (this is uncommon so,
-                    //  it's last to avoid the most checks).
-                    command.id === id
-            );
+            const command = this.getCommand(id);
 
-            if (!command) throw new CommandUnknownCommandError();
-
+            // Validate permissions.
             if (!this.server.getPermissionManager().can(sender).execute(command.permission)) {
                 await sender.sendMessage(
                     "§cI'm sorry, but you do not have permission to perform this command. " +
@@ -230,26 +235,13 @@ export default class CommandManager {
             }
 
             let res: string[] = [];
-            if (!command.register && command.execute) {
-                // Legacy commands
-                this.server
-                    .getLogger()
-                    .warn(`${id} is using the legacy command format`, 'CommandManager/dispatchCommand');
-                res.push(
-                    await command.execute(
-                        sender as any,
-                        parsed.getReader().getString().replace(`${id} `, '').split(' ')
-                    )
-                );
-            } else {
-                // Handle aliases and IDs.
-                if (command.name !== id) {
-                    await this.dispatchCommand(sender, target, input.replace(id, command.name));
-                    return;
-                }
-
-                res = await Promise.all(this.dispatcher.execute(parsed));
+            // Handle aliases and IDs.
+            if (command.name !== id) {
+                await this.dispatchCommand(sender, target, input.replace(id, command.name));
+                return;
             }
+
+            res = await Promise.all(this.dispatcher.execute(parsed));
 
             const feedback = (sender as any as Entity)
                 .getWorld()
