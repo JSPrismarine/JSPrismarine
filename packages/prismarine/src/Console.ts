@@ -43,7 +43,12 @@ export default class Console extends EntityLike {
                     (command) => `/${command.name}`
                 );
 
-                const completions = [...this.history, '/', ...commands];
+                // Merge and remove duplicates.
+                const completions = [...this.history, '/', ...commands]
+                    .reverse() // Reverse to remove duplicates at the end.
+                    .filter((value, index, self) => self.indexOf(value) === index)
+                    .reverse(); // Restore.
+
                 const hits = completions.filter((c) => c.startsWith(line));
                 return callback(null, [hits.length ? hits : completions, line]);
             }
@@ -113,7 +118,7 @@ export default class Console extends EntityLike {
         this.cli.output.write(`\x1b[${this.cli.getPrompt().length}D`);
 
         // Write the line.
-        this.cli.output.write(`${line}\n\r`);
+        this.cli.output.write(`\r${line}\n\r`);
 
         this.cli._refreshLine();
         this.cli.prompt();
