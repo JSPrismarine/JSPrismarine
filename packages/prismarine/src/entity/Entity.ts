@@ -1,14 +1,14 @@
-import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
-import AddActorPacket from '../network/packet/AddActorPacket';
-import AttributeManager from './Attribute';
-import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
 import type Player from '../Player';
-import Position from '../world/Position';
-import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import type Server from '../Server';
-import TextType from '../network/type/TextType';
 import Vector3 from '../math/Vector3';
+import AddActorPacket from '../network/packet/AddActorPacket';
+import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
+import RemoveActorPacket from '../network/packet/RemoveActorPacket';
+import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
+import Position from '../world/Position';
+import AttributeManager from './Attribute';
+import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
 
 export class EntityLike extends Position {
     protected readonly uuid: string;
@@ -65,21 +65,6 @@ export class EntityLike extends Position {
      */
     public getPosition(): Vector3 {
         return new Vector3(this.getX(), this.getY(), this.getZ());
-    }
-
-    /**
-     * Fired when an entity collides with another entity.
-     * @param {Entity} entity - The entity collided with.
-     * @returns {Promise<void>} A promise that resolves when the collision is handled.
-     * @example
-     * ```typescript
-     * entity.onCollide(otherEntity).then(() => {
-     *     console.log('Collision handled');
-     * });
-     * ```
-     */
-    public async onCollide(entity: Entity): Promise<void> {
-        void entity; // Trick the linter.
     }
 
     /**
@@ -250,10 +235,7 @@ export class Entity extends EntityLike {
      * ```
      */
     // eslint-disable-next-line unused-imports/no-unused-vars
-    public async update(tick: number): Promise<void> {
-        const collisions = await this.getNearbyEntities(0.5);
-        await Promise.all(collisions.map(async (entity) => entity.onCollide(this)));
-    }
+    public async update(tick: number): Promise<void> {}
 
     /**
      * Get the server instance.
