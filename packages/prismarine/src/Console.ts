@@ -44,12 +44,12 @@ export default class Console extends EntityLike {
                 );
 
                 // Merge and remove duplicates.
-                const completions = [...this.history, '/', ...commands]
+                const completions = ['/', ...commands]
                     .reverse() // Reverse to remove duplicates at the end.
                     .filter((value, index, self) => self.indexOf(value) === index)
                     .reverse(); // Restore.
 
-                const hits = completions.filter((c) => c.startsWith(line));
+                const hits = [...this.history, ...completions].filter((c) => c.startsWith(line));
                 return callback(null, [hits.length ? hits : completions, line]);
             }
         });
