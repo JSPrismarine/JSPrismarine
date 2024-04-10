@@ -53,7 +53,7 @@ export default defineConfig({
 
         pool: 'threads',
 
-        setupFiles: [],
+        setupFiles: [`${__dirname}/.test/vitest.setup.ts`],
 
         coverage: {
             all: true,

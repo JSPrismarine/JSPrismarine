@@ -35,20 +35,18 @@ export default class BanManager {
 
     private async parseBanned() {
         try {
-            if (!fs.existsSync(path.join(cwd(), '/banned-players.json'))) {
+            const dir = path.resolve(cwd(), '/banned-players.json');
+            if (!fs.existsSync(dir)) {
                 this.server.getLogger().warn(`Failed to load ban list!`);
-                fs.writeFileSync(path.join(cwd(), '/banned-players.json'), '[]');
+                fs.writeFileSync(dir, '[]');
             }
 
             const readFile = util.promisify(fs.readFile);
-            const banned: any[] = JSON.parse(
-                minifyJson((await readFile(path.join(cwd(), '/banned-players.json'))).toString())
-            );
+            const banned: any[] = JSON.parse(minifyJson((await readFile(dir)).toString()));
 
             for (const player of banned) this.banned.set(player.name, player);
         } catch (error: unknown) {
             this.server.getLogger().error(error);
-            throw new Error(`Invalid banned-players.json file.`);
         }
     }
 

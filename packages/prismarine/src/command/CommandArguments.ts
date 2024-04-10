@@ -16,6 +16,7 @@ export abstract class CommandArgument {
     public getReadableType(): string {
         return '';
     }
+    // eslint-disable-next-line unused-imports/no-unused-vars
     public getParameters(server: Server): Set<CommandParameter> | undefined {
         return new Set();
     }
@@ -85,9 +86,7 @@ export class CommandArgumentMob implements CommandArgument {
 
     public parse(reader: StringReader, _context: CommandContext<Player>) {
         let str = '';
-        while (true) {
-            if (!reader.canRead()) break;
-
+        while (reader.canRead()) {
             const pos = reader.getCursor();
             const char = reader.read();
             if (char === ' ') {
@@ -143,9 +142,7 @@ export class CommandArgumentEntity implements CommandArgument {
 
     public parse(reader: StringReader, context: CommandContext<Player>) {
         let player = '';
-        while (true) {
-            if (!reader.canRead()) break;
-
+        while (reader.canRead()) {
             const pos = reader.getCursor();
             const char = reader.read();
             if (char === ' ') {
@@ -205,9 +202,7 @@ export class CommandArgumentPosition extends Vector3 implements CommandArgument 
     public parse(reader: StringReader, context: CommandContext<Player>) {
         const getPos = () => {
             let pos = '';
-            while (true) {
-                if (!reader.canRead()) break;
-
+            while (reader.canRead()) {
                 const cursor = reader.getCursor();
                 const char = reader.read();
                 if (char === ' ') {

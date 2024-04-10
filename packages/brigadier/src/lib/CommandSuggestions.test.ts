@@ -176,8 +176,7 @@ describe('Command Suggestion Test', () => {
             literal('actual_one').then(literal('faz')).then(literal('fbz')).then(literal('gaz'))
         );
 
-        const actualTwo = subject.register(literal('actual_two'));
-
+        subject.register(literal('actual_two'));
         subject.register(literal('redirect_one').redirect(actualOne));
         subject.register(literal('redirect_two').redirect(actualOne));
 

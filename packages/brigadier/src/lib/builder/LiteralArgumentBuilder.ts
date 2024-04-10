@@ -10,7 +10,7 @@ export default class LiteralArgumentBuilder<S> extends ArgumentBuilder<S, Litera
     }
 
     public static literal<S>(name: string): LiteralArgumentBuilder<S> {
-        return new LiteralArgumentBuilder(name);
+        return new LiteralArgumentBuilder<S>(name);
     }
 
     public getThis(): LiteralArgumentBuilder<S> {

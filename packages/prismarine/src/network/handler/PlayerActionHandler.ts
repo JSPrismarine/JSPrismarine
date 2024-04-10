@@ -79,7 +79,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 pk.eventId = WorldEvent.PARTICLE_DESTROY_BLOCK;
                 pk.position = packet.blockPosition;
                 pk.data = BlockMappings.getRuntimeId(
-                    server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta).getName()
+                    server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta)!.getName() // TODO: fix this.
                 );
 
                 await Promise.all(

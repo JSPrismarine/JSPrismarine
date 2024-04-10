@@ -73,9 +73,7 @@ export class QueryManager {
                                 'version',
                                 this.server.getVersion(),
                                 'plugins',
-                                `JSPrismarine on Prismarine ${this.server.getVersion()}${
-                                    (plugins.length && ': ') || ''
-                                }${plugins.join('; ')}`, // TODO
+                                `JSPrismarine on Prismarine ${this.server.getVersion()} ${plugins.join('; ')}`, // TODO
                                 'map',
                                 this.server.getWorldManager().getDefaultWorld()!.getName(),
                                 'numplayers',

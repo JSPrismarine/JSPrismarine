@@ -106,6 +106,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
                         const blockId = chunk.getBlock(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
                         const block = server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
+                        if (!block) return;
 
                         const pk = new UpdateBlockPacket();
                         pk.x = useItemData.blockPosition.getX();
@@ -122,7 +123,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                             server
                                 .getSessionManager()
                                 .getAllPlayers()
-                                .filter((p) => p.getWorld().getUniqueId() === player.getWorld().getUniqueId())
+                                .filter((p) => p.getWorld().getUUID() === player.getWorld().getUUID())
                                 .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(pk))
                         );
 

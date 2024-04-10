@@ -50,7 +50,6 @@ export default class Player extends Human {
     public locale = '';
     public randomId = 0;
 
-    public uuid = '';
     public xuid = '';
     public skin: Skin | null = null;
 
@@ -83,8 +82,22 @@ export default class Player extends Human {
     /**
      * Player's constructor.
      */
-    public constructor(connection: ClientConnection, world: World, server: Server) {
-        super(world, server);
+    public constructor({
+        connection,
+        world,
+        server,
+        uuid
+    }: {
+        connection: ClientConnection;
+        world: World;
+        server: Server;
+        uuid?: string;
+    }) {
+        super({
+            world,
+            server,
+            uuid
+        });
         this.address = connection.getRakNetSession().getAddress();
         this.networkSession = new PlayerSession(server, connection, this);
         this.windows = new WindowManager();
@@ -374,12 +387,6 @@ export default class Player extends Human {
 
     public getPermissions(): string[] {
         return this.permissions;
-    }
-
-    public getUUID(): string {
-        if (!this.uuid) throw new Error('uuid is missing!');
-
-        return this.uuid;
     }
 
     public getXUID(): string {

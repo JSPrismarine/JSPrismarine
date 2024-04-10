@@ -54,11 +54,9 @@ export default class BlockManager {
     /**
      * Get block by numeric id and meta value.
      */
-    public getBlockByIdAndMeta(id: number, meta: number): Block {
+    public getBlockByIdAndMeta(id: number, meta: number): Block | null {
         const block = this.getBlocks().find((a) => a.id === id && a.meta === meta);
-
-        if (!block) throw new Error(`invalid block with numeric id ${id}:${meta}`);
-        return block;
+        return block || null;
     }
 
     /**
@@ -76,14 +74,8 @@ export default class BlockManager {
      * @param block - The block
      */
     public async registerBlock(block: Block) {
-        try {
-            this.blocks.get(block.name);
-            this.getBlockByIdAndMeta(block.getId(), block.getMeta());
-
+        if (this.blocks.get(block.name) || this.getBlockByIdAndMeta(block.getId(), block.getMeta()))
             throw new Error(`Block with id ${block.getName()} (${block.getId()}:${block.getMeta()}) already exists`);
-        } catch (error: unknown) {
-            if (!(error as any).message.includes('invalid block with ')) throw error;
-        }
 
         const event = new BlockRegisterEvent(block);
         await this.server.emit('blockRegister', event);
