@@ -201,7 +201,7 @@ export class Entity extends EntityLike {
     }
 
     toString() {
-        return `uuid: §a${this.getUUID()}§r, id: §a${this.getRuntimeId()}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, ${super.toString()}`;
+        return `uuid: §a${this.getUUID()}§r, id: §a${this.getRuntimeId()}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, ${super.toString.bind(this)()}`;
     }
 
     /**
@@ -353,19 +353,6 @@ export class Entity extends EntityLike {
     }
 
     /**
-     * Set the entity's position and notify the clients.
-     * @param {Vector3} position - The position.
-     * @returns {Promise<void>} A promise that resolves when the position is set.
-     */
-    public async setPosition(position: Vector3): Promise<void> {
-        await this.setX(position.getX(), true);
-        await this.setY(position.getY(), true);
-        await this.setZ(position.getZ(), true);
-
-        await this.sendPosition();
-    }
-
-    /**
      * Send the position to all the players in the same world.
      * @returns {Promise<void>} A promise that resolves when the position is sent.
      */
@@ -451,6 +438,19 @@ export class Entity extends EntityLike {
     public async setZ(z: number, suppress = false): Promise<void> {
         super.setZ.bind(this)(z);
         if (suppress && !this.isPlayer()) await this.sendPosition();
+    }
+
+    /**
+     * Set the entity's position and notify the clients.
+     * @param {Vector3} position - The position.
+     * @returns {Promise<void>} A promise that resolves when the position is set.
+     */
+    public async setPosition(position: Vector3): Promise<void> {
+        await super.setX.bind(this)(position.getX());
+        await super.setY.bind(this)(position.getY());
+        await super.setZ.bind(this)(position.getZ());
+
+        await this.sendPosition();
     }
 
     /**

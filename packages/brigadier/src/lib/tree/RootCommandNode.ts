@@ -1,10 +1,10 @@
-import CommandNode from './CommandNode';
 import type StringReader from '../StringReader';
 import type ArgumentBuilder from '../builder/ArgumentBuilder';
 import type CommandContext from '../context/CommandContext';
 import type CommandContextBuilder from '../context/CommandContextBuilder';
 import Suggestions from '../suggestion/Suggestions';
 import type SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
+import CommandNode from './CommandNode';
 
 export default class RootCommandNode<S> extends CommandNode<S> {
     public constructor() {
@@ -43,7 +43,7 @@ export default class RootCommandNode<S> extends CommandNode<S> {
         if (this === o) return true;
         if (!(o instanceof RootCommandNode)) return false;
 
-        return super.equals(o);
+        return super.equals.bind(this)(o);
     }
 
     public createBuilder(): ArgumentBuilder<S, any> {

@@ -1,6 +1,6 @@
+import type { Server } from '../';
 import Vector3 from '../math/Vector3';
 import type { World } from './';
-import type { Server } from '../';
 
 export default class Position extends Vector3 {
     protected readonly server: Server;
@@ -36,7 +36,7 @@ export default class Position extends Vector3 {
     }
 
     toString() {
-        return `${super.toString()}, world: §b${this.world?.getName() || 'none'}§r`;
+        return `${super.toString.bind(this)()}, world: §b${this.world?.getName() || 'none'}§r`;
     }
 
     /**

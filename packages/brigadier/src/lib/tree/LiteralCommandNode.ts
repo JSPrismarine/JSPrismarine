@@ -1,5 +1,4 @@
 import type Command from '../Command';
-import CommandNode from './CommandNode';
 import type Predicate from '../Predicate';
 import type RedirectModifier from '../RedirectModifier';
 import StringReader from '../StringReader';
@@ -10,6 +9,7 @@ import StringRange from '../context/StringRange';
 import CommandSyntaxException from '../exceptions/CommandSyntaxException';
 import Suggestions from '../suggestion/Suggestions';
 import type SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
+import CommandNode from './CommandNode';
 
 export default class LiteralCommandNode<S> extends CommandNode<S> {
     private literal: string;
@@ -83,7 +83,7 @@ export default class LiteralCommandNode<S> extends CommandNode<S> {
 
         if (this.literal !== o.literal) return false;
 
-        return super.equals(o);
+        return super.equals.bind(this)(o);
     }
 
     public getUsageText(): string {

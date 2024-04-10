@@ -1,17 +1,17 @@
-import type ArgumentType from '../arguments/ArgumentType';
 import type Command from '../Command';
-import type CommandContext from '../context/CommandContext';
-import type CommandContextBuilder from '../context/CommandContextBuilder';
-import CommandNode from './CommandNode';
-import ParsedArgument from '../context/ParsedArgument';
 import type Predicate from '../Predicate';
 import type RedirectModifier from '../RedirectModifier';
-import RequiredArgumentBuilder from '../builder/RequiredArgumentBuilder';
 import StringReader from '../StringReader';
+import type ArgumentType from '../arguments/ArgumentType';
+import RequiredArgumentBuilder from '../builder/RequiredArgumentBuilder';
+import type CommandContext from '../context/CommandContext';
+import type CommandContextBuilder from '../context/CommandContextBuilder';
+import ParsedArgument from '../context/ParsedArgument';
 import type SuggestionProvider from '../suggestion/SuggestionProvider';
 import Suggestions from '../suggestion/Suggestions';
 import type SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
 import isEqual from '../util/isEqual';
+import CommandNode from './CommandNode';
 
 const USAGE_ARGUMENT_OPEN: string = '<';
 const USAGE_ARGUMENT_CLOSE: string = '>';
@@ -106,7 +106,7 @@ export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
         if (!(this.name === o.name)) return false;
         if (!isEqual(this.type, o.type)) return false;
 
-        return super.equals(o);
+        return super.equals.bind(this)(o);
     }
 
     public getSortedKey(): string {
