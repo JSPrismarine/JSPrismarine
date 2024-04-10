@@ -105,51 +105,46 @@ export default class WorldManager {
      * @param folderName - the name of the folder containing the world
      */
     public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
-        return new Promise(async (resolve, reject) => {
-            if (!(worldData as any)) throw new Error('Invalid world data');
+        if (!(worldData as any)) throw new Error('Invalid world data');
 
-            if (this.isWorldLoaded(folderName)) {
-                this.server.getLogger().warn(`World §e${folderName}§r has already been loaded!`);
-                reject();
-                return;
-            }
+        if (this.isWorldLoaded(folderName)) {
+            throw new Error(`World ${folderName} has already been loaded`);
+        }
 
-            const levelPath = path.join(cwd(), `/worlds/${folderName}/`);
-            const provider = this.providers.get(worldData.provider ?? 'Filesystem');
-            const generator = this.server
-                .getWorldManager()
-                .getGeneratorManager()
-                .getGenerator(worldData.generator ?? 'Flat');
+        const levelPath = path.join(cwd(), `/worlds/${folderName}/`);
+        const provider = this.providers.get(worldData.provider ?? 'Filesystem');
+        const generator = this.server
+            .getWorldManager()
+            .getGeneratorManager()
+            .getGenerator(worldData.generator ?? 'Flat');
 
-            if (!provider) {
-                reject(new Error(`invalid provider with id ${worldData.provider}`));
-                return;
-            }
+        if (!provider) {
+            throw new Error(`invalid provider with id ${worldData.provider}`);
+        }
 
-            // TODO: figure out provider by data
-            const world = new World({
-                name: folderName,
-                path: levelPath,
-                server: this.server,
-                provider: new provider(levelPath, this.server),
+        // TODO: figure out provider by data
+        const world = new World({
+            name: folderName,
+            path: levelPath,
+            server: this.server,
+            provider: new provider(levelPath, this.server),
 
-                seed: worldData.seed,
-                generator,
-                config: worldData
-            });
-            this.worlds.set(world.getUniqueId(), world);
-
-            // First level to be loaded is also the default one
-            if (!this.defaultWorld) {
-                this.defaultWorld = this.worlds.get(world.getUniqueId())!;
-                this.server.getLogger().info(`Loaded §b${folderName}§r as default world!`);
-            }
-
-            this.server.getLogger().verbose(`World §b${folderName}§r successfully loaded!`);
-
-            await world.onEnable();
-            resolve(world);
+            seed: worldData.seed,
+            generator,
+            config: worldData
         });
+        this.worlds.set(world.getUniqueId(), world);
+
+        // First level to be loaded is also the default one
+        if (!this.defaultWorld) {
+            this.defaultWorld = this.worlds.get(world.getUniqueId())!;
+            this.server.getLogger().info(`Loaded §b${folderName}§r as default world!`);
+        }
+
+        this.server.getLogger().verbose(`World §b${folderName}§r successfully loaded!`);
+
+        await world.onEnable();
+        return world;
     }
 
     /**

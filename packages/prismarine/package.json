@@ -62,6 +62,7 @@
     "devDependencies": {
         "@types/graceful-fs": "4.1.9",
         "@types/node": "20.12.7",
+        "@types/terminal-kit": "2.5.6",
         "glob": "10.3.12",
         "rimraf": "5.0.5",
         "typescript": "5.4.4",
@@ -81,6 +82,7 @@
         "node-fetch": "3.3.2",
         "strip-json-comments": "5.0.1",
         "winston": "3.13.0",
+        "winston-transport": "4.7.0",
         "yaml": "2.4.1"
     }
 }

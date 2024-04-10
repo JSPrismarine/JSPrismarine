@@ -34,7 +34,8 @@
         "build": "vite build",
         "typecheck": "tsc -noEmit",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
-        "dev": "nodemon --quiet --watch \"../**/src/**\" --ext \"ts\" --ignore \"../**/*.d.ts\" --exec \"vite-node ./src/Server.ts\" | pino-pretty -L 10"
+        "dev": "nodemon -I --quiet --watch \"../**/src/**\" --ext \"ts\" --ignore \"../**/*.d.ts\" --exec \"vite-node ./src/Server.ts\"",
+        "dev:no-watch": "vite-node ./src/Server.ts"
     },
     "repository": {
         "type": "git",
@@ -53,7 +54,6 @@
         "@types/node": "20.12.7",
         "cross-env": "7.0.3",
         "glob": "10.3.12",
-        "pino-pretty": "11.0.0",
         "rimraf": "5.0.5",
         "tsx": "4.7.2",
         "typescript": "5.4.4",

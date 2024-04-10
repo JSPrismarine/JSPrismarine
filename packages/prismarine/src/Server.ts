@@ -66,8 +66,7 @@ export default class Server extends EventEmitter {
         super();
 
         logger.info(
-            `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`,
-            'Server'
+            `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`
         );
 
         this.logger = logger;
@@ -89,7 +88,8 @@ export default class Server extends EventEmitter {
      * @returns {Promise<void>} A promise that resolves when the server is enabled.
      */
     private async onEnable(): Promise<void> {
-        this.config.onEnable();
+        await this.config.onEnable();
+        await this.console.onEnable();
         await this.logger.onEnable();
         await this.permissionManager.onEnable();
         await this.banManager.onEnable();
@@ -100,17 +100,19 @@ export default class Server extends EventEmitter {
 
     /**
      * Disables the server.
+     * @param {boolean} isReload - If the server is being reloaded.
      * @returns {Promise<void>} A promise that resolves when the server is disabled.
      */
-    private async onDisable(): Promise<void> {
+    private async onDisable(isReload: boolean = false): Promise<void> {
         await this.commandManager.onDisable();
         await this.blockManager.onDisable();
         await this.itemManager.onDisable();
         await this.banManager.onDisable();
         await this.permissionManager.onDisable();
         await this.packetRegistry.onDisable();
-        this.config.onDisable();
+        await this.config.onDisable();
         await this.logger.onDisable();
+        await this.console.onDisable(isReload);
     }
 
     /**
@@ -118,7 +120,7 @@ export default class Server extends EventEmitter {
      * @returns {Promise<void>} A promise that resolves when the server is reloaded.
      */
     public async reload(): Promise<void> {
-        await this.onDisable();
+        await this.onDisable(true);
         await this.onEnable();
     }
 
@@ -276,14 +278,17 @@ export default class Server extends EventEmitter {
 
             const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
 
-            // Update all worlds
+            // Update all worlds.
             for (const world of this.worldManager.getWorlds()) {
                 void world.update(event.getTick());
             }
 
-            // Update RakNet server name
+            // Update RakNet server name.
             if (this.tick % ticksPerSecond === 0) {
                 this.raknet.setServerName(buildRakNetServerName(this));
+
+                // Update the process title with TPS and tick.
+                process.title = `${process.title.split(' |').at(0)!} | TPS: ${this.tps.toFixed(2)} | Tick: ${this.tick}`;
             }
 
             this.tick++;
@@ -292,17 +297,17 @@ export default class Server extends EventEmitter {
             const expectedElapsedTime = this.tick * Server.MINECRAFT_TICK_TIME_MS;
             const executionTime = endTime - lastTickTime;
 
-            // Adjust sleepTime based on execution speed
+            // Adjust sleepTime based on execution speed.
             let sleepTime = Server.MINECRAFT_TICK_TIME_MS - executionTime;
             if (elapsedTime < expectedElapsedTime) {
-                // If we're running faster than expected, increase sleepTime
+                // If we're running faster than expected, increase sleepTime.
                 sleepTime += expectedElapsedTime - elapsedTime;
             } else if (elapsedTime > expectedElapsedTime) {
-                // If we're running slower than expected, decrease sleepTime but don't let it go below 0
+                // If we're running slower than expected, decrease sleepTime but don't let it go below 0.
                 sleepTime = Math.max(0, sleepTime - (elapsedTime - expectedElapsedTime));
             }
 
-            // Calculate tps based on the actual elapsed time since the start of the tick
+            // Calculate tps based on the actual elapsed time since the start of the tick.
             if (tpsStartTime !== endTime) {
                 this.tps = ((this.tick - tpsStartTick) * 1000) / (endTime - tpsStartTime);
             }
