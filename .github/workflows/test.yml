@@ -31,7 +31,7 @@ jobs:
               run: pnpm run test
 
             - name: 🦺 Report Coverage to GitHub
-              uses: davelosert/vitest-coverage-report-action@v2.3.0
+              uses: davelosert/vitest-coverage-report-action@v2.3.1
 
             - name: 🦺 Codecov Coverage Reports
               uses: codecov/codecov-action@v4.3.0
