@@ -124,8 +124,8 @@ importers:
         specifier: 5.2.8
         version: 5.2.8(@types/node@20.12.7)
       vite-plugin-dts:
-        specifier: 3.8.1
-        version: 3.8.1(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8)
+        specifier: 3.8.2
+        version: 3.8.2(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8)
       vite-tsconfig-paths:
         specifier: 4.3.2
         version: 4.3.2(typescript@5.4.5)(vite@5.2.8)
@@ -1900,7 +1900,7 @@ packages:
       '@vue/compiler-dom': 3.4.21
       '@vue/shared': 3.4.21
       computeds: 0.0.1
-      minimatch: 9.0.3
+      minimatch: 9.0.4
       muggle-string: 0.3.1
       path-browserify: 1.0.1
       typescript: 5.4.5
@@ -5742,8 +5742,8 @@ packages:
       - terser
     dev: true
 
-  /vite-plugin-dts@3.8.1(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8):
-    resolution: {integrity: sha512-zEYyQxH7lKto1VTKZHF3ZZeOPkkJgnMrePY4VxDHfDSvDjmYMMfWjZxYmNwW8QxbaItWJQhhXY+geAbyNphI7g==}
+  /vite-plugin-dts@3.8.2(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8):
+    resolution: {integrity: sha512-GPkLNBUU+ztskHj37nelNsgRLurFuqXxqICSd/IxjRmgee1T6IIYlRCanugc9QtgWjYVPC/HJzSfpXJSy9OLUA==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       typescript: '*'
