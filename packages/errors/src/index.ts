@@ -6,7 +6,9 @@ export enum ErrorKind {
     CONFIG_INVALID_DATA = 'CONFIG_INVALID_DATA',
 
     COMMAND_UNKNOWN_COMMAND = 'COMMAND_UNKNOWN_COMMAND',
-    COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING = 'COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING'
+    COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING = 'COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING',
+
+    PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND'
 }
 
 export class Error<T = ErrorKind> extends BuiltinError {
@@ -62,5 +64,20 @@ export class CommandRegisterClassMalformedOrMissingError extends Error {
     public constructor() {
         super();
         Object.setPrototypeOf(this, CommandRegisterClassMalformedOrMissingError.prototype);
+    }
+}
+
+export class PlayerNotFoundError extends Error {
+    name = 'PlayerNotFoundError';
+    message = `Player not found.`;
+    code = ErrorKind.PLAYER_NOT_FOUND;
+
+    public constructor(username?: string) {
+        super();
+        Object.setPrototypeOf(this, PlayerNotFoundError.prototype);
+
+        if (username) {
+            this.message = `Player "${username}" not found.`;
+        }
     }
 }

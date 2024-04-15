@@ -1,4 +1,4 @@
-import type CommandEnum from './CommandEnum';
+import type { CommandEnum } from './CommandEnum';
 import type CommandParameter from './CommandParameter';
 
 export default class CommandData {

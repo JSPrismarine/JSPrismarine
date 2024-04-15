@@ -240,26 +240,20 @@ export class CommandManager implements Service {
                 .getGamerule('sendCommandFeedback');
 
             // Make sure we don't send feedback if sendCommandFeedback is set to false
-            if (feedback) {
-                res.forEach(async (res: any) => {
+            if (!feedback) return;
+
+            await Promise.all(
+                res.map(async (res: any) => {
                     const chat = new Chat({
                         sender: this.server.getConsole(),
-                        message: `§o§7[${target.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
+                        message: `§o§7[${target.getFormattedUsername()}: ${res ?? `issued server command: /${input}`}]§r`,
                         channel: '*.ops'
                     });
 
                     // TODO: should this be broadcasted to the executer?
                     await this.server.getChatManager().send(chat);
-                });
-            } else {
-                const chat = new Chat({
-                    sender: this.server.getConsole(),
-                    message: `§o§7[${sender.getName()}: ${res.length > 0 ? res : `issued server command: /${input}`}]§r`,
-                    channel: '*.console'
-                });
-
-                await this.server.getChatManager().send(chat);
-            }
+                })
+            );
         } catch (error: unknown) {
             switch (true) {
                 case error instanceof CommandSyntaxException:

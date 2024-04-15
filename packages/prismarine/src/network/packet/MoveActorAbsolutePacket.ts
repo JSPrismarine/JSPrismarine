@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
 import type Vector3 from '../../math/Vector3';
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 export default class MoveActorAbsolutePacket extends DataPacket {
     public static NetID = Identifiers.MoveActorAbsolutePacket;
@@ -16,7 +16,7 @@ export default class MoveActorAbsolutePacket extends DataPacket {
 
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
-        this.writeByte(this.flags ?? 0);
+        this.writeByte(this.flags || 0);
         this.position.networkSerialize(this);
         this.writeByte(this.rotationX / (360 / 256));
         this.writeByte(this.rotationY / (360 / 256));

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import GameruleManager from './GameruleManager';
 import type Server from '../Server';
+import GameruleManager from './GameruleManager';
 
 describe('GameruleManager', () => {
     let server: Server;
@@ -42,10 +42,10 @@ describe('GameruleManager', () => {
         expect(rule).toEqual([value, editable]);
     });
 
-    it('should return undefined for unknown gamerule', () => {
+    it('should return null for unknown gamerule', () => {
         const name = 'UnknownGamerule';
 
         const rule = gameruleManager.getGamerule(name);
-        expect(rule).toBeUndefined();
+        expect(rule).toBeNull();
     });
 });

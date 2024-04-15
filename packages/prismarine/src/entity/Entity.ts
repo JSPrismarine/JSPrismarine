@@ -7,8 +7,8 @@ import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
 import Position from '../world/Position';
-import AttributeManager from './Attribute';
-import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
+import { Attributes } from './Attribute';
+import { Metadata, MetadataFlag } from './Metadata';
 
 /**
  * Entity-like class.
@@ -155,19 +155,30 @@ export class Entity extends EntityLike {
     /**
      * The entity's namespace ID.
      */
-    protected static MOB_ID: string;
+    protected static MOB_ID: string = 'jsprismarine:unknown_entity';
 
     /**
-     * @deprecated
-     * @internal
+     * Get the entity type.
+     * @returns {string} The entity's namespace ID.
+     * @example
+     * ```typescript
+     * const entityType = entity.getType();
+     * console.log(`Entity type: ${entityType}`);
+     * ```
      */
-    protected readonly metadata: MetadataManager = new MetadataManager();
+    public getType(): string {
+        return (this.constructor as any).MOB_ID;
+    }
 
     /**
-     * @deprecated
+     * Entity metadata.
+     */
+    public readonly metadata = new Metadata();
+
+    /**
      * @internal
      */
-    protected readonly attributes: AttributeManager = new AttributeManager();
+    protected readonly attributes = new Attributes();
 
     /**
      * Entity constructor.
@@ -185,26 +196,18 @@ export class Entity extends EntityLike {
      * });
      * ```
      */
-    public constructor({ ...options }: Omit<ConstructorParameters<typeof EntityLike>[0], 'runtimeId'>) {
+    public constructor({ world, ...options }: Omit<ConstructorParameters<typeof EntityLike>[0], 'runtimeId'>) {
         Entity.runtimeIdCount += 1n;
         super({
+            world,
             ...options,
             runtimeId: Entity.runtimeIdCount
         });
 
-        this.metadata.setLong(MetadataFlag.INDEX, 0n);
-        this.metadata.setShort(MetadataFlag.MAX_AIR, 300);
-        this.metadata.setLong(MetadataFlag.ENTITY_LEAD_HOLDER_ID, -1n);
-        this.metadata.setFloat(MetadataFlag.SCALE, 1);
-        this.metadata.setFloat(MetadataFlag.BOUNDINGBOX_WIDTH, 0.6);
-        this.metadata.setFloat(MetadataFlag.BOUNDINGBOX_HEIGHT, 1.8);
-        this.metadata.setShort(MetadataFlag.AIR, 0);
-
-        this.setGenericFlag(MetadataFlag.AFFECTED_BY_GRAVITY, true);
-        this.setGenericFlag(MetadataFlag.HAS_COLLISION, true);
+        if (world) super.setWorld.bind(this)(world);
     }
 
-    public get [Symbol.toStringTag]() {
+    public get [Symbol.toStringTag](): string {
         return `Entity(${this.toString()})`;
     }
 
@@ -269,64 +272,11 @@ export class Entity extends EntityLike {
     }
 
     /**
-     * Set the entity's name tag.
      * @deprecated
-     * @param {string} name - The name tag.
+     * @returns {Attributes} The attribute manager.
      */
-    public setNameTag(name: string): void {
-        this.metadata.setString(MetadataFlag.NAMETAG, name);
-    }
-
-    /**
-     * @deprecated
-     * @param {number} propertyId - The property id.
-     * @param {number} flagId - The flag id.
-     * @param {boolean} [value=true] - The flag value.
-     * @param {FlagType} [propertyType=FlagType.LONG] - The property type.
-     */
-    public setDataFlag(propertyId: number, flagId: number, value = true, propertyType = FlagType.LONG): void {
-        // All generic flags are written as Longs (bigints) 64bit
-        const flagId64 = BigInt(flagId);
-        // Check if the same value is already set
-        if (this.getDataFlag(propertyId, flagId64) !== value) {
-            const flags = this.metadata.getPropertyValue(propertyId) as bigint;
-            this.metadata.setPropertyValue(propertyId, propertyType, flags ^ (1n << flagId64));
-        }
-    }
-
-    /**
-     * @deprecated
-     * @param {number} propertyId - The property id.
-     * @param {bigint} flagId - The flag id.
-     * @returns {boolean} The flag value.
-     */
-    public getDataFlag(propertyId: number, flagId: bigint): boolean {
-        return ((this.metadata.getPropertyValue(propertyId) as bigint) & (1n << flagId)) > 0;
-    }
-
-    /**
-     * @deprecated
-     * @param {number} flagId - The flag id.
-     * @param {boolean} [value=true] - The flag value.
-     */
-    public setGenericFlag(flagId: number, value = true): void {
-        this.setDataFlag(flagId >= 64 ? 94 : MetadataFlag.INDEX, flagId % 64, value, FlagType.LONG);
-    }
-
-    /**
-     * @deprecated
-     * @returns {AttributeManager} The attribute manager.
-     */
-    public getAttributeManager(): AttributeManager {
+    public getAttributeManager(): Attributes {
         return this.attributes;
-    }
-
-    /**
-     * @deprecated
-     * @returns {MetadataManager} The metadata manager.
-     */
-    public getMetadataManager(): MetadataManager {
-        return this.metadata;
     }
 
     /**
@@ -351,7 +301,7 @@ export class Entity extends EntityLike {
         packet.pitch = 0;
         packet.yaw = 0;
         packet.headYaw = 0;
-        packet.metadata = this.metadata.getMetadata();
+        packet.metadata = this.metadata.getData();
         await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(packet)));
     }
 
@@ -465,7 +415,7 @@ export class Entity extends EntityLike {
      * @param {Vector3} position - The position.
      * @returns {Promise<void>} A promise that resolves when the position is set.
      */
-    public async setPosition(position: Vector3): Promise<void> {
+    public async setPosition({ position }: { position: Vector3 }): Promise<void> {
         await super.setX.bind(this)(position.getX());
         await super.setY.bind(this)(position.getY());
         await super.setZ.bind(this)(position.getZ());
@@ -506,19 +456,6 @@ export class Entity extends EntityLike {
     }
 
     /**
-     * Get the entity type.
-     * @returns {string} The entity's namespace ID.
-     * @example
-     * ```typescript
-     * const entityType = entity.getType();
-     * console.log(`Entity type: ${entityType}`);
-     * ```
-     */
-    public getType(): string {
-        return (this.constructor as any).MOB_ID;
-    }
-
-    /**
      * Get the entity's (potentially custom) name.
      * @returns {string} The entity's name without formatting (usually prefix & suffix).
      * @example
@@ -529,6 +466,18 @@ export class Entity extends EntityLike {
      */
     public getName(): string {
         return this.getFormattedUsername();
+    }
+
+    /**
+     * Set the entity's name.
+     * @param {string} name - The name.
+     * @example
+     * ```typescript
+     * entity.setName('Mr. Sheep');
+     * ```
+     */
+    public setName(name: string): void {
+        this.metadata.setNameTag(name);
     }
 
     /**

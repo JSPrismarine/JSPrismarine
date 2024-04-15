@@ -1,8 +1,8 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { literal } from '@jsprismarine/brigadier';
 
-import { Command } from '../Command';
 import type Player from '../../Player';
+import { Command } from '../Command';
 
 export default class ReloadCommand extends Command {
     public constructor() {
@@ -15,8 +15,7 @@ export default class ReloadCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<any>) {
         const execute = async (context: any) => {
-            const source: Player = (context?.getSource() as Player) || null;
-
+            const source: Player | null = context?.getSource() || null;
             if (!source) throw new Error('Context/source is null or undefined');
 
             await source.sendMessage(

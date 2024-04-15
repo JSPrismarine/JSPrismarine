@@ -11,9 +11,11 @@ import type PreLoginPacketHandler from './PreLoginPacketHandler';
 export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> {
     public static NetID = Identifiers.LoginPacket;
 
+    /**
+     * @TODO: Check if player count >= max players
+     * @TODO: encryption handshake.
+     */
     public async handle(packet: LoginPacket, server: Server, connection: ClientConnection): Promise<void> {
-        // TODO: Check if player count >= max players
-
         const playStatus = new PlayStatusPacket();
 
         // Kick client if has newer / older client version
@@ -32,7 +34,6 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             return;
         }
 
-        // TODO: get rid of this trash
         const world = server.getWorldManager().getDefaultWorld()!;
         const player = new Player({
             connection,
@@ -40,6 +41,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             server,
             uuid: packet.identity
         });
+
         player.username.name = packet.displayName;
         player.locale = packet.languageCode;
         player.randomId = packet.clientRandomId;
@@ -47,20 +49,20 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         player.skin = packet.skin;
         player.device = packet.device;
 
+        player.setName(packet.displayName);
+
         // Player with same name is already online
         try {
-            const oldPlayer = server.getSessionManager().getPlayerByExactName(packet.displayName);
-            await oldPlayer.kick('Logged in from another location');
+            await server
+                .getSessionManager()
+                .getPlayerByExactName(packet.displayName)
+                ?.kick('Logged in from another location');
         } catch {}
 
         if (!player.xuid && server.getConfig().getOnlineMode()) {
             await player.kick('Server is in online-mode!');
             return;
         }
-
-        await player.enable();
-
-        // TODO: encryption handshake
 
         const reason = server.getBanManager().isBanned(player);
         if (reason !== false) {
@@ -73,6 +75,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         await session.sendPlayStatus(PlayStatusType.LoginSuccess);
 
         await world.addEntity(player);
+        await player.enable();
 
         // Finalize connection handshake
         const resourcePacksInfo = new ResourcePacksInfoPacket();
@@ -81,5 +84,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         resourcePacksInfo.hasScripts = false;
         resourcePacksInfo.hasAddonPacks = false;
         await connection.sendDataPacket(resourcePacksInfo, true);
+
+        await player.sendSpawn();
     }
 }

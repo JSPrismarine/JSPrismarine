@@ -3,14 +3,14 @@ import { LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
 import type { UseItemData } from '../packet/InventoryTransactionPacket';
 import { TransactionType, UseItemAction } from '../packet/InventoryTransactionPacket';
 
+import type { PlayerSession } from '../../';
+import type Server from '../../Server';
 import { BlockMappings } from '../../block/BlockMappings';
 import type ContainerEntry from '../../inventory/ContainerEntry';
+import Vector3 from '../../math/Vector3';
 import { Gamemode } from '../../world/';
 import Identifiers from '../Identifiers';
 import type PacketHandler from './PacketHandler';
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
-import Vector3 from '../../math/Vector3';
 
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
     public static NetID = Identifiers.InventoryTransactionPacket;
@@ -24,7 +24,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             case TransactionType.NORMAL: {
                 // TODO: refactor this crap.
                 // probably base it on https://github.com/pmmp/PocketMine-MP/blob/d19db5d2e44d0925798c288247c3bddb71d23975/src/pocketmine/Player.php#L2399 or something similar.
-                let movedItem: ContainerEntry;
+                let movedItem: ContainerEntry | null;
                 packet.inventoryActions.forEach(async (action) => {
                     switch (action.sourceType) {
                         case 0: {
@@ -126,29 +126,6 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                 .filter((p) => p.getWorld().getUUID() === player.getWorld().getUUID())
                                 .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(pk))
                         );
-
-                        // Spawn item if player isn't in creative
-                        /* if (player.getGamemode() !== 'creative') {
-                            // TODO: use iteminhand
-                            const drops = block.getDrops(null, server);
-
-                            await Promise.all(
-                                drops.map(async (block) => {
-                                    if (!block) return;
-
-                                    /* const droppedItem = new Item(
-                                        player.getWorld(),
-                                        server,
-                                        new ContainerEntry({
-                                            item: block,
-                                            count: 1
-                                        })
-                                    );
-                                    await player.getWorld().addEntity(droppedItem);
-                                    await droppedItem.setPosition(useItemData.blockPosition); 
-                                })
-                            );
-                        } */
 
                         chunk.setBlock(
                             chunkPos.getX(),

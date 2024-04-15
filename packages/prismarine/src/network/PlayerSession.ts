@@ -1,3 +1,4 @@
+import type { CommandArgument } from '../command/CommandArguments';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
 import type { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
@@ -42,7 +43,7 @@ import ToastRequestPacket from './packet/ToastRequestPacket';
 import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import CommandData from './type/CommandData';
-import CommandEnum from './type/CommandEnum';
+import { CommandEnum } from './type/CommandEnum';
 import MovementType from './type/MovementType';
 import PermissionType from './type/PermissionType';
 import PlayerPermissionType from './type/PlayerPermissionType';
@@ -229,24 +230,15 @@ export default class PlayerSession {
         this.loadingChunks.clear();
     }
 
+    /**
+     * @TODO: Implement this.
+     */
     public async sendInventory(): Promise<void> {
         const pk = new InventoryContentPacket();
         pk.items = this.player.getInventory().getItems(true);
         pk.windowId = WindowIds.INVENTORY; // Inventory window
-        await this.connection.sendDataPacket(pk);
-        await this.sendHandItem(this.player.getInventory().getItemInHand());
-
-        /* TODO: not working..
-        pk = new InventoryContentPacket();
-        pk.items = []; // TODO
-        pk.windowId = 78; // ArmorInventory window
-        this.sendDataPacket(pk);
-
-        https://github.com/NiclasOlofsson/MiNET/blob/master/src/MiNET/MiNET/Player.cs#L1736
-        // TODO: documentate about
-        0x7c (ui content)
-        0x77 (off hand)
-        */
+        //await this.connection.sendDataPacket(pk);
+        //await this.sendHandItem(this.player.getInventory().getItemInHand());
     }
 
     public async sendCreativeContents(empty = false): Promise<void> {
@@ -328,8 +320,17 @@ export default class PlayerSession {
     }
 
     public async sendAvailableCommands(): Promise<void> {
-        const pk = new AvailableCommandsPacket();
+        const playerEnum = new CommandEnum();
+        playerEnum.soft = true;
+        playerEnum.name = 'Player';
+        playerEnum.values = this.player
+            .getServer()
+            .getSessionManager()
+            .getAllPlayers()
+            .map((player) => player.getName());
 
+        const pk = new AvailableCommandsPacket();
+        pk.softEnums = [playerEnum];
         this.server
             .getCommandManager()
             .getCommandsList()
@@ -354,14 +355,16 @@ export default class PlayerSession {
                 cmd.commandDescription = commandClass.description;
                 if (commandClass.aliases!.length > 0) {
                     const cmdAliases = new CommandEnum();
-                    cmdAliases.enumName = `${command[0]}Aliases`;
-                    cmdAliases.enumValues = commandClass.aliases!.concat(command[0]);
+                    cmdAliases.name = `${command[0]}Aliases`;
+                    cmdAliases.values = commandClass.aliases!.concat(command[0]);
                     cmd.aliases = cmdAliases;
                 }
 
                 command[2].forEach((arg, index) => {
                     const parameters = arg
-                        .map((parameter) => {
+                        .map((parameter: CommandArgument | null) => {
+                            if (!parameter || !(parameter as any)?.getParameters) return [];
+
                             const parameters = parameter.getParameters(this.server);
                             if (parameters) return Array.from(parameters.values());
 
@@ -407,16 +410,8 @@ export default class PlayerSession {
                 });
                 pk.commandData.push(cmd);
             });
-        const playerEnum = new CommandEnum();
-        playerEnum.enumName = 'Player';
-        playerEnum.enumValues = this.player
-            .getServer()
-            .getSessionManager()
-            .getAllPlayers()
-            .map((player) => player.getName());
-        pk.softEnums = [playerEnum];
-        // TODO: update commands
-        // await this.getConnection().sendDataPacket(pk);
+
+        await this.getConnection().sendDataPacket(pk);
     }
 
     /**
@@ -435,47 +430,57 @@ export default class PlayerSession {
         const pk = new UpdateAttributesPacket();
         pk.runtimeEntityId = this.player.getRuntimeId();
         pk.attributes = attributes.length > 0 ? attributes : this.player.getAttributeManager().getAttributes();
-        pk.tick = BigInt(0); // TODO
+        pk.tick = BigInt(this.player.getServer().getTick());
         await this.connection.sendDataPacket(pk);
     }
 
     public async sendMetadata(): Promise<void> {
         const pk = new SetActorDataPacket();
         pk.runtimeEntityId = this.player.getRuntimeId();
-        pk.metadata = this.player.getMetadataManager();
-        pk.tick = BigInt(0); // TODO
+        pk.metadata = this.player.metadata;
+        pk.tick = BigInt(this.player.getServer().getTick());
         await this.connection.sendDataPacket(pk);
     }
 
     /**
      * Send a chat message to the client.
-     *
-     * @remarks
-     * Refactor this completely.
-     *
-     * @param message - The message
-     * @param xuid - The source xuid
-     * @param parameters -
-     * @param needsTranslation - If the TextType requires translation
-     * @param type - The text type
+     * @param {object} options - The options for the message.
+     * @param {string} options.message - The message to send.
+     * @param {string} [options.sourceName=''] - The source of the message.
+     * @param {string} [options.xuid=''] - The XUID of the player.
+     * @param {string} [options.platformChatId=''] - The platform chat ID.
+     * @param {string[]} [options.parameters=[]] - The parameters for the message.
+     * @param {boolean} [options.needsTranslation=false] - Whether the message needs translation.
+     * @param {TextType} [options.type=TextType.Raw] - The type of the message.
+     * @returns {Promise<void>} A promise that resolves when the message is sent.
      */
-    public async sendMessage(
-        message: string,
+    public async sendMessage({
+        message,
+        sourceName = '',
         xuid = '',
-        parameters: string[] = [],
+        platformChatId = '',
+        parameters = [],
         needsTranslation = false,
         type = TextType.Raw
-    ): Promise<void> {
+    }: {
+        message: string;
+        sourceName?: string;
+        xuid?: string;
+        platformChatId?: string;
+        parameters?: string[];
+        needsTranslation?: boolean;
+        type?: TextType;
+    }): Promise<void> {
         if (!message) throw new Error('A message is required');
 
         const pk = new TextPacket();
-        pk.type = type;
-        pk.sourceName = '';
         pk.message = message;
-        pk.needsTranslation = needsTranslation;
+        pk.sourceName = sourceName;
         pk.xuid = xuid;
-        pk.platformChatId = ''; // TODO
+        pk.platformChatId = platformChatId;
         pk.parameters = parameters;
+        pk.needsTranslation = needsTranslation;
+        pk.type = type;
         await this.connection.sendDataPacket(pk);
     }
 
@@ -530,7 +535,7 @@ export default class PlayerSession {
         }
 
         pk.ridingEntityRuntimeId = BigInt(0);
-        pk.tick = BigInt(0); // TODO
+        pk.tick = BigInt(this.player.getServer().getTick());
         await this.connection.sendDataPacket(pk);
     }
 
@@ -620,10 +625,11 @@ export default class PlayerSession {
         pk.yaw = this.player.yaw;
         pk.headYaw = this.player.headYaw;
 
+        pk.gamemode = this.player.gamemode;
         pk.item = this.player.getInventory().getItemInHand();
 
         pk.deviceId = this.player.device?.id ?? '';
-        pk.metadata = this.player.getMetadataManager();
+        pk.metadata = this.player.metadata;
         await player.getNetworkSession().getConnection().sendDataPacket(pk);
         // TODO: await this.sendSettings(player);
     }

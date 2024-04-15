@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket';
+import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
+import DataPacket from './DataPacket';
 
 export default class ShowProfilePacket extends DataPacket {
     public static NetID = Identifiers.ShowProfilePacket;
@@ -8,10 +8,10 @@ export default class ShowProfilePacket extends DataPacket {
     public xuid!: string;
 
     public decodePayload() {
-        this.xuid = McpeUtil.readString(this);
+        this.xuid = NetworkUtil.readString(this);
     }
 
     public encodePayload() {
-        McpeUtil.writeString(this, this.xuid);
+        NetworkUtil.writeString(this, this.xuid);
     }
 }

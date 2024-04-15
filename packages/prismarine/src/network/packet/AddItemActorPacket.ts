@@ -1,7 +1,8 @@
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
+import type { Metadata } from '../../entity/Metadata';
 import type { Item } from '../../item/Item';
 import Vector3 from '../../math/Vector3';
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 /**
  * Packet for adding an dropped item to the game.
@@ -27,7 +28,7 @@ export default class AddItemActorPacket extends DataPacket {
     public position!: Vector3;
     public motion = new Vector3(0, 0, 0);
 
-    // public metadata!: any[] = [];
+    public metadata!: Metadata;
     public isFromFishing = false;
 
     public encodePayload() {
@@ -39,8 +40,7 @@ export default class AddItemActorPacket extends DataPacket {
         this.position.networkSerialize(this);
         this.motion.networkSerialize(this);
 
-        // TODO: metadata
-        this.writeUnsignedVarInt(0);
+        this.metadata.networkSerialize(this);
 
         this.writeBoolean(this.isFromFishing);
     }

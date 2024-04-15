@@ -1,7 +1,7 @@
+import { NetworkUtil } from '../../network/NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
+import DataPacket from './DataPacket';
 
 export enum SoundName {
     // Ambient
@@ -74,7 +74,7 @@ export default class PlaySoundPacket extends DataPacket {
 
     public decodePayload(): void {
         // Reverse mapping should work theorycally
-        this.name = (SoundName as any)[McpeUtil.readString(this)] as SoundName;
+        this.name = (SoundName as any)[NetworkUtil.readString(this)] as SoundName;
         this.position = BlockPosition.networkDeserialize(this);
         // TODO: fix position, divide it by 8
         this.volume = this.readFloatLE();
