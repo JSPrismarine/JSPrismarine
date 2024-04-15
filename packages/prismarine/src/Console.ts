@@ -19,9 +19,11 @@ declare module 'node:readline' {
     }
 }
 
+/**
+ * Server console.
+ */
 export default class Console extends EntityLike implements Service {
     private cli?: readline.Interface;
-    private history: string[] = [];
 
     public constructor(server: Server, runtimeId = BigInt(-1)) {
         super({
@@ -50,8 +52,6 @@ export default class Console extends EntityLike implements Service {
             await this.sendMessage(evt.getChat().getMessage());
         });
         this.server.getLogger().setConsole(this);
-
-        this.cli.on('history', (history) => (this.history = history));
 
         this.cli.on('keypress', async (_, key) => {
             switch (key.name) {
@@ -111,7 +111,7 @@ export default class Console extends EntityLike implements Service {
             .reverse(); // Restore.
 
         // TODO: Handle arguments.
-        const hits = [...this.history, ...completions].filter((c) => c.startsWith(line));
+        const hits = completions.filter((c) => c.startsWith(line));
         return callback(null, [hits.length ? hits : completions, line]);
     }
 

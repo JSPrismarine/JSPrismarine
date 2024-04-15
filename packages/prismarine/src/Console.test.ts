@@ -30,32 +30,5 @@ describe('Console', () => {
 
             expect(result).toEqual([expectedCompletions, line]);
         });
-
-        it('should return completions for history and commands', async () => {
-            const serverMock = {
-                getCommandManager: () => ({
-                    getCommands: () =>
-                        new Map([
-                            ['command1', {}],
-                            ['command2', {}],
-                            ['command3', {}]
-                        ])
-                })
-            } as Server;
-            const consoleInstance = new Console(serverMock) as any;
-            consoleInstance['history'] = ['/previousCommand'];
-
-            const line = '/p';
-            const expectedCompletions = ['/previousCommand'];
-
-            const result = await new Promise((resolve, reject) => {
-                consoleInstance.complete(line, (err, result) => {
-                    if (err) reject(err);
-                    else resolve(result);
-                });
-            });
-
-            expect(result).toEqual([expectedCompletions, line]);
-        });
     });
 });
