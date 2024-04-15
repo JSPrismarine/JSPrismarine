@@ -12,6 +12,7 @@ import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
 
 /**
  * Entity-like class.
+ * @internal
  */
 export class EntityLike extends Position {
     protected readonly uuid: string;
@@ -142,27 +143,31 @@ export class EntityLike extends Position {
 
 /**
  * The base class for all entities including `Player`.
+ * @public
  */
 export class Entity extends EntityLike {
+    /**
+     * The global runtime id counter.
+     * @internal
+     */
+    public static runtimeIdCount = 0n;
+
     /**
      * The entity's namespace ID.
      */
     protected static MOB_ID: string;
 
     /**
-     * The global runtime id counter.
+     * @deprecated
+     * @internal
      */
-    public static runtimeIdCount = 0n;
+    protected readonly metadata: MetadataManager = new MetadataManager();
 
     /**
      * @deprecated
+     * @internal
      */
-    private readonly metadata: MetadataManager = new MetadataManager();
-
-    /**
-     * @deprecated
-     */
-    private readonly attributes: AttributeManager = new AttributeManager();
+    protected readonly attributes: AttributeManager = new AttributeManager();
 
     /**
      * Entity constructor.
@@ -199,11 +204,18 @@ export class Entity extends EntityLike {
         this.setGenericFlag(MetadataFlag.HAS_COLLISION, true);
     }
 
-    get [Symbol.toStringTag]() {
+    public get [Symbol.toStringTag]() {
         return `Entity(${this.toString()})`;
     }
 
-    toString() {
+    /**
+     * Convert to a string representation.
+     * @returns {string} The string.
+     * ```typescript
+     * console.log(entity.toString());
+     * ```
+     */
+    public toString() {
         return `uuid: §a${this.getUUID()}§r, id: §a${this.getRuntimeId()}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, ${super.toString.bind(this)()}`;
     }
 
@@ -223,6 +235,9 @@ export class Entity extends EntityLike {
     /**
      * Get the entity's UUID.
      * @returns {string} The entity's UUID.
+     * ```typescript
+     * console.log(entity.getUUID());
+     * ```
      */
     public getUUID(): string {
         return this.uuid;
@@ -230,7 +245,7 @@ export class Entity extends EntityLike {
 
     /**
      * Fired every tick from the event subscription in the constructor.
-     * @param {number} tick - The current tick.
+     * @param {number} tick - The current world-tick.
      * @returns {Promise<void>} A promise that resolves when the update is complete.
      * @example
      * ```typescript
@@ -246,6 +261,7 @@ export class Entity extends EntityLike {
      * @example
      * ```typescript
      * const server = entity.getServer();
+     * // Do things with the server.
      * ```
      */
     public getServer(): Server {
@@ -254,6 +270,7 @@ export class Entity extends EntityLike {
 
     /**
      * Set the entity's name tag.
+     * @deprecated
      * @param {string} name - The name tag.
      */
     public setNameTag(name: string): void {
@@ -396,8 +413,8 @@ export class Entity extends EntityLike {
     }
 
     /**
-     * Set the x position.
-     * @param {number} x - The x coordinate.
+     * Set the `x` position.
+     * @param {number} x - The `x` coordinate.
      * @param {boolean} [suppress=false] - If true, the client won't be notified about the position change.
      * @returns {Promise<void>} A promise that resolves when the x position is set.
      * @example
@@ -412,8 +429,8 @@ export class Entity extends EntityLike {
     }
 
     /**
-     * Set the y position.
-     * @param {number} y - The y coordinate.
+     * Set the `y` position.
+     * @param {number} y - The `y` coordinate.
      * @param {boolean} [suppress=false] - If true, the client won't be notified about the position change.
      * @returns {Promise<void>} A promise that resolves when the y position is set.
      * @example
@@ -428,8 +445,8 @@ export class Entity extends EntityLike {
     }
 
     /**
-     * Set the z position.
-     * @param {number} z - The z coordinate.
+     * Set the `z` position.
+     * @param {number} z - The `z` coordinate.
      * @param {boolean} [suppress=false] - If true, the client won't be notified about the position change.
      * @returns {Promise<void>} A promise that resolves when the z position is set.
      * @example
@@ -520,7 +537,7 @@ export class Entity extends EntityLike {
      * @example
      * ```typescript
      * const formattedName = entity.getFormattedUsername();
-     * console.log(`Entity formatted name: ${formattedName}`);
+     * console.log(`Entity formatted name: ${formattedName}`); // Entity formatted name: Sheep
      * ```
      */
     public getFormattedUsername(): string {
@@ -528,7 +545,7 @@ export class Entity extends EntityLike {
             this.metadata.getString(MetadataFlag.NAMETAG) ||
             // Replace all '_' with a ' ' and capitalize each word afterwards,
             // should probably be replaced with regex.
-            ((this.constructor as any).MOB_ID as string)
+            (((this.constructor as any)?.MOB_ID as string) || 'Unknown Entity')
                 .split(':')[1]!
                 .replaceAll('_', ' ')
                 .split(' ')
