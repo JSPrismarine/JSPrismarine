@@ -1,16 +1,15 @@
-import { assert, describe, beforeEach, it } from 'vitest';
-import testEquality from '../util/isEqual.test';
-import { DefaultType } from '../arguments/ArgumentType';
+import { assert, beforeEach, describe, it } from 'vitest';
 import type Command from '../Command';
-import type CommandNode from '../tree/CommandNode';
-import RootCommandNode from '../tree/RootCommandNode';
 import CommandDispatcher from '../CommandDispatcher';
-import type ArgumentCommandNode from '../tree/ArgumentCommandNode';
-import CommandContextBuilder from '../context/CommandContextBuilder';
+import StringReader from '../StringReader';
+import { DefaultType } from '../arguments/ArgumentType';
 import type RequiredArgumentBuilder from '../builder/RequiredArgumentBuilder';
 import { argument } from '../builder/RequiredArgumentBuilder';
+import CommandContextBuilder from '../context/CommandContextBuilder';
 import SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
-import StringReader from '../StringReader';
+import type ArgumentCommandNode from '../tree/ArgumentCommandNode';
+import RootCommandNode from '../tree/RootCommandNode';
+import testEquality from '../util/isEqual.test';
 
 const { integer } = DefaultType;
 
@@ -19,12 +18,8 @@ describe('ArgumentCommandNodeTest', () => {
     let contextBuilder: CommandContextBuilder<Object>;
     let node: ArgumentCommandNode<Object, number>;
 
-    function getCommandNode(): CommandNode<Object> {
-        return node;
-    }
-
     beforeEach(() => {
-        node = argument('foo', integer()).build();
+        node = argument('foo', integer()).build() as any;
         contextBuilder = new CommandContextBuilder(new CommandDispatcher(), new Object(), new RootCommandNode(), 0);
     });
 
@@ -33,7 +28,7 @@ describe('ArgumentCommandNodeTest', () => {
         node.parse(reader, contextBuilder);
 
         assert.equal(contextBuilder.getArguments().has('foo'), true);
-        assert.equal(contextBuilder.getArguments().get('foo').getResult(), 123);
+        assert.equal(contextBuilder.getArguments().get('foo')?.getResult(), 123);
     });
 
     it('testUsage', () => {

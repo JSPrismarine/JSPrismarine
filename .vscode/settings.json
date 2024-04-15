@@ -39,6 +39,8 @@
         "workbench.editor.restoreViewState": false
     },
     "cSpell.words": [
+        "BOUNDINGBOX",
+        "Collidable",
         "Despawn",
         "despawned",
         "Elytra",
@@ -48,11 +50,14 @@
         "gamerule",
         "gamerules",
         "Hoglin",
+        "Hotbar",
         "Illager",
         "Inet",
         "jsbinaryutils",
         "jsprismarine",
+        "MCPE",
         "Mooshroom",
+        "NAMETAG",
         "Piglin",
         "Pigman",
         "prismarine",

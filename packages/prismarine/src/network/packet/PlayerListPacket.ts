@@ -1,9 +1,9 @@
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
-import type Skin from '../../utils/skin/Skin';
+import { NetworkUtil } from '../../network/NetworkUtil';
 import type UUID from '../../utils/UUID';
+import type Skin from '../../utils/skin/Skin';
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 interface PlayerListData {
     uuid: UUID;
@@ -53,9 +53,9 @@ export class PlayerListEntry {
 
     public networkSerialize(stream: BinaryStream): void {
         stream.writeVarLong(this.getUniqueEntityId()!);
-        McpeUtil.writeString(stream, this.getName()!);
-        McpeUtil.writeString(stream, this.getXUID()!);
-        McpeUtil.writeString(stream, this.getPlatformChatId()!);
+        NetworkUtil.writeString(stream, this.getName()!);
+        NetworkUtil.writeString(stream, this.getXUID()!);
+        NetworkUtil.writeString(stream, this.getPlatformChatId()!);
         stream.writeIntLE(this.getBuildPlatform()!);
         this.getSkin()!.networkSerialize(stream);
         stream.writeBoolean(this.isTeacher());

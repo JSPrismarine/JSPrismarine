@@ -1,6 +1,6 @@
 // import BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil';
 import type Server from '../Server';
+import { NetworkUtil } from '../network/NetworkUtil';
 
 export const GameRules = {
     CommandBlockOutput: 'commandblockoutput',
@@ -58,9 +58,10 @@ export default class GameruleManager {
 
     /**
      * Sets a game rule.
-     *
-     * @param name - the gamerule's name
-     * @param value - the value, boolean OR number
+     * @param {string} name - the gamerule's name.
+     * @param {boolean | number} value - the value, boolean OR number.
+     * @param {boolean} editable - if the gamerule is editable.
+     * @TODO: notify clients about gamerule change.
      */
     public setGamerule(name: string, value: boolean | number, editable: boolean): void {
         this.rules.set(name.toLowerCase(), [value, editable]);
@@ -68,15 +69,14 @@ export default class GameruleManager {
 
     /**
      * Returns the gamerule value.
-     *
-     * @param name - the gamerule's name
+     * @param {string} name - the gamerule's name.
      */
-    public getGamerule(name: string): any {
+    public getGamerule(name: string) {
         if (!Object.values(GameRules).includes(name.toLowerCase())) {
             this.server.getLogger().error(`Unknown Gamerule with name ${name}`);
         }
 
-        return this.rules.get(name.toLowerCase());
+        return this.rules.get(name.toLowerCase()) ?? null;
     }
 
     public getGamerules() {
@@ -90,7 +90,7 @@ export default class GameruleManager {
 
         stream.writeUnsignedVarInt(this.getGamerules().size);
         for (const [name, [value, editable]] of this.getGamerules()) {
-            McpeUtil.writeString(stream, name.toLowerCase());
+            NetworkUtil.writeString(stream, name.toLowerCase());
             stream.writeBoolean(editable);
             switch (typeof value) {
                 case 'boolean':

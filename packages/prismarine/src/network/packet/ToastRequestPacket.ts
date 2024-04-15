@@ -1,5 +1,5 @@
+import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 export default class ToastRequestPacket extends DataPacket {
@@ -9,12 +9,12 @@ export default class ToastRequestPacket extends DataPacket {
     public body!: string;
 
     public decodePayload() {
-        this.title = McpeUtil.readString(this);
-        this.body = McpeUtil.readString(this);
+        this.title = NetworkUtil.readString(this);
+        this.body = NetworkUtil.readString(this);
     }
 
     public encodePayload() {
-        McpeUtil.writeString(this, this.title);
-        McpeUtil.writeString(this, this.body);
+        NetworkUtil.writeString(this, this.title);
+        NetworkUtil.writeString(this, this.body);
     }
 }

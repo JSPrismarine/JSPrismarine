@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket';
+import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
+import DataPacket from './DataPacket';
 
 export default class LevelSoundEventPacket extends DataPacket {
     public static NetID = Identifiers.LevelSoundEventPacket;
@@ -24,7 +24,7 @@ export default class LevelSoundEventPacket extends DataPacket {
         this.positionZ = this.readFloatLE();
 
         this.extraData = this.readVarInt();
-        this.entityType = McpeUtil.readString(this);
+        this.entityType = NetworkUtil.readString(this);
         this.isBabyMob = this.readBoolean();
         this.disableRelativeVolume = this.readBoolean();
     }
@@ -37,7 +37,7 @@ export default class LevelSoundEventPacket extends DataPacket {
         this.writeFloatLE(this.positionZ);
 
         this.writeVarInt(this.extraData);
-        McpeUtil.writeString(this, this.entityType);
+        NetworkUtil.writeString(this, this.entityType);
         this.writeBoolean(this.isBabyMob);
         this.writeBoolean(this.disableRelativeVolume);
     }

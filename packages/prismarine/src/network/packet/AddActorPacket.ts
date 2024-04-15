@@ -1,7 +1,8 @@
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
+import type { MetadataContainer } from '../../entity/Metadata';
 import Vector3 from '../../math/Vector3';
+import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
+import DataPacket from './DataPacket';
 
 /**
  * Packet for adding an entity to the game.
@@ -32,14 +33,14 @@ export default class AddActorPacket extends DataPacket {
     public headYaw!: number;
 
     public attributes = [];
-    public metadata!: Map<number, [number, bigint | number | boolean | string]>;
+    public metadata!: MetadataContainer;
     public links = [];
 
     public encodePayload(): void {
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
-        McpeUtil.writeString(this, this.type);
+        NetworkUtil.writeString(this, this.type);
 
         this.writeFloatLE(this.position.getX());
         this.writeFloatLE(this.position.getY());

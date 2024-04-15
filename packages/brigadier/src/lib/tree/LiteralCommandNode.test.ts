@@ -1,15 +1,15 @@
-import { assert, expect, describe, beforeEach, it } from 'vitest';
-import testEquality from '../util/isEqual.test';
+import { assert, beforeEach, describe, expect, it } from 'vitest';
 import CommandDispatcher from '../CommandDispatcher';
-import RootCommandNode from '../tree/RootCommandNode';
-import type LiteralCommandNode from '../tree/LiteralCommandNode';
+import StringReader from '../StringReader';
+import { literal } from '../builder/LiteralArgumentBuilder';
 import CommandContextBuilder from '../context/CommandContextBuilder';
+import StringRange from '../context/StringRange';
 import CommandSyntaxException from '../exceptions/CommandSyntaxException';
 import Suggestion from '../suggestion/Suggestion';
 import SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
-import { literal } from '../builder/LiteralArgumentBuilder';
-import StringReader from '../StringReader';
-import StringRange from '../context/StringRange';
+import type LiteralCommandNode from '../tree/LiteralCommandNode';
+import RootCommandNode from '../tree/RootCommandNode';
+import testEquality from '../util/isEqual.test';
 
 describe('LiteralCommandNodeTest', () => {
     let node: LiteralCommandNode<Object>;
@@ -73,7 +73,7 @@ describe('LiteralCommandNodeTest', () => {
         assert.equal(food.isEmpty(), true);
 
         const b = await node.listSuggestions(contextBuilder.build('b'), new SuggestionsBuilder('b', 0));
-        assert.equal(food.isEmpty(), true);
+        assert.equal(b.isEmpty(), true);
     });
 
     it('testEquals', () => {

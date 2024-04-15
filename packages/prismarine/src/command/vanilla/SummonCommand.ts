@@ -1,13 +1,12 @@
 import * as Entities from '../../entity/Entities';
 
-import { CommandArgumentMob } from '../CommandArguments';
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
+import { CommandArgumentMob } from '../CommandArguments';
 
-import { Command } from '../Command';
-import type { Entity } from '../../entity/Entity';
 import type Player from '../../Player';
-import Vector3 from '../../math/Vector3';
+import type { Entity } from '../../entity/Entity';
+import { Command } from '../Command';
 
 export default class SummonCommand extends Command {
     public constructor() {
@@ -41,7 +40,10 @@ export default class SummonCommand extends Command {
 
                         const mob: Entity = new entity(source.getWorld(), source.getServer());
                         await source.getWorld().addEntity(mob);
-                        await mob.setPosition(new Vector3(source.getX(), source.getY() - 1.6, source.getZ()));
+
+                        await mob.setPosition({
+                            position: source.getPosition()
+                        });
 
                         const res = `Summoned ${entity.MOB_ID}`;
                         await source.sendMessage(res);

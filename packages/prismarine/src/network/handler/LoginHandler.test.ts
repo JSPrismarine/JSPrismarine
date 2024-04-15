@@ -1,10 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import type Server from '../../Server';
 import Identifiers from '../Identifiers';
-import LoginHandler from './LoginHandler';
 import LoginPacket from '../packet/LoginPacket';
 import PlayStatusType from '../type/PlayStatusType';
-import type Server from '../../Server';
+import LoginHandler from './LoginHandler';
 
 describe('network', () => {
     describe('handler', () => {
@@ -25,7 +25,8 @@ describe('network', () => {
                 })
             }),
             getConfig: () => ({
-                getOnlineMode: () => false
+                getOnlineMode: () => false,
+                getGamemode: () => 'survival'
             }),
             getPermissionManager: () => ({
                 getPermissions(_player: any) {
@@ -37,7 +38,9 @@ describe('network', () => {
                     return false;
                 }
             }),
+            getTick: () => 0,
             on: vi.fn(),
+            post: vi.fn(),
             emit: vi.fn().mockResolvedValue({})
         }))();
 

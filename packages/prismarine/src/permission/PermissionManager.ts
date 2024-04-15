@@ -4,6 +4,7 @@ import util from 'node:util';
 
 import minifyJson from 'strip-json-comments';
 
+import { PlayerNotFoundError } from '@jsprismarine/errors';
 import type { Player, Server, Service } from '../';
 import { cwd } from '../';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
@@ -164,6 +165,7 @@ export class PermissionManager implements Service {
      */
     public async setOp(username: string, op: boolean): Promise<boolean> {
         const target = this.server.getSessionManager().getPlayerByExactName(username); // TODO: by name not exact
+        if (!target) throw new PlayerNotFoundError(username);
         const event = new playerToggleOperatorEvent(target, op);
         this.server.post(['playerToggleOperator', event]);
         if (event.isCancelled()) return false;

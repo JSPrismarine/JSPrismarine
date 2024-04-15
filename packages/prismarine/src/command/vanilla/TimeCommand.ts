@@ -1,8 +1,8 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, integer, literal, string } from '@jsprismarine/brigadier';
 
-import { Command } from '../Command';
 import type Player from '../../Player';
+import { Command } from '../Command';
 
 export default class TimeCommand extends Command {
     public constructor() {
@@ -47,7 +47,7 @@ export default class TimeCommand extends Command {
                 )
                 .executes(async (context) => {
                     const source = context.getSource() as Player;
-                    const world = source.getWorld() || source.getServer().getWorldManager().getDefaultWorld();
+                    const world = source.getWorld();
 
                     await source.sendMessage(`The current time is ${world.getTicks()}`);
                 })

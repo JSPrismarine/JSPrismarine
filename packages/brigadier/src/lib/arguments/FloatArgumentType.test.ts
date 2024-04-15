@@ -1,18 +1,12 @@
-import { assert, expect, describe, beforeEach, it } from 'vitest';
-import testEquality from '../util/isEqual.test';
-import CommandSyntaxException from '../exceptions/CommandSyntaxException';
-import { DefaultType } from '../arguments/ArgumentType';
+import { assert, describe, expect, it } from 'vitest';
 import StringReader from '../StringReader';
+import { DefaultType } from '../arguments/ArgumentType';
+import CommandSyntaxException from '../exceptions/CommandSyntaxException';
+import testEquality from '../util/isEqual.test';
 
 const { float } = DefaultType;
 
 describe('floatumentTypeTest', () => {
-    let type;
-
-    beforeEach(() => {
-        type = float(-100, 100);
-    });
-
     it('parse', () => {
         const reader = new StringReader('15');
         assert.equal(float().parse(reader), 15);

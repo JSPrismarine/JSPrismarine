@@ -1,13 +1,17 @@
-import { CommandArgumentEntity, CommandArgumentGamemode } from '../CommandArguments';
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
+import { CommandArgumentEntity, CommandArgumentGamemode } from '../CommandArguments';
 
+import type Player from '../../Player';
 import { Chat } from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
-import { Command } from '../Command';
 import { Gamemode } from '../../world/';
-import type Player from '../../Player';
+import { Command } from '../Command';
 
+/**
+ * Changes gamemode for a player.
+ * @remarks the `/gamemode` command.
+ */
 export default class GamemodeCommand extends Command {
     public constructor() {
         super({
@@ -18,7 +22,7 @@ export default class GamemodeCommand extends Command {
     }
 
     private async setGamemode(source: Player, target: Player, gamemode: string) {
-        if (!target) {
+        if (!(target as any)) {
             const event = new ChatEvent(
                 new Chat({
                     sender: source,
@@ -60,7 +64,9 @@ export default class GamemodeCommand extends Command {
 
                                 if (!targets.length) throw new Error(`Cannot find player`);
 
-                                targets.forEach(async (target) => this.setGamemode(source, target, gamemode));
+                                await Promise.all(
+                                    targets.map(async (target) => await this.setGamemode(source, target, gamemode))
+                                );
                             }
                         )
                     )

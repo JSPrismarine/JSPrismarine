@@ -1,12 +1,11 @@
-import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
-
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import DataPacket from './DataPacket';
+import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
+import type Vector3 from '../../math/Vector3';
+import { NetworkUtil } from '../../network/NetworkUtil';
+import UUID from '../../utils/UUID';
 import type GameruleManager from '../../world/GameruleManager';
 import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
-import UUID from '../../utils/UUID';
-import type Vector3 from '../../math/Vector3';
+import DataPacket from './DataPacket';
 
 export default class StartGamePacket extends DataPacket {
     public static NetID = Identifiers.StartGamePacket;
@@ -23,6 +22,8 @@ export default class StartGamePacket extends DataPacket {
     public levelId!: string;
     public worldName!: string;
     public seed!: number;
+    public time: number = 0;
+    public ticks: number = 0;
 
     public worldSpawnPos!: Vector3;
 
@@ -39,20 +40,18 @@ export default class StartGamePacket extends DataPacket {
 
         this.playerPos.networkSerialize(this);
 
-        // TODO: is resulting null... fixme...
-        this.writeFloatLE(this.pitch ?? 0);
-        // TODO: is resulting undefined... fixme...
-        this.writeFloatLE(this.yaw ?? 0);
+        this.writeFloatLE(this.pitch || 0);
+        this.writeFloatLE(this.yaw || 0);
 
-        this.writeLongLE(0n); // Seed
+        this.writeLongLE(BigInt(this.seed)); // Seed
 
         this.writeUnsignedShortLE(0x00); // Default spawn biome type
-        McpeUtil.writeString(this, 'plains'); // User defined biome name
+        NetworkUtil.writeString(this, 'plains'); // User defined biome name
 
         this.writeVarInt(0); // Dimension
 
         this.writeVarInt(1); // Generator
-        this.writeVarInt(this.defaultGamemode ?? 0); // Default Gamemode
+        this.writeVarInt(this.defaultGamemode || 0); // Default Gamemode
         this.writeVarInt(0); // Difficulty
 
         // world spawn vector 3
@@ -68,10 +67,10 @@ export default class StartGamePacket extends DataPacket {
         this.writeBoolean(false); // Created in editor mode?
         this.writeBoolean(false); // Exported from editor mode?
 
-        this.writeVarInt(0); // Day cycle / time
+        this.writeVarInt(this.time); // Day cycle / time
         this.writeVarInt(0); // Edu edition offer
         this.writeBoolean(false); // Edu features
-        McpeUtil.writeString(this, ''); // Edu product id
+        NetworkUtil.writeString(this, ''); // Edu product id
 
         this.writeFloatLE(0); // Rain lvl
         this.writeFloatLE(0); // Lightning lvl
@@ -108,7 +107,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // Disable persona skins
         this.writeByte(0); // Disable custom skins
         this.writeByte(0); // Disable emote
-        McpeUtil.writeString(this, '*');
+        NetworkUtil.writeString(this, '*');
 
         this.writeUnsignedIntLE(0); // Limited world height
         this.writeUnsignedIntLE(0); // Limited world length
@@ -116,17 +115,17 @@ export default class StartGamePacket extends DataPacket {
         this.writeBoolean(false); // Has new nether
 
         // TODOs
-        McpeUtil.writeString(this, '');
-        McpeUtil.writeString(this, '');
+        NetworkUtil.writeString(this, '');
+        NetworkUtil.writeString(this, '');
 
         this.writeBoolean(false); // Experimental gameplay
 
         this.writeByte(0); // Chat restriction level
         this.writeByte(0); // Disable player interactions
 
-        McpeUtil.writeString(this, this.levelId);
-        McpeUtil.writeString(this, this.worldName);
-        McpeUtil.writeString(this, '00000000-0000-0000-0000-000000000000'); // Template content identity
+        NetworkUtil.writeString(this, this.levelId);
+        NetworkUtil.writeString(this, this.worldName);
+        NetworkUtil.writeString(this, '00000000-0000-0000-0000-000000000000'); // Template content identity
 
         this.writeByte(0); // Is trial
 
@@ -134,7 +133,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(0); // Rewind History Size
         this.writeBoolean(false); // Is Server Authoritative Block Breaking
 
-        this.writeLongLE(0n); // World ticks (for time)
+        this.writeLongLE(BigInt(this.ticks)); // World ticks (for time)
 
         this.writeVarInt(0); // Enchantment seed
 
@@ -150,10 +149,10 @@ export default class StartGamePacket extends DataPacket {
         } */
         this.writeUnsignedVarInt(0);
 
-        McpeUtil.writeString(this, '');
+        NetworkUtil.writeString(this, '');
         this.writeBoolean(true); // New inventory system
 
-        McpeUtil.writeString(this, Identifiers.MinecraftVersions.at(0)!);
+        NetworkUtil.writeString(this, Identifiers.MinecraftVersions.at(0)!);
 
         // TODO
         const str = new BinaryStream();
@@ -177,7 +176,7 @@ export default class StartGamePacket extends DataPacket {
         const itemMappings = Object.entries(item_id_map);
         stream.writeUnsignedVarInt(itemMappings.length);
         for (const [name, data] of itemMappings) {
-            McpeUtil.writeString(stream, name);
+            NetworkUtil.writeString(stream, name);
             stream.writeShortLE((data as any).runtime_id as number);
             stream.writeByte(0); // unknown
         }

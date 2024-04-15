@@ -7,7 +7,7 @@ import type Server from '../Server';
  *
  * @remarks
  * 1. "MCPE"
- * 2. [Server Software]
+ * 2. [Server Name/Software]
  * 3. [Protocol Version]
  * 4. [Minecraft Version]
  * 5. [Online Players]

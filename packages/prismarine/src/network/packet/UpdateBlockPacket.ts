@@ -1,5 +1,5 @@
-import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 export enum UpdateBlockLayerType {
     Normal = 0,
@@ -40,7 +40,7 @@ export default class UpdateBlockPacket extends DataPacket {
         this.writeVarInt(this.z);
 
         this.writeUnsignedVarInt(this.blockRuntimeId);
-        this.writeUnsignedVarInt(this.flags ?? UpdateBlockFlagsType.None);
-        this.writeUnsignedVarInt(this.layer ?? UpdateBlockLayerType.Normal);
+        this.writeUnsignedVarInt(this.flags || UpdateBlockFlagsType.None);
+        this.writeUnsignedVarInt(this.layer || UpdateBlockLayerType.Normal);
     }
 }

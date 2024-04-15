@@ -1,16 +1,14 @@
-import * as Entities from '../entity/Entities';
-
 import type { CommandContext, StringReader } from '@jsprismarine/brigadier';
 import { Suggestions } from '@jsprismarine/brigadier';
 import CommandParameter, { CommandParameterFlags, CommandParameterType } from '../network/type/CommandParameter';
 
-import CommandEnum from '../network/type/CommandEnum';
-import { Gamemode } from '../world/';
-import ParseTargetSelector from '../utils/ParseTargetSelector';
-import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
 import type Player from '../Player';
 import type Server from '../Server';
 import Vector3 from '../math/Vector3';
+import { CommandEnum } from '../network/type/CommandEnum';
+import ParseTargetSelector from '../utils/ParseTargetSelector';
+import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
+import { Gamemode } from '../world/';
 
 export abstract class CommandArgument {
     public getReadableType(): string {
@@ -55,10 +53,10 @@ export class CommandArgumentGamemode implements CommandArgument {
 
     public getParameters(): Set<CommandParameter> {
         const gameModeEnum = new CommandEnum();
-        gameModeEnum.enumName = 'GameMode';
+        gameModeEnum.name = 'GameMode';
 
         // TODO: this should be dynamic
-        gameModeEnum.enumValues = ['survival', 'creative', 'adventure', 'spectator'];
+        gameModeEnum.values = ['survival', 'creative', 'adventure', 'spectator'];
         return new Set([
             new CommandParameter({
                 paramName: this.name,
@@ -113,8 +111,8 @@ export class CommandArgumentMob implements CommandArgument {
 
     public getParameters(): Set<CommandParameter> {
         const entityTypeEnum = new CommandEnum();
-        entityTypeEnum.enumName = 'EntityType';
-        entityTypeEnum.enumValues = Object.entries(Entities).map(([, entity]) => entity.MOB_ID);
+        entityTypeEnum.name = 'EntityType';
+        entityTypeEnum.values = []; //Object.entries(Entities).map(([, entity]) => entity.MOB_ID);
         return new Set([
             new CommandParameter({
                 paramName: this.name,
@@ -321,8 +319,8 @@ export class BooleanArgumentCommand implements CommandArgument {
 
     public getParameters(): Set<CommandParameter> {
         const booleanEnum = new CommandEnum();
-        booleanEnum.enumName = 'Boolean';
-        booleanEnum.enumValues = ['true', 'false'];
+        booleanEnum.name = 'Boolean';
+        booleanEnum.values = ['true', 'false'];
         return new Set([
             new CommandParameter({
                 paramName: this.name,
@@ -359,14 +357,14 @@ export class PlayerArgumentCommand implements CommandArgument {
 
     public getParameters(server: Server): Set<CommandParameter> {
         const playerEnum = new CommandEnum();
-        playerEnum.enumName = 'Player';
+        playerEnum.name = 'Player';
         try {
-            playerEnum.enumValues = server
+            playerEnum.values = server
                 .getSessionManager()
                 .getAllPlayers()
                 .map((player) => player.getName());
         } catch {
-            playerEnum.enumValues = [];
+            playerEnum.values = [];
         }
 
         return new Set([

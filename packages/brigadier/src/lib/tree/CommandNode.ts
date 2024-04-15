@@ -31,7 +31,7 @@ abstract class CommandNode<S> {
 
     public constructor(
         command: Command<S> | null,
-        requirement: Predicate<S>,
+        requirement: Predicate<S> | null,
         redirect: CommandNode<S> | null,
         modifier: RedirectModifier<S> | null,
         forks: boolean

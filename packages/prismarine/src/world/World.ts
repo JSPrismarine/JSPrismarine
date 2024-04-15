@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
 
 import type { Block, Player, Server, Service } from '../';
-import { Gamemode, Timer, UUID } from '../';
+import { Timer, UUID } from '../';
 import { BlockMappings } from '../block/BlockMappings';
 import * as Entities from '../entity/Entities';
 import type { Entity } from '../entity/Entity';
@@ -14,7 +14,7 @@ import Vector3 from '../math/Vector3';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
-import { cwd, withCwd } from '../utils/cwd';
+import { withCwd } from '../utils/cwd';
 import type { Generator } from './Generator';
 import Chunk from './chunk/Chunk';
 import type BaseProvider from './providers/BaseProvider';
@@ -89,9 +89,14 @@ export class World implements Service {
 
         this.gameruleManager.setGamerule(GameRules.ShowCoordinates, true, true);
 
-        // Create folders if they don't exist.
-        const path = withCwd(cwd(), WORLDS_FOLDER_NAME, this.name, 'playerdata');
-        if (!fs.existsSync(path)) fs.mkdirSync(path, { recursive: true });
+        try {
+            // Create folders if they don't exist.
+            const path = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata');
+            if (!fs.existsSync(path)) fs.mkdirSync(path, { recursive: true });
+        } catch (error: unknown) {
+            this.server.getLogger().error(`Failed to create world folders for ${this.name}`);
+            this.server.getLogger().error(error);
+        }
     }
 
     public async enable(): Promise<void> {
@@ -475,10 +480,14 @@ export class World implements Service {
 
     private async getLevelData() {
         try {
-            const raw = fs.promises.readFile(withCwd(LEVEL_DATA_FILE_NAME), 'utf-8');
+            const raw = await fs.promises.readFile(
+                withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME),
+                'utf-8'
+            );
             return JSON.parse(minifyJson(raw.toString())) as Partial<LevelData>;
-        } catch {
+        } catch (error: any) {
             this.server.getLogger().warn(`Failed to read level data`);
+            this.server.getLogger().error(error);
             return {};
         }
     }
@@ -501,19 +510,27 @@ export class World implements Service {
         };
 
         try {
-            await fs.promises.writeFile(withCwd(LEVEL_DATA_FILE_NAME), JSON.stringify(data, null, 4));
+            await fs.promises.writeFile(
+                withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME),
+                JSON.stringify(data, null, 4)
+            );
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save level data`);
             this.server.getLogger().error(error);
         }
     }
 
-    public async getPlayerData(player: Player): Promise<WorldPlayerData> {
+    /**
+     * Get the player data for a player.
+     * @param {Player} player - The player to get the data for.
+     * @returns {Promise<WorldPlayerData>} The player data.
+     */
+    public async getPlayerData(player: Player): Promise<Partial<WorldPlayerData>> {
         try {
             const raw = fs.readFileSync(
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID()}.json`, 'utf-8')
             );
-            return JSON.parse(minifyJson(raw.toString())) as WorldPlayerData;
+            return JSON.parse(minifyJson(raw.toString())) as Partial<WorldPlayerData>;
         } catch {
             this.server
                 .getLogger()
@@ -532,12 +549,11 @@ export class World implements Service {
             };
         }
     }
-
     public async savePlayerData(player: Player): Promise<void> {
         const data = {
             uuid: player.getUUID(),
             username: player.getName(),
-            gamemode: Gamemode.getGamemodeName(player.gamemode).toLowerCase(),
+            gamemode: player.getGamemode(),
             position: {
                 x: player.getX(),
                 y: player.getY(),
