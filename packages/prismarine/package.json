@@ -41,7 +41,7 @@
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
     "scripts": {
-        "clean": "rimraf dist jsp tsconfig.tsbuildinfo vite.config.ts.timestamp-*",
+        "clean": "rimraf dist jsp tsconfig.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "build": "vite build",
         "build:watch": "vite build --watch",
         "typecheck": "tsc -noEmit"
