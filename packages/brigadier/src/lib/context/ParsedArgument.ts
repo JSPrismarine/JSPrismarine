@@ -1,6 +1,6 @@
 import StringRange from './StringRange';
 
-export default class ParsedArgument<S, T> {
+export default class ParsedArgument<_S, T> {
     private range: StringRange;
     private result: T;
 

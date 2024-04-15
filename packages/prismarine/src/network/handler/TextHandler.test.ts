@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import TextHandler from './TextHandler';
 import TextPacket from '../packet/TextPacket';
+import TextHandler from './TextHandler';
 
 describe('network', () => {
     describe('handler', () => {

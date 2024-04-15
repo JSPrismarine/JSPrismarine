@@ -1,14 +1,25 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import InetAddress from '../utils/InetAddress';
 
+/**
+ * The base class for all packets.
+ */
 export default class Packet extends BinaryStream {
     private readonly id: number;
 
+    /**
+     * Create a new packet.
+     * @constructor
+     */
     public constructor(id: number, buffer?: Buffer) {
         super(buffer);
         this.id = id;
     }
 
+    /**
+     * Get the packet ID.
+     * @returns The packet's ID.
+     */
     public getId(): number {
         return this.id;
     }

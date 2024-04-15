@@ -1,6 +1,6 @@
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
 
-export default class McpeUtil {
+export class NetworkUtil {
     public static readString(stream: BinaryStream): string {
         const length = stream.readUnsignedVarInt();
         return stream.read(length).toString('utf-8');

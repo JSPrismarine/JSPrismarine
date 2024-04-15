@@ -1,3 +1,4 @@
+import { assert } from 'console';
 import type { Server } from '../';
 import Vector3 from '../math/Vector3';
 import type { World } from './';
@@ -44,7 +45,9 @@ export default class Position extends Vector3 {
      * @returns {World} The world of the position.
      */
     public getWorld() {
-        return this.world ?? this.server.getWorldManager().getDefaultWorld();
+        const world = this.world ?? this.server.getWorldManager().getDefaultWorld();
+        assert(world, 'World not found');
+        return world;
     }
 
     /**

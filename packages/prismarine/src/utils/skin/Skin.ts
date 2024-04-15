@@ -1,5 +1,5 @@
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../../network/NetworkUtil';
+import { NetworkUtil } from '../../network/NetworkUtil';
 import SkinAnimation from './SkinAnimation';
 import SkinCape from './SkinCape';
 import SkinImage from './SkinImage';
@@ -79,7 +79,7 @@ export default class Skin {
     public isTrusted = true;
 
     /**
-     * Loads a skin from a JSON file contianing skin data
+     * Loads a skin from a JSON file containing skin data
      * using minecraft bedrock login fields.
      *
      * (loads the skin persona)
@@ -168,9 +168,9 @@ export default class Skin {
     }
 
     public networkSerialize(stream: BinaryStream): void {
-        McpeUtil.writeString(stream, this.getId());
-        McpeUtil.writeString(stream, this.getPlayFabId());
-        McpeUtil.writeString(stream, this.getResourcePatch());
+        NetworkUtil.writeString(stream, this.getId());
+        NetworkUtil.writeString(stream, this.getPlayFabId());
+        NetworkUtil.writeString(stream, this.getResourcePatch());
 
         // Skin image
         this.getImage().networkSerialize(stream);
@@ -187,32 +187,32 @@ export default class Skin {
         // Cape image
         this.getCape().getImage().networkSerialize(stream);
 
-        // Miscellaneus
-        McpeUtil.writeString(stream, this.getGeometry());
-        McpeUtil.writeString(stream, '0.0.0'); // geometry data engine version
-        McpeUtil.writeString(stream, this.getAnimationData());
-        McpeUtil.writeString(stream, this.getCape().getId());
-        McpeUtil.writeString(stream, this.getFullId());
-        McpeUtil.writeString(stream, this.getArmSize());
-        McpeUtil.writeString(stream, this.getColor());
+        // Miscellaneous
+        NetworkUtil.writeString(stream, this.getGeometry());
+        NetworkUtil.writeString(stream, '0.0.0'); // geometry data engine version
+        NetworkUtil.writeString(stream, this.getAnimationData());
+        NetworkUtil.writeString(stream, this.getCape().getId());
+        NetworkUtil.writeString(stream, this.getFullId());
+        NetworkUtil.writeString(stream, this.getArmSize());
+        NetworkUtil.writeString(stream, this.getColor());
 
         // Hack to keep less useless data in software
         if (this.isPersona()) {
             stream.writeUnsignedIntLE(this.getPersonaData().getPieces().size);
             for (const personaPiece of this.getPersonaData().getPieces()) {
-                McpeUtil.writeString(stream, personaPiece.getPieceId());
-                McpeUtil.writeString(stream, personaPiece.getPieceType());
-                McpeUtil.writeString(stream, personaPiece.getPackId());
+                NetworkUtil.writeString(stream, personaPiece.getPieceId());
+                NetworkUtil.writeString(stream, personaPiece.getPieceType());
+                NetworkUtil.writeString(stream, personaPiece.getPackId());
                 stream.writeBoolean(personaPiece.isDefault());
-                McpeUtil.writeString(stream, personaPiece.getProductId());
+                NetworkUtil.writeString(stream, personaPiece.getProductId());
             }
 
             stream.writeUnsignedIntLE(this.getPersonaData().getTintColors().size);
             for (const tint of this.getPersonaData().getTintColors()) {
-                McpeUtil.writeString(stream, tint.getPieceType());
+                NetworkUtil.writeString(stream, tint.getPieceType());
                 stream.writeUnsignedIntLE(tint.getColors().length);
                 for (const color of tint.getColors()) {
-                    McpeUtil.writeString(stream, color);
+                    NetworkUtil.writeString(stream, color);
                 }
             }
         } else {
@@ -232,7 +232,7 @@ export default class Skin {
     }
 
     public getFullId(): string {
-        return this.fullId ?? this.getId() + this.getCape().getId();
+        return this.fullId || this.getId() + this.getCape().getId();
     }
 
     public getPlayFabId(): string {

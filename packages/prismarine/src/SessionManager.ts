@@ -1,6 +1,6 @@
-import type ClientConnection from './network/ClientConnection';
-import type Player from './Player';
 import assert from 'node:assert';
+import type Player from './Player';
+import type ClientConnection from './network/ClientConnection';
 import type { PlayerListEntry } from './network/packet/PlayerListPacket';
 
 export default class SessionManager {
@@ -65,9 +65,8 @@ export default class SessionManager {
      * @param name
      * @returns
      */
-    public getPlayerByExactName(name: string): Player {
+    public getPlayerByExactName(name: string): Player | null {
         const found = this.getAllPlayers().find((p) => p.getName() === name) ?? null;
-        assert(found !== null, `Player with name ${name} cannot be found!`);
         return found;
     }
 

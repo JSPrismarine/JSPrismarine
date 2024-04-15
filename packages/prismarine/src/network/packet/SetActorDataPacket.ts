@@ -1,22 +1,22 @@
-import DataPacket from './DataPacket';
+import type { Metadata } from '../../entity/Metadata';
 import Identifiers from '../Identifiers';
-import MetadataManager from '../../entity/Metadata';
+import { SyncedProperties } from '../type/SyncedProperties';
+import DataPacket from './DataPacket';
 
 export default class SetActorDataPacket extends DataPacket {
     public static NetID = Identifiers.SetActorDataPacket;
 
     public runtimeEntityId!: bigint;
-    public metadata = new MetadataManager();
+    public metadata!: Metadata;
+
+    public syncedProperties = new SyncedProperties();
 
     public tick!: bigint;
 
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.metadata.networkSerialize(this);
-
-        this.writeUnsignedVarInt(0); // ? unknown
-        this.writeUnsignedVarInt(0); // ? unknown
-
+        this.syncedProperties.networkSerialize(this);
         this.writeUnsignedVarLong(this.tick);
     }
 }

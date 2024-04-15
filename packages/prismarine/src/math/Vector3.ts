@@ -37,7 +37,7 @@ export default class Vector3 {
     }
 
     toString() {
-        return `x: §b${this.x}§r, y: §b${this.y}§r, z: §b${this.z}§r`;
+        return `x: §b${this.x.toFixed(2)}§r, y: §b${this.y.toFixed(2)}§r, z: §b${this.z.toFixed(2)}§r`;
     }
 
     public static fromObject(obj: { x: number; y: number; z: number }): Vector3 {

@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket';
+import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
+import DataPacket from './DataPacket';
 
 export default class DisconnectPacket extends DataPacket {
     public static NetID = Identifiers.DisconnectPacket;
@@ -13,13 +13,13 @@ export default class DisconnectPacket extends DataPacket {
         this.writeVarInt(this.reason);
         this.writeBoolean(this.skipMessage);
 
-        if (!this.skipMessage) McpeUtil.writeString(this, this.message);
+        if (!this.skipMessage) NetworkUtil.writeString(this, this.message);
     }
 
     public decodePayload(): void {
         this.reason = this.readVarInt();
         this.skipMessage = this.readBoolean();
 
-        if (!this.skipMessage) this.message = McpeUtil.readString(this);
+        if (!this.skipMessage) this.message = NetworkUtil.readString(this);
     }
 }

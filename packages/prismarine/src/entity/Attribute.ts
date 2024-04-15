@@ -1,5 +1,5 @@
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
-import McpeUtil from '../network/NetworkUtil';
+import { NetworkUtil } from '../network/NetworkUtil';
 
 export const AttributeIds = {
     Absorption: 'minecraft:absorption',
@@ -63,7 +63,7 @@ export class Attribute {
         stream.writeFloatLE(this.max);
         stream.writeFloatLE(this.value);
         stream.writeFloatLE(this.default);
-        McpeUtil.writeString(stream, this.name);
+        NetworkUtil.writeString(stream, this.name);
         stream.writeUnsignedVarInt(0); // TODO: modifier count
     }
 
@@ -73,7 +73,7 @@ export class Attribute {
             max: stream.readFloatLE(),
             value: stream.readFloatLE(),
             def: stream.readFloatLE(),
-            name: McpeUtil.readString(stream)
+            name: NetworkUtil.readString(stream)
         });
         stream.readUnsignedVarInt(); // TODO: skip for now
         return attr;
@@ -101,7 +101,7 @@ export class Attribute {
 }
 
 const MAX_FLOAT32 = 3.4028234663852886e38;
-export default class AttributeManager {
+export class Attributes {
     private readonly attributes: Attribute[] = [];
 
     /**

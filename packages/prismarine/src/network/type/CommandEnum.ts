@@ -1,6 +1,5 @@
-class CommandEnum {
-    public enumName!: string;
-    public enumValues!: string[];
+export class CommandEnum {
+    public name!: string;
+    public values!: string[];
+    public soft?: boolean = false;
 }
-
-export default CommandEnum;

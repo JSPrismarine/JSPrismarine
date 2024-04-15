@@ -64,6 +64,8 @@ export class Item extends Entity {
 
         // TODO: move them closer to each other instead of teleporting
         // Interpolate?
-        await this.setPosition(new Vector3(position.getX(), position.getY(), position.getZ()));
+        await this.setPosition({
+            position: new Vector3(position.getX(), position.getY(), position.getZ())
+        });
     }
 }

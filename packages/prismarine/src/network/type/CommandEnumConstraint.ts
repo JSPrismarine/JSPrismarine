@@ -1,4 +1,4 @@
-import type CommandEnum from './CommandEnum';
+import type { CommandEnum } from './CommandEnum';
 
 export default class CommandEnumConstraint {
     private _enum!: CommandEnum;
@@ -8,7 +8,7 @@ export default class CommandEnumConstraint {
     public constructor(_enum: CommandEnum, valueOffset: number, constraints: number[]) {
         // eslint-disable-next-line unused-imports/no-unused-vars
         (function (...$_: number[]): void {})(...constraints);
-        if (!_enum.enumValues[valueOffset]) {
+        if (!_enum.values[valueOffset]) {
             throw new Error('Invalid enum value offset $valueOffset');
         }
         this._enum = _enum;
@@ -25,7 +25,7 @@ export default class CommandEnumConstraint {
     }
 
     public getAffectedValue(): string {
-        return this._enum.enumValues[this.valueOffset]!;
+        return this._enum.values[this.valueOffset]!;
     }
 
     public getConstraints(): number[] {

@@ -4,7 +4,7 @@
     "compilerOptions": {
         "baseUrl": ".",
         "composite": false,
-        "paths": { "@": ["src/index.ts"], "@/*": ["src/*"] },
+        "paths": { "@": ["src/index.ts"] },
         "outDir": "./dist",
         "rootDir": "./src",
         "typeRoots": ["./node_modules/@types", "./src/@types", "./dist/index.d.ts"]

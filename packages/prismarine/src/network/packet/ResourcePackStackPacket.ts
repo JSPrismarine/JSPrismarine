@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket';
+import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
-import McpeUtil from '../NetworkUtil';
+import DataPacket from './DataPacket';
 
 export default class ResourcePackStackPacket extends DataPacket {
     public static NetID = Identifiers.ResourcePackStackPacket;
@@ -18,19 +18,19 @@ export default class ResourcePackStackPacket extends DataPacket {
 
         this.writeUnsignedVarInt(this.addonList.length);
         for (const _behaviorPackStack of this.addonList) {
-            McpeUtil.writeString(this, '');
-            McpeUtil.writeString(this, '');
-            McpeUtil.writeString(this, '');
+            NetworkUtil.writeString(this, '');
+            NetworkUtil.writeString(this, '');
+            NetworkUtil.writeString(this, '');
         }
 
         this.writeUnsignedVarInt(this.texturePackList.length);
         for (const _resourcePackStack of this.texturePackList) {
-            McpeUtil.writeString(this, '');
-            McpeUtil.writeString(this, '');
-            McpeUtil.writeString(this, '');
+            NetworkUtil.writeString(this, '');
+            NetworkUtil.writeString(this, '');
+            NetworkUtil.writeString(this, '');
         }
 
-        McpeUtil.writeString(this, '*'); // Same as vanilla, should be the game version
+        NetworkUtil.writeString(this, '*'); // Same as vanilla, should be the game version
 
         // TODO: write properly experiments
         this.writeUnsignedIntLE(0); // Experiments count

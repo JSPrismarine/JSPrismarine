@@ -29,6 +29,10 @@ import { buildRakNetServerName } from './utils/ServerName';
 
 import { version } from '../package.json' assert { type: 'json' };
 
+/**
+ * JSPrismarine's main server class.
+ * @public
+ */
 export default class Server extends EventEmitter {
     private raknet!: RakNetListener;
     private readonly logger: LoggerBuilder;
@@ -45,10 +49,29 @@ export default class Server extends EventEmitter {
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
 
+    /**
+     * If the server is stopping.
+     * @internal
+     */
     private stopping = false;
+
+    /**
+     * The current ticker timer.
+     * @internal
+     */
     private tickerTimer: NodeJS.Timeout | undefined;
-    private tps = 0;
-    private tick = 0;
+
+    /**
+     * The current TPS.
+     * @internal
+     */
+    private tps = 20;
+
+    /**
+     * The current tick.
+     * @internal
+     */
+    private currentTick = 0n;
 
     // TODO: Move this somewhere else.
     private static readonly MINECRAFT_TICK_TIME_MS = 1000 / 20;
@@ -56,9 +79,10 @@ export default class Server extends EventEmitter {
     /**
      * Creates a new server instance.
      * @constructor
-     * @param {LoggerBuilder} logger - The logger.
-     * @param {Config} config - The config.
-     * @param {string} version - The server version.
+     * @params {object} options - The options.
+     * @params {LoggerBuilder} options.logger - The logger.
+     * @params {Config} options.config - The config.
+     * @returns {Server} The server instance.
      */
     public constructor({ logger, config }: { logger: LoggerBuilder; config: Config }) {
         super();
@@ -84,6 +108,7 @@ export default class Server extends EventEmitter {
     /**
      * Enables the server.
      * @returns {Promise<void>} A promise that resolves when the server is enabled.
+     * @internal
      */
     private async enable(): Promise<void> {
         await this.config.enable();
@@ -98,10 +123,10 @@ export default class Server extends EventEmitter {
 
     /**
      * Disables the server.
-     * @param {boolean} [_isReload=false] - If the server is being reloaded.
      * @returns {Promise<void>} A promise that resolves when the server is disabled.
+     * @internal
      */
-    private async disable(_isReload: boolean = false): Promise<void> {
+    private async disable(): Promise<void> {
         await this.worldManager.disable();
         await this.commandManager.disable();
         await this.blockManager.disable();
@@ -120,9 +145,11 @@ export default class Server extends EventEmitter {
     /**
      * Reloads the server.
      * @returns {Promise<void>} A promise that resolves when the server is reloaded.
+     * @remarks This method is equivalent to calling {@link Server#disable} and {@link Server#enable}.
+     * @remarks This method and functionality is unsupported and should ideally be completely avoided.
      */
     public async reload(): Promise<void> {
-        await this.disable(true);
+        await this.disable();
         await this.enable();
     }
 
@@ -249,11 +276,11 @@ export default class Server extends EventEmitter {
         let startTime = Date.now();
         let tpsStartTime = Date.now();
         let lastTickTime = Date.now();
-        let tpsStartTick = this.tick;
+        let tpsStartTick = this.getTick();
         const tick = () => {
             if (this.stopping) return;
 
-            const event = new TickEvent(this.tick);
+            const event = new TickEvent(this.getTick());
             void this.emit('tick', event);
 
             const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
@@ -264,17 +291,17 @@ export default class Server extends EventEmitter {
             }
 
             // Update RakNet server name.
-            if (this.tick % ticksPerSecond === 0) {
+            if (this.getTick() % ticksPerSecond === 0) {
                 this.raknet.setServerName(buildRakNetServerName(this));
 
                 // Update the process title with TPS and tick.
-                process.title = `${process.title.split(' |').at(0)!} | TPS: ${this.tps.toFixed(2)} | Tick: ${this.tick}`;
+                process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
             }
 
-            this.tick++;
+            this.currentTick++;
             const endTime = Date.now();
             const elapsedTime = endTime - startTime;
-            const expectedElapsedTime = this.tick * Server.MINECRAFT_TICK_TIME_MS;
+            const expectedElapsedTime = this.getTick() * Server.MINECRAFT_TICK_TIME_MS;
             const executionTime = endTime - lastTickTime;
 
             // Adjust sleepTime based on execution speed.
@@ -289,11 +316,11 @@ export default class Server extends EventEmitter {
 
             // Calculate tps based on the actual elapsed time since the start of the tick.
             if (tpsStartTime !== endTime) {
-                this.tps = ((this.tick - tpsStartTick) * 1000) / (endTime - tpsStartTime);
+                this.tps = ((this.getTick() - tpsStartTick) * 1000) / (endTime - tpsStartTime);
             }
 
             if (endTime - tpsStartTime >= 1000) {
-                tpsStartTick = this.tick;
+                tpsStartTick = this.getTick();
                 tpsStartTime = endTime;
             }
 
@@ -514,7 +541,7 @@ export default class Server extends EventEmitter {
      * @returns {number} The current Tick.
      */
     public getTick(): number {
-        return this.tick;
+        return Number(this.currentTick);
     }
 
     /**
@@ -522,6 +549,6 @@ export default class Server extends EventEmitter {
      * @returns {number} The current TPS.
      */
     public getTPS(): number {
-        return this.tps;
+        return Number.parseFloat(this.tps.toFixed(2));
     }
 }

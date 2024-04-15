@@ -1,18 +1,12 @@
-import { assert, expect, describe, beforeEach, it } from 'vitest';
-import testEquality from '../util/isEqual.test';
-import CommandSyntaxException from '../exceptions/CommandSyntaxException';
-import { DefaultType } from '../arguments/ArgumentType';
+import { assert, describe, expect, it } from 'vitest';
 import StringReader from '../StringReader';
+import { DefaultType } from '../arguments/ArgumentType';
+import CommandSyntaxException from '../exceptions/CommandSyntaxException';
+import testEquality from '../util/isEqual.test';
 
 const { integer } = DefaultType;
 
 describe('integerumentTypeTest', () => {
-    let type;
-
-    beforeEach(() => {
-        type = integer(-100, 100);
-    });
-
     it('parse', () => {
         const reader = new StringReader('15');
         assert.equal(integer().parse(reader), 15);
