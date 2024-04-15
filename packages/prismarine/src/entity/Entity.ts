@@ -10,6 +10,9 @@ import Position from '../world/Position';
 import AttributeManager from './Attribute';
 import MetadataManager, { FlagType, MetadataFlag } from './Metadata';
 
+/**
+ * Entity-like class.
+ */
 export class EntityLike extends Position {
     protected readonly uuid: string;
     protected readonly runtimeId: bigint;

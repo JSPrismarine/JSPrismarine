@@ -2,6 +2,7 @@ import HumanInventory from '../inventory/HumanInventory';
 import { Entity } from './';
 
 /**
+ * Represents a Player entity.
  * @internal
  */
 export default class Human extends Entity {
