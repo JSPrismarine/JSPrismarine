@@ -124,8 +124,8 @@ importers:
         specifier: 5.2.8
         version: 5.2.8(@types/node@20.12.7)
       vite-plugin-dts:
-        specifier: 3.8.2
-        version: 3.8.2(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8)
+        specifier: 3.8.3
+        version: 3.8.3(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8)
       vite-tsconfig-paths:
         specifier: 4.3.2
         version: 4.3.2(typescript@5.4.5)(vite@5.2.8)
@@ -5742,8 +5742,8 @@ packages:
       - terser
     dev: true
 
-  /vite-plugin-dts@3.8.2(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8):
-    resolution: {integrity: sha512-GPkLNBUU+ztskHj37nelNsgRLurFuqXxqICSd/IxjRmgee1T6IIYlRCanugc9QtgWjYVPC/HJzSfpXJSy9OLUA==}
+  /vite-plugin-dts@3.8.3(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8):
+    resolution: {integrity: sha512-yRHiRosQw7MXdOhmcrVI+kRiB8YEShbSxnADNteK4eZGdEoyOkMHihvO5XOAVlOq8ng9sIqu8vVefDK1zcj3qw==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       typescript: '*'
