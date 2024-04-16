@@ -1,17 +1,17 @@
 import type Command from '../Command';
-import StringRange from './StringRange';
+import type CommandDispatcher from '../CommandDispatcher';
+import type RedirectModifier from '../RedirectModifier';
 import type CommandNode from '../tree/CommandNode';
 import CommandContext from './CommandContext';
 import type ParsedArgument from './ParsedArgument';
-import SuggestionContext from './SuggestionContext';
 import ParsedCommandNode from './ParsedCommandNode';
-import type CommandDispatcher from '../CommandDispatcher';
-import type RedirectModifier from '../RedirectModifier';
+import StringRange from './StringRange';
+import SuggestionContext from './SuggestionContext';
 
 export default class CommandContextBuilder<S> {
     private args: Map<String, ParsedArgument<S, any>> = new Map();
 
-    private rootNode: CommandNode<S>;
+    private rootNode: CommandNode<S> | null;
 
     private nodes: Array<ParsedCommandNode<S>> = [];
 
@@ -21,7 +21,7 @@ export default class CommandContextBuilder<S> {
 
     private command!: Command<S>;
 
-    private child!: CommandContextBuilder<S>;
+    private child!: CommandContextBuilder<S> | null;
 
     private range: StringRange;
 
@@ -29,7 +29,7 @@ export default class CommandContextBuilder<S> {
 
     private forks!: boolean;
 
-    public constructor(dispatcher: CommandDispatcher<S>, source: S, rootNode: CommandNode<S>, start: number) {
+    public constructor(dispatcher: CommandDispatcher<S>, source: S, rootNode: CommandNode<S> | null, start: number) {
         this.rootNode = rootNode;
         this.dispatcher = dispatcher;
         this.source = source;
@@ -45,7 +45,7 @@ export default class CommandContextBuilder<S> {
         return this.source;
     }
 
-    public getRootNode(): CommandNode<S> {
+    public getRootNode() {
         return this.rootNode;
     }
 
@@ -92,13 +92,13 @@ export default class CommandContextBuilder<S> {
         return this;
     }
 
-    public getChild(): CommandContextBuilder<S> {
+    public getChild() {
         return this.child;
     }
 
-    public getLastChild(): CommandContextBuilder<S> {
-        let result: CommandContextBuilder<S> = this;
-        while (result.getChild() != null) {
+    public getLastChild() {
+        let result: CommandContextBuilder<S> | null = this;
+        while (result?.getChild() != null) {
             result = result.getChild();
         }
 
@@ -137,7 +137,7 @@ export default class CommandContextBuilder<S> {
     }
 
     public findSuggestionContext(cursor: number): SuggestionContext<S> {
-        if (this.range.getStart() <= cursor) {
+        if (this.rootNode && this.range.getStart() <= cursor) {
             if (this.range.getEnd() < cursor) {
                 if (this.child != null) {
                     return this.child.findSuggestionContext(cursor);
@@ -148,11 +148,11 @@ export default class CommandContextBuilder<S> {
                     return new SuggestionContext(this.rootNode, this.range.getStart());
                 }
             } else {
-                let prev: CommandNode<S> = this.rootNode;
+                let prev: CommandNode<S> | null = this.rootNode as any;
                 for (let node of this.nodes) {
                     let nodeRange: StringRange = node.getRange();
                     if (nodeRange.getStart() <= cursor && cursor <= nodeRange.getEnd()) {
-                        return new SuggestionContext(prev, nodeRange.getStart());
+                        return new SuggestionContext(prev as any /* FIXME: */, nodeRange.getStart());
                     }
                     prev = node.getNode();
                 }

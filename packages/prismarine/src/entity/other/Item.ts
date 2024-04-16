@@ -37,8 +37,7 @@ export class Item extends Entity {
     }
 
     public async update(tick: number) {
-        // Call supermethod
-        await super.update.bind(this)(tick);
+        await super.update(tick);
 
         // Arbitrary magic number. Sue me.
         // This is done to prevent running the code each tick

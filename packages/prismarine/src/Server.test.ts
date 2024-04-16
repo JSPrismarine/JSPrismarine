@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
-import LoggerBuilder from './utils/Logger';
 
 describe('Prismarine', () => {
     it.skip('server to start & exit properly', async () => {
@@ -11,7 +11,7 @@ describe('Prismarine', () => {
             return Math.floor(Math.random() * (max - min + 1)) + min;
         };
 
-        const logger = new LoggerBuilder();
+        const logger = new Logger();
         const prismarine = new Server({
             logger,
             config: new (class DebugConfig {

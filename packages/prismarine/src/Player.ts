@@ -35,8 +35,10 @@ export default class Player extends Human {
     private readonly networkSession: PlayerSession;
     private permissions: string[];
 
-    // Only used for metrics
-    private joinTimer = new Timer();
+    /**
+     * Timer used for various metrics.
+     */
+    private timer: Timer;
 
     // TODO: finish implementation
     private readonly windows: WindowManager;
@@ -95,17 +97,19 @@ export default class Player extends Human {
             server,
             uuid
         });
+
+        this.timer = new Timer();
+
         this.address = connection.getRakNetSession().getAddress();
         this.networkSession = new PlayerSession(server, connection, this);
         this.windows = new WindowManager();
         this.permissions = [];
-        this.joinTimer.reset();
+
+        this.server.on('chat', this.chatHandler.bind(this));
     }
 
     public async enable() {
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
-        this.server.on('chat', this.chatHandler.bind(this));
-
         const playerData = await this.getWorld().getPlayerData(this);
 
         if (playerData.position) {
@@ -121,15 +125,12 @@ export default class Player extends Human {
             });
         }
 
-        await this.setGamemode(Gamemode.getGamemodeId(playerData.gamemode || this.server.getConfig().getGamemode()));
+        this.gamemode = Gamemode.getGamemodeId(playerData.gamemode || this.server.getConfig().getGamemode());
 
         await this.sendPosition();
         await this.sendSettings();
 
-        if (!this.connected)
-            this.server
-                .getLogger()
-                .debug(`(Complete player creation took ${this.joinTimer.stop()} ms)`, 'Player/onEnable');
+        this.server.getLogger().debug(`(Complete player creation took ${this.timer.stop()} ms)`);
         this.connected = true;
     }
 
@@ -274,7 +275,7 @@ export default class Player extends Human {
 
     public async update(tick: number): Promise<void> {
         // Call super method
-        await super.update.bind(this)(tick);
+        await super.update(tick);
         await this.networkSession.update(tick);
 
         // TODO: get documentation about timings from vanilla
@@ -325,6 +326,8 @@ export default class Player extends Human {
      * Player spawning logic.
      */
     public async sendSpawn() {
+        await this.enable();
+
         await this.sendPosition();
         await this.setGamemode(this.gamemode);
         await this.getNetworkSession().sendInventory();
@@ -511,7 +514,7 @@ export default class Player extends Human {
         this.yaw = yaw;
         this.pitch = pitch;
 
-        await super.setPosition.bind(this)({ position });
+        await super.setPosition({ position });
         await this.networkSession.broadcastMove(this, type);
     }
     /**
@@ -520,7 +523,7 @@ export default class Player extends Human {
      */
     public async sendPosition(): Promise<void> {
         await this.networkSession.broadcastMove(this);
-        await super.sendPosition.bind(this)();
+        await super.sendPosition();
     }
 
     public setCurrentChunk(chunk: bigint) {

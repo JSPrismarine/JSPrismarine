@@ -31,7 +31,7 @@
         "./package.json": "./package.json"
     },
     "scripts": {
-        "clean": "rimraf dist jsp tsconfig.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
+        "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "build": "vite build",
         "build:watch": "vite build --watch",
         "typecheck": "tsc -noEmit"
@@ -56,6 +56,7 @@
         "vitest": "1.5.0"
     },
     "dependencies": {
+        "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
         "set-interval-async": "3.0.3"

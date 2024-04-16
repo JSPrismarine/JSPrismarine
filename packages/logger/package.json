@@ -1,11 +1,9 @@
 {
-    "$schema": "https://json.schemastore.org/package.json",
-    "name": "@jsprismarine/prismarine",
+    "name": "@jsprismarine/logger",
+    "version": "0.4.1",
+    "description": "JSPrismarine shared errors",
     "sideEffects": false,
     "type": "module",
-    "version": "0.4.1",
-    "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
-    "prettier": "@nordcom/prettier",
     "files": [
         "dist",
         "CHANGELOG.md",
@@ -32,56 +30,34 @@
         },
         "./package.json": "./package.json"
     },
-    "publishConfig": {
-        "access": "public"
-    },
-    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/prismarine",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
-    },
     "scripts": {
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "build": "vite build",
         "build:watch": "vite build --watch",
         "typecheck": "tsc -noEmit"
     },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
     "keywords": [
-        "javascript",
-        "typescript",
-        "minecraft",
-        "mcpe",
-        "bedrock",
-        "be"
+        "jsprismarine",
+        "errors"
     ],
     "author": "JSPrismarine",
-    "license": "MPL-2.0",
-    "bugs": {
-        "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
-    },
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/errors",
     "devDependencies": {
-        "@types/graceful-fs": "4.1.9",
         "@types/node": "20.12.7",
-        "@types/terminal-kit": "2.5.6",
         "glob": "10.3.12",
         "rimraf": "5.0.5",
         "typescript": "5.4.5",
-        "vite": "5.2.9",
+        "vite": "5.2.8",
         "vitest": "1.5.0"
     },
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
-        "@jsprismarine/errors": "workspace:*",
-        "@jsprismarine/jsbinaryutils": "5.5.3",
-        "@jsprismarine/logger": "workspace:*",
-        "@jsprismarine/nbt": "workspace:*",
-        "@jsprismarine/raknet": "workspace:*",
-        "evt": "2.5.7",
-        "fast-jwt": "4.0.0",
-        "graceful-fs": "4.2.11",
-        "heap": "0.2.7",
-        "node-fetch": "3.3.2",
-        "strip-json-comments": "5.0.1",
-        "yaml": "2.4.1"
+        "winston-transport": "4.7.0",
+        "winston": "3.13.0"
     }
 }

@@ -37,7 +37,7 @@ export default class Position extends Vector3 {
     }
 
     toString() {
-        return `${super.toString.bind(this)()}, world: §b${this.world?.getName() || 'none'}§r`;
+        return `${super.toString()}, world: §b${this.world?.getName() || 'none'}§r`;
     }
 
     /**

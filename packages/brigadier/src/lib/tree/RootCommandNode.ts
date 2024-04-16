@@ -10,7 +10,7 @@ export default class RootCommandNode<S> extends CommandNode<S> {
     public constructor() {
         super(
             null,
-            (s) => true,
+            (_s) => true,
             null,
             (s: CommandContext<S>) => s.getSource(),
             false
@@ -29,13 +29,13 @@ export default class RootCommandNode<S> extends CommandNode<S> {
         return '';
     }
 
-    public parse(reader: StringReader, contextBuilder: CommandContextBuilder<S>) {}
+    public parse(_reader: StringReader, _contextBuilder: CommandContextBuilder<S>) {}
 
-    public listSuggestions(context: CommandContext<S>, builder: SuggestionsBuilder): Promise<Suggestions> {
+    public listSuggestions(_context: CommandContext<S>, _builder: SuggestionsBuilder): Promise<Suggestions> {
         return Suggestions.empty();
     }
 
-    public isValidInput(input: String): boolean {
+    public isValidInput(_input: String): boolean {
         return false;
     }
 

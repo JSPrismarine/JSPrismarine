@@ -1,9 +1,10 @@
-import { ConnectionPriority, InetAddress, Protocol, RakNetSession, MessageIdentifiers } from '@jsprismarine/raknet';
-import Dgram, { type Socket } from 'node:dgram';
-import { Protocol as JSPProtocol, Logger } from '@jsprismarine/prismarine';
-import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
+import { Logger } from '@jsprismarine/logger';
+import { Protocol as JSPProtocol } from '@jsprismarine/prismarine';
+import { ConnectionPriority, InetAddress, MessageIdentifiers, Protocol, RakNetSession } from '@jsprismarine/raknet';
 import Crypto, { randomBytes } from 'node:crypto';
+import Dgram, { type Socket } from 'node:dgram';
 import { EventEmitter } from 'node:events';
+import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async/dynamic';
 
 // https://stackoverflow.com/a/1527820/3142553
 const getRandomInt = (min: number, max: number) => {

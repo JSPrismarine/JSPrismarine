@@ -1,6 +1,7 @@
-import type { Logger, Player, Server } from '../';
+import type { Player, Server } from '../';
 import { PlayerSession } from '../';
 
+import type { Logger } from '@jsprismarine/logger';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import assert from 'assert';
 import MinecraftSession from './MinecraftSession';

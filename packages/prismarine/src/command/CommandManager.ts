@@ -246,7 +246,7 @@ export class CommandManager implements Service {
                 res.map(async (res: any) => {
                     const chat = new Chat({
                         sender: this.server.getConsole(),
-                        message: `§o§7[${target.getFormattedUsername()}: ${res ?? `issued server command: /${input}`}]§r`,
+                        message: `§o§7[${target.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
                         channel: '*.ops'
                     });
 

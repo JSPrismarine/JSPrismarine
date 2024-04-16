@@ -18,20 +18,6 @@ import Server from './Server';
 import { Chat } from './chat/Chat';
 import { ConfigBuilder } from './config/ConfigBuilder';
 import PlayerSession from './network/PlayerSession';
-import Logger from './utils/Logger';
 import BaseProvider from './world/providers/BaseProvider';
 
-export {
-    BaseProvider,
-    Chat,
-    ConfigBuilder,
-    Console,
-    Entities,
-    Events,
-    Logger,
-    Math,
-    Player,
-    PlayerSession,
-    Protocol,
-    Server
-};
+export { BaseProvider, Chat, ConfigBuilder, Console, Entities, Events, Math, Player, PlayerSession, Protocol, Server };

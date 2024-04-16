@@ -1,7 +1,10 @@
-import { Config, Logger, Server } from '@jsprismarine/prismarine';
+import colorParser from '@jsprismarine/color-parser';
+import { Logger } from '@jsprismarine/logger';
+import { Config, Server } from '@jsprismarine/prismarine';
+import { format, transports } from 'winston';
 
-import path from 'node:path';
 import dotenv from 'dotenv';
+import path from 'node:path';
 
 process.title = 'JSPrismarine';
 
@@ -15,8 +18,34 @@ dotenv.config({
 });
 
 (async () => {
+    const date = new Date();
+    let logFile = 'jsprismarine-development.log';
+
+    // mmddyyyy-hh-mm-ss. yes American-style, sue me.
+    if (process.env.NODE_ENV !== 'development')
+        logFile = `jsprismarine.${(date.getMonth() + 1).toString().padStart(2, '0')}${date
+            .getDate()
+            .toString()
+            .padStart(2, '0')}${date.getFullYear().toString().padStart(2, '0')}-${date
+            .getHours()
+            .toString()
+            .padStart(2, '0')}${date.getMinutes().toString().padStart(2, '0')}${date
+            .getSeconds()
+            .toString()
+            .padStart(2, '0')}.log`;
+
     const config = new Config();
-    const logger = new Logger();
+    const logger = new Logger(config.getLogLevel(), [
+        new transports.File({
+            level: 'debug',
+            filename: path.join(process.cwd(), process.env.JSP_DIR || '', 'logs', logFile),
+            format: format.printf(({ level, message, timestamp, namespace }: any) => {
+                return `[${timestamp}] [${level}]${colorParser(
+                    `${namespace ? ` [${namespace}]` : ''}: ${message}`
+                )}`.replaceAll(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+            })
+        })
+    ]);
     const server = new Server({
         config,
         logger
