@@ -23,6 +23,7 @@ describe('network', () => {
                 getWorldManager: () => ({
                     getDefaultWorld: () => ({
                         addEntity: () => {},
+                        getPlayers: () => [],
                         getPlayerData(_player: any) {
                             return { position: { x: 0, y: 0, z: 0 }, inventory: [] };
                         }

@@ -160,6 +160,12 @@ export class MetadataWriter {
                 case FlagType.SHORT:
                     stream.writeUnsignedShortLE(value[1] as number);
                     break;
+                case FlagType.ITEM: // TODO: Implement this.
+                    break;
+                case FlagType.POSITION: // TODO: Implement this.
+                    break;
+                case FlagType.VECTOR: // TODO: Implement this.
+                    break;
                 default:
                     throw new Error(`Metadata type ${value[0]} not supported`);
             }

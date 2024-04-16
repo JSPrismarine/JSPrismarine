@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
-import type Vector3 from '../../math/Vector3';
+import Vector3 from '../../math/Vector3';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
 import type GameruleManager from '../../world/GameruleManager';
@@ -13,11 +13,11 @@ export default class StartGamePacket extends DataPacket {
     public entityId!: bigint;
     public runtimeEntityId!: bigint;
     public gamemode!: number;
-    public defaultGamemode!: number;
+    public defaultGamemode: number = 0;
 
-    public playerPos!: Vector3;
-    public pitch!: number;
-    public yaw!: number;
+    public playerPos: Vector3 = new Vector3(0, 5, 0);
+    public pitch: number = 0;
+    public yaw: number = 0;
 
     public levelId!: string;
     public worldName!: string;
@@ -39,9 +39,8 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(this.gamemode);
 
         this.playerPos.networkSerialize(this);
-
-        this.writeFloatLE(this.pitch || 0);
-        this.writeFloatLE(this.yaw || 0);
+        this.writeFloatLE(this.pitch);
+        this.writeFloatLE(this.yaw);
 
         this.writeLongLE(BigInt(this.seed)); // Seed
 
@@ -51,7 +50,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeVarInt(0); // Dimension
 
         this.writeVarInt(1); // Generator
-        this.writeVarInt(this.defaultGamemode || 0); // Default Gamemode
+        this.writeVarInt(this.defaultGamemode); // Default Gamemode
         this.writeVarInt(0); // Difficulty
 
         // world spawn vector 3
@@ -112,7 +111,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeUnsignedIntLE(0); // Limited world height
         this.writeUnsignedIntLE(0); // Limited world length
 
-        this.writeBoolean(false); // Has new nether
+        this.writeBoolean(true); // Has new nether
 
         // TODOs
         NetworkUtil.writeString(this, '');

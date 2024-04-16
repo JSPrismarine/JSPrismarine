@@ -1,4 +1,4 @@
-import type { MetadataContainer } from '../../entity/Metadata';
+import type { Metadata } from '../../entity/Metadata';
 import Vector3 from '../../math/Vector3';
 import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
@@ -33,7 +33,7 @@ export default class AddActorPacket extends DataPacket {
     public headYaw!: number;
 
     public attributes = [];
-    public metadata!: MetadataContainer;
+    public metadata!: Metadata;
     public links = [];
 
     public encodePayload(): void {
@@ -55,52 +55,11 @@ export default class AddActorPacket extends DataPacket {
         this.writeFloatLE(this.headYaw);
         this.writeFloatLE(this.yaw); // bodyYaw
 
-        // TODO: attributes
-        this.writeUnsignedVarInt(this.attributes.length);
-
-        // TODO: fixme
-        // const metadata = Array.from(this.metadata);
-        this.writeUnsignedVarInt(/* metadata.length */ 0);
+        this.writeUnsignedVarInt(0); // TODO: attributes.
+        this.metadata.networkSerialize(this);
 
         this.writeUnsignedVarInt(0); // ? unknown
         this.writeUnsignedVarInt(0); // ? unknown
-
-        /* metadata.forEach(([key, [type, value]]) => {
-            this.writeUnsignedVarInt(key);
-            this.writeUnsignedVarInt(type);
-
-            switch (type) {
-                case FlagType.BYTE:
-                    this.writeByte(value as number);
-                    break;
-                case FlagType.SHORT:
-                    this.writeShort(value as number);
-                    break;
-                case FlagType.INT:
-                    this.writeVarInt(value as number);
-                    break;
-                case FlagType.FLOAT:
-                    this.writeFloat(value as number);
-                    break;
-                case FlagType.STRING:
-                    this.writeString(value as string);
-                    break;
-                case FlagType.ITEM:
-                    // TODO:
-                    break;
-                case FlagType.POSITION:
-                    // TODO:
-                    break;
-                case FlagType.LONG:
-                    this.writeLong(value as bigint);
-                    break;
-                case FlagType.VECTOR:
-                    // TODO:
-                    break;
-                default:
-                    throw new Error(`Invalid type: ${type}`);
-            }
-        }); */
 
         // TODO: links
         this.writeUnsignedVarInt(this.links.length);

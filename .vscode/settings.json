@@ -66,6 +66,7 @@
         "Shulker",
         "SUBCHUNK",
         "SUBCHUNKS",
+        "Varint",
         "Zoglin"
     ],
     "typescript.preferences.importModuleSpecifier": "non-relative",

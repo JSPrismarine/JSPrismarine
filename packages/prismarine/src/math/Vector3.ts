@@ -40,8 +40,8 @@ export default class Vector3 {
         return `x: §b${this.x.toFixed(2)}§r, y: §b${this.y.toFixed(2)}§r, z: §b${this.z.toFixed(2)}§r`;
     }
 
-    public static fromObject(obj: { x: number; y: number; z: number }): Vector3 {
-        return new Vector3(obj.x, obj.y, obj.z);
+    public static fromObject({ x, y, z }: { x: number; y: number; z: number }): Vector3 {
+        return new Vector3(x, y, z);
     }
 
     /**
