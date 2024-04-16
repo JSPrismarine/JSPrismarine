@@ -2,9 +2,9 @@ import type { CommandContext, StringReader } from '@jsprismarine/brigadier';
 import { Suggestions } from '@jsprismarine/brigadier';
 import CommandParameter, { CommandParameterFlags, CommandParameterType } from '../network/type/CommandParameter';
 
+import { Vector3 } from '@jsprismarine/math';
 import type Player from '../Player';
 import type Server from '../Server';
-import Vector3 from '../math/Vector3';
 import { CommandEnum } from '../network/type/CommandEnum';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';

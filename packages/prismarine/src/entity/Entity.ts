@@ -1,6 +1,6 @@
+import { Vector3 } from '@jsprismarine/math';
 import type Player from '../Player';
 import type Server from '../Server';
-import Vector3 from '../math/Vector3';
 import AddActorPacket from '../network/packet/AddActorPacket';
 import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';

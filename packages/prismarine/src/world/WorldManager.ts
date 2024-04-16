@@ -1,7 +1,10 @@
 import type { Server, Service } from '../';
 import { withCwd } from '../utils/cwd';
-import { GeneratorManager, World } from './';
+import { GeneratorManager } from './';
+import { World } from './World';
 import type Provider from './providers/Provider';
+
+import Anvil from './providers/anvil/Anvil';
 import Filesystem from './providers/filesystem/Filesystem';
 
 import fs from 'node:fs';
@@ -16,6 +19,7 @@ export interface WorldData {
 }
 
 const WORLDS_FOLDER = 'worlds';
+const DEFAULT_WORLD_PROVIDER = 'Filesystem';
 
 /**
  * The world manager is responsible level loading, unloading, and general level management.
@@ -41,6 +45,7 @@ export default class WorldManager implements Service {
      * Enable the manager and load all worlds.
      */
     public async enable(): Promise<void> {
+        this.addProvider('Anvil', Anvil);
         this.addProvider('Filesystem', Filesystem);
 
         const defaultWorld = this.server.getConfig().getLevelName();
@@ -52,7 +57,7 @@ export default class WorldManager implements Service {
         const worldData = this.server.getConfig().getWorlds()[defaultWorld];
         if (!worldData) throw new Error(`Invalid level-name`);
 
-        void (await this.loadWorld(worldData, defaultWorld));
+        await this.loadWorld(worldData, defaultWorld);
     }
 
     /**
@@ -113,7 +118,7 @@ export default class WorldManager implements Service {
         }
 
         const levelPath = withCwd(WORLDS_FOLDER, folderName);
-        const provider = this.providers.get(worldData.provider ?? 'Filesystem');
+        const provider = this.providers.get(worldData.provider ?? DEFAULT_WORLD_PROVIDER);
         const generator = this.server
             .getWorldManager()
             .getGeneratorManager()
@@ -123,7 +128,6 @@ export default class WorldManager implements Service {
             throw new Error(`invalid provider with id ${worldData.provider}`);
         }
 
-        // TODO: figure out provider by data
         const world = new World({
             name: folderName,
             path: levelPath,

@@ -1,6 +1,6 @@
+import { Vector3 } from '@jsprismarine/math';
 import { assert } from 'console';
 import type { Server } from '../';
-import Vector3 from '../math/Vector3';
 import type { World } from './';
 
 export default class Position extends Vector3 {

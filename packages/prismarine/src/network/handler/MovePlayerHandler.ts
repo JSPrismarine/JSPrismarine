@@ -1,12 +1,12 @@
+import { Vector3 } from '@jsprismarine/math';
+import type { PlayerSession } from '../../';
+import type Server from '../../Server';
+import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
+import Chunk from '../../world/chunk/Chunk';
 import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
 import MovementType from '../type/MovementType';
 import type PacketHandler from './PacketHandler';
-import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
-import type { PlayerSession } from '../../';
-import type Server from '../../Server';
-import Vector3 from '../../math/Vector3';
-import Chunk from '../../world/chunk/Chunk';
 
 export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket> {
     public static NetID = Identifiers.MovePlayerPacket;

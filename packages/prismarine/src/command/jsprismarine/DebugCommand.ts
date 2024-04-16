@@ -64,10 +64,8 @@ export default class DebugCommand extends Command {
                         const gamerules = Array.from(world.getGameruleManager().getGamerules());
                         await source.sendMessage(`  §dGamerules§r (${gamerules.length}):`);
                         await Promise.all(
-                            gamerules.map(async ([id, [value, editable]]) => {
-                                await source.sendMessage(
-                                    `  - id: §a${id}§r, value: §b${value}§r, editable: §b${editable}§r`
-                                );
+                            gamerules.map(async ([id, value]) => {
+                                await source.sendMessage(`  - id: §a${id}§r, value: §b${value}§r`);
                             })
                         );
 

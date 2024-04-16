@@ -1,6 +1,6 @@
+import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import type { NetworkBinaryStream } from '../';
 import { NetworkStructure } from '../';
-import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 
 interface ItemInstanceUserDataConfig {
     canPlaceOnBlocks?: Array<string>;
@@ -23,10 +23,9 @@ export default class ItemInstanceUserData extends NetworkStructure {
 
     /**
      * Creates a new instance of the ItemInstanceUserData class.
-     * @param dataSerializationMarker - The data serialization marker.
-     * @param dataSerializationVersion - The data serialization version.
-     * @param userDataTag - The user nbt data tag.
-     * @param config - The configuration options for the user data.
+     * @param {number} dataSerializationMarker - The data serialization marker.
+     * @param {NBTTagCompound} userDataTag - The user nbt data tag.
+     * @param {ItemInstanceUserDataConfig} config - The configuration options for the user data.
      */
     public constructor(
         public dataSerializationMarker: number,

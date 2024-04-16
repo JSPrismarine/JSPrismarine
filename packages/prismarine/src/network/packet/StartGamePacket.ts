@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { Vector3 } from '@jsprismarine/math';
 import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
-import Vector3 from '../../math/Vector3';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
 import type GameruleManager from '../../world/GameruleManager';

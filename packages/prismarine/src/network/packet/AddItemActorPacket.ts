@@ -1,6 +1,6 @@
+import { Vector3 } from '@jsprismarine/math';
 import type { Metadata } from '../../entity/Metadata';
 import type { Item } from '../../item/Item';
-import Vector3 from '../../math/Vector3';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 

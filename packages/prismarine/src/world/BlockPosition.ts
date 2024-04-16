@@ -1,5 +1,5 @@
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
-import Vector3 from '../math/Vector3';
+import { Vector3 } from '@jsprismarine/math';
 
 export default class BlockPosition extends Vector3 {
     public override networkSerialize(stream: BinaryStream): void {
