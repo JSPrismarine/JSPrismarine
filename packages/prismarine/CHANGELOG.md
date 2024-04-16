@@ -1,5 +1,29 @@
 # @jsprismarine/prismarine
 
+## 0.4.2
+
+### Patch Changes
+
+- [#1299](https://github.com/JSPrismarine/JSPrismarine/pull/1299) [`384f571`](https://github.com/JSPrismarine/JSPrismarine/commit/384f5716d593f2f3bac4a9521578d32107e671a8) Thanks [@filiphsps](https://github.com/filiphsps)! - CommandManager: Remove legacy `execute` function.
+
+- [#1303](https://github.com/JSPrismarine/JSPrismarine/pull/1303) [`7d7283b`](https://github.com/JSPrismarine/JSPrismarine/commit/7d7283ba87e6fc030d25be8a2a542745a5c94745) Thanks [@filiphsps](https://github.com/filiphsps)! - Rename `onEnable` and `onDisable` to `enable` and `disable`.
+
+- [#1312](https://github.com/JSPrismarine/JSPrismarine/pull/1312) [`a66c1b9`](https://github.com/JSPrismarine/JSPrismarine/commit/a66c1b981698fa26570bb0fd9ebf667240a172b7) Thanks [@filiphsps](https://github.com/filiphsps)! - Entity: Refactor Metadata to be more user-friendly.
+
+- [#1299](https://github.com/JSPrismarine/JSPrismarine/pull/1299) [`b54350e`](https://github.com/JSPrismarine/JSPrismarine/commit/b54350eb6341fc487b05781b149c148bae3a5f55) Thanks [@filiphsps](https://github.com/filiphsps)! - World: Simplify `LevelData` handling.
+  WorldManager: Improve `isWorldLoaded` check.
+  Entities: Simplify.
+  Player: Move UUID handling to `Entity`.
+
+- [#1315](https://github.com/JSPrismarine/JSPrismarine/pull/1315) [`941fb74`](https://github.com/JSPrismarine/JSPrismarine/commit/941fb74a7818afd21e87804f62e004cf8465e0c4) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `@jsprismarine/logger` package.
+
+- Updated dependencies [[`941fb74`](https://github.com/JSPrismarine/JSPrismarine/commit/941fb74a7818afd21e87804f62e004cf8465e0c4)]:
+  - @jsprismarine/logger@0.4.2
+  - @jsprismarine/color-parser@0.4.2
+  - @jsprismarine/errors@0.4.2
+  - @jsprismarine/nbt@0.4.2
+  - @jsprismarine/raknet@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes
