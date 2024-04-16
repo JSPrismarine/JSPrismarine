@@ -1,5 +1,14 @@
 # @jsprismarine/color-parser
 
+## 0.4.2
+
+### Patch Changes
+
+- [#1315](https://github.com/JSPrismarine/JSPrismarine/pull/1315) [`941fb74`](https://github.com/JSPrismarine/JSPrismarine/commit/941fb74a7818afd21e87804f62e004cf8465e0c4) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `@jsprismarine/logger` package.
+
+- Updated dependencies []:
+  - @jsprismarine/color-parser@0.4.2
+
 ## 0.4.1
 
 ## 0.4.0
