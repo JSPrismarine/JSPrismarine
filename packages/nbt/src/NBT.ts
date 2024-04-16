@@ -1,4 +1,4 @@
-import * as ByteOrder from './ByteOrder';
+import { ByteOrder } from './ByteOrder';
 import * as NBTDefinitions from './NBTDefinitions';
 import * as Types from './types/Types';
 
@@ -7,4 +7,4 @@ import NBTStreamReader from './NBTStreamReader';
 import NBTTagCompound from './NBTTagCompound';
 import NBTWriter from './NBTWriter';
 
-export { ByteOrder, NBTDefinitions, Types, NBTReader, NBTStreamReader, NBTTagCompound, NBTWriter };
+export { ByteOrder, NBTDefinitions, NBTReader, NBTStreamReader, NBTTagCompound, NBTWriter, Types };

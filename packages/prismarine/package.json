@@ -76,6 +76,7 @@
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
+        "@jsprismarine/protocol": "workspace:*",
         "evt": "2.5.7",
         "fast-jwt": "4.0.0",
         "graceful-fs": "4.2.11",
