@@ -204,6 +204,7 @@ export class Entity extends EntityLike {
             runtimeId: Entity.runtimeIdCount
         });
 
+        Object.setPrototypeOf(this, Entity.prototype);
         if (world) super.setWorld.bind(this)(world);
     }
 

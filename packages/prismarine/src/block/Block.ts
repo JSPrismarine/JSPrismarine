@@ -1,9 +1,9 @@
 import { item_id_map as BlockIdMap } from '@jsprismarine/bedrock-data';
-import { BlockToolType } from './BlockToolType';
+import type Server from '../Server';
 import type { Item } from '../item/Item';
 import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
 import { ItemTieredToolType } from '../item/ItemTieredToolType';
-import type Server from '../Server';
+import { BlockToolType } from './BlockToolType';
 
 export class Block {
     /**
@@ -41,12 +41,20 @@ export class Block {
         parentName?: string;
         hardness?: number;
     }) {
+        Object.setPrototypeOf(this, Block.prototype);
         this.id = id;
         this.name = name;
         this.javaName = javaName ?? name;
         this.hardness = hardness ?? 0;
 
         this.networkId = BlockIdMap[parentName ?? name] as number;
+    }
+
+    public get [Symbol.toStringTag]() {
+        return `Block(${this.toString()})`;
+    }
+    public toString() {
+        return this.name;
     }
 
     /**
