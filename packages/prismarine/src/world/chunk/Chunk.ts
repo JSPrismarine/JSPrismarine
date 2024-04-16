@@ -2,8 +2,8 @@ import type { LegacyId } from '../../block/BlockMappings';
 import { BlockMappings } from '../../block/BlockMappings';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { Vector3 } from '@jsprismarine/math';
 import type { Block } from '../../block/Block';
-import { Vector3 } from '../../math';
 import SubChunk from './SubChunk';
 
 const MAX_SUBCHUNKS = 16;

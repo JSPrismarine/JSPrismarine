@@ -1,7 +1,7 @@
 {
     "name": "@jsprismarine/logger",
     "version": "0.4.3",
-    "description": "JSPrismarine shared errors",
+    "description": "JSPrismarine logger and utilities",
     "sideEffects": false,
     "type": "module",
     "files": [

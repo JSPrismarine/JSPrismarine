@@ -1,3 +1,4 @@
+import { Vector3 } from '@jsprismarine/math';
 import type { InetAddress } from '@jsprismarine/raknet';
 import Human from './entity/Human';
 import { FlagType, MetadataFlag } from './entity/Metadata';
@@ -6,7 +7,6 @@ import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
 import WindowManager from './inventory/WindowManager';
-import Vector3 from './math/Vector3';
 import type ClientConnection from './network/ClientConnection';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import { ChangeDimensionPacket, LevelChunkPacket } from './network/Packets';

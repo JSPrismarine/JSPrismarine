@@ -1,12 +1,12 @@
 import type InteractPacket from '../packet/InteractPacket';
 import { InteractAction } from '../packet/InteractPacket';
 
-import ContainerOpenPacket from '../packet/ContainerOpenPacket';
-import Identifiers from '../Identifiers';
-import type PacketHandler from './PacketHandler';
+import { Vector3 } from '@jsprismarine/math';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import Vector3 from '../../math/Vector3';
+import Identifiers from '../Identifiers';
+import ContainerOpenPacket from '../packet/ContainerOpenPacket';
+import type PacketHandler from './PacketHandler';
 
 export default class InteractHandler implements PacketHandler<InteractPacket> {
     public static NetID = Identifiers.InteractPacket;

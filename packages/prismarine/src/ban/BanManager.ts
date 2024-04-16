@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import util from 'node:util';
 
 import minifyJson from 'strip-json-comments';
 import type Player from '../Player';
@@ -39,9 +38,7 @@ export default class BanManager {
                 this.server.getLogger().warn(`Failed to load ban list!`);
                 fs.writeFileSync(dir, '[]');
             }
-
-            const readFile = util.promisify(fs.readFile);
-            const banned: any[] = JSON.parse(minifyJson((await readFile(dir)).toString()));
+            const banned: any[] = JSON.parse(minifyJson((await fs.promises.readFile(dir)).toString()));
 
             for (const player of banned) this.banned.set(player.name, player);
         } catch (error: unknown) {
@@ -54,8 +51,7 @@ export default class BanManager {
             reason
         });
 
-        const writeFile = util.promisify(fs.writeFile);
-        await writeFile(
+        await fs.promises.writeFile(
             withCwd(FILE_NAME),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({
@@ -72,8 +68,7 @@ export default class BanManager {
     public async setUnbanned(username: string) {
         this.banned.delete(username);
 
-        const writeFile = util.promisify(fs.writeFile);
-        await writeFile(
+        await fs.promises.writeFile(
             withCwd(FILE_NAME),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({

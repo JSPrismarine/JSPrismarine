@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import fs from 'graceful-fs';
+import fs from 'node:fs';
 import path from 'node:path';
 import type Server from '../../../Server';
 import type { Generator } from '../../Generator';
@@ -7,8 +7,6 @@ import Chunk from '../../chunk/Chunk';
 import BaseProvider from '../BaseProvider';
 
 export default class Filesystem extends BaseProvider {
-    private level: any = {};
-
     public constructor(folderPath: string, server: Server) {
         super(folderPath, server);
 

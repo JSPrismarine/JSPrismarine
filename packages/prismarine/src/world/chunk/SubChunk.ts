@@ -1,6 +1,6 @@
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import { Vector3 } from '@jsprismarine/math';
 import type { LegacyId } from '../../block/BlockMappings';
-import { Vector3 } from '../../math';
 import BlockStorage from './BlockStorage';
 
 export default class SubChunk {

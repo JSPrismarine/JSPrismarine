@@ -1,7 +1,8 @@
-import type Chunk from '../chunk/Chunk';
+import type { Service } from '../../utils';
 import type { Generator } from '../Generator';
+import type Chunk from '../chunk/Chunk';
 
-export default interface Provider {
+export default interface Provider extends Service {
     /**
      * Returns the path to the world folder.
      */

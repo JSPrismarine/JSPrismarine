@@ -1,6 +1,6 @@
+import { Vector3 } from '@jsprismarine/math';
 import type Player from '../../Player';
 import type ContainerEntry from '../../inventory/ContainerEntry';
-import Vector3 from '../../math/Vector3';
 import { AddItemActorPacket } from '../../network/Packets';
 import { Entity } from '../Entity';
 

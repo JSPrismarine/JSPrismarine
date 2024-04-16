@@ -6,9 +6,9 @@ import type Provider from './Provider';
 import fs from 'node:fs';
 
 export default abstract class BaseProvider implements Provider {
-    private path: string;
-    private server: Server;
-    private world!: World;
+    protected path: string;
+    protected server: Server;
+    protected world!: World;
 
     public constructor(path: string, server: Server) {
         this.server = server;
@@ -25,8 +25,8 @@ export default abstract class BaseProvider implements Provider {
         return this.world;
     }
 
-    public async enable() {}
-    public async disable() {}
+    public async enable(): Promise<void> {}
+    public async disable(): Promise<void> {}
 
     public getServer(): Server {
         return this.server;

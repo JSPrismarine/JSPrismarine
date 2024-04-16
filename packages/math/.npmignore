@@ -1,0 +1,14 @@
+node_modules/
+packages/
+src/
+/worlds/
+/logs/
+docs/
+.test/
+.github/
+.turbo/
+jsp/
+packages/
+/*.json
+jest*
+!package.json
