@@ -335,6 +335,9 @@ importers:
       '@jsprismarine/nbt':
         specifier: workspace:*
         version: link:../nbt
+      '@jsprismarine/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@jsprismarine/raknet':
         specifier: workspace:*
         version: link:../raknet
