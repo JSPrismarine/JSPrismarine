@@ -1,8 +1,8 @@
+import { Vector3 } from '@jsprismarine/math';
 import type { Server, Service } from './';
 import { Chat } from './';
 import { EntityLike } from './entity/';
 import ChatEvent from './events/chat/ChatEvent';
-import Vector3 from './math/Vector3';
 
 import type { CompleterResult } from 'node:readline';
 import readline from 'node:readline';

@@ -4,13 +4,13 @@ import fs from 'node:fs';
 
 import minifyJson from 'strip-json-comments';
 
+import { Vector3 } from '@jsprismarine/math';
 import type { Block, Player, Server, Service } from '../';
 import { Timer, UUID } from '../';
 import { BlockMappings } from '../block/BlockMappings';
 import * as Entities from '../entity/Entities';
 import type { Entity } from '../entity/Entity';
 import { Item } from '../item/Item';
-import Vector3 from '../math/Vector3';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
 import type { WorldEvent } from '../network/packet/WorldEventPacket';
@@ -27,7 +27,7 @@ export interface WorldData {
     name: string;
     path: string;
     server: Server;
-    provider: any;
+    provider: BaseProvider;
     seed: number;
     generator: Generator;
     config?: any;

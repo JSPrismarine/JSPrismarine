@@ -1,6 +1,6 @@
-import DataPacket from './DataPacket';
+import { Vector3 } from '@jsprismarine/math';
 import Identifiers from '../Identifiers';
-import Vector3 from '../../math/Vector3';
+import DataPacket from './DataPacket';
 
 export enum SpawnType {
     PLAYER_SPAWN,

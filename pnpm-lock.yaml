@@ -268,6 +268,34 @@ importers:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
 
+  packages/math:
+    dependencies:
+      '@jsprismarine/color-parser':
+        specifier: workspace:*
+        version: link:../color-parser
+      '@jsprismarine/jsbinaryutils':
+        specifier: 5.5.3
+        version: 5.5.3
+    devDependencies:
+      '@types/node':
+        specifier: 20.12.7
+        version: 20.12.7
+      glob:
+        specifier: 10.3.12
+        version: 10.3.12
+      rimraf:
+        specifier: 5.0.5
+        version: 5.0.5
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
+      vite:
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
+      vitest:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@20.12.7)
+
   packages/minecraft:
     dependencies:
       '@jsprismarine/nbt':
@@ -332,6 +360,9 @@ importers:
       '@jsprismarine/logger':
         specifier: workspace:*
         version: link:../logger
+      '@jsprismarine/math':
+        specifier: workspace:*
+        version: link:../math
       '@jsprismarine/nbt':
         specifier: workspace:*
         version: link:../nbt
@@ -347,9 +378,6 @@ importers:
       fast-jwt:
         specifier: 4.0.0
         version: 4.0.0
-      graceful-fs:
-        specifier: 4.2.11
-        version: 4.2.11
       heap:
         specifier: 0.2.7
         version: 0.2.7
@@ -363,9 +391,6 @@ importers:
         specifier: 2.4.1
         version: 2.4.1
     devDependencies:
-      '@types/graceful-fs':
-        specifier: 4.1.9
-        version: 4.1.9
       '@types/node':
         specifier: 20.12.7
         version: 20.12.7
@@ -1107,9 +1132,6 @@ packages:
 
   '@types/estree@1.0.5':
     resolution: {integrity: sha512-/kYRxGDLWzHOB7q+wtSUQlFrtcdUccpfy+X+9iMBpHK8QLLhx2wIPYuS5DYtR9Wa/YlZAbIovy7qVdB1Aq6Lyw==}
-
-  '@types/graceful-fs@4.1.9':
-    resolution: {integrity: sha512-olP3sd1qOEe5dXTSaFvQG+02VdRXcdytWLAZsAq1PecU8uqQAhkrnbli7DagjtXKW/Bl7YJbUsa8MPcuc8LHEQ==}
 
   '@types/heap@0.2.34':
     resolution: {integrity: sha512-x9gp0NZnQeFrgrb6O3Tq5KtvsuEhWbc2vlHfs4cDOKcHsanzI39lIGcPdND/MRyaKUbxNgKXfKGCQGnjjOWweQ==}
@@ -4273,10 +4295,6 @@ snapshots:
   '@types/argparse@1.0.38': {}
 
   '@types/estree@1.0.5': {}
-
-  '@types/graceful-fs@4.1.9':
-    dependencies:
-      '@types/node': 20.12.7
 
   '@types/heap@0.2.34': {}
 

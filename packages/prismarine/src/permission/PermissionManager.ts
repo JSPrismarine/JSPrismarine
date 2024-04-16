@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import util from 'node:util';
 
 import minifyJson from 'strip-json-comments';
 
@@ -118,7 +117,6 @@ export class PermissionManager implements Service {
                 );
             }
 
-            const readFile = util.promisify(fs.readFile);
             const permissionsObject: Partial<{
                 defaultPermissions: string[];
                 defaultOperatorPermissions: string[];
@@ -126,7 +124,7 @@ export class PermissionManager implements Service {
                     name: string;
                     permissions: string[];
                 }>;
-            }> = JSON.parse(minifyJson((await readFile(path.join(cwd(), '/permissions.json'))).toString()));
+            }> = JSON.parse(minifyJson((await fs.promises.readFile(path.join(cwd(), '/permissions.json'))).toString()));
 
             this.defaultPermissions = permissionsObject.defaultPermissions || [];
             this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
@@ -145,9 +143,9 @@ export class PermissionManager implements Service {
                 this.server.getLogger().warn(`Failed to load operators list!`);
                 fs.writeFileSync(path.join(cwd(), '/ops.json'), '[]');
             }
-
-            const readFile = util.promisify(fs.readFile);
-            const ops: OpType[] = JSON.parse(minifyJson((await readFile(path.join(cwd(), '/ops.json'))).toString()));
+            const ops: OpType[] = JSON.parse(
+                minifyJson((await fs.promises.readFile(path.join(cwd(), '/ops.json'))).toString())
+            );
 
             ops.map((op) => this.ops.add(op.name));
         } catch (error: unknown) {
@@ -175,9 +173,8 @@ export class PermissionManager implements Service {
         if (op) this.ops.add(username);
         else this.ops.delete(username);
 
-        const writeFile = util.promisify(fs.writeFile);
         try {
-            await writeFile(
+            await fs.promises.writeFile(
                 path.join(cwd(), '/ops.json'),
                 JSON.stringify(
                     Array.from(this.ops.values()).map((name) => ({

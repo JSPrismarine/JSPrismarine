@@ -1,4 +1,4 @@
-import type Vector3 from '../../math/Vector3';
+import type { Vector3 } from '@jsprismarine/math';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 

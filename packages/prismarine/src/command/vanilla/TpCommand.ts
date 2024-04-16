@@ -2,8 +2,8 @@ import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
 import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArguments';
 
+import { Vector3 } from '@jsprismarine/math';
 import type Player from '../../Player';
-import Vector3 from '../../math/Vector3';
 import MovementType from '../../network/type/MovementType';
 import { Command } from '../Command';
 

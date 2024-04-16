@@ -27,7 +27,7 @@ export default class PropertySyncData extends NetworkStructure {
         }
     }
 
-    public deserialize(stream: NetworkBinaryStream): void {
+    public deserialize(_stream: NetworkBinaryStream): void {
         throw new Error('Method not implemented.');
     }
 }
