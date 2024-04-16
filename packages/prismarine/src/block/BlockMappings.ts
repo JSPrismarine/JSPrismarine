@@ -26,7 +26,7 @@ export class BlockMappings {
             const stream = new BinaryStream(
                 gunzipSync(BedrockData.canonical_block_states) // Vanilla states
             );
-            const reader: NBTReader = new NBTReader(stream, ByteOrder.ByteOrder.BIG_ENDIAN);
+            const reader: NBTReader = new NBTReader(stream, ByteOrder.BIG_ENDIAN);
 
             for (const blockTag of reader.parseList<NBTTagCompound>()) {
                 const name = blockTag.getString('name', 'minecraft:air');

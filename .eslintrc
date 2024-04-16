@@ -5,8 +5,16 @@
         "es2024": true,
         "node": true
     },
-    "extends": ["plugin:prettier/recommended"],
-    "plugins": ["@typescript-eslint", "eslint-plugin-jsdoc", "import", "prettier", "unused-imports"],
+    "extends": [
+        "plugin:prettier/recommended"
+    ],
+    "plugins": [
+        "@typescript-eslint",
+        "eslint-plugin-jsdoc",
+        "import",
+        "prettier",
+        "unused-imports"
+    ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "sourceType": "module",
@@ -21,10 +29,18 @@
         ]
     },
     "rules": {
-        "@typescript-eslint/consistent-type-exports": ["error", { "fixMixedExportsWithInlineTypeSpecifier": false }],
+        "@typescript-eslint/consistent-type-exports": [
+            "error",
+            {
+                "fixMixedExportsWithInlineTypeSpecifier": false
+            }
+        ],
         "@typescript-eslint/consistent-type-imports": [
             "error",
-            { "fixStyle": "separate-type-imports", "prefer": "type-imports" }
+            {
+                "fixStyle": "separate-type-imports",
+                "prefer": "type-imports"
+            }
         ],
         "@typescript-eslint/no-require-imports": "error",
         "@typescript-eslint/no-unnecessary-condition": "warn",
@@ -50,13 +66,22 @@
         "no-console": [
             "error",
             {
-                "allow": ["debug", "warn", "error"]
+                "allow": [
+                    "debug",
+                    "warn",
+                    "error"
+                ]
             }
         ],
         "no-mixed-operators": "off",
         "no-unused-vars": "off",
         "no-useless-constructor": "off",
-        "prettier/prettier": "error",
+        "prettier/prettier": [
+            "error",
+            {
+                "endOfLine": "auto"
+            }
+        ],
         "semi": "off",
         "sort-imports": "off",
         "standard/computed-property-even-spacing": "off",

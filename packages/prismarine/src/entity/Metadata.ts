@@ -143,7 +143,7 @@ export class MetadataWriter {
         stream.writeUnsignedVarInt(this.getData().size);
         for (const [index, value] of this.getData()) {
             stream.writeUnsignedVarInt(index);
-            stream.writeUnsignedVarInt(value[0]);
+            stream.writeSignedByte(value[0]);
             switch (value[0]) {
                 case FlagType.BYTE:
                     stream.writeByte(value[1] as number);

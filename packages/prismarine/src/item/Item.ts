@@ -1,10 +1,10 @@
 import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
 
+import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import { BlockMappings } from '../block/BlockMappings';
 import { BlockToolType } from '../block/BlockToolType';
 import type { ItemEnchantmentType } from './ItemEnchantmentType';
-import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 
 export interface ItemProps {
     id: number;
@@ -181,7 +181,7 @@ export class Item {
             const version = stream.readByte(); // eslint-disable-line unused-imports/no-unused-vars
 
             try {
-                const nbtReader = new NBTReader(stream, ByteOrder.ByteOrder.LITTLE_ENDIAN);
+                const nbtReader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
                 nbtReader.setUseVarint(true);
                 _nbt = nbtReader.parse();
             } catch (error: unknown) {

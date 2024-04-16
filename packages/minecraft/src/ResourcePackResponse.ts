@@ -1,0 +1,6 @@
+export enum ResourcePackResponse {
+    CANCEL = 1,
+    DOWNLOADING,
+    DOWNLOADING_FINISHED,
+    RESOURCE_PACK_STACK_FINISHED
+}
