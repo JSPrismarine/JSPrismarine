@@ -36,8 +36,9 @@
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
     "keywords": [
-        "nodejs",
-        "raknet"
+        "protocol-data",
+        "minecraft-data",
+        "minecraft"
     ],
     "author": "JSPrismarine",
     "license": "MIT",
