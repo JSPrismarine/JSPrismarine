@@ -57,7 +57,7 @@ export default class Console extends EntityLike implements Service {
             switch (key.name) {
                 case 'c': {
                     if (key.ctrl) {
-                        await this.getServer().shutdown();
+                        await this.server.shutdown();
                     }
                     break;
                 }
@@ -74,13 +74,11 @@ export default class Console extends EntityLike implements Service {
 
             // Handle commands.
             if (input.startsWith('/')) {
-                void this.getServer()
-                    .getCommandManager()
-                    .dispatchCommand(this as any, this as any, input);
+                void this.server.getCommandManager().dispatchCommand(this as any, this as any, input);
                 return;
             }
 
-            void this.getServer().emit(
+            void this.server.emit(
                 'chat',
                 new ChatEvent(
                     new Chat({
@@ -100,7 +98,7 @@ export default class Console extends EntityLike implements Service {
     }
 
     private async complete(line: string, callback: (err?: null | Error, result?: CompleterResult) => void) {
-        const commands = Array.from(this.getServer().getCommandManager().getCommands().values()).map(
+        const commands = Array.from(this.server.getCommandManager().getCommands().values()).map(
             (command) => `/${command.name}`
         );
 
@@ -135,7 +133,7 @@ export default class Console extends EntityLike implements Service {
     }
 
     public async sendMessage(message: string): Promise<void> {
-        this.getServer().getLogger().info(message);
+        this.server.getLogger().info(message);
     }
 
     public getWorld() {

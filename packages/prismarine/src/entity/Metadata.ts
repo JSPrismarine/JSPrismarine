@@ -218,10 +218,10 @@ export class Metadata extends MetadataWriter {
      * Get the entity's name tag.
      * @returns {string} The entity's name tag.
      * ```typescript
-     * console.log(entity.getNameTag()); // Steve
+     * console.log(entity.nameTag); // Steve
      * ```
      */
-    public getNameTag(): string {
+    public get nameTag(): string {
         return this.getString(MetadataFlag.NAMETAG);
     }
 
@@ -252,7 +252,7 @@ export class Metadata extends MetadataWriter {
      * @returns {boolean} if the entity is affected by gravity.
      * @TODO: Implement this method.
      */
-    public isAffectedByGravity(): boolean {
+    public get affectedByGravity(): boolean {
         throw new Error('TODO: Method not implemented.');
     }
 
@@ -268,7 +268,7 @@ export class Metadata extends MetadataWriter {
      * @returns {boolean} if the entity is collidable.
      * @TODO: Implement this method.
      */
-    public isCollidable(): boolean {
+    public get collidable(): boolean {
         throw new Error('TODO: Method not implemented.');
     }
 }

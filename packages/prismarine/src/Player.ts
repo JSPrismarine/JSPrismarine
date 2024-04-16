@@ -127,7 +127,7 @@ export default class Player extends Human {
         await this.sendSettings();
 
         if (!this.connected)
-            this.getServer()
+            this.server
                 .getLogger()
                 .debug(`(Complete player creation took ${this.joinTimer.stop()} ms)`, 'Player/onEnable');
         this.connected = true;
@@ -292,7 +292,7 @@ export default class Player extends Human {
     }
 
     public async kick(reason = 'unknown reason'): Promise<void> {
-        this.getServer()
+        this.server
             .getLogger()
             .verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`, 'Player/kick');
         await this.networkSession.kick(reason);
@@ -302,7 +302,7 @@ export default class Player extends Human {
         await this.getNetworkSession().sendGamemode(this.gamemode);
 
         await Promise.all(
-            this.getServer()
+            this.server
                 .getSessionManager()
                 .getAllPlayers()
                 .map(async (target) => {
@@ -315,7 +315,7 @@ export default class Player extends Human {
     // Return all the players in the same chunk,.
     // TODO: move to world
     public getPlayersInChunk(): Player[] {
-        return this.getServer()
+        return this.server
             .getSessionManager()
             .getAllPlayers()
             .filter((player) => player.getCurrentChunk() === this.getCurrentChunk());
@@ -363,7 +363,7 @@ export default class Player extends Human {
 
     public async setGamemode(mode: number): Promise<void> {
         const event = new PlayerSetGamemodeEvent(this, mode);
-        this.getServer().post(['playerSetGamemode', event]);
+        this.server.post(['playerSetGamemode', event]);
         if (event.isCancelled()) return;
 
         this.gamemode = event.getGamemode();
@@ -427,7 +427,7 @@ export default class Player extends Human {
      * @returns `true` if this player is an operator otherwise `false`.
      */
     public isOp(): boolean {
-        return this.getServer().getPermissionManager().isOp(this.getName());
+        return this.server.getPermissionManager().isOp(this.getName());
     }
 
     /**
@@ -443,7 +443,7 @@ export default class Player extends Human {
         if (sprinting === this.isSprinting()) return;
 
         const event = new PlayerToggleSprintEvent(this, sprinting);
-        this.getServer().post(['playerToggleSprint', event]);
+        this.server.post(['playerToggleSprint', event]);
         if (event.isCancelled()) return;
 
         this.sprinting = event.getIsSprinting();
@@ -465,7 +465,7 @@ export default class Player extends Human {
         }
 
         const event = new PlayerToggleFlightEvent(this, flying);
-        this.getServer().post(['playerToggleFlight', event]);
+        this.server.post(['playerToggleFlight', event]);
         if (event.isCancelled()) return;
 
         this.flying = event.getIsFlying();
