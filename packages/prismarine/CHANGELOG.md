@@ -1,5 +1,18 @@
 # @jsprismarine/prismarine
 
+## 0.4.3
+
+### Patch Changes
+
+- [`b0a232b`](https://github.com/JSPrismarine/JSPrismarine/commit/b0a232b9be5d6456c33d5300582a0c7e33d76a6e) Thanks [@filiphsps](https://github.com/filiphsps)! - Bump version due to previous publishing failure.
+
+- Updated dependencies []:
+  - @jsprismarine/color-parser@0.4.3
+  - @jsprismarine/errors@0.4.3
+  - @jsprismarine/logger@0.4.3
+  - @jsprismarine/nbt@0.4.3
+  - @jsprismarine/raknet@0.4.3
+
 ## 0.4.2
 
 ### Patch Changes
