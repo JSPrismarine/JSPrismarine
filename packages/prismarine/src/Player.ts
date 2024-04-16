@@ -59,10 +59,6 @@ export default class Player extends Human {
     public viewDistance = 0;
     public gamemode = 0;
 
-    public pitch = 0;
-    public yaw = 0;
-    public headYaw = 0;
-
     private onGround = false;
     private sprinting = false;
     private flying = false;
@@ -109,21 +105,19 @@ export default class Player extends Human {
     }
 
     public async enable() {
-        this.permissions = await this.server.getPermissionManager().getPermissions(this);
         const playerData = await this.getWorld().getPlayerData(this);
 
-        if (playerData.position) {
-            this.setPosition({
-                position: new Vector3(
-                    playerData.position.x || 0,
-                    playerData.position.y || 0,
-                    playerData.position.z || 0
-                ),
-                pitch: playerData.position.pitch || 0,
-                yaw: playerData.position.yaw || 0,
-                type: MovementType.Reset
-            });
-        }
+        this.permissions = await this.server.getPermissionManager().getPermissions(this);
+
+        this.setPosition({
+            position: playerData.position
+                ? Vector3.fromObject(playerData.position)
+                : await this.getWorld().getSpawnPosition(),
+            pitch: playerData.position?.pitch || 0,
+            yaw: playerData.position?.yaw || 0,
+            headYaw: playerData.position?.headYaw || 0,
+            type: MovementType.Reset
+        });
 
         this.gamemode = Gamemode.getGamemodeId(playerData.gamemode || this.server.getConfig().getGamemode());
 
@@ -326,8 +320,6 @@ export default class Player extends Human {
      * Player spawning logic.
      */
     public async sendSpawn() {
-        await this.enable();
-
         await this.sendPosition();
         await this.setGamemode(this.gamemode);
         await this.getNetworkSession().sendInventory();
@@ -407,9 +399,7 @@ export default class Player extends Human {
     }
 
     public getXUID(): string {
-        if (!this.xuid) throw new Error('xuid is missing!');
-
-        return this.xuid;
+        return this.xuid || '';
     }
 
     public getWindows(): WindowManager {
@@ -496,33 +486,36 @@ export default class Player extends Human {
      * @param {object} options - The options to set the position.
      * @param {Vector3} options.position - The new position.
      * @param {MovementType} [options.type=MovementType.Normal] - The movement type.
-     * @param {number} [options.yaw=this.yaw] - The new yaw.
      * @param {number} [options.pitch=this.pitch] - The new pitch.
+     * @param {number} [options.yaw=this.yaw] - The new yaw.
+     * @param {number} [options.headYaw=this.headYaw] - The new head yaw.
      * @remarks This will notify the player's client about the position change.
      */
     public async setPosition({
         position,
         type = MovementType.Normal,
+        pitch = this.pitch,
         yaw = this.yaw,
-        pitch = this.pitch
+        headYaw = this.headYaw
     }: {
         position: Vector3;
         type?: MovementType;
-        yaw?: number;
         pitch?: number;
+        yaw?: number;
+        headYaw?: number;
     }) {
-        this.yaw = yaw;
         this.pitch = pitch;
+        this.yaw = yaw;
+        this.headYaw = headYaw;
 
         await super.setPosition({ position });
-        await this.networkSession.broadcastMove(this, type);
+        await this.getNetworkSession().broadcastMove(this, type);
     }
     /**
      * Send the position to all the players in the same world.
      * @returns {Promise<void>} A promise that resolves when the position is sent.
      */
     public async sendPosition(): Promise<void> {
-        await this.networkSession.broadcastMove(this);
         await super.sendPosition();
     }
 

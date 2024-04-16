@@ -19,6 +19,10 @@ export class EntityLike extends Position {
     protected readonly runtimeId: bigint;
     protected readonly server: Server;
 
+    public pitch = 0;
+    public yaw = 0;
+    public headYaw = 0;
+
     /**
      * EntityLike constructor.
      * @constructor
@@ -286,22 +290,17 @@ export class Entity extends EntityLike {
      * @returns {Promise<void>} A promise that resolves when the entity is spawned.
      */
     public async sendSpawn(player?: Player): Promise<void> {
-        const players: Player[] = player
-            ? [player]
-            : (this.getWorld()
-                  .getEntities()
-                  .filter((entity) => entity.isPlayer()) as Player[]);
+        const players: Player[] = player ? [player] : this.getWorld().getPlayers();
 
         const packet = new AddActorPacket();
         packet.runtimeEntityId = this.getRuntimeId();
         packet.type = (this.constructor as any).MOB_ID; // TODO
-        packet.position = this;
-        // TODO: motion
-        packet.motion = new Vector3(0, 0, 0);
-        packet.pitch = 0;
-        packet.yaw = 0;
-        packet.headYaw = 0;
-        packet.metadata = this.metadata.getData();
+        packet.position = this.getPosition();
+        packet.motion = new Vector3(0, 0, 0); // TODO: motion
+        packet.pitch = this.pitch;
+        packet.yaw = this.yaw;
+        packet.headYaw = this.headYaw;
+        packet.metadata = this.metadata;
         await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(packet)));
     }
 
@@ -311,11 +310,7 @@ export class Entity extends EntityLike {
      * @returns {Promise<void>} A promise that resolves when the entity is despawned.
      */
     public async sendDespawn(player?: Player): Promise<void> {
-        const players: Player[] = player
-            ? [player]
-            : (this.getWorld()
-                  .getEntities()
-                  .filter((entity) => entity.isPlayer()) as Player[]);
+        const players: Player[] = player ? [player] : this.getWorld().getPlayers();
 
         const packet = new RemoveActorPacket();
         packet.uniqueEntityId = this.runtimeId;
@@ -328,10 +323,8 @@ export class Entity extends EntityLike {
      */
     public async sendPosition(): Promise<void> {
         await Promise.all(
-            this.getServer()
-                .getSessionManager()
-                .getAllPlayers()
-                .filter((player) => player.getWorld().getUUID() === this.getWorld().getUUID())
+            this.getWorld()
+                .getPlayers()
                 .map(async (player) => {
                     const packet = new MoveActorAbsolutePacket();
                     packet.runtimeEntityId = this.runtimeId;
@@ -415,7 +408,21 @@ export class Entity extends EntityLike {
      * @param {Vector3} position - The position.
      * @returns {Promise<void>} A promise that resolves when the position is set.
      */
-    public async setPosition({ position }: { position: Vector3 }): Promise<void> {
+    public async setPosition({
+        position,
+        pitch = this.pitch,
+        yaw = this.yaw,
+        headYaw = this.headYaw
+    }: {
+        position: Vector3;
+        pitch?: number;
+        yaw?: number;
+        headYaw?: number;
+    }): Promise<void> {
+        this.pitch = pitch;
+        this.yaw = yaw;
+        this.headYaw = headYaw;
+
         await super.setX(position.getX());
         await super.setY(position.getY());
         await super.setZ(position.getZ());

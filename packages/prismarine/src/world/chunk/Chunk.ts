@@ -1,8 +1,9 @@
-import { BlockMappings } from '../../block/BlockMappings';
 import type { LegacyId } from '../../block/BlockMappings';
+import { BlockMappings } from '../../block/BlockMappings';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import type { Block } from '../../block/Block';
+import { Vector3 } from '../../math';
 import SubChunk from './SubChunk';
 
 const MAX_SUBCHUNKS = 16;
@@ -86,7 +87,11 @@ export default class Chunk {
      * @param bz - block z
      * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
-    public getBlock(bx: number, by: number, bz: number, layer = 0): LegacyId {
+    public getBlock(bx: Vector3 | number, by: number = 0, bz: number = 0, layer = 0): LegacyId {
+        if (bx instanceof Vector3) {
+            return this.getBlock(bx.getX(), bx.getY(), bx.getZ(), layer);
+        }
+
         const subChunk = this.getSubChunk(by >> 4);
         if (subChunk === null) {
             return BlockMappings.getLegacyId(BlockMappings.getRuntimeId('minecraft:air'));

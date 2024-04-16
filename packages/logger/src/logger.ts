@@ -10,7 +10,6 @@ import { PrismarineTransport } from './transport';
 export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug' | 'silly';
 
 export class Logger {
-    public static logFile: string;
     private logger!: Winston;
 
     public constructor(level: LogLevel = 'info', transports: TransportStream[] = []) {

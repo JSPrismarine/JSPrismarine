@@ -54,6 +54,7 @@ export interface WorldPlayerData {
         z: number;
         pitch: number;
         yaw: number;
+        headYaw: number;
     };
     inventory: Array<{
         id: string;
@@ -253,7 +254,11 @@ export class World implements Service {
     /**
      * Returns a chunk from a block position's x and z coordinates.
      */
-    public async getChunkAt(bx: number, bz: number): Promise<Chunk> {
+    public async getChunkAt(bx: Vector3 | number, bz: number = 0): Promise<Chunk> {
+        if (bx instanceof Vector3) {
+            return this.getChunkAt(bx.getX(), bx.getZ());
+        }
+
         return this.getChunk(bx >> 4, bz >> 4);
     }
 
@@ -293,11 +298,7 @@ export class World implements Service {
         // TODO: canInteract
 
         const block = itemInHand; // TODO: get block from itemInHand
-        const blockId = (await this.getChunkAt(blockPosition.getX(), blockPosition.getZ())).getBlock(
-            blockPosition.getX(),
-            blockPosition.getY(),
-            blockPosition.getZ()
-        );
+        const blockId = (await this.getChunkAt(blockPosition)).getBlock(blockPosition);
 
         const clickedBlock = this.server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
 
@@ -424,13 +425,18 @@ export class World implements Service {
     }
 
     /**
-     * Returns all entities (including players)
-     *
-     * You can filter this by either using the entity.getType() or
-     * entity.isPlayer() functions.
+     * Get all entities in this world.
+     * @returns {Entity[]} the entities.
      */
     public getEntities(): Entity[] {
         return Array.from(this.entities.values());
+    }
+    /**
+     * Get all players in this world.
+     * @returns {Player[]} the players.
+     */
+    public getPlayers(): Player[] {
+        return this.getEntities().filter((entity) => entity.isPlayer()) as Player[];
     }
 
     /**
@@ -450,12 +456,9 @@ export class World implements Service {
 
     public async save(): Promise<void> {
         // Save chunks
-        this.server
-            .getSessionManager()
-            .getAllPlayers()
-            .forEach(async (player) => {
-                await this.savePlayerData(player);
-            });
+        this.getPlayers().forEach(async (player) => {
+            await this.savePlayerData(player);
+        });
         await this.saveChunks();
         await this.saveLevelData();
     }
@@ -541,11 +544,14 @@ export class World implements Service {
      */
     public async getPlayerData(player: Player): Promise<Partial<WorldPlayerData>> {
         try {
-            const raw = fs.readFileSync(
-                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID()}.json`, 'utf-8')
+            const raw = await fs.promises.readFile(
+                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID() || player.getName()}.json`),
+                { flag: 'r', encoding: 'utf-8' }
             );
             return JSON.parse(minifyJson(raw.toString())) as Partial<WorldPlayerData>;
-        } catch {
+        } catch (error: any) {
+            console.error(error);
+
             this.server
                 .getLogger()
                 .debug(`PlayerData is missing for player ${player.getXUID()}`, 'World/getPlayerData');
@@ -557,7 +563,8 @@ export class World implements Service {
                     y: (await this.getSpawnPosition()).getY(),
                     z: (await this.getSpawnPosition()).getZ(),
                     pitch: 0,
-                    yaw: 0
+                    yaw: 0,
+                    headYaw: 0
                 },
                 inventory: []
             };
@@ -573,7 +580,8 @@ export class World implements Service {
                 y: player.getY(),
                 z: player.getZ(),
                 pitch: player.pitch,
-                yaw: player.yaw
+                yaw: player.yaw,
+                headYaw: player.headYaw
             },
             inventory: player
                 .getInventory()
@@ -594,9 +602,10 @@ export class World implements Service {
         } as WorldPlayerData;
 
         try {
-            fs.writeFileSync(
-                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID()}.json`),
-                JSON.stringify(data, null, 4)
+            await fs.promises.writeFile(
+                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID() || player.getName()}.json`),
+                JSON.stringify(data, null, 4),
+                { flag: 'w+', encoding: 'utf-8', flush: true }
             );
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save player data`);

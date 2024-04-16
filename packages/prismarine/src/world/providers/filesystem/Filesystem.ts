@@ -18,7 +18,10 @@ export default class Filesystem extends BaseProvider {
     public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
         try {
             const buffer = Buffer.from(
-                await fs.promises.readFile(path.join(this.getPath(), 'chunks', `${cx}_${cz}.dat`), { flag: 'r' })
+                await fs.promises.readFile(path.join(this.getPath(), 'chunks', `${cx}_${cz}.dat`), {
+                    flag: 'r',
+                    encoding: 'utf-8'
+                })
             );
 
             return Chunk.networkDeserialize(new BinaryStream(buffer), cx, cz);
@@ -35,10 +38,7 @@ export default class Filesystem extends BaseProvider {
         await fs.promises.writeFile(
             path.join(this.getPath(), 'chunks', `${chunk.getX()}_${chunk.getZ()}.dat`),
             chunk.networkSerialize(true),
-            {
-                flag: 'w+',
-                flush: true
-            }
+            { flag: 'w+', encoding: 'utf-8', flush: true }
         );
     }
 }

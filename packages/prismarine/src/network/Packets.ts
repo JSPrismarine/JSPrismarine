@@ -53,7 +53,6 @@ import SetTimePacket from './packet/SetTimePacket';
 import SetTitlePacket from './packet/SetTitlePacket';
 import ShowCreditsPacket from './packet/ShowCreditsPacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
-import ShowStoreOfferPacket from './packet/ShowStoreOfferPacket';
 import StartGamePacket from './packet/StartGamePacket';
 import TextPacket from './packet/TextPacket';
 import TickSyncPacket from './packet/TickSyncPacket';
@@ -121,7 +120,6 @@ export {
     SetTitlePacket,
     ShowCreditsPacket,
     ShowProfilePacket,
-    ShowStoreOfferPacket,
     StartGamePacket,
     TextPacket,
     TickSyncPacket,

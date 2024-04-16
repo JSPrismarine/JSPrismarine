@@ -7,7 +7,6 @@ import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import { BlockMappings } from '../../block/BlockMappings';
 import type ContainerEntry from '../../inventory/ContainerEntry';
-import Vector3 from '../../math/Vector3';
 import { Gamemode } from '../../world/';
 import Identifiers from '../Identifiers';
 import type PacketHandler from './PacketHandler';
@@ -87,17 +86,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     case UseItemAction.CLICK_AIR:
                         break;
                     case UseItemAction.BREAK_BLOCK: {
-                        const chunk = await player
-                            .getWorld()
-                            .getChunkAt(useItemData.blockPosition.getX(), useItemData.blockPosition.getZ());
+                        const chunk = await player.getWorld().getChunkAt(useItemData.blockPosition);
 
-                        const chunkPos = new Vector3(
-                            useItemData.blockPosition.getX(),
-                            useItemData.blockPosition.getY(),
-                            useItemData.blockPosition.getZ()
-                        );
-
-                        const blockId = chunk.getBlock(chunkPos.getX(), chunkPos.getY(), chunkPos.getZ());
+                        const blockId = chunk.getBlock(useItemData.blockPosition);
                         const block = server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
                         if (!block) return;
 
@@ -120,6 +111,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                 .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(pk))
                         );
 
+                        const chunkPos = useItemData.blockPosition;
                         chunk.setBlock(
                             chunkPos.getX(),
                             chunkPos.getY(),

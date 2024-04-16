@@ -1,6 +1,7 @@
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
-import BlockStorage from './BlockStorage';
 import type { LegacyId } from '../../block/BlockMappings';
+import { Vector3 } from '../../math';
+import BlockStorage from './BlockStorage';
 
 export default class SubChunk {
     private storages: Map<number, BlockStorage> = new Map();
@@ -44,7 +45,11 @@ export default class SubChunk {
      * @param bz - block z
      * @param layer - block storage layer
      */
-    public getBlock(bx: number, by: number, bz: number, layer: number): LegacyId {
+    public getBlock(bx: Vector3 | number, by: number = 0, bz: number = 0, layer: number = 0): LegacyId {
+        if (bx instanceof Vector3) {
+            return this.getBlock(bx.getX(), bx.getY(), bx.getZ(), layer);
+        }
+
         return this.getStorage(layer).getBlock(bx, by, bz);
     }
 
