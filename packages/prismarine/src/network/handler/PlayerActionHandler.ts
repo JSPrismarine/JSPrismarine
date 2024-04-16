@@ -1,12 +1,12 @@
-import WorldEventPacket, { WorldEvent } from '../packet/WorldEventPacket';
+import { WorldEvent } from '../packet/WorldEventPacket';
 
-import { BlockMappings } from '../../block/BlockMappings';
-import Identifiers from '../Identifiers';
-import type PacketHandler from './PacketHandler';
-import { PlayerAction } from '../packet/PlayerActionPacket';
-import type PlayerActionPacket from '../packet/PlayerActionPacket';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
+import { BlockMappings } from '../../block/BlockMappings';
+import Identifiers from '../Identifiers';
+import type PlayerActionPacket from '../packet/PlayerActionPacket';
+import { PlayerAction } from '../packet/PlayerActionPacket';
+import type PacketHandler from './PacketHandler';
 
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
     public static NetID = Identifiers.PlayerActionPacket;
@@ -21,39 +21,14 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                     .getBlock(packet.blockPosition.getX(), packet.blockPosition.getY(), packet.blockPosition.getZ());
 
                 const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
-
-                // TODO: world.sendEvent(type, position(Vector3), data) (?)
-                const pk = new WorldEventPacket();
-                pk.eventId = WorldEvent.BLOCK_START_BREAK;
-                pk.position = packet.blockPosition;
-                pk.data = 65535 / breakTime;
-
-                await Promise.all(
-                    player
-                        .getPlayersInChunk()
-                        .map(async (nearbyPlayer) =>
-                            nearbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk)
-                        )
-                );
-
+                await player
+                    .getWorld()
+                    .sendWorldEvent(packet.blockPosition, WorldEvent.BLOCK_START_BREAK, 65535 / breakTime);
                 break;
             }
 
             case PlayerAction.ABORT_BREAK: {
-                // Gets called when player didn't finished
-                // to break the block
-                const pk = new WorldEventPacket();
-                pk.eventId = WorldEvent.BLOCK_STOP_BREAK;
-                pk.position = packet.blockPosition;
-                pk.data = 0;
-
-                await Promise.all(
-                    player
-                        .getPlayersInChunk()
-                        .map(async (nearbyPlayer) =>
-                            nearbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk)
-                        )
-                );
+                await player.getWorld().sendWorldEvent(packet.blockPosition, WorldEvent.BLOCK_STOP_BREAK, 0);
                 break;
             }
 
@@ -63,7 +38,6 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             }
 
             case PlayerAction.CONTINUE_DESTROY_BLOCK: {
-                // This fires twice in creative.. wtf Mojang?
                 const chunk = await player
                     .getWorld()
                     .getChunkAt(packet.blockPosition.getX(), packet.blockPosition.getZ());
@@ -74,22 +48,22 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                     packet.blockPosition.getZ()
                 );
 
-                // TODO
-                const pk = new WorldEventPacket();
-                pk.eventId = WorldEvent.PARTICLE_DESTROY_BLOCK;
-                pk.position = packet.blockPosition;
-                pk.data = BlockMappings.getRuntimeId(
-                    server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta)!.getName() // TODO: fix this.
+                await player.getWorld().sendWorldEvent(
+                    packet.blockPosition,
+                    WorldEvent.PARTICLE_DESTROY_BLOCK,
+                    BlockMappings.getRuntimeId(
+                        server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta)!.getName() // TODO: fix this.
+                    )
                 );
+                break;
+            }
 
-                await Promise.all(
-                    player
-                        .getPlayersInChunk()
-                        .map(async (nearbyPlayer) =>
-                            nearbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk)
-                        )
-                );
+            case PlayerAction.CRACK_BLOCK: {
+                // TODO: Handle this.
+                break;
+            }
 
+            case PlayerAction.RESPAWN: {
                 break;
             }
 

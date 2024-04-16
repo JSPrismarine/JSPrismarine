@@ -19,7 +19,7 @@ const USAGE_ARGUMENT_CLOSE: string = '>';
 export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
     private name: string;
     private type: ArgumentType<T>;
-    private customSuggestions: SuggestionProvider<S>;
+    private customSuggestions: SuggestionProvider<S> | null;
 
     public constructor(
         name: string,
@@ -53,7 +53,7 @@ export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
         return USAGE_ARGUMENT_OPEN + this.name + USAGE_ARGUMENT_CLOSE;
     }
 
-    public getCustomSuggestions(): SuggestionProvider<S> {
+    public getCustomSuggestions() {
         return this.customSuggestions;
     }
 
@@ -81,7 +81,7 @@ export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
         ) as RequiredArgumentBuilder<S, T>;
         builder.requires(this.getRequirement());
         builder.forward(this.getRedirect()!, this.getRedirectModifier(), this.isFork());
-        builder.suggests(this.customSuggestions);
+        if (this.customSuggestions) builder.suggests(this.customSuggestions);
         if (this.getCommand()) {
             builder.executes(this.getCommand()!);
         }

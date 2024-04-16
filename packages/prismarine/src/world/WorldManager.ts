@@ -1,11 +1,10 @@
 import type { Server, Service } from '../';
-import { cwd, withCwd } from '../utils/cwd';
+import { withCwd } from '../utils/cwd';
 import { GeneratorManager, World } from './';
 import type Provider from './providers/Provider';
 import Filesystem from './providers/filesystem/Filesystem';
 
 import fs from 'node:fs';
-import path from 'node:path';
 
 /**
  * Standard world data.
@@ -15,6 +14,8 @@ export interface WorldData {
     provider?: string;
     generator?: string;
 }
+
+const WORLDS_FOLDER = 'worlds';
 
 /**
  * The world manager is responsible level loading, unloading, and general level management.
@@ -31,7 +32,9 @@ export default class WorldManager implements Service {
         this.genManager = new GeneratorManager(server);
 
         // Create the worlds directory if it doesn't exist.
-        if (!fs.existsSync(withCwd('worlds'))) fs.mkdirSync(withCwd('worlds'), { recursive: true });
+        if (!fs.existsSync(withCwd(WORLDS_FOLDER))) {
+            fs.mkdirSync(withCwd(WORLDS_FOLDER), { recursive: true });
+        }
     }
 
     /**
@@ -109,7 +112,7 @@ export default class WorldManager implements Service {
             throw new Error(`World ${folderName} has already been loaded`);
         }
 
-        const levelPath = path.join(cwd(), `/worlds/${folderName}/`);
+        const levelPath = withCwd(WORLDS_FOLDER, folderName);
         const provider = this.providers.get(worldData.provider ?? 'Filesystem');
         const generator = this.server
             .getWorldManager()
@@ -136,10 +139,10 @@ export default class WorldManager implements Service {
         // First level to be loaded is also the default one
         if (!this.defaultWorld) {
             this.defaultWorld = this.worlds.get(world.getUUID())!;
-            this.server.getLogger().info(`Loaded §b${folderName}§r as default world!`);
+            this.server.getLogger().info(`Loaded ${world.getFormattedName()} as default world!`);
         }
 
-        this.server.getLogger().verbose(`World §b${folderName}§r successfully loaded!`);
+        this.server.getLogger().verbose(`World ${world.getFormattedName()} successfully loaded!`);
 
         await world.enable();
         return world;
@@ -162,7 +165,7 @@ export default class WorldManager implements Service {
 
         await world.disable();
         this.worlds.delete(world.getUUID());
-        this.server.getLogger().verbose(`Successfully unloaded world §b${folderName}§f!`);
+        this.server.getLogger().verbose(`Successfully unloaded world ${world.getFormattedName()}!`);
     }
 
     /**

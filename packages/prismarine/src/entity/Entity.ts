@@ -204,8 +204,7 @@ export class Entity extends EntityLike {
             runtimeId: Entity.runtimeIdCount
         });
 
-        Object.setPrototypeOf(this, Entity.prototype);
-        if (world) super.setWorld.bind(this)(world);
+        if (world) super.setWorld(world);
     }
 
     public get [Symbol.toStringTag](): string {
@@ -220,7 +219,7 @@ export class Entity extends EntityLike {
      * ```
      */
     public toString() {
-        return `uuid: §a${this.getUUID()}§r, id: §a${this.getRuntimeId()}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, ${super.toString.bind(this)()}`;
+        return `uuid: §a${this.getUUID()}§r, id: §a${this.getRuntimeId()}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, ${super.toString()}`;
     }
 
     /**
@@ -417,9 +416,9 @@ export class Entity extends EntityLike {
      * @returns {Promise<void>} A promise that resolves when the position is set.
      */
     public async setPosition({ position }: { position: Vector3 }): Promise<void> {
-        await super.setX.bind(this)(position.getX());
-        await super.setY.bind(this)(position.getY());
-        await super.setZ.bind(this)(position.getZ());
+        await super.setX(position.getX());
+        await super.setY(position.getY());
+        await super.setZ(position.getZ());
 
         await this.sendPosition();
     }

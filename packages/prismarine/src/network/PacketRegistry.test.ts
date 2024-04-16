@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import LoggerBuilder from '../utils/Logger';
+import { Logger } from '@jsprismarine/logger';
 import PacketRegistry from './PacketRegistry';
 
 describe('network', () => {
     describe('PacketRegistry', () => {
         it('registerPackets() should not register any packets with the same ID', async () => {
-            const logger = new LoggerBuilder();
+            const logger = new Logger();
             const registry = new PacketRegistry({
                 getLogger: () => logger
             } as any);
@@ -21,7 +21,7 @@ describe('network', () => {
         });
 
         it('registerHandlers() should not register any handlers with the same ID', async () => {
-            const logger = new LoggerBuilder();
+            const logger = new Logger();
             const registry = new PacketRegistry({
                 getLogger: () => logger
             } as any);

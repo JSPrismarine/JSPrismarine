@@ -28,4 +28,5 @@ vite.config.ts.timestamp*
 .DS_Store
 report.*.json
 *.cpuprofile
+.tsbuildinfo
 *.tsbuildinfo

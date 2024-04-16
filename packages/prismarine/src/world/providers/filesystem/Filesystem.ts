@@ -1,10 +1,10 @@
-import BaseProvider from '../BaseProvider';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import Chunk from '../../chunk/Chunk';
-import type { Generator } from '../../Generator';
-import type Server from '../../../Server';
 import fs from 'graceful-fs';
 import path from 'node:path';
+import type Server from '../../../Server';
+import type { Generator } from '../../Generator';
+import Chunk from '../../chunk/Chunk';
+import BaseProvider from '../BaseProvider';
 
 export default class Filesystem extends BaseProvider {
     private level: any = {};
@@ -18,7 +18,7 @@ export default class Filesystem extends BaseProvider {
     public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
         try {
             const buffer = Buffer.from(
-                await fs.promises.readFile(path.join(this.getPath(), 'chunks', `${cx}_${cz}.dat`))
+                await fs.promises.readFile(path.join(this.getPath(), 'chunks', `${cx}_${cz}.dat`), { flag: 'r' })
             );
 
             return Chunk.networkDeserialize(new BinaryStream(buffer), cx, cz);
@@ -27,11 +27,18 @@ export default class Filesystem extends BaseProvider {
         }
     }
 
+    /**
+     * @TODO: format version, entities etc.
+     */
     public async writeChunk(chunk: Chunk): Promise<void> {
-        // TODO: format version, entities etc
+        // FIXME: Handle failures.
         await fs.promises.writeFile(
             path.join(this.getPath(), 'chunks', `${chunk.getX()}_${chunk.getZ()}.dat`),
-            chunk.networkSerialize(true)
+            chunk.networkSerialize(true),
+            {
+                flag: 'w+',
+                flush: true
+            }
         );
     }
 }

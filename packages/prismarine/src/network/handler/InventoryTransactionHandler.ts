@@ -55,9 +55,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                             }
 
                             if (!movedItem) {
-                                server
-                                    .getLogger()
-                                    .debug(`movedItem is undefined`, 'InventoryTransactionHandler/handle/Normal');
+                                server.getLogger().debug(`movedItem is undefined`);
                                 return;
                             }
 
@@ -65,12 +63,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                             break;
                         }
                         default:
-                            server
-                                .getLogger()
-                                .debug(
-                                    `Unknown source type: ${action.sourceType}`,
-                                    'InventoryTransactionHandler/handle/Normal'
-                                );
+                            server.getLogger().debug(`Unknown source type: ${action.sourceType}`);
                     }
                 });
                 break;
@@ -155,20 +148,13 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         break;
                     }
                     default:
-                        server
-                            .getLogger()
-                            .debug(
-                                `Unknown action type: ${useItemData.actionType}`,
-                                'InventoryTransactionHandler/handle'
-                            );
+                        server.getLogger().debug(`Unknown action type: ${useItemData.actionType}`);
                 }
 
                 break;
             }
             default: {
-                server
-                    .getLogger()
-                    .verbose(`Unknown type: ${packet.transactionType}`, 'InventoryTransactionHandler/handle');
+                server.getLogger().verbose(`Unknown type: ${packet.transactionType}`);
                 throw new Error('Invalid InventoryTransactionType');
             }
         }

@@ -1,3 +1,4 @@
+import type { LogLevel } from '@jsprismarine/logger';
 import { SeedGenerator } from '../utils/Seed';
 import { cwd } from '../utils/cwd';
 import { Gamemode } from '../world/';
@@ -5,8 +6,12 @@ import { ConfigBuilder } from './ConfigBuilder';
 
 import path from 'node:path';
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export class Config {
     private configBuilder!: ConfigBuilder;
+
+    private logLevel!: LogLevel;
 
     private port!: number;
     private serverIp!: string;
@@ -19,14 +24,14 @@ export class Config {
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
 
-    public constructor() {}
+    public constructor() {
+        this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
+        this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
+    }
 
     public async enable(): Promise<void> {
-        const isDev = process.env.NODE_ENV === 'development';
-
         this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
-        global.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
-
+        this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
         this.port = this.configBuilder.get('port', 19132) as number;
         this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0') as string;
         this.levelName = this.configBuilder.get('level-name', 'world') as string;
@@ -46,6 +51,10 @@ export class Config {
     }
 
     public async disable(): Promise<void> {}
+
+    public getLogLevel(): LogLevel {
+        return this.logLevel;
+    }
 
     /**
      * Get the server's port.
