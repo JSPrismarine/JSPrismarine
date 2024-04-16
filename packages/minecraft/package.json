@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/minecraft",
-    "version": "0.1.0",
+    "version": "0.4.3",
     "description": "Minecraft: Bedrock Edition related data and utilities",
     "sideEffects": false,
     "type": "module",
@@ -41,7 +41,7 @@
     ],
     "author": "JSPrismarine",
     "license": "MIT",
-    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/updater",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/minecraft",
     "devDependencies": {
         "@types/node": "20.11.30",
         "@types/semver": "7.5.8",

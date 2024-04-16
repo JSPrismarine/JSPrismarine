@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/protocol",
-    "version": "0.1.0",
+    "version": "0.4.3",
     "description": "Protocol package used by JSPrismarine packages",
     "sideEffects": false,
     "type": "module",
@@ -41,7 +41,7 @@
     ],
     "author": "JSPrismarine",
     "license": "MIT",
-    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/client",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/protocol",
     "devDependencies": {
         "@types/node": "20.11.30",
         "glob": "10.3.10",
