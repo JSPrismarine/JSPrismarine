@@ -2,12 +2,12 @@ import fs from 'node:fs';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import type { ByteOrder } from './ByteOrder';
+import NBTReader from './NBTReader';
+import NBTWriter from './NBTWriter';
 import ByteVal from './types/ByteVal';
 import DoubleVal from './types/DoubleVal';
 import FloatVal from './types/FloatVal';
 import LongVal from './types/LongVal';
-import NBTReader from './NBTReader';
-import NBTWriter from './NBTWriter';
 import NumberVal from './types/NumberVal';
 import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';
@@ -20,8 +20,9 @@ export default class NBTTagCompound {
         return NBTTagCompound.readFromStream(new BinaryStream(fs.readFileSync(path)), byteOrder);
     }
 
-    public static readFromStream(input: BinaryStream, byteOrder: ByteOrder): NBTTagCompound {
+    public static readFromStream(input: BinaryStream, byteOrder: ByteOrder, varints = false): NBTTagCompound {
         const reader: NBTReader = new NBTReader(input, byteOrder);
+        reader.setUseVarint(varints);
         return reader.parse();
     }
 
@@ -77,8 +78,9 @@ export default class NBTTagCompound {
         return null;
     }
 
-    public writeToStream(out: BinaryStream, byteOrder: ByteOrder): void {
+    public writeToStream(out: BinaryStream, byteOrder: ByteOrder, varints = false): void {
         const writer: NBTWriter = new NBTWriter(out, byteOrder);
+        writer.setUseVarint(varints);
         writer.writeCompound(this);
     }
 
