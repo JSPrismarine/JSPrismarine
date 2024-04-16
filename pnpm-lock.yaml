@@ -29,7 +29,7 @@ importers:
         version: 6.0.0
       '@codecov/vite-plugin':
         specifier: 0.0.1-beta.6
-        version: 0.0.1-beta.6(vite@5.2.8)
+        version: 0.0.1-beta.6(vite@5.2.9)
       '@droppedcode/typedoc-plugin-relative-includes':
         specifier: 1.0.5
         version: 1.0.5(typedoc@0.25.13)
@@ -124,14 +124,14 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
       vite:
-        specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.7)
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
       vite-plugin-dts:
         specifier: 3.8.3
-        version: 3.8.3(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8)
+        version: 3.8.3(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.9)
       vite-tsconfig-paths:
         specifier: 4.3.2
-        version: 4.3.2(typescript@5.4.5)(vite@5.2.8)
+        version: 4.3.2(typescript@5.4.5)(vite@5.2.9)
       vitest:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
@@ -151,8 +151,8 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
       vite:
-        specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.7)
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
       vitest:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
@@ -182,8 +182,8 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
       vite:
-        specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.7)
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
       vitest:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
@@ -207,8 +207,8 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
       vite:
-        specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.7)
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
       vitest:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
@@ -228,8 +228,8 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
       vite:
-        specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.7)
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
       vitest:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
@@ -253,8 +253,8 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
       vite:
-        specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.7)
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
       vitest:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
@@ -323,8 +323,8 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
       vite:
-        specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.7)
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
       vitest:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
@@ -348,8 +348,8 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
       vite:
-        specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.7)
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
       vitest:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
@@ -385,8 +385,8 @@ importers:
         specifier: 5.4.5
         version: 5.4.5
       vite:
-        specifier: 5.2.8
-        version: 5.2.8(@types/node@20.12.7)
+        specifier: 5.2.9
+        version: 5.2.9(@types/node@20.12.7)
       vite-node:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
@@ -677,14 +677,14 @@ packages:
       zod: 3.22.4
     dev: true
 
-  /@codecov/vite-plugin@0.0.1-beta.6(vite@5.2.8):
+  /@codecov/vite-plugin@0.0.1-beta.6(vite@5.2.9):
     resolution: {integrity: sha512-eIi3M9R1om/T+6FoZGaffWMmwSZ0nx1fIGgidFRFkQdXtKAwHU0//YjCXOg17vJsPXlaSatM81EQBU/qmSXQ1Q==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       vite: 4.x || 5.x
     dependencies:
       '@codecov/bundler-plugin-core': 0.0.1-beta.6
-      vite: 5.2.8(@types/node@20.12.7)
+      vite: 5.2.9(@types/node@20.12.7)
     dev: true
 
   /@colors/colors@1.6.0:
@@ -5738,7 +5738,7 @@ packages:
       debug: 4.3.4(supports-color@5.5.0)
       pathe: 1.1.2
       picocolors: 1.0.0
-      vite: 5.2.8(@types/node@20.12.7)
+      vite: 5.2.9(@types/node@20.12.7)
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -5750,7 +5750,7 @@ packages:
       - terser
     dev: true
 
-  /vite-plugin-dts@3.8.3(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.8):
+  /vite-plugin-dts@3.8.3(@types/node@20.12.7)(typescript@5.4.5)(vite@5.2.9):
     resolution: {integrity: sha512-yRHiRosQw7MXdOhmcrVI+kRiB8YEShbSxnADNteK4eZGdEoyOkMHihvO5XOAVlOq8ng9sIqu8vVefDK1zcj3qw==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
@@ -5767,7 +5767,7 @@ packages:
       kolorist: 1.8.0
       magic-string: 0.30.8
       typescript: 5.4.5
-      vite: 5.2.8(@types/node@20.12.7)
+      vite: 5.2.9(@types/node@20.12.7)
       vue-tsc: 1.8.27(typescript@5.4.5)
     transitivePeerDependencies:
       - '@types/node'
@@ -5775,7 +5775,7 @@ packages:
       - supports-color
     dev: true
 
-  /vite-tsconfig-paths@4.3.2(typescript@5.4.5)(vite@5.2.8):
+  /vite-tsconfig-paths@4.3.2(typescript@5.4.5)(vite@5.2.9):
     resolution: {integrity: sha512-0Vd/a6po6Q+86rPlntHye7F31zA2URZMbH8M3saAZ/xR9QoGN/L21bxEGfXdWmFdNkqPpRdxFT7nmNe12e9/uA==}
     peerDependencies:
       vite: '*'
@@ -5786,14 +5786,14 @@ packages:
       debug: 4.3.4(supports-color@5.5.0)
       globrex: 0.1.2
       tsconfck: 3.0.3(typescript@5.4.5)
-      vite: 5.2.8(@types/node@20.12.7)
+      vite: 5.2.9(@types/node@20.12.7)
     transitivePeerDependencies:
       - supports-color
       - typescript
     dev: true
 
-  /vite@5.2.8(@types/node@20.12.7):
-    resolution: {integrity: sha512-OyZR+c1CE8yeHw5V5t59aXsUPPVTHMDjEZz8MgguLL/Q7NblxhZUlTu9xSPqlsUO/y+X7dlU05jdhvyycD55DA==}
+  /vite@5.2.9(@types/node@20.12.7):
+    resolution: {integrity: sha512-uOQWfuZBlc6Y3W/DTuQ1Sr+oIXWvqljLvS881SVmAj00d5RdgShLcuXWxseWPd4HXwiYBFW/vXHfKFeqj9uQnw==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
     peerDependencies:
@@ -5871,7 +5871,7 @@ packages:
       strip-literal: 2.0.0
       tinybench: 2.6.0
       tinypool: 0.8.3
-      vite: 5.2.8(@types/node@20.12.7)
+      vite: 5.2.9(@types/node@20.12.7)
       vite-node: 1.5.0(@types/node@20.12.7)
       why-is-node-running: 2.2.2
     transitivePeerDependencies:
