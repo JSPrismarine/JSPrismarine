@@ -70,12 +70,12 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             return;
         }
 
+        await world.addEntity(player);
+        await player.enable();
+
         // Update the player connection to be recognized as a connected player
         const session = connection.initPlayerConnection(server, player);
         await session.sendPlayStatus(PlayStatusType.LoginSuccess);
-
-        await world.addEntity(player);
-        await player.enable();
 
         // Finalize connection handshake
         const resourcePacksInfo = new ResourcePacksInfoPacket();

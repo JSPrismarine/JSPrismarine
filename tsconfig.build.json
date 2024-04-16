@@ -30,7 +30,7 @@
         "strictNullChecks": true,
         "strictPropertyInitialization": true,
         "target": "ESNext",
-        "tsBuildInfoFile": "tsconfig.tsbuildinfo",
+        "tsBuildInfoFile": ".tsbuildinfo",
         "types": [],
         "typeRoots": ["./node_modules/@types", "./packages/**/src/@types"],
         "useDefineForClassFields": true

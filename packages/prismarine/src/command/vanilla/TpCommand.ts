@@ -54,7 +54,6 @@ export default class TpCommand extends Command {
                             argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
                                 async (context) => {
                                     const targets = context.getArgument('player') as Player[];
-
                                     const position = context.getArgument('position') as Vector3;
 
                                     if (Number.isInteger(position.getX())) {

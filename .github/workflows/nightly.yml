@@ -1,6 +1,8 @@
 name: Executable
 on:
     push:
+        branches:
+            - master
 
 env:
     TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}

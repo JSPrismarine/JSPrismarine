@@ -1,15 +1,15 @@
-import isEqual from '../util/isEqual';
 import type Command from '../Command';
 import type RedirectModifier from '../RedirectModifier';
 import type CommandNode from '../tree/CommandNode';
-import type StringRange from './StringRange';
+import isEqual from '../util/isEqual';
 import type ParsedArgument from './ParsedArgument';
 import type ParsedCommandNode from './ParsedCommandNode';
+import type StringRange from './StringRange';
 
 export default class CommandContext<S> {
     private source: S;
     private input: string;
-    private command: Command<S>;
+    private command: Command<S> | null;
     private args: Map<String, ParsedArgument<S, any>>;
     private rootNode: CommandNode<S>;
     private nodes: Array<ParsedCommandNode<S>>;
@@ -22,9 +22,9 @@ export default class CommandContext<S> {
         source: S,
         input: string,
         args: Map<String, ParsedArgument<S, any>>,
-        command: Command<S>,
-        rootNode: CommandNode<S>,
-        nodes: Array<ParsedCommandNode<S>>,
+        command: Command<S> | null,
+        rootNode: CommandNode<S> | null,
+        nodes: Array<ParsedCommandNode<S>> | null,
         range: StringRange,
         child: CommandContext<S> | null,
         modifier: RedirectModifier<S> | null,
@@ -34,8 +34,8 @@ export default class CommandContext<S> {
         this.input = input;
         this.args = args;
         this.command = command;
-        this.rootNode = rootNode;
-        this.nodes = nodes;
+        this.rootNode = rootNode!;
+        this.nodes = nodes!;
         this.range = range;
         this.child = child;
         this.modifier = modifier;
@@ -80,7 +80,7 @@ export default class CommandContext<S> {
     }
 
     public getArgument(name: string, clazz?: Function): any {
-        const arg: ParsedArgument<S, any> = this.args.get(name)!; // FIXME
+        const arg: ParsedArgument<S, any> | null = this.args.get(name) ?? null; // FIXME
 
         if (arg == null) {
             throw new Error("No such argument '" + name + "' exists on this command");
@@ -94,7 +94,7 @@ export default class CommandContext<S> {
         }
     }
 
-    public equals(o: object): boolean {
+    public equals(o: object | null = null): boolean {
         if (this === o) return true;
         if (!(o instanceof CommandContext)) return false;
 

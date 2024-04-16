@@ -159,6 +159,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@jsprismarine/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@jsprismarine/prismarine':
         specifier: workspace:*
         version: link:../prismarine
@@ -234,6 +237,37 @@ importers:
         specifier: 1.5.0
         version: 1.5.0(@types/node@20.12.7)
 
+  packages/logger:
+    dependencies:
+      '@jsprismarine/color-parser':
+        specifier: workspace:*
+        version: link:../color-parser
+      winston:
+        specifier: 3.13.0
+        version: 3.13.0
+      winston-transport:
+        specifier: 4.7.0
+        version: 4.7.0
+    devDependencies:
+      '@types/node':
+        specifier: 20.12.7
+        version: 20.12.7
+      glob:
+        specifier: 10.3.12
+        version: 10.3.12
+      rimraf:
+        specifier: 5.0.5
+        version: 5.0.5
+      typescript:
+        specifier: 5.4.5
+        version: 5.4.5
+      vite:
+        specifier: 5.2.8
+        version: 5.2.8(@types/node@20.12.7)
+      vitest:
+        specifier: 1.5.0
+        version: 1.5.0(@types/node@20.12.7)
+
   packages/nbt:
     dependencies:
       '@jsprismarine/jsbinaryutils':
@@ -270,6 +304,9 @@ importers:
       '@jsprismarine/jsbinaryutils':
         specifier: 5.5.3
         version: 5.5.3
+      '@jsprismarine/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@jsprismarine/nbt':
         specifier: workspace:*
         version: link:../nbt
@@ -294,12 +331,6 @@ importers:
       strip-json-comments:
         specifier: 5.0.1
         version: 5.0.1
-      winston:
-        specifier: 3.13.0
-        version: 3.13.0
-      winston-transport:
-        specifier: 4.7.0
-        version: 4.7.0
       yaml:
         specifier: 2.4.1
         version: 2.4.1
@@ -356,6 +387,12 @@ importers:
 
   packages/server:
     dependencies:
+      '@jsprismarine/color-parser':
+        specifier: workspace:*
+        version: link:../color-parser
+      '@jsprismarine/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@jsprismarine/prismarine':
         specifier: workspace:*
         version: link:../prismarine
@@ -365,6 +402,9 @@ importers:
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
+      winston:
+        specifier: 3.13.0
+        version: 3.13.0
     devDependencies:
       '@types/node':
         specifier: 20.12.7
@@ -5302,7 +5342,7 @@ snapshots:
     dependencies:
       foreground-child: 3.1.1
       jackspeak: 2.3.6
-      minimatch: 9.0.3
+      minimatch: 9.0.4
       minipass: 7.0.4
       path-scurry: 1.10.2
 

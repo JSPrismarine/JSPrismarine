@@ -1,17 +1,17 @@
 import type AmbiguityConsumer from './AmbiguityConsumer';
-import type CommandContext from './context/CommandContext';
-import CommandContextBuilder from './context/CommandContextBuilder';
-import type CommandNode from './tree/CommandNode';
-import CommandSyntaxException from './exceptions/CommandSyntaxException';
-import type LiteralArgumentBuilder from './builder/LiteralArgumentBuilder';
-import type LiteralCommandNode from './tree/LiteralCommandNode';
 import ParseResults from './ParseResults';
 import type ResultConsumer from './ResultConsumer';
-import RootCommandNode from './tree/RootCommandNode';
 import StringReader from './StringReader';
+import type LiteralArgumentBuilder from './builder/LiteralArgumentBuilder';
+import type CommandContext from './context/CommandContext';
+import CommandContextBuilder from './context/CommandContextBuilder';
 import type SuggestionContext from './context/SuggestionContext';
+import CommandSyntaxException from './exceptions/CommandSyntaxException';
 import Suggestions from './suggestion/Suggestions';
 import SuggestionsBuilder from './suggestion/SuggestionsBuilder';
+import type CommandNode from './tree/CommandNode';
+import type LiteralCommandNode from './tree/LiteralCommandNode';
+import RootCommandNode from './tree/RootCommandNode';
 
 const ARGUMENT_SEPARATOR = ' ';
 const USAGE_OPTIONAL_OPEN = '[';
@@ -105,7 +105,7 @@ export default class CommandDispatcher<S> {
                 } else if (context?.getCommand()) {
                     foundCommand = true;
                     try {
-                        let value = context.getCommand()(context);
+                        let value = context.getCommand()!(context);
                         result.push(value);
                         this.consumer.onCommandComplete(context, true, value);
                     } catch (ex) {

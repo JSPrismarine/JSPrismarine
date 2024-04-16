@@ -20,6 +20,10 @@ export default class DataPacket extends BinaryStream {
     private senderSubId = 0;
     private receiverSubId = 0;
 
+    constructor(buffer?: Buffer) {
+        super(buffer, 0);
+    }
+
     public getId() {
         return (this.constructor as any).NetID;
     }
@@ -49,6 +53,7 @@ export default class DataPacket extends BinaryStream {
 
     public decodeHeader() {
         const header = this.readUnsignedVarInt();
+
         const pid = header & PID_MASK;
         if (pid !== this.getId()) {
             throw new Error(`Packet ID must be ${this.getId()}, got ${pid}`);
@@ -64,7 +69,7 @@ export default class DataPacket extends BinaryStream {
     public decodePayload() {}
 
     public encode() {
-        // this.reset();
+        this.clear(); // We might not want to actually clear the buffer here.
         this.encodeHeader();
         this.encodePayload();
         this.encoded = true;

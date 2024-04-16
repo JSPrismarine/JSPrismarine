@@ -24,9 +24,9 @@ import WorldManager from './world/WorldManager';
 
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import type { Config } from './config/Config';
-import type LoggerBuilder from './utils/Logger';
 import { buildRakNetServerName } from './utils/ServerName';
 
+import type { Logger } from '@jsprismarine/logger';
 import { version } from '../package.json' assert { type: 'json' };
 
 /**
@@ -35,7 +35,7 @@ import { version } from '../package.json' assert { type: 'json' };
  */
 export default class Server extends EventEmitter {
     private raknet!: RakNetListener;
-    private readonly logger: LoggerBuilder;
+    private readonly logger: Logger;
     private readonly config: Config;
     private readonly console: Console;
     private readonly packetRegistry: PacketRegistry;
@@ -84,7 +84,7 @@ export default class Server extends EventEmitter {
      * @params {Config} options.config - The config.
      * @returns {Server} The server instance.
      */
-    public constructor({ logger, config }: { logger: LoggerBuilder; config: Config }) {
+    public constructor({ logger, config }: { logger: Logger; config: Config }) {
         super();
 
         logger.info(
@@ -119,6 +119,8 @@ export default class Server extends EventEmitter {
         await this.itemManager.enable();
         await this.blockManager.enable();
         await this.commandManager.enable();
+
+        this.logger.setConsole(this.console);
     }
 
     /**
@@ -464,7 +466,7 @@ export default class Server extends EventEmitter {
      * server.getLogger().error(new Error('Hello World'));
      * ```
      */
-    public getLogger(): LoggerBuilder {
+    public getLogger(): Logger {
         return this.logger;
     }
 

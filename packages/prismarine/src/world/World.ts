@@ -13,6 +13,7 @@ import { Item } from '../item/Item';
 import Vector3 from '../math/Vector3';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
+import type { WorldEvent } from '../network/packet/WorldEventPacket';
 import WorldEventPacket from '../network/packet/WorldEventPacket';
 import { withCwd } from '../utils/cwd';
 import type { Generator } from './Generator';
@@ -130,9 +131,7 @@ export class World implements Service {
         this.provider.setWorld(this);
         await this.provider.enable();
 
-        this.server
-            .getLogger()
-            .info(`Preparing start region for dimension §b'${this.name}'/${this.generator.constructor.name}§r`);
+        this.server.getLogger().info(`Preparing start region for dimension ${this.getFormattedName()}`);
         const chunksToLoad: Array<Promise<Chunk>> = [];
         const timer = new Timer();
 
@@ -168,13 +167,11 @@ export class World implements Service {
         this.currentTick++;
 
         // Auto save every 2 minutes
-        if (this.currentTick / 20 === 2 * 60) {
+        if (this.currentTick / 20 === 120) {
             await this.save();
         }
 
-        for (const entity of this.getEntities()) {
-            await entity.update(tick);
-        }
+        await Promise.all(this.getEntities().map((entity) => entity.update(tick)));
     }
 
     /**
@@ -222,21 +219,35 @@ export class World implements Service {
 
     /**
      * Sends a world event packet to all the viewers in the position chunk.
-     *
-     * @param position - world position
-     * @param worldEvent - event identifier
-     * @param data
+     * @param {Vector3 | null} position - world position
+     * @param {number} worldEvent - event identifier
+     * @param {number} data
      */
-    public sendWorldEvent(position: Vector3 | null, worldEvent: number, data: number): void {
+    public async sendWorldEvent(position: Vector3 | null, worldEvent: WorldEvent, data: number): Promise<void> {
         const worldEventPacket = new WorldEventPacket();
         worldEventPacket.eventId = worldEvent;
         worldEventPacket.data = data;
-        if (position !== null) {
-            // TODO: this.getChunkAt(position.getX(), position.getZ()).
-            // Save player into the chunk directly
-        } else {
-            // To all players
+
+        if (position) {
+            const chunk = await this.getChunkAt(position.getX(), position.getZ());
+            const chunkN = Chunk.packXZ(chunk.getX(), chunk.getZ());
+
+            await Promise.all(
+                this.server
+                    .getSessionManager()
+                    .getAllPlayers()
+                    .filter((player) => player.getCurrentChunk() === chunkN)
+                    .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(worldEventPacket))
+            );
+            return;
         }
+
+        await Promise.all(
+            this.server
+                .getSessionManager()
+                .getAllPlayers()
+                .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(worldEventPacket))
+        );
     }
 
     /**
@@ -427,7 +438,7 @@ export class World implements Service {
      */
     public async saveChunks(): Promise<void> {
         const timer = new Timer();
-        this.server.getLogger().info(`Saving chunks for level §b'${this.name}'/${this.generator.constructor.name}§r`);
+        this.server.getLogger().info(`Saving chunks for level ${this.getFormattedName()}`);
 
         await Promise.all(
             Array.from(this.chunks.values())
@@ -472,6 +483,9 @@ export class World implements Service {
 
     public getName(): string {
         return this.name;
+    }
+    public getFormattedName(): string {
+        return `§b'${this.name}'/${this.generator.constructor.name}§r`;
     }
 
     public getSeed(): number {

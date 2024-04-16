@@ -10,7 +10,7 @@ import LoginHandler from './LoginHandler';
 
 describe('network', () => {
     describe('handler', () => {
-        describe.skip('LoginHandler', () => {
+        describe('LoginHandler', () => {
             const server: Server = {
                 getLogger: () => ({
                     debug: () => {},
