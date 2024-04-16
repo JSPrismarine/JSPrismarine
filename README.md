@@ -23,8 +23,8 @@ JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScri
 
 Prebuilt binaries will be provided once a stable release is available. For now, you can follow the steps below or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions/workflows/nightly.yml?query=branch%3Amaster) (which may or may not work before reaching `v1.0.0`).
 
-- Linux/MacOS/Unix based OS or Windows (requires WSL)
-  - You need [Node.js](https://nodejs.org) `v21`+ and [pnpm](https://pnpm.io).
+- Linux/MacOS/Unix-based OS or a modern Windows (WSL2 is recommended)
+  - You need [Node.js](https://nodejs.org) v21+ and [pnpm](https://pnpm.io).
   - Clone the repository: `git clone https://github.com/JSPrismarine/JSPrismarine.git`.
   - Go to the cloned repository: `cd JSPrismarine`.
   - Install dependencies: `pnpm install`.
@@ -36,11 +36,11 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 - Can I contribute?
   - Sure, make sure to read the [CONTRIBUTING.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTING.md) file first.
 - Is JSPrismarine for `Minecraft: Bedrock Edition` or `Minecraft: Java Edition`?
-  - JSPrismarine is made for `Minecraft: Bedrock Edition`, but there may be plugins available to provide a `Minecraft: Java Edition` implementation.
+  - JSPrismarine is made for `Minecraft: Bedrock Edition`, but there may potentially be plugins available to provide a `Minecraft: Java Edition` protocol implementation.
 - What devices can a player join JSPrismarine with?
-  - By default, PC/Windows, Android, and iOS. With some tricks, you can also join with Xbox, Switch, and even Playstation.
+  - By default, PC/Windows, Android, and iOS. With some tricks, you can also join with Xbox, Switch, and even PlayStation consoles.
 - Which OSes can run JSPrismarine?
-  - Any platform supporting Node.js `v21` or later.
+  - Any platform supporting a somewhat recent version of Node.js.
 - If my question isn't listed here, where should I ask?
   - You can join the [Discord server](https://discord.gg/fGkHZhu), or open a [GitHub issue](https://github.com/JSPrismarine/JSPrismarine/issues/new) for development-related questions.
 - Why can't I join a JSPrismarine instance hosted on my Windows PC?
@@ -52,7 +52,8 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 
 ## Documentation
 
-- [Running JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/running.md)
+- [jsprismarine.org/docs](https://jsprismarine.org/docs/).
+- [Running JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/running.md).
 
 ## Remarks
 
