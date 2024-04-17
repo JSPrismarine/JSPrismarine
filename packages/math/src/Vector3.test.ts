@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import Vector3 from './Vector3';
+import { Vector3 } from './Vector3';
 
 describe('math', () => {
     describe('Vector3', () => {
