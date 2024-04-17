@@ -93,8 +93,8 @@ export default class Console extends EntityLike implements Service {
     }
 
     public async disable(): Promise<void> {
-        this.cli?.removeAllListeners();
-        this.cli?.close();
+        /*this.cli?.removeAllListeners();
+        this.cli?.close();*/
     }
 
     private async complete(line: string, callback: (err?: null | Error, result?: CompleterResult) => void) {

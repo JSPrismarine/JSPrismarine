@@ -18,13 +18,11 @@
         ".": {
             "import": "./dist/Server.es.js",
             "module": "./dist/Server.es.js",
-            "require": "./dist/Server.cjs.cjs",
             "types": "./dist/Server.d.ts"
         },
         "./*": {
             "import": "./dist/*.es.js",
             "module": "./dist/*.es.js",
-            "require": "./dist/*.cjs.cjs",
             "types": "./dist/*.d.ts"
         },
         "./package.json": "./package.json"
@@ -34,8 +32,7 @@
         "build": "vite build",
         "typecheck": "tsc -noEmit",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
-        "dev": "nodemon --no-stdin --spawn -I --quiet --watch \"../**/src/**\" --ext \"ts\" --ignore \"../**/*.d.ts\" --exec \"vite-node ./src/Server.ts\"",
-        "dev:no-watch": "vite-node ./src/Server.ts"
+        "dev": "nodemon --delay 0 --quiet --spawn --no-stdin --watch \"../**/src/**\" --ext \"ts\" --exec \"vite-node ./src/Server.ts\""
     },
     "repository": {
         "type": "git",

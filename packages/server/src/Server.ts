@@ -17,68 +17,53 @@ dotenv.config({
     ]
 });
 
-(async () => {
-    const date = new Date();
-    let logFile = 'jsprismarine-development.log';
+const date = new Date();
+let logFile = 'jsprismarine-development.log';
 
-    // mmddyyyy-hh-mm-ss. yes American-style, sue me.
-    if (process.env.NODE_ENV !== 'development')
-        logFile = `jsprismarine.${(date.getMonth() + 1).toString().padStart(2, '0')}${date
-            .getDate()
-            .toString()
-            .padStart(2, '0')}${date.getFullYear().toString().padStart(2, '0')}-${date
-            .getHours()
-            .toString()
-            .padStart(2, '0')}${date.getMinutes().toString().padStart(2, '0')}${date
-            .getSeconds()
-            .toString()
-            .padStart(2, '0')}.log`;
+if (process.env.NODE_ENV !== 'development')
+    logFile = `jsprismarine.${(date.getMonth() + 1).toString().padStart(2, '0')}${date
+        .getDate()
+        .toString()
+        .padStart(2, '0')}${date.getFullYear().toString().padStart(2, '0')}-${date
+        .getHours()
+        .toString()
+        .padStart(2, '0')}${date.getMinutes().toString().padStart(2, '0')}${date
+        .getSeconds()
+        .toString()
+        .padStart(2, '0')}.log`;
 
-    const config = new Config();
-    const logger = new Logger(config.getLogLevel(), [
-        new transports.File({
-            level: 'debug',
-            filename: path.join(process.cwd(), process.env.JSP_DIR || '', 'logs', logFile),
-            format: format.printf(({ level, message, timestamp, namespace }: any) => {
-                return `[${timestamp}] [${level}]${colorParser(
-                    `${namespace ? ` [${namespace}]` : ''}: ${message}`
-                )}`.replaceAll(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
-            })
+const config = new Config();
+const logger = new Logger(config.getLogLevel(), [
+    new transports.File({
+        level: 'debug',
+        filename: path.join(process.cwd(), process.env.JSP_DIR || '', 'logs', logFile),
+        format: format.printf(({ level, message, timestamp, namespace }: any) => {
+            return `[${timestamp}] [${level}]${colorParser(
+                `${namespace ? ` [${namespace}]` : ''}: ${message}`
+            )}`.replaceAll(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
         })
-    ]);
-    const server = new Server({
-        config,
-        logger
-    });
+    })
+]);
+const server = new Server({
+    config,
+    logger
+});
 
-    [
-        'SIGABRT',
-        'SIGBREAK',
-        'SIGINT',
-        'SIGKILL',
-        'SIGQUIT',
-        'SIGSEGV',
-        'SIGTERM',
-        'SIGSTOP',
-        'uncaughtException'
-    ].forEach((signal) => {
-        try {
-            process.on(signal, async (error) => {
-                if (error instanceof Error) {
-                    logger.error(error);
-                }
-                await server.shutdown({ crash: error === 'uncaughtException' });
-            });
-        } catch {}
-    });
-
+['SIGSEGV', 'SIGHUP', 'uncaughtException'].forEach((signal) => {
     try {
-        await server.bootstrap(config.getServerIp(), config.getServerPort());
-    } catch (error: unknown) {
-        logger.error(`Cannot start the server, is it already running on the same port?`);
-        logger.error(error);
-        await server.shutdown({ crash: true });
-    }
-})();
+        process.on(signal, (error) => {
+            if (error instanceof Error) logger.error(error);
+            void server.shutdown({ crash: error === 'uncaughtException' });
+        });
+    } catch {}
+});
+
+try {
+    await server.bootstrap(config.getServerIp(), config.getServerPort());
+} catch (error: unknown) {
+    console.warn(`Cannot start the server, is it already running on the same port?`);
+    console.error(error);
+    await server.shutdown({ crash: true });
+}
 
 export {};
