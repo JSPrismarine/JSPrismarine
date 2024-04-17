@@ -18,9 +18,6 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
         // Add player to the world.
         await world.addEntity(player);
 
-        // Run pre-spawn events.
-        await player.enable();
-
         // Send the spawn packets.
         await player.sendSpawn();
     }

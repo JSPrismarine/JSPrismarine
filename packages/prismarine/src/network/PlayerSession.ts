@@ -40,7 +40,6 @@ import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetTimePacket from './packet/SetTimePacket';
 import TextPacket from './packet/TextPacket';
-import ToastRequestPacket from './packet/ToastRequestPacket';
 import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import CommandData from './type/CommandData';
@@ -113,17 +112,12 @@ export default class PlayerSession {
     public async sendAbilities(player?: Player): Promise<void> {
         const target = player ?? this.player;
 
-        const pk = new UpdateAbilitiesPacket();
-        pk.commandPermission = target.isOp() ? PermissionType.Operator : PermissionType.Normal;
-        pk.playerPermission = target.isOp() ? PlayerPermissionType.Operator : PlayerPermissionType.Member;
-        pk.targetActorUniqueId = target.getRuntimeId();
-
         const mainLayer = new AbilityLayer();
         mainLayer.layerType = AbilityLayerType.BASE;
         mainLayer.layerFlags = new Map([
             [AbilityLayerFlag.FLY_SPEED, true],
             [AbilityLayerFlag.WALK_SPEED, true],
-            [AbilityLayerFlag.MAY_FLY, target.getAllowFlight()],
+            [AbilityLayerFlag.MAY_FLY, target.metadata.canFly],
             [AbilityLayerFlag.FLYING, target.isFlying()],
             [AbilityLayerFlag.NO_CLIP, target.gamemode === Gamemode.Spectator],
             [AbilityLayerFlag.OPERATOR_COMMANDS, target.isOp()],
@@ -143,9 +137,12 @@ export default class PlayerSession {
         mainLayer.flySpeed = 0.05;
         mainLayer.walkSpeed = 0.1;
 
-        pk.abilityLayers = [mainLayer];
-
-        await this.connection.sendDataPacket(pk);
+        const packet = new UpdateAbilitiesPacket();
+        packet.commandPermission = target.isOp() ? PermissionType.Operator : PermissionType.Normal;
+        packet.playerPermission = target.isOp() ? PlayerPermissionType.Operator : PlayerPermissionType.Member;
+        packet.targetActorUniqueId = target.getRuntimeId();
+        packet.abilityLayers = [mainLayer];
+        await this.send(packet);
     }
 
     public async needNewChunks(forceResend = false, dist?: number): Promise<void> {
@@ -488,17 +485,6 @@ export default class PlayerSession {
         await this.connection.sendDataPacket(pk);
     }
 
-    public async sendToast(title: string, body: string): Promise<void> {
-        if (!title) throw new Error('A toast title is required');
-        if (!body) throw new Error('A toast body is required.');
-
-        const pk = new ToastRequestPacket();
-        pk.title = title;
-        pk.body = body;
-
-        await this.connection.sendDataPacket(pk);
-    }
-
     public async sendChunk(chunk: Chunk): Promise<void> {
         const pk = new LevelChunkPacket();
         pk.chunkX = chunk.getX();
@@ -517,30 +503,27 @@ export default class PlayerSession {
      * Broadcast the movement to a defined player
      */
     public async broadcastMove(player: Player, mode = MovementType.Normal): Promise<void> {
-        const pk = new MovePlayerPacket();
-        pk.runtimeEntityId = player.getRuntimeId();
+        const packet = new MovePlayerPacket();
+        packet.runtimeEntityId = player.getRuntimeId();
 
-        pk.positionX = player.getX();
-        pk.positionY = player.getY();
-        pk.positionZ = player.getZ();
+        packet.position = player.getPosition();
+        packet.pitch = player.pitch;
+        packet.yaw = player.yaw;
+        packet.headYaw = player.headYaw;
 
-        pk.pitch = player.pitch;
-        pk.yaw = player.yaw;
-        pk.headYaw = player.headYaw;
+        packet.mode = mode;
 
-        pk.mode = mode;
-
-        pk.onGround = player.isOnGround();
+        packet.onGround = player.isOnGround();
 
         // TODO
         if (mode === MovementType.Teleport) {
-            pk.teleportCause = 0;
-            pk.teleportItemId = 0;
+            packet.teleportCause = 0;
+            packet.teleportItemId = 0;
         }
 
-        pk.ridingEntityRuntimeId = BigInt(0);
-        pk.tick = BigInt(this.player.getServer().getTick());
-        await this.connection.sendDataPacket(pk);
+        packet.ridingEntityRuntimeId = BigInt(0);
+        packet.tick = BigInt(this.player.getServer().getTick());
+        await this.send(packet);
     }
 
     /**
@@ -548,12 +531,9 @@ export default class PlayerSession {
      * the server and also to the player itself.
      */
     public async addToPlayerList(): Promise<void> {
-        const playerList = new PlayerListPacket();
-        playerList.type = PlayerListAction.TYPE_ADD;
-
         const entry = new PlayerListEntry({
             uuid: UUID.fromString(this.player.getUUID()),
-            uniqueEntityid: this.player.getRuntimeId(),
+            runtimeId: this.player.getRuntimeId(),
             name: this.player.getName(),
             xuid: this.player.xuid,
             platformChatId: '', // TODO: read this value from Login
@@ -562,9 +542,12 @@ export default class PlayerSession {
             isTeacher: false, // TODO: figure out where to read teacher and host
             isHost: false
         });
-        playerList.entries.push(entry);
 
-        await this.server.broadcastPacket(playerList);
+        const packet = new PlayerListPacket();
+        packet.type = PlayerListAction.TYPE_ADD;
+        packet.entries.push(entry);
+        await this.server.broadcastPacket(packet);
+
         this.server.getSessionManager().getPlayerList().set(this.player.getUUID(), entry);
     }
 

@@ -30,7 +30,7 @@ export default class SessionManager {
     public getAllPlayers(): Player[] {
         return Array.from(this.connections.values())
             .map((conn) => conn.getPlayerSession()?.getPlayer()!)
-            .filter((p) => p) as Player[];
+            .filter((p: any) => p) as Player[];
     }
 
     public findPlayer({ name, xuid }: { name?: string; xuid?: string }): Player | null {

@@ -80,9 +80,10 @@ export class Vector2 {
     }
 
     public floor() {
-        this.setX(Math.floor(this.x));
-        this.setZ(Math.floor(this.z));
-        return this;
+        return new Vector2(Math.floor(this.x), Math.floor(this.z));
+    }
+    public trunc() {
+        return new Vector2(Math.trunc(this.x), Math.trunc(this.z));
     }
 
     /**

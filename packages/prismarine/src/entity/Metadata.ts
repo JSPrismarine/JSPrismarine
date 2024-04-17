@@ -25,6 +25,8 @@ export enum MetadataFlag {
 
     // flags
     SPRINTING = 3,
+    CAN_CLIMB = 19,
+    CAN_FLY = 21,
     HAS_COLLISION = 48,
     AFFECTED_BY_GRAVITY = 49,
     BOUNDINGBOX_WIDTH = 53,
@@ -216,9 +218,6 @@ export class Metadata extends MetadataWriter {
     /**
      * Get the entity's name tag.
      * @returns {string} The entity's name tag.
-     * ```typescript
-     * console.log(entity.nameTag); // Steve
-     * ```
      */
     public get nameTag(): string {
         return this.getString(MetadataFlag.NAMETAG);
@@ -249,10 +248,9 @@ export class Metadata extends MetadataWriter {
     /**
      * Get if the entity is affected by gravity.
      * @returns {boolean} if the entity is affected by gravity.
-     * @TODO: Implement this method.
      */
     public get affectedByGravity(): boolean {
-        throw new Error('TODO: Method not implemented.');
+        return this.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.AFFECTED_BY_GRAVITY));
     }
 
     /**
@@ -263,12 +261,11 @@ export class Metadata extends MetadataWriter {
         this.setGenericFlag(MetadataFlag.HAS_COLLISION, collidable);
     }
     /**
-     * Get if the entity is collidable.
+     * Get entity's collidable state.
      * @returns {boolean} if the entity is collidable.
-     * @TODO: Implement this method.
      */
     public get collidable(): boolean {
-        throw new Error('TODO: Method not implemented.');
+        return this.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.HAS_COLLISION));
     }
 
     /**
@@ -279,9 +276,40 @@ export class Metadata extends MetadataWriter {
         this.setDataFlag(MetadataFlag.INDEX, MetadataFlag.SPRINTING, sprinting, FlagType.BYTE);
     }
     /**
-     * Get if the entity is sprinting.
+     * Get entity's sprinting state.
+     * @returns {boolean} if the entity is sprinting.
      */
     public get sprinting(): boolean {
         return this.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.SPRINTING));
+    }
+
+    /**
+     * Set the entity's can fly state.
+     * @param {boolean} [canFly=true] - if the entity can fly.
+     */
+    public setCanFly(canFly: boolean = true): void {
+        this.setDataFlag(MetadataFlag.INDEX, MetadataFlag.CAN_FLY, canFly, FlagType.BYTE);
+    }
+    /**
+     * Get entity's can fly state.
+     * @returns {boolean} if the entity can fly.
+     */
+    public get canFly(): boolean {
+        return this.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.CAN_FLY));
+    }
+
+    /**
+     * Set the entity's can climb state.
+     * @param {boolean} [canClimb=true] - if the entity can climb.
+     */
+    public setCanClimb(canClimb: boolean = true): void {
+        this.setDataFlag(MetadataFlag.INDEX, MetadataFlag.CAN_CLIMB, canClimb, FlagType.BYTE);
+    }
+    /**
+     * Get entity's can climb state.
+     * @returns {boolean} if the entity can climb.
+     */
+    public get canClimb(): boolean {
+        return this.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.CAN_CLIMB));
     }
 }

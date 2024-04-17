@@ -80,11 +80,11 @@ export default class Chunk {
 
     /**
      * Returns block legacy id (DATA) in the corresponding sub chunk.
-     * Use world to get the actual block instance (this is to keep code clean)
-     * @param {Vector3 | number} bx - block x
-     * @param {number} [by=0] - block y
-     * @param {number} [bz=0] - block z
-     * @param {number} [layer=0] - block storage layer (0 for blocks, 1 for liquids)
+     * Use world to get the actual block instance (this is to keep code clean).
+     * @param {Vector3 | number} x - block x.
+     * @param {number} [y=0] - block y.
+     * @param {number} [z=0] - block z.
+     * @param {number} [layer=0] - block storage layer (0 for blocks, 1 for liquids).
      */
     public getBlock(x: Vector3 | number, y: number = 0, z: number = 0, layer = 0): LegacyId {
         if (x instanceof Vector3) {

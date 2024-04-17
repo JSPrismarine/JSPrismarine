@@ -1,15 +1,15 @@
-import DataPacket from './DataPacket';
+import type { Vector3 } from '@jsprismarine/math';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
 import MovementType from '../type/MovementType';
+import DataPacket from './DataPacket';
 
 export default class MovePlayerPacket extends DataPacket {
     public static NetID = Identifiers.MovePlayerPacket;
 
     public runtimeEntityId!: bigint;
 
-    public positionX!: number;
-    public positionY!: number;
-    public positionZ!: number;
+    public position!: Vector3;
 
     public pitch!: number;
     public yaw!: number;
@@ -29,10 +29,7 @@ export default class MovePlayerPacket extends DataPacket {
     public decodePayload() {
         this.runtimeEntityId = this.readUnsignedVarLong();
 
-        this.positionX = this.readFloatLE();
-        this.positionY = this.readFloatLE();
-        this.positionZ = this.readFloatLE();
-
+        this.position = NetworkUtil.readVector3(this);
         this.pitch = this.readFloatLE();
         this.yaw = this.readFloatLE();
         this.headYaw = this.readFloatLE();
@@ -52,10 +49,7 @@ export default class MovePlayerPacket extends DataPacket {
     public encodePayload() {
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
-        this.writeFloatLE(this.positionX);
-        this.writeFloatLE(this.positionY);
-        this.writeFloatLE(this.positionZ);
-
+        NetworkUtil.writeVector3(this, this.position);
         this.writeFloatLE(this.pitch);
         this.writeFloatLE(this.yaw);
         this.writeFloatLE(this.headYaw);

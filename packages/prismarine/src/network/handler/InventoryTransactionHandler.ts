@@ -133,14 +133,16 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         soundPk.disableRelativeVolume = false;
 
                         await Promise.all(
-                            player.getPlayersInChunk().map(async (player) => {
-                                await player.getNetworkSession().getConnection().sendDataPacket(soundPk);
-                            })
+                            player
+                                .getWorld()
+                                .getPlayers()
+                                .map((target) => target.getNetworkSession().send(soundPk))
                         );
                         break;
                     }
-                    default:
+                    default: {
                         server.getLogger().debug(`Unknown action type: ${useItemData.actionType}`);
+                    }
                 }
 
                 break;

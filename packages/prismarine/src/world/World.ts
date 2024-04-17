@@ -365,8 +365,9 @@ export class World implements Service {
 
         await Promise.all(
             player
-                .getPlayersInChunk()
-                .map(async (narbyPlayer) => narbyPlayer.getNetworkSession().getConnection().sendDataPacket(pk))
+                .getWorld()
+                .getPlayers()
+                .map((target) => target.getNetworkSession().send(pk))
         );
     }
 
@@ -412,7 +413,7 @@ export class World implements Service {
      * @returns {Player[]} the players.
      */
     public getPlayers(): Player[] {
-        return this.getEntities().filter((entity) => entity.isPlayer()) as Player[];
+        return (this.getEntities().filter((e) => e.isPlayer()) as Player[]).filter((p) => p.isOnline());
     }
 
     /**

@@ -18,6 +18,7 @@ describe('network', () => {
                 }),
                 getSessionManager: () => ({
                     getAllPlayers: () => [],
+                    findPlayer: () => null,
                     getPlayerByExactName: () => null
                 }),
                 getWorldManager: () => ({
