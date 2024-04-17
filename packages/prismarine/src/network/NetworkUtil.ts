@@ -31,7 +31,7 @@ export class NetworkUtil {
      */
     public static writeVector3(stream: BinaryStream, vec: Vector3 | null): void {
         if (!vec) {
-            NetworkUtil.writeVector3(stream, Vector3.zero());
+            NetworkUtil.writeVector3(stream, Vector3.ZERO);
             return;
         }
 

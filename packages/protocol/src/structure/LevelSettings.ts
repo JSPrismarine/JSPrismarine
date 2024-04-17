@@ -1,8 +1,8 @@
-import type SpawnSettings from './SpawnSettings';
+import type { Difficulty, PlayerPermissionLevel } from '@jsprismarine/minecraft';
+import { Gametype, Generator } from '@jsprismarine/minecraft';
 import type { BlockPos, NetworkBinaryStream } from '../';
 import { Experiments, NetworkStructure } from '../';
-import type { Difficulty, PlayerPermissionLevel } from '@jsprismarine/minecraft';
-import { Gamemode, Generator } from '@jsprismarine/minecraft';
+import type SpawnSettings from './SpawnSettings';
 
 export enum EditorWorldType {
     NON_EDITOR,
@@ -75,7 +75,7 @@ interface LevelSettingsConfig {
  * {@link https://mojang.github.io/bedrock-protocol-docs/html/LevelSettings.html}
  */
 export default class LevelSettings extends NetworkStructure {
-    private readonly gamemode: Gamemode.Gametype;
+    private readonly gamemode: Gametype;
     private readonly generator: Generator;
     private readonly achievementsDisabled: boolean;
     private readonly editorWorldType: EditorWorldType;
@@ -127,7 +127,7 @@ export default class LevelSettings extends NetworkStructure {
         config: LevelSettingsConfig = {}
     ) {
         super();
-        this.gamemode = config.gamemode ?? Gamemode.Gametype.WORLD_DEFAULT;
+        this.gamemode = config.gamemode ?? Gametype.WORLD_DEFAULT;
         this.baseGameVersion = config.baseGameVersion ?? '*';
         this.generator = config.generator ?? Generator.OVERWORLD;
         this.achievementsDisabled = config.achievementsDisabled ?? false;

@@ -1,16 +1,18 @@
-import DataPacket from './DataPacket';
+import type { Gametype } from '@jsprismarine/minecraft';
+
 import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 export default class SetPlayerGameTypePacket extends DataPacket {
     public static NetID = Identifiers.SetPlayerGameTypePacket;
 
-    public gamemode!: number;
+    public gametype!: Gametype;
 
     public decodePayload() {
-        this.gamemode = this.readVarInt();
+        this.gametype = this.readVarInt();
     }
 
     public encodePayload() {
-        this.writeVarInt(this.gamemode);
+        this.writeVarInt(this.gametype);
     }
 }

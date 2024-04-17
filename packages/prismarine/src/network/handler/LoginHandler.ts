@@ -41,15 +41,12 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             uuid: packet.identity
         });
 
-        player.username.name = packet.displayName;
-        player.locale = packet.languageCode;
-        player.randomId = packet.clientRandomId;
+        player.setName(packet.displayName);
         player.xuid = packet.XUID;
+        player.randomId = packet.clientRandomId;
+        player.locale = packet.languageCode;
         player.skin = packet.skin;
         player.device = packet.device;
-
-        await player.enable();
-        player.setName(packet.displayName);
 
         // Player with same name or xuid is already connected,
         // so kick the old player and let the new player connect.
@@ -68,6 +65,8 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             await player.kick(`You have been banned${reason ? ` for reason: ${reason}` : ''}!`);
             return;
         }
+
+        await player.enable();
 
         // Update the player connection to be recognized as a connected player
         const session = connection.initPlayerConnection(server, player);

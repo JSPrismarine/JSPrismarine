@@ -26,7 +26,7 @@ export class Item extends Entity {
             ? [player]
             : (this.getWorld()
                   .getEntities()
-                  .filter((e) => e.isPlayer()) as Player[]);
+                  .filter((entity) => entity.isPlayer()) as Player[]);
 
         const pk = new AddItemActorPacket();
         pk.runtimeEntityId = this.getRuntimeId();
@@ -38,33 +38,5 @@ export class Item extends Entity {
 
     public async update(tick: number) {
         await super.update(tick);
-
-        // Arbitrary magic number. Sue me.
-        // This is done to prevent running the code each tick
-        // since it's currently an extremely expensive task.
-        if (tick % 5 !== 0) return;
-
-        // Move items of the same type closer to each other,
-        // this is probably really bad code.
-        const entities = (await this.getNearbyEntities(2)).filter((entity) => {
-            if (entity.getType() !== this.getType()) return false;
-
-            const item = entity as Item;
-            if (!item.item) return false;
-
-            if (item.item.getItem().getName() !== this.item?.getItem().getName()) return false;
-
-            return true;
-        }) as Item[];
-
-        // Only move to first item to prevent them getting stuck
-        const position = entities.find((e) => !e.getPosition().equals(this.getPosition()))?.getPosition();
-        if (!position) return;
-
-        // TODO: move them closer to each other instead of teleporting
-        // Interpolate?
-        await this.setPosition({
-            position: new Vector3(position.getX(), position.getY(), position.getZ())
-        });
     }
 }

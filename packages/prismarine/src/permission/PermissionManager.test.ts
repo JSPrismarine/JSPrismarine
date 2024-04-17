@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { PermissionManager } from './PermissionManager';
 
@@ -110,6 +110,17 @@ describe('permission', () => {
                     } as any)
                     .execute('namespace.scope.action.subaction')
             ).toBe(true);
+
+            expect(
+                pm
+                    .can({
+                        isPlayer: () => true,
+                        isOp: () => true,
+                        isConsole: () => false
+                    } as any)
+                    .not()
+                    .execute('namespace.scope.action.subaction')
+            ).toBe(false);
         });
 
         it('can().execute() should handle no permission', () => {

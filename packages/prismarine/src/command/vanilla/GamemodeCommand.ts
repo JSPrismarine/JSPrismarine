@@ -1,15 +1,14 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
-import { CommandArgumentEntity, CommandArgumentGamemode } from '../CommandArguments';
-
+import { getGametypeId } from '@jsprismarine/minecraft';
 import type Player from '../../Player';
 import { Chat } from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
-import { Gamemode } from '../../world/';
 import { Command } from '../Command';
+import { CommandArgumentEntity, CommandArgumentGamemode } from '../CommandArguments';
 
 /**
- * Changes gamemode for a player.
+ * Manage a player's {@link Gametype} (gamemode).
  * @remarks the `/gamemode` command.
  */
 export default class GamemodeCommand extends Command {
@@ -47,7 +46,7 @@ export default class GamemodeCommand extends Command {
             return;
         }
 
-        await target.setGamemode(Gamemode.getGamemodeId(gamemode));
+        await target.setGamemode(getGametypeId(gamemode));
     }
 
     public async register(dispatcher: CommandDispatcher<any>) {

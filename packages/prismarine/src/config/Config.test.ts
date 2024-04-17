@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { Gametype } from '@jsprismarine/minecraft';
 import { Config } from './Config';
 
 describe('config', () => {
@@ -38,7 +39,7 @@ describe('config', () => {
         });
 
         it('should have the default gamemode', () => {
-            expect(config.getGamemode()).toBe('survival');
+            expect(config.getGamemode().toLowerCase()).toBe('survival');
         });
 
         it('should have the default MOTD', () => {
@@ -58,8 +59,8 @@ describe('config', () => {
         });
 
         it('should set the gamemode', () => {
-            config.setGamemode(1);
-            expect(config.getGamemode()).toBe('creative');
+            config.setGamemode(Gametype.CREATIVE);
+            expect(config.getGamemode().toLowerCase()).toBe('creative');
         });
 
         it('should set the MOTD', () => {
