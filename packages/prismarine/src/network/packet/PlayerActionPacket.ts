@@ -1,6 +1,7 @@
-import BlockPosition from '../../world/BlockPosition';
-import DataPacket from './DataPacket';
+import type BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
+import DataPacket from './DataPacket';
 
 export enum PlayerAction {
     START_BREAK,
@@ -47,16 +48,16 @@ export default class PlayerActionPacket extends DataPacket {
     public decodePayload(): void {
         this.runtimeEntityId = this.readUnsignedVarLong();
         this.action = this.readVarInt();
-        this.blockPosition = BlockPosition.networkDeserialize(this);
-        this.resultPosition = BlockPosition.networkDeserialize(this);
+        this.blockPosition = NetworkUtil.readBlockPosition(this);
+        this.resultPosition = NetworkUtil.readBlockPosition(this);
         this.blockFace = this.readVarInt();
     }
 
     public encodePayload(): void {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeVarInt(this.action);
-        this.blockPosition.networkSerialize(this);
-        this.resultPosition.networkSerialize(this);
+        NetworkUtil.writeUnsignedBlockPosition(this, this.blockPosition);
+        NetworkUtil.writeUnsignedBlockPosition(this, this.resultPosition);
         this.writeVarInt(this.blockFace);
     }
 }

@@ -1,6 +1,7 @@
-import DataPacket from './DataPacket';
-import Identifiers from '../Identifiers';
 import type BlockPosition from '../../world/BlockPosition';
+import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
+import DataPacket from './DataPacket';
 
 export interface ChunkCoord {
     x: number;
@@ -15,7 +16,7 @@ export default class NetworkChunkPublisherUpdatePacket extends DataPacket {
     public savedChunks!: ChunkCoord[];
 
     public override encodePayload(): void {
-        this.position.signedNetworkSerialize(this);
+        NetworkUtil.writeBlockPosition(this, this.position);
         this.writeUnsignedVarInt(this.radius);
         this.writeUnsignedIntLE(this.savedChunks.length);
         for (const chunkCoord of this.savedChunks) {

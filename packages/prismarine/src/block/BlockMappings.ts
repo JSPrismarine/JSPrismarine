@@ -30,7 +30,7 @@ export class BlockMappings {
 
             for (const blockTag of reader.parseList<NBTTagCompound>()) {
                 const name = blockTag.getString('name', 'minecraft:air');
-                const runtimeId = blockTag.getNumber('runtimeId', 0); // TODO Air runtime ID
+                const runtimeId = blockTag.getNumber('runtimeId', 0); // TODO: Air runtime ID
                 this.registerMapping(name, runtimeId);
             }
         } catch (error: unknown) {
@@ -45,7 +45,7 @@ export class BlockMappings {
     }
 
     public static getRuntimeId(name: string | undefined | null): number {
-        return name ? this.nameToRuntime.get(name)! : 0; // TODO Air runtime ID
+        return name ? this.nameToRuntime.get(name)! : 0; // TODO: Air runtime ID
     }
 
     public static getLegacyId(runtimeId: number): LegacyId {

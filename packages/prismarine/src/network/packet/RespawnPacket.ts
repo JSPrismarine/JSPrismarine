@@ -1,22 +1,23 @@
-import { Vector3 } from '@jsprismarine/math';
+import type { Vector3 } from '@jsprismarine/math';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 export default class RespawnPacket extends DataPacket {
     public static NetID = Identifiers.RespawnPacket;
 
-    public position!: Vector3;
+    public position!: Vector3 | null;
     public state!: RespawnState;
     public runtimeEntityId!: bigint;
 
     public encodePayload(): void {
-        this.position.networkSerialize(this);
+        NetworkUtil.writeVector3(this, this.position);
         this.writeByte(this.state);
         this.writeUnsignedVarLong(this.runtimeEntityId);
     }
 
     public decodePayload(): void {
-        this.position = Vector3.networkDeserialize(this);
+        this.position = NetworkUtil.readVector3(this);
         this.state = this.readByte();
         this.runtimeEntityId = this.readUnsignedVarLong();
     }

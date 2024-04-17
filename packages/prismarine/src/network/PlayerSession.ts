@@ -307,8 +307,7 @@ export default class PlayerSession {
 
     /**
      * Set the client's gamemode.
-     *
-     * @param gamemode - the numeric gamemode ID
+     * @param {number} gamemode - the numeric gamemode ID.
      */
     public async sendGamemode(gamemode: number): Promise<void> {
         const pk = new SetPlayerGameTypePacket();
@@ -318,7 +317,7 @@ export default class PlayerSession {
 
     public async sendNetworkChunkPublisher(distance: number, savedChunks: ChunkCoord[]): Promise<void> {
         const pk = new NetworkChunkPublisherUpdatePacket();
-        pk.position = BlockPosition.fromVector3(this.player);
+        pk.position = BlockPosition.fromVector3(this.player.getPosition());
         pk.radius = distance << 4;
         pk.savedChunks = savedChunks;
         await this.connection.sendDataPacket(pk);

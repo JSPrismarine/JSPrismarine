@@ -1,8 +1,9 @@
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { Item } from '../../item/Item';
-import BlockPosition from '../../world/BlockPosition';
+import type BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 export enum UseItemAction {
@@ -141,7 +142,7 @@ export default class InventoryTransactionPacket extends DataPacket {
             case TransactionType.USE_ITEM:
                 this.transactionData = <UseItemData>{
                     actionType: this.readUnsignedVarInt(),
-                    blockPosition: BlockPosition.networkDeserialize(this),
+                    blockPosition: NetworkUtil.readBlockPosition(this),
                     blockFace: this.readVarInt(),
                     hotbarSlot: this.readVarInt(),
                     itemInHand: Item.networkDeserialize(this),
