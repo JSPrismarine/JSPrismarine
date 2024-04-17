@@ -50,13 +50,10 @@ import SetHealthPacket from './packet/SetHealthPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetTimePacket from './packet/SetTimePacket';
-import SetTitlePacket from './packet/SetTitlePacket';
-import ShowCreditsPacket from './packet/ShowCreditsPacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
 import StartGamePacket from './packet/StartGamePacket';
 import TextPacket from './packet/TextPacket';
 import TickSyncPacket from './packet/TickSyncPacket';
-import ToastRequestPacket from './packet/ToastRequestPacket';
 import TransferPacket from './packet/TransferPacket';
 import AdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
@@ -117,13 +114,10 @@ export {
     SetLocalPlayerAsInitializedPacket,
     SetPlayerGameTypePacket,
     SetTimePacket,
-    SetTitlePacket,
-    ShowCreditsPacket,
     ShowProfilePacket,
     StartGamePacket,
     TextPacket,
     TickSyncPacket,
-    ToastRequestPacket,
     TransferPacket,
     UpdateAttributesPacket,
     UpdateBlockPacket,

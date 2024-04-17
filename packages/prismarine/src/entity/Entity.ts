@@ -336,16 +336,11 @@ export class Entity extends EntityLike {
         await Promise.all(
             this.getWorld()
                 .getPlayers()
-                .map(async (player) => {
+                .map((target) => {
                     const packet = new MoveActorAbsolutePacket();
                     packet.runtimeEntityId = this.runtimeId;
                     packet.position = this.getPosition();
-
-                    // TODO
-                    packet.rotationX = 0;
-                    packet.rotationY = 0;
-                    packet.rotationZ = 0;
-                    await player.getNetworkSession().send(packet);
+                    return target.getNetworkSession().send(packet);
                 })
         );
     }
@@ -416,7 +411,11 @@ export class Entity extends EntityLike {
 
     /**
      * Set the entity's position and notify the clients.
-     * @param {Vector3} position - The position.
+     * @param {object} options - The position options.
+     * @param {Vector3} options.position - The position.
+     * @param {number} [options.pitch] - The pitch.
+     * @param {number} [options.yaw] - The yaw.
+     * @param {number} [options.headYaw] - The head yaw.
      * @returns {Promise<void>} A promise that resolves when the position is set.
      */
     public async setPosition({

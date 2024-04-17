@@ -7,7 +7,7 @@ import DataPacket from './DataPacket';
 
 interface PlayerListData {
     uuid: UUID;
-    uniqueEntityid?: bigint | null;
+    runtimeId?: bigint | null;
     name?: string | null;
     xuid?: string;
     platformChatId?: string | null;
@@ -20,7 +20,7 @@ interface PlayerListData {
 
 export class PlayerListEntry {
     private readonly uuid: UUID;
-    private readonly uniqueEntityId: bigint | null;
+    private readonly runtimeId: bigint | null;
     private readonly name: string | null;
     private readonly xuid: string;
     private readonly platformChatId: string | null;
@@ -31,7 +31,7 @@ export class PlayerListEntry {
 
     public constructor({
         uuid,
-        uniqueEntityid,
+        runtimeId,
         name,
         xuid = '',
         platformChatId,
@@ -41,7 +41,7 @@ export class PlayerListEntry {
         isHost = true
     }: PlayerListData) {
         this.uuid = uuid;
-        this.uniqueEntityId = uniqueEntityid ?? null;
+        this.runtimeId = runtimeId ?? null;
         this.name = name ?? null;
         this.xuid = xuid;
         this.platformChatId = platformChatId ?? null;
@@ -52,7 +52,7 @@ export class PlayerListEntry {
     }
 
     public networkSerialize(stream: BinaryStream): void {
-        stream.writeVarLong(this.getUniqueEntityId()!);
+        stream.writeVarLong(this.getRuntimeId()!);
         NetworkUtil.writeString(stream, this.getName()!);
         NetworkUtil.writeString(stream, this.getXUID()!);
         NetworkUtil.writeString(stream, this.getPlatformChatId()!);
@@ -67,8 +67,8 @@ export class PlayerListEntry {
         return this.uuid;
     }
 
-    public getUniqueEntityId(): bigint | null {
-        return this.uniqueEntityId;
+    public getRuntimeId(): bigint | null {
+        return this.runtimeId;
     }
 
     public getName(): string | null {

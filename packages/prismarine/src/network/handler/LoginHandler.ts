@@ -48,15 +48,15 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         player.skin = packet.skin;
         player.device = packet.device;
 
+        await player.enable();
         player.setName(packet.displayName);
 
-        // Player with same name is already online
-        try {
-            await server
-                .getSessionManager()
-                .findPlayer({ name: packet.displayName, xuid: packet.XUID })
-                ?.kick('Logged in from another location');
-        } catch {}
+        // Player with same name or xuid is already connected,
+        // so kick the old player and let the new player connect.
+        await server
+            .getSessionManager()
+            .findPlayer({ name: packet.displayName, xuid: packet.XUID })
+            ?.kick('Logged in from another location');
 
         if (!player.xuid && server.getConfig().getOnlineMode()) {
             await player.kick('Server is in online-mode!');

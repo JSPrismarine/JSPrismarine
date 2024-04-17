@@ -58,10 +58,10 @@ export class Vector3 extends Vector2 {
     }
 
     public floor() {
-        this.setX(Math.floor(this.x));
-        this.setY(Math.floor(this.y));
-        this.setZ(Math.floor(this.z));
-        return this;
+        return new Vector3(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
+    }
+    public trunc() {
+        return new Vector3(Math.trunc(this.x), Math.trunc(this.y), Math.trunc(this.z));
     }
 
     /**
@@ -69,7 +69,7 @@ export class Vector3 extends Vector2 {
      * @param {Vector3} vector - The `Vector3` to compare to.
      * @returns {boolean} `true` if they're equal otherwise `false`.
      */
-    public equals(vector: Vector3): boolean {
+    public equals(vector: typeof this): boolean {
         return JSON.stringify(this) === JSON.stringify(vector);
     }
 }

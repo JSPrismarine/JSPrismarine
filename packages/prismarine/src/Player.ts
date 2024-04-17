@@ -7,7 +7,7 @@ import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
 import type ClientConnection from './network/ClientConnection';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
-import { ChangeDimensionPacket, LevelChunkPacket } from './network/Packets';
+import { ChangeDimensionPacket } from './network/Packets';
 import PlayerSession from './network/PlayerSession';
 import MovementType from './network/type/MovementType';
 import PlayStatusType from './network/type/PlayStatusType';
@@ -57,7 +57,6 @@ export default class Player extends Human {
     private onGround = false;
     private flying = false;
     private sneaking = false;
-    private allowFight = false;
 
     public platformChatId = '';
 
@@ -66,7 +65,6 @@ export default class Player extends Human {
     public cacheSupport = false;
 
     public readonly chunkSendQueue = new Set<Chunk>();
-    public currentChunk: bigint | null = null;
 
     /**
      * Player's constructor.
@@ -101,6 +99,7 @@ export default class Player extends Human {
         const playerData = await this.getWorld().getPlayerData(this);
 
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
+        this.gamemode = Gamemode.getGamemodeId(playerData.gamemode || this.server.getConfig().getGamemode());
 
         this.setPosition({
             position: playerData.position
@@ -111,12 +110,18 @@ export default class Player extends Human {
             headYaw: playerData.position?.headYaw || 0,
             type: MovementType.Reset
         });
-
-        this.gamemode = Gamemode.getGamemodeId(playerData.gamemode || this.server.getConfig().getGamemode());
-
         await this.sendPosition();
+
         await this.sendSettings();
 
+        // Update position of all the players in the same world.
+        await Promise.all(
+            this.getWorld()
+                .getPlayers()
+                .map((target) => this.getNetworkSession().broadcastMove(target, MovementType.Reset))
+        );
+
+        // Finally mark the player as connected.
         this.server.getLogger().debug(`(Complete player creation took ${this.timer.stop()} ms)`);
         this.connected = true;
     }
@@ -223,34 +228,23 @@ export default class Player extends Human {
         dim1.position = this.getPosition();
         dim1.respawn = false;
 
-        await this.networkSession.getConnection().sendDataPacket(dim0);
-        await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
-        await this.networkSession.getConnection().sendDataPacket(dim1);
-        await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
-
+        await this.sendDespawn();
         await this.getWorld().removeEntity(this);
-
         await super.setWorld(world);
         await world.addEntity(this);
 
-        for (let x = -3; x < 3; x++) {
-            for (let z = -3; z < 3; z++) {
-                const pk = new LevelChunkPacket();
-                pk.clientSubChunkRequestsEnabled = false;
-                pk.chunkX = x; // TODO
-                pk.chunkZ = z; // TODO
-                pk.data = Buffer.from('');
-                pk.subChunkCount = 0;
-                await this.networkSession.getConnection().sendDataPacket(pk);
-            }
-        }
-
-        await this.networkSession.getConnection().sendDataPacket(dim1);
+        await this.networkSession.send(dim0);
         await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
-        await this.networkSession.getConnection().sendDataPacket(dim0);
+        await this.networkSession.send(dim1);
         await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
 
-        this.currentChunk = null;
+        await this.sendInitialSpawnChunks();
+
+        await this.networkSession.send(dim1);
+        await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.networkSession.send(dim0);
+        await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
+
         await this.networkSession.clearChunks();
         await this.networkSession.needNewChunks();
         await this.networkSession.sendPlayStatus(PlayStatusType.PlayerSpawn);
@@ -261,7 +255,6 @@ export default class Player extends Human {
     }
 
     public async update(tick: number): Promise<void> {
-        // Call super method
         await super.update(tick);
         await this.networkSession.update(tick);
 
@@ -280,9 +273,7 @@ export default class Player extends Human {
     }
 
     public async kick(reason = 'unknown reason'): Promise<void> {
-        this.server
-            .getLogger()
-            .verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`, 'Player/kick');
+        this.server.getLogger().verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`);
         await this.networkSession.kick(reason);
     }
 
@@ -298,15 +289,6 @@ export default class Player extends Human {
                     await target.getNetworkSession().sendSettings(this);
                 })
         );
-    }
-
-    // Return all the players in the same chunk,.
-    // TODO: move to world
-    public getPlayersInChunk(): Player[] {
-        return this.server
-            .getSessionManager()
-            .getAllPlayers()
-            .filter((player) => player.getCurrentChunk() === this.getCurrentChunk());
     }
 
     /**
@@ -340,15 +322,6 @@ export default class Player extends Human {
         });
     }
 
-    /**
-     * Send a toast notification (like Xbox Live notifications)
-     * @param title - the toast title
-     * @param body - the toast body
-     */
-    public async sendToast(title: string, body: string): Promise<void> {
-        await this.networkSession.sendToast(title, body);
-    }
-
     public async setGamemode(mode: number): Promise<void> {
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.server.post(['playerSetGamemode', event]);
@@ -358,9 +331,9 @@ export default class Player extends Human {
         await this.networkSession.sendGamemode(this.gamemode);
 
         if (this.gamemode === Gamemode.Creative || this.gamemode === Gamemode.Spectator) {
-            this.allowFight = true;
+            this.metadata.setCanFly(true);
         } else {
-            this.allowFight = false;
+            this.metadata.setCanFly(false);
             await this.setFlying(false);
         }
 
@@ -395,10 +368,6 @@ export default class Player extends Human {
         return this.xuid || '';
     }
 
-    public getAllowFlight(): boolean {
-        return this.allowFight;
-    }
-
     public isPlayer(): boolean {
         return true;
     }
@@ -428,8 +397,10 @@ export default class Player extends Human {
     }
     public async setFlying(flying: boolean) {
         if (flying === this.isFlying()) return;
-        if (!this.getAllowFlight()) {
+
+        if (!this.metadata.canFly) {
             this.flying = false;
+            await this.sendSettings();
             return;
         }
 
@@ -445,8 +416,8 @@ export default class Player extends Human {
         return this.sneaking;
     }
     public async setSneaking(val: boolean) {
+        if (val === this.sneaking) return;
         this.sneaking = val;
-        await this.sendSettings();
     }
 
     public isOnGround() {
@@ -465,27 +436,32 @@ export default class Player extends Human {
      * @param {number} [options.pitch=this.pitch] - The new pitch.
      * @param {number} [options.yaw=this.yaw] - The new yaw.
      * @param {number} [options.headYaw=this.headYaw] - The new head yaw.
+     * @param {boolean} [broadcast=true] - Whether to broadcast the position change.
      * @remarks This will notify the player's client about the position change.
      */
-    public async setPosition({
-        position,
-        type = MovementType.Normal,
-        pitch = this.pitch,
-        yaw = this.yaw,
-        headYaw = this.headYaw
-    }: {
-        position: Vector3;
-        type?: MovementType;
-        pitch?: number;
-        yaw?: number;
-        headYaw?: number;
-    }) {
+    public async setPosition(
+        {
+            position,
+            type = MovementType.Normal,
+            pitch = this.pitch,
+            yaw = this.yaw,
+            headYaw = this.headYaw
+        }: {
+            position: Vector3;
+            type?: MovementType;
+            pitch?: number;
+            yaw?: number;
+            headYaw?: number;
+        },
+        broadcast = true
+    ) {
+        await super.setPosition({ position });
         this.pitch = pitch;
         this.yaw = yaw;
         this.headYaw = headYaw;
 
-        await super.setPosition({ position });
-        await this.getNetworkSession().broadcastMove(this, type);
+        if (!broadcast) return;
+        await this.networkSession.broadcastMove(this, type);
     }
     /**
      * Send the position to all the players in the same world.
@@ -493,14 +469,5 @@ export default class Player extends Human {
      */
     public async sendPosition(): Promise<void> {
         await super.sendPosition();
-    }
-
-    public setCurrentChunk(chunk: bigint) {
-        if (this.currentChunk === chunk) return;
-        this.currentChunk = chunk;
-    }
-
-    public getCurrentChunk() {
-        return this.currentChunk!;
     }
 }
