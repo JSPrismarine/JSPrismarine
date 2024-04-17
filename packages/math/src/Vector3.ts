@@ -5,6 +5,10 @@ import { Vector2 } from './Vector2';
  * 3D Vector.
  */
 export class Vector3 extends Vector2 {
+    public static zero() {
+        return new Vector3(0, 0, 0);
+    }
+
     /**
      * The Y coordinate.
      */

@@ -15,7 +15,7 @@ import Heap from 'heap';
 import type Player from '../Player';
 import type Server from '../Server';
 import type { Attribute } from '../entity/Attribute';
-import { WindowIds } from '../inventory/WindowManager';
+import { WindowIds } from '../inventory/WindowIds';
 import { Item } from '../item/Item';
 import UUID from '../utils/UUID';
 import { Gamemode } from '../world/';
@@ -23,6 +23,7 @@ import BlockPosition from '../world/BlockPosition';
 import CoordinateUtils from '../world/CoordinateUtils';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
+import type { DataPacket } from './Packets';
 import { BatchPacket } from './Packets';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
@@ -85,6 +86,10 @@ export default class PlayerSession {
         }
 
         this.player.viewDistance && (await this.needNewChunks());
+    }
+
+    public async send(packet: DataPacket) {
+        this.connection.sendDataPacket(packet);
     }
 
     /**

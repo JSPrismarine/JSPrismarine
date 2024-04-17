@@ -44,8 +44,8 @@ export class BlockMappings {
         this.runtimeToName.set(runtimeId, name);
     }
 
-    public static getRuntimeId(name: string): number {
-        return this.nameToRuntime.get(name) ?? 0; // Air runtime ID!!
+    public static getRuntimeId(name: string | undefined | null): number {
+        return name ? this.nameToRuntime.get(name)! : 0; // TODO Air runtime ID
     }
 
     public static getLegacyId(runtimeId: number): LegacyId {

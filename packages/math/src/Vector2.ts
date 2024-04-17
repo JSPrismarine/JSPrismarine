@@ -4,6 +4,10 @@ import type BinaryStream from '@jsprismarine/jsbinaryutils';
  * 2D Vector.
  */
 export class Vector2 {
+    public static zero() {
+        return new Vector2(0, 0);
+    }
+
     /**
      * The X coordinate.
      */

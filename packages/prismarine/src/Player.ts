@@ -1,12 +1,10 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { InetAddress } from '@jsprismarine/raknet';
 import Human from './entity/Human';
-import { FlagType, MetadataFlag } from './entity/Metadata';
 import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
-import WindowManager from './inventory/WindowManager';
 import type ClientConnection from './network/ClientConnection';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import { ChangeDimensionPacket, LevelChunkPacket } from './network/Packets';
@@ -40,9 +38,6 @@ export default class Player extends Human {
      */
     private timer: Timer;
 
-    // TODO: finish implementation
-    private readonly windows: WindowManager;
-
     private connected = false;
     public username = {
         prefix: '<',
@@ -60,7 +55,6 @@ export default class Player extends Human {
     public gamemode = 0;
 
     private onGround = false;
-    private sprinting = false;
     private flying = false;
     private sneaking = false;
     private allowFight = false;
@@ -98,7 +92,6 @@ export default class Player extends Human {
 
         this.address = connection.getRakNetSession().getAddress();
         this.networkSession = new PlayerSession(server, connection, this);
-        this.windows = new WindowManager();
         this.permissions = [];
 
         this.server.on('chat', this.chatHandler.bind(this));
@@ -402,10 +395,6 @@ export default class Player extends Human {
         return this.xuid || '';
     }
 
-    public getWindows(): WindowManager {
-        return this.windows;
-    }
-
     public getAllowFlight(): boolean {
         return this.allowFight;
     }
@@ -423,27 +412,14 @@ export default class Player extends Human {
         return this.server.getPermissionManager().isOp(this.getName());
     }
 
-    /**
-     * Check if the `Player` is sprinting.
-     *
-     * @returns `true` if this player is sprinting otherwise `false`.
-     */
-    public isSprinting() {
-        return this.sprinting;
-    }
-
     public async setSprinting(sprinting: boolean) {
-        if (sprinting === this.isSprinting()) return;
+        if (sprinting === this.metadata.sprinting) return;
 
         const event = new PlayerToggleSprintEvent(this, sprinting);
         this.server.post(['playerToggleSprint', event]);
         if (event.isCancelled()) return;
 
-        this.sprinting = event.getIsSprinting();
-
-        // TODO: find a better way to put this
-        this.metadata.setDataFlag(MetadataFlag.INDEX, MetadataFlag.SPRINTING, this.isSprinting(), FlagType.BYTE);
-
+        this.metadata.setSprinting(event.getIsSprinting());
         await this.networkSession.sendMetadata();
     }
 

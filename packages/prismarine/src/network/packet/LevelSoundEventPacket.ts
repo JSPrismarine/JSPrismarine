@@ -12,8 +12,8 @@ export default class LevelSoundEventPacket extends DataPacket {
     public positionZ!: number;
 
     public extraData!: number;
-    public entityType!: string;
-    public isBabyMob!: boolean;
+    public entityType: string = '';
+    public isBabyMob: boolean = false;
     public disableRelativeVolume!: boolean;
 
     public decodePayload() {
