@@ -1,5 +1,3 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
-
 /**
  * 2D Vector.
  */
@@ -81,7 +79,11 @@ export class Vector2 {
         return this.z;
     }
 
-    public floor = () => new Vector2(Math.floor(this.x), Math.floor(this.z));
+    public floor() {
+        this.setX(Math.floor(this.x));
+        this.setZ(Math.floor(this.z));
+        return this;
+    }
 
     /**
      * Compare an instance of `Vector3` with another.
@@ -90,23 +92,5 @@ export class Vector2 {
      */
     public equals(vector: Vector2): boolean {
         return JSON.stringify(this) === JSON.stringify(vector);
-    }
-
-    /**
-     * Serialize this `Vector3` instance into a `BinaryStream`.
-     * @param {BinaryStream} stream - The network stream.
-     */
-    public networkSerialize(stream: BinaryStream): void {
-        stream.writeFloatLE(this.x);
-        stream.writeFloatLE(this.z);
-    }
-
-    /**
-     * Deserialize a `Vector3` from a `BinaryStream`.
-     * @param {BinaryStream} stream - The network stream.
-     * @returns {Vector2} The deserialized `Vector3`.
-     */
-    public static networkDeserialize(stream: BinaryStream): Vector2 {
-        return new Vector2(stream.readFloatLE(), stream.readFloatLE());
     }
 }

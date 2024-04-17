@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
-import BlockPosition from '../../world/BlockPosition';
+import type BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
@@ -73,9 +73,9 @@ export default class PlaySoundPacket extends DataPacket {
     public pitch: number | null = null;
 
     public decodePayload(): void {
-        // Reverse mapping should work theorycally
+        // Reverse mapping should work theoretically
         this.name = (SoundName as any)[NetworkUtil.readString(this)] as SoundName;
-        this.position = BlockPosition.networkDeserialize(this);
+        this.position = NetworkUtil.readBlockPosition(this);
         // TODO: fix position, divide it by 8
         this.volume = this.readFloatLE();
         this.pitch = this.readFloatLE();

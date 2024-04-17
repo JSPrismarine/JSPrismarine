@@ -1,5 +1,6 @@
-import { Vector3 } from '@jsprismarine/math';
+import type { Vector3 } from '@jsprismarine/math';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 export enum WorldEvent {
@@ -216,14 +217,13 @@ export default class WorldEventPacket extends DataPacket {
 
     public decodePayload() {
         this.eventId = this.readVarInt();
-        this.position = Vector3.networkDeserialize(this);
+        this.position = NetworkUtil.readVector3(this);
         this.data = this.readVarInt();
     }
 
     public encodePayload() {
         this.writeVarInt(this.eventId);
-        if (this.position) this.position.networkSerialize(this);
-        else Vector3.zero().networkSerialize(this);
+        NetworkUtil.writeVector3(this, this.position);
         this.writeVarInt(this.data);
     }
 }

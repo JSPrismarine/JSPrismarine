@@ -41,7 +41,9 @@ export default class UUID {
      * Generates a random UUIDv4 (string)
      */
     public static randomString(): string {
-        return randomUUID();
+        return randomUUID({
+            disableEntropyCache: true
+        });
     }
 
     /**
@@ -49,7 +51,7 @@ export default class UUID {
      */
     public static fromRandom(): UUID {
         const stringUUID = UUID.randomString();
-        return UUID.fromString(stringUUID, 3);
+        return UUID.fromString(stringUUID, 4);
     }
 
     public toBinary(): Buffer {

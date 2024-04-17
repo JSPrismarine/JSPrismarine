@@ -2,6 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type { Metadata } from '../../entity/Metadata';
 import type { Item } from '../../item/Item';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
@@ -37,8 +38,8 @@ export default class AddItemActorPacket extends DataPacket {
 
         this.item.networkSerialize(this);
 
-        this.position.networkSerialize(this);
-        this.motion.networkSerialize(this);
+        NetworkUtil.writeVector3(this, this.position);
+        NetworkUtil.writeVector3(this, this.motion);
 
         this.metadata.networkSerialize(this);
 

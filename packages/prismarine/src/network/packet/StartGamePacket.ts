@@ -38,7 +38,7 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(this.gamemode);
 
-        this.playerPos.networkSerialize(this);
+        NetworkUtil.writeVector3(this, this.playerPos);
         this.writeFloatLE(this.pitch);
         this.writeFloatLE(this.yaw);
 
