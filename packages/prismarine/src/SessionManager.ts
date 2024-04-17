@@ -28,34 +28,13 @@ export default class SessionManager {
     }
 
     public getAllPlayers(): Player[] {
-        const players = new Array();
-        for (const conn of this.connections.values()) {
-            const session = conn.getPlayerSession();
-            if (session !== null) {
-                players.push(session.getPlayer());
-            }
-        }
-        return players;
+        return Array.from(this.connections.values())
+            .map((conn) => conn.getPlayerSession()?.getPlayer()!)
+            .filter((p) => p) as Player[];
     }
 
-    /**
-     * Just a compatibility layer to not break everything for now
-     *
-     * @deprecated
-     * @param token
-     */
-    public getPlayer(token: string): Player {
-        const conn = this.connections.get(token) ?? null;
-        if (conn === null) {
-            throw new Error(`Connection for player ${token} not found!`);
-        }
-
-        const session = conn.getPlayerSession();
-        if (session === null) {
-            throw new Error(`Player for session ${token} is not initialized!`);
-        }
-
-        return session.getPlayer();
+    public findPlayer({ name, xuid }: { name?: string; xuid?: string }): Player | null {
+        return this.getAllPlayers().find((p) => p.getName() === name || p.getXUID() === xuid) ?? null;
     }
 
     /**

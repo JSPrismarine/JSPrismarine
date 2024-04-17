@@ -45,8 +45,9 @@ export default class DebugCommand extends Command {
                                     (source.getServer().getConfig() as any)[config] = data;
                                     return `Set config ${config} to ${data}`;
                                 }
-                                default:
+                                default: {
                                     throw new Error('Invalid action!');
+                                }
                             }
                         })
                     )
