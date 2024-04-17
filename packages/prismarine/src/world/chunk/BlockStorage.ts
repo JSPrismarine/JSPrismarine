@@ -1,5 +1,5 @@
-import { BlockMappings } from '../../block/BlockMappings';
 import type { LegacyId } from '../../block/BlockMappings';
+import { BlockMappings } from '../../block/BlockMappings';
 
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
 
@@ -18,9 +18,9 @@ export default class BlockStorage {
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {
-        // bx &= 0x0f;
-        // by &= 0x0f;
-        // bz &= 0x0f;
+        bx = bx & 0x0f;
+        bz = bz & 0x0f;
+        by = by & 0x0f;
         return ((bx << 8) + (bz << 4)) | by;
     }
 

@@ -92,7 +92,7 @@ export default class Chunk {
             return this.getBlock(bx.getX(), bx.getY(), bx.getZ(), layer);
         }
 
-        const subChunk = this.getSubChunk(by >> 4);
+        const subChunk = this.getSubChunk(Math.floor(by / 16));
         if (subChunk === null) {
             return BlockMappings.getLegacyId(BlockMappings.getRuntimeId('minecraft:air'));
         }
@@ -109,7 +109,7 @@ export default class Chunk {
      * @param layer - block storage layer (0 for blocks, 1 for liquids)
      */
     public setBlock(bx: number, by: number, bz: number, block: Block, layer = 0): void {
-        let subChunk = this.getSubChunk(by >> 4);
+        let subChunk = this.getSubChunk(Math.floor(by / 16));
         if (subChunk === null) {
             if (block.getName() === 'minecraft:air') {
                 return;
