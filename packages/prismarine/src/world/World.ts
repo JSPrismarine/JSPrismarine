@@ -173,18 +173,18 @@ export class World implements Service {
         }
 
         await Promise.all(this.getEntities().map((entity) => entity.update(tick)));
+        await this.sendTime();
     }
 
     /**
      * Returns a block instance in the given world position.
-     *
-     * @param bx - block x
-     * @param by - block y
-     * @param bz - block z
-     * @param layer - block storage layer (0 for blocks, 1 for liquids)
+     * @param {number} x - block x
+     * @param {number} y - block y
+     * @param {number} z - block z
+     * @param {number} [layer=0] - block storage layer (0 for blocks, 1 for liquids)
      */
-    public async getBlock(bx: number, by: number, bz: number, layer = 0): Promise<Block> {
-        const blockId = (await this.getChunkAt(bx, bz)).getBlock(bx, by, bz, layer);
+    public async getBlock(x: number, y: number, z: number, layer = 0): Promise<Block> {
+        const blockId = (await this.getChunkAt(x, z)).getBlock(x, y, z, layer);
         const block = this.server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta);
 
         if (!block) return this.server.getBlockManager().getBlock('minecraft:air');
@@ -204,14 +204,13 @@ export class World implements Service {
 
     /**
      * Loads a chunk in a given x and z and returns its.
-     *
-     * @param cx
-     * @param cz
+     * @param {number} x - x coordinate.
+     * @param {number} z - z coordinate.
      */
-    public async loadChunk(cx: number, cz: number, _ignoreWarn?: boolean): Promise<Chunk> {
-        const index = Chunk.packXZ(cx, cz);
+    public async loadChunk(x: number, z: number, _ignoreWarn?: boolean): Promise<Chunk> {
+        const index = Chunk.packXZ(x, z);
         // Try - catch for provider errors
-        const chunk = await this.provider.readChunk(cx, cz, this.seed, this.generator, this.config);
+        const chunk = await this.provider.readChunk(x, z, this.seed, this.generator, this.config);
         this.chunks.set(index, chunk);
 
         // TODO: event here, eg onChunkLoad
@@ -220,46 +219,31 @@ export class World implements Service {
 
     /**
      * Sends a world event packet to all the viewers in the position chunk.
-     * @param {Vector3 | null} position - world position
-     * @param {number} worldEvent - event identifier
-     * @param {number} data
+     * @param {Vector3} position - world position.
+     * @param {number} event - event identifier.
+     * @param {number} data - event data.
      */
-    public async sendWorldEvent(position: Vector3 | null, worldEvent: WorldEvent, data: number): Promise<void> {
+    public async sendWorldEvent(position: Vector3 | null, event: WorldEvent, data: number): Promise<void> {
         const worldEventPacket = new WorldEventPacket();
-        worldEventPacket.eventId = worldEvent;
+        worldEventPacket.eventId = event;
+        //worldEventPacket.position = position;
         worldEventPacket.data = data;
 
-        if (position) {
-            const chunk = await this.getChunkAt(position.getX(), position.getZ());
-            const chunkN = Chunk.packXZ(chunk.getX(), chunk.getZ());
-
-            await Promise.all(
-                this.server
-                    .getSessionManager()
-                    .getAllPlayers()
-                    .filter((player) => player.getCurrentChunk() === chunkN)
-                    .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(worldEventPacket))
-            );
-            return;
-        }
-
-        await Promise.all(
-            this.server
-                .getSessionManager()
-                .getAllPlayers()
-                .map(async (player) => player.getNetworkSession().getConnection().sendDataPacket(worldEventPacket))
-        );
+        // TODO: Limit distance.
+        await Promise.all(this.getPlayers().map((player) => player.getNetworkSession().send(worldEventPacket)));
     }
 
     /**
      * Returns a chunk from a block position's x and z coordinates.
      */
-    public async getChunkAt(bx: Vector3 | number, bz: number = 0): Promise<Chunk> {
-        if (bx instanceof Vector3) {
-            return this.getChunkAt(bx.getX(), bx.getZ());
+    public async getChunkAt(x: Vector3): Promise<Chunk>;
+    public async getChunkAt(x: number, z: number): Promise<Chunk>;
+    public async getChunkAt(x: Vector3 | number, z: number = 0): Promise<Chunk> {
+        if (x instanceof Vector3) {
+            return this.getChunkAt(x.getX(), x.getZ());
         }
 
-        return this.getChunk(bx >> 4, bz >> 4);
+        return this.getChunk(x >> 4, z >> 4);
     }
 
     /**
@@ -277,8 +261,7 @@ export class World implements Service {
 
     /**
      * Set the world's spawn position.
-     *
-     * @param pos - The position as a `Vector3`.
+     * @param {Vector3} pos - The position.
      */
     public setSpawnPosition(pos: Vector3) {
         this.spawn = pos;
@@ -355,7 +338,7 @@ export class World implements Service {
             blockUpdate.x = placedPosition.getX();
             blockUpdate.y = placedPosition.getY();
             blockUpdate.z = placedPosition.getZ();
-            blockUpdate.blockRuntimeId = 0; // TODO: get previous block
+            blockUpdate.blockRuntimeId = BlockMappings.getRuntimeId(clickedBlock.getName());
             return;
         }
 
@@ -379,13 +362,11 @@ export class World implements Service {
         const pk = new LevelSoundEventPacket();
         pk.sound = 6; // TODO: enum
 
-        pk.positionX = player.getX();
-        pk.positionY = player.getY();
-        pk.positionZ = player.getZ();
+        pk.positionX = placedPosition.getX();
+        pk.positionY = placedPosition.getY();
+        pk.positionZ = placedPosition.getZ();
 
         pk.extraData = runtimeId; // In this case refers to block runtime Id
-        pk.entityType = ':';
-        pk.isBabyMob = false;
         pk.disableRelativeVolume = false;
 
         await Promise.all(
@@ -397,11 +378,7 @@ export class World implements Service {
 
     public async sendTime(): Promise<void> {
         // Try to send it at the same time to all
-        await Promise.all(
-            this.getEntities()
-                .filter((e) => e.isPlayer())
-                .map(async (player) => (player as Player).getNetworkSession().sendTime(this.getTicks()))
-        );
+        await Promise.all(this.getPlayers().map((player) => player.getNetworkSession().sendTime(this.getTicks())));
     }
 
     /**
@@ -508,7 +485,6 @@ export class World implements Service {
             return {};
         }
     }
-
     public async saveLevelData(): Promise<void> {
         const data = {
             spawn: await this.getSpawnPosition(),
@@ -550,18 +526,17 @@ export class World implements Service {
             );
             return JSON.parse(minifyJson(raw.toString())) as Partial<WorldPlayerData>;
         } catch (error: any) {
-            console.error(error);
-
             this.server
                 .getLogger()
                 .debug(`PlayerData is missing for player ${player.getXUID()}`, 'World/getPlayerData');
 
+            const spawn = await this.getSpawnPosition();
             return {
                 gamemode: this.server.getConfig().getGamemode(),
                 position: {
-                    x: (await this.getSpawnPosition()).getX(),
-                    y: (await this.getSpawnPosition()).getY(),
-                    z: (await this.getSpawnPosition()).getZ(),
+                    x: spawn.getX(),
+                    y: spawn.getY(),
+                    z: spawn.getZ(),
                     pitch: 0,
                     yaw: 0,
                     headYaw: 0

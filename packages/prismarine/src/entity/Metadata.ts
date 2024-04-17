@@ -141,30 +141,24 @@ export class MetadataWriter {
 
     public networkSerialize(stream: BinaryStream): void {
         stream.writeUnsignedVarInt(this.getData().size);
-        for (const [index, value] of this.getData()) {
+        for (const [index, value] of this.getData() as any) {
             stream.writeUnsignedVarInt(index);
             stream.writeSignedByte(value[0]);
             switch (value[0]) {
                 case FlagType.BYTE:
-                    stream.writeByte(value[1] as number);
+                    stream.writeByte(Number(value[1]));
                     break;
                 case FlagType.FLOAT:
-                    stream.writeFloatLE(value[1] as number);
+                    stream.writeFloatLE(value[1]);
                     break;
                 case FlagType.LONG:
-                    stream.writeVarLong(value[1] as bigint);
+                    stream.writeVarLong(value[1]);
                     break;
                 case FlagType.STRING:
-                    NetworkUtil.writeString(stream, value[1] as string);
+                    NetworkUtil.writeString(stream, value[1]);
                     break;
                 case FlagType.SHORT:
-                    stream.writeUnsignedShortLE(value[1] as number);
-                    break;
-                case FlagType.ITEM: // TODO: Implement this.
-                    break;
-                case FlagType.POSITION: // TODO: Implement this.
-                    break;
-                case FlagType.VECTOR: // TODO: Implement this.
+                    stream.writeUnsignedShortLE(value[1]);
                     break;
                 default:
                     throw new Error(`Metadata type ${value[0]} not supported`);
@@ -203,10 +197,9 @@ export class Metadata extends MetadataWriter {
         this.setFloat(MetadataFlag.BOUNDINGBOX_HEIGHT, 1.8);
         this.setShort(MetadataFlag.AIR, 0);
 
-        this.setScale(1);
-
-        this.setAffectedByGravity(true);
-        this.setCollidable(true);
+        this.setScale();
+        this.setAffectedByGravity();
+        this.setCollidable();
     }
 
     /**
@@ -276,5 +269,19 @@ export class Metadata extends MetadataWriter {
      */
     public get collidable(): boolean {
         throw new Error('TODO: Method not implemented.');
+    }
+
+    /**
+     * Set the entity's sprinting state.
+     * @param {boolean} [sprinting=true] - if the entity is sprinting.
+     */
+    public setSprinting(sprinting: boolean = true): void {
+        this.setDataFlag(MetadataFlag.INDEX, MetadataFlag.SPRINTING, sprinting, FlagType.BYTE);
+    }
+    /**
+     * Get if the entity is sprinting.
+     */
+    public get sprinting(): boolean {
+        return this.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.SPRINTING));
     }
 }

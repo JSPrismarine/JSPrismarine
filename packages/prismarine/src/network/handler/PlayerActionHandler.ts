@@ -13,86 +13,76 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
     public async handle(packet: PlayerActionPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
+        const world = player.getWorld();
+
+        const block = await world.getBlock(
+            packet.blockPosition.getX(),
+            packet.blockPosition.getY(),
+            packet.blockPosition.getZ()
+        );
 
         switch (packet.action) {
             case PlayerAction.START_BREAK: {
-                const block = await player
-                    .getWorld()
-                    .getBlock(packet.blockPosition.getX(), packet.blockPosition.getY(), packet.blockPosition.getZ());
-
                 const breakTime = Math.ceil(block.getBreakTime(null, server) * 20); // TODO: calculate with item in hand
-                await player
-                    .getWorld()
-                    .sendWorldEvent(packet.blockPosition, WorldEvent.BLOCK_START_BREAK, 65535 / breakTime);
-                break;
+
+                await world.sendWorldEvent(packet.blockPosition, WorldEvent.BLOCK_START_BREAK, 65535 / breakTime);
+                return;
             }
 
             case PlayerAction.ABORT_BREAK: {
-                await player.getWorld().sendWorldEvent(packet.blockPosition, WorldEvent.BLOCK_STOP_BREAK, 0);
-                break;
+                await world.sendWorldEvent(packet.blockPosition, WorldEvent.BLOCK_STOP_BREAK, 0);
+                return;
             }
 
             case PlayerAction.STOP_BREAK: {
                 // Handled in InventoryTransactionHandler
-                break;
+                return;
             }
 
-            case PlayerAction.CONTINUE_DESTROY_BLOCK: {
-                const chunk = await player
-                    .getWorld()
-                    .getChunkAt(packet.blockPosition.getX(), packet.blockPosition.getZ());
-
-                const blockId = chunk.getBlock(
-                    packet.blockPosition.getX(),
-                    packet.blockPosition.getY(),
-                    packet.blockPosition.getZ()
-                );
-
-                await player.getWorld().sendWorldEvent(
+            case PlayerAction.CONTINUE_DESTROY_BLOCK:
+            case PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK: {
+                await world.sendWorldEvent(
                     packet.blockPosition,
                     WorldEvent.PARTICLE_DESTROY_BLOCK,
-                    BlockMappings.getRuntimeId(
-                        server.getBlockManager().getBlockByIdAndMeta(blockId.id, blockId.meta)!.getName() // TODO: fix this.
-                    )
+                    BlockMappings.getRuntimeId(block.getName())
                 );
-                break;
+                return;
             }
 
             case PlayerAction.CRACK_BLOCK: {
                 // TODO: Handle this.
-                break;
+                return;
             }
 
             case PlayerAction.RESPAWN: {
-                break;
+                return;
             }
 
             case PlayerAction.JUMP: {
-                break;
+                return;
             }
 
             case PlayerAction.START_SPRINT: {
+                await player.setSprinting(true);
+                return;
+            }
+            case PlayerAction.STOP_SPRINT: {
                 await player.setSprinting(false);
-                break;
+                return;
             }
 
             case PlayerAction.START_SNEAK: {
                 await player.setSneaking(true);
-                break;
+                return;
             }
-
             case PlayerAction.STOP_SNEAK: {
                 await player.setSneaking(false);
-                break;
-            }
-
-            case PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK: {
-                // Handled in InventoryTransactionHandler
-                break;
+                return;
             }
 
             default: {
                 server.getLogger().verbose(`Unhandled player action: ${packet.action}`);
+                break;
             }
         }
     }

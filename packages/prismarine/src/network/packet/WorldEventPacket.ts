@@ -211,18 +211,19 @@ export default class WorldEventPacket extends DataPacket {
     public static NetID = Identifiers.WorldEventPacket;
 
     public eventId!: number;
-    public position!: Vector3;
+    public position!: Vector3 | null;
     public data!: number;
 
     public decodePayload() {
         this.eventId = this.readVarInt();
-        this.position.networkSerialize(this);
+        this.position = Vector3.networkDeserialize(this);
         this.data = this.readVarInt();
     }
 
     public encodePayload() {
         this.writeVarInt(this.eventId);
-        this.position = Vector3.networkDeserialize(this);
+        if (this.position) this.position.networkSerialize(this);
+        else Vector3.zero().networkSerialize(this);
         this.writeVarInt(this.data);
     }
 }
