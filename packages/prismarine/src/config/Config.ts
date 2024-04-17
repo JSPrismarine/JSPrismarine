@@ -1,9 +1,9 @@
 import type { LogLevel } from '@jsprismarine/logger';
 import { SeedGenerator } from '../utils/Seed';
 import { cwd } from '../utils/cwd';
-import { Gamemode } from '../world/';
 import { ConfigBuilder } from './ConfigBuilder';
 
+import { getGametypeName } from '@jsprismarine/minecraft';
 import path from 'node:path';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -108,8 +108,7 @@ export class Config {
      * @param commit - if the value should be written to the `config.yml` file
      */
     public setGamemode(gamemode: number, commit = false) {
-        this.gamemode = Gamemode.getGamemodeName(gamemode).toLowerCase();
-
+        this.gamemode = getGametypeName(gamemode);
         if (commit) this.configBuilder.set('gamemode', this.gamemode);
     }
 

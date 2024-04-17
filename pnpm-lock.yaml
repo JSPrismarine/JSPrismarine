@@ -363,6 +363,9 @@ importers:
       '@jsprismarine/math':
         specifier: workspace:*
         version: link:../math
+      '@jsprismarine/minecraft':
+        specifier: workspace:*
+        version: link:../minecraft
       '@jsprismarine/nbt':
         specifier: workspace:*
         version: link:../nbt

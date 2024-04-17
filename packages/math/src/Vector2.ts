@@ -2,7 +2,7 @@
  * 2D Vector.
  */
 export class Vector2 {
-    public static zero() {
+    public static get ZERO() {
         return new Vector2(0, 0);
     }
 

@@ -1,3 +1,5 @@
+export * from './Gametype';
+
 import type { BehaviorPack } from './BehaviorPack';
 import type { BlockProperty } from './BlockProperty';
 import { BuildPlatform } from './BuildPlatform';
@@ -7,7 +9,6 @@ import { Difficulty } from './Difficulty';
 import { Dimension } from './Dimension';
 import { DisconnectReason } from './DisconnectReason';
 import type { Experiment } from './Experiment';
-import * as Gamemode from './Gamemode';
 import { Generator } from './Generator';
 import { LevelEvent } from './LevelEvent';
 import { PacketCompressionAlgorithm } from './PacketCompressionAlgorithm';
@@ -26,7 +27,6 @@ export {
     Difficulty,
     Dimension,
     DisconnectReason,
-    Gamemode,
     Generator,
     LevelEvent,
     PacketCompressionAlgorithm,

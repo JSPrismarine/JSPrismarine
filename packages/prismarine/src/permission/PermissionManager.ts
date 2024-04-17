@@ -210,27 +210,34 @@ export class PermissionManager implements Service {
      * @returns {object} An object with an execute method that takes a permission string and returns whether the player can execute the command.
      */
     public can(executer?: Player) {
+        const execute = (permission?: string) => {
+            if (!executer) throw new Error(`Executer can't be undefined or null`);
+
+            if (!permission) return true;
+            if (executer.isConsole()) return true;
+            if (executer.isOp()) return true;
+            if (executer.getPermissions().includes(permission)) return true;
+            if (executer.getPermissions().includes('*')) return true;
+
+            const split = permission.split('.');
+            let scope = '';
+            for (const action of split) {
+                if (scope) scope = `${scope}.${action}`;
+                else scope = action;
+
+                if (executer.getPermissions().includes(scope)) return true;
+                if (executer.getPermissions().includes(`${scope}.*`)) return true;
+            }
+
+            return false;
+        };
+
         return {
-            execute: (permission?: string) => {
-                if (!executer) throw new Error(`Executer can't be undefined or null`);
-
-                if (!permission) return true;
-                if (executer.isConsole()) return true;
-                if (executer.isOp()) return true;
-                if (executer.getPermissions().includes(permission)) return true;
-                if (executer.getPermissions().includes('*')) return true;
-
-                const split = permission.split('.');
-                let scope = '';
-                for (const action of split) {
-                    if (scope) scope = `${scope}.${action}`;
-                    else scope = action;
-
-                    if (executer.getPermissions().includes(scope)) return true;
-                    if (executer.getPermissions().includes(`${scope}.*`)) return true;
-                }
-
-                return false;
+            execute,
+            not: () => {
+                return {
+                    execute: (permission?: string) => !execute(permission)
+                };
             }
         };
     }

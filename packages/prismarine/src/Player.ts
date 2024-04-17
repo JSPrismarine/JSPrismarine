@@ -1,27 +1,26 @@
 import { Vector3 } from '@jsprismarine/math';
+import { Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
+import type Server from './Server';
+import { Chat, ChatType } from './chat/Chat';
 import Human from './entity/Human';
 import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
 import type ClientConnection from './network/ClientConnection';
-import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import { ChangeDimensionPacket } from './network/Packets';
 import PlayerSession from './network/PlayerSession';
+import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import MovementType from './network/type/MovementType';
 import PlayStatusType from './network/type/PlayStatusType';
 import TextType from './network/type/TextType';
 import type Device from './utils/Device';
-import type Skin from './utils/skin/Skin';
 import Timer from './utils/Timer';
+import type Skin from './utils/skin/Skin';
 import type { World } from './world/';
-import { Gamemode } from './world/';
-import type Chunk from './world/chunk/Chunk';
 import CoordinateUtils from './world/CoordinateUtils';
-
-import { Chat, ChatType } from './chat/Chat';
-import type Server from './Server';
+import type Chunk from './world/chunk/Chunk';
 
 /**
  * Default spawn view distance used in vanilla
@@ -37,32 +36,23 @@ export default class Player extends Human {
      * Timer used for various metrics.
      */
     private timer: Timer;
-
     private connected = false;
-    public username = {
-        prefix: '<',
-        suffix: '>',
-        name: ''
-    };
-
-    public locale = '';
-    public randomId = 0;
 
     public xuid = '';
+    public randomId = 0;
+
+    public locale = '';
     public skin: Skin | null = null;
 
     public viewDistance = 0;
-    public gamemode = 0;
+    public gamemode: Gametype = Gametype.WORLD_DEFAULT;
 
     private onGround = false;
     private flying = false;
     private sneaking = false;
 
-    public platformChatId = '';
-
+    public platformChatId = ''; // TODO: read this value from Login
     public device: Device | null = null;
-
-    public cacheSupport = false;
 
     public readonly chunkSendQueue = new Set<Chunk>();
 
@@ -99,7 +89,7 @@ export default class Player extends Human {
         const playerData = await this.getWorld().getPlayerData(this);
 
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
-        this.gamemode = Gamemode.getGamemodeId(playerData.gamemode || this.server.getConfig().getGamemode());
+        this.gamemode = getGametypeId(playerData.gamemode || this.server.getConfig().getGamemode());
 
         this.setPosition({
             position: playerData.position
@@ -273,12 +263,13 @@ export default class Player extends Human {
     }
 
     public async kick(reason = 'unknown reason'): Promise<void> {
-        this.server.getLogger().verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`);
+        await this.disable();
         await this.networkSession.kick(reason);
+        this.server.getLogger().verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`);
     }
 
     public async sendSettings(): Promise<void> {
-        await this.getNetworkSession().sendGamemode(this.gamemode);
+        await this.getNetworkSession().sendGamemode();
 
         await Promise.all(
             this.server
@@ -296,7 +287,7 @@ export default class Player extends Human {
      */
     public async sendSpawn() {
         await this.sendPosition();
-        await this.setGamemode(this.gamemode);
+        await this.setGamemode();
         await this.getNetworkSession().sendInventory();
         await this.sendSettings();
     }
@@ -322,15 +313,17 @@ export default class Player extends Human {
         });
     }
 
-    public async setGamemode(mode: number): Promise<void> {
+    public async setGamemode(mode?: Gametype): Promise<void> {
+        mode ??= this.gamemode;
+
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.server.post(['playerSetGamemode', event]);
         if (event.isCancelled()) return;
 
         this.gamemode = event.getGamemode();
-        await this.networkSession.sendGamemode(this.gamemode);
+        await this.networkSession.sendGamemode();
 
-        if (this.gamemode === Gamemode.Creative || this.gamemode === Gamemode.Spectator) {
+        if (this.gamemode === Gametype.CREATIVE || this.gamemode === Gametype.SPECTATOR) {
             this.metadata.setCanFly(true);
         } else {
             this.metadata.setCanFly(false);
@@ -338,10 +331,8 @@ export default class Player extends Human {
         }
 
         await this.sendSettings();
-    }
-
-    public getGamemode(): string {
-        return Gamemode.getGamemodeName(this.gamemode).toLowerCase();
+        await this.networkSession.sendGamemode();
+        await this.networkSession.sendMetadata();
     }
 
     public getNetworkSession(): PlayerSession {
@@ -353,11 +344,11 @@ export default class Player extends Human {
     }
 
     public getName(): string {
-        return this.username.name;
+        return this.metadata.nameTag;
     }
 
     public getFormattedUsername(): string {
-        return `${this.username.prefix}${this.username.name}${this.username.suffix}`;
+        return `<${this.getName()}>`;
     }
 
     public getPermissions(): string[] {

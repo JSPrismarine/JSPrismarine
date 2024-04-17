@@ -3,12 +3,12 @@ import { Suggestions } from '@jsprismarine/brigadier';
 import CommandParameter, { CommandParameterFlags, CommandParameterType } from '../network/type/CommandParameter';
 
 import { Vector3 } from '@jsprismarine/math';
+import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import type Player from '../Player';
 import type Server from '../Server';
 import { CommandEnum } from '../network/type/CommandEnum';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
-import { Gamemode } from '../world/';
 
 export abstract class CommandArgument {
     public getReadableType(): string {
@@ -34,10 +34,7 @@ export class CommandArgumentGamemode implements CommandArgument {
     }
 
     public parse(reader: StringReader, _context: CommandContext<Player>) {
-        const gm = reader.readString();
-
-        Gamemode.getGamemodeId(gm);
-        return gm;
+        return getGametypeName(getGametypeId(reader.readString()));
     }
     public async listSuggestions(_context: any, _builder: any) {
         // TODO

@@ -1,5 +1,6 @@
-import type { Entity } from '../entity/Entity';
+import { getGametypeName } from '@jsprismarine/minecraft';
 import type Player from '../Player';
+import type { Entity } from '../entity/Entity';
 
 /**
  * Parse target selector argument.
@@ -112,8 +113,8 @@ const ParseTargetSelector = ({
                     (entity) =>
                         entity.isPlayer() &&
                         (filter.reverse
-                            ? (entity as Player).getGamemode() !== filter.value
-                            : (entity as Player).getGamemode() === filter.value)
+                            ? getGametypeName((entity as Player).gamemode).toLowerCase() !== filter.value.toLowerCase()
+                            : getGametypeName((entity as Player).gamemode).toLowerCase() === filter.value.toLowerCase())
                 );
                 break;
 

@@ -1,5 +1,4 @@
 import AnimateHandler from './handler/AnimateHandler';
-import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
 import ContainerCloseHandler from './handler/ContainerCloseHandler';
 import EmoteListHandler from './handler/EmoteListHandler';
@@ -23,7 +22,6 @@ import TickSyncHandler from './handler/TickSyncHandler';
 
 export {
     AnimateHandler,
-    ClientCacheStatusHandler,
     CommandRequestHandler,
     ContainerCloseHandler,
     EmoteListHandler,

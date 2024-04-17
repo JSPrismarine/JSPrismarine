@@ -2,11 +2,11 @@ import { Chat, ChatType } from '../../chat/Chat';
 import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
 
+import { getGametypeId } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
-import { Gamemode } from '../../world/';
 import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
@@ -51,8 +51,8 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             const startGame = new StartGamePacket();
             startGame.entityId = player.getRuntimeId();
             startGame.runtimeEntityId = player.getRuntimeId();
-            startGame.gamemode = Gamemode.getGamemodeId(player.getGamemode());
-            startGame.defaultGamemode = Gamemode.getGamemodeId(server.getConfig().getGamemode());
+            startGame.gamemode = player.gamemode;
+            startGame.defaultGamemode = getGametypeId(server.getConfig().getGamemode());
 
             const worldSpawnPos = await world.getSpawnPosition();
             startGame.worldSpawnPos = worldSpawnPos;
@@ -96,7 +96,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             // TODO: player fog packet
 
-            await session.sendAttributes(player.getAttributeManager().getDefaults());
+            await session.sendAttributes();
             await session.sendMetadata();
             await session.sendAbilities();
             await session.sendCreativeContents();

@@ -31,6 +31,9 @@ export class EntityLike extends Position {
      * @param {bigint} options.runtimeId - The entity's runtime id.
      * @param {Server} options.server - The server instance.
      * @param {World} [options.world] - The world the entity belongs to.
+     * @param {number} [options.pitch=0] - The pitch.
+     * @param {number} [options.yaw=0] - The yaw.
+     * @param {number} [options.headYaw=0] - The head yaw.
      * @returns {EntityLike} The entity-like instance.
      */
     public constructor({
@@ -115,45 +118,6 @@ export class EntityLike extends Position {
             )
         ];
     }
-
-    /**
-     * Get entities within a radius of the current entity.
-     * @param {number} radius - The radius.
-     * @returns {Promise<Entity[]>} A promise that resolves with the entities within the specified radius.
-     * @example
-     * ```typescript
-     * const nearbyEntities = await entity.getNearbyEntities(10);
-     * console.log('Nearby entities:', nearbyEntities);
-     * ```
-     */
-    public async getNearbyEntities(radius: number): Promise<Entity[]> {
-        const entities = this.getWorld().getEntities();
-        const position = this.getPosition();
-
-        const min = new Vector3(position.getX() - radius, position.getY() - radius, position.getZ() - radius);
-        const max = new Vector3(position.getX() + radius, position.getY() + radius, position.getZ() + radius);
-
-        const res = entities.filter((entity) => {
-            if (entity.getRuntimeId() === this.runtimeId) return false;
-
-            const position = entity.getPosition();
-
-            if (
-                min.getX() < position.getX() &&
-                max.getX() > position.getX() &&
-                min.getY() < position.getY() &&
-                max.getY() > position.getY() &&
-                min.getZ() < position.getZ() &&
-                max.getZ() > position.getZ()
-            )
-                return true;
-
-            return false;
-        });
-
-        // TODO: sort entities based on distance
-        return res;
-    }
 }
 
 /**
@@ -191,9 +155,9 @@ export class Entity extends EntityLike {
     public readonly metadata = new Metadata();
 
     /**
-     * @internal
+     * Entity attributes.
      */
-    protected readonly attributes = new Attributes();
+    public readonly attributes = new Attributes();
 
     /**
      * Entity constructor.
@@ -263,15 +227,14 @@ export class Entity extends EntityLike {
 
     /**
      * Fired every tick from the event subscription in the constructor.
-     * @param {number} tick - The current world-tick.
+     * @param {number} _tick - The current world-tick.
      * @returns {Promise<void>} A promise that resolves when the update is complete.
      * @example
      * ```typescript
      * entity.update(10);
      * ```
      */
-    // eslint-disable-next-line unused-imports/no-unused-vars
-    public async update(tick: number): Promise<void> {}
+    public async update(_tick: number): Promise<void> {}
 
     /**
      * Get the server instance.
@@ -284,14 +247,6 @@ export class Entity extends EntityLike {
      */
     public getServer(): Server {
         return this.server;
-    }
-
-    /**
-     * @deprecated
-     * @returns {Attributes} The attribute manager.
-     */
-    public getAttributeManager(): Attributes {
-        return this.attributes;
     }
 
     /**
@@ -356,9 +311,7 @@ export class Entity extends EntityLike {
      * ```
      */
     public sendMessage(message: string, type: TextType = TextType.Raw): void {
-        this.server
-            .getLogger()
-            .warn(`Entity/sendMessage is not implemented: (message: ${message}, type: ${type})`, 'Entity/sendMessage');
+        this.server.getLogger().warn(`Entity/sendMessage is not implemented: (message: ${message}, type: ${type})`);
     }
 
     /**

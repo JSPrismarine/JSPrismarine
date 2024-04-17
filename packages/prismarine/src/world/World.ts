@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import minifyJson from 'strip-json-comments';
 
 import { Vector3 } from '@jsprismarine/math';
+import { getGametypeName } from '@jsprismarine/minecraft';
 import type { Block, Player, Server, Service } from '../';
 import { Timer, UUID } from '../';
 import { BlockMappings } from '../block/BlockMappings';
@@ -529,9 +530,7 @@ export class World implements Service {
             );
             return JSON.parse(minifyJson(raw.toString())) as Partial<WorldPlayerData>;
         } catch (error: any) {
-            this.server
-                .getLogger()
-                .debug(`PlayerData is missing for player ${player.getXUID()}`, 'World/getPlayerData');
+            this.server.getLogger().debug(`PlayerData is missing for player ${player.getXUID()}`);
 
             const spawn = await this.getSpawnPosition();
             return {
@@ -551,7 +550,7 @@ export class World implements Service {
         const data = {
             uuid: player.getUUID(),
             username: player.getName(),
-            gamemode: player.getGamemode(),
+            gamemode: getGametypeName(player.gamemode),
             position: {
                 x: player.getX(),
                 y: player.getY(),
