@@ -34,10 +34,9 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             return;
         }
 
-        const world = server.getWorldManager().getDefaultWorld()!;
         const player = new Player({
             connection,
-            world,
+            world: server.getWorldManager().getDefaultWorld()!,
             server,
             uuid: packet.identity
         });
@@ -70,9 +69,6 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             return;
         }
 
-        await world.addEntity(player);
-        await player.enable();
-
         // Update the player connection to be recognized as a connected player
         const session = connection.initPlayerConnection(server, player);
         await session.sendPlayStatus(PlayStatusType.LoginSuccess);
@@ -84,7 +80,5 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         resourcePacksInfo.hasScripts = false;
         resourcePacksInfo.hasAddonPacks = false;
         await connection.sendDataPacket(resourcePacksInfo, true);
-
-        await player.sendSpawn();
     }
 }

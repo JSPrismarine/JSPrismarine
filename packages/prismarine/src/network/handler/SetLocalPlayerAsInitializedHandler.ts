@@ -10,8 +10,18 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
     public async handle(
         _packet: SetLocalPlayerAsInitializedPacket,
         server: Server,
-        _session: PlayerSession
+        session: PlayerSession
     ): Promise<void> {
-        server.getLogger().verbose('TODO: SetLocalPlayerAsInitializedHandler');
+        const player = session.getPlayer();
+        const world = server.getWorldManager().getDefaultWorld();
+
+        // Add player to the world.
+        await world.addEntity(player);
+
+        // Run pre-spawn events.
+        await player.enable();
+
+        // Send the spawn packets.
+        await player.sendSpawn();
     }
 }

@@ -1,11 +1,11 @@
-import { defineConfig, mergeConfig } from 'vite';
 import { globSync } from 'glob';
+import { defineConfig, mergeConfig } from 'vite';
 
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import pkg from './package.json' assert { type: 'json' };
 import { codecovVitePlugin } from '@codecov/vite-plugin';
+import pkg from './package.json' assert { type: 'json' };
 
 import base from '../../vite.config';
 
@@ -34,7 +34,7 @@ export default mergeConfig(
         build: {
             lib: {
                 entry: input,
-                formats: ['es', 'cjs'],
+                formats: ['es'],
                 fileName: (format, name) => `${name}.${format}.${format === 'es' ? 'js' : 'cjs'}`,
                 name: pkg.name
             },
