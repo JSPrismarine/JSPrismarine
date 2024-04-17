@@ -56,13 +56,6 @@ export interface WorldPlayerData {
         yaw: number;
         headYaw: number;
     };
-    inventory: Array<{
-        id: string;
-        numeric_id: number;
-        numeric_meta: number;
-        count: number;
-        position: number;
-    }>;
 }
 
 export class World implements Service {
@@ -123,7 +116,8 @@ export class World implements Service {
                     new Entity({
                         world: this,
                         server: this.server,
-                        uuid: entityData.uuid
+                        uuid: entityData.uuid,
+                        ...entityData.position
                     })
                 );
             }
@@ -376,6 +370,9 @@ export class World implements Service {
         );
     }
 
+    /**
+     * Sends the current time to all players in the world.
+     */
     public async sendTime(): Promise<void> {
         // Try to send it at the same time to all
         await Promise.all(this.getPlayers().map((player) => player.getNetworkSession().sendTime(this.getTicks())));
@@ -383,20 +380,22 @@ export class World implements Service {
 
     /**
      * Adds an entity to the level.
+     * @param {Entity} entity - The entity to add.
      */
     public async addEntity(entity: Entity): Promise<void> {
         if (!entity.isPlayer()) await entity.sendSpawn();
+        else await Promise.all(this.getEntities().map((e) => e.sendSpawn(entity as Player)));
 
         this.entities.set(entity.getRuntimeId(), entity);
-        // const chunk = await this.getChunkAt(entity.getX(), entity.getZ(), true);
-        // chunk.addEntity(entity as any);
     }
 
     /**
      * Removes an entity from the level.
+     * @param {Entity} entity - The entity to remove.
      */
     public async removeEntity(entity: Entity): Promise<void> {
         if (!entity.isPlayer()) await entity.sendDespawn();
+        else await Promise.all(this.getEntities().map((e) => e.sendDespawn(entity as Player)));
 
         this.entities.delete(entity.getRuntimeId());
     }
@@ -497,7 +496,10 @@ export class World implements Service {
                     position: {
                         x: entity.getX(),
                         y: entity.getY(),
-                        z: entity.getZ()
+                        z: entity.getZ(),
+                        pitch: entity.pitch,
+                        yaw: entity.yaw,
+                        headYaw: entity.headYaw
                     }
                 }))
         };
@@ -540,8 +542,7 @@ export class World implements Service {
                     pitch: 0,
                     yaw: 0,
                     headYaw: 0
-                },
-                inventory: []
+                }
             };
         }
     }
@@ -557,23 +558,7 @@ export class World implements Service {
                 pitch: player.pitch,
                 yaw: player.yaw,
                 headYaw: player.headYaw
-            },
-            inventory: player
-                .getInventory()
-                .getItems(true)
-                .map((entry, index) => {
-                    const item = entry.getItem();
-                    const count = entry.getCount();
-
-                    return {
-                        id: item.getName(),
-                        numeric_id: item.getId(),
-                        numeric_meta: item.meta,
-                        count,
-                        position: index
-                    };
-                })
-                .filter((a) => (a as any)?.numeric_id > 0)
+            }
         } as WorldPlayerData;
 
         try {

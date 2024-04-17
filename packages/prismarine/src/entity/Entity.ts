@@ -19,9 +19,9 @@ export class EntityLike extends Position {
     protected readonly runtimeId: bigint;
     protected readonly server: Server;
 
-    public pitch = 0;
-    public yaw = 0;
-    public headYaw = 0;
+    public pitch: number;
+    public yaw: number;
+    public headYaw: number;
 
     /**
      * EntityLike constructor.
@@ -36,15 +36,26 @@ export class EntityLike extends Position {
     public constructor({
         uuid,
         runtimeId,
+        pitch = 0,
+        yaw = 0,
+        headYaw = 0,
         ...options
     }: ConstructorParameters<typeof Position>[0] & {
         uuid?: string;
         runtimeId: bigint;
+        pitch?: number;
+        yaw?: number;
+        headYaw?: number;
     }) {
         super(options); // TODO
-        this.server = options.server;
+
         this.uuid = uuid ?? UUID.randomString();
         this.runtimeId = runtimeId;
+        this.server = options.server;
+
+        this.pitch = pitch;
+        this.yaw = yaw;
+        this.headYaw = headYaw;
     }
 
     /**
@@ -301,12 +312,12 @@ export class Entity extends EntityLike {
         packet.yaw = this.yaw;
         packet.headYaw = this.headYaw;
         packet.metadata = this.metadata;
-        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(packet)));
+        await Promise.all(players.map(async (p) => p.getNetworkSession().send(packet)));
     }
 
     /**
      * Despawn the entity.
-     * @param {Player} [player] - The player to send the packet to.
+     * @param {Player} [player] - The player to send the packet to, if not specified, all players in the world will receive the packet.
      * @returns {Promise<void>} A promise that resolves when the entity is despawned.
      */
     public async sendDespawn(player?: Player): Promise<void> {
@@ -314,7 +325,7 @@ export class Entity extends EntityLike {
 
         const packet = new RemoveActorPacket();
         packet.uniqueEntityId = this.runtimeId;
-        await Promise.all(players.map(async (p) => p.getNetworkSession().getConnection().sendDataPacket(packet)));
+        await Promise.all(players.map(async (player) => player.getNetworkSession().send(packet)));
     }
 
     /**
@@ -334,7 +345,7 @@ export class Entity extends EntityLike {
                     packet.rotationX = 0;
                     packet.rotationY = 0;
                     packet.rotationZ = 0;
-                    await player.getNetworkSession().getConnection().sendDataPacket(packet);
+                    await player.getNetworkSession().send(packet);
                 })
         );
     }

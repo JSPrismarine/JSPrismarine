@@ -40,6 +40,7 @@ export default class Chunk {
 
     /**
      * Returns the highest empty sub chunk (so we don't send empty sub chunks).
+     * @returns {number} The highest empty sub chunk.
      */
     public getTopEmpty(): number {
         let topEmpty = MAX_SUBCHUNKS - 1;
@@ -54,8 +55,7 @@ export default class Chunk {
 
     /**
      * Returns the Chunk slice at the given layer.
-     *
-     * @param y - layer
+     * @param {number} y - The layer to get.
      */
     public getSubChunk(y: number): SubChunk | null {
         if (y < 0 || y > MAX_SUBCHUNKS) {
@@ -81,42 +81,34 @@ export default class Chunk {
     /**
      * Returns block legacy id (DATA) in the corresponding sub chunk.
      * Use world to get the actual block instance (this is to keep code clean)
-     *
-     * @param bx - block x
-     * @param by - block y
-     * @param bz - block z
-     * @param layer - block storage layer (0 for blocks, 1 for liquids)
+     * @param {Vector3 | number} bx - block x
+     * @param {number} [by=0] - block y
+     * @param {number} [bz=0] - block z
+     * @param {number} [layer=0] - block storage layer (0 for blocks, 1 for liquids)
      */
-    public getBlock(bx: Vector3 | number, by: number = 0, bz: number = 0, layer = 0): LegacyId {
-        if (bx instanceof Vector3) {
-            return this.getBlock(bx.getX(), bx.getY(), bx.getZ(), layer);
+    public getBlock(x: Vector3 | number, y: number = 0, z: number = 0, layer = 0): LegacyId {
+        if (x instanceof Vector3) {
+            return this.getBlock(x.getX(), x.getY(), x.getZ(), layer);
         }
 
-        const subChunk = this.getSubChunk(Math.floor(by / 16));
-        if (subChunk === null) {
-            return BlockMappings.getLegacyId(BlockMappings.getRuntimeId('minecraft:air'));
-        }
-        return subChunk.getBlock(bx, by & 0xf, bz, layer);
+        const subChunk = this.getSubChunk(Math.floor(y / 16));
+        if (!subChunk) return BlockMappings.getLegacyId(BlockMappings.getRuntimeId('minecraft:air'));
+        return subChunk.getBlock(x, y & 0xf, z, layer);
     }
 
     /**
      * Sets a block into the chunk by its runtime Id.
-     *
-     * @param bx - block x
-     * @param by - block y
-     * @param bz - block z
-     * @param block - block to set
-     * @param layer - block storage layer (0 for blocks, 1 for liquids)
+     * @param {number} x - block x
+     * @param {number} y - block y
+     * @param {number} z - block z
+     * @param {Block} block - block to set
+     * @param {number} [layer=0] - block storage layer (0 for blocks, 1 for liquids)
      */
-    public setBlock(bx: number, by: number, bz: number, block: Block, layer = 0): void {
-        let subChunk = this.getSubChunk(Math.floor(by / 16));
-        if (subChunk === null) {
-            if (block.getName() === 'minecraft:air') {
-                return;
-            }
-            subChunk = this.getOrCreateSubChunk(by >> 4);
-        }
-        subChunk.setBlock(bx, by & 0xf, bz, BlockMappings.getRuntimeId(block.getName()), layer);
+    public setBlock(x: number, y: number, z: number, block: Block, layer = 0): void {
+        let subChunk = this.getSubChunk(Math.floor(y / 16));
+        if (!subChunk) subChunk = this.getOrCreateSubChunk(y >> 4);
+        subChunk.setBlock(x, y & 0xf, z, BlockMappings.getRuntimeId(block.getName()), layer);
+
         this.hasChanged = true;
     }
 
@@ -141,12 +133,12 @@ export default class Chunk {
         return [Number(BigInt.asIntN(32, packed >> 32n)), Number(BigInt.asIntN(32, packed & 0xffffffffn))];
     }
 
-    public networkSerialize(_forceAll = false): Buffer {
+    public networkSerialize(): Buffer {
         const stream = new BinaryStream();
 
-        // For some reasons we need this hack since 1.18
+        // For some reasons we need this hack since 1.18,
+        // seems like the client now has some negative space.
         // TODO: figure out what is this
-        // seems like the client now has some negative space
         for (let y = 0; y < 4; ++y) {
             stream.writeByte(8); // subchunk version 8
             stream.writeByte(0); // 0 layers (all air)
@@ -165,15 +157,15 @@ export default class Chunk {
         stream.writeByte(0); // border ?
 
         // TODO: tiles
-
         return stream.getBuffer();
     }
 
     /**
      * Deserialize network stream into chunk
      * useful for client applications and/or our Filesystem impl
-     *
-     * @param stream - the network stream
+     * @param {BinaryStream} stream - the network stream
+     * @param {number} [x] - the chunk x coordinate
+     * @param {number} [z] - the chunk z coordinate
      */
     public static networkDeserialize(stream: BinaryStream, x?: number, z?: number): Chunk {
         stream.read(8); // skip fake subchunks

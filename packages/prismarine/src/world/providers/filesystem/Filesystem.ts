@@ -35,7 +35,7 @@ export default class Filesystem extends BaseProvider {
         // FIXME: Handle failures.
         await fs.promises.writeFile(
             path.join(this.getPath(), 'chunks', `${chunk.getX()}_${chunk.getZ()}.dat`),
-            chunk.networkSerialize(true),
+            chunk.networkSerialize(),
             { flag: 'w+', encoding: 'utf-8', flush: true }
         );
     }

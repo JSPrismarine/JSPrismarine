@@ -55,7 +55,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         try {
             await server
                 .getSessionManager()
-                .getPlayerByExactName(packet.displayName)
+                .findPlayer({ name: packet.displayName, xuid: packet.XUID })
                 ?.kick('Logged in from another location');
         } catch {}
 
