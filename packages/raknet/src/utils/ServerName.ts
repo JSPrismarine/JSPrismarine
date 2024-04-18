@@ -5,6 +5,7 @@ export class ServerName {
     private protocol;
     private version;
     private maxPlayers: number;
+    private onlinePlayers: number = 0;
     private gamemode: string;
     private serverId = 0n;
 
@@ -87,7 +88,14 @@ export class ServerName {
      * @returns {number} The amount of online players.
      */
     public getOnlinePlayerCount(): number {
-        return this.server.getPlayerManager().getOnlinePlayers().length;
+        return this.onlinePlayers;
+    }
+    /**
+     * Set the amount of online players.
+     * @param {number} count - The amount of online players.
+     */
+    public setOnlinePlayerCount(count: number): void {
+        this.onlinePlayers = count;
     }
 
     /**

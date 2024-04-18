@@ -14,14 +14,16 @@ export class PrismarineTransport extends Transport {
             return next();
         }
 
-        if (this.buffer.length > 0) {
-            for (const message of this.buffer) {
-                this.console.write(message[Symbol.for('message')]);
+        try {
+            if (this.buffer.length > 0) {
+                for (const message of this.buffer) {
+                    this.console.write(message[Symbol.for('message')]);
+                }
+                this.buffer = [];
             }
-            this.buffer = [];
-        }
 
-        this.console.write(info[Symbol.for('message')]);
+            this.console.write(info[Symbol.for('message')]);
+        } catch {}
         return next();
     }
 }

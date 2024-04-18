@@ -1,10 +1,11 @@
-import Dgram, { type RemoteInfo } from 'node:dgram';
-import BitFlags from './protocol/BitFlags';
 import { EventEmitter } from 'events';
-import type Packet from './protocol/Packet';
+import Dgram, { type RemoteInfo } from 'node:dgram';
 import { RAKNET_TPS } from './Constants';
 import RakNetSession from './Session';
+import BitFlags from './protocol/BitFlags';
 import { OfflineHandler } from './protocol/OfflineHandler';
+import type Packet from './protocol/Packet';
+import type { ServerName } from './utils/ServerName';
 
 type Logger = {
     info: Function;
@@ -20,20 +21,17 @@ export default class ServerSocket extends EventEmitter {
     private readonly guid: bigint;
     private readonly sessions: Set<RakNetSession> = new Set();
     private ticker: NodeJS.Timeout | undefined;
-    private serverName: string = 'RakNet';
 
     private readonly offlineHandler = new OfflineHandler(this);
 
     public constructor(
         private maxConnections: number,
         private readonly onlineMode: boolean,
+        public readonly serverName: ServerName,
         private readonly logger: Logger
     ) {
         super();
-        this.socket = Dgram.createSocket('udp4');
-        // Dereferencing the socket will allow
-        // us closing the process while listening
-        this.socket.unref();
+        this.socket = Dgram.createSocket('udp4').unref();
         this.guid = Buffer.allocUnsafe(8).readBigInt64BE();
 
         if (this.onlineMode) {
@@ -120,38 +118,17 @@ export default class ServerSocket extends EventEmitter {
         this.maxConnections = allowed;
     }
 
-    /**
-     * Returns the name of the server.
-     * @returns {string} the name of the server.
-     */
-    public getServerName() {
-        return this.serverName;
-    }
-
-    /**
-     * Sets the name of the server.
-     * @param {string} name - the name of the server.
-     */
-    public setServerName(name: string) {
-        this.serverName = name;
-    }
-
     public addSession(rinfo: RemoteInfo, mtuSize: number, incomingGuid: bigint) {
         this.sessions.add(new RakNetSession(this, mtuSize, rinfo, incomingGuid));
-        this.logger.verbose(
-            `Session created for client=${rinfo.address}:${rinfo.port}, mtu=${mtuSize}`,
-            'RakNet/ServerSocket/addSession'
-        );
+        this.logger.verbose(`Session created for client=${rinfo.address}:${rinfo.port}, mtu=${mtuSize}`);
+        this.serverName.setOnlinePlayerCount(this.sessions.size);
     }
 
     public removeSession(session: RakNetSession, reason?: string): void {
-        if (this.sessions.delete(session)) {
-            this.emit('closeConnection', session.getAddress(), reason);
-            this.logger.verbose(
-                `Closed session for client=${session.getAddress()}, reason=${reason}`,
-                'RakNet/ServerSocket/addSession'
-            );
-        }
+        if (!this.sessions.delete(session)) return;
+        this.emit('closeConnection', session.getAddress(), reason);
+        this.logger.verbose(`Closed session for client=${session.getAddress()}, reason=${reason}`);
+        this.serverName.setOnlinePlayerCount(this.sessions.size);
     }
 
     public getLogger(): Logger {
