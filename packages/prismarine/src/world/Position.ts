@@ -36,15 +36,15 @@ export default class Position extends Vector3 {
         this.server = server;
     }
 
-    toString() {
-        return `${super.toString()}, world: §b${this.world?.getName() || 'none'}§r`;
+    public toString() {
+        return `${super.toString()}, world: §b${this.world.getName() || 'none'}§r`;
     }
 
     /**
      * Get the world of the position
      * @returns {World} The world of the position.
      */
-    public getWorld() {
+    public getWorld(): World {
         const world = this.world ?? this.server.getWorldManager().getDefaultWorld();
         assert(world, 'World not found');
         return world;
@@ -54,7 +54,7 @@ export default class Position extends Vector3 {
      * Set the world of the position
      * @param {World} world - The world to set.
      */
-    public async setWorld(world: World) {
+    public setWorld(world: World): void {
         this.world = world;
     }
 }
