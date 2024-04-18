@@ -9,7 +9,6 @@ import BatchPacket from './packet/BatchPacket';
 import BiomeDefinitionListPacket from './packet/BiomeDefinitionListPacket';
 import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
-import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
 import CommandRequestPacket from './packet/CommandRequestPacket';
 import ContainerClosePacket from './packet/ContainerClosePacket';
 import ContainerOpenPacket from './packet/ContainerOpenPacket';
@@ -73,7 +72,6 @@ export {
     BiomeDefinitionListPacket,
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
-    ClientCacheStatusPacket,
     CommandRequestPacket,
     ContainerClosePacket,
     ContainerOpenPacket,
