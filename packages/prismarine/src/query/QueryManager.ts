@@ -65,7 +65,8 @@ export class QueryManager {
                         Buffer.from(
                             `\0${[
                                 'hostname',
-                                this.server.getConfig().getMotd(),
+                                this.server.getMetadata().getMotd(),
+
                                 'gametype',
                                 'SMP',
                                 'game_id',
@@ -77,10 +78,9 @@ export class QueryManager {
                                 'map',
                                 this.server.getWorldManager().getDefaultWorld()!.getName(),
                                 'numplayers',
-                                0,
-                                // this.server.getRaknet().getName().getOnlinePlayerCount(),
+                                this.server.getMetadata().getOnlinePlayerCount(),
                                 'maxplayers',
-                                this.server.getConfig().getMaxPlayers(),
+                                this.server.getMetadata().getMaxPlayerCount(),
                                 'hostport',
                                 this.server.getConfig().getServerPort(),
                                 'hostip',

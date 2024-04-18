@@ -1,4 +1,4 @@
-import { RakNetListener } from '@jsprismarine/raknet';
+import { RakNetListener, ServerName } from '@jsprismarine/raknet';
 import Console from './Console';
 import SessionManager from './SessionManager';
 import BanManager from './ban/BanManager';
@@ -24,7 +24,6 @@ import WorldManager from './world/WorldManager';
 
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import type { Config } from './config/Config';
-import { buildRakNetServerName } from './utils/ServerName';
 
 import type { Logger } from '@jsprismarine/logger';
 import { version } from '../package.json' assert { type: 'json' };
@@ -144,6 +143,10 @@ export default class Server extends EventEmitter {
         this.removeAllListeners();
     }
 
+    public getMetadata() {
+        return this.getRaknet().serverName;
+    }
+
     /**
      * Reloads the server.
      * @returns {Promise<void>} A promise that resolves when the server is reloaded.
@@ -170,9 +173,9 @@ export default class Server extends EventEmitter {
         this.raknet = new RakNetListener(
             this.getConfig().getMaxPlayers(),
             this.getConfig().getOnlineMode(),
+            new ServerName(this),
             this.getLogger()
         );
-        this.raknet.setServerName(buildRakNetServerName(this));
         this.raknet.start(serverIp, port);
 
         this.raknet.on('openConnection', async (session: RakNetSession) => {
@@ -294,8 +297,6 @@ export default class Server extends EventEmitter {
 
             // Update RakNet server name.
             if (this.getTick() % ticksPerSecond === 0) {
-                this.raknet.setServerName(buildRakNetServerName(this));
-
                 // Update the process title with TPS and tick.
                 process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
             }
