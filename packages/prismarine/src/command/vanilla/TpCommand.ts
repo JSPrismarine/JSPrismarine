@@ -2,8 +2,8 @@ import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
 import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArguments';
 
-import { Vector3 } from '@jsprismarine/math';
-import type Player from '../../Player';
+import type { Vector3 } from '@jsprismarine/math';
+import Player from '../../Player';
 import MovementType from '../../network/type/MovementType';
 import { Command } from '../Command';
 
@@ -23,9 +23,10 @@ export default class TpCommand extends Command {
                 .then(
                     argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
                         async (context) => {
-                            const source = context.getSource() as Player;
+                            const source = context.getSource();
 
-                            if (!source.isPlayer()) throw new Error(`This command can't be run from the console`);
+                            if (!(source instanceof Player))
+                                throw new Error(`This command can't be run from the console`);
 
                             const position = context.getArgument('position') as Vector3;
 
@@ -114,10 +115,11 @@ export default class TpCommand extends Command {
                             const source = context.getSource() as Player;
                             const target = context.getArgument('player')?.[0] as Player;
 
-                            if (!source.isPlayer()) throw new Error(`This command can't be run from the console`);
+                            if (!(source instanceof Player))
+                                throw new Error(`This command can't be run from the console`);
 
                             await source.setPosition({
-                                position: new Vector3(target.getX(), target.getY(), target.getZ()),
+                                position: target.getPosition(),
                                 type: MovementType.Teleport
                             });
                             return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;

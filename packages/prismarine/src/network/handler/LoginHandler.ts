@@ -1,5 +1,6 @@
-import { Player } from '../../';
+import { Player, UUID } from '../../';
 import type Server from '../../Server';
+import { Position } from '../../world/Position';
 import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
 import { PlayStatusPacket } from '../Packets';
@@ -34,12 +35,9 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             return;
         }
 
-        const player = new Player({
-            connection,
-            world: server.getWorldManager().getDefaultWorld()!,
-            server,
-            uuid: packet.identity
-        });
+        const defWorld = server.getWorldManager().getDefaultWorld();
+        const spawnPos = Position.fromVector3(await defWorld.getSpawnPosition(), defWorld);
+        const player = new Player(server, connection, UUID.fromString(packet.identity), spawnPos);
 
         player.setName(packet.displayName);
         player.xuid = packet.XUID;

@@ -1,4 +1,4 @@
-import type { PlayerSession } from '../../';
+import type { Player, PlayerSession } from '../../';
 import type Server from '../../Server';
 import Identifiers from '../Identifiers';
 import type LevelSoundEventPacket from '../packet/LevelSoundEventPacket';
@@ -13,7 +13,7 @@ export default class LevelSoundEventHandler implements PacketHandler<LevelSoundE
                 .getPlayer()
                 .getWorld()
                 .getPlayers()
-                .map((target) => target.getNetworkSession().send(packet))
+                .map((target: Player) => target.getNetworkSession().send(packet))
         );
     }
 }
