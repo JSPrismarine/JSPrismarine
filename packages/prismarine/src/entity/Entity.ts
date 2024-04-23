@@ -1,140 +1,40 @@
-import { Vector3 } from '@jsprismarine/math';
-import type Player from '../Player';
+import type { Vector3 } from '@jsprismarine/math';
 import type Server from '../Server';
-import AddActorPacket from '../network/packet/AddActorPacket';
-import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
-import RemoveActorPacket from '../network/packet/RemoveActorPacket';
-import TextType from '../network/type/TextType';
-import UUID from '../utils/UUID';
-import Position from '../world/Position';
+import type { Position } from '../world/Position';
+import type { World } from '../world/World';
 import { Attributes } from './Attribute';
 import { Metadata, MetadataFlag } from './Metadata';
-
-/**
- * Entity-like class.
- * @internal
- */
-export class EntityLike extends Position {
-    protected readonly uuid: string;
-    protected readonly runtimeId: bigint;
-    protected readonly server: Server;
-
-    public pitch: number;
-    public yaw: number;
-    public headYaw: number;
-
-    /**
-     * EntityLike constructor.
-     * @constructor
-     * @param {object} options - The entity-like options.
-     * @param {string} options.uuid - The entity's runtime id.
-     * @param {bigint} options.runtimeId - The entity's runtime id.
-     * @param {Server} options.server - The server instance.
-     * @param {World} [options.world] - The world the entity belongs to.
-     * @param {number} [options.pitch=0] - The pitch.
-     * @param {number} [options.yaw=0] - The yaw.
-     * @param {number} [options.headYaw=0] - The head yaw.
-     * @returns {EntityLike} The entity-like instance.
-     */
-    public constructor({
-        uuid,
-        runtimeId,
-        pitch = 0,
-        yaw = 0,
-        headYaw = 0,
-        ...options
-    }: ConstructorParameters<typeof Position>[0] & {
-        uuid?: string;
-        runtimeId: bigint;
-        pitch?: number;
-        yaw?: number;
-        headYaw?: number;
-    }) {
-        super(options); // TODO
-
-        this.uuid = uuid ?? UUID.randomString();
-        this.runtimeId = runtimeId;
-        this.server = options.server;
-
-        this.pitch = pitch;
-        this.yaw = yaw;
-        this.headYaw = headYaw;
-    }
-
-    /**
-     * Get the entity's runtime id.
-     * @returns {bigint} The entity's runtime id.
-     */
-    public getRuntimeId(): bigint {
-        return this.runtimeId;
-    }
-
-    /**
-     * Get the server instance.
-     * @returns {Server} The server instance.
-     */
-    public getServer(): Server {
-        return this.server;
-    }
-
-    /**
-     * Get the entity's position.
-     * @returns {Vector3} The entity's position.
-     * @example
-     * ```typescript
-     * const position = entity.getPosition();
-     * ```
-     */
-    public getPosition(): Vector3 {
-        return new Vector3(this.getX(), this.getY(), this.getZ());
-    }
-
-    /**
-     * Returns the nearest entity from the current entity.
-     * @todo Customizable radius
-     * @param {Entity[]} [entities=this.getWorld().getEntities()] - The entities to compare the distance between.
-     * @returns {Entity[]} The nearest entity.
-     * @example
-     * ```typescript
-     * const nearestEntity = entity.getNearestEntity();
-     * console.log('Nearest entity:', nearestEntity);
-     * ```
-     */
-    public getNearestEntity(entities: Entity[] = this.getWorld().getEntities()): Entity[] {
-        const position = new Vector3(this.getX(), this.getY(), this.getZ());
-        const distance = (a: Vector3, b: Vector3) =>
-            Math.hypot(b.getX() - a.getX(), b.getY() - a.getY(), b.getZ() - a.getZ());
-
-        const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
-            const distances = points.map((e) => distance(target, new Vector3(e.getX(), e.getY(), e.getZ())));
-            const closest = Math.min(...distances);
-            return points.find((_e, i) => distances[i]! - closest < eps)!;
-        };
-
-        return [
-            closest(
-                position,
-                entities.filter((entity) => entity.getRuntimeId() !== this.runtimeId)
-            )
-        ];
-    }
-}
 
 /**
  * The base class for all entities including `Player`.
  * @public
  */
-export class Entity extends EntityLike {
+export class Entity {
+    /**
+     * The entity's namespace ID.
+     * TODO: may break stuff if network serialized.
+     */
+    protected static MOB_ID: string = 'jsprismarine:unknown_entity';
     /**
      * The global runtime id counter.
      * @internal
      */
     public static runtimeIdCount = 0n;
 
+    protected readonly server: Server;
+
     /**
-     * The entity's namespace ID.
+     * The entity's runtime id.
+     * @internal
      */
-    protected static MOB_ID: string = 'jsprismarine:unknown_entity';
+    protected readonly runtimeId: bigint;
+
+    // TODO: convert them to vectors
+    public pitch = 0;
+    public yaw = 0;
+    public headYaw = 0;
+
+    protected position: Position;
 
     /**
      * Get the entity type.
@@ -162,28 +62,17 @@ export class Entity extends EntityLike {
     /**
      * Entity constructor.
      * @constructor
-     * @param {object} options - The entity options.
-     * @param {World} options.world - The world the entity belongs to.
-     * @param {Server} options.server - The server instance.
-     * @param {string} [options.uuid] - The entity's UUID.
+     * @param {Position} position - The entity position.
      * @returns {Entity} The entity instance.
      * @example
      * ```typescript
-     * const entity = new Entity({
-     *     world: server.getWorldManager().getDefaultWorld(),
-     *     server
-     * });
+     * const entity = new Entity(new Position(0, 0, 0, world));
      * ```
      */
-    public constructor({ world, ...options }: Omit<ConstructorParameters<typeof EntityLike>[0], 'runtimeId'>) {
-        Entity.runtimeIdCount += 1n;
-        super({
-            world,
-            ...options,
-            runtimeId: Entity.runtimeIdCount
-        });
-
-        if (world) super.setWorld(world);
+    public constructor(position: Position) {
+        this.runtimeId = Entity.runtimeIdCount += 1n;
+        this.position = position;
+        this.server = position.getWorld().getServer();
     }
 
     public get [Symbol.toStringTag](): string {
@@ -198,7 +87,7 @@ export class Entity extends EntityLike {
      * ```
      */
     public toString() {
-        return `uuid: §a${this.getUUID()}§r, id: §a${this.getRuntimeId()}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, ${super.toString()}`;
+        return `runtimeId: §a${this.getRuntimeId()}§r, name: §b${this.getName()}§r, type: §b${this.getType()}§r, position: §b${this.position.toString()}`;
     }
 
     /**
@@ -215,14 +104,23 @@ export class Entity extends EntityLike {
     }
 
     /**
-     * Get the entity's UUID.
-     * @returns {string} The entity's UUID.
+     * Get the entity's position.
+     * @returns {Vector3} The entity's position.
+     * @example
      * ```typescript
-     * console.log(entity.getUUID());
+     * const position = entity.getPosition();
      * ```
      */
-    public getUUID(): string {
-        return this.uuid;
+    public getPosition(): Vector3 {
+        return this.position;
+    }
+
+    /**
+     * Gets the world that the entity is currently in.
+     * @returns {World} The world object.
+     */
+    public getWorld(): World {
+        return this.position.getWorld();
     }
 
     /**
@@ -236,82 +134,11 @@ export class Entity extends EntityLike {
      */
     public async update(_tick: number): Promise<void> {}
 
-    /**
-     * Get the server instance.
-     * @returns {Server} The server instance.
-     * @example
-     * ```typescript
-     * const server = entity.getServer();
-     * // Do things with the server.
-     * ```
-     */
-    public getServer(): Server {
-        return this.server;
-    }
-
-    /**
-     * Spawn the entity.
-     * @todo `motion`, `pitch` & `yaw` is unimplemented.
-     * @param {Player} [player] - The player to send the packet to.
-     * @returns {Promise<void>} A promise that resolves when the entity is spawned.
-     */
-    public async sendSpawn(player?: Player): Promise<void> {
-        const players: Player[] = player ? [player] : this.getWorld().getPlayers();
-
-        const packet = new AddActorPacket();
-        packet.runtimeEntityId = this.getRuntimeId();
-        packet.type = (this.constructor as any).MOB_ID; // TODO
-        packet.position = this.getPosition();
-        packet.motion = new Vector3(0, 0, 0); // TODO: motion
-        packet.pitch = this.pitch;
-        packet.yaw = this.yaw;
-        packet.headYaw = this.headYaw;
-        packet.metadata = this.metadata;
-        await Promise.all(players.map(async (p) => p.getNetworkSession().send(packet)));
-    }
-
-    /**
-     * Despawn the entity.
-     * @param {Player} [player] - The player to send the packet to, if not specified, all players in the world will receive the packet.
-     * @returns {Promise<void>} A promise that resolves when the entity is despawned.
-     */
-    public async sendDespawn(player?: Player): Promise<void> {
-        const players: Player[] = player ? [player] : this.getWorld().getPlayers();
-
-        const packet = new RemoveActorPacket();
-        packet.uniqueEntityId = this.runtimeId;
-        await Promise.all(players.map(async (player) => player.getNetworkSession().send(packet)));
-    }
-
-    /**
-     * Send the position to all the players in the same world.
-     * @returns {Promise<void>} A promise that resolves when the position is sent.
-     */
     public async sendPosition(): Promise<void> {
-        await Promise.all(
-            this.getWorld()
-                .getPlayers()
-                .map((target) => {
-                    const packet = new MoveActorAbsolutePacket();
-                    packet.runtimeEntityId = this.runtimeId;
-                    packet.position = this.getPosition();
-                    return target.getNetworkSession().send(packet);
-                })
-        );
-    }
-
-    /**
-     * Send a message to an entity.
-     * @remarks This will silently fail on non-client-controlled entities.
-     * @param {string} message - The message.
-     * @param {TextType} [type=TextType.Raw] - The text type.
-     * @example Send "Hello World!" to a client:
-     * ```typescript
-     * entity.sendMessage('Hello World!');
-     * ```
-     */
-    public sendMessage(message: string, type: TextType = TextType.Raw): void {
-        this.server.getLogger().warn(`Entity/sendMessage is not implemented: (message: ${message}, type: ${type})`);
+        // TODO: remove this trash
+        // update position based on the player viewer system
+        // so we don't spawn useless packets
+        // keeping the method just as a placeholder
     }
 
     /**
@@ -326,8 +153,9 @@ export class Entity extends EntityLike {
      * @remarks This method will also send the position update to the client if `suppress` is `false`.
      */
     public async setX(x: number, suppress = false): Promise<void> {
-        super.setX.bind(this)(x);
-        if (suppress && !this.isPlayer()) await this.sendPosition();
+        void suppress;
+        this.position.setX(x);
+        await this.sendPosition();
     }
 
     /**
@@ -342,8 +170,9 @@ export class Entity extends EntityLike {
      * @remarks This method will also send the position update to the client if `suppress` is `false`.
      */
     public async setY(y: number, suppress = false): Promise<void> {
-        super.setY.bind(this)(y);
-        if (suppress && !this.isPlayer()) await this.sendPosition();
+        void suppress;
+        this.position.setY(y);
+        await this.sendPosition();
     }
 
     /**
@@ -358,8 +187,9 @@ export class Entity extends EntityLike {
      * @remarks This method will also send the position update to the client if `suppress` is `false`.
      */
     public async setZ(z: number, suppress = false): Promise<void> {
-        super.setZ.bind(this)(z);
-        if (suppress && !this.isPlayer()) await this.sendPosition();
+        void suppress;
+        this.position.setZ(z);
+        await this.sendPosition();
     }
 
     /**
@@ -386,43 +216,40 @@ export class Entity extends EntityLike {
         this.yaw = yaw;
         this.headYaw = headYaw;
 
-        await super.setX(position.getX());
-        await super.setY(position.getY());
-        await super.setZ(position.getZ());
+        this.setX(position.getX());
+        this.setY(position.getY());
+        this.setZ(position.getZ());
 
         await this.sendPosition();
     }
 
     /**
-     * Check if the entity is a player.
-     * @returns {boolean} `true` if the entity is player-controlled, otherwise `false`.
+     * Returns the nearest entity from the current entity.
+     * @todo Customizable radius
+     * @param {Entity[]} [entities=this.getWorld().getEntities()] - The entities to compare the distance between.
+     * @returns {Entity[]} The nearest entity.
      * @example
      * ```typescript
-     * if (entity.isPlayer()) {
-     *     console.log('Entity is a player');
-     * } else {
-     *     console.log('Entity is not a player');
-     * }
+     * const nearestEntity = entity.getNearestEntity();
+     * console.log('Nearest entity:', nearestEntity);
      * ```
      */
-    public isPlayer(): boolean {
-        return false;
-    }
+    public getNearestEntity(entities: Entity[] = this.getWorld().getEntities()): Entity[] {
+        const distance = (a: Vector3, b: Vector3) =>
+            Math.hypot(b.getX() - a.getX(), b.getY() - a.getY(), b.getZ() - a.getZ());
 
-    /**
-     * Check if the entity is a console instance.
-     * @returns {boolean} `true` if the entity is console-controlled, otherwise `false`.
-     * @example
-     * ```typescript
-     * if (entity.isConsole()) {
-     *     console.log('Entity is a console');
-     * } else {
-     *     console.log('Entity is not a console');
-     * }
-     * ```
-     */
-    public isConsole(): boolean {
-        return this.getRuntimeId() <= 0n;
+        const closest = (target: Vector3, points: Entity[], eps = 0.00001) => {
+            const distances = points.map((e) => distance(target, e.getPosition()));
+            const closest = Math.min(...distances);
+            return points.find((_e, i) => distances[i]! - closest < eps)!;
+        };
+
+        return [
+            closest(
+                this.getPosition(),
+                entities.filter((entity) => entity.getRuntimeId() !== this.runtimeId)
+            )
+        ];
     }
 
     /**
@@ -471,5 +298,18 @@ export class Entity extends EntityLike {
                 .map((word) => word[0]!.toUpperCase() + word.slice(1, word.length))
                 .join(' ')
         );
+    }
+
+    /**
+     * Get the server instance.
+     * @returns {Server} The server instance.
+     * @example
+     * ```typescript
+     * const server = entity.getServer();
+     * // Do things with the server.
+     * ```
+     */
+    public getServer(): Server {
+        return this.server;
     }
 }

@@ -6,8 +6,8 @@ import minifyJson from 'strip-json-comments';
 
 import { Vector3 } from '@jsprismarine/math';
 import { getGametypeName } from '@jsprismarine/minecraft';
-import type { Block, Player, Server, Service } from '../';
-import { Timer, UUID } from '../';
+import type { Block, Server, Service } from '../';
+import { Player, Timer, UUID } from '../';
 import { BlockMappings } from '../block/BlockMappings';
 import * as Entities from '../entity/Entities';
 import type { Entity } from '../entity/Entity';
@@ -113,14 +113,9 @@ export class World implements Service {
                     continue;
                 }
 
-                await this.addEntity(
-                    new Entity({
-                        world: this,
-                        server: this.server,
-                        uuid: entityData.uuid,
-                        ...entityData.position
-                    })
-                );
+                /* await this.addEntity(
+                    new Entity()
+                ); */
             }
         }
 
@@ -368,7 +363,7 @@ export class World implements Service {
             player
                 .getWorld()
                 .getPlayers()
-                .map((target) => target.getNetworkSession().send(pk))
+                .map((target: Player) => target.getNetworkSession().send(pk))
         );
     }
 
@@ -385,8 +380,8 @@ export class World implements Service {
      * @param {Entity} entity - The entity to add.
      */
     public async addEntity(entity: Entity): Promise<void> {
-        if (!entity.isPlayer()) await entity.sendSpawn();
-        else await Promise.all(this.getEntities().map((e) => e.sendSpawn(entity as Player)));
+        // if (!entity.isPlayer()) await entity.sendSpawn();
+        // else await Promise.all(this.getEntities().map((e) => e.sendSpawn(entity as Player)));
 
         this.entities.set(entity.getRuntimeId(), entity);
     }
@@ -396,8 +391,8 @@ export class World implements Service {
      * @param {Entity} entity - The entity to remove.
      */
     public async removeEntity(entity: Entity): Promise<void> {
-        if (!entity.isPlayer()) await entity.sendDespawn();
-        else await Promise.all(this.getEntities().map((e) => e.sendDespawn(entity as Player)));
+        // if (!entity.isPlayer()) await entity.sendDespawn();
+        // else await Promise.all(this.getEntities().map((e) => e.sendDespawn(entity as Player)));
 
         this.entities.delete(entity.getRuntimeId());
     }
@@ -414,7 +409,7 @@ export class World implements Service {
      * @returns {Player[]} the players.
      */
     public getPlayers(): Player[] {
-        return (this.getEntities().filter((e) => e.isPlayer()) as Player[]).filter((p) => p.isOnline());
+        return (this.getEntities().filter((e) => e instanceof Player) as Player[]).filter((p) => p.isOnline());
     }
 
     /**
@@ -491,14 +486,13 @@ export class World implements Service {
             spawn: await this.getSpawnPosition(),
             gamerules: Array.from(this.getGameruleManager().getGamerules()),
             entities: this.getEntities()
-                .filter((entity) => !entity.isPlayer() && !entity.isConsole())
+                .filter((entity) => !(entity instanceof Player))
                 .map((entity) => ({
-                    uuid: entity.getUUID(),
                     type: entity.getType(),
                     position: {
-                        x: entity.getX(),
-                        y: entity.getY(),
-                        z: entity.getZ(),
+                        x: entity.getPosition().getX(),
+                        y: entity.getPosition().getY(),
+                        z: entity.getPosition().getZ(),
                         pitch: entity.pitch,
                         yaw: entity.yaw,
                         headYaw: entity.headYaw
@@ -552,9 +546,9 @@ export class World implements Service {
             username: player.getName(),
             gamemode: getGametypeName(player.gamemode),
             position: {
-                x: player.getX(),
-                y: player.getY(),
-                z: player.getZ(),
+                x: player.getPosition().getX(),
+                y: player.getPosition().getY(),
+                z: player.getPosition().getZ(),
                 pitch: player.pitch,
                 yaw: player.yaw,
                 headYaw: player.headYaw
@@ -571,5 +565,12 @@ export class World implements Service {
             this.server.getLogger().error(`Failed to save player data`);
             this.server.getLogger().error(error);
         }
+    }
+
+    /**
+     * @returns {Server} The server instance.
+     */
+    public getServer(): Server {
+        return this.server;
     }
 }

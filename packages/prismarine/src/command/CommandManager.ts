@@ -7,11 +7,12 @@ import {
     GenericNamespaceInvalidError
 } from '@jsprismarine/errors';
 
-import type { Command, CommandArgument, Entity, Player, Server, Service } from '../';
-import { Chat } from '../';
+import type { Command, CommandArgument, Entity, Server, Service } from '../';
+import { Chat, Player } from '../';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
 import Timer from '../utils/Timer';
 import { Commands } from './';
+import type { CommandExecutor } from './CommandExecutor';
 
 export class CommandManager implements Service {
     private readonly commands: Map<string, Command> = new Map();
@@ -197,32 +198,31 @@ export class CommandManager implements Service {
      * @param target - the Player/entity/console who should execute the command
      * @param input - the command input including arguments
      */
-    public async dispatchCommand(sender: Player, target: Entity | Player, input = '') {
+    public async dispatchCommand(sender: CommandExecutor, target: Entity | Player, input = ''): Promise<void> {
         try {
             if (input.startsWith('/')) input = input.slice(1);
 
             const parsed = this.dispatcher.parse(input.trim(), target as Player);
             const id = parsed.getReader().getString().split(' ')[0]!;
-
-            if (!sender.isConsole()) {
-                this.server
-                    .getLogger()
-                    .debug(
-                        `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${id})`,
-                        'CommandManager/dispatchCommand'
-                    );
-            }
-
             // Get command from parsed string.
             const command = this.getCommand(id);
 
-            // Validate permissions.
-            if (!this.server.getPermissionManager().can(sender).execute(command.permission)) {
-                await sender.sendMessage(
-                    "§cI'm sorry, but you do not have permission to perform this command. " +
-                        'Please contact the server administrators if you believe that this is in error.'
-                );
-                return;
+            if (sender instanceof Player) {
+                this.server
+                    .getLogger()
+                    .debug(
+                        `Player ${sender.getFormattedUsername()} is dispatching command: ${input} (id: ${id})`,
+                        'CommandManager/dispatchCommand'
+                    );
+
+                // Validate permissions.
+                if (!this.server.getPermissionManager().can(sender).execute(command.permission)) {
+                    await sender.sendMessage(
+                        "§cI'm sorry, but you do not have permission to perform this command. " +
+                            'Please contact the server administrators if you believe that this is in error.'
+                    );
+                    return;
+                }
             }
 
             let res: string[] = [];
@@ -257,20 +257,20 @@ export class CommandManager implements Service {
         } catch (error: unknown) {
             switch (true) {
                 case error instanceof CommandSyntaxException:
-                    await sender.sendMessage(`§c${error.getMessage()}`);
+                    sender.sendMessage(`§c${error.getMessage()}`);
                     return;
                 case error instanceof CommandUnknownCommandError:
-                    await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
+                    sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
                     return;
                 case error instanceof Error:
-                    await sender.sendMessage(`§c${error.message}`);
+                    sender.sendMessage(`§c${error.message}`);
                     return;
                 default:
                     this.server.getLogger().error(error);
                     break;
             }
 
-            await sender.sendMessage(`§c${error}`);
+            sender.sendMessage(`§c${error}`);
             this.server
                 .getLogger()
                 .debug(

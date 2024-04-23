@@ -3,6 +3,8 @@ import { Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import type Server from './Server';
 import { Chat, ChatType } from './chat/Chat';
+import type { CommandExecutor } from './command/CommandExecutor';
+import type { Entity } from './entity/Entity';
 import Human from './entity/Human';
 import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
@@ -17,9 +19,11 @@ import PlayStatusType from './network/type/PlayStatusType';
 import TextType from './network/type/TextType';
 import type Device from './utils/Device';
 import Timer from './utils/Timer';
+import type UUID from './utils/UUID';
 import type Skin from './utils/skin/Skin';
 import type { World } from './world/';
 import CoordinateUtils from './world/CoordinateUtils';
+import type { Position } from './world/Position';
 import type Chunk from './world/chunk/Chunk';
 
 /**
@@ -27,7 +31,7 @@ import type Chunk from './world/chunk/Chunk';
  */
 export const VANILLA_DEFAULT_SPAWN_RADIUS = 4;
 
-export default class Player extends Human {
+export default class Player extends Human implements CommandExecutor {
     private readonly address: InetAddress;
     private readonly networkSession: PlayerSession;
     private permissions: string[];
@@ -59,23 +63,13 @@ export default class Player extends Human {
     /**
      * Player's constructor.
      */
-    public constructor({
-        connection,
-        world,
-        server,
-        uuid
-    }: {
-        connection: ClientConnection;
-        world: World;
-        server: Server;
-        uuid?: string;
-    }) {
-        super({
-            world,
-            server,
-            uuid
-        });
-
+    public constructor(
+        server: Server,
+        connection: ClientConnection,
+        private uuid: UUID,
+        spawnPos: Position
+    ) {
+        super(spawnPos);
         this.timer = new Timer();
 
         this.address = connection.getRakNetSession().getAddress();
@@ -85,7 +79,7 @@ export default class Player extends Human {
         this.server.on('chat', this.chatHandler.bind(this));
     }
 
-    public async enable() {
+    public async enable(): Promise<void> {
         const playerData = await this.getWorld().getPlayerData(this);
 
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
@@ -108,7 +102,7 @@ export default class Player extends Human {
         await Promise.all(
             this.getWorld()
                 .getPlayers()
-                .map((target) => this.getNetworkSession().broadcastMove(target, MovementType.Reset))
+                .map((target: Player) => this.getNetworkSession().broadcastMove(target, MovementType.Reset))
         );
 
         // Finally mark the player as connected.
@@ -116,7 +110,7 @@ export default class Player extends Human {
         this.connected = true;
     }
 
-    public async disable() {
+    public async disable(): Promise<void> {
         if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
         await this.getWorld().removeEntity(this);
 
@@ -164,10 +158,10 @@ export default class Player extends Human {
      * with an initial view radius of VANILLA_DEFAULT_SPAWN_RADIUS.
      */
     public async sendInitialSpawnChunks(): Promise<void> {
-        const minX = CoordinateUtils.fromBlockToChunk(this.x) - VANILLA_DEFAULT_SPAWN_RADIUS;
-        const minZ = CoordinateUtils.fromBlockToChunk(this.z) - VANILLA_DEFAULT_SPAWN_RADIUS;
-        const maxX = CoordinateUtils.fromBlockToChunk(this.x) + VANILLA_DEFAULT_SPAWN_RADIUS;
-        const maxZ = CoordinateUtils.fromBlockToChunk(this.z) + VANILLA_DEFAULT_SPAWN_RADIUS;
+        const minX = CoordinateUtils.fromBlockToChunk(this.position.getX()) - VANILLA_DEFAULT_SPAWN_RADIUS;
+        const minZ = CoordinateUtils.fromBlockToChunk(this.position.getZ()) - VANILLA_DEFAULT_SPAWN_RADIUS;
+        const maxX = CoordinateUtils.fromBlockToChunk(this.position.getX()) + VANILLA_DEFAULT_SPAWN_RADIUS;
+        const maxZ = CoordinateUtils.fromBlockToChunk(this.position.getZ()) + VANILLA_DEFAULT_SPAWN_RADIUS;
 
         const savedChunks: ChunkCoord[] = [];
         const sendQueue: Array<Promise<Chunk>> = [];
@@ -219,8 +213,8 @@ export default class Player extends Human {
         dim1.respawn = false;
 
         await this.sendDespawn();
-        await this.getWorld().removeEntity(this);
-        await super.setWorld(world);
+        // await this.position.getWorld().removeEntity(this);
+        // await super.getPosition().setWorld(world);
         await world.addEntity(this);
 
         await this.networkSession.send(dim0);
@@ -280,6 +274,26 @@ export default class Player extends Human {
                     await target.getNetworkSession().sendSettings(this);
                 })
         );
+    }
+
+    /**
+     * @param {Entity} entity - The entity to display.
+     * @remarks This will spawn the entity to the client.
+     * TODO: Make sure `renderEntity` isn't a better name for this method (lol).
+     */
+    public displayEntity<T extends Entity>(entity: T): void {
+        // TODO: so... this is very convenient, because now we
+        // can use this method to implement a viewer system.
+        this.getNetworkSession().sendAddActor(entity);
+    }
+
+    /**
+     * @param {Entity} entity - The entity to remove.
+     * @remarks This will remove the entity from the client.
+     */
+    public removeEntity<T extends Entity>(entity: T): void {
+        // TODO: Remove the entity from the view system.
+        this.getNetworkSession().sendRemoveActor(entity);
     }
 
     /**
@@ -356,11 +370,7 @@ export default class Player extends Human {
     }
 
     public getXUID(): string {
-        return this.xuid || '';
-    }
-
-    public isPlayer(): boolean {
-        return true;
+        return this.xuid;
     }
 
     /**
@@ -406,6 +416,7 @@ export default class Player extends Human {
     public isSneaking() {
         return this.sneaking;
     }
+
     public async setSneaking(val: boolean) {
         if (val === this.sneaking) return;
         this.sneaking = val;
@@ -414,6 +425,7 @@ export default class Player extends Human {
     public isOnGround() {
         return this.onGround;
     }
+
     public async setOnGround(val: boolean) {
         if (val === this.onGround) return;
         this.onGround = val;
@@ -454,11 +466,30 @@ export default class Player extends Human {
         if (!broadcast) return;
         await this.networkSession.broadcastMove(this, type);
     }
+
     /**
      * Send the position to all the players in the same world.
      * @returns {Promise<void>} A promise that resolves when the position is sent.
      */
     public async sendPosition(): Promise<void> {
         await super.sendPosition();
+    }
+
+    /**
+     * Get the player's UUID.
+     * @returns {string} The player's UUID.
+     * ```typescript
+     * console.log(player.getUUID());
+     * ```
+     */
+    public getUUID(): UUID {
+        return this.uuid;
+    }
+
+    /**
+     * @returns {Server} The server instance.
+     */
+    public getServer(): Server {
+        return this.server;
     }
 }

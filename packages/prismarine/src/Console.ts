@@ -1,8 +1,6 @@
-import { Vector3 } from '@jsprismarine/math';
 import type { Server, Service } from './';
-import { Chat } from './';
-import { EntityLike } from './entity/';
-import ChatEvent from './events/chat/ChatEvent';
+import type { CommandExecutor } from './command/CommandExecutor';
+import type ChatEvent from './events/chat/ChatEvent';
 
 import type { CompleterResult } from 'node:readline';
 import readline from 'node:readline';
@@ -22,15 +20,10 @@ declare module 'node:readline' {
 /**
  * Server console.
  */
-export default class Console extends EntityLike implements Service {
+export default class Console implements CommandExecutor, Service {
     private cli?: readline.Interface;
 
-    public constructor(server: Server, runtimeId = BigInt(-1)) {
-        super({
-            server,
-            runtimeId
-        });
-    }
+    public constructor(private server: Server) {}
 
     public async enable(): Promise<void> {
         process.stdin.setRawMode(true);
@@ -49,7 +42,7 @@ export default class Console extends EntityLike implements Service {
 
         this.server.on('chat', async (evt: ChatEvent) => {
             if (evt.isCancelled()) return;
-            await this.sendMessage(evt.getChat().getMessage());
+            this.sendMessage(evt.getChat().getMessage());
         });
         this.server.getLogger().setConsole(this);
 
@@ -74,19 +67,9 @@ export default class Console extends EntityLike implements Service {
 
             // Handle commands.
             if (input.startsWith('/')) {
-                void this.server.getCommandManager().dispatchCommand(this as any, this as any, input);
+                void this.server.getCommandManager().dispatchCommand(this, this as any, input);
                 return;
             }
-
-            void this.server.emit(
-                'chat',
-                new ChatEvent(
-                    new Chat({
-                        sender: this,
-                        message: `${this.getFormattedUsername()} ${input}`
-                    })
-                )
-            );
         });
 
         this.cli.on('close', async () => await this.server.shutdown());
@@ -129,44 +112,14 @@ export default class Console extends EntityLike implements Service {
     }
 
     public getFormattedUsername(): string {
-        return '[CONSOLE]';
+        return 'CONSOLE';
     }
 
-    public async sendMessage(message: string): Promise<void> {
+    public sendMessage(message: string): void {
         this.server.getLogger().info(message);
     }
 
-    public getWorld() {
-        return this.server.getWorldManager().getDefaultWorld()!;
-    }
-
-    public isPlayer(): boolean {
-        return false;
-    }
-
-    public isOp(): boolean {
-        return true;
-    }
-
-    public getX(): number {
-        return 0;
-    }
-    public getY(): number {
-        return 0;
-    }
-    public getZ(): number {
-        return 0;
-    }
-
-    public getPosition(): Vector3 {
-        return new Vector3();
-    }
-
-    public getType() {
-        return 'jsprismarine:console';
-    }
-
-    public isConsole(): boolean {
-        return true;
+    public getServer(): Server {
+        return this.server;
     }
 }
