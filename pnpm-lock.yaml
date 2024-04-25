@@ -76,8 +76,8 @@ importers:
         specifier: 3.1.0
         version: 3.1.0(@typescript-eslint/eslint-plugin@7.7.1(@typescript-eslint/parser@7.7.1(eslint@8.57.0)(typescript@5.4.5))(eslint@8.57.0)(typescript@5.4.5))(eslint@8.57.0)
       esmock:
-        specifier: 2.6.4
-        version: 2.6.4
+        specifier: 2.6.5
+        version: 2.6.5
       glob:
         specifier: 10.3.12
         version: 10.3.12
@@ -1879,8 +1879,8 @@ packages:
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     hasBin: true
 
-  esmock@2.6.4:
-    resolution: {integrity: sha512-w/MIHWZeFzlyW6tTUW/sj1aSAScU8IQapjz8oCxjx3J90fhhmO0QdPGBjPD3oQSLLtVCFcgkTvdh7dNigp9K5A==}
+  esmock@2.6.5:
+    resolution: {integrity: sha512-tvFsbtSI9lCuvufbX+UIDn/MoBjTu6UDvQKR8ZmKWHrK3AkioKD2LuTkM75XSngRki3SsBb4uiO58EydQuFCGg==}
     engines: {node: '>=14.16.0'}
 
   espree@9.6.1:
@@ -5214,7 +5214,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  esmock@2.6.4: {}
+  esmock@2.6.5: {}
 
   espree@9.6.1:
     dependencies:
