@@ -379,8 +379,8 @@ importers:
         specifier: 2.5.7
         version: 2.5.7
       fast-jwt:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.0.1
+        version: 4.0.1
       heap:
         specifier: 0.2.7
         version: 0.2.7
@@ -1944,9 +1944,9 @@ packages:
   fast-json-stable-stringify@2.1.0:
     resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
 
-  fast-jwt@4.0.0:
-    resolution: {integrity: sha512-CnI93Tmk7eSzfw4e0Jlc5ZcWiN+/zK7xAKAhtXS8PAcKmYqfcXqxJl1hMyhk3iEt0M9JLo7DCYRDV2XcIacWAw==}
-    engines: {node: '>=16 <22'}
+  fast-jwt@4.0.1:
+    resolution: {integrity: sha512-+mdSoH0QdOdFSbbGBctJu7L1yfXRtbmjbVJ4W/PEjyvivobDena0RKwihtBkOML1P+kUJ1QuewnH8u+mROsR1w==}
+    engines: {node: '>=16'}
 
   fast-levenshtein@2.0.6:
     resolution: {integrity: sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==}
@@ -5284,7 +5284,7 @@ snapshots:
 
   fast-json-stable-stringify@2.1.0: {}
 
-  fast-jwt@4.0.0:
+  fast-jwt@4.0.1:
     dependencies:
       '@lukeed/ms': 2.0.2
       asn1.js: 5.4.1
