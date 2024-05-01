@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@jsprismarine/bedrock-data':
-        specifier: 1.20.73-b
-        version: 1.20.73-b
+        specifier: 1.20.81-a
+        version: 1.20.81-a
       '@jsprismarine/brigadier':
         specifier: workspace:*
         version: link:packages/brigadier
@@ -976,8 +976,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@jsprismarine/bedrock-data@1.20.73-b':
-    resolution: {integrity: sha512-/ZoWhHT010X2vvzxRVcNmDmrKpbC7LZmC/QUcK+jy1s6681eVeiAAMVda0/o/6iv+QDhwbL7O34maA9iIlUP4A==}
+  '@jsprismarine/bedrock-data@1.20.81-a':
+    resolution: {integrity: sha512-v/ZnaecDT9vtJPEqOOw1jayOs5gej+/sJMJdRS7KtSPp5IMt3Nbt8CVhQITjpHZcMZvQbBfck76dze6u3oqsZA==}
 
   '@jsprismarine/jsbinaryutils@5.5.3':
     resolution: {integrity: sha512-n3KcY91ptYxv0A8oSh2M/GIdJKbKtoFLmebpMDWqEekRM/RFt1lxl2gDcYNYjvQE3MvOSp76qDv5VbeQmXS/Kg==}
@@ -4095,7 +4095,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.4.15
 
-  '@jsprismarine/bedrock-data@1.20.73-b': {}
+  '@jsprismarine/bedrock-data@1.20.81-a': {}
 
   '@jsprismarine/jsbinaryutils@5.5.3': {}
 
