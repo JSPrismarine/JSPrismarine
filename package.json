@@ -109,7 +109,7 @@
         "vitest": "1.5.3"
     },
     "dependencies": {
-        "@jsprismarine/bedrock-data": "1.20.73-b",
+        "@jsprismarine/bedrock-data": "1.20.73",
         "@jsprismarine/brigadier": "workspace:*",
         "@jsprismarine/jsbinaryutils": "5.5.3"
     }
