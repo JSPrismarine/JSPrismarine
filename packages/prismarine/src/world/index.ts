@@ -8,4 +8,3 @@ export * from './World';
 import { Position } from './Position';
 
 export { Position };
-

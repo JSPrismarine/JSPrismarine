@@ -36,5 +36,7 @@ export default class ResourcePackStackPacket extends DataPacket {
         this.writeUnsignedIntLE(0); // Experiments count
 
         this.writeBoolean(this.experimentsAlreadyEnabled); // Experiemnts previously toggled?
+
+        this.writeBoolean(false); // Include editor packs
     }
 }

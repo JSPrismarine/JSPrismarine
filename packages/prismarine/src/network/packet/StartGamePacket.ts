@@ -51,6 +51,9 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(1); // Generator
         this.writeVarInt(this.defaultGamemode); // Default Gamemode
+
+        this.writeBoolean(false); // Is hardcore enabled
+
         this.writeVarInt(0); // Difficulty
 
         // world spawn vector 3
