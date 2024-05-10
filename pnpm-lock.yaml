@@ -148,8 +148,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -182,8 +182,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -207,8 +207,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -228,8 +228,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -259,8 +259,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -287,8 +287,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -337,8 +337,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -407,8 +407,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -457,8 +457,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -500,8 +500,8 @@ importers:
         specifier: 10.3.14
         version: 10.3.14
       rimraf:
-        specifier: 5.0.5
-        version: 5.0.5
+        specifier: 5.0.6
+        version: 5.0.6
       tsx:
         specifier: 4.9.4
         version: 4.9.4
@@ -2796,8 +2796,8 @@ packages:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
     hasBin: true
 
-  rimraf@5.0.5:
-    resolution: {integrity: sha512-CqDakW+hMe/Bz202FPEymy68P+G50RfMQK+Qo5YUqc9SPipvbGjCGKd0RSKEelbsfQuw3g5NZDSrlZZAJurH1A==}
+  rimraf@5.0.6:
+    resolution: {integrity: sha512-X72SgyOf+1lFnGM6gYcmZ4+jMOwuT4E4SajKQzUIlI7EoR5eFHMhS/wf8Ll0mN+w2bxcIVldrJQ6xT7HFQywjg==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -6038,7 +6038,7 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  rimraf@5.0.5:
+  rimraf@5.0.6:
     dependencies:
       glob: 10.3.14
 
