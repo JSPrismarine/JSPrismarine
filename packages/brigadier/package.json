@@ -54,7 +54,7 @@
     "devDependencies": {
         "@types/node": "20.12.7",
         "glob": "10.3.15",
-        "rimraf": "5.0.6",
+        "rimraf": "5.0.7",
         "typescript": "5.4.5",
         "vite": "5.2.11",
         "vitest": "1.6.0"
