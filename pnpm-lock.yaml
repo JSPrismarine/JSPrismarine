@@ -477,6 +477,9 @@ importers:
       '@jsprismarine/logger':
         specifier: workspace:*
         version: link:../logger
+      '@jsprismarine/minecraft':
+        specifier: workspace:*
+        version: link:../minecraft
       '@jsprismarine/prismarine':
         specifier: workspace:*
         version: link:../prismarine
