@@ -61,6 +61,7 @@
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
+        "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
         "dotenv": "16.4.5",
