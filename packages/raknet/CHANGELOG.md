@@ -1,5 +1,11 @@
 # @jsprismarine/raknet
 
+## 0.4.4
+
+### Patch Changes
+
+- [#1334](https://github.com/JSPrismarine/JSPrismarine/pull/1334) [`4f8bf3f`](https://github.com/JSPrismarine/JSPrismarine/commit/4f8bf3f367d42dbd710cf353c075e25bcb5370f7) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix "Take advantage of raknet/src/utils/ServerName.ts." [#1313](https://github.com/JSPrismarine/JSPrismarine/issues/1313).
+
 ## 0.4.3
 
 ## 0.4.2

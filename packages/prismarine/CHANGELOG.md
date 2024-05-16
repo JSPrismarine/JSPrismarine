@@ -1,5 +1,30 @@
 # @jsprismarine/prismarine
 
+## 0.4.4
+
+### Patch Changes
+
+- [`adffd12`](https://github.com/JSPrismarine/JSPrismarine/commit/adffd12b09d07dc878a2e01cd795c3056317946a) Thanks [@filiphsps](https://github.com/filiphsps)! - Migrate to @jsprismarine/Minecraft's `gametype`.
+
+- [`2b5bc2f`](https://github.com/JSPrismarine/JSPrismarine/commit/2b5bc2fbffe777c329fd5684e342050cd2e13c43) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix "Blocks in negative coordinates don't behave correctly." [#1328](https://github.com/JSPrismarine/JSPrismarine/issues/1328).
+
+- [`07bc6d0`](https://github.com/JSPrismarine/JSPrismarine/commit/07bc6d0920e48b2fa593b346ac73949517c0fb7a) Thanks [@filiphsps](https://github.com/filiphsps)! - Move `pitch`, `yaw` and `headYaw` to `Entity`.
+
+- [#1334](https://github.com/JSPrismarine/JSPrismarine/pull/1334) [`4f8bf3f`](https://github.com/JSPrismarine/JSPrismarine/commit/4f8bf3f367d42dbd710cf353c075e25bcb5370f7) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix "Take advantage of raknet/src/utils/ServerName.ts." [#1313](https://github.com/JSPrismarine/JSPrismarine/issues/1313).
+
+- [`07bc6d0`](https://github.com/JSPrismarine/JSPrismarine/commit/07bc6d0920e48b2fa593b346ac73949517c0fb7a) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix spawn location.
+  Send entity metadata to clients.
+  Slightly Simplify working with positions.
+- Updated dependencies [[`adffd12`](https://github.com/JSPrismarine/JSPrismarine/commit/adffd12b09d07dc878a2e01cd795c3056317946a), [`4f8bf3f`](https://github.com/JSPrismarine/JSPrismarine/commit/4f8bf3f367d42dbd710cf353c075e25bcb5370f7)]:
+  - @jsprismarine/minecraft@0.4.4
+  - @jsprismarine/raknet@0.4.4
+  - @jsprismarine/protocol@0.4.4
+  - @jsprismarine/color-parser@0.4.4
+  - @jsprismarine/errors@0.4.4
+  - @jsprismarine/logger@0.4.4
+  - @jsprismarine/math@0.4.4
+  - @jsprismarine/nbt@0.4.4
+
 ## 0.4.3
 
 ### Patch Changes
