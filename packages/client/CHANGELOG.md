@@ -1,5 +1,14 @@
 # @jsprismarine/client
 
+## 0.4.4
+
+### Patch Changes
+
+- Updated dependencies [[`adffd12`](https://github.com/JSPrismarine/JSPrismarine/commit/adffd12b09d07dc878a2e01cd795c3056317946a), [`2b5bc2f`](https://github.com/JSPrismarine/JSPrismarine/commit/2b5bc2fbffe777c329fd5684e342050cd2e13c43), [`07bc6d0`](https://github.com/JSPrismarine/JSPrismarine/commit/07bc6d0920e48b2fa593b346ac73949517c0fb7a), [`4f8bf3f`](https://github.com/JSPrismarine/JSPrismarine/commit/4f8bf3f367d42dbd710cf353c075e25bcb5370f7), [`07bc6d0`](https://github.com/JSPrismarine/JSPrismarine/commit/07bc6d0920e48b2fa593b346ac73949517c0fb7a)]:
+  - @jsprismarine/prismarine@0.4.4
+  - @jsprismarine/raknet@0.4.4
+  - @jsprismarine/logger@0.4.4
+
 ## 0.4.3
 
 ### Patch Changes
