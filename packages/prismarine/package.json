@@ -3,7 +3,7 @@
     "name": "@jsprismarine/prismarine",
     "sideEffects": false,
     "type": "module",
-    "version": "0.4.3",
+    "version": "0.4.4",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "prettier": "@nordcom/prettier",
     "files": [
