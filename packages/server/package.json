@@ -50,7 +50,7 @@
     "devDependencies": {
         "@types/node": "20.12.7",
         "cross-env": "7.0.3",
-        "glob": "10.3.15",
+        "glob": "10.3.16",
         "rimraf": "5.0.7",
         "tsx": "4.10.5",
         "typescript": "5.4.5",
