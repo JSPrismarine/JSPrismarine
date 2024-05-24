@@ -31,8 +31,8 @@ importers:
         specifier: 6.0.0
         version: 6.0.0
       '@codecov/vite-plugin':
-        specifier: 0.0.1-beta.6
-        version: 0.0.1-beta.6(vite@5.2.11(@types/node@20.12.7))
+        specifier: 0.0.1-beta.8
+        version: 0.0.1-beta.8(vite@5.2.11(@types/node@20.12.7))
       '@droppedcode/typedoc-plugin-relative-includes':
         specifier: 1.0.5
         version: 1.0.5(typedoc@0.25.13(typescript@5.4.5))
@@ -617,12 +617,12 @@ packages:
   '@changesets/write@0.3.1':
     resolution: {integrity: sha512-SyGtMXzH3qFqlHKcvFY2eX+6b0NGiFcNav8AFsYwy5l8hejOeoeTDemu5Yjmke2V5jpzY+pBvM0vCCQ3gdZpfw==}
 
-  '@codecov/bundler-plugin-core@0.0.1-beta.6':
-    resolution: {integrity: sha512-dGk/s90fZm7D1O00gRtuE2gqM/CW9nglaPzcIT0v10VOV2tj+aHRrdB+yjas+RW8QP8Qf/sMqSmjkufP1iqggw==}
+  '@codecov/bundler-plugin-core@0.0.1-beta.8':
+    resolution: {integrity: sha512-3yxNa4N+pZxqU60XQxJ10sDKUWcDf/YaQSvODrgxLfKG/peZhSdbd92uRc7PYi73szu7lr1CVZIvVerod9C4Uw==}
     engines: {node: '>=18.0.0'}
 
-  '@codecov/vite-plugin@0.0.1-beta.6':
-    resolution: {integrity: sha512-eIi3M9R1om/T+6FoZGaffWMmwSZ0nx1fIGgidFRFkQdXtKAwHU0//YjCXOg17vJsPXlaSatM81EQBU/qmSXQ1Q==}
+  '@codecov/vite-plugin@0.0.1-beta.8':
+    resolution: {integrity: sha512-bMpn2k4w0HUnmbzQmaE8nzsVKqX72eUQVB5VlU7j+Pr225cCqj3DxWQpYibC+LAUzytZKxVEMZnrYOMTQSXHDA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       vite: 4.x || 5.x
@@ -3742,16 +3742,17 @@ snapshots:
       human-id: 1.0.2
       prettier: 2.8.8
 
-  '@codecov/bundler-plugin-core@0.0.1-beta.6':
+  '@codecov/bundler-plugin-core@0.0.1-beta.8':
     dependencies:
       chalk: 4.1.2
       semver: 7.6.1
       unplugin: 1.10.1
       zod: 3.23.6
 
-  '@codecov/vite-plugin@0.0.1-beta.6(vite@5.2.11(@types/node@20.12.7))':
+  '@codecov/vite-plugin@0.0.1-beta.8(vite@5.2.11(@types/node@20.12.7))':
     dependencies:
-      '@codecov/bundler-plugin-core': 0.0.1-beta.6
+      '@codecov/bundler-plugin-core': 0.0.1-beta.8
+      unplugin: 1.10.1
       vite: 5.2.11(@types/node@20.12.7)
 
   '@colors/colors@1.6.0': {}
