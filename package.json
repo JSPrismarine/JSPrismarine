@@ -93,7 +93,7 @@
         "lint-staged": "15.2.5",
         "nodemon": "3.1.2",
         "prettier-eslint": "16.3.0",
-        "prettier": "3.2.5",
+        "prettier": "3.3.0",
         "turbo": "1.13.3",
         "turbo-ignore": "1.13.3",
         "typedoc-material-theme": "1.0.2",
