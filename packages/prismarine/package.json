@@ -83,6 +83,6 @@
         "heap": "0.2.7",
         "node-fetch": "3.3.2",
         "strip-json-comments": "5.0.1",
-        "yaml": "2.4.3"
+        "yaml": "2.4.4"
     }
 }
