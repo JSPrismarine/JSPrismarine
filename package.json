@@ -99,7 +99,7 @@
         "typedoc-material-theme": "1.0.2",
         "typedoc-plugin-extras": "3.0.0",
         "ts-mockito": "2.6.1",
-        "typedoc-plugin-missing-exports": "2.2.0",
+        "typedoc-plugin-missing-exports": "2.3.0",
         "typedoc-plugin-rename-defaults": "0.7.0",
         "typedoc": "0.25.13",
         "typescript": "5.4.5",
