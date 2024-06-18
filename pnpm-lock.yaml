@@ -31,8 +31,8 @@ importers:
         specifier: 6.0.0
         version: 6.0.0
       '@codecov/vite-plugin':
-        specifier: 0.0.1-beta.9
-        version: 0.0.1-beta.9(vite@5.3.1(@types/node@20.12.7))
+        specifier: 0.0.1-beta.10
+        version: 0.0.1-beta.10(vite@5.3.1(@types/node@20.12.7))
       '@droppedcode/typedoc-plugin-relative-includes':
         specifier: 1.0.5
         version: 1.0.5(typedoc@0.25.13(typescript@5.4.5))
@@ -620,12 +620,12 @@ packages:
   '@changesets/write@0.3.1':
     resolution: {integrity: sha512-SyGtMXzH3qFqlHKcvFY2eX+6b0NGiFcNav8AFsYwy5l8hejOeoeTDemu5Yjmke2V5jpzY+pBvM0vCCQ3gdZpfw==}
 
-  '@codecov/bundler-plugin-core@0.0.1-beta.9':
-    resolution: {integrity: sha512-zxMpUhhplvjuwNVmLtOi64d7LGPAhoLsQwVky9Rkx8oRHaDKqDvuisrs+NP5mIE9tQYPnGZKgiv0gnEJ3AHULw==}
+  '@codecov/bundler-plugin-core@0.0.1-beta.10':
+    resolution: {integrity: sha512-fOgy02gc0Z0ipKVe8QqN7mcmzQYjHb2UzT6RtHR+tqyYwpe1r1Kg5E/pbIOXKLaJGXK+AaOX23qtgp6kvUn+iA==}
     engines: {node: '>=18.0.0'}
 
-  '@codecov/vite-plugin@0.0.1-beta.9':
-    resolution: {integrity: sha512-SbJagAnmiFb1YRdTjDOt5fisc7GTRLPJIbth/rvSFIuX9HZLM0Effb/XniLBQrD/IL5znL/7e75Lhcez2ryKnA==}
+  '@codecov/vite-plugin@0.0.1-beta.10':
+    resolution: {integrity: sha512-ZoNKEGTMUIwQbwjxu/YUMaGlBUw24c2rZG0E0Lsa2SjZ+DBL+yTe2Kz+7vB6rzW+2Y/EpxxqVWCVjjK03Z7l1w==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       vite: 4.x || 5.x
@@ -3751,16 +3751,16 @@ snapshots:
       human-id: 1.0.2
       prettier: 2.8.8
 
-  '@codecov/bundler-plugin-core@0.0.1-beta.9':
+  '@codecov/bundler-plugin-core@0.0.1-beta.10':
     dependencies:
       chalk: 4.1.2
       semver: 7.6.2
       unplugin: 1.10.1
       zod: 3.23.6
 
-  '@codecov/vite-plugin@0.0.1-beta.9(vite@5.3.1(@types/node@20.12.7))':
+  '@codecov/vite-plugin@0.0.1-beta.10(vite@5.3.1(@types/node@20.12.7))':
     dependencies:
-      '@codecov/bundler-plugin-core': 0.0.1-beta.9
+      '@codecov/bundler-plugin-core': 0.0.1-beta.10
       unplugin: 1.10.1
       vite: 5.3.1(@types/node@20.12.7)
 
