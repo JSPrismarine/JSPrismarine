@@ -14,10 +14,7 @@
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": [
-                "./src/index.ts",
-                "./dist/index.es.js"
-            ],
+            "import": "./dist/index.es.js",
             "module": "./dist/index.es.js",
             "require": "./dist/index.cjs.cjs",
             "types": "./dist/index.d.ts"

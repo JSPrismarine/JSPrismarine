@@ -14,10 +14,7 @@
     "types": "./dist/RakNet.d.ts",
     "exports": {
         ".": {
-            "import": [
-                "./src/RakNet.ts",
-                "./dist/RakNet.es.js"
-            ],
+            "import": "./dist/RakNet.es.js",
             "module": "./dist/RakNet.es.js",
             "require": "./dist/RakNet.cjs.cjs",
             "types": "./dist/RakNet.d.ts"
