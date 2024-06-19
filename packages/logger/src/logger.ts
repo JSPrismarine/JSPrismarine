@@ -49,10 +49,18 @@ export class Logger {
         });
     }
 
+    /**
+     * On enable hook.
+     * @async
+     */
     public async enable(): Promise<void> {
         this.createLogger();
     }
 
+    /**
+     * On disable hook.
+     * @async
+     */
     public async disable(): Promise<void> {
         this.logger.close();
         this.logger.destroy();

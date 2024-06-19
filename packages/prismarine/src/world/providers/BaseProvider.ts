@@ -25,7 +25,15 @@ export default abstract class BaseProvider implements Provider {
         return this.world;
     }
 
+    /**
+     * On enable hook.
+     * @async
+     */
     public async enable(): Promise<void> {}
+    /**
+     * On disable hook.
+     * @async
+     */
     public async disable(): Promise<void> {}
 
     public getServer(): Server {
