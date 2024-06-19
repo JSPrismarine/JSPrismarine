@@ -82,8 +82,8 @@ importers:
         specifier: 2.6.6
         version: 2.6.6
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       husky:
         specifier: 9.0.11
         version: 9.0.11
@@ -145,8 +145,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -179,8 +179,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -204,8 +204,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -225,8 +225,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -256,8 +256,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -284,8 +284,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -312,8 +312,8 @@ importers:
         specifier: 7.5.8
         version: 7.5.8
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -334,8 +334,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -404,8 +404,8 @@ importers:
         specifier: 2.5.6
         version: 2.5.6
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -432,8 +432,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -454,8 +454,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -500,8 +500,8 @@ importers:
         specifier: 7.0.3
         version: 7.0.3
       glob:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.4.2
+        version: 10.4.2
       rimraf:
         specifier: 5.0.7
         version: 5.0.7
@@ -1946,8 +1946,8 @@ packages:
     resolution: {integrity: sha512-XxwI8EOhVQgWp6iDL+3b0r86f4d6AX6zSU55HfB4ydCEuXLXc5FcYeOu+nnGftS4TEju/11rt4KJPTMgbfmv4A==}
     engines: {node: '>=10.13.0'}
 
-  glob@10.4.1:
-    resolution: {integrity: sha512-2jelhlq3E4ho74ZyVLN03oKdAZVUa6UDZzFLVH1H7dnoax+y9qyaq8zBkfDIggjniU19z0wU18y16jMB2eyVIw==}
+  glob@10.4.2:
+    resolution: {integrity: sha512-GwMlUF6PkPo3Gk21UxkCohOv0PLcIXVtKyLlpEI28R/cO/4eNOdmLk3CMW1wROV/WR/EsZOWAfBbBOqYvs88/w==}
     engines: {node: '>=16 || 14 >=14.18'}
     hasBin: true
 
@@ -2599,6 +2599,9 @@ packages:
   p-try@2.2.0:
     resolution: {integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==}
     engines: {node: '>=6'}
+
+  package-json-from-dist@1.0.0:
+    resolution: {integrity: sha512-dATvCeZN/8wQsGywez1mzHtTlP22H8OEfPrVMLNr4/eGa+ijtLn/6M5f0dY8UKNrC2O9UCU6SSoG3qRKnt7STw==}
 
   parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
@@ -5226,12 +5229,13 @@ snapshots:
     dependencies:
       is-glob: 4.0.3
 
-  glob@10.4.1:
+  glob@10.4.2:
     dependencies:
       foreground-child: 3.1.1
       jackspeak: 3.1.2
       minimatch: 9.0.4
       minipass: 7.1.2
+      package-json-from-dist: 1.0.0
       path-scurry: 1.11.1
 
   glob@7.2.3:
@@ -5861,6 +5865,8 @@ snapshots:
 
   p-try@2.2.0: {}
 
+  package-json-from-dist@1.0.0: {}
+
   parent-module@1.0.1:
     dependencies:
       callsites: 3.1.0
@@ -6055,7 +6061,7 @@ snapshots:
 
   rimraf@5.0.7:
     dependencies:
-      glob: 10.4.1
+      glob: 10.4.2
 
   rollup@4.17.2:
     dependencies:
