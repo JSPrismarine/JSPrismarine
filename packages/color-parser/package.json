@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/color-parser",
-    "version": "0.4.4",
+    "version": "0.4.5",
     "description": "Parse minecraft color codes",
     "sideEffects": false,
     "type": "module",
