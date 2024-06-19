@@ -12,7 +12,7 @@ export default class PlayerSkinPacket extends DataPacket {
     public skin!: Skin;
     public trusted!: boolean;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.uuid = UUID.networkDeserialize(this);
         this.readRemaining();
         // TODO: this.skin = this.readSkin();

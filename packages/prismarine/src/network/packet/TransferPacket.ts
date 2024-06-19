@@ -8,12 +8,12 @@ export default class TransferPacket extends DataPacket {
     public address!: string;
     public port!: number;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.address = NetworkUtil.readString(this);
         this.port = this.readUnsignedShortLE();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         NetworkUtil.writeString(this, this.address);
         this.writeUnsignedShortLE(this.port);
     }

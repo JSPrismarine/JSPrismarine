@@ -277,8 +277,7 @@ export default class PlayerSession {
 
     /**
      * Sets the item in the player hand.
-     *
-     * @param item - The entity.
+     * @param {Item} item - The entity.
      */
     public async sendHandItem(item: Item): Promise<void> {
         const pk = new MobEquipmentPacket();
@@ -291,9 +290,9 @@ export default class PlayerSession {
     }
 
     /**
-     * Set the client's current tick.
-     *
-     * @param tick - The tick
+     * Send the current tick to a client.
+     * @param {number} tick - The tick
+     * @async
      */
     public async sendTime(tick: number): Promise<void> {
         const pk = new SetTimePacket();
@@ -302,12 +301,13 @@ export default class PlayerSession {
     }
 
     /**
-     * Set the client's gamemode.
+     * Send gamemode to a client.
      * @param {Gametype} gamemode - the numeric gamemode ID.
+     * @async
      */
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
         const packet = new SetPlayerGameTypePacket();
-        packet.gametype = gamemode ??= this.player.gamemode;
+        packet.gametype = gamemode ?? this.player.gamemode;
         await this.connection.sendDataPacket(packet);
     }
 
@@ -438,7 +438,7 @@ export default class PlayerSession {
     public async sendMetadata(metadata?: Metadata): Promise<void> {
         const packet = new SetActorDataPacket();
         packet.runtimeEntityId = this.player.getRuntimeId();
-        packet.metadata = metadata ??= this.player.metadata;
+        packet.metadata = metadata ?? this.player.metadata;
         packet.tick = BigInt(this.player.getServer().getTick());
         await this.connection.sendDataPacket(packet);
     }

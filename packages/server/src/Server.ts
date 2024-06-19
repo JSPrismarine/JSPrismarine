@@ -51,9 +51,15 @@ const server = new Server({
 
 ['SIGSEGV', 'SIGHUP', 'uncaughtException'].forEach((signal) => {
     try {
-        process.on(signal, (error) => {
-            if (error instanceof Error) logger.error(error);
+        process.on(signal, async (error) => {
+            if (error instanceof Error) {
+                logger.error(error);
+            }
+
             void server.shutdown({ crash: error === 'uncaughtException' });
+
+            // FIXME: This is a temporary fix for the server not shutting down properly.
+            process.exit(1);
         });
     } catch {}
 });

@@ -1,5 +1,5 @@
-import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 export default class LevelChunkPacket extends DataPacket {
     public static NetID = Identifiers.LevelChunkPacket;
@@ -10,7 +10,7 @@ export default class LevelChunkPacket extends DataPacket {
     public clientSubChunkRequestsEnabled!: boolean;
     public data: any;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarInt(this.chunkX);
         this.writeVarInt(this.chunkZ);
 

@@ -13,7 +13,7 @@ export default class UpdateSoftEnumPacket extends DataPacket {
     public values: string[] = [];
     public type!: number;
 
-    public encodePayload() {
+    public encodePayload(): void {
         NetworkUtil.writeString(this, this.enumName);
         this.writeUnsignedVarInt(this.values.length);
         this.values.forEach((v) => {

@@ -482,17 +482,18 @@ export class World implements Service {
     }
 
     private async getLevelData() {
+        const path = withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME);
+        if (!fs.existsSync(path)) return {};
+
         try {
-            const raw = await fs.promises.readFile(
-                withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME),
-                'utf-8'
-            );
+            const raw = await fs.promises.readFile(path, 'utf-8');
             return JSON.parse(minifyJson(raw.toString())) as Partial<LevelData>;
         } catch (error: any) {
-            this.server.getLogger().warn(`Failed to read level data`);
+            // Something went wrong while reading or parsing the level data.
             this.server.getLogger().error(error);
-            return {};
         }
+
+        return {};
     }
     public async saveLevelData(): Promise<void> {
         const data = {

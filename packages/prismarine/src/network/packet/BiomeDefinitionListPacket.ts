@@ -8,7 +8,7 @@ export default class BiomeDefinitionListPacket extends DataPacket {
 
     private cachedNBT?: Buffer = biome_definitions;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.write(this.cachedNBT || (this.cachedNBT = biome_definitions));
     }
 }

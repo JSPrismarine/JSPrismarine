@@ -10,13 +10,13 @@ export default class ChangeDimensionPacket extends DataPacket {
     public position!: Vector3 | null;
     public respawn!: boolean;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.dimension = this.readVarInt();
         this.position = NetworkUtil.readVector3(this);
         this.respawn = this.readBoolean();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarInt(this.dimension);
         NetworkUtil.writeVector3(this, this.position);
         this.writeBoolean(this.respawn);

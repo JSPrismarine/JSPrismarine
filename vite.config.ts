@@ -1,10 +1,10 @@
 import { defineConfig } from 'vite';
 
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import dts from 'vite-plugin-dts';
 import { codecovVitePlugin } from '@codecov/vite-plugin';
+import dts from 'vite-plugin-dts';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 import pkg from './package.json' assert { type: 'json' };
@@ -13,6 +13,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
     root: __dirname,
+    resolve: {
+        alias: [
+            // Resolve @jsprismarine/* imports.
+            {
+                find: /^@jsprismarine\/(?!jsbinaryutils|bedrock-data)(.+)/,
+                replacement: `${resolve(__dirname, '/packages/')}/$1/src/index.ts`
+            }
+        ]
+    },
     ssr: { noExternal: true },
     build: {
         copyPublicDir: false,
@@ -25,6 +34,8 @@ export default defineConfig({
             treeshake: 'smallest',
             external: [
                 ...Object.keys(pkg.dependencies),
+                /^@jsprismarine/,
+                /^node_modules/,
                 /^node:.*/,
                 'assert',
                 'buffer',
@@ -55,8 +66,7 @@ export default defineConfig({
                 'util',
                 'vm',
                 'worker_threads',
-                'zlib',
-                /^@jsprismarine/
+                'zlib'
             ],
             output: {
                 exports: 'named',

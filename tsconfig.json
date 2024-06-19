@@ -3,10 +3,6 @@
 
     "compilerOptions": {
         "baseUrl": ".",
-        "paths": {
-            "@/*": ["packages/*/src"],
-            "@jsprismarine/*": ["packages/*/src"]
-        },
         "noEmit": true
     },
 

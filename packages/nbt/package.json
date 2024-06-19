@@ -9,15 +9,15 @@
         "CHANGELOG.md",
         "README.md"
     ],
-    "main": "./dist/NBT.cjs.cjs",
-    "module": "./dist/NBT.es.js",
-    "types": "./dist/NBT.d.ts",
+    "main": "./dist/index.cjs.cjs",
+    "module": "./dist/index.es.js",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/NBT.es.js",
-            "module": "./dist/NBT.es.js",
-            "require": "./dist/NBT.cjs.cjs",
-            "types": "./dist/NBT.d.ts"
+            "import": "./dist/index.es.js",
+            "module": "./dist/index.es.js",
+            "require": "./dist/index.cjs.cjs",
+            "types": "./dist/index.d.ts"
         },
         "./*": {
             "import": "./dist/*.es.js",

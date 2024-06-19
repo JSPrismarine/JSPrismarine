@@ -215,13 +215,13 @@ export default class WorldEventPacket extends DataPacket {
     public position!: Vector3 | null;
     public data!: number;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.eventId = this.readVarInt();
         this.position = NetworkUtil.readVector3(this);
         this.data = this.readVarInt();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarInt(this.eventId);
         NetworkUtil.writeVector3(this, this.position);
         this.writeVarInt(this.data);

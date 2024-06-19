@@ -11,12 +11,6 @@ export default mergeConfig(
     base,
     defineProject({
         root: resolve(__dirname),
-        resolve: {
-            alias: {
-                '@/': resolve(__dirname, 'src/'),
-                '@': resolve(__dirname, 'src/index.ts')
-            }
-        },
         test: {
             typecheck: {
                 tsconfig: `${__dirname}/tsconfig.test.json`
