@@ -123,7 +123,7 @@ export default class InventoryTransactionPacket extends DataPacket {
 
     public transactionData!: TransactionData;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.legacyRequestId = this.readVarInt();
         if (this.legacyRequestId !== 0) {
             const slotChanges = this.readUnsignedVarInt();

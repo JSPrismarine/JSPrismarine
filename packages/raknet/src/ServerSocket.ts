@@ -114,11 +114,11 @@ export default class ServerSocket extends EventEmitter {
      * Sets the maximum number of allowed incoming connections.
      * @param {number} allowed - maximum number of connections.
      */
-    public setMaxConnections(allowed: number) {
+    public setMaxConnections(allowed: number): void {
         this.maxConnections = allowed;
     }
 
-    public addSession(rinfo: RemoteInfo, mtuSize: number, incomingGuid: bigint) {
+    public addSession(rinfo: RemoteInfo, mtuSize: number, incomingGuid: bigint): void {
         this.sessions.add(new RakNetSession(this, mtuSize, rinfo, incomingGuid));
         this.logger.verbose(`Session created for client=${rinfo.address}:${rinfo.port}, mtu=${mtuSize}`);
         this.serverName.setOnlinePlayerCount(this.sessions.size);

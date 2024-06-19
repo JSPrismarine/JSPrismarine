@@ -24,7 +24,7 @@ export default class UpdateBlockPacket extends DataPacket {
     public flags!: UpdateBlockFlagsType;
     public layer!: UpdateBlockLayerType;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.x = this.readVarInt();
         this.y = this.readUnsignedVarInt();
         this.z = this.readVarInt();
@@ -34,7 +34,7 @@ export default class UpdateBlockPacket extends DataPacket {
         this.layer = this.readUnsignedVarInt();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarInt(this.x);
         this.writeUnsignedVarInt(this.y);
         this.writeVarInt(this.z);

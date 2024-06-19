@@ -1,10 +1,4 @@
-import {
-    InetAddress,
-    MAX_MTU_SIZE,
-    MINECRAFT_PROTOCOL_VERSION,
-    OFFLINE_MESSAGE_DATA_ID,
-    UDP_HEADER_SIZE
-} from '../RakNet';
+import { InetAddress, MAX_MTU_SIZE, MINECRAFT_PROTOCOL_VERSION, OFFLINE_MESSAGE_DATA_ID, UDP_HEADER_SIZE } from '../';
 
 import BinaryStream from '@jsprismarine/jsbinaryutils';
 import type { RemoteInfo } from 'node:dgram';

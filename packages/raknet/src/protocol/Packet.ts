@@ -31,7 +31,7 @@ export default class Packet extends BinaryStream {
 
     protected decodePayload(): void {}
 
-    public encode() {
+    public encode(): void {
         this.writeByte(this.getId());
         this.encodePayload();
     }

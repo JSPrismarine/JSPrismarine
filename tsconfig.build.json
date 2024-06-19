@@ -3,7 +3,7 @@
     "compilerOptions": {
         "allowJs": false,
         "allowSyntheticDefaultImports": true,
-        "composite": true,
+        "composite": false, // FIXME
         "declaration": true,
         "declarationMap": true,
         "downlevelIteration": false,
@@ -11,6 +11,7 @@
         "experimentalDecorators": true,
         "forceConsistentCasingInFileNames": true,
         "incremental": true,
+        //"isolatedDeclarations": true,
         "isolatedModules": true,
         "lib": ["ESNext", "Decorators"],
         "module": "ESNext",
@@ -18,10 +19,13 @@
         "moduleResolution": "Bundler",
         "noImplicitAny": true,
         "noUncheckedIndexedAccess": true,
-        //"noUnusedLocals": true,
-        //"noUnusedParameters": true,
+        "paths": {
+            "@/*": ["packages/*/src"],
+            "@jsprismarine/*": ["packages/*/src/index.ts"]
+        },
         "removeComments": false,
         "resolveJsonModule": true,
+        "rootDir": ".",
         "skipLibCheck": true,
         "sourceMap": true,
         "strict": true,
@@ -31,11 +35,26 @@
         "strictPropertyInitialization": true,
         "target": "ESNext",
         "tsBuildInfoFile": ".tsbuildinfo",
-        "types": [],
         "typeRoots": ["./node_modules/@types", "./packages/**/src/@types"],
+        "types": [],
         "useDefineForClassFields": true
     },
 
     "exclude": ["**/.turbo", "**/coverage", "**/dist", "**/src/**/*.d.ts", "node_modules"],
-    "include": ["packages", "./packages/**/src/**/*"]
+    "include": ["packages/**/src/**/*"],
+
+    "references": [
+        // TODO: Use https://github.com/pnpm/meta-updater & https://www.npmjs.com/package/@monorepo-utils/workspaces-to-typescript-project-references
+        { "path": "./packages/brigadier/tsconfig.json" },
+        { "path": "./packages/client/tsconfig.json" },
+        { "path": "./packages/color-parser/tsconfig.json" },
+        { "path": "./packages/errors/tsconfig.json" },
+        { "path": "./packages/logger/tsconfig.json" },
+        { "path": "./packages/math/tsconfig.json" },
+        { "path": "./packages/nbt/tsconfig.json" },
+        { "path": "./packages/prismarine/tsconfig.json" },
+        { "path": "./packages/protocol/tsconfig.json" },
+        { "path": "./packages/raknet/tsconfig.json" },
+        { "path": "./packages/server/tsconfig.json" }
+    ]
 }

@@ -8,7 +8,7 @@ export default class ResourcePackResponsePacket extends DataPacket {
     public status!: number;
     public packIds: string[] = [];
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.status = this.readByte();
         let entryCount = this.readUnsignedShortLE();
         while (entryCount-- > 0) {
@@ -16,7 +16,7 @@ export default class ResourcePackResponsePacket extends DataPacket {
         }
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeByte(this.status);
         this.writeUnsignedShortLE(0);
 

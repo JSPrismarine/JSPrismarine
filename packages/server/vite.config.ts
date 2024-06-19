@@ -26,10 +26,13 @@ export default mergeConfig(
     defineConfig({
         root: __dirname,
         resolve: {
-            alias: {
-                '@/': resolve(__dirname, 'src/'),
-                '@': resolve(__dirname, 'src/index.ts')
-            }
+            alias: [
+                // Resolve @jsprismarine/* imports.
+                {
+                    find: /^@jsprismarine\/(?!jsbinaryutils|bedrock-data)(.+)/,
+                    replacement: `${resolve(__dirname, '../')}/$1/src/index.ts`
+                }
+            ]
         },
         build: {
             lib: {

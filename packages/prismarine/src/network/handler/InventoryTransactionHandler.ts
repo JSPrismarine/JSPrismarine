@@ -2,7 +2,6 @@ import { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import { BlockMappings } from '../../block/BlockMappings';
-import type ContainerEntry from '../../inventory/ContainerEntry';
 import Identifiers from '../Identifiers';
 import type { InventoryTransactionPacket } from '../Packets';
 import { LevelSoundEventPacket, UpdateBlockPacket } from '../Packets';
@@ -22,12 +21,12 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             case TransactionType.NORMAL: {
                 // TODO: refactor this crap.
                 // probably base it on https://github.com/pmmp/PocketMine-MP/blob/d19db5d2e44d0925798c288247c3bddb71d23975/src/pocketmine/Player.php#L2399 or something similar.
-                let movedItem: ContainerEntry | null;
+                // let movedItem: ContainerEntry | null;
                 packet.inventoryActions.forEach(async (action) => {
                     switch (action.sourceType) {
                         case 0: {
                             // FIXME: Hack for creative inventory
-                            if (action.windowId === 124) {
+                            /*if (action.windowId === 124) {
                                 // from creative inventory
                                 if (player.gamemode !== 1) throw new Error(`Player isn't in creative mode`);
 
@@ -57,7 +56,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                                 return;
                             }
 
-                            player.getInventory().setItem(action.targetSlot, movedItem);
+                            player.getInventory().setItem(action.targetSlot, movedItem);*/
                             break;
                         }
                         default:

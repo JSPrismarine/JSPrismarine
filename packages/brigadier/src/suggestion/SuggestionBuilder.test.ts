@@ -1,7 +1,7 @@
-import { assert, expect, describe, beforeEach, it } from 'vitest';
+import { assert, beforeEach, describe, expect, it } from 'vitest';
 import StringRange from '../context/StringRange';
-import Suggestion from '../suggestion/Suggestion';
-import SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
+import Suggestion from './Suggestion';
+import SuggestionsBuilder from './SuggestionsBuilder';
 
 describe('SuggestionsBuilderTest', () => {
     let builder: SuggestionsBuilder;

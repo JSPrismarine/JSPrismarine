@@ -24,11 +24,11 @@ export default class DataPacket extends BinaryStream {
         super(buffer, 0);
     }
 
-    public getId() {
+    public getId(): number {
         return (this.constructor as any).NetID;
     }
 
-    public getEncoded() {
+    public getEncoded(): boolean {
         return this.encoded;
     }
 
@@ -66,16 +66,16 @@ export default class DataPacket extends BinaryStream {
     /**
      * Decode the packet from a network serialized buffer.
      */
-    public decodePayload() {}
+    public decodePayload(): void {}
 
-    public encode() {
+    public encode(): void {
         this.clear(); // We might not want to actually clear the buffer here.
         this.encodeHeader();
         this.encodePayload();
         this.encoded = true;
     }
 
-    public encodeHeader() {
+    public encodeHeader(): void {
         this.writeUnsignedVarInt(
             this.getId() | (this.senderSubId << SENDER_SHIFT) | (this.receiverSubId << RECEIVER_SHIFT)
         );
@@ -84,9 +84,9 @@ export default class DataPacket extends BinaryStream {
     /**
      * Encode the packet to a network serialized buffer.
      */
-    public encodePayload() {}
+    public encodePayload(): void {}
 
-    public getAllowBatching() {
+    public getAllowBatching(): boolean {
         return (this as any).allowBatching;
     }
 }

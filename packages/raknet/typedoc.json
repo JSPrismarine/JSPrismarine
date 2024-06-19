@@ -1,4 +1,4 @@
 {
-    "entryPoints": ["src/RakNet.ts"],
+    "entryPoints": ["src/index.ts"],
     "readme": "README.md"
 }

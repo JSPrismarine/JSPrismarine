@@ -32,7 +32,7 @@ export default class StartGamePacket extends DataPacket {
     // Cache item IDs mappings
     public static cachedItemIds: Buffer | null = null;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarLong(this.entityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 

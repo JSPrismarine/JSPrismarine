@@ -111,7 +111,7 @@ export default class PlayerListPacket extends DataPacket {
     public entries: PlayerListEntry[] = [];
     public type!: number;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeByte(this.type);
         this.writeUnsignedVarInt(this.entries.length);
         for (const entry of this.entries) {

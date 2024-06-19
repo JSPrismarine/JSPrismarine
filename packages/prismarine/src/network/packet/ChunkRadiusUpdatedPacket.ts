@@ -1,5 +1,5 @@
-import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 /**
  * Packet for handling changing the client's view distance.
@@ -18,11 +18,11 @@ export default class ChunkRadiusUpdatedPacket extends DataPacket {
      */
     public radius!: number;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarInt(this.radius);
     }
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.radius = this.readVarInt();
     }
 }

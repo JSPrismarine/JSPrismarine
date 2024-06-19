@@ -9,13 +9,13 @@ export default class UnconnectedPing extends OfflinePacket {
     public timestamp!: bigint;
     // public clientGUID!: bigint;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.timestamp = this.readLong();
         this.readMagic();
         // this.clientGUID = this.readLong();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeLong(this.timestamp);
         this.writeMagic();
         // this.writeLong(this.clientGUID);

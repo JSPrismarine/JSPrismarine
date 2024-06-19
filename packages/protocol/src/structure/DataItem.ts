@@ -1,6 +1,5 @@
 import { DataItemType } from '@jsprismarine/minecraft';
-import { NBTTagCompound } from '@jsprismarine/nbt';
-import { ByteOrder } from 'node_modules/@jsprismarine/nbt/src/ByteOrder';
+import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import type { NetworkBinaryStream } from '../';
 import { BlockPos, NetworkStructure, Vec3 } from '../';
 

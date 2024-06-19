@@ -8,9 +8,10 @@ export class PrismarineTransport extends Transport {
     public console: ConsoleLike | undefined;
     private buffer: any[] = [];
 
-    log(info: any, next: () => void) {
+    public log(info: any, next: () => void): any {
         if (!this.console) {
             this.buffer.push(info);
+
             return next();
         }
 
@@ -24,6 +25,7 @@ export class PrismarineTransport extends Transport {
 
             this.console.write(info[Symbol.for('message')]);
         } catch {}
+
         return next();
     }
 }

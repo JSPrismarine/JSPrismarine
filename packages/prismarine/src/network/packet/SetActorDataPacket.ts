@@ -13,7 +13,7 @@ export default class SetActorDataPacket extends DataPacket {
 
     public tick!: bigint;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.metadata.networkSerialize(this);
         this.syncedProperties.networkSerialize(this);

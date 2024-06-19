@@ -6,6 +6,6 @@
         "noEmit": true
     },
 
-    "include": ["packages/src/**/*.test.*", "**/vitest.config.ts", "vitest.config.ts"],
+    "include": ["**/src/**/*.test.*", "**/vitest.config.ts", "vitest.config.ts"],
     "exclude": ["**/.turbo", "**/build", "**/coverage", "**/dist", "**/node_modules", "**/public"]
 }

@@ -96,7 +96,7 @@ export default class CommandDispatcher<S> {
                                         next.push(child.copyFor(source));
                                     }
                                 }
-                            } catch (ex) {
+                            } catch (ex: any) {
                                 this.consumer.onCommandComplete(context, false, 0);
                                 if (!forked) throw ex;
                             }
@@ -108,7 +108,7 @@ export default class CommandDispatcher<S> {
                         let value = context.getCommand()!(context);
                         result.push(value);
                         this.consumer.onCommandComplete(context, true, value);
-                    } catch (ex) {
+                    } catch (ex: any) {
                         this.consumer.onCommandComplete(context, false, ex);
                         if (!forked) throw ex;
                     }

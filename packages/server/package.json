@@ -10,15 +10,15 @@
         "README.md"
     ],
     "bin": {
-        "prismarine": "./dist/Server.es.js"
+        "prismarine": "./dist/index.es.js"
     },
-    "module": "./dist/Server.es.js",
-    "types": "./dist/Server.d.ts",
+    "module": "./dist/index.es.js",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/Server.es.js",
-            "module": "./dist/Server.es.js",
-            "types": "./dist/Server.d.ts"
+            "import": "./dist/index.es.js",
+            "module": "./dist/index.es.js",
+            "types": "./dist/index.d.ts"
         },
         "./*": {
             "import": "./dist/*.es.js",
@@ -32,7 +32,7 @@
         "build": "vite build",
         "typecheck": "tsc -noEmit",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
-        "dev": "nodemon --delay 0 --quiet --spawn --no-stdin --watch \"../**/src/**\" --ext \"ts\" --exec \"vite-node ./src/Server.ts\""
+        "dev": "nodemon --delay 0 --quiet --spawn --no-stdin --watch \"../**/src/**/*.ts\" --ext \"ts\" --exec \"vite-node ./src/Server.ts\""
     },
     "repository": {
         "type": "git",

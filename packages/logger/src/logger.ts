@@ -21,7 +21,7 @@ export class Logger {
      *
      * @returns {void}
      */
-    protected createLogger(level: LogLevel = 'info', transports: TransportStream[] = []) {
+    protected createLogger(level: LogLevel = 'info', transports: TransportStream[] = []): void {
         // If the logger is already created and not closed, return.
         if ((this.logger as any) && !this.logger.closed) return;
 
@@ -39,7 +39,7 @@ export class Logger {
             transports: [
                 new PrismarineTransport({
                     format: format.printf(({ level, message, timestamp, namespace: ns }) => {
-                        const prefix = `${timestamp} ${level} ${ns}`;
+                        const prefix = `${timestamp} ${level}${ns ? ` ${ns}` : ''}`;
 
                         return colorParser(`[${prefix}§r]: ${message}§r`);
                     })
@@ -70,12 +70,13 @@ export class Logger {
         this.logger.on('data', (data) => listener(data.message.toString()));
     }
 
-    public setConsole(console: ConsoleLike) {
+    public setConsole(console: ConsoleLike): void {
         (this.logger.transports[0] as PrismarineTransport).console = console;
     }
 
     private getNamespace = () => {
         const stack = (new Error().stack as string).replaceAll('\\', '/');
+        if (!stack) return '';
 
         const caller = (stack.split('\n')[3] || '').trim();
         if (!caller) return '';
@@ -86,7 +87,10 @@ export class Logger {
 
         // Get path and line:col from the file string, then remove the file extension.
         const path = file.split(':').slice(0, -2).join(':').slice(0, -3);
+        if (!path) return '';
+
         const lineCol = file.split(':').slice(-2).join(':');
+        if (!lineCol) return '';
 
         if (this.logger.level === 'silly' || this.logger.level === 'debug' || this.logger.level === 'verbose') {
             return `${path}.ts:${lineCol}`;
@@ -96,14 +100,21 @@ export class Logger {
     };
 
     private parseMessage = (input: string[]) => {
-        return input.join('§r ');
+        const output = input.join('§r ');
+
+        // Make sure log messages end with a period.
+        if (['.', '!', '?'].includes(output.charAt(-1))) {
+            return `${output}.`;
+        }
+
+        return output;
     };
 
     /**
      * Log information messages
      * @param message
      */
-    public info = (...message: string[]) => {
+    public info = (...message: string[]): void => {
         this.logger.log('info', this.parseMessage(message), {
             namespace: this.getNamespace()
         });
@@ -113,7 +124,7 @@ export class Logger {
      * Log warning messages
      * @param message
      */
-    public warn = (...message: string[]) => {
+    public warn = (...message: string[]): void => {
         this.logger.log('warn', this.parseMessage(message), {
             namespace: this.getNamespace()
         });
@@ -123,7 +134,7 @@ export class Logger {
      * Log error messages
      * @param message
      */
-    public error = (message: string | Error | any) => {
+    public error = (message: string | Error | any): void => {
         if (typeof message === 'string') {
             this.logger.log('error', message, {
                 namespace: this.getNamespace()
@@ -131,16 +142,21 @@ export class Logger {
             return;
         }
 
-        // eslint-disable-next-line no-console
+        if (message.stack) {
+            this.logger.error(
+                `${message.stack.split('\n')[0] !== message.toString() ? `${message.toString()}\n` : ''}${message.stack}`
+            );
+            return;
+        }
+
         this.logger.error(message.toString());
-        if (message.stack) this.logger.error(message.stack);
     };
 
     /**
      * Log verbose messages
      * @param message
      */
-    public verbose = (...message: string[]) => {
+    public verbose = (...message: string[]): void => {
         this.logger.log('verbose', this.parseMessage(message), {
             namespace: this.getNamespace()
         });
@@ -150,7 +166,7 @@ export class Logger {
      * Log debug messages
      * @param message
      */
-    public debug = (...message: string[]) => {
+    public debug = (...message: string[]): void => {
         this.logger.log('debug', this.parseMessage(message), {
             namespace: this.getNamespace()
         });
@@ -160,7 +176,7 @@ export class Logger {
      * Log silly messages
      * @param message
      */
-    public silly = (...message: string[]) => {
+    public silly = (...message: string[]): void => {
         this.logger.log('silly', this.parseMessage(message), {
             namespace: this.getNamespace()
         });

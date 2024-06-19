@@ -8,11 +8,11 @@ export default class SetPlayerGameTypePacket extends DataPacket {
 
     public gametype!: Gametype;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.gametype = this.readVarInt();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarInt(this.gametype);
     }
 }
