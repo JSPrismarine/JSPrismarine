@@ -23,7 +23,11 @@ export class CommandManager implements Service {
         this.dispatcher = new CommandDispatcher();
     }
 
-    public async enable() {
+    /**
+     * On enable hook.
+     * @async
+     */
+    public async enable(): Promise<void> {
         const timer = new Timer();
 
         const commands = Object.keys(Commands).map((key) => (Commands as any)[key] as typeof Command);
@@ -51,7 +55,11 @@ export class CommandManager implements Service {
             .verbose(`Registered §b${this.commands.size}§r commands(s) (took §e${timer.stop()} ms§r)!`);
     }
 
-    public async disable() {
+    /**
+     * On disable hook.
+     * @async
+     */
+    public async disable(): Promise<void> {
         this.commands.clear();
         // TODO: clear commands in dispatcher
     }

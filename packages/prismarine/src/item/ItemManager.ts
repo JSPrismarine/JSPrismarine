@@ -21,15 +21,15 @@ export default class ItemManager {
     }
 
     /**
-     * OnEnable hook.
+     * On enable hook.
      * @async
      */
-    public async enable() {
+    public async enable(): Promise<void> {
         await this.importItems();
     }
 
     /**
-     * OnDisable hook.
+     * On disable hook.
      * @async
      */
     public async disable() {

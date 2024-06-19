@@ -29,6 +29,10 @@ export class Config {
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
     }
 
+    /**
+     * On enable hook.
+     * @async
+     */
     public async enable(): Promise<void> {
         this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
@@ -50,6 +54,10 @@ export class Config {
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
     }
 
+    /**
+     * On disable hook.
+     * @async
+     */
     public async disable(): Promise<void> {}
 
     public getLogLevel(): LogLevel {

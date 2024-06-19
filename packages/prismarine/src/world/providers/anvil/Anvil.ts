@@ -25,10 +25,18 @@ export default class Anvil extends BaseProvider {
         );
     }
 
-    public async enable() {
+    /**
+     * On enable hook.
+     * @async
+     */
+    public async enable(): Promise<void> {
         await this.prepareFolderStructure();
     }
-    public async disable() {}
+    /**
+     * On disable hook.
+     * @async
+     */
+    public async disable(): Promise<void> {}
 
     public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
         return generator.generateChunk(cx, cz, seed, config);
