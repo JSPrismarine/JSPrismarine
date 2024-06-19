@@ -14,10 +14,7 @@
     "types": "./dist/NBT.d.ts",
     "exports": {
         ".": {
-            "import": [
-                "./src/NBT.ts",
-                "./dist/NBT.es.js"
-            ],
+            "import": "./dist/NBT.es.js",
             "module": "./dist/NBT.es.js",
             "require": "./dist/NBT.cjs.cjs",
             "types": "./dist/NBT.d.ts"
