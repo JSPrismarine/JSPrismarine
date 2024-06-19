@@ -106,8 +106,8 @@ importers:
         specifier: 2.0.4
         version: 2.0.4
       turbo-ignore:
-        specifier: 1.13.4
-        version: 1.13.4
+        specifier: 2.0.4
+        version: 2.0.4
       typedoc:
         specifier: 0.25.13
         version: 0.25.13(typescript@5.4.5)
@@ -2261,6 +2261,11 @@ packages:
     resolution: {integrity: sha512-g1MWMLBiz8FKi1e4w0UyVL3w+iJceWAFBAaBnnGKOpNa5f8TLktkbre1+s6oICydWAm+HRUGTmI+//xv2hvXYA==}
     hasBin: true
 
+  json5@2.2.3:
+    resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
+    engines: {node: '>=6'}
+    hasBin: true
+
   jsonc-parser@3.2.1:
     resolution: {integrity: sha512-AilxAyFOAcK5wA1+LeaySVBrHsGQvUFCDWXKpZjzaL0PqW+xfBOttn8GNtWKFWqneyMZj41MWF9Kl6iPWLwgOA==}
 
@@ -3175,8 +3180,8 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  turbo-ignore@1.13.4:
-    resolution: {integrity: sha512-+SnyezmEy7Iap21Upk/9BqwD/YaRQn1d1pg2exZ95ZwkVO12OYdKtPQrQNey4RfShO+fc5JtQmWikbjqYHZQAQ==}
+  turbo-ignore@2.0.4:
+    resolution: {integrity: sha512-Z5O/6v9m+P/Ud/AuOC4/5JIoUv+Bl+fD+8KjnhPZrAtUb70+TR1EsyJZb7dqSrEgkrzYj9fuApevuHrCwyUaqA==}
     hasBin: true
 
   turbo-linux-64@2.0.4:
@@ -5499,6 +5504,8 @@ snapshots:
     dependencies:
       minimist: 1.2.8
 
+  json5@2.2.3: {}
+
   jsonc-parser@3.2.1: {}
 
   jsonfile@4.0.0:
@@ -6418,7 +6425,9 @@ snapshots:
   turbo-darwin-arm64@2.0.4:
     optional: true
 
-  turbo-ignore@1.13.4: {}
+  turbo-ignore@2.0.4:
+    dependencies:
+      json5: 2.2.3
 
   turbo-linux-64@2.0.4:
     optional: true
