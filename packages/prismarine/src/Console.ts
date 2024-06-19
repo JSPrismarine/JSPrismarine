@@ -1,13 +1,12 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { Server, Service } from './';
-import { Chat } from './';
 import { EntityLike } from './entity/';
-import ChatEvent from './events/chat/ChatEvent';
+import type ChatEvent from './events/chat/ChatEvent';
 
 import type { CompleterResult } from 'node:readline';
 import readline from 'node:readline';
 
-// Extend `readline.Interface` type
+// Extend builtin `readline.Interface` type
 declare module 'node:readline' {
     interface Interface {
         setRawMode?(mode: boolean): void;
@@ -32,6 +31,10 @@ export default class Console extends EntityLike implements Service {
         });
     }
 
+    /**
+     * On enable hook.
+     * @async
+     */
     public async enable(): Promise<void> {
         process.stdin.setRawMode(true);
 
@@ -70,28 +73,19 @@ export default class Console extends EntityLike implements Service {
         this.cli.on('line', (input: string) => {
             if (input.trim() === '') return;
 
+            // Fix cursor positioning.
             this.cli?.output.write(`\x1b[2D`);
 
-            // Handle commands.
-            if (input.startsWith('/')) {
-                void this.server.getCommandManager().dispatchCommand(this as any, this as any, input);
-                return;
-            }
-
-            void this.server.emit(
-                'chat',
-                new ChatEvent(
-                    new Chat({
-                        sender: this,
-                        message: `${this.getFormattedUsername()} ${input}`
-                    })
-                )
-            );
+            void this.server.getCommandManager().dispatchCommand(this as any, this as any, input);
         });
 
         this.cli.on('close', async () => await this.server.shutdown());
     }
 
+    /**
+     * On disable hook.
+     * @async
+     */
     public async disable(): Promise<void> {
         /*this.cli?.removeAllListeners();
         this.cli?.close();*/

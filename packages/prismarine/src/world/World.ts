@@ -95,6 +95,10 @@ export class World implements Service {
         }
     }
 
+    /**
+     * On enable hook.
+     * @async
+     */
     public async enable(): Promise<void> {
         this.server.on('tick', async (evt) => this.update(evt.getTick()));
 
@@ -142,7 +146,11 @@ export class World implements Service {
         this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)`);
     }
 
-    public async disable() {
+    /**
+     * On disable hook.
+     * @async
+     */
+    public async disable(): Promise<void> {
         await this.save();
         await this.provider.disable();
     }

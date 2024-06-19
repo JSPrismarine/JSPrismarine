@@ -85,7 +85,11 @@ export default class Player extends Human {
         this.server.on('chat', this.chatHandler.bind(this));
     }
 
-    public async enable() {
+    /**
+     * On enable hook.
+     * @async
+     */
+    public async enable(): Promise<void> {
         const playerData = await this.getWorld().getPlayerData(this);
 
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
@@ -116,7 +120,11 @@ export default class Player extends Human {
         this.connected = true;
     }
 
-    public async disable() {
+    /**
+     * On disable hook.
+     * @async
+     */
+    public async disable(): Promise<void> {
         if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);
         await this.getWorld().removeEntity(this);
 

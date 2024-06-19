@@ -16,16 +16,18 @@ export default class BlockManager {
     }
 
     /**
-     * OnEnable hook.
+     * On enable hook.
+     * @async
      */
-    public async enable() {
+    public async enable(): Promise<void> {
         await this.importBlocks();
     }
 
     /**
-     * OnDisable hook.
+     * On disable hook.
+     * @async
      */
-    public async disable() {
+    public async disable(): Promise<void> {
         this.blocks.clear();
     }
 
