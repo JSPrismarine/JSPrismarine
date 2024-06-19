@@ -20,8 +20,8 @@
         "noImplicitAny": true,
         "noUncheckedIndexedAccess": true,
         "paths": {
-            "@/*": ["packages/*/src"],
-            "@jsprismarine/*": ["packages/*/src/index.ts"]
+            "@/*": ["./packages/*/src"],
+            "@jsprismarine/*": ["./packages/*/src/index.ts"]
         },
         "removeComments": false,
         "resolveJsonModule": true,
