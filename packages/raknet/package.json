@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/raknet",
-    "version": "0.4.4",
+    "version": "0.4.5",
     "description": "Basic RakNet implementation written in TypeScript",
     "sideEffects": false,
     "type": "module",
