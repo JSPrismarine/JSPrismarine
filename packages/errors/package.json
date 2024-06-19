@@ -46,7 +46,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/errors",
     "devDependencies": {
         "@types/node": "20.12.7",
-        "glob": "10.4.1",
+        "glob": "10.4.2",
         "rimraf": "5.0.7",
         "typescript": "5.4.5",
         "vite": "5.3.1",
