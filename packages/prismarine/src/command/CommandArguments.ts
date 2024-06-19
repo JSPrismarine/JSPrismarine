@@ -187,7 +187,7 @@ export class CommandArgumentPosition extends Vector3 implements CommandArgument 
     private postfix: string | null;
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
-        super();
+        super(0, 0, 0);
         this.name = data?.name ?? 'position';
         this.optional = data?.optional ?? false;
         this.flags = data?.flags ?? CommandParameterFlags.NONE;

@@ -6,7 +6,7 @@ const SYNTAX_QUOTE = '"';
 
 export default class StringReader implements ImmutableStringReader {
     private string: string;
-    private cursor: number = 0;
+    private cursor = 0;
 
     public constructor(other: string | StringReader) {
         if (typeof other === 'string') {
@@ -57,7 +57,7 @@ export default class StringReader implements ImmutableStringReader {
         return this.string.charAt(this.cursor++);
     }
 
-    public skip() {
+    public skip(): void {
         this.cursor++;
     }
 
@@ -65,7 +65,7 @@ export default class StringReader implements ImmutableStringReader {
         return (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '+' || c == 'e' || c == 'E';
     }
 
-    public skipWhitespace() {
+    public skipWhitespace(): void {
         while (this.canRead() && /\s/.test(this.peek())) {
             this.skip();
         }

@@ -1,7 +1,8 @@
 import type Message from './Message';
 
 export default class LiteralMessage implements Message {
-    str: string;
+    private str: string;
+
     public constructor(str: string) {
         this.str = str;
     }
