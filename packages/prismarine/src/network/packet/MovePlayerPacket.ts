@@ -26,7 +26,7 @@ export default class MovePlayerPacket extends DataPacket {
 
     public tick!: bigint;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.runtimeEntityId = this.readUnsignedVarLong();
 
         this.position = NetworkUtil.readVector3(this);
@@ -46,7 +46,7 @@ export default class MovePlayerPacket extends DataPacket {
         this.tick = this.readUnsignedVarLong();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
         NetworkUtil.writeVector3(this, this.position);

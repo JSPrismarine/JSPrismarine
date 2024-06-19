@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/jsbinaryutils';
-import DataPacket from './DataPacket';
 import Zlib from 'zlib';
 import { CompressionProvider } from '../CompressionProvider.js';
+import DataPacket from './DataPacket';
 import { PacketCompressionAlgorithm } from './NetworkSettingsPacket.js';
 
 /**
@@ -18,7 +18,7 @@ export default class BatchPacket extends DataPacket {
 
     public decodeHeader(): void {
         const pid = this.readByte();
-        if (!pid === this.getId()) {
+        if (pid !== this.getId()) {
             throw new Error(`Batch ID mismatch: is ${this.getId()}, got ${pid}`);
         }
     }

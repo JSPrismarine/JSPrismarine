@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import * as Errors from './index';
+import * as AllFromErrors from './';
 
-const keys = Object.keys(Errors).filter((key) => key.endsWith('Error') && !['ErrorKind'].includes(key));
+const { ErrorKind: _errorKind, Error: _error, ...Errors } = AllFromErrors;
+const keys = Object.keys(Errors) as Array<keyof typeof Errors>;
 
 describe('errors', () => {
     for (const key of keys) {

@@ -1,5 +1,5 @@
-import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 export enum InteractAction {
     LeaveVehicle = 3,
@@ -18,7 +18,7 @@ export default class InteractPacket extends DataPacket {
     public y!: number;
     public z!: number;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeByte(this.action);
         this.writeUnsignedVarLong(this.target);
 
@@ -29,7 +29,7 @@ export default class InteractPacket extends DataPacket {
         }
     }
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.action = this.readByte();
         this.target = this.readUnsignedVarLong();
 

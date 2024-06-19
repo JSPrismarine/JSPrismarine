@@ -1,4 +1,4 @@
 {
-    "entryPoints": ["src/NBT.ts"],
+    "entryPoints": ["src/index.ts"],
     "readme": "README.md"
 }

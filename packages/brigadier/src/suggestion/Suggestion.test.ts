@@ -1,6 +1,6 @@
 import { assert, describe, it } from 'vitest';
 import StringRange from '../context/StringRange';
-import Suggestion from '../suggestion/Suggestion';
+import Suggestion from './Suggestion';
 
 describe('SuggestionTest', () => {
     it('apply_insertation_start', () => {

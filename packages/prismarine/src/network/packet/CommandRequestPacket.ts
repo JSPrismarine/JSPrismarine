@@ -11,7 +11,7 @@ export default class CommandRequestPacket extends DataPacket {
     public internal!: boolean;
     public version!: number;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.commandName = NetworkUtil.readString(this);
         this.commandOriginData = CommandOriginData.networkDeserialize(this);
         this.internal = this.readBoolean();

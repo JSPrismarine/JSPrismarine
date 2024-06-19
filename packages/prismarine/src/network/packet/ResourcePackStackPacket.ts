@@ -13,7 +13,7 @@ export default class ResourcePackStackPacket extends DataPacket {
     public experiments: Map<string, boolean> = new Map();
     public experimentsAlreadyEnabled!: boolean;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeBoolean(this.texturePackRequired);
 
         this.writeUnsignedVarInt(this.addonList.length);

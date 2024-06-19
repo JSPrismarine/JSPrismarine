@@ -1,6 +1,6 @@
 import type ContainerEntry from '../../inventory/ContainerEntry';
-import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 export default class InventoryContentPacket extends DataPacket {
     public static NetID = Identifiers.InventoryContentPacket;
@@ -8,7 +8,7 @@ export default class InventoryContentPacket extends DataPacket {
     public windowId!: number;
     public items: ContainerEntry[] = [];
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeUnsignedVarInt(this.windowId);
 
         // Write item stacks

@@ -16,7 +16,7 @@ export default class LevelSoundEventPacket extends DataPacket {
     public isBabyMob: boolean = false;
     public disableRelativeVolume!: boolean;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.sound = this.readUnsignedVarInt();
 
         this.positionX = this.readFloatLE();
@@ -29,7 +29,7 @@ export default class LevelSoundEventPacket extends DataPacket {
         this.disableRelativeVolume = this.readBoolean();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeUnsignedVarInt(this.sound);
 
         this.writeFloatLE(this.positionX);

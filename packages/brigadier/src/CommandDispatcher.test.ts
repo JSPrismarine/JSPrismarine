@@ -1,12 +1,12 @@
-import { assert, expect, describe, beforeEach, it } from 'vitest';
+import { assert, beforeEach, describe, expect, it } from 'vitest';
 import type Command from './Command';
-import type RedirectModifier from './RedirectModifier';
 import CommandDispatcher from './CommandDispatcher';
-import CommandSyntaxException from './exceptions/CommandSyntaxException';
+import type RedirectModifier from './RedirectModifier';
+import StringReader from './StringReader';
+import { DefaultType } from './arguments/ArgumentType';
 import { literal } from './builder/LiteralArgumentBuilder';
 import { argument } from './builder/RequiredArgumentBuilder';
-import { DefaultType } from './arguments/ArgumentType';
-import StringReader from './StringReader';
+import CommandSyntaxException from './exceptions/CommandSyntaxException';
 
 const { integer } = DefaultType;
 
@@ -97,7 +97,7 @@ describe('CommandDispatcherTest', () => {
 
         try {
             subject.execute('foo', source);
-        } catch (ex) {
+        } catch (ex: any) {
             assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand());
             assert.equal(ex.getCursor(), 0);
             return;
@@ -111,7 +111,7 @@ describe('CommandDispatcherTest', () => {
 
         try {
             subject.execute('foo', source);
-        } catch (ex) {
+        } catch (ex: any) {
             assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand());
             assert.equal(ex.getCursor(), 0);
             return;
@@ -125,7 +125,7 @@ describe('CommandDispatcherTest', () => {
 
         try {
             subject.execute('', source);
-        } catch (ex) {
+        } catch (ex: any) {
             assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand());
             assert.equal(ex.getCursor(), 0);
             return;
@@ -139,7 +139,7 @@ describe('CommandDispatcherTest', () => {
 
         try {
             subject.execute('foo bar', source);
-        } catch (ex) {
+        } catch (ex: any) {
             assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument());
             assert.equal(ex.getCursor(), 4);
             return;
@@ -153,7 +153,7 @@ describe('CommandDispatcherTest', () => {
 
         try {
             subject.execute('foo baz', source);
-        } catch (ex) {
+        } catch (ex: any) {
             assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument());
             assert.equal(ex.getCursor(), 4);
             return;
@@ -167,7 +167,7 @@ describe('CommandDispatcherTest', () => {
 
         try {
             subject.execute('foo unknown', source);
-        } catch (ex) {
+        } catch (ex: any) {
             assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument());
             assert.equal(ex.getCursor(), 4);
             return;
@@ -331,7 +331,7 @@ describe('CommandDispatcherTest', () => {
 
         try {
             subject.execute('foo 5', source);
-        } catch (ex) {
+        } catch (ex: any) {
             assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand());
             assert.equal(ex.getCursor(), 5);
             return;
@@ -360,7 +360,7 @@ describe('CommandDispatcherTest', () => {
 
         try {
             subject.execute('foo$', source);
-        } catch (ex) {
+        } catch (ex: any) {
             assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand());
             assert.equal(ex.getCursor(), 0);
             return;
@@ -374,7 +374,7 @@ describe('CommandDispatcherTest', () => {
 
         try {
             subject.execute('foo bar', source);
-        } catch (ex) {
+        } catch (ex: any) {
             assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedInt());
             assert.equal(ex.getCursor(), 4);
             return;

@@ -4,7 +4,7 @@ import type { BehaviorPack } from './BehaviorPack';
 import type { BlockProperty } from './BlockProperty';
 import { BuildPlatform } from './BuildPlatform';
 import type { CommandPermissionLevel } from './CommandPermissionLevel';
-import type { DataItemType } from './DataItemType';
+import { DataItemType } from './DataItemType';
 import { Difficulty } from './Difficulty';
 import { Dimension } from './Dimension';
 import { DisconnectReason } from './DisconnectReason';

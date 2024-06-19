@@ -1,8 +1,8 @@
-import { assert, expect, describe, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 import type Command from '../Command';
-import type CommandNode from '../tree/CommandNode';
-import RootCommandNode from '../tree/RootCommandNode';
 import { literal } from '../builder/LiteralArgumentBuilder';
+import type CommandNode from './CommandNode';
+import RootCommandNode from './RootCommandNode';
 
 describe('AbstractCommandNodeTest', () => {
     const command: Command<Object> = async () => 0;

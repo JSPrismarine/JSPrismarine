@@ -1,12 +1,12 @@
-import { assert, expect, describe, beforeEach, it } from 'vitest';
-import { mock, instance } from 'ts-mockito';
-import RootCommandNode from '../tree/RootCommandNode';
-import CommandContext from '../context/CommandContext';
+import { instance, mock } from 'ts-mockito';
+import { assert, beforeEach, describe, expect, it } from 'vitest';
+import CommandDispatcher from '../CommandDispatcher';
 import StringReader from '../StringReader';
+import { literal } from '../builder/LiteralArgumentBuilder';
+import CommandContext from '../context/CommandContext';
 import CommandContextBuilder from '../context/CommandContextBuilder';
 import SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
-import { literal } from '../builder/LiteralArgumentBuilder';
-import CommandDispatcher from '../CommandDispatcher';
+import RootCommandNode from '../tree/RootCommandNode';
 
 describe('RootCommandNodeTest', () => {
     let node: RootCommandNode<Object>;
@@ -24,7 +24,7 @@ describe('RootCommandNodeTest', () => {
     it('testAddChildNoRoot', async () => {
         try {
             node.addChild(new RootCommandNode());
-        } catch (ex) {
+        } catch (ex: any) {
             expect(ex instanceof Error).to.equal(true);
             return;
         }
@@ -45,7 +45,7 @@ describe('RootCommandNodeTest', () => {
     it('testCreateBuilder', async () => {
         try {
             node.createBuilder();
-        } catch (ex) {
+        } catch (ex: any) {
             expect(ex instanceof Error).to.equal(true);
             return;
         }

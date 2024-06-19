@@ -25,7 +25,7 @@ export default class TextPacket extends DataPacket {
     public xuid!: string;
     public platformChatId!: string;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.type = this.readByte();
         this.needsTranslation = this.readBoolean();
 
@@ -64,7 +64,7 @@ export default class TextPacket extends DataPacket {
         this.platformChatId = NetworkUtil.readString(this);
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeByte(this.type);
         this.writeBoolean(this.needsTranslation);
 

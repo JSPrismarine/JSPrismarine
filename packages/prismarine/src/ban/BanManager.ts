@@ -5,6 +5,11 @@ import type Player from '../Player';
 import type Server from '../Server';
 import { withCwd } from '../utils/cwd';
 
+export type BannedPlayerEntry = {
+    name: string;
+    reason: string | '';
+};
+
 const FILE_NAME = 'banned-players.json';
 
 /**
@@ -12,12 +17,7 @@ const FILE_NAME = 'banned-players.json';
  */
 export default class BanManager {
     private readonly server: Server;
-    private readonly banned: Map<
-        string,
-        {
-            reason: string;
-        }
-    > = new Map();
+    private readonly banned: Map<string, Omit<BannedPlayerEntry, 'name'>> = new Map();
 
     public constructor(server: Server) {
         this.server = server;
@@ -46,8 +46,8 @@ export default class BanManager {
                 this.server.getLogger().warn(`Failed to load ban list!`);
                 fs.writeFileSync(dir, '[]');
             }
-            const banned: any[] = JSON.parse(minifyJson((await fs.promises.readFile(dir)).toString()));
 
+            const banned: BannedPlayerEntry[] = JSON.parse(minifyJson((await fs.promises.readFile(dir)).toString()));
             for (const player of banned) this.banned.set(player.name, player);
         } catch (error: unknown) {
             this.server.getLogger().error(error);
@@ -89,8 +89,15 @@ export default class BanManager {
         );
     }
 
-    public isBanned(player: Player) {
-        if (this.banned.has(player.getName())) return this.banned.get(player.getName())?.reason;
+    /**
+     * Check if player is banned.
+     * @param {Player} player - Player to check.
+     * @returns {string | boolean} Reason if banned, false if not banned.
+     */
+    public isBanned(player: Player): string | boolean {
+        if (this.banned.has(player.getName())) {
+            return this.banned.get(player.getName())?.reason || true;
+        }
 
         return false;
     }

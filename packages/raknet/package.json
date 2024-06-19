@@ -9,15 +9,15 @@
         "CHANGELOG.md",
         "README.md"
     ],
-    "main": "./dist/RakNet.cjs.cjs",
-    "module": "./dist/RakNet.es.js",
-    "types": "./dist/RakNet.d.ts",
+    "main": "./dist/index.cjs.cjs",
+    "module": "./dist/index.es.js",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/RakNet.es.js",
-            "module": "./dist/RakNet.es.js",
-            "require": "./dist/RakNet.cjs.cjs",
-            "types": "./dist/RakNet.d.ts"
+            "import": "./dist/index.es.js",
+            "module": "./dist/index.es.js",
+            "require": "./dist/index.cjs.cjs",
+            "types": "./dist/index.d.ts"
         },
         "./*": {
             "import": "./dist/*.es.js",

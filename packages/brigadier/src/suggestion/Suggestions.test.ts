@@ -1,12 +1,12 @@
-import { assert, expect, describe, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 import StringRange from '../context/StringRange';
-import Suggestion from '../suggestion/Suggestion';
-import Suggestions from '../suggestion/Suggestions';
+import Suggestion from './Suggestion';
+import Suggestions from './Suggestions';
 
 describe('SuggestionsTest', () => {
     it('merge_empty', () => {
         const merged = Suggestions.merge('foo b', []);
-        assert.equal(merged.isEmpty(), true);
+        assert.equal(merged?.isEmpty(), true);
     });
 
     it('merge_single', () => {

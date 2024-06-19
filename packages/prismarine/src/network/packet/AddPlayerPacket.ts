@@ -39,7 +39,7 @@ export default class AddPlayerPacket extends DataPacket {
         this.metadata = new Metadata();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.uuid.networkSerialize(this);
         NetworkUtil.writeString(this, this.name);
         this.writeUnsignedVarLong(this.runtimeEntityId);

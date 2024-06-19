@@ -32,7 +32,7 @@ export default class AddItemActorPacket extends DataPacket {
     public metadata!: Metadata;
     public isFromFishing = false;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 

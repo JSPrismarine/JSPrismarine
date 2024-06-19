@@ -7,11 +7,11 @@ export default class ShowProfilePacket extends DataPacket {
 
     public xuid!: string;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.xuid = NetworkUtil.readString(this);
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         NetworkUtil.writeString(this, this.xuid);
     }
 }
