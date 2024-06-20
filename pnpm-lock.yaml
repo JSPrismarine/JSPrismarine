@@ -112,8 +112,8 @@ importers:
         specifier: 0.25.13
         version: 0.25.13(typescript@5.4.5)
       typedoc-material-theme:
-        specifier: 1.0.2
-        version: 1.0.2(typedoc@0.25.13(typescript@5.4.5))
+        specifier: 1.0.3
+        version: 1.0.3(typedoc@0.25.13(typescript@5.4.5))
       typedoc-plugin-extras:
         specifier: 3.0.0
         version: 3.0.0(typedoc@0.25.13(typescript@5.4.5))
@@ -3251,8 +3251,8 @@ packages:
     resolution: {integrity: sha512-/OxDN6OtAk5KBpGb28T+HZc2M+ADtvRxXrKKbUwtsLgdoxgX13hyy7ek6bFRl5+aBs2yZzB0c4CnQfAtVypW/g==}
     engines: {node: '>= 0.4'}
 
-  typedoc-material-theme@1.0.2:
-    resolution: {integrity: sha512-/nH/twYeHrnz5sZaaXzYJ85EOgKqnbl1ivzBKmuEAga1dBsARttwQUTPKAT7XrCPD+rRcoqxuCOdXZ6EGiqRQA==}
+  typedoc-material-theme@1.0.3:
+    resolution: {integrity: sha512-TDQsRAcZoWgVVdqDWRxFDn3PqZy09YGONY8pQt8Thm/upZH0wbZ3YhFdSNMfsNyKFfsvZzl2NojdquAdBvjPgg==}
     engines: {node: '>=18.0.0', npm: '>=8.6.0'}
     peerDependencies:
       typedoc: ^0.25.3
@@ -6502,7 +6502,7 @@ snapshots:
       is-typed-array: 1.1.13
       possible-typed-array-names: 1.0.0
 
-  typedoc-material-theme@1.0.2(typedoc@0.25.13(typescript@5.4.5)):
+  typedoc-material-theme@1.0.3(typedoc@0.25.13(typescript@5.4.5)):
     dependencies:
       '@material/material-color-utilities': 0.2.7
       typedoc: 0.25.13(typescript@5.4.5)
