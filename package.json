@@ -97,7 +97,7 @@
         "ts-mockito": "2.6.1",
         "turbo": "2.0.4",
         "turbo-ignore": "2.0.4",
-        "typedoc": "0.26.0",
+        "typedoc": "0.26.1",
         "typedoc-material-theme": "1.0.3",
         "typedoc-plugin-extras": "3.0.0",
         "typedoc-plugin-missing-exports": "3.0.0",
