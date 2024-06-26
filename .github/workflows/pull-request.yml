@@ -27,7 +27,7 @@ jobs:
               uses: ./.github/common/install
 
             - name: 🚚 Update PR
-              uses: mscharley/dependency-changesets-action@v1.0.10
+              uses: mscharley/dependency-changesets-action@v1.0.11
               with:
                   use-conventional-commits: false
                   commit-message: 'Deps: Add changeset.'
