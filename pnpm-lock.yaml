@@ -115,8 +115,8 @@ importers:
         specifier: 1.0.3
         version: 1.0.3(typedoc@0.26.3(typescript@5.4.5))
       typedoc-plugin-extras:
-        specifier: 3.0.0
-        version: 3.0.0(typedoc@0.26.3(typescript@5.4.5))
+        specifier: 3.1.0
+        version: 3.1.0(typedoc@0.26.3(typescript@5.4.5))
       typedoc-plugin-missing-exports:
         specifier: 3.0.0
         version: 3.0.0(typedoc@0.26.3(typescript@5.4.5))
@@ -3083,10 +3083,10 @@ packages:
     peerDependencies:
       typedoc: ^0.25.3
 
-  typedoc-plugin-extras@3.0.0:
-    resolution: {integrity: sha512-eiAe3qtm2WbV5owdncpt0zHZPqsNZH2mzNGILPd4zqrvEZie3Et9es4cpGZ+8lHO/SI0pVKwsAj7IuMxPNOdYg==}
+  typedoc-plugin-extras@3.1.0:
+    resolution: {integrity: sha512-8tNeq2fgl2HCUZ6eZuAoLLKEvB/WrRS4He9MtTfo3X3Pa8Iw3TS5D0g8krDhUXUk1uHpXVAVHm8rSOMS2mdJRw==}
     peerDependencies:
-      typedoc: 0.25.x
+      typedoc: 0.26.x
 
   typedoc-plugin-missing-exports@3.0.0:
     resolution: {integrity: sha512-R7D8fYrK34mBFZSlF1EqJxfqiUSlQSmyrCiQgTQD52nNm6+kUtqwiaqaNkuJ2rA2wBgWFecUA8JzHT7x2r7ePg==}
@@ -6134,7 +6134,7 @@ snapshots:
       '@material/material-color-utilities': 0.2.7
       typedoc: 0.26.3(typescript@5.4.5)
 
-  typedoc-plugin-extras@3.0.0(typedoc@0.26.3(typescript@5.4.5)):
+  typedoc-plugin-extras@3.1.0(typedoc@0.26.3(typescript@5.4.5)):
     dependencies:
       typedoc: 0.26.3(typescript@5.4.5)
 
