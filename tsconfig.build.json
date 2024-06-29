@@ -3,7 +3,7 @@
     "compilerOptions": {
         "allowJs": false,
         "allowSyntheticDefaultImports": true,
-        "composite": false, // FIXME
+        "composite": false, // FIXME: Fix ` Projects must list all files or use an 'include' pattern.`.
         "declaration": true,
         "declarationMap": true,
         "downlevelIteration": false,
@@ -11,16 +11,19 @@
         "experimentalDecorators": true,
         "forceConsistentCasingInFileNames": true,
         "incremental": true,
-        //"isolatedDeclarations": true,
+        "inlineSourceMap": false,
+        "isolatedDeclarations": false, // FIXME: Enable this.
         "isolatedModules": true,
         "lib": ["ESNext", "Decorators"],
         "module": "ESNext",
         "moduleDetection": "force",
         "moduleResolution": "Bundler",
+        "noFallthroughCasesInSwitch": false,
         "noImplicitAny": true,
         "noUncheckedIndexedAccess": true,
+        "noUnusedLocals": false, // FIXME: Enable this.
+        "noUnusedParameters": false, // FIXME: Enable this.
         "paths": {
-            "@/*": ["./packages/*/src"],
             "@jsprismarine/*": ["./packages/*/src/index.ts"]
         },
         "removeComments": false,
@@ -36,7 +39,7 @@
         "target": "ESNext",
         "tsBuildInfoFile": ".tsbuildinfo",
         "typeRoots": ["./node_modules/@types", "./packages/**/src/@types"],
-        "types": [],
+        "types": ["node"],
         "useDefineForClassFields": true
     },
 
@@ -51,6 +54,7 @@
         { "path": "./packages/errors/tsconfig.json" },
         { "path": "./packages/logger/tsconfig.json" },
         { "path": "./packages/math/tsconfig.json" },
+        { "path": "./packages/minecraft/tsconfig.json" },
         { "path": "./packages/nbt/tsconfig.json" },
         { "path": "./packages/prismarine/tsconfig.json" },
         { "path": "./packages/protocol/tsconfig.json" },
