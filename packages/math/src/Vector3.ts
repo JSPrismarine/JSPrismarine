@@ -4,7 +4,7 @@ import { Vector2 } from './Vector2';
  * 3D Vector.
  */
 export class Vector3 extends Vector2 {
-    public static get ZERO() {
+    public static get ZERO(): Vector3 {
         return new Vector3(0, 0, 0);
     }
 
@@ -29,7 +29,7 @@ export class Vector3 extends Vector2 {
         this.setY(y);
     }
 
-    toString() {
+    public toString(): string {
         return `x: §b${this.x.toFixed(2)}§r, y: §b${this.y.toFixed(2)}§r, z: §b${this.z.toFixed(2)}§r`;
     }
 
@@ -57,10 +57,10 @@ export class Vector3 extends Vector2 {
         return this.y;
     }
 
-    public floor() {
+    public floor(): Vector3 {
         return new Vector3(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
     }
-    public trunc() {
+    public trunc(): Vector3 {
         return new Vector3(Math.trunc(this.x), Math.trunc(this.y), Math.trunc(this.z));
     }
 

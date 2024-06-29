@@ -3,6 +3,7 @@
     "ui": "stream",
     "globalDependencies": [
         "tsconfig.json",
+        "tsconfig.build.json",
         "package.json",
         "vite.config.ts",
         ".env"

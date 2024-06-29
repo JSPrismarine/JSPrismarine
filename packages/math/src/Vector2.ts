@@ -2,7 +2,7 @@
  * 2D Vector.
  */
 export class Vector2 {
-    public static get ZERO() {
+    public static get ZERO(): Vector2 {
         return new Vector2(0, 0);
     }
 
@@ -32,7 +32,7 @@ export class Vector2 {
         this.setZ(z);
     }
 
-    toString() {
+    public toString(): string {
         return `x: §b${this.x.toFixed(2)}§r, z: §b${this.z.toFixed(2)}§r`;
     }
 
@@ -80,10 +80,10 @@ export class Vector2 {
         return this.z;
     }
 
-    public floor() {
+    public floor(): Vector2 {
         return new Vector2(Math.floor(this.x), Math.floor(this.z));
     }
-    public trunc() {
+    public trunc(): Vector2 {
         return new Vector2(Math.trunc(this.x), Math.trunc(this.z));
     }
 

@@ -4,6 +4,7 @@
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
+            // "@/*": ["src/*"],
             "@jsprismarine/*": ["../*/src/index.ts"]
         },
         "outDir": "./dist",
