@@ -47,8 +47,13 @@ export default class Client extends EventEmitter {
 
     /**
      * Creates a packet listener on given address and port.
+     * @param {string} address - The address to listen on.
+     * @param {number} port - The port to listen on.
+     * @returns {Promise<Client>} The client instance.
+     * @async
+     * @public
      */
-    public async connect(address = '0.0.0.0', port = 19132) {
+    public async connect(address = '0.0.0.0', port = 19132): Promise<Client> {
         this.targetAddress = new InetAddress(address, port);
 
         this.socket.on('message', (buffer: Buffer) => {
@@ -93,7 +98,13 @@ export default class Client extends EventEmitter {
         return this;
     }
 
-    private async handle(buffer: Buffer) {
+    /**
+     * Handles the incoming buffer.
+     * @param {Buffer} buffer - The buffer to handle.
+     * @private
+     * @internal
+     */
+    private async handle(buffer: Buffer): Promise<void> {
         const header = buffer.readUInt8(); // Read packet header
 
         if (this.connection && this.offlineHandled) {
@@ -119,7 +130,7 @@ export default class Client extends EventEmitter {
         }
     }
 
-    public handleUnconnectedPong(buffer: Buffer) {
+    public handleUnconnectedPong(buffer: Buffer): Buffer {
         // Decode server packet
         const decodedPacket = new Protocol.UnconnectedPong(buffer);
         decodedPacket.decode();
@@ -142,7 +153,7 @@ export default class Client extends EventEmitter {
         return packet.getBuffer();
     }
 
-    public handleOpenConnectionReply1(buffer: Buffer) {
+    public handleOpenConnectionReply1(buffer: Buffer): Buffer {
         // Decode server packet
         const decodedPacket = new Protocol.OpenConnectionReply1(buffer);
         decodedPacket.decode();

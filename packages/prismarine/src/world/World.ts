@@ -97,6 +97,7 @@ export class World implements Service {
 
     /**
      * On enable hook.
+     * @group Lifecycle
      * @async
      */
     public async enable(): Promise<void> {
@@ -148,6 +149,7 @@ export class World implements Service {
 
     /**
      * On disable hook.
+     * @group Lifecycle
      * @async
      */
     public async disable(): Promise<void> {

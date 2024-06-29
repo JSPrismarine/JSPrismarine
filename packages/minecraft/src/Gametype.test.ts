@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { GametypeInvalidError } from '@jsprismarine/errors';
+
 import { Gametype, getGametypeId, getGametypeName } from './Gametype';
 
 describe('minecraft', () => {
@@ -13,7 +15,7 @@ describe('minecraft', () => {
             });
 
             it('should throw on invalid gametype', () => {
-                expect(() => getGametypeName(Gametype.UNDEFINED)).toThrowError('Unknown gametype');
+                expect(() => getGametypeName(Gametype.UNDEFINED)).toThrowError(GametypeInvalidError);
             });
         });
 
@@ -37,7 +39,7 @@ describe('minecraft', () => {
             });
 
             it('should throw on invalid gametype', () => {
-                expect(() => getGametypeId('invalid')).toThrowError('Unknown gametype');
+                expect(() => getGametypeId('invalid')).toThrowError(GametypeInvalidError);
             });
         });
     });

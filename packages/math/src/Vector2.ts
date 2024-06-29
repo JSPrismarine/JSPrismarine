@@ -21,6 +21,7 @@ export class Vector2 {
      * @constructor
      * @param {number} x - The X coordinate.
      * @param {number} z - The Z coordinate.
+     * @returns {Vector2} The logger instance.
      * @example
      * ```typescript
      * const vector = new Vector2(10, 20);

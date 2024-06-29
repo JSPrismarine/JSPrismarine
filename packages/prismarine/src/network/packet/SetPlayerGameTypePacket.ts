@@ -3,8 +3,8 @@ import type { Gametype } from '@jsprismarine/minecraft';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
-export default class SetPlayerGameTypePacket extends DataPacket {
-    public static NetID = Identifiers.SetPlayerGameTypePacket;
+export default class SetPlayerGametypePacket extends DataPacket {
+    public static NetID = Identifiers.SetPlayerGametypePacket;
 
     public gametype!: Gametype;
 

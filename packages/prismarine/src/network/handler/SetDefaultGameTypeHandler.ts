@@ -1,13 +1,13 @@
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import Identifiers from '../Identifiers';
-import type SetDefaultGameTypePacket from '../packet/SetDefaultGameTypePacket';
+import type SetDefaultGametypePacket from '../packet/SetDefaultGametypePacket';
 import type PacketHandler from './PacketHandler';
 
-export default class SetDefaultGameTypeHandler implements PacketHandler<SetDefaultGameTypePacket> {
-    public static NetID = Identifiers.SetDefaultGameTypePacket;
+export default class SetDefaultGametypeHandler implements PacketHandler<SetDefaultGametypePacket> {
+    public static NetID = Identifiers.SetDefaultGametypePacket;
 
-    public async handle(packet: SetDefaultGameTypePacket, server: Server, session: PlayerSession): Promise<void> {
+    public async handle(packet: SetDefaultGametypePacket, server: Server, session: PlayerSession): Promise<void> {
         if (!session.getPlayer().isOp()) {
             server
                 .getLogger()
