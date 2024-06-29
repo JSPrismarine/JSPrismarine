@@ -1,23 +1,23 @@
-import ACK from './protocol/ACK';
 import BinaryStream from '@jsprismarine/jsbinaryutils';
+import assert from 'node:assert';
+import { MAX_CHANNELS, UDP_HEADER_SIZE } from './Constants';
+import ACK from './protocol/ACK';
 import BitFlags from './protocol/BitFlags';
+import Frame, { MAX_FRAME_BYTE_LENGTH } from './protocol/Frame';
+import FrameReliability from './protocol/FrameReliability';
+import FrameSet, { DATAGRAM_HEADER_BYTE_LENGTH } from './protocol/FrameSet';
+import { MessageIdentifiers } from './protocol/MessageIdentifiers';
+import NACK from './protocol/NACK';
+import PacketPool from './protocol/PacketPool';
 import ConnectedPing from './protocol/connection/ConnectedPing';
 import ConnectedPong from './protocol/connection/ConnectedPong';
 import ConnectionRequest from './protocol/login/ConnectionRequest';
 import ConnectionRequestAccepted from './protocol/login/ConnectionRequestAccepted';
-import Frame, { MAX_FRAME_BYTE_LENGTH } from './protocol/Frame';
-import FrameReliability from './protocol/FrameReliability';
-import FrameSet, { DATAGRAM_HEADER_BYTE_LENGTH } from './protocol/FrameSet';
 import InetAddress from './utils/InetAddress';
-import { MAX_CHANNELS, UDP_HEADER_SIZE } from './Constants';
-import { MessageIdentifiers } from './protocol/MessageIdentifiers';
-import NACK from './protocol/NACK';
-import assert from 'node:assert';
-import PacketPool from './protocol/PacketPool';
 
 import type { RemoteInfo } from 'node:dgram';
-import type Packet from './protocol/Packet';
 import type RakNetListener from './ServerSocket';
+import type Packet from './protocol/Packet';
 
 export enum RakNetPriority {
     NORMAL,
@@ -261,14 +261,17 @@ export default class Session {
 
     public sendFrame(frame: Frame, flags = RakNetPriority.NORMAL): void {
         assert(typeof frame.orderChannel === 'number', 'Frame OrderChannel cannot be null');
+        assert(this.outputSequenceIndex.length <= frame.orderChannel, 'Frame OrderChannel is out of bounds');
+        assert(this.outputOrderIndex[frame.orderChannel] !== undefined, 'Frame OrderIndex is not defined');
+
         // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L1625
         if (frame.isSequenced()) {
             // Sequenced packets don't increase the ordered channel index
             frame.orderIndex = this.outputOrderIndex[frame.orderChannel]!;
-            frame.sequenceIndex = this.outputSequenceIndex[frame.orderChannel]++;
+            frame.sequenceIndex = this.outputSequenceIndex[frame.orderChannel]!++;
         } else if (frame.isOrderedExclusive()) {
             // implies sequenced, but we have to distinct them
-            frame.orderIndex = this.outputOrderIndex[frame.orderChannel]++;
+            frame.orderIndex = this.outputOrderIndex[frame.orderChannel]!++;
             this.outputSequenceIndex[frame.orderChannel] = 0;
         }
 
