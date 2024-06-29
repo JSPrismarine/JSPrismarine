@@ -52,6 +52,7 @@
         "vitest": "1.6.0"
     },
     "dependencies": {
+        "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/nbt": "workspace:*"
     }
 }

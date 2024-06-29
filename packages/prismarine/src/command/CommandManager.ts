@@ -25,6 +25,7 @@ export class CommandManager implements Service {
 
     /**
      * On enable hook.
+     * @group Lifecycle
      * @async
      */
     public async enable(): Promise<void> {
@@ -57,6 +58,7 @@ export class CommandManager implements Service {
 
     /**
      * On disable hook.
+     * @group Lifecycle
      * @async
      */
     public async disable(): Promise<void> {
@@ -66,8 +68,9 @@ export class CommandManager implements Service {
 
     /**
      * Register a command into command manager by class.
+     * @param {Command} [command] - The command class to register
      */
-    public async registerCommand(command?: Command) {
+    public async registerCommand(command?: Command): Promise<void> {
         if (!command || !command.id) throw new CommandRegisterClassMalformedOrMissingError();
         if (command.id.split(':').length !== 2) throw new GenericNamespaceInvalidError();
 

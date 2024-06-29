@@ -87,6 +87,7 @@ export default class Player extends Human {
 
     /**
      * On enable hook.
+     * @group Lifecycle
      * @async
      */
     public async enable(): Promise<void> {
@@ -122,6 +123,7 @@ export default class Player extends Human {
 
     /**
      * On disable hook.
+     * @group Lifecycle
      * @async
      */
     public async disable(): Promise<void> {

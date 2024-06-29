@@ -8,7 +8,9 @@ export enum ErrorKind {
     COMMAND_UNKNOWN_COMMAND = 'COMMAND_UNKNOWN_COMMAND',
     COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING = 'COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING',
 
-    PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND'
+    PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND',
+
+    GAMETYPE_INVALID = 'GAMETYPE_INVALID'
 }
 
 export class Error<T = ErrorKind> extends BuiltinError {
@@ -78,6 +80,21 @@ export class PlayerNotFoundError extends Error {
 
         if (username) {
             this.message = `Player "${username}" not found.`;
+        }
+    }
+}
+
+export class GametypeInvalidError extends Error {
+    name = 'GametypeInvalidError';
+    message = `Unknown or invalid game type.`;
+    code = ErrorKind.PLAYER_NOT_FOUND;
+
+    public constructor(gametype?: string) {
+        super();
+        Object.setPrototypeOf(this, GametypeInvalidError.prototype);
+
+        if (gametype) {
+            this.message = `Gametype "${gametype}" is not a valid game type.`;
         }
     }
 }

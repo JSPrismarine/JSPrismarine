@@ -27,6 +27,7 @@ export default class Anvil extends BaseProvider {
 
     /**
      * On enable hook.
+     * @group Lifecycle
      * @async
      */
     public async enable(): Promise<void> {
@@ -34,6 +35,7 @@ export default class Anvil extends BaseProvider {
     }
     /**
      * On disable hook.
+     * @group Lifecycle
      * @async
      */
     public async disable(): Promise<void> {}

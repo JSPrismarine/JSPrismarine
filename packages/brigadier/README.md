@@ -3,10 +3,15 @@
 [![License](https://img.shields.io/badge/license-MIT-orange
 )](https://github.com/JSPrismarine/JSPrismarine/blob/master/packages/brigadier/LICENSE)
 [![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![Contributors](https://img.shields.io/github/contributors/JSPrismarine/JSPrismarine?color=%23E30B5D)](https://github.com/JSPrismarine/JSPrismarine/graphs/contributors)
 [![npm](https://img.shields.io/npm/dt/@jsprismarine/brigadier)](https://www.npmjs.com/package/@jsprismarine/brigadier)
+[![Code Coverage](https://img.shields.io/codecov/c/github/JSPrismarine/JSPrismarine?token=WLXLSJOGN3&color=63A375)](https://codecov.io/gh/JSPrismarine/JSPrismarine)
+[![TODOs Counter](https://img.shields.io/github/search/JSPrismarine/JSPrismarine/todo)](https://github.com/JSPrismarine/JSPrismarine/search?q=todo)
+[![FIXMEs Counter](https://img.shields.io/github/search/JSPrismarine/JSPrismarine/fixme)](https://github.com/JSPrismarine/JSPrismarine/search?q=fixme)
+[![GitHub Commit Activity](https://img.shields.io/github/commit-activity/m/JSPrismarine/JSPrismarine?color=%2387F4BC)](https://github.com/JSPrismarine/JSPrismarine/commits/master)
 
 
-@jsprismarine/brigadier is a Node.js version of Mojang's Brigadier library. It is a command parser & dispatcher, originally designed and developed for Minecraft: Java Edition and now freely available for use elsewhere under the MIT license.
+`@jsprismarine/brigadier is a Node.js` version of Mojang's Brigadier library. It is a command parser & dispatcher, originally designed and developed for Minecraft: Java Edition and now freely available for use elsewhere under the MIT license.
 
 This project was originally developed by [remtori](https://github.com/remtori) as [node-brigadier](https://github.com/remtori/brigadier).
 
@@ -18,10 +23,10 @@ Before you begin, ensure you have met the following requirements:
 
 ## Installation
 
-To install JSPrismarine/brigadier, use the following command:
+To install `@jsprismarine/brigadier`, use the following command:
 
 ```
-npm install @jsprismarine/brigadier --save
+pnpm install @jsprismarine/brigadier --save
 ```
 
 ## Usage

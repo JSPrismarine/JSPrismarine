@@ -11,12 +11,11 @@
     "externalPattern": ["**/node_modules/**", ".*packages(/[^/]+)/.*"],
     "footerLastModified": true,
     "out": "./dist",
-    "placeInternalsInOwningModule": true,
     "plugin": [
         "@droppedcode/typedoc-plugin-relative-includes",
         "typedoc-material-theme",
         "typedoc-plugin-extras",
-        "typedoc-plugin-missing-exports",
+        "typedoc-plugin-merge-modules",
         "typedoc-plugin-rename-defaults"
     ],
     "includes": "./docs",
@@ -24,5 +23,7 @@
     "readme": "./README.md",
     "themeColor": "#5CA48A",
     "titleLink": "https://jsprismarine.org/",
-    "tsconfig": "./tsconfig.json"
+    "tsconfig": "./tsconfig.json",
+    "mergeModulesRenameDefaults": true,
+    "mergeModulesMergeMode": "module"
 }

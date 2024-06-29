@@ -1,5 +1,7 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
+// eslint-disable-next-line unused-imports/no-unused-imports
+import type { Gametype } from '@jsprismarine/minecraft';
 import { getGametypeId } from '@jsprismarine/minecraft';
 import type Player from '../../Player';
 import { Chat } from '../../chat/Chat';

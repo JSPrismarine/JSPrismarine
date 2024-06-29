@@ -1,17 +1,41 @@
 import colorParser from '@jsprismarine/color-parser';
 
 import type { Logger as Winston } from 'winston';
-import { createLogger, format } from 'winston';
+import * as winston from 'winston';
+import { format } from 'winston';
 
 import type TransportStream from 'winston-transport';
 import type { ConsoleLike } from './transport';
 import { PrismarineTransport } from './transport';
 
+/**
+ * A log level.
+ * @type {LogLevel}
+ * @public
+ */
 export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug' | 'silly';
 
+/**
+ * Helper class for general logging.
+ * @class
+ * @public
+ */
 export class Logger {
+    /**
+     * The internal logger instance.
+     * @type {Winston}
+     * @private
+     * @internal
+     */
     private logger!: Winston;
 
+    /**
+     * Create a new logger instance
+     * @constructor
+     * @param {LogLevel} level - The log level to use.
+     * @param {TransportStream[]} transports - The transports to use.
+     * @returns {Logger} The logger instance.
+     */
     public constructor(level: LogLevel = 'info', transports: TransportStream[] = []) {
         this.createLogger(level, transports);
     }
@@ -25,7 +49,7 @@ export class Logger {
         // If the logger is already created and not closed, return.
         if ((this.logger as any) && !this.logger.closed) return;
 
-        this.logger = createLogger({
+        this.logger = winston.createLogger({
             level,
             format: format.combine(
                 format.timestamp({ format: 'HH:mm:ss' }),
@@ -51,6 +75,7 @@ export class Logger {
 
     /**
      * On enable hook.
+     * @group Lifecycle
      * @async
      */
     public async enable(): Promise<void> {
@@ -59,6 +84,7 @@ export class Logger {
 
     /**
      * On disable hook.
+     * @group Lifecycle
      * @async
      */
     public async disable(): Promise<void> {
@@ -66,14 +92,28 @@ export class Logger {
         this.logger.destroy();
     }
 
+    /**
+     * Listen for log messages.
+     * @param {(level: LogLevel, message: string) => void} listener - The listener to call when a log message is received.
+     * @event
+     */
     public onLine(listener: (line: string) => void): void {
         this.logger.on('data', (data) => listener(data.message.toString()));
     }
 
+    /**
+     * Set the console instance to use.
+     * @param {ConsoleLike} console - The console instance to use.
+     */
     public setConsole(console: ConsoleLike): void {
         (this.logger.transports[0] as PrismarineTransport).console = console;
     }
 
+    /**
+     * Get callee's namespace from the stack trace.
+     * @private
+     * @internal
+     */
     private getNamespace = () => {
         const stack = (new Error().stack as string).replaceAll('\\', '/');
         if (!stack) return '';
@@ -99,6 +139,10 @@ export class Logger {
         return path.split('/').at(-1) || '';
     };
 
+    /**
+     * @private
+     * @internal
+     */
     private parseMessage = (input: string[]) => {
         const output = input.join('§r ');
 
@@ -111,8 +155,8 @@ export class Logger {
     };
 
     /**
-     * Log information messages
-     * @param message
+     * Log information messages.
+     * @param {...string} message - The message to log.
      */
     public info = (...message: string[]): void => {
         this.logger.log('info', this.parseMessage(message), {
@@ -121,8 +165,8 @@ export class Logger {
     };
 
     /**
-     * Log warning messages
-     * @param message
+     * Log warning messages.
+     * @param {...string} message - The message to log.
      */
     public warn = (...message: string[]): void => {
         this.logger.log('warn', this.parseMessage(message), {
@@ -131,8 +175,8 @@ export class Logger {
     };
 
     /**
-     * Log error messages
-     * @param message
+     * Log error messages.
+     * @param {string | Error | any} message - The message to log.
      */
     public error = (message: string | Error | any): void => {
         if (typeof message === 'string') {
@@ -153,8 +197,8 @@ export class Logger {
     };
 
     /**
-     * Log verbose messages
-     * @param message
+     * Log verbose messages.
+     * @param {...string} message - The message to log.
      */
     public verbose = (...message: string[]): void => {
         this.logger.log('verbose', this.parseMessage(message), {
@@ -163,8 +207,8 @@ export class Logger {
     };
 
     /**
-     * Log debug messages
-     * @param message
+     * Log debug messages.
+     * @param {...string} message - The message to log.
      */
     public debug = (...message: string[]): void => {
         this.logger.log('debug', this.parseMessage(message), {
@@ -173,8 +217,8 @@ export class Logger {
     };
 
     /**
-     * Log silly messages
-     * @param message
+     * Log silly messages.
+     * @param {...string} message - The message to log.
      */
     public silly = (...message: string[]): void => {
         this.logger.log('silly', this.parseMessage(message), {

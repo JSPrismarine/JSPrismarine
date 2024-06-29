@@ -44,10 +44,10 @@ import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
 import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
-import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
+import SetDefaultGametypePacket from './packet/SetDefaultGametypePacket';
 import SetHealthPacket from './packet/SetHealthPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
-import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
+import SetPlayerGametypePacket from './packet/SetPlayerGametypePacket';
 import SetTimePacket from './packet/SetTimePacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
 import StartGamePacket from './packet/StartGamePacket';
@@ -68,7 +68,10 @@ export {
     AnimatePacket,
     AvailableActorIdentifiersPacket,
     AvailableCommandsPacket,
-    BatchPacket, // Special packet
+    /**
+     * @group Special Packets
+     */
+    BatchPacket,
     BiomeDefinitionListPacket,
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
@@ -76,7 +79,10 @@ export {
     ContainerClosePacket,
     ContainerOpenPacket,
     CreativeContentPacket,
-    DataPacket, // Special packet
+    /**
+     * @group Special Packets
+     */
+    DataPacket,
     DisconnectPacket,
     EmoteListPacket,
     InteractPacket,
@@ -107,10 +113,10 @@ export {
     ResourcePacksInfoPacket,
     ServerSettingsRequestPacket,
     SetActorDataPacket,
-    SetDefaultGameTypePacket,
+    SetDefaultGametypePacket,
     SetHealthPacket,
     SetLocalPlayerAsInitializedPacket,
-    SetPlayerGameTypePacket,
+    SetPlayerGametypePacket,
     SetTimePacket,
     ShowProfilePacket,
     StartGamePacket,

@@ -4,6 +4,19 @@ export type ConsoleLike = {
     write: (input: string) => void;
 };
 
+/**
+ * Custom winston transport adapted for the JSPrismarine console.
+ * @class
+ * @public
+ * @example
+ * ```typescript
+ * createLogger({
+ *     transports: [
+ *         new PrismarineTransport({ ...transports });
+ *     ]
+ * });
+ * ```
+ */
 export class PrismarineTransport extends Transport {
     public console: ConsoleLike | undefined;
     private buffer: any[] = [];
