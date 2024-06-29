@@ -5,15 +5,14 @@ import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
 import Timer from '../utils/Timer';
 import type { Item } from './Item';
 
-// TODO: Don't dynamically import, do it like ./network/Protocol etc
 export default class ItemManager {
     private readonly server: Server;
     private readonly items = new Map<string, Item>();
 
     /**
      * Construct an ItemManager.
-     * @param {Server} server -
-     * @returns {ItemManager}
+     * @param {Server} server - The server instance.
+     * @returns {ItemManager} The item manager instance.
      * @constructor
      */
     public constructor(server: Server) {
@@ -22,6 +21,7 @@ export default class ItemManager {
 
     /**
      * On enable hook.
+     * @group Lifecycle
      * @async
      */
     public async enable(): Promise<void> {
@@ -30,6 +30,7 @@ export default class ItemManager {
 
     /**
      * On disable hook.
+     * @group Lifecycle
      * @async
      */
     public async disable() {

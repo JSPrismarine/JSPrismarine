@@ -31,7 +31,7 @@ import PlayStatusPacket from './packet/PlayStatusPacket';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
-import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
+import SetPlayerGametypePacket from './packet/SetPlayerGametypePacket';
 import SetTimePacket from './packet/SetTimePacket';
 import TextPacket from './packet/TextPacket';
 import UpdateAbilitiesPacket, {
@@ -306,7 +306,7 @@ export default class PlayerSession {
      * @async
      */
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
-        const packet = new SetPlayerGameTypePacket();
+        const packet = new SetPlayerGametypePacket();
         packet.gametype = gamemode ?? this.player.gamemode;
         await this.connection.sendDataPacket(packet);
     }

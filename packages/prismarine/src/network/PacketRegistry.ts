@@ -19,6 +19,7 @@ export default class PacketRegistry {
 
     /**
      * On enable hook.
+     * @group Lifecycle
      * @async
      */
     public async enable(): Promise<void> {
@@ -28,6 +29,7 @@ export default class PacketRegistry {
 
     /**
      * On disable hook.
+     * @group Lifecycle
      * @async
      */
     public async disable(): Promise<void> {

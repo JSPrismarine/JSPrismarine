@@ -1,8 +1,8 @@
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
-export default class SetDefaultGameTypePacket extends DataPacket {
-    public static NetID = Identifiers.SetDefaultGameTypePacket;
+export default class SetDefaultGametypePacket extends DataPacket {
+    public static NetID = Identifiers.SetDefaultGametypePacket;
 
     /**
      * The gamemode to be set as default.

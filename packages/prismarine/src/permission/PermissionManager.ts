@@ -24,8 +24,8 @@ export class PermissionManager implements Service {
 
     /**
      * Create a new permission manager.
-     * @constructor
      * @param {Server} server - The server instance.
+     * @constructor
      */
     public constructor(server: Server) {
         this.server = server;
@@ -34,6 +34,7 @@ export class PermissionManager implements Service {
     /**
      * Enable the manager and load all permissions.
      * @returns {Promise<void>} A promise that resolves when the manager is enabled.
+     * @group Lifecycle
      * @async
      */
     public async enable(): Promise<void> {
@@ -44,6 +45,7 @@ export class PermissionManager implements Service {
     /**
      * Signifies that the manager is being disabled and all permissions should be unloaded.
      * @returns {Promise<void>} A promise that resolves when the manager is disabled.
+     * @group Lifecycle
      * @async
      */
     public async disable(): Promise<void> {

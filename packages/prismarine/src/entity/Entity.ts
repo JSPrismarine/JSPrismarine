@@ -12,6 +12,7 @@ import { Metadata, MetadataFlag } from './Metadata';
 
 /**
  * Entity-like class.
+ * @class
  * @internal
  */
 export class EntityLike extends Position {
@@ -122,6 +123,7 @@ export class EntityLike extends Position {
 
 /**
  * The base class for all entities including `Player`.
+ * @class
  * @public
  */
 export class Entity extends EntityLike {
