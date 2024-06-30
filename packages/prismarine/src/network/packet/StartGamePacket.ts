@@ -19,6 +19,9 @@ export default class StartGamePacket extends DataPacket {
     public pitch: number = 0;
     public yaw: number = 0;
 
+    public serverIdentifier!: string;
+    public worldIdentifier!: string;
+    public scenarioIdentifier!: string;
     public levelId!: string;
     public worldName!: string;
     public seed!: number;
@@ -125,6 +128,9 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // Chat restriction level
         this.writeByte(0); // Disable player interactions
 
+        NetworkUtil.writeString(this, this.serverIdentifier);
+        NetworkUtil.writeString(this, this.worldIdentifier);
+        NetworkUtil.writeString(this, this.scenarioIdentifier);
         NetworkUtil.writeString(this, this.levelId);
         NetworkUtil.writeString(this, this.worldName);
         NetworkUtil.writeString(this, '00000000-0000-0000-0000-000000000000'); // Template content identity

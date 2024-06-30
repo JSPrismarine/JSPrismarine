@@ -61,6 +61,9 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             startGame.pitch = player.pitch;
             startGame.yaw = player.yaw;
 
+            startGame.serverIdentifier = 'JSPrismarine';
+            startGame.worldIdentifier = world.getName();
+            startGame.scenarioIdentifier = 'JSPrismarine';
             startGame.levelId = world.getUUID();
             startGame.ticks = server.getTick();
             startGame.time = world.getTicks();
