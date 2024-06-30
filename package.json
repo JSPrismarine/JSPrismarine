@@ -100,7 +100,7 @@
         "typedoc-plugin-extras": "3.1.0",
         "typedoc-plugin-merge-modules": "5.1.0",
         "typedoc-plugin-rename-defaults": "0.7.1",
-        "typedoc": "0.25.13",
+        "typedoc": "0.26.3",
         "typescript": "5.5.2",
         "vite": "5.3.2",
         "vite-plugin-dts": "3.9.1",
