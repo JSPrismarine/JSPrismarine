@@ -44,7 +44,6 @@ export default class WorldManager implements Service {
     /**
      * On enable hook, enables the manager and load all worlds.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         this.addProvider('Anvil', Anvil);
@@ -67,7 +66,6 @@ export default class WorldManager implements Service {
      *
      * Signifies that the manager is being disabled and all worlds should be unloaded.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {
         await Promise.all(this.getWorlds().map(async (world) => this.unloadWorld(world.getName())));

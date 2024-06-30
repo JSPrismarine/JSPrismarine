@@ -98,7 +98,6 @@ export class World implements Service {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         this.server.on('tick', async (evt) => this.update(evt.getTick()));
@@ -150,7 +149,6 @@ export class World implements Service {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {
         await this.save();

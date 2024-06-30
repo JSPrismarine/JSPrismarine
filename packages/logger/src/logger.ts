@@ -17,6 +17,7 @@ export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug' | 'silly'
 
 /**
  * Helper class for general logging.
+ * @document docs/log-levels.md
  * @class
  * @public
  */
@@ -31,7 +32,6 @@ export class Logger {
 
     /**
      * Create a new logger instance
-     * @constructor
      * @param {LogLevel} level - The log level to use.
      * @param {TransportStream[]} transports - The transports to use.
      * @returns {Logger} The logger instance.
@@ -76,7 +76,6 @@ export class Logger {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         this.createLogger();
@@ -85,7 +84,6 @@ export class Logger {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {
         this.logger.close();

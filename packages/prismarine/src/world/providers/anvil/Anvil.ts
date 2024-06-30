@@ -28,7 +28,6 @@ export default class Anvil extends BaseProvider {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         await this.prepareFolderStructure();
@@ -36,7 +35,6 @@ export default class Anvil extends BaseProvider {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {}
 

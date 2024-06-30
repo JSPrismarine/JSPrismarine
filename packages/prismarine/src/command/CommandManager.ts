@@ -26,7 +26,6 @@ export class CommandManager implements Service {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         const timer = new Timer();
@@ -59,7 +58,6 @@ export class CommandManager implements Service {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {
         this.commands.clear();

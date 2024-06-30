@@ -1,5 +1,5 @@
-import { Event } from '../Event';
 import type { Item } from '../../item/Item';
+import { Event } from '../Event';
 
 export default class ItemRegisterEvent extends Event {
     private readonly item: Item;
@@ -8,7 +8,6 @@ export default class ItemRegisterEvent extends Event {
      * Construct the event.
      * @param {Item} item - item The item that was registered.
      * @returns {ItemRegisterEvent} The event.
-     * @constructor
      */
     public constructor(item: Item) {
         super();

@@ -11,7 +11,6 @@ export class ServerName {
 
     /**
      * Create a new server name for a RakNet server.
-     * @constructor
      * @param {any} server - The server instance.
      */
     public constructor(server: any) {

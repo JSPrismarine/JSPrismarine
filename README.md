@@ -53,7 +53,7 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 ## Documentation
 
 - [jsprismarine.org/docs](https://jsprismarine.org/docs/).
-- [Running JSPrismarine](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/running.md).
+- [Running JSPrismarine](./docs/running.md).
 
 ## Remarks
 

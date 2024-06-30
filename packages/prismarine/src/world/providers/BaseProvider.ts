@@ -28,13 +28,11 @@ export default abstract class BaseProvider implements Provider {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {}
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {}
 

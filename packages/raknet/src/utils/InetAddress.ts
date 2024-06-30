@@ -12,7 +12,6 @@ export default class InetAddress {
 
     /**
      * Constructs an InetAddress.
-     * @constructor
      * @param {string} address - The IP address.
      * @param {number} port - The port.
      * @param {number} [version=4] - The IP version.

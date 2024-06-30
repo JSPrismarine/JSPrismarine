@@ -20,7 +20,6 @@ export default class PacketRegistry {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         await this.registerPackets();
@@ -30,7 +29,6 @@ export default class PacketRegistry {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {
         this.handlers.clear();

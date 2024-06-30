@@ -77,10 +77,9 @@ export default class Server extends EventEmitter {
 
     /**
      * Creates a new server instance.
-     * @constructor
-     * @params {object} options - The options.
-     * @params {LoggerBuilder} options.logger - The logger.
-     * @params {Config} options.config - The config.
+     * @param {object} options - The options.
+     * @param {LoggerBuilder} options.logger - The logger.
+     * @param {Config} options.config - The config.
      * @returns {Server} The server instance.
      */
     public constructor({ logger, config }: { logger: Logger; config: Config }) {

@@ -32,7 +32,6 @@ export class Config {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
@@ -58,7 +57,6 @@ export class Config {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {}
 

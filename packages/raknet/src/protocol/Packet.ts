@@ -9,7 +9,6 @@ export default class Packet extends BinaryStream {
 
     /**
      * Create a new packet.
-     * @constructor
      */
     public constructor(id: number, buffer?: Buffer) {
         super(buffer);

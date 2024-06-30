@@ -13,7 +13,6 @@ export default class ItemManager {
      * Construct an ItemManager.
      * @param {Server} server - The server instance.
      * @returns {ItemManager} The item manager instance.
-     * @constructor
      */
     public constructor(server: Server) {
         this.server = server;
@@ -22,7 +21,6 @@ export default class ItemManager {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         await this.importItems();
@@ -31,7 +29,6 @@ export default class ItemManager {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable() {
         this.items.clear();
@@ -67,7 +64,6 @@ export default class ItemManager {
      * Register an item.
      * @param {Item} item - The item to be registered
      * @returns {Promise<void>} The promise.
-     * @async
      */
     public registerItem = async (item: Item) => {
         const event = new ItemRegisterEvent(item);
