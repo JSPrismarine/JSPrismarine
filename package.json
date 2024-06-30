@@ -72,7 +72,6 @@
         "@changesets/cli": "2.27.6",
         "@changesets/types": "6.0.0",
         "@codecov/vite-plugin": "0.0.1-beta.10",
-        "@droppedcode/typedoc-plugin-relative-includes": "1.0.5",
         "@nordcom/prettier": "0.1.1",
         "@types/heap": "0.2.34",
         "@types/node": "20.12.7",

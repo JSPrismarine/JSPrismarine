@@ -33,9 +33,6 @@ importers:
       '@codecov/vite-plugin':
         specifier: 0.0.1-beta.10
         version: 0.0.1-beta.10(vite@5.3.2(@types/node@20.12.7))
-      '@droppedcode/typedoc-plugin-relative-includes':
-        specifier: 1.0.5
-        version: 1.0.5(typedoc@0.25.13(typescript@5.5.2))
       '@nordcom/prettier':
         specifier: 0.1.1
         version: 0.1.1
@@ -631,11 +628,6 @@ packages:
 
   '@dabh/diagnostics@2.0.3':
     resolution: {integrity: sha512-hrlQOIi7hAfzsMqlGSFyVucrx38O+j6wiGOf//H2ecvIEqYN4ADBSS2iLMh5UFyDunCNniUIPk/q3riFv45xRA==}
-
-  '@droppedcode/typedoc-plugin-relative-includes@1.0.5':
-    resolution: {integrity: sha512-tfCm7K1uduKy57EV7SyhACQa4BQj87KiZVZgc5A8egCYaNVFPjv9iIPabPsAt/lbSbizB6aQ5qOInMO9Wa+pIg==}
-    peerDependencies:
-      typedoc: ^0.25.2
 
   '@es-joy/jsdoccomment@0.43.1':
     resolution: {integrity: sha512-I238eDtOolvCuvtxrnqtlBaw0BwdQuYqK7eA6XIonicMdOOOb75mqdIzkGDUbS04+1Di007rgm9snFRNeVrOog==}
@@ -3708,10 +3700,6 @@ snapshots:
       colorspace: 1.1.4
       enabled: 2.0.0
       kuler: 2.0.0
-
-  '@droppedcode/typedoc-plugin-relative-includes@1.0.5(typedoc@0.25.13(typescript@5.5.2))':
-    dependencies:
-      typedoc: 0.25.13(typescript@5.5.2)
 
   '@es-joy/jsdoccomment@0.43.1':
     dependencies:

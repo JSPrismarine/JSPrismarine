@@ -12,7 +12,6 @@
     "footerLastModified": true,
     "out": "./dist",
     "plugin": [
-        "@droppedcode/typedoc-plugin-relative-includes",
         "typedoc-material-theme",
         "typedoc-plugin-extras",
         "typedoc-plugin-merge-modules",
