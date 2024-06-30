@@ -474,6 +474,7 @@ export default class PlayerSession {
 
         const pk = new TextPacket();
         pk.message = message;
+        pk.filtered = message;
         pk.sourceName = sourceName;
         pk.xuid = xuid;
         pk.platformChatId = platformChatId;

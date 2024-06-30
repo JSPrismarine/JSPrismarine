@@ -24,6 +24,7 @@ export default class TextPacket extends DataPacket {
     public parameters: string[] = [];
     public xuid!: string;
     public platformChatId!: string;
+    public filtered!: string;
 
     public decodePayload(): void {
         this.type = this.readByte();
@@ -62,6 +63,7 @@ export default class TextPacket extends DataPacket {
 
         this.xuid = NetworkUtil.readString(this);
         this.platformChatId = NetworkUtil.readString(this);
+        this.filtered = NetworkUtil.readString(this);
     }
 
     public encodePayload(): void {
@@ -97,5 +99,6 @@ export default class TextPacket extends DataPacket {
 
         NetworkUtil.writeString(this, this.xuid);
         NetworkUtil.writeString(this, this.platformChatId);
+        NetworkUtil.writeString(this, this.filtered);
     }
 }

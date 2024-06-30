@@ -261,8 +261,6 @@ export default class Session {
 
     public sendFrame(frame: Frame, flags = RakNetPriority.NORMAL): void {
         assert(typeof frame.orderChannel === 'number', 'Frame OrderChannel cannot be null');
-        assert(this.outputSequenceIndex.length <= frame.orderChannel, 'Frame OrderChannel is out of bounds');
-        assert(this.outputOrderIndex[frame.orderChannel] !== undefined, 'Frame OrderIndex is not defined');
 
         // https://github.com/facebookarchive/RakNet/blob/1a169895a900c9fc4841c556e16514182b75faf8/Source/ReliabilityLayer.cpp#L1625
         if (frame.isSequenced()) {
