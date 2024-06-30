@@ -18,7 +18,6 @@ export default class BlockManager {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         await this.importBlocks();
@@ -27,7 +26,6 @@ export default class BlockManager {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {
         this.blocks.clear();

@@ -12,12 +12,12 @@
     "footerLastModified": true,
     "out": "./dist",
     "plugin": [
-        "typedoc-material-theme",
+        "@jsprismarine/typedoc-material-theme",
         "typedoc-plugin-extras",
         "typedoc-plugin-merge-modules",
         "typedoc-plugin-rename-defaults"
     ],
-    "includes": "./docs",
+    "projectDocuments": ["README.md", "docs/*.md"],
     "exclude": ["**/node_modules/**", "node_modules/**"],
     "readme": "./README.md",
     "themeColor": "#5CA48A",

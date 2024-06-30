@@ -50,7 +50,6 @@ export default class Client extends EventEmitter {
      * @param {string} address - The address to listen on.
      * @param {number} port - The port to listen on.
      * @returns {Promise<Client>} The client instance.
-     * @async
      * @public
      */
     public async connect(address = '0.0.0.0', port = 19132): Promise<Client> {
@@ -189,7 +188,7 @@ export default class Client extends EventEmitter {
         return packet.getBuffer();
     }
 
-    public handleOpenConnectionReply2(buffer: Buffer) {
+    public handleOpenConnectionReply2(buffer: Buffer): void {
         // Decode server packet
         const decodedPacket = new Protocol.OpenConnectionReply2(buffer);
         decodedPacket.decode();

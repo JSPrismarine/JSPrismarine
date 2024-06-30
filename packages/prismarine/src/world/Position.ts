@@ -10,7 +10,6 @@ export default class Position extends Vector3 {
 
     /**
      * Create a new position
-     * @constructor
      * @param {PositionData} data - The data to create the position.
      * @param {number} data.x - The x coordinate of the position.
      * @param {number} data.y - The y coordinate of the position.

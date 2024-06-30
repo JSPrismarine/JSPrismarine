@@ -8,7 +8,6 @@ export default class CommandRegisterEvent extends Event {
      * Construct the event.
      * @param {Command} command - command The command that was registered.
      * @returns {CommandRegisterEvent} The event.
-     * @constructor
      */
     public constructor(command: Command) {
         super();

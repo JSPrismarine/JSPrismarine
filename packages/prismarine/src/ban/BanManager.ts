@@ -26,7 +26,6 @@ export default class BanManager {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         await this.parseBanned();
@@ -35,7 +34,6 @@ export default class BanManager {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {
         this.banned.clear();

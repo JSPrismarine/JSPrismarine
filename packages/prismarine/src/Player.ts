@@ -88,7 +88,6 @@ export default class Player extends Human {
     /**
      * On enable hook.
      * @group Lifecycle
-     * @async
      */
     public async enable(): Promise<void> {
         const playerData = await this.getWorld().getPlayerData(this);
@@ -124,7 +123,6 @@ export default class Player extends Human {
     /**
      * On disable hook.
      * @group Lifecycle
-     * @async
      */
     public async disable(): Promise<void> {
         if (this.connected && this.xuid) await this.getWorld().savePlayerData(this);

@@ -292,7 +292,6 @@ export default class PlayerSession {
     /**
      * Send the current tick to a client.
      * @param {number} tick - The tick
-     * @async
      */
     public async sendTime(tick: number): Promise<void> {
         const pk = new SetTimePacket();
@@ -303,7 +302,6 @@ export default class PlayerSession {
     /**
      * Send gamemode to a client.
      * @param {Gametype} gamemode - the numeric gamemode ID.
-     * @async
      */
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
         const packet = new SetPlayerGametypePacket();

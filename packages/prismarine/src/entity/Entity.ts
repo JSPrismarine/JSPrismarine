@@ -26,7 +26,6 @@ export class EntityLike extends Position {
 
     /**
      * EntityLike constructor.
-     * @constructor
      * @param {object} options - The entity-like options.
      * @param {string} options.uuid - The entity's runtime id.
      * @param {bigint} options.runtimeId - The entity's runtime id.
@@ -163,7 +162,6 @@ export class Entity extends EntityLike {
 
     /**
      * Entity constructor.
-     * @constructor
      * @param {object} options - The entity options.
      * @param {World} options.world - The world the entity belongs to.
      * @param {Server} options.server - The server instance.
