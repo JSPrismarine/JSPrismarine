@@ -1,5 +1,18 @@
 # @jsprismarine/server
 
+## 0.5.0
+
+### Patch Changes
+
+-   [#1486](https://github.com/JSPrismarine/JSPrismarine/pull/1486) [`02aaf4b`](https://github.com/JSPrismarine/JSPrismarine/commit/02aaf4b0082e76f4f438f59dacd373a04959df53) Thanks [@filiphsps](https://github.com/filiphsps)! - Upgrade `typescript` to `v5.5.2`.
+
+-   Updated dependencies [[`c8d976f`](https://github.com/JSPrismarine/JSPrismarine/commit/c8d976f627ef96deb9b2213561848f84214c07a1), [`02aaf4b`](https://github.com/JSPrismarine/JSPrismarine/commit/02aaf4b0082e76f4f438f59dacd373a04959df53), [`c8d976f`](https://github.com/JSPrismarine/JSPrismarine/commit/c8d976f627ef96deb9b2213561848f84214c07a1), [`3a00892`](https://github.com/JSPrismarine/JSPrismarine/commit/3a00892ab6d8e0647c94da96bb85553f08a8484b)]:
+    -   @jsprismarine/prismarine@0.5.0
+    -   @jsprismarine/color-parser@0.5.0
+    -   @jsprismarine/minecraft@0.5.0
+    -   @jsprismarine/logger@0.5.0
+    -   @jsprismarine/raknet@0.5.0
+
 ## 0.4.5
 
 ### Patch Changes
