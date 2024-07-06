@@ -50,7 +50,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/brigadier",
     "devDependencies": {
         "@types/node": "20.12.7",
-        "glob": "10.4.2",
+        "glob": "10.4.3",
         "rimraf": "5.0.7",
         "typescript": "5.5.2",
         "vite": "5.3.3",
