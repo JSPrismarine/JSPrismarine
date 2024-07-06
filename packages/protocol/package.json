@@ -44,7 +44,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/protocol",
     "devDependencies": {
         "@types/node": "20.12.7",
-        "glob": "10.4.2",
+        "glob": "10.4.3",
         "typescript": "5.5.2",
         "vite": "5.3.3",
         "vitest": "1.6.0"
