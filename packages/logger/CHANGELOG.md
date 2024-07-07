@@ -1,5 +1,14 @@
 # @jsprismarine/color-parser
 
+## 0.5.0
+
+### Patch Changes
+
+-   [#1486](https://github.com/JSPrismarine/JSPrismarine/pull/1486) [`02aaf4b`](https://github.com/JSPrismarine/JSPrismarine/commit/02aaf4b0082e76f4f438f59dacd373a04959df53) Thanks [@filiphsps](https://github.com/filiphsps)! - Upgrade `typescript` to `v5.5.2`.
+
+-   Updated dependencies [[`02aaf4b`](https://github.com/JSPrismarine/JSPrismarine/commit/02aaf4b0082e76f4f438f59dacd373a04959df53)]:
+    -   @jsprismarine/color-parser@0.5.0
+
 ## 0.4.5
 
 ### Patch Changes
