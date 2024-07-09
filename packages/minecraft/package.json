@@ -46,7 +46,7 @@
     "devDependencies": {
         "@types/node": "20.12.7",
         "@types/semver": "7.5.8",
-        "glob": "10.4.4",
+        "glob": "11.0.0",
         "typescript": "5.5.2",
         "vite": "5.3.3",
         "vitest": "2.0.1"
