@@ -47,7 +47,7 @@
         "glob": "11.0.0",
         "typescript": "5.5.2",
         "vite": "5.3.3",
-        "vitest": "2.0.1"
+        "vitest": "2.0.2"
     },
     "dependencies": {
         "@jsprismarine/nbt": "workspace:*",
