@@ -1,5 +1,19 @@
 # @jsprismarine/prismarine
 
+## 0.6.0
+
+### Patch Changes
+
+-   Updated dependencies []:
+    -   @jsprismarine/color-parser@0.6.0
+    -   @jsprismarine/errors@0.6.0
+    -   @jsprismarine/logger@0.6.0
+    -   @jsprismarine/math@0.6.0
+    -   @jsprismarine/minecraft@0.6.0
+    -   @jsprismarine/nbt@0.6.0
+    -   @jsprismarine/protocol@0.6.0
+    -   @jsprismarine/raknet@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes
