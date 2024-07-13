@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
--   [`e7296ed`](https://github.com/JSPrismarine/JSPrismarine/commit/e7296edd74198c5bed6732424a74829d9c0fad46) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix types in Brigadier.
+-   [`e7296ed`](https://github.com/JSPrismarine/JSPrismarine/commit/e7296edd74198c5bed6732424a74829d9c0fad46) Thanks [@qwqtoday](https://github.com/qwqtoday)! - Fix types in Brigadier.
 
 ## 0.5.0
 
