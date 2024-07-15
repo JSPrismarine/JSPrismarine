@@ -4,4 +4,4 @@ import * as Types from './Types';
 
 import Identifiers from './Identifiers';
 
-export { Packets, Handlers, Types, Identifiers };
+export { Handlers, Identifiers, Packets, Types };
