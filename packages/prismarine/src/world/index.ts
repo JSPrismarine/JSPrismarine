@@ -5,6 +5,6 @@ export * from './GeneratorManager';
 export * from './Position';
 export * from './World';
 
-import Position from './Position';
+import { Position } from './Position';
 
 export { Position };

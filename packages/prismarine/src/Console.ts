@@ -25,9 +25,11 @@ export default class Console extends EntityLike implements Service {
     private cli?: readline.Interface;
 
     public constructor(server: Server, runtimeId = BigInt(-1)) {
+        const world = server.getWorldManager().getDefaultWorld()!;
         super({
             server,
-            runtimeId
+            runtimeId,
+            world
         });
     }
 
@@ -153,7 +155,7 @@ export default class Console extends EntityLike implements Service {
     }
 
     public getPosition(): Vector3 {
-        return new Vector3();
+        return new Vector3(0, 0, 0);
     }
 
     public getType() {
