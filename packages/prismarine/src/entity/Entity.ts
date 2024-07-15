@@ -1,10 +1,10 @@
 import { Vector3 } from '@jsprismarine/math';
-import type Player from '../Player';
-import type Server from '../Server';
 import AddActorPacket from '../network/packet/AddActorPacket';
 import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import TextType from '../network/type/TextType';
+import type Player from '../Player';
+import type Server from '../Server';
 import UUID from '../utils/UUID';
 import Position from '../world/Position';
 import { Attributes } from './Attribute';
@@ -127,12 +127,6 @@ export class EntityLike extends Position {
  */
 export class Entity extends EntityLike {
     /**
-     * The global runtime id counter.
-     * @internal
-     */
-    public static runtimeIdCount = 0n;
-
-    /**
      * The entity's namespace ID.
      */
     protected static MOB_ID: string = 'jsprismarine:unknown_entity';
@@ -176,11 +170,10 @@ export class Entity extends EntityLike {
      * ```
      */
     public constructor({ world, ...options }: Omit<ConstructorParameters<typeof EntityLike>[0], 'runtimeId'>) {
-        Entity.runtimeIdCount += 1n;
         super({
             world,
             ...options,
-            runtimeId: Entity.runtimeIdCount
+            runtimeId: Entity.generateRuntimeId().next().value
         });
 
         if (world) super.setWorld(world);
@@ -471,5 +464,15 @@ export class Entity extends EntityLike {
                 .map((word) => word[0]!.toUpperCase() + word.slice(1, word.length))
                 .join(' ')
         );
+    }
+
+    /**
+     * Generates the runtime id of each entity.
+     * Should not be used elsewhere.
+     * @internal
+     */
+    private static *generateRuntimeId(): Generator<bigint> {
+        let rid = 0n;
+        yield rid++;
     }
 }
