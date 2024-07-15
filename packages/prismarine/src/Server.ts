@@ -91,11 +91,11 @@ export default class Server extends EventEmitter {
 
         this.logger = logger;
         this.config = config;
-        this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.worldManager = new WorldManager(this);
+        this.console = new Console(this);
         this.commandManager = new CommandManager(this);
         this.queryManager = new QueryManager(this);
         this.chatManager = new ChatManager(this);

@@ -6,7 +6,8 @@ import MoveActorAbsolutePacket from '../network/packet/MoveActorAbsolutePacket';
 import RemoveActorPacket from '../network/packet/RemoveActorPacket';
 import TextType from '../network/type/TextType';
 import UUID from '../utils/UUID';
-import Position from '../world/Position';
+import { Position } from '../world/Position';
+import type { World } from '../world/World';
 import { Attributes } from './Attribute';
 import { Metadata, MetadataFlag } from './Metadata';
 
@@ -43,14 +44,16 @@ export class EntityLike extends Position {
         yaw = 0,
         headYaw = 0,
         ...options
-    }: ConstructorParameters<typeof Position>[0] & {
+    }: {
         uuid?: string;
         runtimeId: bigint;
         pitch?: number;
         yaw?: number;
         headYaw?: number;
+        server: Server;
+        world: World;
     }) {
-        super(options); // TODO
+        super(0, 0, 0, options.world); // TODO
 
         this.uuid = uuid ?? UUID.randomString();
         this.runtimeId = runtimeId;
