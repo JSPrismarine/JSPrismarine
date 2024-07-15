@@ -80,7 +80,7 @@
         "@types/node": "20.12.7",
         "@typescript-eslint/eslint-plugin": "7.16.0",
         "@typescript-eslint/parser": "7.16.0",
-        "@vitest/coverage-v8": "2.0.2",
+        "@vitest/coverage-v8": "2.0.3",
         "concurrently": "8.2.2",
         "cross-env": "7.0.3",
         "eslint-config-prettier": "9.1.0",
@@ -107,7 +107,7 @@
         "vite-plugin-dts": "3.9.1",
         "vite-tsconfig-paths": "4.3.2",
         "vite": "5.3.3",
-        "vitest": "2.0.2"
+        "vitest": "2.0.3"
     },
     "dependencies": {
         "@jsprismarine/bedrock-data": "1.20.81-a",
