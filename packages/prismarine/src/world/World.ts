@@ -120,9 +120,9 @@ export class World implements Service {
                 await this.addEntity(
                     new Entity({
                         world: this,
-                        server: this.server,
                         uuid: entityData.uuid,
-                        ...entityData.position
+                        ...entityData.position,
+                        server: this.server
                     })
                 );
             }
@@ -580,5 +580,12 @@ export class World implements Service {
             this.server.getLogger().error(`Failed to save player data`);
             this.server.getLogger().error(error);
         }
+    }
+
+    /**
+     * @returns {Server} The server instance.
+     */
+    public getServer(): Server {
+        return this.server;
     }
 }

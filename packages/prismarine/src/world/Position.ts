@@ -1,59 +1,57 @@
 import { Vector3 } from '@jsprismarine/math';
-import { assert } from 'console';
-import type { Server } from '../';
 import type { World } from './';
 
-export default class Position extends Vector3 {
-    protected readonly server: Server;
-
-    private world?: World;
-
+/**
+ * Represents the coordinates of a Vector3 in a given World.
+ */
+export class Position extends Vector3 {
     /**
      * Create a new position
-     * @param {PositionData} data - The data to create the position.
-     * @param {number} data.x - The x coordinate of the position.
-     * @param {number} data.y - The y coordinate of the position.
-     * @param {number} data.z - The z coordinate of the position.
-     * @param {World} data.world - The world of the position.
+     * @constructor
+     * @param {number} x - The x coordinate of the position.
+     * @param {number} y - The y coordinate of the position.
+     * @param {number} z - The z coordinate of the position.
+     * @param {World} world - The world of the position.
      * @returns {Position} The new position.
      */
-    public constructor({
-        x,
-        y,
-        z,
-        world,
-        server
-    }: {
-        x?: number;
-        y?: number;
-        z?: number;
-        world?: World;
-        server: Server;
-    }) {
+    public constructor(
+        x: number,
+        y: number,
+        z: number,
+        private world: World
+    ) {
+        // TODO: assert the world exists and is loaded
         super(x, y, z);
-        this.world = world;
-        this.server = server;
     }
 
-    toString() {
-        return `${super.toString()}, world: §b${this.world?.getName() || 'none'}§r`;
+    public toString() {
+        return `${super.toString()}, world: §b${this.world.getName()}§r`;
     }
 
     /**
-     * Get the world of the position
+     * Creates a Position from a Vector3 and a World.
+     * @param {Vector3} vector - The vector to create the position from.
+     * @param {World} world - The world of the position.
+     * @returns {Position} The new position.
+     */
+    public static fromVector3(vector: Vector3, world: World): Position {
+        return new Position(vector.getX(), vector.getY(), vector.getZ(), world);
+    }
+
+    /**
+     * Get the world of the position.
      * @returns {World} The world of the position.
      */
-    public getWorld() {
-        const world = this.world ?? this.server.getWorldManager().getDefaultWorld();
-        assert(world, 'World not found');
-        return world;
+    public getWorld(): World {
+        // TODO: assert the world is loaded, else throw
+        return this.world;
     }
 
     /**
-     * Set the world of the position
+     * Set the world of the position.
      * @param {World} world - The world to set.
      */
-    public async setWorld(world: World) {
+    public setWorld(world: World): void {
         this.world = world;
     }
 }
