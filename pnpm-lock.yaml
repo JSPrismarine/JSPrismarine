@@ -397,8 +397,8 @@ importers:
         specifier: 5.0.1
         version: 5.0.1
       yaml:
-        specifier: 2.4.5
-        version: 2.4.5
+        specifier: 2.5.0
+        version: 2.5.0
     devDependencies:
       '@types/node':
         specifier: 20.12.7
@@ -3783,6 +3783,11 @@ packages:
 
   yaml@2.4.5:
     resolution: {integrity: sha512-aBx2bnqDzVOyNKfsysjA2ms5ZlnjSAW2eG3/L5G/CSujfjLJTJsEw1bGw8kCf04KodQWk1pxlGnZ56CRxiawmg==}
+    engines: {node: '>= 14'}
+    hasBin: true
+
+  yaml@2.5.0:
+    resolution: {integrity: sha512-2wWLbGbYDiSqqIKoPjar3MPgB94ErzCtrNE1FdqGuaO0pi2JGjmE8aW8TDZwzU7vuxcGRdL/4gPQwQ7hD5AMSw==}
     engines: {node: '>= 14'}
     hasBin: true
 
@@ -7460,6 +7465,8 @@ snapshots:
   yallist@4.0.0: {}
 
   yaml@2.4.5: {}
+
+  yaml@2.5.0: {}
 
   yargs-parser@21.1.1: {}
 
