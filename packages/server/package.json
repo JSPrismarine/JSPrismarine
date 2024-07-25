@@ -55,7 +55,7 @@
         "tsx": "4.16.2",
         "typescript": "5.5.2",
         "vite-node": "2.0.4",
-        "vite": "5.3.4",
+        "vite": "5.3.5",
         "vitest": "2.0.4"
     },
     "dependencies": {
