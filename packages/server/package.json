@@ -54,9 +54,9 @@
         "rimraf": "6.0.1",
         "tsx": "4.16.3",
         "typescript": "5.5.2",
-        "vite-node": "2.0.4",
+        "vite-node": "2.0.5",
         "vite": "5.3.5",
-        "vitest": "2.0.4"
+        "vitest": "2.0.5"
     },
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
