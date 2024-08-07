@@ -130,8 +130,8 @@ importers:
         specifier: 5.3.5
         version: 5.3.5(@types/node@20.12.7)
       vite-plugin-dts:
-        specifier: 4.0.0
-        version: 4.0.0(@types/node@20.12.7)(rollup@4.17.2)(typescript@5.5.2)(vite@5.3.5(@types/node@20.12.7))
+        specifier: 4.0.1
+        version: 4.0.1(@types/node@20.12.7)(rollup@4.17.2)(typescript@5.5.2)(vite@5.3.5(@types/node@20.12.7))
       vite-tsconfig-paths:
         specifier: 4.3.2
         version: 4.3.2(typescript@5.5.2)(vite@5.3.5(@types/node@20.12.7))
@@ -3691,8 +3691,8 @@ packages:
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
 
-  vite-plugin-dts@4.0.0:
-    resolution: {integrity: sha512-MOGyecSNqXGxExPfDYtsH3cFted5UA04BP3JdI05i2BQRJmgjKeeUn6ymAWnEpZ6UY88Xd1n1NDmkO9q7YB5vA==}
+  vite-plugin-dts@4.0.1:
+    resolution: {integrity: sha512-JFbAKMjJdJbeXJVwQNoi8M26lP+5Ene4/ryv9w0Z7Ca5N0DdxYEak9V3C0tqwHO7WZ9JLbwMsuUZOqYIyBRwSQ==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       typescript: '*'
@@ -4270,7 +4270,7 @@ snapshots:
   '@jridgewell/trace-mapping@0.3.9':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.4.15
+      '@jridgewell/sourcemap-codec': 1.5.0
 
   '@jsprismarine/bedrock-data@1.20.81-a': {}
 
@@ -4705,7 +4705,7 @@ snapshots:
   '@vitest/snapshot@2.0.5':
     dependencies:
       '@vitest/pretty-format': 2.0.5
-      magic-string: 0.30.10
+      magic-string: 0.30.11
       pathe: 1.1.2
 
   '@vitest/spy@2.0.5':
@@ -7433,7 +7433,7 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-dts@4.0.0(@types/node@20.12.7)(rollup@4.17.2)(typescript@5.5.2)(vite@5.3.5(@types/node@20.12.7)):
+  vite-plugin-dts@4.0.1(@types/node@20.12.7)(rollup@4.17.2)(typescript@5.5.2)(vite@5.3.5(@types/node@20.12.7)):
     dependencies:
       '@microsoft/api-extractor': 7.47.4(@types/node@20.12.7)
       '@rollup/pluginutils': 5.1.0(rollup@4.17.2)
