@@ -1,5 +1,16 @@
 # @jsprismarine/color-parser
 
+## 0.7.0
+
+### Minor Changes
+
+-   [#1520](https://github.com/JSPrismarine/JSPrismarine/pull/1520) [`142c6e1`](https://github.com/JSPrismarine/JSPrismarine/commit/142c6e1ca4f8961271d1c8caa8fbf0c71dc315b6) Thanks [@enricoangelon](https://github.com/enricoangelon)! - Properly implement Position, Vector2 & Vector3
+
+### Patch Changes
+
+-   Updated dependencies []:
+    -   @jsprismarine/color-parser@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes
