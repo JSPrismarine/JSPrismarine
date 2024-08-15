@@ -75,7 +75,7 @@
         "@codecov/vite-plugin": "0.0.1-beta.10",
         "@jsprismarine/typedoc-material-theme": "1.0.4",
         "@nordcom/prettier": "0.1.1",
-        "@turbo/gen": "2.0.13",
+        "@turbo/gen": "2.0.14",
         "@types/heap": "0.2.34",
         "@types/node": "20.12.7",
         "@typescript-eslint/eslint-plugin": "8.1.0",
