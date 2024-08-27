@@ -97,7 +97,7 @@
         "prettier-eslint": "16.3.0",
         "prettier": "3.3.3",
         "ts-mockito": "2.6.1",
-        "turbo-ignore": "2.0.14",
+        "turbo-ignore": "2.1.0",
         "turbo": "2.1.0",
         "typedoc-plugin-extras": "3.1.0",
         "typedoc-plugin-merge-modules": "6.0.0",
