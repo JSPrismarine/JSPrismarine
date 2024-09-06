@@ -130,8 +130,8 @@ importers:
         specifier: 5.4.3
         version: 5.4.3(@types/node@20.12.7)
       vite-plugin-dts:
-        specifier: 4.1.0
-        version: 4.1.0(@types/node@20.12.7)(rollup@4.21.0)(typescript@5.5.2)(vite@5.4.3(@types/node@20.12.7))
+        specifier: 4.1.1
+        version: 4.1.1(@types/node@20.12.7)(rollup@4.21.0)(typescript@5.5.2)(vite@5.4.3(@types/node@20.12.7))
       vite-tsconfig-paths:
         specifier: 5.0.1
         version: 5.0.1(typescript@5.5.2)(vite@5.4.3(@types/node@20.12.7))
@@ -3833,8 +3833,8 @@ packages:
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
 
-  vite-plugin-dts@4.1.0:
-    resolution: {integrity: sha512-sRlmt9k2q8MrX4F2058N3KmB6WyJ3Ao6QaExOv1X99F3j0GhPziEz1zscWQ1q2r1PeFc96L7GIUu8Pl2DPr2Hg==}
+  vite-plugin-dts@4.1.1:
+    resolution: {integrity: sha512-SxYXwJQbAZ1IMtGEcOuzzZtDWCdcV2JkU7esvpPA8E5tIWVcJB42rZwN9EdULicWGLfaXrUgPIGVSidXBTae2Q==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       typescript: '*'
@@ -7647,7 +7647,7 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-dts@4.1.0(@types/node@20.12.7)(rollup@4.21.0)(typescript@5.5.2)(vite@5.4.3(@types/node@20.12.7)):
+  vite-plugin-dts@4.1.1(@types/node@20.12.7)(rollup@4.21.0)(typescript@5.5.2)(vite@5.4.3(@types/node@20.12.7)):
     dependencies:
       '@microsoft/api-extractor': 7.47.4(@types/node@20.12.7)
       '@rollup/pluginutils': 5.1.0(rollup@4.21.0)
