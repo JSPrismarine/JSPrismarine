@@ -76,7 +76,7 @@
         "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
         "evt": "2.5.7",
-        "fast-jwt": "4.0.3",
+        "fast-jwt": "4.0.5",
         "heap": "0.2.7",
         "node-fetch": "3.3.2",
         "strip-json-comments": "5.0.1",
