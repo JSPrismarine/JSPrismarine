@@ -88,7 +88,7 @@
         "eslint-plugin-jsdoc": "50.2.3",
         "eslint-plugin-prettier": "5.2.1",
         "eslint-plugin-unused-imports": "4.1.4",
-        "eslint": "8.57.0",
+        "eslint": "8.57.1",
         "esmock": "2.6.7",
         "glob": "11.0.0",
         "husky": "9.1.6",
