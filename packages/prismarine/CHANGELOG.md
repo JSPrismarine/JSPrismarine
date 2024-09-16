@@ -1,5 +1,25 @@
 # @jsprismarine/prismarine
 
+## 0.7.0
+
+### Minor Changes
+
+-   [#1520](https://github.com/JSPrismarine/JSPrismarine/pull/1520) [`142c6e1`](https://github.com/JSPrismarine/JSPrismarine/commit/142c6e1ca4f8961271d1c8caa8fbf0c71dc315b6) Thanks [@enricoangelon](https://github.com/enricoangelon)! - Properly implement Position, Vector2 & Vector3
+
+-   [#1517](https://github.com/JSPrismarine/JSPrismarine/pull/1517) [`1e013a6`](https://github.com/JSPrismarine/JSPrismarine/commit/1e013a60b9987929b53b2cc1d333daf8b5d45196) Thanks [@enricoangelon](https://github.com/enricoangelon)! - Bump to bedrock protocol 686
+
+### Patch Changes
+
+-   Updated dependencies [[`142c6e1`](https://github.com/JSPrismarine/JSPrismarine/commit/142c6e1ca4f8961271d1c8caa8fbf0c71dc315b6)]:
+    -   @jsprismarine/math@0.7.0
+    -   @jsprismarine/color-parser@0.7.0
+    -   @jsprismarine/errors@0.7.0
+    -   @jsprismarine/logger@0.7.0
+    -   @jsprismarine/minecraft@0.7.0
+    -   @jsprismarine/nbt@0.7.0
+    -   @jsprismarine/protocol@0.7.0
+    -   @jsprismarine/raknet@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes
