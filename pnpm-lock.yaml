@@ -31,8 +31,8 @@ importers:
         specifier: 6.0.0
         version: 6.0.0
       '@codecov/vite-plugin':
-        specifier: 1.1.0
-        version: 1.1.0(vite@5.4.7(@types/node@20.12.7))
+        specifier: 1.2.0
+        version: 1.2.0(vite@5.4.7(@types/node@20.12.7))
       '@jsprismarine/typedoc-material-theme':
         specifier: 1.0.4
         version: 1.0.4(typedoc@0.26.7(typescript@5.5.2))
@@ -628,12 +628,12 @@ packages:
   '@changesets/write@0.3.2':
     resolution: {integrity: sha512-kDxDrPNpUgsjDbWBvUo27PzKX4gqeKOlhibaOXDJA6kuBisGqNHv/HwGJrAu8U/dSf8ZEFIeHIPtvSlZI1kULw==}
 
-  '@codecov/bundler-plugin-core@1.1.0':
-    resolution: {integrity: sha512-moetKC32uLQh09X3HNCsNzr+ZVdCoGE11eEH65wEuVb1P6p28W52EjhamrZcl76X1DkthETRPiw7DJQ9hyA+AA==}
+  '@codecov/bundler-plugin-core@1.2.0':
+    resolution: {integrity: sha512-ublUP5V0tW6oDnaJ1UBWvEmVAkvMmPNEwWkpF+WwJSCBWNLvWrkSwG84S3Gt5Xbnh17xEyAxXBmNzF+mXVXBgw==}
     engines: {node: '>=18.0.0'}
 
-  '@codecov/vite-plugin@1.1.0':
-    resolution: {integrity: sha512-X/Fw/uF56+nkjhF3CL6kEmcdCj56fAJYdJh4Divyv/4pjze1MTfrYOv82DmzOmeJho8lxM0e0NvzPaiLdgRPrw==}
+  '@codecov/vite-plugin@1.2.0':
+    resolution: {integrity: sha512-hX3VDomMYRNWDgLTRu7mzGn902ei6tiKa3S9qDrwQwVHdsBw22J47towlpxf3g92QWMOKrkWgEpQrU50h9PWzg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       vite: 4.x || 5.x
@@ -4291,7 +4291,7 @@ snapshots:
       human-id: 1.0.2
       prettier: 2.8.8
 
-  '@codecov/bundler-plugin-core@1.1.0':
+  '@codecov/bundler-plugin-core@1.2.0':
     dependencies:
       '@actions/core': 1.10.1
       '@actions/github': 6.0.0
@@ -4300,9 +4300,9 @@ snapshots:
       unplugin: 1.10.1
       zod: 3.23.6
 
-  '@codecov/vite-plugin@1.1.0(vite@5.4.7(@types/node@20.12.7))':
+  '@codecov/vite-plugin@1.2.0(vite@5.4.7(@types/node@20.12.7))':
     dependencies:
-      '@codecov/bundler-plugin-core': 1.1.0
+      '@codecov/bundler-plugin-core': 1.2.0
       unplugin: 1.10.1
       vite: 5.4.7(@types/node@20.12.7)
 
