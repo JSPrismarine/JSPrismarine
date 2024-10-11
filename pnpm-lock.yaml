@@ -130,8 +130,8 @@ importers:
         specifier: 5.4.8
         version: 5.4.8(@types/node@20.12.7)
       vite-plugin-dts:
-        specifier: 4.2.3
-        version: 4.2.3(@types/node@20.12.7)(rollup@4.21.0)(typescript@5.5.2)(vite@5.4.8(@types/node@20.12.7))
+        specifier: 4.2.4
+        version: 4.2.4(@types/node@20.12.7)(rollup@4.21.0)(typescript@5.5.2)(vite@5.4.8(@types/node@20.12.7))
       vite-tsconfig-paths:
         specifier: 5.0.1
         version: 5.0.1(typescript@5.5.2)(vite@5.4.8(@types/node@20.12.7))
@@ -2131,6 +2131,7 @@ packages:
   eslint@8.57.1:
     resolution: {integrity: sha512-ypowyDxpVSYpkXr9WPv2PAZCtNip1Mv5KTW0SCurXv/9iOpcrH9PaqUElksqEB6pChqHGDRCFTyrZlGhnLNGiA==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   esmock@2.6.7:
@@ -3909,8 +3910,8 @@ packages:
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
 
-  vite-plugin-dts@4.2.3:
-    resolution: {integrity: sha512-O5NalzHANQRwVw1xj8KQun3Bv8OSDAlNJXrnqoAz10BOuW8FVvY5g4ygj+DlJZL5mtSPuMu9vd3OfrdW5d4k6w==}
+  vite-plugin-dts@4.2.4:
+    resolution: {integrity: sha512-REcYoxO90Pi8c0P1J7XAa/nVwNVGkX2eYkBEIfFSfcKE4g1W8sB0R23a7SU3aLEMfdOdb0SVHq3JlJ+Qb6gjgA==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       typescript: '*'
@@ -7803,7 +7804,7 @@ snapshots:
       - supports-color
       - terser
 
-  vite-plugin-dts@4.2.3(@types/node@20.12.7)(rollup@4.21.0)(typescript@5.5.2)(vite@5.4.8(@types/node@20.12.7)):
+  vite-plugin-dts@4.2.4(@types/node@20.12.7)(rollup@4.21.0)(typescript@5.5.2)(vite@5.4.8(@types/node@20.12.7)):
     dependencies:
       '@microsoft/api-extractor': 7.47.7(@types/node@20.12.7)
       '@rollup/pluginutils': 5.1.0(rollup@4.21.0)
