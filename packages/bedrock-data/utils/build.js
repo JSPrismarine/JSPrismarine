@@ -19,7 +19,7 @@ for (const file of files) {
     const data = raw.toString('base64');
 
     fs.writeFileSync(
-        path.resolve('generated', `${filename.split('.').slice(0, -1).join('.')}.json`),
+        path.resolve('src/generated', `${filename.split('.').slice(0, -1).join('.')}.json`),
         JSON.stringify({ data }, null, 0)
     );
 }

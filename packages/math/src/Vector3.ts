@@ -13,7 +13,6 @@ export class Vector3 extends Vector2 {
 
     /**
      * Create a new `Vector3` instance.
-     * @constructor
      * @param {number} x - The X coordinate.
      * @param {number} y - The Y coordinate.
      * @param {number} z - The Z coordinate.

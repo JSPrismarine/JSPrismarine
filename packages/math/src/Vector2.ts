@@ -11,7 +11,6 @@ export class Vector2 {
 
     /**
      * Create a new `Vector2` instance.
-     * @constructor
      * @param {number} x - The X coordinate.
      * @param {number} z - The Z coordinate.
      * @example
