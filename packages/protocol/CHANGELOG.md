@@ -1,5 +1,19 @@
 # @jsprismarine/protocol
 
+## 0.8.0
+
+### Minor Changes
+
+-   [`d8d45e8`](https://github.com/JSPrismarine/JSPrismarine/commit/d8d45e838af9e5a15269064c7cf24de87f10ab6a) Thanks [@filiphsps](https://github.com/filiphsps)! - - Update to latest bedrock edition.
+
+### Patch Changes
+
+-   [`15b5fe1`](https://github.com/JSPrismarine/JSPrismarine/commit/15b5fe169a7917d199de273d1906a78c4b768cb7) Thanks [@filiphsps](https://github.com/filiphsps)! - - Replace `assert` with `with`.
+
+-   Updated dependencies [[`15b5fe1`](https://github.com/JSPrismarine/JSPrismarine/commit/15b5fe169a7917d199de273d1906a78c4b768cb7), [`d8d45e8`](https://github.com/JSPrismarine/JSPrismarine/commit/d8d45e838af9e5a15269064c7cf24de87f10ab6a)]:
+    -   @jsprismarine/minecraft@0.8.0
+    -   @jsprismarine/nbt@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

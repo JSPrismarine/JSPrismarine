@@ -1,5 +1,22 @@
 # @jsprismarine/server
 
+## 0.8.0
+
+### Minor Changes
+
+-   [`d8d45e8`](https://github.com/JSPrismarine/JSPrismarine/commit/d8d45e838af9e5a15269064c7cf24de87f10ab6a) Thanks [@filiphsps](https://github.com/filiphsps)! - - Update to latest bedrock edition.
+
+### Patch Changes
+
+-   [`15b5fe1`](https://github.com/JSPrismarine/JSPrismarine/commit/15b5fe169a7917d199de273d1906a78c4b768cb7) Thanks [@filiphsps](https://github.com/filiphsps)! - - Replace `assert` with `with`.
+
+-   Updated dependencies [[`40af4b2`](https://github.com/JSPrismarine/JSPrismarine/commit/40af4b23802f74b2eecd34a4f05e90044d51fd56), [`15b5fe1`](https://github.com/JSPrismarine/JSPrismarine/commit/15b5fe169a7917d199de273d1906a78c4b768cb7), [`d8d45e8`](https://github.com/JSPrismarine/JSPrismarine/commit/d8d45e838af9e5a15269064c7cf24de87f10ab6a)]:
+    -   @jsprismarine/prismarine@0.8.0
+    -   @jsprismarine/color-parser@0.8.0
+    -   @jsprismarine/minecraft@0.8.0
+    -   @jsprismarine/logger@0.8.0
+    -   @jsprismarine/raknet@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes
