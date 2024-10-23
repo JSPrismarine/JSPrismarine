@@ -16,3 +16,4 @@ public/
 
 vite.config.ts
 vitest.config.ts
+packages/bedrock-data/utils/build.js

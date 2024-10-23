@@ -1,0 +1,3 @@
+[submodule "packages/bedrock-data/resources"]
+	path = packages/bedrock-data/resources
+	url = https://github.com/pmmp/BedrockData

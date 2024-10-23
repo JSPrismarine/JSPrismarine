@@ -1,8 +1,17 @@
 {
     "$schema": "https://unpkg.com/@changesets/config@latest/schema.json",
-    "changelog": ["@changesets/changelog-github", { "repo": "JSPrismarine/JSPrismarine" }],
+    "changelog": [
+        "@changesets/changelog-github",
+        {
+            "repo": "JSPrismarine/JSPrismarine"
+        }
+    ],
     "commit": false,
-    "fixed": [["{,@jsprismarine/}{,*,!color-parser,!brigadier}"]],
+    "fixed": [
+        [
+            "{,@jsprismarine/}{,*,!color-parser,!brigadier,!bedrock-data}"
+        ]
+    ],
     "linked": [],
     "access": "public",
     "baseBranch": "master",
