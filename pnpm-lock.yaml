@@ -145,8 +145,8 @@ importers:
         specifier: 20.12.7
         version: 20.12.7
       glob:
-        specifier: 10.4.2
-        version: 10.4.2
+        specifier: 11.0.0
+        version: 11.0.0
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
