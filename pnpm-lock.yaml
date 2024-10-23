@@ -33,9 +33,6 @@ importers:
       '@codecov/vite-plugin':
         specifier: 1.2.1
         version: 1.2.1(vite@5.4.10(@types/node@20.12.7))
-      '@jsprismarine/typedoc-material-theme':
-        specifier: 1.0.4
-        version: 1.0.4(typedoc@0.26.10(typescript@5.5.2))
       '@nordcom/prettier':
         specifier: 0.1.1
         version: 0.1.1
@@ -114,6 +111,9 @@ importers:
       typedoc:
         specifier: 0.26.10
         version: 0.26.10(typescript@5.5.2)
+      typedoc-material-theme:
+        specifier: 1.1.0
+        version: 1.1.0(typedoc@0.26.10(typescript@5.5.2))
       typedoc-plugin-extras:
         specifier: 3.1.0
         version: 3.1.0(typedoc@0.26.10(typescript@5.5.2))
@@ -1026,12 +1026,6 @@ packages:
 
   '@jsprismarine/jsbinaryutils@5.5.3':
     resolution: {integrity: sha512-n3KcY91ptYxv0A8oSh2M/GIdJKbKtoFLmebpMDWqEekRM/RFt1lxl2gDcYNYjvQE3MvOSp76qDv5VbeQmXS/Kg==}
-
-  '@jsprismarine/typedoc-material-theme@1.0.4':
-    resolution: {integrity: sha512-VUvFFCJolhuaHE6IoEZ4LOWx54KTcLTxpG6HJDGUJPMfX3ylr+n0gD3v2LYQGxjnPuusCxPG7/DI5snoxDpCow==}
-    engines: {node: '>=18.0.0', npm: '>=8.6.0'}
-    peerDependencies:
-      typedoc: ^0.26.3
 
   '@lukeed/ms@2.0.2':
     resolution: {integrity: sha512-9I2Zn6+NJLfaGoz9jN3lpwDgAYvfGeNYdbAIjJOqzs4Tpc+VU3Jqq4IofSUBKajiDS8k9fZIg18/z13mpk1bsA==}
@@ -3892,6 +3886,12 @@ packages:
     resolution: {integrity: sha512-/OxDN6OtAk5KBpGb28T+HZc2M+ADtvRxXrKKbUwtsLgdoxgX13hyy7ek6bFRl5+aBs2yZzB0c4CnQfAtVypW/g==}
     engines: {node: '>= 0.4'}
 
+  typedoc-material-theme@1.1.0:
+    resolution: {integrity: sha512-LLWGVb8w+i+QGnsu/a0JKjcuzndFQt/UeGVOQz0HFFGGocROEHv5QYudIACrj+phL2LDwH05tJx0Ob3pYYH2UA==}
+    engines: {node: '>=18.0.0', npm: '>=8.6.0'}
+    peerDependencies:
+      typedoc: ^0.25.13 || ^0.26.3
+
   typedoc-plugin-extras@3.1.0:
     resolution: {integrity: sha512-8tNeq2fgl2HCUZ6eZuAoLLKEvB/WrRS4He9MtTfo3X3Pa8Iw3TS5D0g8krDhUXUk1uHpXVAVHm8rSOMS2mdJRw==}
     peerDependencies:
@@ -4708,11 +4708,6 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.0
 
   '@jsprismarine/jsbinaryutils@5.5.3': {}
-
-  '@jsprismarine/typedoc-material-theme@1.0.4(typedoc@0.26.10(typescript@5.5.2))':
-    dependencies:
-      '@material/material-color-utilities': 0.2.7
-      typedoc: 0.26.10(typescript@5.5.2)
 
   '@lukeed/ms@2.0.2': {}
 
@@ -7923,6 +7918,11 @@ snapshots:
       has-proto: 1.0.3
       is-typed-array: 1.1.13
       possible-typed-array-names: 1.0.0
+
+  typedoc-material-theme@1.1.0(typedoc@0.26.10(typescript@5.5.2)):
+    dependencies:
+      '@material/material-color-utilities': 0.2.7
+      typedoc: 0.26.10(typescript@5.5.2)
 
   typedoc-plugin-extras@3.1.0(typedoc@0.26.10(typescript@5.5.2)):
     dependencies:
