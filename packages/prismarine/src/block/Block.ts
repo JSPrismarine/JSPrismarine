@@ -47,7 +47,7 @@ export class Block {
         this.javaName = javaName ?? name;
         this.hardness = hardness ?? 0;
 
-        this.networkId = BlockIdMap[parentName ?? name] as number;
+        this.networkId = (BlockIdMap as any)[parentName ?? name] as number;
     }
 
     public get [Symbol.toStringTag]() {

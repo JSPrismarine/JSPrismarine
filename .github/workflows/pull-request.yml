@@ -22,6 +22,7 @@ jobs:
                   ref: ${{github.event.pull_request.head.ref}}
                   repository: ${{github.event.pull_request.head.repo.full_name}}
                   token: ${{ secrets.GITHUB_TOKEN }}
+                  submodules: 'recursive'
 
             - name: 📦 Install
               uses: ./.github/common/install

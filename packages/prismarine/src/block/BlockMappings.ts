@@ -50,7 +50,7 @@ export class BlockMappings {
 
     public static getLegacyId(runtimeId: number): LegacyId {
         const name = this.runtimeToName.get(runtimeId)!;
-        const legacyId = BedrockData.block_id_map[name];
+        const legacyId = (BedrockData as any).block_id_map[name] as number;
         // TODO: proper meta
         return <LegacyId>{ id: legacyId & 0xf, meta: 0 };
     }
