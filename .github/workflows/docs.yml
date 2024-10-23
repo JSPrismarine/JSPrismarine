@@ -13,13 +13,12 @@ jobs:
         steps:
             - uses: actions/checkout@v4
               with:
-                  submodules: recursive
+                  submodules: 'recursive'
 
             - name: 📦 Install
               uses: ./.github/common/install
 
             - run: pnpm run build
-
             - run: pnpm run build:docs
 
             - uses: peaceiris/actions-gh-pages@v4

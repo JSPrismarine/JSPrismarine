@@ -7,7 +7,6 @@ import type { World } from './';
 export class Position extends Vector3 {
     /**
      * Create a new position
-     * @constructor
      * @param {number} x - The x coordinate of the position.
      * @param {number} y - The y coordinate of the position.
      * @param {number} z - The z coordinate of the position.
