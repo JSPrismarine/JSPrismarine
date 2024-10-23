@@ -31,7 +31,7 @@ export class Item {
         this.name = name;
         if (meta) this.meta = meta;
 
-        this.networkId = ItemIdMap[name] as number;
+        this.networkId = (ItemIdMap as any)[name] as number;
     }
 
     public getName(): string {
@@ -151,7 +151,7 @@ export class Item {
         }
 
         stream.writeUnsignedVarInt(str.getBuffer().byteLength);
-        stream.write(str.getBuffer());
+        stream.write(new Uint8Array(str.getBuffer()));
 
         // TODO: check for additional data
     }
