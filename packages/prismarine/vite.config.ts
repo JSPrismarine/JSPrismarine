@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { codecovVitePlugin } from '@codecov/vite-plugin';
 import { defineConfig, mergeConfig } from 'vite';
-import pkg from './package.json' assert { type: 'json' };
+import pkg from './package.json' with { type: 'json' };
 
 import base from '../../vite.config';
 
