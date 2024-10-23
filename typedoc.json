@@ -12,7 +12,7 @@
     "footerLastModified": true,
     "out": "./dist",
     "plugin": [
-        "@jsprismarine/typedoc-material-theme",
+        "typedoc-material-theme",
         "typedoc-plugin-extras",
         "typedoc-plugin-merge-modules",
         "typedoc-plugin-rename-defaults"
