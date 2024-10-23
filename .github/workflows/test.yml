@@ -31,10 +31,19 @@ jobs:
               run: pnpm run test
 
             - name: 🦺 Report Coverage to GitHub
+              if: ${{ !cancelled() }}
               uses: davelosert/vitest-coverage-report-action@v2.6.0
 
             - name: 🦺 Codecov Coverage Reports
+              if: ${{ !cancelled() }}
               uses: codecov/codecov-action@v4.6.0
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  slug: JSPrismarine/JSPrismarine
+
+            - name: 🦺 Upload test results to Codecov
+              if: ${{ !cancelled() }}
+              uses: codecov/test-results-action@v1
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
