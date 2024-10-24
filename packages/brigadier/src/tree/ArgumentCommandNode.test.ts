@@ -1,5 +1,5 @@
 import { assert, beforeEach, describe, it } from 'vitest';
-import type Command from '../Command';
+//import type Command from '../Command';
 import CommandDispatcher from '../CommandDispatcher';
 import StringReader from '../StringReader';
 import { DefaultType } from '../arguments/ArgumentType';
@@ -13,7 +13,7 @@ import RootCommandNode from '../tree/RootCommandNode';
 const { integer } = DefaultType;
 
 describe('ArgumentCommandNodeTest', () => {
-    const command: Command<Object> = async () => 0;
+    //const command: Command<Object> = async () => 0;
     let contextBuilder: CommandContextBuilder<Object>;
     let node: ArgumentCommandNode<Object, number>;
 

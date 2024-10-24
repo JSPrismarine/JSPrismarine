@@ -12,3 +12,7 @@ node_modules
 .DS_Store
 .swc
 .bak
+*.dat
+*.nbt
+
+packages/bedrock-data/src/resources/

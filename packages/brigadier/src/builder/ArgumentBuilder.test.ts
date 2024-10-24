@@ -1,10 +1,10 @@
-import { assert, expect, describe, beforeEach, it } from 'vitest';
-import { mock, instance } from 'ts-mockito';
-import CommandNode from '../tree/CommandNode';
-import ArgumentBuilder from '../builder/ArgumentBuilder';
-import { argument } from '../builder/RequiredArgumentBuilder';
-import { literal } from '../builder/LiteralArgumentBuilder';
+import { instance, mock } from 'ts-mockito';
+import { assert, beforeEach, describe, expect, it } from 'vitest';
 import { DefaultType } from '../arguments/ArgumentType';
+import ArgumentBuilder from '../builder/ArgumentBuilder';
+import { literal } from '../builder/LiteralArgumentBuilder';
+import { argument } from '../builder/RequiredArgumentBuilder';
+import CommandNode from '../tree/CommandNode';
 
 const { integer } = DefaultType;
 
@@ -45,7 +45,7 @@ describe('ArgumentBuilderTest', () => {
             builder.then(literal('foo'));
             builder.redirect(target);
             assert.fail();
-        } catch (ignore) {}
+        } catch {}
     });
 
     it('testThen_withRedirect', () => {
@@ -54,6 +54,6 @@ describe('ArgumentBuilderTest', () => {
             builder.redirect(target);
             builder.then(literal('foo'));
             assert.fail();
-        } catch (ignore) {}
+        } catch {}
     });
 });

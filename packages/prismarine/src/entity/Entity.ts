@@ -186,6 +186,7 @@ export class Entity extends EntityLike {
             runtimeId: Entity.runtimeIdCount
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (world) super.setWorld(world);
     }
 

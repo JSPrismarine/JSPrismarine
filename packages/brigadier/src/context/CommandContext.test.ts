@@ -17,7 +17,7 @@ describe('CommandContextTest', () => {
     it('testGetArgument_nonexistent', async () => {
         try {
             builder.build('').getArgument('foo');
-        } catch (ex: any) {
+        } catch {
             return;
         }
 
@@ -28,7 +28,7 @@ describe('CommandContextTest', () => {
         try {
             const context = builder.withArgument('foo', new ParsedArgument(0, 1, Object.create(null))).build('123');
             context.getArgument('foo', String);
-        } catch (ex: any) {
+        } catch {
             return;
         }
 
