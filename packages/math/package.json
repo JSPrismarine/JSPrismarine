@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/math",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "description": "JSPrismarine math utilities",
     "sideEffects": false,
     "type": "module",
