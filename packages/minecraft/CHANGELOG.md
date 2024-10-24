@@ -1,5 +1,17 @@
 # @jsprismarine/minecraft
 
+## 0.9.0
+
+### Minor Changes
+
+-   [`9963470`](https://github.com/JSPrismarine/JSPrismarine/commit/996347038b55d4d08b08b1efdc451e89d7265b30) Thanks [@filiphsps](https://github.com/filiphsps)! - - Use correct file extension for commonjs modules (`cjs`).
+
+### Patch Changes
+
+-   Updated dependencies []:
+    -   @jsprismarine/errors@0.9.0
+    -   @jsprismarine/nbt@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes
