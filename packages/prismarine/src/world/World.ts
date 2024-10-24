@@ -538,8 +538,9 @@ export class World implements Service {
                 { flag: 'r', encoding: 'utf-8' }
             );
             return JSON.parse(minifyJson(raw.toString())) as Partial<WorldPlayerData>;
-        } catch (error: any) {
+        } catch (error: unknown) {
             this.server.getLogger().debug(`PlayerData is missing for player ${player.getXUID()}`);
+            this.server.getLogger().error(error);
 
             const spawn = await this.getSpawnPosition();
             return {

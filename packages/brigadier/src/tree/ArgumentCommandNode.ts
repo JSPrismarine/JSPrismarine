@@ -94,7 +94,7 @@ export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
             let reader: StringReader = new StringReader(input);
             this.type.parse(reader, context);
             return !reader.canRead() || reader.peek() == ' ';
-        } catch (ignored) {}
+        } catch {}
 
         return false;
     }
