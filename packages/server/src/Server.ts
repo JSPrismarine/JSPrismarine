@@ -10,10 +10,10 @@ process.title = 'JSPrismarine';
 
 dotenv.config({
     path: [
-        path.join(process.cwd(), '.env'),
         path.join(process.cwd(), '.env.local'),
-        path.join(process.cwd(), '.env.development'),
-        path.join(process.cwd(), '.env.development.local')
+        path.join(process.cwd(), '.env'),
+        path.join(process.cwd(), '.env.development.local'),
+        path.join(process.cwd(), '.env.development')
     ]
 });
 
@@ -46,7 +46,7 @@ const logger = new Logger(config.getLogLevel(), [
 ]);
 const server = new Server({
     config,
-    logger
+    logger: logger as any
 });
 
 ['SIGSEGV', 'SIGHUP', 'uncaughtException'].forEach((signal) => {

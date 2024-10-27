@@ -15,4 +15,4 @@ node_modules
 *.dat
 *.nbt
 
-packages/bedrock-data/src/resources/
+packages/bedrock-data/src/resources/*

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { codecovVitePlugin } from '@codecov/vite-plugin';
@@ -14,15 +14,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
     root: __dirname,
     resolve: {
-        alias: [
-            // Resolve @jsprismarine/* imports.
-            {
-                find: /^@jsprismarine\/(?!jsbinaryutils|bedrock-data)(.+)/,
-                replacement: `${resolve(__dirname, '/packages/')}/$1/src/index.ts`
-            }
-        ]
+        alias: []
     },
-    ssr: { noExternal: true },
     build: {
         copyPublicDir: false,
         emptyOutDir: true,
@@ -31,7 +24,7 @@ export default defineConfig({
         sourcemap: 'inline',
         target: 'esnext',
         rollupOptions: {
-            treeshake: 'smallest',
+            treeshake: true,
             external: [
                 ...Object.keys(pkg.dependencies),
                 /^@jsprismarine/,
@@ -82,13 +75,13 @@ export default defineConfig({
             root: process.cwd()
         }),
         dts({
+            root: process.cwd(),
             clearPureImport: false,
             copyDtsFiles: true,
             entryRoot: `./src`,
             insertTypesEntry: true,
             rollupTypes: false,
-            tsconfigPath: `./tsconfig.json`,
-            include: ['**/src']
+            tsconfigPath: `./tsconfig.json`
         }),
         codecovVitePlugin({
             enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,

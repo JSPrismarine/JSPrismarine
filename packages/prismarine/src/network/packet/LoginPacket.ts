@@ -33,7 +33,7 @@ export default class LoginPacket extends DataPacket {
 
         // TODO: content length, to validate it's lenght...
         this.readUnsignedVarInt();
-        const chainData = JSON.parse(NetworkUtil.readLELengthASCIIString(this));
+        const chainData = JSON.parse(NetworkUtil.readLELengthASCIIString(this)) as any;
         const decode = fastJWT.createDecoder();
 
         for (const chain of chainData.chain) {

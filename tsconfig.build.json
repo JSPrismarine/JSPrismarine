@@ -3,15 +3,17 @@
     "compilerOptions": {
         "allowJs": false,
         "allowSyntheticDefaultImports": true,
+        "alwaysStrict": true,
         "composite": false, // FIXME: Fix ` Projects must list all files or use an 'include' pattern.`.
         "declaration": true,
         "declarationMap": true,
         "downlevelIteration": false,
+        "emitDecoratorMetadata": true,
         "esModuleInterop": true,
         "experimentalDecorators": true,
         "forceConsistentCasingInFileNames": true,
         "incremental": true,
-        "inlineSourceMap": false,
+        "inlineSourceMap": true,
         "isolatedDeclarations": false, // FIXME: Enable this.
         "isolatedModules": true,
         "lib": ["ESNext", "Decorators"],
@@ -23,14 +25,11 @@
         "noUncheckedIndexedAccess": true,
         "noUnusedLocals": false, // FIXME: Enable this.
         "noUnusedParameters": false, // FIXME: Enable this.
-        "paths": {
-            "@jsprismarine/*": ["./packages/*/src/index.ts"]
-        },
         "removeComments": false,
         "resolveJsonModule": true,
         "rootDir": ".",
         "skipLibCheck": true,
-        "sourceMap": true,
+        "sourceMap": false,
         "strict": true,
         "strictBindCallApply": true,
         "strictFunctionTypes": true,
@@ -40,7 +39,8 @@
         "tsBuildInfoFile": ".tsbuildinfo",
         "typeRoots": ["./node_modules/@types", "./packages/**/src/@types"],
         "types": ["node"],
-        "useDefineForClassFields": true
+        "useDefineForClassFields": true,
+        "useUnknownInCatchVariables": true
     },
 
     "exclude": ["**/.turbo", "**/coverage", "**/dist", "**/src/**/*.d.ts", "node_modules"],
