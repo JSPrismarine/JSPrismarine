@@ -1,5 +1,32 @@
 # @jsprismarine/prismarine
 
+## 0.10.0
+
+### Minor Changes
+
+-   [`ef1e604`](https://github.com/JSPrismarine/JSPrismarine/commit/ef1e604cdcddc73ea8b23b545142592a90b34884) Thanks [@filiphsps](https://github.com/filiphsps)! - Improve server stopping.
+    Fix incorrect order of actions in `world.addEntity``.
+    Improve the console.
+
+-   [#1695](https://github.com/JSPrismarine/JSPrismarine/pull/1695) [`306495d`](https://github.com/JSPrismarine/JSPrismarine/commit/306495dff6d34e8a1dca1187bf5e9a285325ec8f) Thanks [@filiphsps](https://github.com/filiphsps)! - Simplify `json` and `yaml` handling.
+    > We now properly handle parsing those files with comments, though they're not preserved when writing to the file.
+
+### Patch Changes
+
+-   [`99566e3`](https://github.com/JSPrismarine/JSPrismarine/commit/99566e363f4a726de5180f998e7fd2fd36cc5bf7) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix onw case of an export not being marked as a type export.
+
+-   [`e852e2b`](https://github.com/JSPrismarine/JSPrismarine/commit/e852e2b5beb6418d9aaae7574c21b1cfde048a0a) Thanks [@filiphsps](https://github.com/filiphsps)! - Bring tooling closer to supporting `composite: true`.
+
+-   Updated dependencies [[`e852e2b`](https://github.com/JSPrismarine/JSPrismarine/commit/e852e2b5beb6418d9aaae7574c21b1cfde048a0a), [`a7f7e16`](https://github.com/JSPrismarine/JSPrismarine/commit/a7f7e16c3b5ee8415a9561b8eb388d81bd23fd9c)]:
+    -   @jsprismarine/color-parser@0.10.0
+    -   @jsprismarine/minecraft@0.10.0
+    -   @jsprismarine/protocol@0.10.0
+    -   @jsprismarine/errors@0.10.0
+    -   @jsprismarine/logger@0.10.0
+    -   @jsprismarine/raknet@0.10.0
+    -   @jsprismarine/math@0.10.0
+    -   @jsprismarine/nbt@0.10.0
+
 ## 0.9.0
 
 ### Patch Changes
