@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+import chalk from 'chalk-cjs'; // TODO: Replace this with a sensible alternative.
 
 // Minecraft color codes -> chalk color names.
 export const chalkColorMap = {
