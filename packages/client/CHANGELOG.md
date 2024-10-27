@@ -1,5 +1,16 @@
 # @jsprismarine/client
 
+## 0.10.0
+
+### Patch Changes
+
+-   [`e852e2b`](https://github.com/JSPrismarine/JSPrismarine/commit/e852e2b5beb6418d9aaae7574c21b1cfde048a0a) Thanks [@filiphsps](https://github.com/filiphsps)! - Bring tooling closer to supporting `composite: true`.
+
+-   Updated dependencies [[`99566e3`](https://github.com/JSPrismarine/JSPrismarine/commit/99566e363f4a726de5180f998e7fd2fd36cc5bf7), [`ef1e604`](https://github.com/JSPrismarine/JSPrismarine/commit/ef1e604cdcddc73ea8b23b545142592a90b34884), [`e852e2b`](https://github.com/JSPrismarine/JSPrismarine/commit/e852e2b5beb6418d9aaae7574c21b1cfde048a0a), [`306495d`](https://github.com/JSPrismarine/JSPrismarine/commit/306495dff6d34e8a1dca1187bf5e9a285325ec8f)]:
+    -   @jsprismarine/prismarine@0.10.0
+    -   @jsprismarine/logger@0.10.0
+    -   @jsprismarine/raknet@0.10.0
+
 ## 0.9.0
 
 ### Patch Changes
