@@ -372,7 +372,7 @@ export default class Server extends EventEmitter {
 
             process.exit(options?.crash ? 1 : 0);
         } catch (error: unknown) {
-            this.logger.error(error);
+            console.error(error);
             process.exit(1);
         }
     }

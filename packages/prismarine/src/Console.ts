@@ -3,6 +3,7 @@ import type { Server, Service } from './';
 import { EntityLike } from './entity/';
 import type ChatEvent from './events/chat/ChatEvent';
 
+import process from 'node:process';
 import type { CompleterResult } from 'node:readline';
 import readline from 'node:readline';
 
@@ -38,6 +39,11 @@ export default class Console extends EntityLike implements Service {
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
+        if (!process.stdin.setRawMode as any) {
+            // TODO: Handle headless modes better (eg unit testing).
+            return;
+        }
+
         process.stdin.setRawMode(true);
         process.stdin.setNoDelay(true);
         process.stdin.setKeepAlive(true);
