@@ -48,6 +48,7 @@
 
     "references": [
         // TODO: Use https://github.com/pnpm/meta-updater & https://www.npmjs.com/package/@monorepo-utils/workspaces-to-typescript-project-references
+        { "path": "./packages/bedrock-data/tsconfig.json" },
         { "path": "./packages/brigadier/tsconfig.json" },
         { "path": "./packages/client/tsconfig.json" },
         { "path": "./packages/color-parser/tsconfig.json" },
