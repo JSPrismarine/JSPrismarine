@@ -4,11 +4,9 @@
     "compilerOptions": {
         "baseUrl": ".",
         "outDir": "./dist",
-        "paths": {
-            "@jsprismarine/*": ["../*/src/index.ts"]
-        },
         "rootDir": "../../",
         "typeRoots": ["./node_modules/@types", "./src/@types", "./dist/index.d.ts"]
     },
-    "exclude": ["src/**/*.test.*", "../**/src/**/*.test.*"]
+    "exclude": ["src/**/*.test.*", "../**/src/**/*.test.*"],
+    "include": ["src/**/*", "src/**/*.json"]
 }

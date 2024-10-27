@@ -39,7 +39,7 @@ export default class BlockManager {
             throw new Error(`invalid block with id ${name}`);
         }
 
-        return this.blocks.get(name)! || this.javaBlocks.get(name)!;
+        return (this.blocks.get(name) || this.javaBlocks.get(name)) as Block;
     }
 
     /**
@@ -67,7 +67,7 @@ export default class BlockManager {
      * @returns all registered blocks.
      */
     public getBlocks(): Block[] {
-        return Array.from(this.blocks.values());
+        return Array.from(this.blocks.values()) as Block[];
     }
 
     /**

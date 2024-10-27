@@ -221,7 +221,13 @@ export default class Client extends EventEmitter {
      * @param buffer
      */
     public async sendBuffer(buffer: Buffer): Promise<void> {
-        this.socket.send(buffer, 0, buffer.byteLength, this.targetAddress.getPort(), this.targetAddress.getAddress());
+        this.socket.send(
+            buffer as any,
+            0,
+            buffer.byteLength,
+            this.targetAddress.getPort(),
+            this.targetAddress.getAddress()
+        );
     }
 
     public getSocket(): Socket {

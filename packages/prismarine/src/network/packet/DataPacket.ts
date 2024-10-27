@@ -26,6 +26,10 @@ export default class DataPacket extends BinaryStream {
         super(buffer, 0);
     }
 
+    public getBuffer(): Buffer {
+        return super.getBuffer();
+    }
+
     public getId(): number {
         return (this.constructor as any).NetID;
     }
