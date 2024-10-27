@@ -1,5 +1,5 @@
 string_var: hello world
 number_var: 1337
 list_var:
-  - test
-  - 123
+    - test
+    - 123

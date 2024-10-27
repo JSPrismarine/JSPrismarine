@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-import minifyJson from 'strip-json-comments';
+import { parseJSON5 } from 'confbox';
 import type Player from '../Player';
 import type Server from '../Server';
 import { withCwd } from '../utils/cwd';
@@ -47,7 +47,7 @@ export default class BanManager {
                 fs.writeFileSync(dir, '[]');
             }
 
-            const banned: BannedPlayerEntry[] = JSON.parse(minifyJson((await fs.promises.readFile(dir)).toString()));
+            const banned: BannedPlayerEntry[] = parseJSON5((await fs.promises.readFile(dir)).toString());
             for (const player of banned) this.banned.set(player.name, player);
         } catch (error: unknown) {
             this.server.getLogger().error(error);
@@ -60,6 +60,7 @@ export default class BanManager {
         });
 
         await fs.promises.writeFile(
+            // FIXME: This overwrites comments in the file.
             withCwd(FILE_NAME),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({
@@ -77,6 +78,7 @@ export default class BanManager {
         this.banned.delete(username);
 
         await fs.promises.writeFile(
+            // FIXME: This overwrites comments in the file.
             withCwd(FILE_NAME),
             JSON.stringify(
                 Array.from(this.banned).map((entry) => ({

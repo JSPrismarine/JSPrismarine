@@ -2,7 +2,7 @@ import GameruleManager, { GameRules } from './GameruleManager';
 
 import fs from 'node:fs';
 
-import minifyJson from 'strip-json-comments';
+import { parseJSON5 } from 'confbox';
 
 import { Vector3 } from '@jsprismarine/math';
 import { getGametypeName } from '@jsprismarine/minecraft';
@@ -487,7 +487,7 @@ export class World implements Service {
 
         try {
             const raw = await fs.promises.readFile(path, 'utf-8');
-            return JSON.parse(minifyJson(raw.toString())) as Partial<LevelData>;
+            return parseJSON5(raw.toString()) as Partial<LevelData>;
         } catch (error: any) {
             // Something went wrong while reading or parsing the level data.
             this.server.getLogger().error(error);
@@ -517,6 +517,7 @@ export class World implements Service {
 
         try {
             await fs.promises.writeFile(
+                // FIXME: This overwrites comments in the file.
                 withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME),
                 JSON.stringify(data, null, 4)
             );
@@ -537,7 +538,7 @@ export class World implements Service {
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID() || player.getName()}.json`),
                 { flag: 'r', encoding: 'utf-8' }
             );
-            return JSON.parse(minifyJson(raw.toString())) as Partial<WorldPlayerData>;
+            return parseJSON5(raw.toString()) as Partial<WorldPlayerData>;
         } catch (error: unknown) {
             this.server.getLogger().debug(`PlayerData is missing for player ${player.getXUID()}`);
             this.server.getLogger().error(error);
@@ -573,6 +574,7 @@ export class World implements Service {
 
         try {
             await fs.promises.writeFile(
+                // FIXME: This overwrites comments in the file.
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID() || player.getName()}.json`),
                 JSON.stringify(data, null, 4),
                 { flag: 'w+', encoding: 'utf-8', flush: true }
