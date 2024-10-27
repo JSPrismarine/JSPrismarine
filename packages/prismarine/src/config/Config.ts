@@ -1,12 +1,13 @@
 import type { LogLevel } from '@jsprismarine/logger';
 import { SeedGenerator } from '../utils/Seed';
-import { cwd } from '../utils/cwd';
+import { withCwd } from '../utils/cwd';
 import { ConfigBuilder } from './ConfigBuilder';
 
 import { getGametypeName } from '@jsprismarine/minecraft';
-import path from 'node:path';
 
 const isDev = process.env.NODE_ENV === 'development';
+
+const FILE_NAME = 'config.yaml';
 
 export class Config {
     private configBuilder!: ConfigBuilder;
@@ -25,7 +26,7 @@ export class Config {
     private packetCompressionLevel!: number;
 
     public constructor() {
-        this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
+        this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
     }
 
@@ -34,7 +35,7 @@ export class Config {
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
+        this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
         this.port = this.configBuilder.get('port', 19132) as number;
         this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0') as string;

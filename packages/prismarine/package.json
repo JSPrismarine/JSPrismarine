@@ -75,11 +75,10 @@
         "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
+        "confbox": "0.1.8",
         "evt": "2.5.7",
         "fast-jwt": "4.0.5",
         "heap": "0.2.7",
-        "node-fetch": "3.3.2",
-        "strip-json-comments": "5.0.1",
-        "yaml": "2.6.0"
+        "node-fetch": "3.3.2"
     }
 }

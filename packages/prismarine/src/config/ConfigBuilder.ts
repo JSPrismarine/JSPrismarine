@@ -1,8 +1,7 @@
-import YAML from 'yaml';
-import fs from 'node:fs';
-import minifyJson from 'strip-json-comments';
-import path from 'node:path';
 import { ConfigInvalidDataError } from '@jsprismarine/errors';
+import { parseJSON5, parseYAML, stringifyYAML } from 'confbox';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const _ = {
     get: (obj: any, path: string, defaultValue = undefined) => {
@@ -115,11 +114,12 @@ export class ConfigBuilder {
      * @private
      */
     private stringify(data: ConfigData = {}) {
+        // FIXME: This overwrites comments in the file.
         switch (this.type) {
             case 'json':
-                return JSON.stringify(data, null, 2);
+                return JSON.stringify(data, null, 4);
             case 'yaml':
-                return YAML.stringify(data, { indent: 2 });
+                return stringifyYAML(data, { indent: 4 });
             default:
                 throw new Error(`Unknown config type ${this.type}!`);
         }
@@ -131,12 +131,12 @@ export class ConfigBuilder {
         switch (this.type) {
             case 'json':
                 try {
-                    return JSON.parse(minifyJson(raw)) || {};
+                    return parseJSON5(raw);
                 } catch {}
                 break;
             case 'yaml':
                 try {
-                    return YAML.parse(raw) || {};
+                    return parseYAML(raw);
                 } catch {}
                 break;
             default:

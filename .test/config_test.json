@@ -1,8 +1,8 @@
 {
-  "string_var": "hello world",
-  "number_var": 1337,
-  "list_var": [
-    "test",
-    123
-  ]
+    "string_var": "hello world",
+    "number_var": 1337,
+    "list_var": [
+        "test",
+        123
+    ]
 }

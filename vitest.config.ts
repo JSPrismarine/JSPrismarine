@@ -3,8 +3,8 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'vitest/config';
 
-const reporters = ['verbose', 'junit'];
-const extraReporters = !process.env.GITHUB_ACTIONS ? [] : ['github-actions'];
+const reporters = ['verbose'];
+const extraReporters = !process.env.GITHUB_ACTIONS ? [] : ['github-actions', 'junit'];
 const exclude = [
     '**/.next',
     '**/.turbo',
@@ -49,7 +49,10 @@ export default defineConfig({
         passWithNoTests: true,
         silent: false,
         globals: true,
-        reporters: [...reporters, ...extraReporters, 'github-actions'],
+        reporters: [...reporters, ...extraReporters],
+        outputFile: {
+            junit: './junit.xml'
+        },
 
         pool: 'threads',
 
