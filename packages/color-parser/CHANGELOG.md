@@ -1,5 +1,13 @@
 # @jsprismarine/color-parser
 
+## 0.10.0
+
+### Patch Changes
+
+-   [`e852e2b`](https://github.com/JSPrismarine/JSPrismarine/commit/e852e2b5beb6418d9aaae7574c21b1cfde048a0a) Thanks [@filiphsps](https://github.com/filiphsps)! - Bring tooling closer to supporting `composite: true`.
+
+-   [`a7f7e16`](https://github.com/JSPrismarine/JSPrismarine/commit/a7f7e16c3b5ee8415a9561b8eb388d81bd23fd9c) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix `cjs` compatibility.
+
 ## 0.9.0
 
 ## 0.8.0
