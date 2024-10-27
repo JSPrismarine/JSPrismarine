@@ -1,6 +1,6 @@
 export * as Generators from './generators/Generators';
 
-export * from './Generator';
+export type * from './Generator';
 export * from './GeneratorManager';
 export * from './Position';
 export * from './World';
