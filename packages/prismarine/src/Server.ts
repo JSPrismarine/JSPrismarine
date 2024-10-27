@@ -269,6 +269,8 @@ export default class Server extends EventEmitter {
         });
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
+            if (!this.config.getEnableQuery()) return;
+
             try {
                 await this.queryManager.onRaw(buffer, inetAddr);
             } catch (error: unknown) {
