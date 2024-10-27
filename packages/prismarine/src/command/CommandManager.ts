@@ -254,7 +254,7 @@ export class CommandManager implements Service {
             await Promise.all(
                 res.map(async (res: any) => {
                     const chat = new Chat({
-                        sender: this.server.getConsole(),
+                        sender: this.server.getConsole()!,
                         message: `§o§7[${target.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
                         channel: '*.ops'
                     });

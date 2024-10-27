@@ -146,7 +146,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // Announce connection
             const chatSpawnEvent = new ChatEvent(
                 new Chat({
-                    sender: server.getConsole(),
+                    sender: server.getConsole()!,
                     message: `§e%multiplayer.player.joined`,
                     parameters: [player.getName()],
                     needsTranslation: true,

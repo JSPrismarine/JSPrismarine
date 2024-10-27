@@ -1,5 +1,4 @@
 {
     "entryPoints": ["src/index.ts"],
-    "readme": "README.md",
-    "exclude": ["src/generated/**", "src/resources/**"]
+    "readme": "README.md"
 }
