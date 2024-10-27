@@ -100,7 +100,7 @@
         "turbo": "2.2.3",
         "typedoc-material-theme": "1.1.0",
         "typedoc-plugin-extras": "3.1.0",
-        "typedoc-plugin-merge-modules": "6.0.2",
+        "typedoc-plugin-merge-modules": "6.0.3",
         "typedoc-plugin-rename-defaults": "0.7.1",
         "typedoc": "0.26.10",
         "typescript": "5.5.2",
