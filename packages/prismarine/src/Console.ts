@@ -39,6 +39,9 @@ export default class Console extends EntityLike implements Service {
      */
     public async enable(): Promise<void> {
         process.stdin.setRawMode(true);
+        process.stdin.setNoDelay(true);
+        process.stdin.setKeepAlive(true);
+        process.stdin.resume();
 
         this.cli = readline.createInterface({
             input: process.stdin,
@@ -46,8 +49,6 @@ export default class Console extends EntityLike implements Service {
             terminal: true,
             prompt: '> ',
             tabSize: 4,
-            crlfDelay: Number.POSITIVE_INFINITY,
-            escapeCodeTimeout: 1500,
             removeHistoryDuplicates: true,
             completer: this.complete.bind(this)
         });
@@ -80,8 +81,6 @@ export default class Console extends EntityLike implements Service {
 
             void this.server.getCommandManager().dispatchCommand(this as any, this as any, input);
         });
-
-        this.cli.on('close', async () => await this.server.shutdown());
     }
 
     /**
@@ -89,17 +88,17 @@ export default class Console extends EntityLike implements Service {
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
-        /*this.cli?.removeAllListeners();
-        this.cli?.close();*/
+        this.cli?.close();
+        this.cli?.removeAllListeners();
     }
 
     private async complete(line: string, callback: (err?: null | Error, result?: CompleterResult) => void) {
         const commands = Array.from(this.server.getCommandManager().getCommands().values()).map(
-            (command) => `/${command.name}`
+            (command) => command.name
         );
 
         // Merge and remove duplicates.
-        const completions = ['/', ...commands]
+        const completions = commands
             .reverse() // Reverse to remove duplicates at the end.
             .filter((value, index, self) => self.indexOf(value) === index)
             .reverse(); // Restore.

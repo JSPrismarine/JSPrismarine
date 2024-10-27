@@ -204,7 +204,7 @@ export default class WorldManager implements Service {
     }
 
     public getDefaultWorld() {
-        return this.defaultWorld!;
+        return this.defaultWorld ?? this.getWorlds()[0];
     }
 
     public getGeneratorManager(): GeneratorManager {

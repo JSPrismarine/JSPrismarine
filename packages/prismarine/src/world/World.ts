@@ -393,10 +393,10 @@ export class World implements Service {
      * @param {Entity} entity - The entity to add.
      */
     public async addEntity(entity: Entity): Promise<void> {
+        this.entities.set(entity.getRuntimeId(), entity);
+
         if (!entity.isPlayer()) await entity.sendSpawn();
         else await Promise.all(this.getEntities().map((e) => e.sendSpawn(entity as Player)));
-
-        this.entities.set(entity.getRuntimeId(), entity);
     }
 
     /**

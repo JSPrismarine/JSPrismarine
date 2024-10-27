@@ -26,26 +26,26 @@ export default class SummonCommand extends Command {
                         const source = context.getSource() as Player;
                         // const position = context.getArgument('position') as Vector3;
                         const entityId = (context.getArgument('entity') as string).toLowerCase();
-                        let entity: any | undefined;
+                        let Entity: any | undefined;
 
                         if (!entityId.includes(':')) {
-                            entity = Object.entries(Entities).find(
+                            Entity = Object.entries(Entities).find(
                                 ([, value]) => value.MOB_ID === `minecraft:${entityId}`
                             )?.[1];
                         } else {
-                            entity = Object.entries(Entities).find(([, value]) => value.MOB_ID === entityId)?.[1];
+                            Entity = Object.entries(Entities).find(([, value]) => value.MOB_ID === entityId)?.[1];
                         }
 
-                        if (!entity) throw new Error(`No such entity "${entityId}"!`);
+                        if (!Entity) throw new Error(`No such entity "${entityId}"!`);
 
-                        const mob: Entity = new entity(source.getWorld(), source.getServer());
+                        const mob: Entity = new Entity(source.getWorld(), source.getServer());
                         await source.getWorld().addEntity(mob);
 
                         await mob.setPosition({
                             position: source.getPosition()
                         });
 
-                        const res = `Summoned ${entity.MOB_ID}`;
+                        const res = `Summoned ${Entity.MOB_ID}`;
                         await source.sendMessage(res);
                         return res;
                     })

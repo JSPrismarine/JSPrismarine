@@ -228,6 +228,7 @@ export default class Player extends Human {
 
         await this.sendDespawn();
         await this.getWorld().removeEntity(this);
+
         await super.setWorld(world);
         await world.addEntity(this);
 
