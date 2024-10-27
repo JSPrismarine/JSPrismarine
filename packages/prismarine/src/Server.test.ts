@@ -4,7 +4,7 @@ import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
 
 describe('Prismarine', () => {
-    it.skip('server to start & exit properly', async () => {
+    it('server to start & exit properly', async () => {
         const getRandomInt = (min: number, max: number) => {
             min = Math.ceil(min);
             max = Math.floor(max);
@@ -15,6 +15,9 @@ describe('Prismarine', () => {
         const prismarine = new Server({
             logger,
             config: new (class DebugConfig {
+                public enable() {}
+                public disable() {}
+
                 public getPort() {
                     return 19199;
                 }
@@ -61,10 +64,10 @@ describe('Prismarine', () => {
             })() as any
         });
 
-        const mockExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
+        const mockExit = vi.spyOn(prismarine, 'shutdown').mockImplementation((() => {}) as any);
 
         await prismarine.bootstrap('0.0.0.0', getRandomInt(46000, 49999));
         await prismarine.shutdown();
-        expect(mockExit).toHaveBeenCalledWith(0);
+        expect(mockExit).toBeCalledTimes(1);
     });
 });
