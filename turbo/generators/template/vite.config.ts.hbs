@@ -11,7 +11,7 @@ import base from '../../vite.config';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const input = Object.fromEntries(
-    globSync('./**/src/**/*.ts*', {
+    globSync('./**/src/**/*.{ts*,json}', {
         ignore: ['**/*.d.ts', '**/coverage/**', '**/dist/**', '**/node_modules/**', '**/*.test.*']
     }).map((file) => {
         const filenameWithoutExt = file.slice(0, file.length - extname(file).length);
