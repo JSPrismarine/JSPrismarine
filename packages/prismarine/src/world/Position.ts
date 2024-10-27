@@ -42,6 +42,10 @@ export class Position extends Vector3 {
      * @returns {World} The world of the position.
      */
     public getWorld(): World {
+        if ((this.world as any) === undefined) {
+            throw new Error('this.world is undefined');
+        }
+
         // TODO: assert the world is loaded, else throw
         return this.world;
     }

@@ -49,27 +49,31 @@ const server = new Server({
     logger: logger as any
 });
 
-['SIGSEGV', 'SIGHUP', 'uncaughtException'].forEach((signal) => {
-    try {
-        process.on(signal, async (error) => {
-            if (error instanceof Error) {
-                logger.error(error);
-            }
-
-            void server.shutdown({ crash: error === 'uncaughtException' });
-
-            // FIXME: This is a temporary fix for the server not shutting down properly.
+let forceExitTriggered = false;
+['SIGSEGV', 'SIGHUP', 'SIGINT', 'SIGTERM', 'uncaughtException'].forEach((signal) => {
+    process.on(signal, async (error) => {
+        // Handle spamming ctrl+c.
+        if (forceExitTriggered) {
             process.exit(1);
-        });
-    } catch {}
+        }
+        forceExitTriggered = true;
+
+        if (error instanceof Error) {
+            logger.error(error);
+        }
+
+        void server.shutdown({ crash: error === 'uncaughtException' });
+
+        // FIXME: This is a temporary fix for the server not shutting down properly.
+        process.exit(1);
+    });
 });
 
 try {
     await server.bootstrap(config.getServerIp(), config.getServerPort());
 } catch (error: unknown) {
-    console.warn(`Cannot start the server, is it already running on the same port?`);
-    console.error(error);
-    await server.shutdown({ crash: true });
+    logger.warn(`Cannot start the server, is it already running on the same port?`);
+    throw error; // Re-throw it so `process.on` can handle it.
 }
 
 export {};
