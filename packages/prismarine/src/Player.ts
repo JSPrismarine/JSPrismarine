@@ -137,7 +137,7 @@ export default class Player extends Human {
         // Announce disconnection
         const event = new ChatEvent(
             new Chat({
-                sender: this.server.getConsole(),
+                sender: this.server.getConsole()!,
                 message: `§e%multiplayer.player.left`,
                 parameters: [this.getName()],
                 needsTranslation: true,

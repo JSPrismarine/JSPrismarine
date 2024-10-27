@@ -36,7 +36,7 @@ export default class Server extends EventEmitter {
     private raknet!: RakNetListener;
     private readonly logger: Logger;
     private readonly config: Config;
-    private readonly console: Console;
+    private readonly console: Console | undefined;
     private readonly packetRegistry: PacketRegistry;
     private readonly sessionManager = new SessionManager();
     private readonly commandManager: CommandManager;
@@ -72,6 +72,12 @@ export default class Server extends EventEmitter {
      */
     private currentTick = 0n;
 
+    /**
+     * If the server is headless.
+     * @internal
+     */
+    private readonly headless: boolean;
+
     // TODO: Move this somewhere else.
     private static readonly MINECRAFT_TICK_TIME_MS = 1000 / 20;
 
@@ -82,8 +88,10 @@ export default class Server extends EventEmitter {
      * @param {Config} options.config - The config.
      * @returns {Server} The server instance.
      */
-    public constructor({ logger, config }: { logger: Logger; config: Config }) {
+    public constructor({ logger, config, headless = false }: { logger: Logger; config: Config; headless?: boolean }) {
         super();
+
+        this.headless = headless;
 
         logger.info(
             `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`
@@ -95,7 +103,7 @@ export default class Server extends EventEmitter {
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.worldManager = new WorldManager(this);
-        this.console = new Console(this);
+        if (!this.headless) this.console = new Console(this);
         this.commandManager = new CommandManager(this);
         this.queryManager = new QueryManager(this);
         this.chatManager = new ChatManager(this);
@@ -110,7 +118,7 @@ export default class Server extends EventEmitter {
      */
     private async enable(): Promise<void> {
         await this.config.enable();
-        await this.console.enable();
+        if (!this.headless) await this.console!.enable();
         await this.logger.enable();
         await this.permissionManager.enable();
         await this.banManager.enable();
@@ -118,7 +126,7 @@ export default class Server extends EventEmitter {
         await this.blockManager.enable();
         await this.commandManager.enable();
 
-        this.logger.setConsole(this.console);
+        if (this.console) this.logger.setConsole(this.console);
     }
 
     /**
@@ -136,7 +144,6 @@ export default class Server extends EventEmitter {
         await this.packetRegistry.disable();
         await this.config.disable();
         await this.logger.disable();
-        await this.console.disable();
 
         // Finally, remove all listeners.
         this.removeAllListeners();
@@ -274,8 +281,8 @@ export default class Server extends EventEmitter {
             try {
                 await this.queryManager.onRaw(buffer, inetAddr);
             } catch (error: unknown) {
+                this.logger.verbose(`QueryManager encountered an error`);
                 this.logger.error(error);
-                this.logger.verbose(`QueryManager failed with error: ${error}`);
             }
         });
 
@@ -297,7 +304,7 @@ export default class Server extends EventEmitter {
             }
 
             // Update RakNet server name.
-            if (this.getTick() % ticksPerSecond === 0) {
+            if (this.getTick() % ticksPerSecond === 0 && !this.headless) {
                 // Update the process title with TPS and tick.
                 process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
             }
@@ -352,7 +359,7 @@ export default class Server extends EventEmitter {
         this.stopping = true;
 
         this.logger.info('Stopping server', 'Server/kill');
-        await this.console.disable();
+        if (!this.headless) await this.console!.disable();
 
         clearInterval(this.tickerTimer);
 
@@ -510,9 +517,9 @@ export default class Server extends EventEmitter {
 
     /**
      * Returns the console instance.
-     * @returns {Console} The console instance.
+     * @returns {Console | undefined} The console instance.
      */
-    public getConsole(): Console {
+    public getConsole() {
         return this.console;
     }
 
