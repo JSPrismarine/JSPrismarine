@@ -39,6 +39,9 @@ export default class Console extends EntityLike implements Service {
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
+        // Make sure we don't enable the console twice.
+        if (this.cli) return;
+
         if (!process.stdin.setRawMode as any) {
             // TODO: Handle headless modes better (eg unit testing).
             return;
