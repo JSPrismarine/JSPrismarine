@@ -24,6 +24,7 @@ export class Config {
     private viewDistance!: number;
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
+    private enableQuery!: boolean;
 
     public constructor() {
         this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
@@ -53,6 +54,7 @@ export class Config {
         this.viewDistance = this.configBuilder.get('view-distance', 10) as number;
         this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
+        this.enableQuery = this.configBuilder.get('enable-query', true) as boolean;
     }
 
     /**
@@ -162,5 +164,9 @@ export class Config {
 
     public getPacketCompressionLevel() {
         return this.packetCompressionLevel;
+    }
+
+    public getEnableQuery() {
+        return this.enableQuery;
     }
 }
