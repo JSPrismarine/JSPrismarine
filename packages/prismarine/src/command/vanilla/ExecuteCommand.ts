@@ -1,9 +1,9 @@
-import { CommandArgumentCommand, CommandArgumentEntity } from '../CommandArguments';
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, greedyString, literal } from '@jsprismarine/brigadier';
+import { CommandArgumentCommand, CommandArgumentEntity } from '../CommandArguments';
 
-import { Command } from '../Command';
 import type Player from '../../Player';
+import { Command } from '../Command';
 
 export default class ExecuteCommand extends Command {
     public constructor() {
@@ -26,7 +26,7 @@ export default class ExecuteCommand extends Command {
                                 const command = context.getArgument('command') as string;
                                 await Promise.all(
                                     targets.map(async (target) =>
-                                        source.getServer().getCommandManager().dispatchCommand(source, target, command)
+                                        source.getServer().getCommandManager()?.dispatchCommand(source, target, command)
                                     )
                                 );
                             })
@@ -42,7 +42,7 @@ export default class ExecuteCommand extends Command {
                                             source
                                                 .getServer()
                                                 .getCommandManager()
-                                                .dispatchCommand(source, target, `${command} ${args}`)
+                                                ?.dispatchCommand(source, target, `${command} ${args}`)
                                         )
                                     );
                                 })
@@ -54,7 +54,7 @@ export default class ExecuteCommand extends Command {
                         .executes(async (context) => {
                             const source = context.getSource() as Player;
                             const command = context.getArgument('command') as string;
-                            await source.getServer().getCommandManager().dispatchCommand(source, source, command);
+                            await source.getServer().getCommandManager()?.dispatchCommand(source, source, command);
                         })
                         .then(
                             argument('arguments', greedyString()).executes(async (context) => {
@@ -64,7 +64,7 @@ export default class ExecuteCommand extends Command {
                                 await source
                                     .getServer()
                                     .getCommandManager()
-                                    .dispatchCommand(source, source, `${command} ${args}`);
+                                    ?.dispatchCommand(source, source, `${command} ${args}`);
                             })
                         )
                 )

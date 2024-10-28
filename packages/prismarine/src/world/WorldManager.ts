@@ -123,10 +123,7 @@ export default class WorldManager implements Service {
 
         const levelPath = withCwd(WORLDS_FOLDER, folderName);
         const provider = this.providers.get(worldData.provider ?? DEFAULT_WORLD_PROVIDER);
-        const generator = this.server
-            .getWorldManager()
-            .getGeneratorManager()
-            .getGenerator(worldData.generator ?? 'Flat');
+        const generator = this.getGeneratorManager().getGenerator(worldData.generator ?? 'Flat');
 
         if (!provider) {
             throw new Error(`invalid provider with id ${worldData.provider}`);

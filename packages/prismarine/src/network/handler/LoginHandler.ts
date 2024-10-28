@@ -36,7 +36,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
 
         const player = new Player({
             connection,
-            world: server.getWorldManager().getDefaultWorld()!,
+            world: server.getWorldManager()?.getDefaultWorld()!,
             server,
             uuid: packet.identity
         });

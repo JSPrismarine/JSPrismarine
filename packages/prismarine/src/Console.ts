@@ -26,7 +26,7 @@ export default class Console extends EntityLike implements Service {
     private cli?: readline.Interface;
 
     public constructor(server: Server, runtimeId = BigInt(-1)) {
-        const world = server.getWorldManager().getDefaultWorld()!;
+        const world = server.getWorldManager()?.getDefaultWorld()!;
         super({
             server,
             runtimeId,
@@ -88,7 +88,7 @@ export default class Console extends EntityLike implements Service {
             // Fix cursor positioning.
             this.cli?.output.write(`\x1b[2D`);
 
-            void this.server.getCommandManager().dispatchCommand(this as any, this as any, input);
+            void this.server.getCommandManager()?.dispatchCommand(this as any, this as any, input);
         });
     }
 
@@ -102,7 +102,7 @@ export default class Console extends EntityLike implements Service {
     }
 
     private async complete(line: string, callback: (err?: null | Error, result?: CompleterResult) => void) {
-        const commands = Array.from(this.server.getCommandManager().getCommands().values()).map(
+        const commands = Array.from(this.server.getCommandManager()?.getCommands().values() ?? []).map(
             (command) => command.name
         );
 
@@ -141,7 +141,7 @@ export default class Console extends EntityLike implements Service {
     }
 
     public getWorld() {
-        return this.server.getWorldManager().getDefaultWorld()!;
+        return this.server.getWorldManager()?.getDefaultWorld()!;
     }
 
     public isPlayer(): boolean {

@@ -1,8 +1,8 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { literal } from '@jsprismarine/brigadier';
 
-import { Command } from '../Command';
 import type { Player } from '../../';
+import { Command } from '../Command';
 
 export default class HelpCommand extends Command {
     public constructor() {
@@ -21,7 +21,7 @@ export default class HelpCommand extends Command {
             source
                 .getServer()
                 .getCommandManager()
-                .getCommands()
+                ?.getCommands()
                 .forEach(async (command) => {
                     if (!source.getServer().getPermissionManager().can(source).execute(command.permission)) return;
 
