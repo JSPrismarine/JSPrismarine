@@ -76,7 +76,7 @@ export class QueryManager {
                                 'plugins',
                                 `JSPrismarine on Prismarine ${this.server.getVersion()} ${plugins.join('; ')}`, // TODO
                                 'map',
-                                this.server.getWorldManager().getDefaultWorld()!.getName(),
+                                this.server.getWorldManager()?.getDefaultWorld()!.getName(),
                                 'numplayers',
                                 this.server.getMetadata().getOnlinePlayerCount(),
                                 'maxplayers',

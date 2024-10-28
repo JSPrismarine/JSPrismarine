@@ -157,7 +157,7 @@ export class CommandManager implements Service {
             return result;
         };
 
-        const res = Array.from(this.server.getCommandManager().getDispatcher().getRoot().getChildren())
+        const res = Array.from(this.getDispatcher().getRoot().getChildren())
             .flatMap((command) => {
                 const branches: any[] = [];
                 if (command.getCommand()) branches.push([]);

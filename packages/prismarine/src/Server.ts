@@ -39,14 +39,14 @@ export default class Server extends EventEmitter {
     private readonly console: Console | undefined;
     private readonly packetRegistry: PacketRegistry;
     private readonly sessionManager = new SessionManager();
-    private readonly commandManager: CommandManager;
-    private readonly worldManager: WorldManager;
+    private readonly commandManager: CommandManager | undefined;
+    private readonly worldManager: WorldManager | undefined;
     private readonly itemManager: ItemManager;
     private readonly blockManager: BlockManager;
-    private readonly queryManager: QueryManager;
-    private readonly chatManager: ChatManager;
-    private readonly permissionManager: PermissionManager;
-    private readonly banManager: BanManager;
+    private readonly queryManager!: QueryManager;
+    private readonly chatManager!: ChatManager;
+    private readonly permissionManager!: PermissionManager;
+    private readonly banManager!: BanManager;
 
     /**
      * If the server is stopping.
@@ -78,6 +78,12 @@ export default class Server extends EventEmitter {
      */
     private readonly headless: boolean;
 
+    /**
+     * If the server is bare.
+     * @internal
+     */
+    private readonly bare: boolean;
+
     // TODO: Move this somewhere else.
     private static readonly MINECRAFT_TICK_TIME_MS = 1000 / 20;
 
@@ -86,12 +92,25 @@ export default class Server extends EventEmitter {
      * @param {object} options - The options.
      * @param {LoggerBuilder} options.logger - The logger.
      * @param {Config} options.config - The config.
+     * @param {boolean} [options.headless=false] - If the server should be headless., ie. no console.
+     * @param {boolean} [options.bare=false] - If the server should be bare., ie. no managers.
      * @returns {Server} The server instance.
      */
-    public constructor({ logger, config, headless = false }: { logger: Logger; config: Config; headless?: boolean }) {
+    public constructor({
+        logger,
+        config,
+        headless = false,
+        bare = false
+    }: {
+        logger: Logger;
+        config: Config;
+        headless?: boolean;
+        bare?: boolean;
+    }) {
         super();
 
         this.headless = headless;
+        this.bare = bare;
 
         logger.info(
             `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`
@@ -102,13 +121,18 @@ export default class Server extends EventEmitter {
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
+
         this.worldManager = new WorldManager(this);
+
         if (!this.headless) this.console = new Console(this);
-        this.commandManager = new CommandManager(this);
-        this.queryManager = new QueryManager(this);
-        this.chatManager = new ChatManager(this);
-        this.permissionManager = new PermissionManager(this);
-        this.banManager = new BanManager(this);
+
+        if (!this.bare) {
+            this.commandManager = new CommandManager(this);
+            this.queryManager = new QueryManager(this);
+            this.chatManager = new ChatManager(this);
+            this.permissionManager = new PermissionManager(this);
+            this.banManager = new BanManager(this);
+        }
     }
 
     /**
@@ -118,13 +142,18 @@ export default class Server extends EventEmitter {
      */
     private async enable(): Promise<void> {
         await this.config.enable();
-        if (!this.headless) await this.console!.enable();
+        await this.console?.enable();
         await this.logger.enable();
-        await this.permissionManager.enable();
-        await this.banManager.enable();
+
         await this.itemManager.enable();
         await this.blockManager.enable();
-        await this.commandManager.enable();
+
+        if (!this.bare) {
+            await this.permissionManager.enable();
+            await this.banManager.enable();
+        }
+
+        await this.commandManager?.enable();
 
         if (this.console) this.logger.setConsole(this.console);
     }
@@ -135,12 +164,17 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private async disable(): Promise<void> {
-        await this.worldManager.disable();
-        await this.commandManager.disable();
+        await this.commandManager?.disable();
+
+        if (!this.bare) {
+            await this.banManager.disable();
+            await this.permissionManager.disable();
+        }
+
         await this.blockManager.disable();
         await this.itemManager.disable();
-        await this.banManager.disable();
-        await this.permissionManager.disable();
+        await this.worldManager?.disable();
+
         await this.packetRegistry.disable();
         await this.config.disable();
         await this.logger.disable();
@@ -173,7 +207,7 @@ export default class Server extends EventEmitter {
     public async bootstrap(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.enable();
         await BlockMappings.initMappings(this);
-        await this.worldManager.enable();
+        await this.worldManager?.enable();
         await this.packetRegistry.enable();
 
         this.raknet = new RakNetListener(
@@ -276,7 +310,7 @@ export default class Server extends EventEmitter {
         });
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
-            if (!this.config.getEnableQuery()) return;
+            if (this.bare || !this.config.getEnableQuery()) return;
 
             try {
                 await this.queryManager.onRaw(buffer, inetAddr);
@@ -298,13 +332,15 @@ export default class Server extends EventEmitter {
 
             const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
 
-            // Update all worlds.
-            for (const world of this.worldManager.getWorlds()) {
-                void world.update(event.getTick());
+            if (this.worldManager) {
+                // Update all worlds.
+                for (const world of this.worldManager.getWorlds()) {
+                    void world.update(event.getTick());
+                }
             }
 
             // Update RakNet server name.
-            if (this.getTick() % ticksPerSecond === 0 && !this.headless) {
+            if (!this.headless && this.getTick() % ticksPerSecond === 0) {
                 // Update the process title with TPS and tick.
                 process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
             }
@@ -359,7 +395,7 @@ export default class Server extends EventEmitter {
         this.stopping = true;
 
         this.logger.info('Stopping server', 'Server/kill');
-        if (!this.headless) await this.console!.disable();
+        await this.console?.disable();
 
         clearInterval(this.tickerTimer);
 
@@ -424,9 +460,9 @@ export default class Server extends EventEmitter {
 
     /**
      * Returns the command manager.
-     * @returns {CommandManager} The command manager.
+     * @returns {CommandManager | undefined} The command manager.
      */
-    public getCommandManager(): CommandManager {
+    public getCommandManager(): CommandManager | undefined {
         return this.commandManager;
     }
 
@@ -440,9 +476,9 @@ export default class Server extends EventEmitter {
 
     /**
      * Returns the world manager.
-     * @returns {WorldManager} The world manager.
+     * @returns {WorldManager | undefined} The world manager.
      */
-    public getWorldManager(): WorldManager {
+    public getWorldManager(): WorldManager | undefined {
         return this.worldManager;
     }
 
@@ -519,7 +555,7 @@ export default class Server extends EventEmitter {
      * Returns the console instance.
      * @returns {Console | undefined} The console instance.
      */
-    public getConsole() {
+    public getConsole(): Console | undefined {
         return this.console;
     }
 

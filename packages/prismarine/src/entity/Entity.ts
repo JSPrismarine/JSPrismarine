@@ -173,7 +173,7 @@ export class Entity extends EntityLike {
      * @example
      * ```typescript
      * const entity = new Entity({
-     *     world: server.getWorldManager().getDefaultWorld(),
+     *     world: server.getWorldManager()?.getDefaultWorld(),
      *     server
      * });
      * ```

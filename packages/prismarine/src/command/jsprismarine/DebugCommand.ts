@@ -29,12 +29,12 @@ export default class DebugCommand extends Command {
                                     const worldData = source.getServer().getConfig().getWorlds()[value] as WorldData;
                                     const world = await source
                                         .getServer()
-                                        .getWorldManager()
+                                        .getWorldManager()!
                                         .loadWorld(worldData, value);
                                     return `Loaded world ${world.getName()}`;
                                 }
                                 case 'changeWorld': {
-                                    const world = source.getServer().getWorldManager().getWorldByName(value)!;
+                                    const world = source.getServer().getWorldManager()!.getWorldByName(value)!;
                                     await source.setWorld(world);
                                     return `Moved ${source.getFormattedUsername()} to ${world.getName()}`;
                                 }
@@ -55,7 +55,7 @@ export default class DebugCommand extends Command {
                 .executes(async (context) => {
                     const source = context.getSource() as Player;
 
-                    const worlds = source.getServer().getWorldManager().getWorlds();
+                    const worlds = source.getServer().getWorldManager()?.getWorlds() ?? [];
                     await source.sendMessage(`§dWorlds Loaded§r (${worlds.length}):`);
                     for (const world of worlds) {
                         await source.sendMessage(

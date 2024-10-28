@@ -331,9 +331,9 @@ export default class PlayerSession {
         pk.softEnums = [playerEnum];
         this.server
             .getCommandManager()
-            .getCommandsList()
+            ?.getCommandsList()
             .forEach((command) => {
-                const commandClass = Array.from(this.server.getCommandManager().getCommands().values()).find(
+                const commandClass = Array.from(this.server.getCommandManager()?.getCommands().values() ?? []).find(
                     (cmd) => cmd.name === command[0]
                 );
 
