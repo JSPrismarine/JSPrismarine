@@ -345,7 +345,7 @@ export default class Server extends EventEmitter {
      * @param {boolean} [options.crash] - If the server should crash.
      * @returns {Promise<void>} A promise that resolves when the server is killed.
      */
-    public async shutdown(options?: { crash?: boolean }): Promise<void> {
+    public async shutdown(options?: { crash?: boolean; stayAlive?: boolean }): Promise<void> {
         if (this.stopping) return;
         this.stopping = true;
 
@@ -370,10 +370,14 @@ export default class Server extends EventEmitter {
 
             this.getLogger().info('Server stopped, Goodbye!\n');
 
-            process.exit(options?.crash ? 1 : 0);
+            if (!options?.stayAlive) {
+                process.exit(options?.crash ? 1 : 0);
+            }
         } catch (error: unknown) {
             this.logger.error(error);
-            process.exit(1);
+            if (!options?.stayAlive) {
+                process.exit(1);
+            }
         }
     }
 
