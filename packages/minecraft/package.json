@@ -44,7 +44,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/minecraft",
     "devDependencies": {
-        "@types/node": "20.12.7",
+        "@types/node": "22.8.2",
         "@types/semver": "7.5.8",
         "glob": "11.0.0",
         "typescript": "5.5.2",
