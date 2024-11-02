@@ -126,7 +126,7 @@ export default class Server extends EventEmitter {
         await this.blockManager.enable();
         await this.commandManager.enable();
 
-        if (this.console) this.logger.setConsole(this.console);
+        this.logger.setConsole(this.console);
     }
 
     /**
