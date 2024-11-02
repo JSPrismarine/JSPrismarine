@@ -286,64 +286,66 @@ export default class Server extends EventEmitter {
             }
         });
 
-        let startTime = Date.now();
-        let tpsStartTime = Date.now();
-        let lastTickTime = Date.now();
-        let tpsStartTick = this.getTick();
-        const tick = () => {
-            if (this.stopping) return;
+        if (this.config.getEnableTicking()) {
+            let startTime = Date.now();
+            let tpsStartTime = Date.now();
+            let lastTickTime = Date.now();
+            let tpsStartTick = this.getTick();
+            const tick = () => {
+                if (this.stopping) return;
 
-            const event = new TickEvent(this.getTick());
-            void this.emit('tick', event);
+                const event = new TickEvent(this.getTick());
+                void this.emit('tick', event);
 
-            const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
+                const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
 
-            // Update all worlds.
-            for (const world of this.worldManager.getWorlds()) {
-                void world.update(event.getTick());
-            }
+                // Update all worlds.
+                for (const world of this.worldManager.getWorlds()) {
+                    void world.update(event.getTick());
+                }
 
-            // Update RakNet server name.
-            if (this.getTick() % ticksPerSecond === 0 && !this.headless) {
-                // Update the process title with TPS and tick.
-                process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
-            }
+                // Update RakNet server name.
+                if (this.config.getEnableTitle() && this.getTick() % ticksPerSecond === 0 && !this.headless) {
+                    // Update the process title with TPS and tick.
+                    process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
+                }
 
-            this.currentTick++;
-            const endTime = Date.now();
-            const elapsedTime = endTime - startTime;
-            const expectedElapsedTime = this.getTick() * Server.MINECRAFT_TICK_TIME_MS;
-            const executionTime = endTime - lastTickTime;
+                this.currentTick++;
+                const endTime = Date.now();
+                const elapsedTime = endTime - startTime;
+                const expectedElapsedTime = this.getTick() * Server.MINECRAFT_TICK_TIME_MS;
+                const executionTime = endTime - lastTickTime;
 
-            // Adjust sleepTime based on execution speed.
-            let sleepTime = Server.MINECRAFT_TICK_TIME_MS - executionTime;
-            if (elapsedTime < expectedElapsedTime) {
-                // If we're running faster than expected, increase sleepTime.
-                sleepTime += expectedElapsedTime - elapsedTime;
-            } else if (elapsedTime > expectedElapsedTime) {
-                // If we're running slower than expected, decrease sleepTime but don't let it go below 0.
-                sleepTime = Math.max(0, sleepTime - (elapsedTime - expectedElapsedTime));
-            }
+                // Adjust sleepTime based on execution speed.
+                let sleepTime = Server.MINECRAFT_TICK_TIME_MS - executionTime;
+                if (elapsedTime < expectedElapsedTime) {
+                    // If we're running faster than expected, increase sleepTime.
+                    sleepTime += expectedElapsedTime - elapsedTime;
+                } else if (elapsedTime > expectedElapsedTime) {
+                    // If we're running slower than expected, decrease sleepTime but don't let it go below 0.
+                    sleepTime = Math.max(0, sleepTime - (elapsedTime - expectedElapsedTime));
+                }
 
-            // Calculate tps based on the actual elapsed time since the start of the tick.
-            if (tpsStartTime !== endTime) {
-                this.tps = ((this.getTick() - tpsStartTick) * 1000) / (endTime - tpsStartTime);
-            }
+                // Calculate tps based on the actual elapsed time since the start of the tick.
+                if (tpsStartTime !== endTime) {
+                    this.tps = ((this.getTick() - tpsStartTick) * 1000) / (endTime - tpsStartTime);
+                }
 
-            if (endTime - tpsStartTime >= 1000) {
-                tpsStartTick = this.getTick();
-                tpsStartTime = endTime;
-            }
+                if (endTime - tpsStartTime >= 1000) {
+                    tpsStartTick = this.getTick();
+                    tpsStartTime = endTime;
+                }
 
-            this.tps = Math.min(this.tps, 20); // Ensure tps does not exceed 20
+                this.tps = Math.min(this.tps, 20); // Ensure tps does not exceed 20
 
-            lastTickTime = endTime;
-            this.tickerTimer = setTimeout(tick, sleepTime);
-            this.tickerTimer.unref();
-        };
+                lastTickTime = endTime;
+                this.tickerTimer = setTimeout(tick, sleepTime);
+                this.tickerTimer.unref();
+            };
 
-        // Start ticking
-        tick();
+            // Start ticking
+            tick();
+        }
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
     }

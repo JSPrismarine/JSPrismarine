@@ -61,6 +61,10 @@ describe('Prismarine', () => {
                 public getPacketCompressionLevel() {
                     return 7;
                 }
+
+                public getEnableTicking() {
+                    return false;
+                }
             })() as any
         });
 
