@@ -118,7 +118,7 @@ export default class Server extends EventEmitter {
      */
     private async enable(): Promise<void> {
         await this.config.enable();
-        if (!this.headless) await this.console!.enable();
+        await this.console?.enable();
         await this.logger.enable();
         await this.permissionManager.enable();
         await this.banManager.enable();
@@ -359,7 +359,7 @@ export default class Server extends EventEmitter {
         this.stopping = true;
 
         this.logger.info('Stopping server', 'Server/kill');
-        if (!this.headless) await this.console!.disable();
+        await this.console?.disable();
 
         clearInterval(this.tickerTimer);
 
