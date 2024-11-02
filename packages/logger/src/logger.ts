@@ -103,7 +103,8 @@ export class Logger {
      * Set the console instance to use.
      * @param {ConsoleLike} console - The console instance to use.
      */
-    public setConsole(console: ConsoleLike): void {
+    public setConsole(console?: ConsoleLike): void {
+        if (!console) return;
         (this.logger!.transports[0] as PrismarineTransport).console = console;
     }
 
