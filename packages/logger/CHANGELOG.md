@@ -1,5 +1,16 @@
 # @jsprismarine/color-parser
 
+## 0.11.0
+
+### Minor Changes
+
+-   [`4b7f94d`](https://github.com/JSPrismarine/JSPrismarine/commit/4b7f94d805480a171728bc82829874c3d0258fc3) Thanks [@filiphsps](https://github.com/filiphsps)! - Don't set the console if it's undefined.
+
+### Patch Changes
+
+-   Updated dependencies []:
+    -   @jsprismarine/color-parser@0.11.0
+
 ## 0.10.0
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/logger",
-    "version": "0.10.0",
+    "version": "0.11.0",
     "description": "JSPrismarine logger and utilities",
     "sideEffects": false,
     "type": "module",
