@@ -25,6 +25,8 @@ export class Config {
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
     private enableQuery!: boolean;
+    private enableTitle!: boolean;
+    private enableTicking!: boolean;
 
     public constructor() {
         this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
@@ -55,6 +57,8 @@ export class Config {
         this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
         this.enableQuery = this.configBuilder.get('enable-query', true) as boolean;
+        this.enableTitle = this.configBuilder.get('enable-title', true) as boolean;
+        this.enableTicking = this.configBuilder.get('enable-ticking', true) as boolean;
     }
 
     /**
@@ -168,5 +172,13 @@ export class Config {
 
     public getEnableQuery() {
         return this.enableQuery;
+    }
+
+    public getEnableTitle() {
+        return this.enableTitle;
+    }
+
+    public getEnableTicking() {
+        return this.enableTicking;
     }
 }
