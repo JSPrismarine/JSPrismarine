@@ -1,5 +1,31 @@
 # @jsprismarine/prismarine
 
+## 0.11.0
+
+### Minor Changes
+
+-   [`e962b51`](https://github.com/JSPrismarine/JSPrismarine/commit/e962b514e196511111877e9ad856a00291216c6e) Thanks [@filiphsps](https://github.com/filiphsps)! - Add `enable-title` and `enable-ticking`.
+
+-   [`3303be8`](https://github.com/JSPrismarine/JSPrismarine/commit/3303be822a8aff09142172e0796e66473dc2fef2) Thanks [@filiphsps](https://github.com/filiphsps)! - Simplify console enable/disable.
+
+-   [`ad0e562`](https://github.com/JSPrismarine/JSPrismarine/commit/ad0e5623a34f0424bd520b68131b56e92dec1cea) Thanks [@filiphsps](https://github.com/filiphsps)! - Add config option to enable/disable the query.
+
+-   [`51ba84e`](https://github.com/JSPrismarine/JSPrismarine/commit/51ba84e1fe3b7ad99a9fb07039048c9cab2075b6) Thanks [@filiphsps](https://github.com/filiphsps)! - Add headless mode (running without console).
+
+### Patch Changes
+
+-   [`4b7f94d`](https://github.com/JSPrismarine/JSPrismarine/commit/4b7f94d805480a171728bc82829874c3d0258fc3) Thanks [@filiphsps](https://github.com/filiphsps)! - Allow for shutting dowing without killing the parent process.
+
+-   Updated dependencies [[`4b7f94d`](https://github.com/JSPrismarine/JSPrismarine/commit/4b7f94d805480a171728bc82829874c3d0258fc3)]:
+    -   @jsprismarine/logger@0.11.0
+    -   @jsprismarine/color-parser@0.11.0
+    -   @jsprismarine/errors@0.11.0
+    -   @jsprismarine/math@0.11.0
+    -   @jsprismarine/minecraft@0.11.0
+    -   @jsprismarine/nbt@0.11.0
+    -   @jsprismarine/protocol@0.11.0
+    -   @jsprismarine/raknet@0.11.0
+
 ## 0.10.0
 
 ### Minor Changes
