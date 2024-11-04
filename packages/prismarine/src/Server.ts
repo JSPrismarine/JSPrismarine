@@ -117,14 +117,18 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private async enable(): Promise<void> {
+        await BlockMappings.initMappings(this);
+
         await this.config.enable();
         await this.console?.enable();
         await this.logger.enable();
         await this.permissionManager.enable();
-        await this.banManager.enable();
+        await this.packetRegistry.enable();
         await this.itemManager.enable();
         await this.blockManager.enable();
+        await this.banManager.enable();
         await this.commandManager.enable();
+        await this.worldManager.enable();
 
         this.logger.setConsole(this.console);
     }
@@ -137,9 +141,9 @@ export default class Server extends EventEmitter {
     private async disable(): Promise<void> {
         await this.worldManager.disable();
         await this.commandManager.disable();
+        await this.banManager.disable();
         await this.blockManager.disable();
         await this.itemManager.disable();
-        await this.banManager.disable();
         await this.permissionManager.disable();
         await this.packetRegistry.disable();
         await this.config.disable();
@@ -172,9 +176,6 @@ export default class Server extends EventEmitter {
      */
     public async bootstrap(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.enable();
-        await BlockMappings.initMappings(this);
-        await this.worldManager.enable();
-        await this.packetRegistry.enable();
 
         this.raknet = new RakNetListener(
             this.getConfig().getMaxPlayers(),
@@ -375,11 +376,10 @@ export default class Server extends EventEmitter {
             await this.disable();
 
             // `this.raknet` might be undefined if we kill the server really early.
-            try {
-                this.raknet.kill();
-            } catch {}
+            (this.raknet as any)?.kill();
 
-            this.getLogger().info('Server stopped, Goodbye!\n');
+            // Logger is no longer available.
+            console.debug('Server stopped, Goodbye!\n');
 
             if (!options?.stayAlive) process.exit(options?.crash ? 1 : 0);
         } catch (error: unknown) {
