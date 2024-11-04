@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/nbt",
-    "version": "0.11.0",
+    "version": "0.11.1",
     "description": "Minecraft: Bedrock Edition NBT parser/writer",
     "sideEffects": false,
     "type": "module",
