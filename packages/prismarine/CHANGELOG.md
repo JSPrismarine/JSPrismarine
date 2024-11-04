@@ -1,5 +1,21 @@
 # @jsprismarine/prismarine
 
+## 0.11.1
+
+### Patch Changes
+
+-   [`a79d837`](https://github.com/JSPrismarine/JSPrismarine/commit/a79d837e132bd2fbf1a91452b680341dafa76fe2) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix shutting down the server sometimes leaving socket open.
+
+-   Updated dependencies []:
+    -   @jsprismarine/color-parser@0.11.1
+    -   @jsprismarine/errors@0.11.1
+    -   @jsprismarine/logger@0.11.1
+    -   @jsprismarine/math@0.11.1
+    -   @jsprismarine/minecraft@0.11.1
+    -   @jsprismarine/nbt@0.11.1
+    -   @jsprismarine/protocol@0.11.1
+    -   @jsprismarine/raknet@0.11.1
+
 ## 0.11.0
 
 ### Minor Changes
