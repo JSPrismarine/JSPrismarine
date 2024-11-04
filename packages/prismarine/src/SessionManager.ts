@@ -33,6 +33,14 @@ export default class SessionManager {
             .filter((p: any) => p) as Player[];
     }
 
+    /**
+     * Kick all players.
+     * @param {string} reason - The reason to kick the players.
+     */
+    public async kickAllPlayers(reason: string) {
+        await Promise.all(this.getAllPlayers().map((player) => player.kick(reason)));
+    }
+
     public findPlayer({ name, xuid }: { name?: string; xuid?: string }): Player | null {
         return this.getAllPlayers().find((p) => p.getName() === name || p.getXUID() === xuid) ?? null;
     }

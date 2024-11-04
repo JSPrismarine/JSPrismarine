@@ -39,6 +39,11 @@ export class BlockMappings {
         }
     }
 
+    public static reset() {
+        this.nameToRuntime.clear();
+        this.runtimeToName.clear();
+    }
+
     private static registerMapping(name: string, runtimeId: number): void {
         this.nameToRuntime.set(name, runtimeId);
         this.runtimeToName.set(runtimeId, name);

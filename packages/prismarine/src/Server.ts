@@ -33,7 +33,7 @@ import { version } from '../package.json' with { type: 'json' };
  * @public
  */
 export default class Server extends EventEmitter {
-    private raknet!: RakNetListener;
+    private raknet: RakNetListener | undefined;
     private readonly logger: Logger;
     private readonly config: Config;
     private readonly console: Console | undefined;
@@ -149,12 +149,12 @@ export default class Server extends EventEmitter {
         await this.config.disable();
         await this.logger.disable();
 
-        // Finally, remove all listeners.
-        this.removeAllListeners();
+        BlockMappings.reset();
     }
 
     public getMetadata() {
-        return this.getRaknet().serverName;
+        if (!this.raknet) throw new Error('Server is not started');
+        return this.raknet.serverName;
     }
 
     /**
@@ -355,6 +355,7 @@ export default class Server extends EventEmitter {
      * Kills the server asynchronously.
      * @param {object} [options] - The options.
      * @param {boolean} [options.crash] - If the server should crash.
+     * @param {boolean} [options.stayAlive] - If we should let the process stay alive.
      * @returns {Promise<void>} A promise that resolves when the server is killed.
      */
     public async shutdown(options?: { crash?: boolean; stayAlive?: boolean }): Promise<void> {
@@ -368,15 +369,16 @@ export default class Server extends EventEmitter {
 
         try {
             // Kick all online players.
-            for (const player of this.sessionManager.getAllPlayers()) {
-                await player.kick('Server closed.');
-            }
+            await this.sessionManager.kickAllPlayers('Server closed.');
 
             // Disable all managers.
             await this.disable();
 
             // `this.raknet` might be undefined if we kill the server really early.
-            (this.raknet as any)?.kill();
+            this.raknet?.kill();
+
+            // Finally, remove all listeners.
+            this.removeAllListeners();
 
             // Logger is no longer available.
             console.debug('Server stopped, Goodbye!\n');
@@ -491,9 +493,9 @@ export default class Server extends EventEmitter {
 
     /**
      * Returns the raknet instance.
-     * @returns {RakNetListener} The raknet instance.
+     * @returns {RakNetListener | undefined} The raknet instance.
      */
-    public getRaknet() {
+    public getRaknet(): RakNetListener | undefined {
         return this.raknet;
     }
 

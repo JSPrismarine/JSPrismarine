@@ -21,6 +21,11 @@ export class QueryManager {
             const type: QueryType = stream.readByte();
             const sessionId = stream.readInt() & 0x0f0f0f0f;
 
+            if (!this.server.getRaknet()) {
+                reject(new Error('Server is not started'));
+                return;
+            }
+
             if (magic !== 65277) {
                 reject(new Error('Invalid magic'));
                 return;
@@ -33,7 +38,7 @@ export class QueryManager {
                     res.writeByte(9);
                     res.writeInt(sessionId);
                     res.write(Buffer.from(`9513307\0`, 'binary'));
-                    this.server.getRaknet().sendBuffer(res.getBuffer(), {
+                    this.server.getRaknet()?.sendBuffer(res.getBuffer(), {
                         address: rinfo.getAddress(),
                         port: rinfo.getPort(),
                         family: 'IPv4',
@@ -112,7 +117,7 @@ export class QueryManager {
                             'binary'
                         )
                     );
-                    this.server.getRaknet().sendBuffer(res.getBuffer(), {
+                    this.server.getRaknet()?.sendBuffer(res.getBuffer(), {
                         address: rinfo.getAddress(),
                         port: rinfo.getPort(),
                         family: 'IPv4',
