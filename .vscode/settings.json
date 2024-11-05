@@ -74,6 +74,7 @@
         "Shulker",
         "SUBCHUNK",
         "SUBCHUNKS",
+        "unstub",
         "Varint",
         "Zoglin"
     ],
