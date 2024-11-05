@@ -87,14 +87,21 @@ export default class ServerSocket extends EventEmitter {
     public kill(): void {
         // Send last remaining packets to all players
         for (const session of this.getSessions()) {
+            // FIXME: This should be awaitable.
             session.sendFrameQueue();
         }
 
         clearTimeout(this.ticker);
+
+        // Make sure we don't send any more events.
+        this.removeAllListeners();
+
+        // Finally, close the socket.
+        this.socket.close();
     }
 
     /**
-     * Used to retrive if we are overflowing the maximum
+     * Used to retrieve if we are overflowing the maximum
      * connections we can allow, value given in the constructor.
      * @returns {boolean} if we can hold new connections.
      */
