@@ -1,5 +1,11 @@
 # @jsprismarine/raknet
 
+## 0.12.0
+
+### Minor Changes
+
+-   [`d761626`](https://github.com/JSPrismarine/JSPrismarine/commit/d761626b51b8a402b13d111e3dd25b560bfdf8fe) Thanks [@filiphsps](https://github.com/filiphsps)! - Close socket upon killing.
+
 ## 0.11.1
 
 ## 0.11.0
