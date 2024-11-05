@@ -24,9 +24,22 @@ export class Config {
     private viewDistance!: number;
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
-    private enableQuery!: boolean;
-    private enableTitle!: boolean;
-    private enableTicking!: boolean;
+
+    /**
+     * Controls if the minecraft/source query response should be enabled.
+     */
+    private enableQuery: boolean = true;
+
+    /**
+     * Controls if the process title should be updated.
+     * @remarks this can cause performance issues in some terminals.
+     */
+    private enableProcessTitle: boolean = true;
+
+    /**
+     * Controls if the ticking should be enabled.
+     */
+    private enableTicking: boolean = true;
 
     public constructor() {
         this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
@@ -56,9 +69,12 @@ export class Config {
         this.viewDistance = this.configBuilder.get('view-distance', 10) as number;
         this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
-        this.enableQuery = this.configBuilder.get('enable-query', true) as boolean;
-        this.enableTitle = this.configBuilder.get('enable-title', true) as boolean;
-        this.enableTicking = this.configBuilder.get('enable-ticking', true) as boolean;
+        this.enableQuery = this.configBuilder.get('enable-query', this.enableQuery) as typeof this.enableQuery;
+        this.enableProcessTitle = this.configBuilder.get(
+            'enable-process-title',
+            this.enableProcessTitle
+        ) as typeof this.enableProcessTitle;
+        this.enableTicking = this.configBuilder.get('enable-ticking', this.enableTicking) as typeof this.enableTicking;
     }
 
     /**
@@ -174,8 +190,8 @@ export class Config {
         return this.enableQuery;
     }
 
-    public getEnableTitle() {
-        return this.enableTitle;
+    public getEnableProcessTitle() {
+        return this.enableProcessTitle;
     }
 
     public getEnableTicking() {

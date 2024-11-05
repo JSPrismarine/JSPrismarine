@@ -63,6 +63,10 @@ describe('Prismarine', () => {
                 return false;
             }
 
+            public getEnableProcessTitle() {
+                return false;
+            }
+
             public getPacketCompressionLevel() {
                 return 7;
             }

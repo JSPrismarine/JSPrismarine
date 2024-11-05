@@ -292,7 +292,7 @@ export default class Server extends EventEmitter {
             let tpsStartTime = Date.now();
             let lastTickTime = Date.now();
             let tpsStartTick = this.getTick();
-            const tick = () => {
+            const tick = async () => {
                 if (this.stopping) return;
 
                 const event = new TickEvent(this.getTick());
@@ -301,12 +301,9 @@ export default class Server extends EventEmitter {
                 const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
 
                 // Update all worlds.
-                for (const world of this.worldManager.getWorlds()) {
-                    void world.update(event.getTick());
-                }
+                await Promise.all(this.worldManager.getWorlds().map((world) => world.update(event.getTick())));
 
-                // Update RakNet server name.
-                if (this.config.getEnableTitle() && this.getTick() % ticksPerSecond === 0 && !this.headless) {
+                if (this.config.getEnableProcessTitle() && this.getTick() % ticksPerSecond === 0 && !this.headless) {
                     // Update the process title with TPS and tick.
                     process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
                 }
@@ -345,7 +342,7 @@ export default class Server extends EventEmitter {
             };
 
             // Start ticking
-            tick();
+            void tick();
         }
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
