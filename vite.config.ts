@@ -18,7 +18,7 @@ export default defineConfig({
     },
     build: {
         copyPublicDir: false,
-        emptyOutDir: true,
+        emptyOutDir: !!process.env.CI,
         minify: false,
         outDir: 'dist',
         sourcemap: 'inline',
