@@ -6,6 +6,11 @@ import { defineConfig } from 'vitest/config';
 const reporters = ['verbose'];
 const extraReporters = !process.env.GITHUB_ACTIONS ? [] : ['github-actions', 'junit'];
 const exclude = [
+    '.changeset/**/*.*',
+    '.github/**/*.*',
+    '.husky/**/*.*',
+    '.test/**/*.*',
+    '.vscode/**/*.*',
     '**/.next',
     '**/.turbo',
     '**/*.d.ts',
@@ -23,6 +28,11 @@ const exclude = [
     '**/storybook',
     '**/vite.*.ts',
     '**/vitest.*.ts',
+    'dist/**/*.*',
+    'docs/**/*.*',
+    'jsp/**/*.*',
+    'node_modules/**/*.*',
+    'turbo/**/*.*',
     'vite.config.ts',
     'vitest.config.ts',
     'vitest.workspace.ts'
