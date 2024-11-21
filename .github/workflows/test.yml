@@ -36,7 +36,7 @@ jobs:
 
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
-              uses: codecov/codecov-action@v5.0.6
+              uses: codecov/codecov-action@v5.0.7
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
