@@ -95,7 +95,7 @@
         "lint-staged": "15.2.10",
         "nodemon": "3.1.7",
         "prettier-eslint": "16.3.0",
-        "prettier": "3.3.3",
+        "prettier": "3.4.0",
         "ts-mockito": "2.6.1",
         "turbo-ignore": "2.3.2",
         "turbo": "2.3.2",
