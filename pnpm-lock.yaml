@@ -121,8 +121,8 @@ importers:
         specifier: 6.0.3
         version: 6.0.3(typedoc@0.26.11(typescript@5.5.2))
       typedoc-plugin-rename-defaults:
-        specifier: 0.7.1
-        version: 0.7.1(typedoc@0.26.11(typescript@5.5.2))
+        specifier: 0.7.2
+        version: 0.7.2(typedoc@0.26.11(typescript@5.5.2))
       typescript:
         specifier: 5.5.2
         version: 5.5.2
@@ -3837,10 +3837,10 @@ packages:
     peerDependencies:
       typedoc: 0.26.x
 
-  typedoc-plugin-rename-defaults@0.7.1:
-    resolution: {integrity: sha512-hgg4mAy5IumgUmPOnVVGmGywjTGtUCmRJ2jRbseqtXdlUuYKj652ODL9joUWFt5uvNu4Dr/pNILc/qsKGHJw+w==}
+  typedoc-plugin-rename-defaults@0.7.2:
+    resolution: {integrity: sha512-9oa1CsMN4p/xuVR2JW2YDD6xE7JcrIth3KAfjR8YBi6NnrDk2Q72o4lbArybLDjxKAkOzk7N1uUdGwJlooLEOg==}
     peerDependencies:
-      typedoc: '>=0.22.x <0.27.x'
+      typedoc: '>=0.22.x <0.28.x'
 
   typedoc@0.26.11:
     resolution: {integrity: sha512-sFEgRRtrcDl2FxVP58Ze++ZK2UQAEvtvvH8rRlig1Ja3o7dDaMHmaBfvJmdGnNEFaLTpQsN8dpvZaTqJSu/Ugw==}
@@ -7715,7 +7715,7 @@ snapshots:
     dependencies:
       typedoc: 0.26.11(typescript@5.5.2)
 
-  typedoc-plugin-rename-defaults@0.7.1(typedoc@0.26.11(typescript@5.5.2)):
+  typedoc-plugin-rename-defaults@0.7.2(typedoc@0.26.11(typescript@5.5.2)):
     dependencies:
       camelcase: 8.0.0
       typedoc: 0.26.11(typescript@5.5.2)
