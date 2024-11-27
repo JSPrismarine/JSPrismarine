@@ -32,7 +32,7 @@ importers:
         version: 6.0.0
       '@codecov/vite-plugin':
         specifier: 1.4.0
-        version: 1.4.0(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0))
+        version: 1.4.0(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1))
       '@nordcom/prettier':
         specifier: 0.1.1
         version: 0.1.1
@@ -53,7 +53,7 @@ importers:
         version: 8.16.0(eslint@8.57.1)(typescript@5.5.2)
       '@vitest/coverage-v8':
         specifier: 2.1.6
-        version: 2.1.6(vitest@2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0))
+        version: 2.1.6(vitest@2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1))
       concurrently:
         specifier: 9.1.0
         version: 9.1.0
@@ -109,35 +109,35 @@ importers:
         specifier: 2.3.3
         version: 2.3.3
       typedoc:
-        specifier: 0.26.11
-        version: 0.26.11(typescript@5.5.2)
+        specifier: 0.27.0
+        version: 0.27.0(typescript@5.5.2)
       typedoc-material-theme:
         specifier: 1.2.0
-        version: 1.2.0(typedoc@0.26.11(typescript@5.5.2))
+        version: 1.2.0(typedoc@0.27.0(typescript@5.5.2))
       typedoc-plugin-extras:
         specifier: 3.1.0
-        version: 3.1.0(typedoc@0.26.11(typescript@5.5.2))
+        version: 3.1.0(typedoc@0.27.0(typescript@5.5.2))
       typedoc-plugin-merge-modules:
         specifier: 6.0.3
-        version: 6.0.3(typedoc@0.26.11(typescript@5.5.2))
+        version: 6.0.3(typedoc@0.27.0(typescript@5.5.2))
       typedoc-plugin-rename-defaults:
         specifier: 0.7.2
-        version: 0.7.2(typedoc@0.26.11(typescript@5.5.2))
+        version: 0.7.2(typedoc@0.27.0(typescript@5.5.2))
       typescript:
         specifier: 5.5.2
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vite-plugin-dts:
         specifier: 4.3.0
-        version: 4.3.0(@types/node@22.10.0)(rollup@4.27.4)(typescript@5.5.2)(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0))
+        version: 4.3.0(@types/node@22.10.0)(rollup@4.27.4)(typescript@5.5.2)(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1))
       vite-tsconfig-paths:
         specifier: 5.1.3
-        version: 5.1.3(typescript@5.5.2)(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0))
+        version: 5.1.3(typescript@5.5.2)(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1))
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/bedrock-data:
     devDependencies:
@@ -155,10 +155,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/brigadier:
     devDependencies:
@@ -176,10 +176,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/client:
     dependencies:
@@ -210,10 +210,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/color-parser:
     dependencies:
@@ -235,10 +235,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/errors:
     devDependencies:
@@ -256,10 +256,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/logger:
     dependencies:
@@ -287,10 +287,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/math:
     dependencies:
@@ -315,10 +315,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/minecraft:
     dependencies:
@@ -343,10 +343,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/nbt:
     dependencies:
@@ -368,10 +368,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/prismarine:
     dependencies:
@@ -435,10 +435,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/protocol:
     dependencies:
@@ -460,10 +460,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/raknet:
     dependencies:
@@ -485,10 +485,10 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   packages/server:
     dependencies:
@@ -534,13 +534,13 @@ importers:
         version: 5.5.2
       vite:
         specifier: 6.0.0
-        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vite-node:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       vitest:
         specifier: 2.1.6
-        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+        version: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
 packages:
 
@@ -981,6 +981,9 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
+  '@gerrit0/mini-shiki@1.23.2':
+    resolution: {integrity: sha512-6e/41ZAilc2iE4n0bxxMSvzrt1dy2MSa9lSdd2M5lcTDlrzcau+FucIEDrG+xF1dPou/a093tm1t4HPTSI4g1w==}
+
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
     engines: {node: '>=10.10.0'}
@@ -1251,11 +1254,14 @@ packages:
   '@rushstack/ts-command-line@4.23.0':
     resolution: {integrity: sha512-jYREBtsxduPV6ptNq8jOKp9+yx0ld1Tb/Tkdnlj8gTjazl1sF3DwX2VbluyYrNd0meWIL0bNeer7WDf5tKFjaQ==}
 
-  '@shikijs/core@1.16.2':
-    resolution: {integrity: sha512-XSVH5OZCvE4WLMgdoBqfPMYmGHGmCC3OgZhw0S7KcSi2XKZ+5oHGe71GFnTljgdOxvxx5WrRks6QoTLKrl1eAA==}
+  '@shikijs/engine-oniguruma@1.23.1':
+    resolution: {integrity: sha512-KQ+lgeJJ5m2ISbUZudLR1qHeH3MnSs2mjFg7bnencgs5jDVPeJ2NVDJ3N5ZHbcTsOIh0qIueyAJnwg7lg7kwXQ==}
 
-  '@shikijs/vscode-textmate@9.2.0':
-    resolution: {integrity: sha512-5FinaOp6Vdh/dl4/yaOTh0ZeKch+rYS8DUb38V3GMKYVkdqzxw53lViRKUYkVILRiVQT7dcPC7VvAKOR73zVtQ==}
+  '@shikijs/types@1.23.1':
+    resolution: {integrity: sha512-98A5hGyEhzzAgQh2dAeHKrWW4HfCMeoFER2z16p5eJ+vmPeF6lZ/elEne6/UCU551F/WqkopqRsr1l2Yu6+A0g==}
+
+  '@shikijs/vscode-textmate@9.3.0':
+    resolution: {integrity: sha512-jn7/7ky30idSkd/O5yDBfAnVt+JJpepofP/POZ1iMOxK59cOfqIgg/Dj0eFsjOTMw+4ycJN0uhZH/Eb0bs/EUA==}
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -3456,9 +3462,6 @@ packages:
   shell-quote@1.8.1:
     resolution: {integrity: sha512-6j1W9l1iAs/4xYBI1SYOVZyFcCis9b4KCLQ8fgAGG07QvzaRLVVRQvAy85yNmmZSjYjg4MWh4gNvlPujU/5LpA==}
 
-  shiki@1.16.2:
-    resolution: {integrity: sha512-gSym0hZf5a1U0iDPsdoOAZbvoi+e0c6c3NKAi03FoSLTm7oG20tum29+gk0wzzivOasn3loxfGUPT+jZXIUbWg==}
-
   side-channel@1.0.6:
     resolution: {integrity: sha512-fDW/EZ6Q9RiO8eFG8Hj+7u/oW+XrPTIChwCOM2+th2A6OblDtYYIpve9m+KvI9Z4C9qSEXlaGR6bTEYHReuglA==}
     engines: {node: '>= 0.4'}
@@ -3842,12 +3845,12 @@ packages:
     peerDependencies:
       typedoc: '>=0.22.x <0.28.x'
 
-  typedoc@0.26.11:
-    resolution: {integrity: sha512-sFEgRRtrcDl2FxVP58Ze++ZK2UQAEvtvvH8rRlig1Ja3o7dDaMHmaBfvJmdGnNEFaLTpQsN8dpvZaTqJSu/Ugw==}
+  typedoc@0.27.0:
+    resolution: {integrity: sha512-7AkTJhFdhsihthaBFHNpj5iFdLyR7FpQqXM+IABJmE1/qTjWypirCLrheToUP3fjpWHN1Drn3K7PWH1t37KvNQ==}
     engines: {node: '>= 18'}
     hasBin: true
     peerDependencies:
-      typescript: 4.6.x || 4.7.x || 4.8.x || 4.9.x || 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x || 5.5.x || 5.6.x
+      typescript: 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x || 5.5.x || 5.6.x || 5.7.x
 
   typescript@5.4.2:
     resolution: {integrity: sha512-+2/g0Fds1ERlP6JsakQQDXjZdZMM+rqpamFZJEKh4kwTIn3iDkgKtby0CeNd5ATNZ4Ry1ax15TMx0W2V+miizQ==}
@@ -4104,8 +4107,8 @@ packages:
     engines: {node: '>= 14'}
     hasBin: true
 
-  yaml@2.6.0:
-    resolution: {integrity: sha512-a6ae//JvKDEra2kdi1qzCyrJW/WZCgFi8ydDV+eXExl95t+5R+ijnqHJbz9tmMh8FUjx3iv2fCQ4dclAQlO2UQ==}
+  yaml@2.6.1:
+    resolution: {integrity: sha512-7r0XPzioN/Q9kXBro/XPnA6kznR73DHq+GXh5ON7ZozRO6aMjbmiBuKste2wslTFkC5d1dw0GooOCepZXJ2SAg==}
     engines: {node: '>= 14'}
     hasBin: true
 
@@ -4342,11 +4345,11 @@ snapshots:
       unplugin: 1.10.1
       zod: 3.23.6
 
-  '@codecov/vite-plugin@1.4.0(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0))':
+  '@codecov/vite-plugin@1.4.0(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1))':
     dependencies:
       '@codecov/bundler-plugin-core': 1.4.0
       unplugin: 1.10.1
-      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   '@colors/colors@1.6.0': {}
 
@@ -4534,6 +4537,12 @@ snapshots:
   '@eslint/js@8.57.1': {}
 
   '@fastify/busboy@2.1.1': {}
+
+  '@gerrit0/mini-shiki@1.23.2':
+    dependencies:
+      '@shikijs/engine-oniguruma': 1.23.1
+      '@shikijs/types': 1.23.1
+      '@shikijs/vscode-textmate': 9.3.0
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
@@ -4816,12 +4825,17 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@shikijs/core@1.16.2':
+  '@shikijs/engine-oniguruma@1.23.1':
     dependencies:
-      '@shikijs/vscode-textmate': 9.2.0
+      '@shikijs/types': 1.23.1
+      '@shikijs/vscode-textmate': 9.3.0
+
+  '@shikijs/types@1.23.1':
+    dependencies:
+      '@shikijs/vscode-textmate': 9.3.0
       '@types/hast': 3.0.4
 
-  '@shikijs/vscode-textmate@9.2.0': {}
+  '@shikijs/vscode-textmate@9.3.0': {}
 
   '@sinclair/typebox@0.27.8': {}
 
@@ -5052,7 +5066,7 @@ snapshots:
 
   '@ungap/structured-clone@1.2.0': {}
 
-  '@vitest/coverage-v8@2.1.6(vitest@2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0))':
+  '@vitest/coverage-v8@2.1.6(vitest@2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@bcoe/v8-coverage': 0.2.3
@@ -5066,7 +5080,7 @@ snapshots:
       std-env: 3.8.0
       test-exclude: 7.0.1
       tinyrainbow: 1.2.0
-      vitest: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+      vitest: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -5077,13 +5091,13 @@ snapshots:
       chai: 5.1.2
       tinyrainbow: 1.2.0
 
-  '@vitest/mocker@2.1.6(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0))':
+  '@vitest/mocker@2.1.6(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1))':
     dependencies:
       '@vitest/spy': 2.1.6
       estree-walker: 3.0.3
       magic-string: 0.30.12
     optionalDependencies:
-      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
 
   '@vitest/pretty-format@2.1.6':
     dependencies:
@@ -7346,12 +7360,6 @@ snapshots:
 
   shell-quote@1.8.1: {}
 
-  shiki@1.16.2:
-    dependencies:
-      '@shikijs/core': 1.16.2
-      '@shikijs/vscode-textmate': 9.2.0
-      '@types/hast': 3.0.4
-
   side-channel@1.0.6:
     dependencies:
       call-bind: 1.0.7
@@ -7702,32 +7710,32 @@ snapshots:
       is-typed-array: 1.1.13
       possible-typed-array-names: 1.0.0
 
-  typedoc-material-theme@1.2.0(typedoc@0.26.11(typescript@5.5.2)):
+  typedoc-material-theme@1.2.0(typedoc@0.27.0(typescript@5.5.2)):
     dependencies:
       '@material/material-color-utilities': 0.3.0
-      typedoc: 0.26.11(typescript@5.5.2)
+      typedoc: 0.27.0(typescript@5.5.2)
 
-  typedoc-plugin-extras@3.1.0(typedoc@0.26.11(typescript@5.5.2)):
+  typedoc-plugin-extras@3.1.0(typedoc@0.27.0(typescript@5.5.2)):
     dependencies:
-      typedoc: 0.26.11(typescript@5.5.2)
+      typedoc: 0.27.0(typescript@5.5.2)
 
-  typedoc-plugin-merge-modules@6.0.3(typedoc@0.26.11(typescript@5.5.2)):
+  typedoc-plugin-merge-modules@6.0.3(typedoc@0.27.0(typescript@5.5.2)):
     dependencies:
-      typedoc: 0.26.11(typescript@5.5.2)
+      typedoc: 0.27.0(typescript@5.5.2)
 
-  typedoc-plugin-rename-defaults@0.7.2(typedoc@0.26.11(typescript@5.5.2)):
+  typedoc-plugin-rename-defaults@0.7.2(typedoc@0.27.0(typescript@5.5.2)):
     dependencies:
       camelcase: 8.0.0
-      typedoc: 0.26.11(typescript@5.5.2)
+      typedoc: 0.27.0(typescript@5.5.2)
 
-  typedoc@0.26.11(typescript@5.5.2):
+  typedoc@0.27.0(typescript@5.5.2):
     dependencies:
+      '@gerrit0/mini-shiki': 1.23.2
       lunr: 2.3.9
       markdown-it: 14.1.0
       minimatch: 9.0.5
-      shiki: 1.16.2
       typescript: 5.5.2
-      yaml: 2.6.0
+      yaml: 2.6.1
 
   typescript@5.4.2: {}
 
@@ -7791,13 +7799,13 @@ snapshots:
 
   validate-npm-package-name@5.0.1: {}
 
-  vite-node@2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0):
+  vite-node@2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1):
     dependencies:
       cac: 6.7.14
       debug: 4.3.7
       es-module-lexer: 1.5.4
       pathe: 1.1.2
-      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -7812,7 +7820,7 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-dts@4.3.0(@types/node@22.10.0)(rollup@4.27.4)(typescript@5.5.2)(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)):
+  vite-plugin-dts@4.3.0(@types/node@22.10.0)(rollup@4.27.4)(typescript@5.5.2)(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)):
     dependencies:
       '@microsoft/api-extractor': 7.47.11(@types/node@22.10.0)
       '@rollup/pluginutils': 5.1.0(rollup@4.27.4)
@@ -7825,24 +7833,24 @@ snapshots:
       magic-string: 0.30.11
       typescript: 5.5.2
     optionalDependencies:
-      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
     transitivePeerDependencies:
       - '@types/node'
       - rollup
       - supports-color
 
-  vite-tsconfig-paths@5.1.3(typescript@5.5.2)(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)):
+  vite-tsconfig-paths@5.1.3(typescript@5.5.2)(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)):
     dependencies:
       debug: 4.3.7
       globrex: 0.1.2
       tsconfck: 3.0.3(typescript@5.5.2)
     optionalDependencies:
-      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
     transitivePeerDependencies:
       - supports-color
       - typescript
 
-  vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0):
+  vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1):
     dependencies:
       esbuild: 0.24.0
       postcss: 8.4.49
@@ -7851,12 +7859,12 @@ snapshots:
       '@types/node': 22.10.0
       fsevents: 2.3.3
       tsx: 4.19.2
-      yaml: 2.6.0
+      yaml: 2.6.1
 
-  vitest@2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0):
+  vitest@2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1):
     dependencies:
       '@vitest/expect': 2.1.6
-      '@vitest/mocker': 2.1.6(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0))
+      '@vitest/mocker': 2.1.6(vite@6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1))
       '@vitest/pretty-format': 2.1.6
       '@vitest/runner': 2.1.6
       '@vitest/snapshot': 2.1.6
@@ -7872,8 +7880,8 @@ snapshots:
       tinyexec: 0.3.1
       tinypool: 1.0.1
       tinyrainbow: 1.2.0
-      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
-      vite-node: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.0)
+      vite: 6.0.0(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
+      vite-node: 2.1.6(@types/node@22.10.0)(tsx@4.19.2)(yaml@2.6.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.10.0
@@ -8004,7 +8012,7 @@ snapshots:
 
   yaml@2.5.0: {}
 
-  yaml@2.6.0: {}
+  yaml@2.6.1: {}
 
   yargs-parser@21.1.1: {}
 
