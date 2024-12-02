@@ -51,7 +51,7 @@
         "rimraf": "6.0.1",
         "typescript": "5.5.2",
         "vite": "6.0.2",
-        "vitest": "2.1.7"
+        "vitest": "2.1.8"
     },
     "dependencies": {
         "@jsprismarine/jsbinaryutils": "5.5.3"
