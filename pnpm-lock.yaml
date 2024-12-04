@@ -31,8 +31,8 @@ importers:
         specifier: 6.0.0
         version: 6.0.0
       '@codecov/vite-plugin':
-        specifier: 1.5.0
-        version: 1.5.0(vite@6.0.2(@types/node@22.10.1)(tsx@4.19.2)(yaml@2.6.1))
+        specifier: 1.5.1
+        version: 1.5.1(vite@6.0.2(@types/node@22.10.1)(tsx@4.19.2)(yaml@2.6.1))
       '@nordcom/prettier':
         specifier: 0.1.1
         version: 0.1.1
@@ -646,12 +646,12 @@ packages:
   '@changesets/write@0.3.2':
     resolution: {integrity: sha512-kDxDrPNpUgsjDbWBvUo27PzKX4gqeKOlhibaOXDJA6kuBisGqNHv/HwGJrAu8U/dSf8ZEFIeHIPtvSlZI1kULw==}
 
-  '@codecov/bundler-plugin-core@1.5.0':
-    resolution: {integrity: sha512-PyTKI5GXddzx6ABsMqaXkN8GEkhmXKJ9IcCznxdyV7y6Lti5EPOMxxOMiGz6IPXZ3Uo590brUD1cEiSzhY2Dgg==}
+  '@codecov/bundler-plugin-core@1.5.1':
+    resolution: {integrity: sha512-nfJdYLLGoSoJlQnUzYzfBvZ2/KQAFZ1JBRdnsc+4I4Td6cpzBup0B4NiftMD6Wki8FzYrj1Trx+3AKT1a+J5iQ==}
     engines: {node: '>=18.0.0'}
 
-  '@codecov/vite-plugin@1.5.0':
-    resolution: {integrity: sha512-cYW+7NEazX2D4grSnXELW8kxh/4ONpRFsIuxPE09zj+3ccRuPiH0XC41Ih4SFAcWg6GyKbhLivATSgWGPuctdw==}
+  '@codecov/vite-plugin@1.5.1':
+    resolution: {integrity: sha512-INEUIagr64XPTYHGh+3yzko10bmOadvF3juKs+QDA95Qvj9FU0KcPaMFFKgbJRu/i91w5qWeDFhllyKEldRjaA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       vite: 4.x || 5.x
@@ -4510,7 +4510,7 @@ snapshots:
       human-id: 1.0.2
       prettier: 2.8.8
 
-  '@codecov/bundler-plugin-core@1.5.0':
+  '@codecov/bundler-plugin-core@1.5.1':
     dependencies:
       '@actions/core': 1.10.1
       '@actions/github': 6.0.0
@@ -4519,9 +4519,9 @@ snapshots:
       unplugin: 1.10.1
       zod: 3.23.6
 
-  '@codecov/vite-plugin@1.5.0(vite@6.0.2(@types/node@22.10.1)(tsx@4.19.2)(yaml@2.6.1))':
+  '@codecov/vite-plugin@1.5.1(vite@6.0.2(@types/node@22.10.1)(tsx@4.19.2)(yaml@2.6.1))':
     dependencies:
-      '@codecov/bundler-plugin-core': 1.5.0
+      '@codecov/bundler-plugin-core': 1.5.1
       unplugin: 1.10.1
       vite: 6.0.2(@types/node@22.10.1)(tsx@4.19.2)(yaml@2.6.1)
 
