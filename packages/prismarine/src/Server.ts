@@ -27,6 +27,7 @@ import type { Config } from './config/Config';
 
 import type { Logger } from '@jsprismarine/logger';
 import { version } from '../package.json' with { type: 'json' };
+import { ComponentsManager } from './components';
 
 /**
  * JSPrismarine's main server class.
@@ -47,6 +48,11 @@ export default class Server extends EventEmitter {
     private readonly chatManager: ChatManager;
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
+
+    /**
+     * Components
+     */
+    private readonly componentsManager: ComponentsManager;
 
     /**
      * If the server is stopping.
@@ -99,6 +105,9 @@ export default class Server extends EventEmitter {
 
         this.logger = logger;
         this.config = config;
+
+        this.componentsManager = new ComponentsManager();
+
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
@@ -117,10 +126,13 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private async enable(): Promise<void> {
-        await BlockMappings.initMappings(this);
-
         await this.config.enable();
         await this.console?.enable();
+
+        await BlockMappings.initMappings(this);
+
+        await this.componentsManager.enable(this);
+
         await this.logger.enable();
         await this.permissionManager.enable();
         await this.packetRegistry.enable();
@@ -146,10 +158,13 @@ export default class Server extends EventEmitter {
         await this.itemManager.disable();
         await this.permissionManager.disable();
         await this.packetRegistry.disable();
-        await this.config.disable();
-        await this.logger.disable();
+
+        await this.componentsManager.disable();
 
         BlockMappings.reset();
+
+        await this.config.disable();
+        await this.logger.disable();
     }
 
     public getMetadata() {
