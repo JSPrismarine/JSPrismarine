@@ -13,16 +13,16 @@
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
+            "types": "./dist/index.d.ts",
             "import": "./dist/index.es.js",
             "module": "./dist/index.es.js",
-            "require": "./dist/index.cjs.cjs",
-            "types": "./dist/index.d.ts"
+            "require": "./dist/index.cjs.cjs"
         },
         "./*": {
+            "types": "./dist/*.d.ts",
             "import": "./dist/*.es.js",
             "module": "./dist/*.es.js",
-            "require": "./dist/*.cjs.cjs",
-            "types": "./dist/*.d.ts"
+            "require": "./dist/*.cjs.cjs"
         },
         "./package.json": "./package.json"
     },
