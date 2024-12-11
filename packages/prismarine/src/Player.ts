@@ -364,8 +364,12 @@ export default class Player extends Human {
         return this.permissions;
     }
 
-    public getXUID(): string {
-        return this.xuid || '';
+    /**
+     * Get the XUID of the player.
+     * @returns {string | null} XUID of the player or null if not available
+     */
+    public getXUID(): string | null {
+        return this.xuid || null;
     }
 
     public isPlayer(): boolean {
@@ -374,7 +378,6 @@ export default class Player extends Human {
 
     /**
      * Check if the `Player` is an operator.
-     *
      * @returns `true` if this player is an operator otherwise `false`.
      */
     public isOp(): boolean {
