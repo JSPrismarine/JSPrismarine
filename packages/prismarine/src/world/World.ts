@@ -534,8 +534,13 @@ export class World implements Service {
      */
     public async getPlayerData(player: Player): Promise<Partial<WorldPlayerData>> {
         try {
+            const fileName = player.getXUID();
+            if (!fileName) {
+                throw new Error('Player has no XUID');
+            }
+
             const raw = await fs.promises.readFile(
-                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID() || player.getName()}.json`),
+                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${fileName}.json`),
                 { flag: 'r', encoding: 'utf-8' }
             );
             return parseJSON5(raw.toString()) as Partial<WorldPlayerData>;
