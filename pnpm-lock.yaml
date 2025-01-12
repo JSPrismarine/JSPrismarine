@@ -422,8 +422,8 @@ importers:
         specifier: 22.10.5
         version: 22.10.5
       '@types/terminal-kit':
-        specifier: 2.5.6
-        version: 2.5.6
+        specifier: 2.5.7
+        version: 2.5.7
       glob:
         specifier: 11.0.1
         version: 11.0.1
@@ -1475,8 +1475,8 @@ packages:
   '@types/semver@7.5.8':
     resolution: {integrity: sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==}
 
-  '@types/terminal-kit@2.5.6':
-    resolution: {integrity: sha512-S5kRC7wzduRj/Wrc8BCRPfQBSWi3bj3CCUBIkmrzBzrc0sjgxPqYZPvdDxhuBGCsOPZFJiDSrzUa9mYXVOOm4g==}
+  '@types/terminal-kit@2.5.7':
+    resolution: {integrity: sha512-IpbCBFSb3OqCEZBZlk368tGftqss88eNQaJdD9msEShRbksEiVahEqroONi60ppUt9/arLM6IDrHMx9jpzzCOw==}
 
   '@types/through@0.0.33':
     resolution: {integrity: sha512-HsJ+z3QuETzP3cswwtzt2vEIiHBk/dCcHGhbmG5X3ecnwFD/lPrMpliGXxSCg03L9AhrdwA4Oz/qfspkDW+xGQ==}
@@ -5175,7 +5175,7 @@ snapshots:
 
   '@types/semver@7.5.8': {}
 
-  '@types/terminal-kit@2.5.6':
+  '@types/terminal-kit@2.5.7':
     dependencies:
       '@types/nextgen-events': 1.1.4
 
