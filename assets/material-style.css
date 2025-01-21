@@ -180,6 +180,9 @@ img {
   position: absolute;
   left: 0;
 }
+#tsd-search.has-focus .field input {
+  top: 0;
+}
 #tsd-search.has-focus .field:first-child {
   z-index: 2;
 }
