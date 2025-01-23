@@ -49,7 +49,7 @@
         "glob": "11.0.1",
         "typescript": "5.5.2",
         "vite": "6.0.11",
-        "vitest": "3.0.3"
+        "vitest": "3.0.4"
     },
     "dependencies": {
         "@jsprismarine/errors": "workspace:*",
