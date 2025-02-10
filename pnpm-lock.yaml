@@ -31,8 +31,8 @@ importers:
         specifier: 6.0.0
         version: 6.0.0
       '@codecov/vite-plugin':
-        specifier: 1.8.0
-        version: 1.8.0(vite@6.1.0(@types/node@22.13.1)(tsx@4.19.2)(yaml@2.7.0))
+        specifier: 1.9.0
+        version: 1.9.0(vite@6.1.0(@types/node@22.13.1)(tsx@4.19.2)(yaml@2.7.0))
       '@nordcom/prettier':
         specifier: 0.1.1
         version: 0.1.1
@@ -647,12 +647,12 @@ packages:
   '@changesets/write@0.3.2':
     resolution: {integrity: sha512-kDxDrPNpUgsjDbWBvUo27PzKX4gqeKOlhibaOXDJA6kuBisGqNHv/HwGJrAu8U/dSf8ZEFIeHIPtvSlZI1kULw==}
 
-  '@codecov/bundler-plugin-core@1.8.0':
-    resolution: {integrity: sha512-D1aeA8u3RHOkQVLImLHxW6zFdUrw5wgoeDzYrKZeDExGp5ePs4RpJxKwklg1N0e1JxRcAgKj+zZo/y3Q4nV+sA==}
+  '@codecov/bundler-plugin-core@1.9.0':
+    resolution: {integrity: sha512-UB0I5haL0gnF4ei46wxNo7ptCHqFAh3PnmcLLeXRb2zV7HeobOF8WRjOW/PwrXAphPS/6bL7PDUmh3ruVObGtg==}
     engines: {node: '>=18.0.0'}
 
-  '@codecov/vite-plugin@1.8.0':
-    resolution: {integrity: sha512-fydvHzBmlsihsQY1i2I24KCVOl26Pz7nGozwptSRyPNRagzURL0yeM0yY7TuZoqD9yC/Y4j7dIX56ofQvNboRQ==}
+  '@codecov/vite-plugin@1.9.0':
+    resolution: {integrity: sha512-5+CxUGN0Rxr5F6xYqrKwug3NXTlNVBEZcI9caOCjlpErt7p2lp7J/6Qo+GRjmaVkXErnNMiyhjzXRB6rLNAjfg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       vite: 4.x || 5.x || 6.x
@@ -1265,10 +1265,6 @@ packages:
 
   '@rushstack/ts-command-line@4.23.3':
     resolution: {integrity: sha512-HazKL8fv4HMQMzrKJCrOrhyBPPdzk7iajUXgsASwjQ8ROo1cmgyqxt/k9+SdmrNLGE1zATgRqMUH3s/6smbRMA==}
-
-  '@sentry/core@8.50.0':
-    resolution: {integrity: sha512-q71m8Ha9YGwqn4Gd7sWvcFTRgbHXxEfU4QeIFtwMBpwHfq2Q+9koiF8DOoOHqIEOsnlvZWRQgGggIOdHzajnVw==}
-    engines: {node: '>=14.18'}
 
   '@shikijs/engine-oniguruma@1.24.0':
     resolution: {integrity: sha512-Eua0qNOL73Y82lGA4GF5P+G2+VXX9XnuUxkiUuwcxQPH4wom+tE39kZpBFXfUuwNYxHSkrSxpB1p4kyRW0moSg==}
@@ -4353,19 +4349,18 @@ snapshots:
       human-id: 1.0.2
       prettier: 2.8.8
 
-  '@codecov/bundler-plugin-core@1.8.0':
+  '@codecov/bundler-plugin-core@1.9.0':
     dependencies:
       '@actions/core': 1.10.1
       '@actions/github': 6.0.0
-      '@sentry/core': 8.50.0
       chalk: 4.1.2
       semver: 7.6.3
       unplugin: 1.10.1
       zod: 3.23.6
 
-  '@codecov/vite-plugin@1.8.0(vite@6.1.0(@types/node@22.13.1)(tsx@4.19.2)(yaml@2.7.0))':
+  '@codecov/vite-plugin@1.9.0(vite@6.1.0(@types/node@22.13.1)(tsx@4.19.2)(yaml@2.7.0))':
     dependencies:
-      '@codecov/bundler-plugin-core': 1.8.0
+      '@codecov/bundler-plugin-core': 1.9.0
       unplugin: 1.10.1
       vite: 6.1.0(@types/node@22.13.1)(tsx@4.19.2)(yaml@2.7.0)
 
@@ -4848,8 +4843,6 @@ snapshots:
       string-argv: 0.3.2
     transitivePeerDependencies:
       - '@types/node'
-
-  '@sentry/core@8.50.0': {}
 
   '@shikijs/engine-oniguruma@1.24.0':
     dependencies:
