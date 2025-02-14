@@ -1,5 +1,13 @@
 # @jsprismarine/protocol
 
+## 0.12.2
+
+### Patch Changes
+
+- Updated dependencies []:
+    - @jsprismarine/minecraft@0.12.2
+    - @jsprismarine/nbt@0.12.2
+
 ## 0.12.1
 
 ### Patch Changes
