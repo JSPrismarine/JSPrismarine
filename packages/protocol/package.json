@@ -46,7 +46,7 @@
         "@types/node": "22.13.4",
         "glob": "11.0.1",
         "typescript": "5.5.2",
-        "vite": "6.1.0",
+        "vite": "6.1.1",
         "vitest": "3.0.6"
     },
     "dependencies": {
