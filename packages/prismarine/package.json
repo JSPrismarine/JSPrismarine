@@ -63,7 +63,7 @@
         "rimraf": "6.0.1",
         "typescript": "5.5.2",
         "vite": "6.1.1",
-        "vitest": "3.0.6"
+        "vitest": "3.0.7"
     },
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
