@@ -37,8 +37,8 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       '@turbo/gen':
-        specifier: 2.4.2
-        version: 2.4.2(@types/node@22.13.5)(typescript@5.5.2)
+        specifier: 2.4.3
+        version: 2.4.3(@types/node@22.13.5)(typescript@5.5.2)
       '@types/heap':
         specifier: 0.2.34
         version: 0.2.34
@@ -103,11 +103,11 @@ importers:
         specifier: 2.6.1
         version: 2.6.1
       turbo:
-        specifier: 2.4.2
-        version: 2.4.2
+        specifier: 2.4.3
+        version: 2.4.3
       turbo-ignore:
-        specifier: 2.4.2
-        version: 2.4.2
+        specifier: 2.4.3
+        version: 2.4.3
       typedoc:
         specifier: 0.27.9
         version: 0.27.9(typescript@5.5.2)
@@ -1149,12 +1149,12 @@ packages:
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
 
-  '@turbo/gen@2.4.2':
-    resolution: {integrity: sha512-iAndpPDVI5GxAd6a2c3WtVhjGeVDBGYml6DV+fLDTrElHc4MtvMa2EeU19mR0RzCscCZbATeAGzDxdnHtuxlJA==}
+  '@turbo/gen@2.4.3':
+    resolution: {integrity: sha512-sDjqqFcdX5m0+QELXSESwv7WtLLMKTB/4pBhKycrcKUhEScGDkmpykNek8OawVFwcpv++YmFLS9JgQKu/Vev8Q==}
     hasBin: true
 
-  '@turbo/workspaces@2.4.2':
-    resolution: {integrity: sha512-HdXoW7LxCL+cvoEx8SBdg98o7DupN48hEvoEeUJ08R0ud8cLHCO8/2heyG/X/Y60pY9uxhpwjsmn9l5Dx75uMA==}
+  '@turbo/workspaces@2.4.3':
+    resolution: {integrity: sha512-R07Pw936SVfC8A+QEim2R7h9rhPwWKDkbRWV/LwWz0GxlRm+E658cU3Fk05++FGI0rXtuMJPdaWvMaNF76r23w==}
     hasBin: true
 
   '@types/argparse@1.0.38':
@@ -3626,42 +3626,42 @@ packages:
     resolution: {integrity: sha512-1h/Lnq9yajKY2PEbBadPXj3VxsDDu844OnaAo52UVmIzIvwwtBPIuNvkjuzBlTWpfJyUbG3ez0KSBibQkj4ojg==}
     engines: {node: '>=0.6.11 <=0.7.0 || >=0.7.3'}
 
-  turbo-darwin-64@2.4.2:
-    resolution: {integrity: sha512-HFfemyWB60CJtEvVQj9yby5rkkWw9fLAdLtAPGtPQoU3tKh8t/uzCAZKso2aPVbib9vGUuGbPGoGpaRXdVhj5g==}
+  turbo-darwin-64@2.4.3:
+    resolution: {integrity: sha512-TFKiCSJAAN8E7g8isVzocm5OaUGjXn5DVBCeIFmJ2dKe/wY64Gvw37Y5HnyKZLM2JWdEI2SkXrDLNfGMGwfXyg==}
     cpu: [x64]
     os: [darwin]
 
-  turbo-darwin-arm64@2.4.2:
-    resolution: {integrity: sha512-uwSx1dsBSSFeEC0nxyx2O219FEsS/haiESaWwE9JI8mHkQK61s6w6fN2G586krKxyNam4AIxRltleL+O2Em94g==}
+  turbo-darwin-arm64@2.4.3:
+    resolution: {integrity: sha512-pRCRHe5LPyF9L0qxCMGycl2NM9OV5obrG+J4/foO/e7a0yfwMRnQ7lJdHrrT5zfEYrj0/WN0ZxsaRAqyM3qZZw==}
     cpu: [arm64]
     os: [darwin]
 
-  turbo-ignore@2.4.2:
-    resolution: {integrity: sha512-wd/2aiPF6YmgqgiPcNVrC7jQJ4YVsHGGwFW9faPRxYAC4l+4yftf6sUtAMtBOEGWSAr741OVvsTejZdChq9ZLA==}
+  turbo-ignore@2.4.3:
+    resolution: {integrity: sha512-IME60SHsQyoh6OwRAoWxCJJjs1SsikhsBC2xIlT2U40c0sghoWCByj5jStPhsGXXq+CeSXt+XqDnJp9vOqyU5Q==}
     hasBin: true
 
-  turbo-linux-64@2.4.2:
-    resolution: {integrity: sha512-Fy/uL8z/LAYcPbm7a1LwFnTY9pIi5FAi12iuHsgB7zHjdh4eeIKS2NIg4nroAmTcUTUZ0/cVTo4bDOCUcS3aKw==}
+  turbo-linux-64@2.4.3:
+    resolution: {integrity: sha512-4SZj0K1OKXFBwGe7bNVYKcNJct6mdESWfq0zEYUp2yiWPxcihMWc60aGTccI5OC54UxhS52PcrBoiKQzIB6vkA==}
     cpu: [x64]
     os: [linux]
 
-  turbo-linux-arm64@2.4.2:
-    resolution: {integrity: sha512-AEA0d8h5W/K6iiXfEgiNwWt0yqRL1NpBs8zQCLdc4/L7WeYeJW3sORWX8zt7xhutF/KW9gTm8ehKpiK6cCIsAA==}
+  turbo-linux-arm64@2.4.3:
+    resolution: {integrity: sha512-/wp0csB7GW6VUYsKAuMjVtvGy+Bo2g8RyE+5yx3/rD9+e8wHy0TZUiAiRtj0aeVJXiVPd/MA6u6IdxjV95/qxA==}
     cpu: [arm64]
     os: [linux]
 
-  turbo-windows-64@2.4.2:
-    resolution: {integrity: sha512-CybtIZ9wRgnnNFVN9En9G+rxsO+mwU81fvW4RpE8BWyNEkhQ8J28qYf4PaimueMxGHHp/28i/G7Kcdn2GAWG0g==}
+  turbo-windows-64@2.4.3:
+    resolution: {integrity: sha512-GpZl4YiIqf1eNFHys+tT9LgCfTi67TykOdI6xD7PB+oFsZisjQzhAVu/BW3oTe6lHRe0zndEQMuodP+fGAXHbA==}
     cpu: [x64]
     os: [win32]
 
-  turbo-windows-arm64@2.4.2:
-    resolution: {integrity: sha512-7V0yneVPL8Y3TgrkUIjw7Odmwu1tHnyIiPHFM7eFcA7U+H6hPXyCxge7nC3wOKfjhKCQqUm+Vf/k6kjmLz5G4g==}
+  turbo-windows-arm64@2.4.3:
+    resolution: {integrity: sha512-AjyuOdQc2wRn2C+RksQ8rhpzvvpD3FOG3hUz9S9uhE5FpgUFUynGnYgFlKVnHkL/k7aslBL4dzNE7S4UaJeywA==}
     cpu: [arm64]
     os: [win32]
 
-  turbo@2.4.2:
-    resolution: {integrity: sha512-Qxi0ioQCxMRUCcHKHZkTnYH8e7XCpNfg9QiJcyfWIc+ZXeaCjzV5rCGlbQlTXMAtI8qgfP8fZADv3CFtPwqdPQ==}
+  turbo@2.4.3:
+    resolution: {integrity: sha512-CpUHqrLTnV9R41RiWMSj9ZNHl++I7eTUIU+pH5O5a/2fRMhiKI6JdgBszuQ2YyaZYXkZZh/oHwbgzS1pug0zMg==}
     hasBin: true
 
   type-check@0.4.0:
@@ -4648,9 +4648,9 @@ snapshots:
 
   '@tsconfig/node16@1.0.4': {}
 
-  '@turbo/gen@2.4.2(@types/node@22.13.5)(typescript@5.5.2)':
+  '@turbo/gen@2.4.3(@types/node@22.13.5)(typescript@5.5.2)':
     dependencies:
-      '@turbo/workspaces': 2.4.2
+      '@turbo/workspaces': 2.4.3
       commander: 10.0.1
       fs-extra: 10.1.0
       inquirer: 8.2.6
@@ -4668,7 +4668,7 @@ snapshots:
       - supports-color
       - typescript
 
-  '@turbo/workspaces@2.4.2':
+  '@turbo/workspaces@2.4.3':
     dependencies:
       commander: 10.0.1
       execa: 5.1.1
@@ -7418,36 +7418,36 @@ snapshots:
 
   tunnel@0.0.6: {}
 
-  turbo-darwin-64@2.4.2:
+  turbo-darwin-64@2.4.3:
     optional: true
 
-  turbo-darwin-arm64@2.4.2:
+  turbo-darwin-arm64@2.4.3:
     optional: true
 
-  turbo-ignore@2.4.2:
+  turbo-ignore@2.4.3:
     dependencies:
       json5: 2.2.3
 
-  turbo-linux-64@2.4.2:
+  turbo-linux-64@2.4.3:
     optional: true
 
-  turbo-linux-arm64@2.4.2:
+  turbo-linux-arm64@2.4.3:
     optional: true
 
-  turbo-windows-64@2.4.2:
+  turbo-windows-64@2.4.3:
     optional: true
 
-  turbo-windows-arm64@2.4.2:
+  turbo-windows-arm64@2.4.3:
     optional: true
 
-  turbo@2.4.2:
+  turbo@2.4.3:
     optionalDependencies:
-      turbo-darwin-64: 2.4.2
-      turbo-darwin-arm64: 2.4.2
-      turbo-linux-64: 2.4.2
-      turbo-linux-arm64: 2.4.2
-      turbo-windows-64: 2.4.2
-      turbo-windows-arm64: 2.4.2
+      turbo-darwin-64: 2.4.3
+      turbo-darwin-arm64: 2.4.3
+      turbo-linux-64: 2.4.3
+      turbo-linux-arm64: 2.4.3
+      turbo-windows-64: 2.4.3
+      turbo-windows-arm64: 2.4.3
 
   type-check@0.4.0:
     dependencies:
