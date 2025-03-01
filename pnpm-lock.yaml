@@ -403,8 +403,8 @@ importers:
         specifier: workspace:*
         version: link:../raknet
       confbox:
-        specifier: 0.1.8
-        version: 0.1.8
+        specifier: 0.2.0
+        version: 0.2.0
       evt:
         specifier: 2.5.9
         version: 2.5.9
@@ -1718,6 +1718,9 @@ packages:
 
   confbox@0.1.8:
     resolution: {integrity: sha512-RMtmw0iFkeR4YV+fUOSucriAQNb9g8zFR52MWCtl+cCZOFRNL6zeB395vPzFhEjjn4fMxXudmELnl/KF/WrK6w==}
+
+  confbox@0.2.0:
+    resolution: {integrity: sha512-Jpthqzqb6UnDteg0tAh74z21g2xXcr/bhBk8dLX5TgA7DMM7C6BX6Wrip5qYgPS/vzF5mFLD1ZQhFiTrkt6x1Q==}
 
   constant-case@2.0.0:
     resolution: {integrity: sha512-eS0N9WwmjTqrOmR3o83F5vW8Z+9R1HnVz3xmzT2PMFug9ly+Au/fxRWlEBSb6LcZwspSsEn9Xs1uw9YgzAg1EQ==}
@@ -5350,6 +5353,8 @@ snapshots:
       yargs: 17.7.2
 
   confbox@0.1.8: {}
+
+  confbox@0.2.0: {}
 
   constant-case@2.0.0:
     dependencies:
