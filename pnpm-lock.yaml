@@ -118,8 +118,8 @@ importers:
         specifier: 4.0.0
         version: 4.0.0(typedoc@0.28.1(typescript@5.5.2))
       typedoc-plugin-merge-modules:
-        specifier: 6.1.0
-        version: 6.1.0(typedoc@0.28.1(typescript@5.5.2))
+        specifier: 7.0.0
+        version: 7.0.0(typedoc@0.28.1(typescript@5.5.2))
       typedoc-plugin-rename-defaults:
         specifier: 0.7.3
         version: 0.7.3(typedoc@0.28.1(typescript@5.5.2))
@@ -3721,10 +3721,10 @@ packages:
     peerDependencies:
       typedoc: 0.27.x
 
-  typedoc-plugin-merge-modules@6.1.0:
-    resolution: {integrity: sha512-AZIyw+H1oG3xpJOq1b2CVnpK7A6OIddi7FsjljsbmQ7vx6dtaorEoz/DQPcGSOzWhWdJPqqdncIzVySuoffS2w==}
+  typedoc-plugin-merge-modules@7.0.0:
+    resolution: {integrity: sha512-DQyfbbPNBElhpdpGrlkS+CrhGD3iooDjp/PHT8O1D/jumLCB+7XAY3jHiqob7d01o25EfwEOJWVwJK+9J6WlBg==}
     peerDependencies:
-      typedoc: 0.26.x || ^0.27.1
+      typedoc: 0.28.x
 
   typedoc-plugin-rename-defaults@0.7.3:
     resolution: {integrity: sha512-fDtrWZ9NcDfdGdlL865GW7uIGQXlthPscURPOhDkKUe4DBQSRRFUf33fhWw41FLlsz8ZTeSxzvvuNmh54MynFA==}
@@ -7534,7 +7534,7 @@ snapshots:
     dependencies:
       typedoc: 0.28.1(typescript@5.5.2)
 
-  typedoc-plugin-merge-modules@6.1.0(typedoc@0.28.1(typescript@5.5.2)):
+  typedoc-plugin-merge-modules@7.0.0(typedoc@0.28.1(typescript@5.5.2)):
     dependencies:
       typedoc: 0.28.1(typescript@5.5.2)
 
