@@ -97,8 +97,8 @@ importers:
         specifier: 3.5.3
         version: 3.5.3
       prettier-eslint:
-        specifier: 16.3.0
-        version: 16.3.0
+        specifier: 16.3.2
+        version: 16.3.2(typescript@5.5.2)
       ts-mockito:
         specifier: 2.6.1
         version: 2.6.1
@@ -3114,8 +3114,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier-eslint@16.3.0:
-    resolution: {integrity: sha512-Lh102TIFCr11PJKUMQ2kwNmxGhTsv/KzUg9QYF2Gkw259g/kPgndZDWavk7/ycbRvj2oz4BPZ1gCU8bhfZH/Xg==}
+  prettier-eslint@16.3.2:
+    resolution: {integrity: sha512-KwT/YWoJGbogsHLZ+Rji8ih6JaUqoA8Z4PAxomcVWhq3gYp5jXgSS/BzB3tm6lWS+Hd4VBF81jqMrdJhXKkhcg==}
     engines: {node: '>=16.10.0'}
     peerDependencies:
       prettier-plugin-svelte: ^3.0.0
@@ -3908,8 +3908,8 @@ packages:
   vscode-uri@3.0.8:
     resolution: {integrity: sha512-AyFQ0EVmsOZOlAnxoFOGOq1SQDWAB7C6aqMGS23svWAllfOaxbuFvcT8D1i8z3Gyn8fraVeZNNmN6e9bxxXkKw==}
 
-  vue-eslint-parser@9.4.2:
-    resolution: {integrity: sha512-Ry9oiGmCAK91HrKMtCrKFWmSFWvYkpGglCeFAIqDdr9zdXmMMpJOmUJS7WWsW7fX81h6mwHmUZCQQ1E0PkSwYQ==}
+  vue-eslint-parser@9.4.3:
+    resolution: {integrity: sha512-2rYRLWlIpaiN8xbPiDyXZXRgLGOtWxERV7ND5fFAv5qo1D2N9Fu9MNajBNc6o13lZ+24DAWCkQCvj4klgmcITg==}
     engines: {node: ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: '>=6.0.0'
@@ -6922,7 +6922,7 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier-eslint@16.3.0:
+  prettier-eslint@16.3.2(typescript@5.5.2):
     dependencies:
       '@typescript-eslint/parser': 6.21.0(eslint@8.57.1)(typescript@5.5.2)
       common-tags: 1.8.2
@@ -6934,10 +6934,10 @@ snapshots:
       prettier: 3.5.3
       pretty-format: 29.7.0
       require-relative: 0.8.7
-      typescript: 5.5.2
-      vue-eslint-parser: 9.4.2(eslint@8.57.1)
+      vue-eslint-parser: 9.4.3(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
+      - typescript
 
   prettier-linter-helpers@1.0.0:
     dependencies:
@@ -7718,7 +7718,7 @@ snapshots:
 
   vscode-uri@3.0.8: {}
 
-  vue-eslint-parser@9.4.2(eslint@8.57.1):
+  vue-eslint-parser@9.4.3(eslint@8.57.1):
     dependencies:
       debug: 4.4.0(supports-color@5.5.0)
       eslint: 8.57.1
