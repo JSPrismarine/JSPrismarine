@@ -109,20 +109,20 @@ importers:
         specifier: 2.5.0
         version: 2.5.0
       typedoc:
-        specifier: 0.28.2
-        version: 0.28.2(typescript@5.5.2)
+        specifier: 0.28.3
+        version: 0.28.3(typescript@5.5.2)
       typedoc-material-theme:
         specifier: 1.4.0
-        version: 1.4.0(typedoc@0.28.2(typescript@5.5.2))
+        version: 1.4.0(typedoc@0.28.3(typescript@5.5.2))
       typedoc-plugin-extras:
         specifier: 4.0.0
-        version: 4.0.0(typedoc@0.28.2(typescript@5.5.2))
+        version: 4.0.0(typedoc@0.28.3(typescript@5.5.2))
       typedoc-plugin-merge-modules:
         specifier: 7.0.0
-        version: 7.0.0(typedoc@0.28.2(typescript@5.5.2))
+        version: 7.0.0(typedoc@0.28.3(typescript@5.5.2))
       typedoc-plugin-rename-defaults:
         specifier: 0.7.3
-        version: 0.7.3(typedoc@0.28.2(typescript@5.5.2))
+        version: 0.7.3(typedoc@0.28.3(typescript@5.5.2))
       typescript:
         specifier: 5.5.2
         version: 5.5.2
@@ -2886,6 +2886,7 @@ packages:
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
+    deprecated: Use your platform's native DOMException instead
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -3753,8 +3754,8 @@ packages:
     peerDependencies:
       typedoc: '>=0.22.x <0.29.x'
 
-  typedoc@0.28.2:
-    resolution: {integrity: sha512-9Giuv+eppFKnJ0oi+vxqLM817b/IrIsEMYgy3jj6zdvppAfDqV3d6DXL2vXUg2TnlL62V48th25Zf/tcQKAJdg==}
+  typedoc@0.28.3:
+    resolution: {integrity: sha512-5svOCTfXvVSh6zbZKSQluZhR8yN2tKpTeHZxlmWpE6N5vc3R8k/jhg9nnD6n5tN9/ObuQTojkONrOxFdUFUG9w==}
     engines: {node: '>= 18', pnpm: '>= 10'}
     hasBin: true
     peerDependencies:
@@ -7562,25 +7563,25 @@ snapshots:
       is-typed-array: 1.1.13
       possible-typed-array-names: 1.0.0
 
-  typedoc-material-theme@1.4.0(typedoc@0.28.2(typescript@5.5.2)):
+  typedoc-material-theme@1.4.0(typedoc@0.28.3(typescript@5.5.2)):
     dependencies:
       '@material/material-color-utilities': 0.3.0
-      typedoc: 0.28.2(typescript@5.5.2)
+      typedoc: 0.28.3(typescript@5.5.2)
 
-  typedoc-plugin-extras@4.0.0(typedoc@0.28.2(typescript@5.5.2)):
+  typedoc-plugin-extras@4.0.0(typedoc@0.28.3(typescript@5.5.2)):
     dependencies:
-      typedoc: 0.28.2(typescript@5.5.2)
+      typedoc: 0.28.3(typescript@5.5.2)
 
-  typedoc-plugin-merge-modules@7.0.0(typedoc@0.28.2(typescript@5.5.2)):
+  typedoc-plugin-merge-modules@7.0.0(typedoc@0.28.3(typescript@5.5.2)):
     dependencies:
-      typedoc: 0.28.2(typescript@5.5.2)
+      typedoc: 0.28.3(typescript@5.5.2)
 
-  typedoc-plugin-rename-defaults@0.7.3(typedoc@0.28.2(typescript@5.5.2)):
+  typedoc-plugin-rename-defaults@0.7.3(typedoc@0.28.3(typescript@5.5.2)):
     dependencies:
       camelcase: 8.0.0
-      typedoc: 0.28.2(typescript@5.5.2)
+      typedoc: 0.28.3(typescript@5.5.2)
 
-  typedoc@0.28.2(typescript@5.5.2):
+  typedoc@0.28.3(typescript@5.5.2):
     dependencies:
       '@gerrit0/mini-shiki': 3.2.2
       lunr: 2.3.9
