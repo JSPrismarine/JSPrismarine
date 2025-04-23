@@ -82,8 +82,8 @@ importers:
         specifier: 2.7.0
         version: 2.7.0
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       husky:
         specifier: 9.1.7
         version: 9.1.7
@@ -145,8 +145,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -166,8 +166,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -200,8 +200,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -225,8 +225,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -246,8 +246,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -277,8 +277,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -305,8 +305,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -336,8 +336,8 @@ importers:
         specifier: 7.7.0
         version: 7.7.0
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       typescript:
         specifier: 5.5.2
         version: 5.5.2
@@ -358,8 +358,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -425,8 +425,8 @@ importers:
         specifier: 2.5.7
         version: 2.5.7
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -453,8 +453,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       typescript:
         specifier: 5.5.2
         version: 5.5.2
@@ -475,8 +475,8 @@ importers:
         specifier: 22.14.1
         version: 22.14.1
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -521,8 +521,8 @@ importers:
         specifier: 7.0.3
         version: 7.0.3
       glob:
-        specifier: 11.0.1
-        version: 11.0.1
+        specifier: 11.0.2
+        version: 11.0.2
       rimraf:
         specifier: 6.0.1
         version: 6.0.1
@@ -2284,8 +2284,8 @@ packages:
     engines: {node: '>=16 || 14 >=14.18'}
     hasBin: true
 
-  glob@11.0.1:
-    resolution: {integrity: sha512-zrQDm8XPnYEKawJScsnM0QzobJxlT/kHOOlRTio8IH/GrmxRE5fjllkzdaHclIuNjUQTJYH2xHNIGfdpJkDJUw==}
+  glob@11.0.2:
+    resolution: {integrity: sha512-YT7U7Vye+t5fZ/QMkBFrTJ7ZQxInIUjwyAjVj84CYXqgBdv30MFUPGnBR6sQaVq6Is15wYJUsnzTuWaGRBhBAQ==}
     engines: {node: 20 || >=22}
     hasBin: true
 
@@ -6072,7 +6072,7 @@ snapshots:
       package-json-from-dist: 1.0.0
       path-scurry: 1.11.1
 
-  glob@11.0.1:
+  glob@11.0.2:
     dependencies:
       foreground-child: 3.1.1
       jackspeak: 4.0.1
@@ -7095,7 +7095,7 @@ snapshots:
 
   rimraf@6.0.1:
     dependencies:
-      glob: 11.0.1
+      glob: 11.0.2
       package-json-from-dist: 1.0.0
 
   rollup@4.40.0:
