@@ -93,7 +93,7 @@
         "glob": "11.0.1",
         "husky": "9.1.7",
         "lint-staged": "15.5.1",
-        "nodemon": "3.1.9",
+        "nodemon": "3.1.10",
         "prettier-eslint": "16.4.1",
         "prettier": "3.5.3",
         "ts-mockito": "2.6.1",
