@@ -45,7 +45,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/bedrock-data",
     "devDependencies": {
-        "@types/node": "22.15.0",
+        "@types/node": "22.15.2",
         "glob": "11.0.2",
         "rimraf": "6.0.1",
         "typescript": "5.5.2",
