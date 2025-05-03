@@ -1,5 +1,21 @@
 # @jsprismarine/prismarine
 
+## 0.13.0
+
+### Patch Changes
+
+- [`ea1948a`](https://github.com/JSPrismarine/JSPrismarine/commit/ea1948a494893e0cb03774c5530971d20e7bfdaf) Thanks [@filiphsps](https://github.com/filiphsps)! - Update dependenices.
+
+- Updated dependencies []:
+    - @jsprismarine/color-parser@0.13.0
+    - @jsprismarine/errors@0.13.0
+    - @jsprismarine/logger@0.13.0
+    - @jsprismarine/math@0.13.0
+    - @jsprismarine/minecraft@0.13.0
+    - @jsprismarine/nbt@0.13.0
+    - @jsprismarine/protocol@0.13.0
+    - @jsprismarine/raknet@0.13.0
+
 ## 0.12.1
 
 ### Patch Changes

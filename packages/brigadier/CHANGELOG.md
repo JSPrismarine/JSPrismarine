@@ -1,5 +1,11 @@
 # @jsprismarine/client
 
+## 0.13.0
+
+### Minor Changes
+
+- [#2014](https://github.com/JSPrismarine/JSPrismarine/pull/2014) [`b6127f0`](https://github.com/JSPrismarine/JSPrismarine/commit/b6127f038a46a6442065d625f8b1986060b733d7) Thanks [@filiphsps](https://github.com/filiphsps)! - Support both single and double quotes.
+
 ## 0.12.1
 
 ### Patch Changes
