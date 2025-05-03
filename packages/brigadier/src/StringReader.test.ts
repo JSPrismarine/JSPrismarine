@@ -136,6 +136,26 @@ describe('StringReader Test', () => {
         assert.equal(reader.getRemaining(), '');
     });
 
+    it('readSingleQuotedString_mismatchedQuotes', () => {
+        try {
+            new StringReader(`'hello world"`).readQuotedString();
+            assert.fail();
+        } catch (ex: any) {
+            assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedEndOfQuote());
+            assert.equal(ex.getCursor(), 13);
+        }
+    });
+
+    it('readDoubleQuotedString_mismatchedQuotes', () => {
+        try {
+            new StringReader(`"hello world'`).readQuotedString();
+            assert.fail();
+        } catch (ex: any) {
+            assert.equal(ex.getType(), CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedEndOfQuote());
+            assert.equal(ex.getCursor(), 13);
+        }
+    });
+
     it('readQuotedString_empty', () => {
         const reader = new StringReader('');
         assert.equal(reader.readQuotedString(), '');
