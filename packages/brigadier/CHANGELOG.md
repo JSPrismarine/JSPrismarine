@@ -1,5 +1,11 @@
 # @jsprismarine/client
 
+## 0.13.1
+
+### Patch Changes
+
+- [`7de1dbf`](https://github.com/JSPrismarine/JSPrismarine/commit/7de1dbfd48b4d409ec3dd4264c18711c5996edd2) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix reading string with mismatched single/double quotes.
+
 ## 0.13.0
 
 ### Minor Changes

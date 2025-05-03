@@ -1,5 +1,12 @@
 # @jsprismarine/color-parser
 
+## 0.13.1
+
+### Patch Changes
+
+- Updated dependencies []:
+    - @jsprismarine/color-parser@0.13.1
+
 ## 0.13.0
 
 ### Patch Changes
