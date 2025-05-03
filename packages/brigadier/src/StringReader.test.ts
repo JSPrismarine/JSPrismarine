@@ -122,7 +122,14 @@ describe('StringReader Test', () => {
         assert.equal(reader.getRemaining(), ' hello world');
     });
 
-    it('readQuotedString', () => {
+    it('readSingleQuotedString', () => {
+        const reader = new StringReader("'hello world'");
+        assert.equal(reader.readQuotedString(), 'hello world');
+        assert.equal(reader.getRead(), "'hello world'");
+        assert.equal(reader.getRemaining(), '');
+    });
+
+    it('readDoubleQuotedString', () => {
         const reader = new StringReader('"hello world"');
         assert.equal(reader.readQuotedString(), 'hello world');
         assert.equal(reader.getRead(), '"hello world"');
