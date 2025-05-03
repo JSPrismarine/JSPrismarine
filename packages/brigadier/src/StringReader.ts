@@ -136,7 +136,7 @@ export default class StringReader implements ImmutableStringReader {
             throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedStartOfQuote().createWithContext(this);
         }
 
-        this.skip();
+        const startQuote = this.read();
         let result = '';
         let escaped = false;
         while (this.canRead()) {
@@ -151,7 +151,7 @@ export default class StringReader implements ImmutableStringReader {
                 }
             } else if (c == SYNTAX_ESCAPE) {
                 escaped = true;
-            } else if (c == SYNTAX_SINGLE_QUOTE || c == SYNTAX_DOUBLE_QUOTE) {
+            } else if (c == startQuote) {
                 return result;
             } else {
                 result += c;
