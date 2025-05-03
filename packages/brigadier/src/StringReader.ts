@@ -2,7 +2,8 @@ import type ImmutableStringReader from './ImmutableStringReader';
 import CommandSyntaxException from './exceptions/CommandSyntaxException';
 
 const SYNTAX_ESCAPE = '\\';
-const SYNTAX_QUOTE = '"';
+const SYNTAX_DOUBLE_QUOTE = '"';
+const SYNTAX_SINGLE_QUOTE = `'`;
 
 export default class StringReader implements ImmutableStringReader {
     private string: string;
@@ -131,7 +132,7 @@ export default class StringReader implements ImmutableStringReader {
     public readQuotedString(): string {
         if (!this.canRead()) {
             return '';
-        } else if (this.peek() != SYNTAX_QUOTE) {
+        } else if (this.peek() != SYNTAX_SINGLE_QUOTE && this.peek() != SYNTAX_DOUBLE_QUOTE) {
             throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.readerExpectedStartOfQuote().createWithContext(this);
         }
 
@@ -141,7 +142,7 @@ export default class StringReader implements ImmutableStringReader {
         while (this.canRead()) {
             let c = this.read();
             if (escaped) {
-                if (c == SYNTAX_QUOTE || c == SYNTAX_ESCAPE) {
+                if (c == SYNTAX_SINGLE_QUOTE || c == SYNTAX_DOUBLE_QUOTE || c == SYNTAX_ESCAPE) {
                     result += c;
                     escaped = false;
                 } else {
@@ -150,7 +151,7 @@ export default class StringReader implements ImmutableStringReader {
                 }
             } else if (c == SYNTAX_ESCAPE) {
                 escaped = true;
-            } else if (c == SYNTAX_QUOTE) {
+            } else if (c == SYNTAX_SINGLE_QUOTE || c == SYNTAX_DOUBLE_QUOTE) {
                 return result;
             } else {
                 result += c;
@@ -161,7 +162,7 @@ export default class StringReader implements ImmutableStringReader {
     }
 
     public readString(): string {
-        if (this.canRead() && this.peek() === SYNTAX_QUOTE) {
+        if (this.canRead() && (this.peek() === SYNTAX_SINGLE_QUOTE || this.peek() === SYNTAX_DOUBLE_QUOTE)) {
             return this.readQuotedString();
         } else {
             return this.readUnquotedString();
