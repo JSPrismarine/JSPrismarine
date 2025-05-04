@@ -73,8 +73,8 @@ importers:
         specifier: 50.6.11
         version: 50.6.11(eslint@8.57.1)
       eslint-plugin-prettier:
-        specifier: 5.2.6
-        version: 5.2.6(@types/eslint@8.56.10)(eslint-config-prettier@10.1.2(eslint@8.57.1))(eslint@8.57.1)(prettier@3.5.3)
+        specifier: 5.3.1
+        version: 5.3.1(@types/eslint@8.56.10)(eslint-config-prettier@10.1.2(eslint@8.57.1))(eslint@8.57.1)(prettier@3.5.3)
       eslint-plugin-unused-imports:
         specifier: 4.1.4
         version: 4.1.4(@typescript-eslint/eslint-plugin@8.31.1(@typescript-eslint/parser@8.31.1(eslint@8.57.1)(typescript@5.5.2))(eslint@8.57.1)(typescript@5.5.2))(eslint@8.57.1)
@@ -2014,8 +2014,8 @@ packages:
     peerDependencies:
       eslint: ^7.0.0 || ^8.0.0 || ^9.0.0
 
-  eslint-plugin-prettier@5.2.6:
-    resolution: {integrity: sha512-mUcf7QG2Tjk7H055Jk0lGBjbgDnfrvqjhXh9t2xLMSCjZVcw9Rb1V6sVNXO0th3jgeO7zllWPTNRil3JW94TnQ==}
+  eslint-plugin-prettier@5.3.1:
+    resolution: {integrity: sha512-vad9VWgEm9xaVXRNmb4aeOt0PWDc61IAdzghkbYQ2wavgax148iKoX1rNJcgkBGCipzLzOnHYVgL7xudM9yccQ==}
     engines: {node: ^14.18.0 || >=16.0.0}
     peerDependencies:
       '@types/eslint': '>=8.0.0'
@@ -5737,7 +5737,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-prettier@5.2.6(@types/eslint@8.56.10)(eslint-config-prettier@10.1.2(eslint@8.57.1))(eslint@8.57.1)(prettier@3.5.3):
+  eslint-plugin-prettier@5.3.1(@types/eslint@8.56.10)(eslint-config-prettier@10.1.2(eslint@8.57.1))(eslint@8.57.1)(prettier@3.5.3):
     dependencies:
       eslint: 8.57.1
       prettier: 3.5.3
