@@ -97,8 +97,8 @@ importers:
         specifier: 3.5.3
         version: 3.5.3
       prettier-eslint:
-        specifier: 16.4.1
-        version: 16.4.1(typescript@5.5.2)
+        specifier: 16.4.2
+        version: 16.4.2(typescript@5.5.2)
       ts-mockito:
         specifier: 2.6.1
         version: 2.6.1
@@ -3135,8 +3135,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier-eslint@16.4.1:
-    resolution: {integrity: sha512-qf8Grhq68kg0tyhXVik2aOx72W8Jxre2ABXgV1pC3OCb3jOo40UZuvk3f/I3/ZA7Qw6qydZX4b7ySSCSgv4/8A==}
+  prettier-eslint@16.4.2:
+    resolution: {integrity: sha512-vtJAQEkaN8fW5QKl08t7A5KCjlZuDUNeIlr9hgolMS5s3+uzbfRHDwaRnzrdqnY2YpHDmeDS/8zY0MKQHXJtaA==}
     engines: {node: '>=16.10.0'}
     peerDependencies:
       prettier-plugin-svelte: ^3.0.0
@@ -6952,7 +6952,7 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier-eslint@16.4.1(typescript@5.5.2):
+  prettier-eslint@16.4.2(typescript@5.5.2):
     dependencies:
       '@typescript-eslint/parser': 6.21.0(eslint@8.57.1)(typescript@5.5.2)
       common-tags: 1.8.2
@@ -6964,6 +6964,7 @@ snapshots:
       prettier: 3.5.3
       pretty-format: 29.7.0
       require-relative: 0.8.7
+      tslib: 2.8.1
       vue-eslint-parser: 9.4.3(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
