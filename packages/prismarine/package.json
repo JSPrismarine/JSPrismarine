@@ -57,7 +57,7 @@
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
     "devDependencies": {
-        "@types/node": "22.15.17",
+        "@types/node": "22.15.18",
         "@types/terminal-kit": "2.5.7",
         "glob": "11.0.2",
         "rimraf": "6.0.1",
