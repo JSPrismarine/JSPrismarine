@@ -130,8 +130,8 @@ importers:
         specifier: 6.3.5
         version: 6.3.5(@types/node@22.15.18)(tsx@4.19.4)(yaml@2.7.1)
       vite-plugin-dts:
-        specifier: 4.5.3
-        version: 4.5.3(@types/node@22.15.18)(rollup@4.40.0)(typescript@5.5.2)(vite@6.3.5(@types/node@22.15.18)(tsx@4.19.4)(yaml@2.7.1))
+        specifier: 4.5.4
+        version: 4.5.4(@types/node@22.15.18)(rollup@4.40.0)(typescript@5.5.2)(vite@6.3.5(@types/node@22.15.18)(tsx@4.19.4)(yaml@2.7.1))
       vite-tsconfig-paths:
         specifier: 5.1.4
         version: 5.1.4(typescript@5.5.2)(vite@6.3.5(@types/node@22.15.18)(tsx@4.19.4)(yaml@2.7.1))
@@ -1179,9 +1179,6 @@ packages:
 
   '@types/eslint@9.6.1':
     resolution: {integrity: sha512-FXx2pKgId/WyYo2jXw63kk7/+TY7u7AziEJxJAnSFzHlqTAS3Ync6SvgYAN/k4/PQpnnVuzoMuVnByKK2qp0ag==}
-
-  '@types/estree@1.0.6':
-    resolution: {integrity: sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==}
 
   '@types/estree@1.0.7':
     resolution: {integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==}
@@ -3810,8 +3807,8 @@ packages:
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
 
-  vite-plugin-dts@4.5.3:
-    resolution: {integrity: sha512-P64VnD00dR+e8S26ESoFELqc17+w7pKkwlBpgXteOljFyT0zDwD8hH4zXp49M/kciy//7ZbVXIwQCekBJjfWzA==}
+  vite-plugin-dts@4.5.4:
+    resolution: {integrity: sha512-d4sOM8M/8z7vRXHHq/ebbblfaxENjogAAekcfcDCCwAyvGqnPrc7f4NZbvItS+g4WTgerW0xDwSz5qz11JT3vg==}
     peerDependencies:
       typescript: '*'
       vite: '*'
@@ -4545,7 +4542,7 @@ snapshots:
 
   '@rollup/pluginutils@5.1.4(rollup@4.40.0)':
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.7
       estree-walker: 2.0.2
       picomatch: 4.0.2
     optionalDependencies:
@@ -4719,8 +4716,6 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.7
       '@types/json-schema': 7.0.15
-
-  '@types/estree@1.0.6': {}
 
   '@types/estree@1.0.7': {}
 
@@ -7612,7 +7607,7 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-dts@4.5.3(@types/node@22.15.18)(rollup@4.40.0)(typescript@5.5.2)(vite@6.3.5(@types/node@22.15.18)(tsx@4.19.4)(yaml@2.7.1)):
+  vite-plugin-dts@4.5.4(@types/node@22.15.18)(rollup@4.40.0)(typescript@5.5.2)(vite@6.3.5(@types/node@22.15.18)(tsx@4.19.4)(yaml@2.7.1)):
     dependencies:
       '@microsoft/api-extractor': 7.51.0(@types/node@22.15.18)
       '@rollup/pluginutils': 5.1.4(rollup@4.40.0)
