@@ -31,8 +31,8 @@ importers:
         specifier: 6.1.0
         version: 6.1.0
       '@codecov/vite-plugin':
-        specifier: 1.9.0
-        version: 1.9.0(vite@6.3.5(@types/node@22.15.19)(tsx@4.19.4)(yaml@2.7.1))
+        specifier: 1.9.1
+        version: 1.9.1(vite@6.3.5(@types/node@22.15.19)(tsx@4.19.4)(yaml@2.7.1))
       '@nordcom/prettier':
         specifier: 0.1.1
         version: 0.1.1
@@ -647,12 +647,12 @@ packages:
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
 
-  '@codecov/bundler-plugin-core@1.9.0':
-    resolution: {integrity: sha512-UB0I5haL0gnF4ei46wxNo7ptCHqFAh3PnmcLLeXRb2zV7HeobOF8WRjOW/PwrXAphPS/6bL7PDUmh3ruVObGtg==}
+  '@codecov/bundler-plugin-core@1.9.1':
+    resolution: {integrity: sha512-dt3ic7gMswz4p/qdkYPVJwXlLiLsz55rBBn2I7mr0HTG8pCoLRqnANJIwo5WrqGBZgPyVSMPBqBra6VxLWfDyA==}
     engines: {node: '>=18.0.0'}
 
-  '@codecov/vite-plugin@1.9.0':
-    resolution: {integrity: sha512-5+CxUGN0Rxr5F6xYqrKwug3NXTlNVBEZcI9caOCjlpErt7p2lp7J/6Qo+GRjmaVkXErnNMiyhjzXRB6rLNAjfg==}
+  '@codecov/vite-plugin@1.9.1':
+    resolution: {integrity: sha512-S6Yne7comVulJ1jD3T7rCfYFHPR0zUjAYoLjUDPXNJCUrdzWJdf/ak/UepE7TicqQG+yBa6eb5WusqcPgg+1AQ==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       vite: 4.x || 5.x || 6.x
@@ -4208,7 +4208,7 @@ snapshots:
       human-id: 4.1.1
       prettier: 2.8.8
 
-  '@codecov/bundler-plugin-core@1.9.0':
+  '@codecov/bundler-plugin-core@1.9.1':
     dependencies:
       '@actions/core': 1.10.1
       '@actions/github': 6.0.0
@@ -4217,9 +4217,9 @@ snapshots:
       unplugin: 1.10.1
       zod: 3.23.6
 
-  '@codecov/vite-plugin@1.9.0(vite@6.3.5(@types/node@22.15.19)(tsx@4.19.4)(yaml@2.7.1))':
+  '@codecov/vite-plugin@1.9.1(vite@6.3.5(@types/node@22.15.19)(tsx@4.19.4)(yaml@2.7.1))':
     dependencies:
-      '@codecov/bundler-plugin-core': 1.9.0
+      '@codecov/bundler-plugin-core': 1.9.1
       unplugin: 1.10.1
       vite: 6.3.5(@types/node@22.15.19)(tsx@4.19.4)(yaml@2.7.1)
 
