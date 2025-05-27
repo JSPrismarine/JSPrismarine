@@ -77,7 +77,7 @@
         "@jsprismarine/raknet": "workspace:*",
         "confbox": "0.2.2",
         "evt": "2.5.9",
-        "fast-jwt": "6.0.1",
+        "fast-jwt": "6.0.2",
         "heap": "0.2.7",
         "node-fetch": "3.3.2"
     }
