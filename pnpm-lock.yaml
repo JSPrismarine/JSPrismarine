@@ -70,8 +70,8 @@ importers:
         specifier: 2.32.0
         version: 2.32.0(@typescript-eslint/parser@8.34.1(eslint@8.57.1)(typescript@5.5.2))(eslint@8.57.1)
       eslint-plugin-jsdoc:
-        specifier: 51.0.7
-        version: 51.0.7(eslint@8.57.1)
+        specifier: 51.1.0
+        version: 51.1.0(eslint@8.57.1)
       eslint-plugin-prettier:
         specifier: 5.5.0
         version: 5.5.0(@types/eslint@9.6.1)(eslint-config-prettier@10.1.5(eslint@8.57.1))(eslint@8.57.1)(prettier@3.5.3)
@@ -2121,8 +2121,8 @@ packages:
       '@typescript-eslint/parser':
         optional: true
 
-  eslint-plugin-jsdoc@51.0.7:
-    resolution: {integrity: sha512-lUiZqEKp6oSBsbx+EttAkSqVbgcf/yWcREL8jV25d1W1qMomPIeJaq3doq+LV04k9ey64eXgEyMPZvKUnJL25Q==}
+  eslint-plugin-jsdoc@51.1.0:
+    resolution: {integrity: sha512-dWyjRvQcAuFHZUTUaJEw7OQ6XziNlbz2wZNt6QuLUHwYMnOWzs6vGSikR/ZSeh+IFHjdH+91AKf+CwYjlJ4kVA==}
     engines: {node: '>=20.11.0'}
     peerDependencies:
       eslint: ^7.0.0 || ^8.0.0 || ^9.0.0
@@ -5075,7 +5075,7 @@ snapshots:
 
   '@types/eslint@9.6.1':
     dependencies:
-      '@types/estree': 1.0.7
+      '@types/estree': 1.0.8
       '@types/json-schema': 7.0.15
     optional: true
 
@@ -6236,7 +6236,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-jsdoc@51.0.7(eslint@8.57.1):
+  eslint-plugin-jsdoc@51.1.0(eslint@8.57.1):
     dependencies:
       '@es-joy/jsdoccomment': 0.51.1
       are-docs-informative: 0.0.2
@@ -7287,7 +7287,7 @@ snapshots:
 
   mlly@1.7.4:
     dependencies:
-      acorn: 8.14.0
+      acorn: 8.15.0
       pathe: 2.0.3
       pkg-types: 1.3.1
       ufo: 1.5.4
