@@ -70,8 +70,8 @@ importers:
         specifier: 2.32.0
         version: 2.32.0(@typescript-eslint/parser@8.35.0(eslint@8.57.1)(typescript@5.5.2))(eslint@8.57.1)
       eslint-plugin-jsdoc:
-        specifier: 51.2.1
-        version: 51.2.1(eslint@8.57.1)
+        specifier: 51.2.2
+        version: 51.2.2(eslint@8.57.1)
       eslint-plugin-prettier:
         specifier: 5.5.0
         version: 5.5.0(@types/eslint@9.6.1)(eslint-config-prettier@10.1.5(eslint@8.57.1))(eslint@8.57.1)(prettier@3.6.0)
@@ -1304,10 +1304,6 @@ packages:
     resolution: {integrity: sha512-1kFmZ1rOm5epu9NZEZm1kckCDGj5UJEf7P1kliH4LKu/RkwpsfqqGmY2OOcUs18lSlQBKLDYBOGxRVtrMN5lpg==}
     engines: {node: ^16.0.0 || >=18.0.0}
 
-  '@typescript-eslint/types@8.34.1':
-    resolution: {integrity: sha512-rjLVbmE7HR18kDsjNIZQHxmv9RZwlgzavryL5Lnj2ujIRTeXlKtILHgRNmQ3j4daw7zd+mQgy+uyt6Zo6I0IGA==}
-    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
   '@typescript-eslint/types@8.35.0':
     resolution: {integrity: sha512-0mYH3emanku0vHw2aRLNGqe7EXh9WHEhi7kZzscrMDf6IIRUQ5Jk4wp1QrledE/36KtdZrVfKnE32eZCf/vaVQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -2125,8 +2121,8 @@ packages:
       '@typescript-eslint/parser':
         optional: true
 
-  eslint-plugin-jsdoc@51.2.1:
-    resolution: {integrity: sha512-iE2qpG/kaA9xXfEcTNSsxNvH5O8+o38VBGLwl2oZisQaM1JRGftTLJAGQrj7YZjSkp3n9VCrNTjOpo3ONhTApQ==}
+  eslint-plugin-jsdoc@51.2.2:
+    resolution: {integrity: sha512-5e3VGUk3rvZ6ZuxJr5fCTVMj7TrMC80F1GbymjyUkplCbj6dXW41qX3ZzF8YULXM74cBfjnWy/nSp/I0eLl3vg==}
     engines: {node: '>=20.11.0'}
     peerDependencies:
       eslint: ^7.0.0 || ^8.0.0 || ^9.0.0
@@ -4589,7 +4585,7 @@ snapshots:
   '@es-joy/jsdoccomment@0.52.0':
     dependencies:
       '@types/estree': 1.0.8
-      '@typescript-eslint/types': 8.34.1
+      '@typescript-eslint/types': 8.35.0
       comment-parser: 1.4.1
       esquery: 1.6.0
       jsdoc-type-pratt-parser: 4.1.0
@@ -5208,8 +5204,6 @@ snapshots:
       - supports-color
 
   '@typescript-eslint/types@6.21.0': {}
-
-  '@typescript-eslint/types@8.34.1': {}
 
   '@typescript-eslint/types@8.35.0': {}
 
@@ -6239,7 +6233,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-jsdoc@51.2.1(eslint@8.57.1):
+  eslint-plugin-jsdoc@51.2.2(eslint@8.57.1):
     dependencies:
       '@es-joy/jsdoccomment': 0.52.0
       are-docs-informative: 0.0.2
