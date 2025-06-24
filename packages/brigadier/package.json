@@ -49,7 +49,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/brigadier",
     "devDependencies": {
-        "@types/node": "22.15.32",
+        "@types/node": "22.15.33",
         "glob": "11.0.3",
         "rimraf": "6.0.1",
         "typescript": "5.5.2",
