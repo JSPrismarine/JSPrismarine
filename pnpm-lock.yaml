@@ -109,20 +109,20 @@ importers:
         specifier: 2.5.4
         version: 2.5.4
       typedoc:
-        specifier: 0.28.5
-        version: 0.28.5(typescript@5.5.2)
+        specifier: 0.28.6
+        version: 0.28.6(typescript@5.5.2)
       typedoc-material-theme:
         specifier: 1.4.0
-        version: 1.4.0(typedoc@0.28.5(typescript@5.5.2))
+        version: 1.4.0(typedoc@0.28.6(typescript@5.5.2))
       typedoc-plugin-extras:
         specifier: 4.0.0
-        version: 4.0.0(typedoc@0.28.5(typescript@5.5.2))
+        version: 4.0.0(typedoc@0.28.6(typescript@5.5.2))
       typedoc-plugin-merge-modules:
         specifier: 7.0.0
-        version: 7.0.0(typedoc@0.28.5(typescript@5.5.2))
+        version: 7.0.0(typedoc@0.28.6(typescript@5.5.2))
       typedoc-plugin-rename-defaults:
         specifier: 0.7.3
-        version: 0.7.3(typedoc@0.28.5(typescript@5.5.2))
+        version: 0.7.3(typedoc@0.28.6(typescript@5.5.2))
       typescript:
         specifier: 5.5.2
         version: 5.5.2
@@ -4038,8 +4038,8 @@ packages:
     peerDependencies:
       typedoc: '>=0.22.x <0.29.x'
 
-  typedoc@0.28.5:
-    resolution: {integrity: sha512-5PzUddaA9FbaarUzIsEc4wNXCiO4Ot3bJNeMF2qKpYlTmM9TTaSHQ7162w756ERCkXER/+o2purRG6YOAv6EMA==}
+  typedoc@0.28.6:
+    resolution: {integrity: sha512-2VvfK6z3yupcu75qZB00LGICg4qa0lw4yPBrFcnZgqIMwpLjLWopTqNeJ4SSS/s92myvWBECY5zcOSMqpvW3CA==}
     engines: {node: '>= 18', pnpm: '>= 10'}
     hasBin: true
     peerDependencies:
@@ -4316,11 +4316,6 @@ packages:
 
   yallist@4.0.0:
     resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
-
-  yaml@2.7.1:
-    resolution: {integrity: sha512-10ULxpnOCQXxJvBgxsn9ptjq6uviG/htZKk9veJGhlqn3w/DxQ631zFF+nlQXLwmImeS5amR2dl2U8sg6U9jsQ==}
-    engines: {node: '>= 14'}
-    hasBin: true
 
   yaml@2.8.0:
     resolution: {integrity: sha512-4lLa/EcQCB0cJkyts+FpIRx5G/llPxfP6VQU5KByHEhLxY3IJCH0f0Hy1MHI8sClTvsIb8qwRJ6R/ZdlDJ/leQ==}
@@ -8319,32 +8314,32 @@ snapshots:
       possible-typed-array-names: 1.0.0
       reflect.getprototypeof: 1.0.10
 
-  typedoc-material-theme@1.4.0(typedoc@0.28.5(typescript@5.5.2)):
+  typedoc-material-theme@1.4.0(typedoc@0.28.6(typescript@5.5.2)):
     dependencies:
       '@material/material-color-utilities': 0.3.0
-      typedoc: 0.28.5(typescript@5.5.2)
+      typedoc: 0.28.6(typescript@5.5.2)
 
-  typedoc-plugin-extras@4.0.0(typedoc@0.28.5(typescript@5.5.2)):
+  typedoc-plugin-extras@4.0.0(typedoc@0.28.6(typescript@5.5.2)):
     dependencies:
-      typedoc: 0.28.5(typescript@5.5.2)
+      typedoc: 0.28.6(typescript@5.5.2)
 
-  typedoc-plugin-merge-modules@7.0.0(typedoc@0.28.5(typescript@5.5.2)):
+  typedoc-plugin-merge-modules@7.0.0(typedoc@0.28.6(typescript@5.5.2)):
     dependencies:
-      typedoc: 0.28.5(typescript@5.5.2)
+      typedoc: 0.28.6(typescript@5.5.2)
 
-  typedoc-plugin-rename-defaults@0.7.3(typedoc@0.28.5(typescript@5.5.2)):
+  typedoc-plugin-rename-defaults@0.7.3(typedoc@0.28.6(typescript@5.5.2)):
     dependencies:
       camelcase: 8.0.0
-      typedoc: 0.28.5(typescript@5.5.2)
+      typedoc: 0.28.6(typescript@5.5.2)
 
-  typedoc@0.28.5(typescript@5.5.2):
+  typedoc@0.28.6(typescript@5.5.2):
     dependencies:
       '@gerrit0/mini-shiki': 3.2.2
       lunr: 2.3.9
       markdown-it: 14.1.0
       minimatch: 9.0.5
       typescript: 5.5.2
-      yaml: 2.7.1
+      yaml: 2.8.0
 
   typescript@5.5.2: {}
 
@@ -8672,8 +8667,6 @@ snapshots:
   y18n@5.0.8: {}
 
   yallist@4.0.0: {}
-
-  yaml@2.7.1: {}
 
   yaml@2.8.0: {}
 
