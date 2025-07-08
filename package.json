@@ -107,7 +107,7 @@
         "typescript": "5.5.2",
         "vite-plugin-dts": "4.5.4",
         "vite-tsconfig-paths": "5.1.4",
-        "vite": "7.0.2",
+        "vite": "7.0.3",
         "vitest": "3.2.4"
     },
     "dependencies": {
