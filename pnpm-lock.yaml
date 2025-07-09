@@ -508,8 +508,8 @@ importers:
         specifier: workspace:*
         version: link:../raknet
       dotenv:
-        specifier: 17.1.0
-        version: 17.1.0
+        specifier: 17.2.0
+        version: 17.2.0
       winston:
         specifier: 3.17.0
         version: 3.17.0
@@ -1967,8 +1967,8 @@ packages:
   dot-case@2.1.1:
     resolution: {integrity: sha512-HnM6ZlFqcajLsyudHq7LeeLDr2rFAVYtDv/hV5qchQEidSck8j9OPUsXY9KwJv/lHMtYlX4DjRQqwFYa+0r8Ug==}
 
-  dotenv@17.1.0:
-    resolution: {integrity: sha512-tG9VUTJTuju6GcXgbdsOuRhupE8cb4mRgY5JLRCh4MtGoVo3/gfGUtOMwmProM6d0ba2mCFvv+WrpYJV6qgJXQ==}
+  dotenv@17.2.0:
+    resolution: {integrity: sha512-Q4sgBT60gzd0BB0lSyYD3xM4YxrXA9y4uBDof1JNYGzOXrQdQ6yX+7XIAqoFOGQFOTK1D3Hts5OllpxMDZFONQ==}
     engines: {node: '>=12'}
 
   dotenv@8.6.0:
@@ -5947,7 +5947,7 @@ snapshots:
     dependencies:
       no-case: 2.3.2
 
-  dotenv@17.1.0: {}
+  dotenv@17.2.0: {}
 
   dotenv@8.6.0: {}
 
