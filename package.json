@@ -9,7 +9,7 @@
     "workspaces": [
         "packages/*"
     ],
-    "packageManager": "pnpm@10.12.4",
+    "packageManager": "pnpm@10.13.1",
     "engines": {
         "node": ">=21.0.0"
     },
