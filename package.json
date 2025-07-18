@@ -100,7 +100,7 @@
         "turbo-ignore": "2.5.5",
         "turbo": "2.5.5",
         "typedoc-material-theme": "1.4.0",
-        "typedoc-plugin-extras": "4.0.0",
+        "typedoc-plugin-extras": "4.0.1",
         "typedoc-plugin-merge-modules": "7.0.0",
         "typedoc-plugin-rename-defaults": "0.7.3",
         "typedoc": "0.28.7",
