@@ -109,20 +109,20 @@ importers:
         specifier: 2.5.5
         version: 2.5.5
       typedoc:
-        specifier: 0.28.7
-        version: 0.28.7(typescript@5.5.2)
+        specifier: 0.28.8
+        version: 0.28.8(typescript@5.5.2)
       typedoc-material-theme:
         specifier: 1.4.0
-        version: 1.4.0(typedoc@0.28.7(typescript@5.5.2))
+        version: 1.4.0(typedoc@0.28.8(typescript@5.5.2))
       typedoc-plugin-extras:
         specifier: 4.0.1
-        version: 4.0.1(typedoc@0.28.7(typescript@5.5.2))
+        version: 4.0.1(typedoc@0.28.8(typescript@5.5.2))
       typedoc-plugin-merge-modules:
         specifier: 7.0.0
-        version: 7.0.0(typedoc@0.28.7(typescript@5.5.2))
+        version: 7.0.0(typedoc@0.28.8(typescript@5.5.2))
       typedoc-plugin-rename-defaults:
         specifier: 0.7.3
-        version: 0.7.3(typedoc@0.28.7(typescript@5.5.2))
+        version: 0.7.3(typedoc@0.28.8(typescript@5.5.2))
       typescript:
         specifier: 5.5.2
         version: 5.5.2
@@ -4045,8 +4045,8 @@ packages:
     peerDependencies:
       typedoc: '>=0.22.x <0.29.x'
 
-  typedoc@0.28.7:
-    resolution: {integrity: sha512-lpz0Oxl6aidFkmS90VQDQjk/Qf2iw0IUvFqirdONBdj7jPSN9mGXhy66BcGNDxx5ZMyKKiBVAREvPEzT6Uxipw==}
+  typedoc@0.28.8:
+    resolution: {integrity: sha512-16GfLopc8icHfdvqZDqdGBoS2AieIRP2rpf9mU+MgN+gGLyEQvAO0QgOa6NJ5QNmQi0LFrDY9in4F2fUNKgJKA==}
     engines: {node: '>= 18', pnpm: '>= 10'}
     hasBin: true
     peerDependencies:
@@ -8325,25 +8325,25 @@ snapshots:
       possible-typed-array-names: 1.0.0
       reflect.getprototypeof: 1.0.10
 
-  typedoc-material-theme@1.4.0(typedoc@0.28.7(typescript@5.5.2)):
+  typedoc-material-theme@1.4.0(typedoc@0.28.8(typescript@5.5.2)):
     dependencies:
       '@material/material-color-utilities': 0.3.0
-      typedoc: 0.28.7(typescript@5.5.2)
+      typedoc: 0.28.8(typescript@5.5.2)
 
-  typedoc-plugin-extras@4.0.1(typedoc@0.28.7(typescript@5.5.2)):
+  typedoc-plugin-extras@4.0.1(typedoc@0.28.8(typescript@5.5.2)):
     dependencies:
-      typedoc: 0.28.7(typescript@5.5.2)
+      typedoc: 0.28.8(typescript@5.5.2)
 
-  typedoc-plugin-merge-modules@7.0.0(typedoc@0.28.7(typescript@5.5.2)):
+  typedoc-plugin-merge-modules@7.0.0(typedoc@0.28.8(typescript@5.5.2)):
     dependencies:
-      typedoc: 0.28.7(typescript@5.5.2)
+      typedoc: 0.28.8(typescript@5.5.2)
 
-  typedoc-plugin-rename-defaults@0.7.3(typedoc@0.28.7(typescript@5.5.2)):
+  typedoc-plugin-rename-defaults@0.7.3(typedoc@0.28.8(typescript@5.5.2)):
     dependencies:
       camelcase: 8.0.0
-      typedoc: 0.28.7(typescript@5.5.2)
+      typedoc: 0.28.8(typescript@5.5.2)
 
-  typedoc@0.28.7(typescript@5.5.2):
+  typedoc@0.28.8(typescript@5.5.2):
     dependencies:
       '@gerrit0/mini-shiki': 3.7.0
       lunr: 2.3.9
