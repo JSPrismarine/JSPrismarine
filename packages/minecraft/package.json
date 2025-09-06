@@ -45,7 +45,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/minecraft",
     "devDependencies": {
         "@types/node": "22.18.0",
-        "@types/semver": "7.7.0",
+        "@types/semver": "7.7.1",
         "glob": "11.0.3",
         "typescript": "5.5.2",
         "vite": "7.1.3",
