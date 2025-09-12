@@ -79,8 +79,8 @@ importers:
         specifier: 4.2.0
         version: 4.2.0(@typescript-eslint/eslint-plugin@8.43.0(@typescript-eslint/parser@8.43.0(eslint@8.57.1)(typescript@5.5.2))(eslint@8.57.1)(typescript@5.5.2))(eslint@8.57.1)
       esmock:
-        specifier: 2.7.2
-        version: 2.7.2
+        specifier: 2.7.3
+        version: 2.7.3
       glob:
         specifier: 11.0.3
         version: 11.0.3
@@ -2183,8 +2183,8 @@ packages:
     deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
-  esmock@2.7.2:
-    resolution: {integrity: sha512-/ilhkWbW4FXgQpRbS0LZpKG1AFkiFZkmapP/868Lqa4hSKgKVtMilFXlQrIMssLzyvpeDVg2Q9L3VInnqYoTAg==}
+  esmock@2.7.3:
+    resolution: {integrity: sha512-/M/YZOjgyLaVoY6K83pwCsGE1AJQnj4S4GyXLYgi/Y79KL8EeW6WU7Rmjc89UO7jv6ec8+j34rKeWOfiLeEu0A==}
     engines: {node: '>=14.16.0'}
 
   espree@10.4.0:
@@ -6358,7 +6358,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  esmock@2.7.2: {}
+  esmock@2.7.3: {}
 
   espree@10.4.0:
     dependencies:

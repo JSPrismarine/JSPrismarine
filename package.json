@@ -89,7 +89,7 @@
         "eslint-plugin-prettier": "5.5.4",
         "eslint-plugin-unused-imports": "4.2.0",
         "eslint": "8.57.1",
-        "esmock": "2.7.2",
+        "esmock": "2.7.3",
         "glob": "11.0.3",
         "husky": "9.1.7",
         "lint-staged": "16.1.6",
