@@ -85,7 +85,7 @@
         "cross-env": "10.0.0",
         "eslint-config-prettier": "10.1.8",
         "eslint-plugin-import": "2.32.0",
-        "eslint-plugin-jsdoc": "60.2.0",
+        "eslint-plugin-jsdoc": "60.3.0",
         "eslint-plugin-prettier": "5.5.4",
         "eslint-plugin-unused-imports": "4.2.0",
         "eslint": "8.57.1",
