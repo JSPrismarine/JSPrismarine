@@ -65,6 +65,6 @@
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
         "dotenv": "17.2.3",
-        "winston": "3.18.1"
+        "winston": "3.18.2"
     }
 }
