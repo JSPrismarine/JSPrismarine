@@ -55,6 +55,6 @@
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
         "winston-transport": "4.9.0",
-        "winston": "3.18.0"
+        "winston": "3.18.1"
     }
 }
