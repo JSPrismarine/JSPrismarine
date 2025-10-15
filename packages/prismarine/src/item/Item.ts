@@ -31,7 +31,7 @@ export class Item {
         this.name = name;
         if (meta) this.meta = meta;
 
-        this.networkId = ItemIdMap[name] as number;
+        this.networkId = (ItemIdMap as any)[name] as number;
     }
 
     public getName(): string {
@@ -151,7 +151,7 @@ export class Item {
         }
 
         stream.writeUnsignedVarInt(str.getBuffer().byteLength);
-        stream.write(str.getBuffer());
+        stream.write(new Uint8Array(str.getBuffer()));
 
         // TODO: check for additional data
     }
@@ -163,8 +163,8 @@ export class Item {
             return new Item({ id: 0, name: 'minecraft:air' });
         }
 
-        const count = stream.readUnsignedShortLE(); // eslint-disable-line unused-imports/no-unused-vars
-        const netData = stream.readUnsignedVarInt(); // eslint-disable-line unused-imports/no-unused-vars
+        const _count = stream.readUnsignedShortLE(); // eslint-disable-line unused-imports/no-unused-vars
+        const _netData = stream.readUnsignedVarInt(); // eslint-disable-line unused-imports/no-unused-vars
 
         // TODO: refactor everything basically...
         if (extra && stream.readBoolean()) {

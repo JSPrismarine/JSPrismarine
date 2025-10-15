@@ -11,7 +11,6 @@ export class Vector2 {
 
     /**
      * Create a new `Vector2` instance.
-     * @constructor
      * @param {number} x - The X coordinate.
      * @param {number} z - The Z coordinate.
      * @example
@@ -84,7 +83,6 @@ export class Vector2 {
     public trunc(): Vector2 {
         return new Vector2(Math.trunc(this.x), Math.trunc(this.z));
     }
-
     /**
      * Compare an instance of `Vector3` with another.
      * @param {Vector2} vector - The `Vector3` to compare to.

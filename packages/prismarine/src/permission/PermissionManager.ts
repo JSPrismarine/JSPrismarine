@@ -1,16 +1,18 @@
 import fs from 'node:fs';
-import path from 'node:path';
 
-import minifyJson from 'strip-json-comments';
+import { parseJSON5 } from 'confbox';
 
 import { PlayerNotFoundError } from '@jsprismarine/errors';
 import type { Player, Server, Service } from '../';
-import { cwd } from '../';
+import { withCwd } from '../';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 
 interface OpType {
     name: string;
 }
+
+const PERMISSION_FILE_NAME = 'permissions.json';
+const OPS_FILE_NAME = 'ops.json';
 
 /**
  * Permission manager.
@@ -24,7 +26,6 @@ export class PermissionManager implements Service {
 
     /**
      * Create a new permission manager.
-     * @constructor
      * @param {Server} server - The server instance.
      */
     public constructor(server: Server) {
@@ -34,7 +35,7 @@ export class PermissionManager implements Service {
     /**
      * Enable the manager and load all permissions.
      * @returns {Promise<void>} A promise that resolves when the manager is enabled.
-     * @async
+     * @group Lifecycle
      */
     public async enable(): Promise<void> {
         await this.parseOps();
@@ -44,7 +45,7 @@ export class PermissionManager implements Service {
     /**
      * Signifies that the manager is being disabled and all permissions should be unloaded.
      * @returns {Promise<void>} A promise that resolves when the manager is disabled.
-     * @async
+     * @group Lifecycle
      */
     public async disable(): Promise<void> {
         this.ops.clear();
@@ -64,7 +65,6 @@ export class PermissionManager implements Service {
      * Get a player's permissions.
      * @param {Player} player - The player to get permissions for.
      * @returns {Promise<string[]>} A promise that resolves with the player's permissions.
-     * @async
      */
     public async getPermissions(player: Player): Promise<string[]> {
         return [
@@ -89,10 +89,11 @@ export class PermissionManager implements Service {
 
     private async parsePermissions(): Promise<void> {
         try {
-            if (!fs.existsSync(path.join(cwd(), '/permissions.json'))) {
+            if (!fs.existsSync(withCwd(PERMISSION_FILE_NAME))) {
                 this.server.getLogger().warn(`Failed to load permissions list!`);
                 fs.writeFileSync(
-                    path.join(cwd(), '/permissions.json'),
+                    // FIXME: This overwrites comments in the file.
+                    withCwd(PERMISSION_FILE_NAME),
                     JSON.stringify(
                         {
                             defaultPermissions: [
@@ -124,7 +125,7 @@ export class PermissionManager implements Service {
                     name: string;
                     permissions: string[];
                 }>;
-            }> = JSON.parse(minifyJson((await fs.promises.readFile(path.join(cwd(), '/permissions.json'))).toString()));
+            }> = parseJSON5((await fs.promises.readFile(withCwd(PERMISSION_FILE_NAME))).toString());
 
             this.defaultPermissions = permissionsObject.defaultPermissions || [];
             this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
@@ -133,24 +134,22 @@ export class PermissionManager implements Service {
             );
         } catch (error: unknown) {
             this.server.getLogger().error(error);
-            throw new Error(`Invalid permissions.json file.`);
+            throw new Error(`Invalid ${PERMISSION_FILE_NAME} file.`);
         }
     }
 
     private async parseOps(): Promise<void> {
         try {
-            if (!fs.existsSync(path.join(cwd(), '/ops.json'))) {
+            if (!fs.existsSync(withCwd(OPS_FILE_NAME))) {
                 this.server.getLogger().warn(`Failed to load operators list!`);
-                fs.writeFileSync(path.join(cwd(), '/ops.json'), '[]');
+                fs.writeFileSync(withCwd(OPS_FILE_NAME), '[]');
             }
-            const ops: OpType[] = JSON.parse(
-                minifyJson((await fs.promises.readFile(path.join(cwd(), '/ops.json'))).toString())
-            );
+            const ops: OpType[] = parseJSON5((await fs.promises.readFile(withCwd(OPS_FILE_NAME))).toString());
 
             ops.map((op) => this.ops.add(op.name));
         } catch (error: unknown) {
             this.server.getLogger().error(error);
-            throw new Error(`Invalid ops.json file.`);
+            throw new Error(`Invalid ${OPS_FILE_NAME} file.`);
         }
     }
 
@@ -175,7 +174,8 @@ export class PermissionManager implements Service {
 
         try {
             await fs.promises.writeFile(
-                path.join(cwd(), '/ops.json'),
+                // FIXME: This overwrites comments in the file.
+                withCwd(OPS_FILE_NAME),
                 JSON.stringify(
                     Array.from(this.ops.values()).map((name) => ({
                         name,

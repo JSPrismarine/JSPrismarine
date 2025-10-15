@@ -1,3 +1,9 @@
+---
+title: Log Levels
+group: Documents
+category: Types
+---
+
 # Log levels
 
 -   `error` Critical errors (eg error was thrown)

@@ -1,3 +1,9 @@
+---
+title: Running JSPrismarine
+group: Documents
+category: Guides
+---
+
 # Running JSPrismarine
 
 ## 1. Prerequisites

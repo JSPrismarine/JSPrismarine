@@ -8,7 +8,9 @@ export enum ErrorKind {
     COMMAND_UNKNOWN_COMMAND = 'COMMAND_UNKNOWN_COMMAND',
     COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING = 'COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING',
 
-    PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND'
+    PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND',
+
+    GAMETYPE_INVALID = 'GAMETYPE_INVALID'
 }
 
 export class Error<T = ErrorKind> extends BuiltinError {
@@ -24,9 +26,9 @@ export class Error<T = ErrorKind> extends BuiltinError {
 }
 
 export class GenericNamespaceInvalidError extends Error {
-    name = 'GenericNamespaceInvalidError';
-    message = `The namespace is malformed or invalid.`;
-    code = ErrorKind.GENERIC_NAMESPACE_INVALID;
+    name: string = 'GenericNamespaceInvalidError';
+    message: string = `The namespace is malformed or invalid.`;
+    code: ErrorKind = ErrorKind.GENERIC_NAMESPACE_INVALID;
 
     public constructor() {
         super();
@@ -35,9 +37,9 @@ export class GenericNamespaceInvalidError extends Error {
 }
 
 export class ConfigInvalidDataError extends Error {
-    name = 'ConfigInvalidDataError';
-    message = `Invalid data provided to a config handler.`;
-    code = ErrorKind.CONFIG_INVALID_DATA;
+    name: string = 'ConfigInvalidDataError';
+    message: string = `Invalid data provided to a config handler.`;
+    code: ErrorKind = ErrorKind.CONFIG_INVALID_DATA;
 
     public constructor() {
         super();
@@ -46,9 +48,9 @@ export class ConfigInvalidDataError extends Error {
 }
 
 export class CommandUnknownCommandError extends Error {
-    name = 'CommandUnknownCommandError';
-    message = `Unknown command.`;
-    code = ErrorKind.COMMAND_UNKNOWN_COMMAND;
+    name: string = 'CommandUnknownCommandError';
+    message: string = `Unknown command.`;
+    code: ErrorKind = ErrorKind.COMMAND_UNKNOWN_COMMAND;
 
     public constructor() {
         super();
@@ -57,9 +59,9 @@ export class CommandUnknownCommandError extends Error {
 }
 
 export class CommandRegisterClassMalformedOrMissingError extends Error {
-    name = 'CommandRegisterClassMalformedOrMissingError';
-    message = `Command class is malformed or missing.`;
-    code = ErrorKind.COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING;
+    name: string = 'CommandRegisterClassMalformedOrMissingError';
+    message: string = `Command class is malformed or missing.`;
+    code: ErrorKind = ErrorKind.COMMAND_REGISTER_CLASS_MALFORMED_OR_MISSING;
 
     public constructor() {
         super();
@@ -68,9 +70,9 @@ export class CommandRegisterClassMalformedOrMissingError extends Error {
 }
 
 export class PlayerNotFoundError extends Error {
-    name = 'PlayerNotFoundError';
-    message = `Player not found.`;
-    code = ErrorKind.PLAYER_NOT_FOUND;
+    name: string = 'PlayerNotFoundError';
+    message: string = `Player not found.`;
+    code: ErrorKind = ErrorKind.PLAYER_NOT_FOUND;
 
     public constructor(username?: string) {
         super();
@@ -78,6 +80,21 @@ export class PlayerNotFoundError extends Error {
 
         if (username) {
             this.message = `Player "${username}" not found.`;
+        }
+    }
+}
+
+export class GametypeInvalidError extends Error {
+    name: string = 'GametypeInvalidError';
+    message: string = `Unknown or invalid game type.`;
+    code: ErrorKind = ErrorKind.PLAYER_NOT_FOUND;
+
+    public constructor(gametype?: string) {
+        super();
+        Object.setPrototypeOf(this, GametypeInvalidError.prototype);
+
+        if (gametype) {
+            this.message = `Gametype "${gametype}" is not a valid game type.`;
         }
     }
 }

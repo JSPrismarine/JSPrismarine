@@ -13,6 +13,10 @@ public/
 *.env
 *.log
 *.bak
+*.dat
+*.nbt
 
 vite.config.ts
 vitest.config.ts
+packages/bedrock-data/utils/build.js
+packages/bedrock-data/src/resources/

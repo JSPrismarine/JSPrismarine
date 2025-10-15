@@ -1,6 +1,6 @@
 const Identifiers = {
-    Protocol: 662,
-    MinecraftVersions: ['1.20.70', '1.20.71', '1.20.72', '1.20.73'],
+    Protocol: 748,
+    MinecraftVersions: ['1.21.40'],
 
     LoginPacket: 0x01,
     PlayStatusPacket: 0x02,
@@ -61,7 +61,7 @@ const Identifiers = {
     SetCommandsEnabledPacket: 0x3b,
     SetDifficultyPacket: 0x3c,
     ChangeDimensionPacket: 0x3d,
-    SetPlayerGameTypePacket: 0x3e,
+    SetPlayerGametypePacket: 0x3e,
     PlayerListPacket: 0x3f,
     SimpleEventPacket: 0x40,
     EventPacket: 0x41,
@@ -104,7 +104,7 @@ const Identifiers = {
     ServerSettingsRequestPacket: 0x66,
     ServerSettingsResponsePacket: 0x67,
     ShowProfilePacket: 0x68,
-    SetDefaultGameTypePacket: 0x69,
+    SetDefaultGametypePacket: 0x69,
     RemoveObjectivePacket: 0x6a,
     SetDisplayObjectivePacket: 0x6b,
     SetScorePacket: 0x6c,

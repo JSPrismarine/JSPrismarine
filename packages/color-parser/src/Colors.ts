@@ -1,6 +1,7 @@
-import chalk from 'chalk';
+import chalk from 'chalk-cjs'; // TODO: Replace this with a sensible alternative.
 
-const chalkColorMap = {
+// Minecraft color codes -> chalk color names.
+export const chalkColorMap = {
     0: 'black',
     1: 'blue',
     2: 'green',
@@ -27,15 +28,19 @@ const chalkColorMap = {
     r: 'reset'
 };
 
-const toConsole = Object.fromEntries(
-    Object.entries(chalkColorMap).map((i) => {
-        const colorData = (chalk as any)[i[1]];
-        if (colorData && i[1]) {
-            const symbols: any = Object.getOwnPropertySymbols(colorData);
-            return [i[0], (chalk as any)[i[1]][symbols[1]].open];
+export type ChalkColorMap = {
+    [key: string]: keyof typeof chalk;
+};
+
+export const toConsole: ChalkColorMap = Object.fromEntries(
+    Object.entries(chalkColorMap).map((conversion) => {
+        const chalkColorData = chalk[conversion[1] as keyof typeof chalk];
+
+        if (chalkColorData && conversion[1]) {
+            const symbols: any = Object.getOwnPropertySymbols(chalkColorData);
+            return [conversion[0], (chalk as any)[conversion[1]][symbols[1]].open];
         }
-        return [i[0], ''];
+
+        return [conversion[0], ''];
     })
 );
-
-export { chalkColorMap, toConsole };

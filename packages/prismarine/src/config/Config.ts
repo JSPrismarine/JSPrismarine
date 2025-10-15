@@ -1,12 +1,13 @@
 import type { LogLevel } from '@jsprismarine/logger';
 import { SeedGenerator } from '../utils/Seed';
-import { cwd } from '../utils/cwd';
+import { withCwd } from '../utils/cwd';
 import { ConfigBuilder } from './ConfigBuilder';
 
 import { getGametypeName } from '@jsprismarine/minecraft';
-import path from 'node:path';
 
 const isDev = process.env.NODE_ENV === 'development';
+
+const FILE_NAME = 'config.yaml';
 
 export class Config {
     private configBuilder!: ConfigBuilder;
@@ -24,13 +25,33 @@ export class Config {
     private onlineMode!: boolean;
     private packetCompressionLevel!: number;
 
+    /**
+     * Controls if the minecraft/source query response should be enabled.
+     */
+    private enableQuery: boolean = true;
+
+    /**
+     * Controls if the process title should be updated.
+     * @remarks this can cause performance issues in some terminals.
+     */
+    private enableProcessTitle: boolean = true;
+
+    /**
+     * Controls if the ticking should be enabled.
+     */
+    private enableTicking: boolean = true;
+
     public constructor() {
-        this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
+        this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
     }
 
+    /**
+     * On enable hook.
+     * @group Lifecycle
+     */
     public async enable(): Promise<void> {
-        this.configBuilder = new ConfigBuilder(path.resolve(cwd(), 'config.yaml'));
+        this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
         this.port = this.configBuilder.get('port', 19132) as number;
         this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0') as string;
@@ -48,8 +69,18 @@ export class Config {
         this.viewDistance = this.configBuilder.get('view-distance', 10) as number;
         this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
         this.packetCompressionLevel = this.configBuilder.get('packet-compression-level', 7) as number;
+        this.enableQuery = this.configBuilder.get('enable-query', this.enableQuery) as typeof this.enableQuery;
+        this.enableProcessTitle = this.configBuilder.get(
+            'enable-process-title',
+            this.enableProcessTitle
+        ) as typeof this.enableProcessTitle;
+        this.enableTicking = this.configBuilder.get('enable-ticking', this.enableTicking) as typeof this.enableTicking;
     }
 
+    /**
+     * On disable hook.
+     * @group Lifecycle
+     */
     public async disable(): Promise<void> {}
 
     public getLogLevel(): LogLevel {
@@ -153,5 +184,17 @@ export class Config {
 
     public getPacketCompressionLevel() {
         return this.packetCompressionLevel;
+    }
+
+    public getEnableQuery() {
+        return this.enableQuery;
+    }
+
+    public getEnableProcessTitle() {
+        return this.enableProcessTitle;
+    }
+
+    public getEnableTicking() {
+        return this.enableTicking;
     }
 }

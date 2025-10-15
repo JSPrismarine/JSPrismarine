@@ -1,4 +1,4 @@
-import type { InetAddress } from '../../RakNet';
+import type { InetAddress } from '../../';
 import { MessageIdentifiers } from '../MessageIdentifiers';
 import Packet from '../Packet';
 

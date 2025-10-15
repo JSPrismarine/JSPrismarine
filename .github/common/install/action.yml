@@ -5,19 +5,18 @@ runs:
     using: 'composite'
     steps:
         - name: 🏎️ Setup Node
-          uses: actions/setup-node@v4
+          uses: actions/setup-node@v6
           with:
               registry-url: 'https://registry.npmjs.org/'
               node-version-file: '.nvmrc'
 
         - name: 🏎️ Setup pnpm
-          uses: pnpm/action-setup@v3
+          uses: pnpm/action-setup@v4
           with:
-              version: 8
               run_install: false
 
         - name: 🏎️ Setup Bun
-          uses: oven-sh/setup-bun@v1
+          uses: oven-sh/setup-bun@v2
           with:
               bun-version: canary
 

@@ -2,10 +2,11 @@ import type { Server, Service } from './';
 import type { CommandExecutor } from './command/CommandExecutor';
 import type ChatEvent from './events/chat/ChatEvent';
 
+import process from 'node:process';
 import type { CompleterResult } from 'node:readline';
 import readline from 'node:readline';
 
-// Extend `readline.Interface` type
+// Extend builtin `readline.Interface` type
 declare module 'node:readline' {
     interface Interface {
         setRawMode?(mode: boolean): void;
@@ -25,8 +26,23 @@ export default class Console implements CommandExecutor, Service {
 
     public constructor(private server: Server) {}
 
+    /**
+     * On enable hook.
+     * @group Lifecycle
+     */
     public async enable(): Promise<void> {
+        // Make sure we don't enable the console twice.
+        if (this.cli) return;
+
+        if (!process.stdin.setRawMode as any) {
+            // TODO: Handle headless modes better (eg unit testing).
+            return;
+        }
+
         process.stdin.setRawMode(true);
+        process.stdin.setNoDelay(true);
+        process.stdin.setKeepAlive(true);
+        process.stdin.resume();
 
         this.cli = readline.createInterface({
             input: process.stdin,
@@ -34,8 +50,6 @@ export default class Console implements CommandExecutor, Service {
             terminal: true,
             prompt: '> ',
             tabSize: 4,
-            crlfDelay: Number.POSITIVE_INFINITY,
-            escapeCodeTimeout: 1500,
             removeHistoryDuplicates: true,
             completer: this.complete.bind(this)
         });
@@ -63,6 +77,7 @@ export default class Console implements CommandExecutor, Service {
         this.cli.on('line', (input: string) => {
             if (input.trim() === '') return;
 
+            // Fix cursor positioning.
             this.cli?.output.write(`\x1b[2D`);
 
             // Handle commands.
@@ -71,22 +86,24 @@ export default class Console implements CommandExecutor, Service {
                 return;
             }
         });
-
-        this.cli.on('close', async () => await this.server.shutdown());
     }
 
+    /**
+     * On disable hook.
+     * @group Lifecycle
+     */
     public async disable(): Promise<void> {
-        /*this.cli?.removeAllListeners();
-        this.cli?.close();*/
+        this.cli?.close();
+        this.cli?.removeAllListeners();
     }
 
     private async complete(line: string, callback: (err?: null | Error, result?: CompleterResult) => void) {
         const commands = Array.from(this.server.getCommandManager().getCommands().values()).map(
-            (command) => `/${command.name}`
+            (command) => command.name
         );
 
         // Merge and remove duplicates.
-        const completions = ['/', ...commands]
+        const completions = commands
             .reverse() // Reverse to remove duplicates at the end.
             .filter((value, index, self) => self.indexOf(value) === index)
             .reverse(); // Restore.

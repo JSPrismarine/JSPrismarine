@@ -10,10 +10,10 @@ process.title = 'JSPrismarine';
 
 dotenv.config({
     path: [
-        path.join(process.cwd(), '.env'),
         path.join(process.cwd(), '.env.local'),
-        path.join(process.cwd(), '.env.development'),
-        path.join(process.cwd(), '.env.development.local')
+        path.join(process.cwd(), '.env'),
+        path.join(process.cwd(), '.env.development.local'),
+        path.join(process.cwd(), '.env.development')
     ]
 });
 
@@ -46,24 +46,34 @@ const logger = new Logger(config.getLogLevel(), [
 ]);
 const server = new Server({
     config,
-    logger
+    logger: logger as any
 });
 
-['SIGSEGV', 'SIGHUP', 'uncaughtException'].forEach((signal) => {
-    try {
-        process.on(signal, (error) => {
-            if (error instanceof Error) logger.error(error);
-            void server.shutdown({ crash: error === 'uncaughtException' });
-        });
-    } catch {}
+let forceExitTriggered = false;
+['SIGSEGV', 'SIGHUP', 'SIGINT', 'SIGTERM', 'uncaughtException'].forEach((signal) => {
+    process.on(signal, async (error) => {
+        // Handle spamming ctrl+c.
+        if (forceExitTriggered) {
+            process.exit(1);
+        }
+        forceExitTriggered = true;
+
+        if (error instanceof Error) {
+            logger.error(error);
+        }
+
+        void server.shutdown({ crash: error === 'uncaughtException' });
+
+        // FIXME: This is a temporary fix for the server not shutting down properly.
+        process.exit(1);
+    });
 });
 
 try {
     await server.bootstrap(config.getServerIp(), config.getServerPort());
 } catch (error: unknown) {
-    console.warn(`Cannot start the server, is it already running on the same port?`);
-    console.error(error);
-    await server.shutdown({ crash: true });
+    logger.warn(`Cannot start the server, is it already running on the same port?`);
+    throw error; // Re-throw it so `process.on` can handle it.
 }
 
 export {};

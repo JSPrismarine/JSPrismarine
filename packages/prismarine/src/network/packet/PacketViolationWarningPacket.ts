@@ -10,14 +10,14 @@ export default class PacketViolationWarningPacket extends DataPacket {
     public packetId!: number;
     public message!: string;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarInt(this.type);
         this.writeVarInt(this.severity);
         this.writeVarInt(this.packetId);
         NetworkUtil.writeString(this, this.message);
     }
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.type = this.readVarInt();
         this.severity = this.readVarInt();
         this.packetId = this.readVarInt();

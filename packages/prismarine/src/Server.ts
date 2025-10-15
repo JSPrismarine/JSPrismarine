@@ -26,17 +26,17 @@ import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import type { Config } from './config/Config';
 
 import type { Logger } from '@jsprismarine/logger';
-import { version } from '../package.json' assert { type: 'json' };
+import { version } from '../package.json' with { type: 'json' };
 
 /**
  * JSPrismarine's main server class.
  * @public
  */
 export default class Server extends EventEmitter {
-    private raknet!: RakNetListener;
+    private raknet: RakNetListener | undefined;
     private readonly logger: Logger;
     private readonly config: Config;
-    private readonly console: Console;
+    private readonly console: Console | undefined;
     private readonly packetRegistry: PacketRegistry;
     private readonly sessionManager = new SessionManager();
     private readonly commandManager: CommandManager;
@@ -72,19 +72,26 @@ export default class Server extends EventEmitter {
      */
     private currentTick = 0n;
 
+    /**
+     * If the server is headless.
+     * @internal
+     */
+    private readonly headless: boolean;
+
     // TODO: Move this somewhere else.
     private static readonly MINECRAFT_TICK_TIME_MS = 1000 / 20;
 
     /**
      * Creates a new server instance.
-     * @constructor
-     * @params {object} options - The options.
-     * @params {LoggerBuilder} options.logger - The logger.
-     * @params {Config} options.config - The config.
+     * @param {object} options - The options.
+     * @param {LoggerBuilder} options.logger - The logger.
+     * @param {Config} options.config - The config.
      * @returns {Server} The server instance.
      */
-    public constructor({ logger, config }: { logger: Logger; config: Config }) {
+    public constructor({ logger, config, headless = false }: { logger: Logger; config: Config; headless?: boolean }) {
         super();
+
+        this.headless = headless;
 
         logger.info(
             `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`
@@ -92,11 +99,11 @@ export default class Server extends EventEmitter {
 
         this.logger = logger;
         this.config = config;
-        this.console = new Console(this);
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.worldManager = new WorldManager(this);
+        if (!this.headless) this.console = new Console(this);
         this.commandManager = new CommandManager(this);
         this.queryManager = new QueryManager(this);
         this.chatManager = new ChatManager(this);
@@ -110,14 +117,18 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private async enable(): Promise<void> {
+        await BlockMappings.initMappings(this);
+
         await this.config.enable();
-        await this.console.enable();
+        await this.console?.enable();
         await this.logger.enable();
         await this.permissionManager.enable();
-        await this.banManager.enable();
+        await this.packetRegistry.enable();
         await this.itemManager.enable();
         await this.blockManager.enable();
+        await this.banManager.enable();
         await this.commandManager.enable();
+        await this.worldManager.enable();
 
         this.logger.setConsole(this.console);
     }
@@ -130,21 +141,20 @@ export default class Server extends EventEmitter {
     private async disable(): Promise<void> {
         await this.worldManager.disable();
         await this.commandManager.disable();
+        await this.banManager.disable();
         await this.blockManager.disable();
         await this.itemManager.disable();
-        await this.banManager.disable();
         await this.permissionManager.disable();
         await this.packetRegistry.disable();
         await this.config.disable();
         await this.logger.disable();
-        await this.console.disable();
 
-        // Finally, remove all listeners.
-        this.removeAllListeners();
+        BlockMappings.reset();
     }
 
     public getMetadata() {
-        return this.getRaknet().serverName;
+        if (!this.raknet) throw new Error('Server is not started');
+        return this.raknet.serverName;
     }
 
     /**
@@ -166,9 +176,6 @@ export default class Server extends EventEmitter {
      */
     public async bootstrap(serverIp = '0.0.0.0', port = 19132): Promise<void> {
         await this.enable();
-        await BlockMappings.initMappings(this);
-        await this.worldManager.enable();
-        await this.packetRegistry.enable();
 
         this.raknet = new RakNetListener(
             this.getConfig().getMaxPlayers(),
@@ -270,72 +277,73 @@ export default class Server extends EventEmitter {
         });
 
         this.raknet.on('raw', async (buffer: Buffer, inetAddr: InetAddress) => {
+            if (!this.config.getEnableQuery()) return;
+
             try {
                 await this.queryManager.onRaw(buffer, inetAddr);
             } catch (error: unknown) {
+                this.logger.verbose(`QueryManager encountered an error`);
                 this.logger.error(error);
-                this.logger.verbose(`QueryManager failed with error: ${error}`);
             }
         });
 
-        let startTime = Date.now();
-        let tpsStartTime = Date.now();
-        let lastTickTime = Date.now();
-        let tpsStartTick = this.getTick();
-        const tick = () => {
-            if (this.stopping) return;
+        if (this.config.getEnableTicking()) {
+            let startTime = Date.now();
+            let tpsStartTime = Date.now();
+            let lastTickTime = Date.now();
+            let tpsStartTick = this.getTick();
+            const tick = async () => {
+                if (this.stopping) return;
 
-            const event = new TickEvent(this.getTick());
-            void this.emit('tick', event);
+                const event = new TickEvent(this.getTick());
+                void this.emit('tick', event);
 
-            const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
+                const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
 
-            // Update all worlds.
-            for (const world of this.worldManager.getWorlds()) {
-                void world.update(event.getTick());
-            }
+                // Update all worlds.
+                await Promise.all(this.worldManager.getWorlds().map((world) => world.update(event.getTick())));
 
-            // Update RakNet server name.
-            if (this.getTick() % ticksPerSecond === 0) {
-                // Update the process title with TPS and tick.
-                process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
-            }
+                if (this.config.getEnableProcessTitle() && this.getTick() % ticksPerSecond === 0 && !this.headless) {
+                    // Update the process title with TPS and tick.
+                    process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
+                }
 
-            this.currentTick++;
-            const endTime = Date.now();
-            const elapsedTime = endTime - startTime;
-            const expectedElapsedTime = this.getTick() * Server.MINECRAFT_TICK_TIME_MS;
-            const executionTime = endTime - lastTickTime;
+                this.currentTick++;
+                const endTime = Date.now();
+                const elapsedTime = endTime - startTime;
+                const expectedElapsedTime = this.getTick() * Server.MINECRAFT_TICK_TIME_MS;
+                const executionTime = endTime - lastTickTime;
 
-            // Adjust sleepTime based on execution speed.
-            let sleepTime = Server.MINECRAFT_TICK_TIME_MS - executionTime;
-            if (elapsedTime < expectedElapsedTime) {
-                // If we're running faster than expected, increase sleepTime.
-                sleepTime += expectedElapsedTime - elapsedTime;
-            } else if (elapsedTime > expectedElapsedTime) {
-                // If we're running slower than expected, decrease sleepTime but don't let it go below 0.
-                sleepTime = Math.max(0, sleepTime - (elapsedTime - expectedElapsedTime));
-            }
+                // Adjust sleepTime based on execution speed.
+                let sleepTime = Server.MINECRAFT_TICK_TIME_MS - executionTime;
+                if (elapsedTime < expectedElapsedTime) {
+                    // If we're running faster than expected, increase sleepTime.
+                    sleepTime += expectedElapsedTime - elapsedTime;
+                } else if (elapsedTime > expectedElapsedTime) {
+                    // If we're running slower than expected, decrease sleepTime but don't let it go below 0.
+                    sleepTime = Math.max(0, sleepTime - (elapsedTime - expectedElapsedTime));
+                }
 
-            // Calculate tps based on the actual elapsed time since the start of the tick.
-            if (tpsStartTime !== endTime) {
-                this.tps = ((this.getTick() - tpsStartTick) * 1000) / (endTime - tpsStartTime);
-            }
+                // Calculate tps based on the actual elapsed time since the start of the tick.
+                if (tpsStartTime !== endTime) {
+                    this.tps = ((this.getTick() - tpsStartTick) * 1000) / (endTime - tpsStartTime);
+                }
 
-            if (endTime - tpsStartTime >= 1000) {
-                tpsStartTick = this.getTick();
-                tpsStartTime = endTime;
-            }
+                if (endTime - tpsStartTime >= 1000) {
+                    tpsStartTick = this.getTick();
+                    tpsStartTime = endTime;
+                }
 
-            this.tps = Math.min(this.tps, 20); // Ensure tps does not exceed 20
+                this.tps = Math.min(this.tps, 20); // Ensure tps does not exceed 20
 
-            lastTickTime = endTime;
-            this.tickerTimer = setTimeout(tick, sleepTime);
-            this.tickerTimer.unref();
-        };
+                lastTickTime = endTime;
+                this.tickerTimer = setTimeout(tick, sleepTime);
+                this.tickerTimer.unref();
+            };
 
-        // Start ticking
-        tick();
+            // Start ticking
+            void tick();
+        }
 
         this.logger.info(`JSPrismarine is now listening on port §b${port}`);
     }
@@ -344,37 +352,38 @@ export default class Server extends EventEmitter {
      * Kills the server asynchronously.
      * @param {object} [options] - The options.
      * @param {boolean} [options.crash] - If the server should crash.
+     * @param {boolean} [options.stayAlive] - If we should let the process stay alive.
      * @returns {Promise<void>} A promise that resolves when the server is killed.
      */
-    public async shutdown(options?: { crash?: boolean }): Promise<void> {
+    public async shutdown(options?: { crash?: boolean; stayAlive?: boolean }): Promise<void> {
         if (this.stopping) return;
         this.stopping = true;
 
         this.logger.info('Stopping server', 'Server/kill');
-        await this.console.disable();
+        await this.console?.disable();
 
         clearInterval(this.tickerTimer);
 
         try {
             // Kick all online players.
-            for (const player of this.sessionManager.getAllPlayers()) {
-                await player.kick('Server closed.');
-            }
+            await this.sessionManager.kickAllPlayers('Server closed.');
 
             // Disable all managers.
             await this.disable();
 
             // `this.raknet` might be undefined if we kill the server really early.
-            try {
-                this.raknet.kill();
-            } catch {}
+            this.raknet?.kill();
 
-            this.getLogger().info('Server stopped, Goodbye!\n');
+            // Finally, remove all listeners.
+            this.removeAllListeners();
 
-            process.exit(options?.crash ? 1 : 0);
+            // Logger is no longer available.
+            console.debug('Server stopped, Goodbye!\n');
+
+            if (!options?.stayAlive) process.exit(options?.crash ? 1 : 0);
         } catch (error: unknown) {
-            this.logger.error(error);
-            process.exit(1);
+            console.error(error);
+            if (!options?.stayAlive) process.exit(1);
         }
     }
 
@@ -481,9 +490,9 @@ export default class Server extends EventEmitter {
 
     /**
      * Returns the raknet instance.
-     * @returns {RakNetListener} The raknet instance.
+     * @returns {RakNetListener | undefined} The raknet instance.
      */
-    public getRaknet() {
+    public getRaknet(): RakNetListener | undefined {
         return this.raknet;
     }
 
@@ -509,9 +518,9 @@ export default class Server extends EventEmitter {
 
     /**
      * Returns the console instance.
-     * @returns {Console} The console instance.
+     * @returns {Console | undefined} The console instance.
      */
-    public getConsole(): Console {
+    public getConsole() {
         return this.console;
     }
 

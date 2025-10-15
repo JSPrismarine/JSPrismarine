@@ -1,7 +1,8 @@
 name: Generate Documentations
 on:
     push:
-    pull_request:
+        branches:
+            - master
 
 jobs:
     build-and-publish-docs:
@@ -11,14 +12,16 @@ jobs:
             TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
             TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
+              with:
+                  submodules: 'recursive'
+
             - name: 📦 Install
               uses: ./.github/common/install
 
             - run: pnpm run build
-
             - run: pnpm run build:docs
-            
+
             - uses: peaceiris/actions-gh-pages@v4
               if: github.event_name == 'push' && github.ref == 'refs/heads/master'
               with:

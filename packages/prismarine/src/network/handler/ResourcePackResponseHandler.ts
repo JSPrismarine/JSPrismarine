@@ -61,6 +61,9 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             startGame.pitch = player.pitch;
             startGame.yaw = player.yaw;
 
+            startGame.serverIdentifier = 'JSPrismarine';
+            startGame.worldIdentifier = world.getName();
+            startGame.scenarioIdentifier = 'JSPrismarine';
             startGame.levelId = world.getUUID();
             startGame.ticks = server.getTick();
             startGame.time = world.getTicks();
@@ -143,7 +146,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // Announce connection
             const chatSpawnEvent = new ChatEvent(
                 new Chat({
-                    sender: server.getConsole(),
+                    sender: server.getConsole()!,
                     message: `§e%multiplayer.player.joined`,
                     parameters: [player.getName()],
                     needsTranslation: true,

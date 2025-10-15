@@ -7,6 +7,7 @@ import { Metadata, MetadataFlag } from './Metadata';
 
 /**
  * The base class for all entities including `Player`.
+ * @class
  * @public
  */
 export class Entity {

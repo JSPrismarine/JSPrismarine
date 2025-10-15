@@ -9,7 +9,6 @@ export default class Packet extends BinaryStream {
 
     /**
      * Create a new packet.
-     * @constructor
      */
     public constructor(id: number, buffer?: Buffer) {
         super(buffer);
@@ -31,7 +30,7 @@ export default class Packet extends BinaryStream {
 
     protected decodePayload(): void {}
 
-    public encode() {
+    public encode(): void {
         this.writeByte(this.getId());
         this.encodePayload();
     }
@@ -45,7 +44,7 @@ export default class Packet extends BinaryStream {
     public writeString(v: string): void {
         const data = Buffer.from(v, 'utf-8');
         this.writeUnsignedShort(data.byteLength);
-        this.write(data);
+        this.write(data as any);
     }
 
     public readAddress(): InetAddress {

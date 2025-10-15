@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/brigadier",
-    "version": "0.4.3",
+    "version": "0.13.1",
     "description": "A javascript re-implementation of Mojang's Brigadier library",
     "sideEffects": false,
     "type": "module",
@@ -15,19 +15,16 @@
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": [
-                "./src/index.ts",
-                "./dist/index.es.js"
-            ],
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.es.js",
             "module": "./dist/index.es.js",
-            "require": "./dist/index.cjs.cjs",
-            "types": "./dist/index.d.ts"
+            "require": "./dist/index.cjs.cjs"
         },
         "./*": {
+            "types": "./dist/*.d.ts",
             "import": "./dist/*.es.js",
             "module": "./dist/*.es.js",
-            "require": "./dist/*.cjs.cjs",
-            "types": "./dist/*.d.ts"
+            "require": "./dist/*.cjs.cjs"
         },
         "./package.json": "./package.json"
     },
@@ -52,12 +49,12 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/brigadier",
     "devDependencies": {
-        "@types/node": "20.12.7",
-        "glob": "10.3.12",
-        "rimraf": "5.0.5",
-        "typescript": "5.4.5",
-        "vite": "5.2.10",
-        "vitest": "1.5.0"
+        "@types/node": "22.18.10",
+        "glob": "11.0.3",
+        "rimraf": "6.0.1",
+        "typescript": "5.5.2",
+        "vite": "7.1.10",
+        "vitest": "3.2.4"
     },
     "dependencies": {}
 }

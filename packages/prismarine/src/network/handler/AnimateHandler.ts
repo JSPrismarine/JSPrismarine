@@ -1,8 +1,8 @@
-import AnimatePacket from '../packet/AnimatePacket';
-import Identifiers from '../Identifiers';
-import type PacketHandler from './PacketHandler';
-import type PlayerSession from '../PlayerSession';
 import type Server from '../../Server';
+import Identifiers from '../Identifiers';
+import type PlayerSession from '../PlayerSession';
+import AnimatePacket from '../packet/AnimatePacket';
+import type PacketHandler from './PacketHandler';
 
 export default class AnimateHandler implements PacketHandler<AnimatePacket> {
     public static NetID = Identifiers.AnimatePacket;

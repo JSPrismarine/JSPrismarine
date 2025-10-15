@@ -17,12 +17,20 @@ export default class PacketRegistry {
         this.server = server;
     }
 
-    public async enable() {
+    /**
+     * On enable hook.
+     * @group Lifecycle
+     */
+    public async enable(): Promise<void> {
         await this.registerPackets();
         await this.registerHandlers();
     }
 
-    public async disable() {
+    /**
+     * On disable hook.
+     * @group Lifecycle
+     */
+    public async disable(): Promise<void> {
         this.handlers.clear();
         this.packets.clear();
     }

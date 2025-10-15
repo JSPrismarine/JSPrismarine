@@ -39,6 +39,11 @@ export class BlockMappings {
         }
     }
 
+    public static reset() {
+        this.nameToRuntime.clear();
+        this.runtimeToName.clear();
+    }
+
     private static registerMapping(name: string, runtimeId: number): void {
         this.nameToRuntime.set(name, runtimeId);
         this.runtimeToName.set(runtimeId, name);
@@ -50,7 +55,7 @@ export class BlockMappings {
 
     public static getLegacyId(runtimeId: number): LegacyId {
         const name = this.runtimeToName.get(runtimeId)!;
-        const legacyId = BedrockData.block_id_map[name];
+        const legacyId = (BedrockData as any).block_id_map[name] as number;
         // TODO: proper meta
         return <LegacyId>{ id: legacyId & 0xf, meta: 0 };
     }

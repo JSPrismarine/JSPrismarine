@@ -32,7 +32,7 @@ import PlayStatusPacket from './packet/PlayStatusPacket';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
-import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
+import SetPlayerGametypePacket from './packet/SetPlayerGametypePacket';
 import SetTimePacket from './packet/SetTimePacket';
 import TextPacket from './packet/TextPacket';
 import UpdateAbilitiesPacket, {
@@ -301,8 +301,7 @@ export default class PlayerSession {
 
     /**
      * Sets the item in the player hand.
-     *
-     * @param item - The entity.
+     * @param {Item} item - The entity.
      */
     public async sendHandItem(item: Item): Promise<void> {
         const pk = new MobEquipmentPacket();
@@ -315,9 +314,8 @@ export default class PlayerSession {
     }
 
     /**
-     * Set the client's current tick.
-     *
-     * @param tick - The tick
+     * Send the current tick to a client.
+     * @param {number} tick - The tick
      */
     public async sendTime(tick: number): Promise<void> {
         const pk = new SetTimePacket();
@@ -326,12 +324,12 @@ export default class PlayerSession {
     }
 
     /**
-     * Set the client's gamemode.
+     * Send gamemode to a client.
      * @param {Gametype} gamemode - the numeric gamemode ID.
      */
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
-        const packet = new SetPlayerGameTypePacket();
-        packet.gametype = gamemode ??= this.player.gamemode;
+        const packet = new SetPlayerGametypePacket();
+        packet.gametype = gamemode ?? this.player.gamemode;
         await this.connection.sendDataPacket(packet);
     }
 
@@ -462,7 +460,7 @@ export default class PlayerSession {
     public async sendMetadata(metadata?: Metadata): Promise<void> {
         const packet = new SetActorDataPacket();
         packet.runtimeEntityId = this.player.getRuntimeId();
-        packet.metadata = metadata ??= this.player.metadata;
+        packet.metadata = metadata ?? this.player.metadata;
         packet.tick = BigInt(this.player.getServer().getTick());
         await this.connection.sendDataPacket(packet);
     }
@@ -500,6 +498,7 @@ export default class PlayerSession {
 
         const pk = new TextPacket();
         pk.message = message;
+        pk.filtered = message;
         pk.sourceName = sourceName;
         pk.xuid = xuid;
         pk.platformChatId = platformChatId;

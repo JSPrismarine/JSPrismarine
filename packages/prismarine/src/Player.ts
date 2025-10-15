@@ -123,7 +123,7 @@ export default class Player extends Human implements CommandExecutor {
         // Announce disconnection
         const event = new ChatEvent(
             new Chat({
-                sender: this.server.getConsole(),
+                sender: this.server.getConsole()!,
                 message: `§e%multiplayer.player.left`,
                 parameters: [this.getName()],
                 needsTranslation: true,
@@ -375,7 +375,6 @@ export default class Player extends Human implements CommandExecutor {
 
     /**
      * Check if the `Player` is an operator.
-     *
      * @returns `true` if this player is an operator otherwise `false`.
      */
     public isOp(): boolean {

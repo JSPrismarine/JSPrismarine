@@ -1,5 +1,5 @@
-import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
 /**
  * Packet for handling a player's health.
@@ -14,11 +14,11 @@ export default class SetHealthPacket extends DataPacket {
      */
     public health: number = 20;
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.health = this.readVarInt();
     }
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeVarInt(this.health);
     }
 }

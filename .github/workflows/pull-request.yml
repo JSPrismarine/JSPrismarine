@@ -16,18 +16,19 @@ jobs:
 
         steps:
             - name: 🕶️ Checkout repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   fetch-depth: 0
                   ref: ${{github.event.pull_request.head.ref}}
                   repository: ${{github.event.pull_request.head.repo.full_name}}
                   token: ${{ secrets.GITHUB_TOKEN }}
+                  submodules: 'recursive'
 
             - name: 📦 Install
               uses: ./.github/common/install
 
             - name: 🚚 Update PR
-              uses: mscharley/dependency-changesets-action@v1.0.9
+              uses: mscharley/dependency-changesets-action@v1.1.9
               with:
                   use-conventional-commits: false
                   commit-message: 'Deps: Add changeset.'

@@ -24,7 +24,11 @@ export class CommandManager implements Service {
         this.dispatcher = new CommandDispatcher();
     }
 
-    public async enable() {
+    /**
+     * On enable hook.
+     * @group Lifecycle
+     */
+    public async enable(): Promise<void> {
         const timer = new Timer();
 
         const commands = Object.keys(Commands).map((key) => (Commands as any)[key] as typeof Command);
@@ -52,15 +56,20 @@ export class CommandManager implements Service {
             .verbose(`Registered §b${this.commands.size}§r commands(s) (took §e${timer.stop()} ms§r)!`);
     }
 
-    public async disable() {
+    /**
+     * On disable hook.
+     * @group Lifecycle
+     */
+    public async disable(): Promise<void> {
         this.commands.clear();
         // TODO: clear commands in dispatcher
     }
 
     /**
      * Register a command into command manager by class.
+     * @param {Command} [command] - The command class to register
      */
-    public async registerCommand(command?: Command) {
+    public async registerCommand(command?: Command): Promise<void> {
         if (!command || !command.id) throw new CommandRegisterClassMalformedOrMissingError();
         if (command.id.split(':').length !== 2) throw new GenericNamespaceInvalidError();
 
@@ -245,7 +254,7 @@ export class CommandManager implements Service {
             await Promise.all(
                 res.map(async (res: any) => {
                     const chat = new Chat({
-                        sender: this.server.getConsole(),
+                        sender: this.server.getConsole()!,
                         message: `§o§7[${target.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
                         channel: '*.ops'
                     });

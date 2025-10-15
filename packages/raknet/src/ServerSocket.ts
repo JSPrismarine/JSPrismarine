@@ -87,14 +87,21 @@ export default class ServerSocket extends EventEmitter {
     public kill(): void {
         // Send last remaining packets to all players
         for (const session of this.getSessions()) {
+            // FIXME: This should be awaitable.
             session.sendFrameQueue();
         }
 
         clearTimeout(this.ticker);
+
+        // Make sure we don't send any more events.
+        this.removeAllListeners();
+
+        // Finally, close the socket.
+        this.socket.close();
     }
 
     /**
-     * Used to retrive if we are overflowing the maximum
+     * Used to retrieve if we are overflowing the maximum
      * connections we can allow, value given in the constructor.
      * @returns {boolean} if we can hold new connections.
      */
@@ -114,11 +121,11 @@ export default class ServerSocket extends EventEmitter {
      * Sets the maximum number of allowed incoming connections.
      * @param {number} allowed - maximum number of connections.
      */
-    public setMaxConnections(allowed: number) {
+    public setMaxConnections(allowed: number): void {
         this.maxConnections = allowed;
     }
 
-    public addSession(rinfo: RemoteInfo, mtuSize: number, incomingGuid: bigint) {
+    public addSession(rinfo: RemoteInfo, mtuSize: number, incomingGuid: bigint): void {
         this.sessions.add(new RakNetSession(this, mtuSize, rinfo, incomingGuid));
         this.logger.verbose(`Session created for client=${rinfo.address}:${rinfo.port}, mtu=${mtuSize}`);
         this.serverName.setOnlinePlayerCount(this.sessions.size);

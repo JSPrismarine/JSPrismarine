@@ -14,9 +14,9 @@ import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
 import RequestNetworkSettingsHandler from './handler/RequestNetworkSettingsHandler';
 import ResourcePackResponseHandler from './handler/ResourcePackResponseHandler';
 import ServerSettingsRequestHandler from './handler/ServerSettingsRequestHandler';
-import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
+import SetDefaultGametypeHandler from './handler/SetDefaultGametypeHandler';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
-import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
+import SetPlayerGametypeHandler from './handler/SetPlayerGametypeHandler';
 import TextHandler from './handler/TextHandler';
 import TickSyncHandler from './handler/TickSyncHandler';
 
@@ -37,9 +37,9 @@ export {
     RequestNetworkSettingsHandler,
     ResourcePackResponseHandler,
     ServerSettingsRequestHandler,
-    SetDefaultGameTypeHandler,
+    SetDefaultGametypeHandler,
     SetLocalPlayerAsInitializedHandler,
-    SetPlayerGameTypeHandler,
+    SetPlayerGametypeHandler,
     TextHandler,
     TickSyncHandler
 };

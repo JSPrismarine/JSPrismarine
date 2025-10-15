@@ -10,7 +10,7 @@ export default class ContainerOpenPacket extends DataPacket {
     public containerPos!: Vector3;
     public containerEntityId!: bigint;
 
-    public encodePayload() {
+    public encodePayload(): void {
         this.writeByte(this.windowId);
         this.writeByte(this.containerType);
 
@@ -21,7 +21,7 @@ export default class ContainerOpenPacket extends DataPacket {
         this.writeVarLong(this.containerEntityId);
     }
 
-    public decodePayload() {
+    public decodePayload(): void {
         this.windowId = this.readByte();
         this.containerType = this.readByte();
 

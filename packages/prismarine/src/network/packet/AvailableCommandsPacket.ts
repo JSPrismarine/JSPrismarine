@@ -28,7 +28,7 @@ export default class AvailableCommandsPacket extends DataPacket {
     public softEnums: CommandEnum[] = [];
     public enumConstraints: CommandEnumConstraint[] = [];
 
-    public encodePayload() {
+    public encodePayload(): void {
         const enumValueIndexes: Map<string, number> = new Map();
         const postfixIndexes: Map<string, number> = new Map();
         const enums: CommandEnum[] = [];

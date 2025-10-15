@@ -5,32 +5,30 @@ import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
 import Timer from '../utils/Timer';
 import type { Item } from './Item';
 
-// TODO: Don't dynamically import, do it like ./network/Protocol etc
 export default class ItemManager {
     private readonly server: Server;
     private readonly items = new Map<string, Item>();
 
     /**
      * Construct an ItemManager.
-     * @param {Server} server -
-     * @returns {ItemManager}
-     * @constructor
+     * @param {Server} server - The server instance.
+     * @returns {ItemManager} The item manager instance.
      */
     public constructor(server: Server) {
         this.server = server;
     }
 
     /**
-     * OnEnable hook.
-     * @async
+     * On enable hook.
+     * @group Lifecycle
      */
-    public async enable() {
+    public async enable(): Promise<void> {
         await this.importItems();
     }
 
     /**
-     * OnDisable hook.
-     * @async
+     * On disable hook.
+     * @group Lifecycle
      */
     public async disable() {
         this.items.clear();
@@ -66,7 +64,6 @@ export default class ItemManager {
      * Register an item.
      * @param {Item} item - The item to be registered
      * @returns {Promise<void>} The promise.
-     * @async
      */
     public registerItem = async (item: Item) => {
         const event = new ItemRegisterEvent(item);

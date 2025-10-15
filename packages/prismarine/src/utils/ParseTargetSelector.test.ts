@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { Entity } from '../entity/Entity';
-import ParseTargetSelector from './ParseTargetSelector';
 import Sheep from '../entity/passive/Sheep';
+import ParseTargetSelector from './ParseTargetSelector';
 
-describe('util', () => {
+describe('utils', () => {
     describe('ParseTargetSelector', () => {
         it('returns source upon "@s"', () => {
             const source = new Entity({

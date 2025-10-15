@@ -10,7 +10,7 @@ export * from './world/';
 
 import * as Entities from './entity/Entities';
 import * as Events from './events/Events';
-import * as Protocol from './network/Protocol';
+import * as Protocol from './network';
 
 import Console from './Console';
 import Player from './Player';

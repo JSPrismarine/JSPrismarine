@@ -16,16 +16,18 @@ export default class BlockManager {
     }
 
     /**
-     * OnEnable hook.
+     * On enable hook.
+     * @group Lifecycle
      */
-    public async enable() {
+    public async enable(): Promise<void> {
         await this.importBlocks();
     }
 
     /**
-     * OnDisable hook.
+     * On disable hook.
+     * @group Lifecycle
      */
-    public async disable() {
+    public async disable(): Promise<void> {
         this.blocks.clear();
     }
 
@@ -37,7 +39,7 @@ export default class BlockManager {
             throw new Error(`invalid block with id ${name}`);
         }
 
-        return this.blocks.get(name)! || this.javaBlocks.get(name)!;
+        return (this.blocks.get(name) || this.javaBlocks.get(name)) as Block;
     }
 
     /**
@@ -65,7 +67,7 @@ export default class BlockManager {
      * @returns all registered blocks.
      */
     public getBlocks(): Block[] {
-        return Array.from(this.blocks.values());
+        return Array.from(this.blocks.values()) as Block[];
     }
 
     /**

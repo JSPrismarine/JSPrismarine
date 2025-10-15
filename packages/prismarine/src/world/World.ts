@@ -2,7 +2,7 @@ import GameruleManager, { GameRules } from './GameruleManager';
 
 import fs from 'node:fs';
 
-import minifyJson from 'strip-json-comments';
+import { parseJSON5 } from 'confbox';
 
 import { Vector3 } from '@jsprismarine/math';
 import { getGametypeName } from '@jsprismarine/minecraft';
@@ -95,6 +95,10 @@ export class World implements Service {
         }
     }
 
+    /**
+     * On enable hook.
+     * @group Lifecycle
+     */
     public async enable(): Promise<void> {
         this.server.on('tick', async (evt) => this.update(evt.getTick()));
 
@@ -137,7 +141,11 @@ export class World implements Service {
         this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)`);
     }
 
-    public async disable() {
+    /**
+     * On disable hook.
+     * @group Lifecycle
+     */
+    public async disable(): Promise<void> {
         await this.save();
         await this.provider.disable();
     }
@@ -469,17 +477,18 @@ export class World implements Service {
     }
 
     private async getLevelData() {
+        const path = withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME);
+        if (!fs.existsSync(path)) return {};
+
         try {
-            const raw = await fs.promises.readFile(
-                withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME),
-                'utf-8'
-            );
-            return JSON.parse(minifyJson(raw.toString())) as Partial<LevelData>;
+            const raw = await fs.promises.readFile(path, 'utf-8');
+            return parseJSON5(raw.toString()) as Partial<LevelData>;
         } catch (error: any) {
-            this.server.getLogger().warn(`Failed to read level data`);
+            // Something went wrong while reading or parsing the level data.
             this.server.getLogger().error(error);
-            return {};
         }
+
+        return {};
     }
     public async saveLevelData(): Promise<void> {
         const data = {
@@ -502,6 +511,7 @@ export class World implements Service {
 
         try {
             await fs.promises.writeFile(
+                // FIXME: This overwrites comments in the file.
                 withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME),
                 JSON.stringify(data, null, 4)
             );
@@ -518,13 +528,19 @@ export class World implements Service {
      */
     public async getPlayerData(player: Player): Promise<Partial<WorldPlayerData>> {
         try {
+            const fileName = player.getXUID();
+            if (!fileName) {
+                throw new Error('Player has no XUID');
+            }
+
             const raw = await fs.promises.readFile(
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID() || player.getName()}.json`),
                 { flag: 'r', encoding: 'utf-8' }
             );
-            return JSON.parse(minifyJson(raw.toString())) as Partial<WorldPlayerData>;
-        } catch (error: any) {
+            return parseJSON5(raw.toString()) as Partial<WorldPlayerData>;
+        } catch (error: unknown) {
             this.server.getLogger().debug(`PlayerData is missing for player ${player.getXUID()}`);
+            this.server.getLogger().error(error);
 
             const spawn = await this.getSpawnPosition();
             return {
@@ -557,6 +573,7 @@ export class World implements Service {
 
         try {
             await fs.promises.writeFile(
+                // FIXME: This overwrites comments in the file.
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${player.getXUID() || player.getName()}.json`),
                 JSON.stringify(data, null, 4),
                 { flag: 'w+', encoding: 'utf-8', flush: true }

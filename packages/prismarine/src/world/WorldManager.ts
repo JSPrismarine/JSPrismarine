@@ -42,7 +42,8 @@ export default class WorldManager implements Service {
     }
 
     /**
-     * Enable the manager and load all worlds.
+     * On enable hook, enables the manager and load all worlds.
+     * @group Lifecycle
      */
     public async enable(): Promise<void> {
         this.addProvider('Anvil', Anvil);
@@ -61,7 +62,10 @@ export default class WorldManager implements Service {
     }
 
     /**
+     * On disable hook.
+     *
      * Signifies that the manager is being disabled and all worlds should be unloaded.
+     * @group Lifecycle
      */
     public async disable(): Promise<void> {
         await Promise.all(this.getWorlds().map(async (world) => this.unloadWorld(world.getName())));
@@ -119,10 +123,7 @@ export default class WorldManager implements Service {
 
         const levelPath = withCwd(WORLDS_FOLDER, folderName);
         const provider = this.providers.get(worldData.provider ?? DEFAULT_WORLD_PROVIDER);
-        const generator = this.server
-            .getWorldManager()
-            .getGeneratorManager()
-            .getGenerator(worldData.generator ?? 'Flat');
+        const generator = this.getGeneratorManager().getGenerator(worldData.generator ?? 'Flat');
 
         if (!provider) {
             throw new Error(`invalid provider with id ${worldData.provider}`);
@@ -143,12 +144,12 @@ export default class WorldManager implements Service {
         // First level to be loaded is also the default one
         if (!this.defaultWorld) {
             this.defaultWorld = this.worlds.get(world.getUUID())!;
-            this.server.getLogger().info(`Loaded ${world.getFormattedName()} as default world!`);
+            this.server.getLogger().info(`Loading ${world.getFormattedName()} as default world!`);
         }
 
+        await world.enable();
         this.server.getLogger().verbose(`World ${world.getFormattedName()} successfully loaded!`);
 
-        await world.enable();
         return world;
     }
 
@@ -200,7 +201,7 @@ export default class WorldManager implements Service {
     }
 
     public getDefaultWorld() {
-        return this.defaultWorld!;
+        return this.defaultWorld ?? this.getWorlds()[0];
     }
 
     public getGeneratorManager(): GeneratorManager {

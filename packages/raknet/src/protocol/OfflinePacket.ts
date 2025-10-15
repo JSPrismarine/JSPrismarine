@@ -1,5 +1,5 @@
+import { OFFLINE_MESSAGE_DATA_ID } from '../';
 import Packet from './Packet';
-import { OFFLINE_MESSAGE_DATA_ID } from '../RakNet';
 
 export default class OfflinePacket extends Packet {
     private magic!: Buffer;

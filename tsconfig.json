@@ -2,11 +2,6 @@
     "extends": "./tsconfig.build.json",
 
     "compilerOptions": {
-        "baseUrl": ".",
-        "paths": {
-            "@/*": ["packages/*/src"],
-            "@jsprismarine/*": ["packages/*/src"]
-        },
         "noEmit": true
     },
 
