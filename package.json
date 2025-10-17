@@ -113,7 +113,7 @@
     "dependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/brigadier": "workspace:*",
-        "@jsprismarine/jsbinaryutils": "5.5.3",
+        "@jsprismarine/jsbinaryutils": "6.0.0",
         "@jsprismarine/minecraft": "workspace:*"
     }
 }
