@@ -30,9 +30,9 @@ report.*.json
 *.cpuprofile
 .tsbuildinfo
 *.tsbuildinfo
-assets/
+
 # Generated documentation
-   assets/
-   *.html
-   docs/
+assets/
+*.html
+docs/
    
