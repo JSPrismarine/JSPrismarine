@@ -219,37 +219,72 @@ export default class Session {
             return;
         }
 
+        // Handle packets without ordering
+        // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1248-L1251
+        if (!frame.isOrdered()) {
+            this.handlePacket(frame);
+            return;
+        }
+
         const orderChannel = frame.orderChannel!;
         const orderIndex = frame.orderIndex!;
-        const sequenceIndex = frame.sequenceIndex!;
+        const expectedOrderIndex = this.inputOrderIndex[orderChannel]!;
 
-        if (frame.isSequenced()) {
-            if (this.isOlderOrderedFrame(sequenceIndex, this.inputHighestSequenceIndex[orderChannel]!)) return;
-
-            this.inputHighestSequenceIndex[orderChannel] = sequenceIndex + 1;
-            this.handlePacket(frame);
-        } else if (frame.isOrdered()) {
-            if (orderIndex === this.inputOrderIndex[orderChannel]) {
-                this.inputHighestSequenceIndex[orderChannel] = 0;
-                this.inputOrderIndex[orderChannel] = orderIndex + 1;
-
-                this.handlePacket(frame);
-                let i = this.inputOrderIndex[orderChannel]!;
-                const outOfOrderQueue = this.inputOrderingQueue.get(orderChannel)!;
-                for (; outOfOrderQueue.has(i); i++) {
-                    this.handlePacket(outOfOrderQueue.get(i)!);
-                    outOfOrderQueue.delete(i);
+        // First of all check the orderingIndex
+        // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1283
+        if (orderIndex === expectedOrderIndex) {
+            if (frame.isSequenced()) {
+                // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1286-L1290
+                const sequenceIndex = frame.sequenceIndex!;
+                if (this.isOlderOrderedFrame(sequenceIndex, this.inputHighestSequenceIndex[orderChannel]!)) {
+                    return;
                 }
 
-                // Set the updated queue
-                this.inputOrderingQueue.set(orderChannel, outOfOrderQueue);
-                this.inputOrderIndex[orderChannel] = i;
-            } else if (orderIndex > this.inputOrderIndex[orderChannel]!) {
-                const unordered = this.inputOrderingQueue.get(orderChannel)!;
-                unordered.set(orderIndex, frame);
+                // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1317
+                this.inputHighestSequenceIndex[orderChannel] = sequenceIndex + 1;
+                this.handlePacket(frame);
+            } else {
+                // Handle ordered, non sequenced
+                // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1372-L1373
+                this.inputOrderIndex[orderChannel] = orderIndex + 1;
+                this.inputHighestSequenceIndex[orderChannel] = 0;
+                this.handlePacket(frame);
+
+                this.processOrderingHeap(orderChannel);
             }
-        } else {
-            this.handlePacket(frame);
+        } else if (!this.isOlderOrderedFrame(orderIndex, expectedOrderIndex)) {
+            // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1429-L1446
+            const queue = this.inputOrderingQueue.get(orderChannel)!;
+            queue.set(orderIndex, frame);
+        }
+
+        // NO-OP: out of order
+        // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1464-L1466
+    }
+
+    private processOrderingHeap(orderChannel: number): void {
+        // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1376-L1423
+        const queue = this.inputOrderingQueue.get(orderChannel)!;
+        let expectedIndex = this.inputOrderIndex[orderChannel]!;
+
+        while (queue.has(this.inputOrderIndex[orderChannel]!)) {
+            const bufferedFrame = queue.get(expectedIndex)!;
+            queue.delete(expectedIndex);
+
+            if (bufferedFrame.isSequenced()) {
+                // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1415-L1422
+                const seqIndex = bufferedFrame.sequenceIndex!;
+                if (!this.isOlderOrderedFrame(seqIndex, this.inputHighestSequenceIndex[orderChannel]!)) {
+                    this.inputHighestSequenceIndex[orderChannel] = seqIndex + 1;
+                    this.handlePacket(bufferedFrame);
+                }
+            } else {
+                // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1415-L1417
+                expectedIndex++;
+                this.inputOrderIndex[orderChannel] = expectedIndex;
+                this.inputHighestSequenceIndex[orderChannel] = 0;
+                this.handlePacket(bufferedFrame);
+            }
         }
     }
 
