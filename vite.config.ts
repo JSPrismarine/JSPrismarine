@@ -26,7 +26,7 @@ export default defineConfig({
         rollupOptions: {
             treeshake: true,
             external: [
-                ...Object.keys(pkg.dependencies),
+                ...Object.keys(pkg.dependencies ?? {}),
                 /^@jsprismarine/,
                 /^node_modules/,
                 /^node:.*/,

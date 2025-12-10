@@ -64,7 +64,7 @@ export default defineConfig({
             junit: './junit.xml'
         },
 
-        pool: 'threads',
+        pool: 'forks',
 
         setupFiles: [`${__dirname}/.test/vitest.setup.ts`],
 

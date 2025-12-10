@@ -46,10 +46,10 @@
     "devDependencies": {
         "@types/node": "22.18.11",
         "@types/semver": "7.7.1",
-        "glob": "11.0.3",
-        "typescript": "5.5.2",
-        "vite": "7.1.10",
-        "vitest": "3.2.4"
+        "glob": "13.0.0",
+        "typescript": "5.9.3",
+        "vite": "7.2.7",
+        "vitest": "4.0.15"
     },
     "dependencies": {
         "@jsprismarine/errors": "workspace:*",

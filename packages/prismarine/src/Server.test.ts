@@ -5,12 +5,13 @@ import Server from './Server';
 
 describe('Server', () => {
     vi.mock('@jsprismarine/raknet', async (importActual) => {
+        const MockRakNetListener = vi.fn(function (this: any) {
+            this.start = vi.fn();
+            this.on = vi.fn();
+        });
         return {
             ...(((await importActual()) as any) || {}),
-            RakNetListener: vi.fn().mockImplementation(() => ({
-                start: vi.fn(),
-                on: vi.fn()
-            }))
+            RakNetListener: MockRakNetListener
         };
     });
 

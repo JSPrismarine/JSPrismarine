@@ -32,16 +32,15 @@ const _ = {
 
         return Boolean(
             obj &&
-                (keyParts.length > 1
-                    ? _.has(obj[key.split('.')[0]!], keyParts.slice(1).join('.'))
-                    : Object.hasOwnProperty.call(obj, key))
+            (keyParts.length > 1
+                ? _.has(obj[key.split('.')[0]!], keyParts.slice(1).join('.'))
+                : Object.hasOwnProperty.call(obj, key))
         );
     },
     del: (obj: any, path: any) => {
         const pathArray = Array.isArray(path) ? path : path.match(/([^[.\]])+/g);
 
         pathArray.reduce((acc: any, key: any, i: number) => {
-            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             if (i === pathArray.length - 1) delete acc[key];
             return acc[key];
         }, obj);

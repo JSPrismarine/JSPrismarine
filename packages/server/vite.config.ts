@@ -36,7 +36,7 @@ export default mergeConfig(
                 name: pkg.name
             },
             rollupOptions: {
-                external: [...Object.keys(pkg.dependencies)]
+                external: [...Object.keys(pkg.dependencies ?? {})]
             }
         },
         plugins: [

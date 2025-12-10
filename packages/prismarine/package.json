@@ -59,11 +59,11 @@
     "devDependencies": {
         "@types/node": "22.18.11",
         "@types/terminal-kit": "2.5.7",
-        "glob": "11.0.3",
-        "rimraf": "6.0.1",
-        "typescript": "5.5.2",
-        "vite": "7.1.10",
-        "vitest": "3.2.4"
+        "glob": "13.0.0",
+        "rimraf": "6.1.2",
+        "typescript": "5.9.3",
+        "vite": "7.2.7",
+        "vitest": "4.0.15"
     },
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
@@ -77,8 +77,7 @@
         "@jsprismarine/raknet": "workspace:*",
         "confbox": "0.2.2",
         "evt": "2.5.9",
-        "fast-jwt": "6.0.2",
-        "heap": "0.2.7",
-        "node-fetch": "3.3.2"
+        "fast-jwt": "6.1.0",
+        "heap": "0.2.7"
     }
 }
