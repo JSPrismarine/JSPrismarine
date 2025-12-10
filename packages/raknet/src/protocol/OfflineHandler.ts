@@ -81,6 +81,7 @@ export class OfflineHandler {
 
                 if ((!addressInUse && guidInUse) || (addrSession && !guidInUse)) {
                     this.sendAlreadyConnected(rinfo);
+                    return;
                 }
 
                 if (!this.listener.allowIncomingConnections()) {

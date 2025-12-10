@@ -224,13 +224,7 @@ export default class Session {
         const sequenceIndex = frame.sequenceIndex!;
 
         if (frame.isSequenced()) {
-            if (
-                sequenceIndex < this.inputHighestSequenceIndex[orderChannel]! ||
-                orderIndex < this.inputOrderIndex[orderChannel]!
-            ) {
-                // Sequenced packet is too old, discard it
-                return;
-            }
+            if (this.isOlderOrderedFrame(sequenceIndex, this.inputHighestSequenceIndex[orderChannel]!)) return;
 
             this.inputHighestSequenceIndex[orderChannel] = sequenceIndex + 1;
             this.handlePacket(frame);
@@ -259,6 +253,20 @@ export default class Session {
         }
     }
 
+    /**
+     * Determines whether a packet is older than expected, handling wraparound.
+     * @see https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L2901-L2920
+     */
+    public isOlderOrderedFrame(newIndex: number, currentIndex: number, maxValue: number = 0xffffff): boolean {
+        const halfRange = Math.floor(maxValue / 2);
+
+        if (currentIndex > halfRange) {
+            return newIndex >= currentIndex - halfRange && newIndex < currentIndex;
+        } else {
+            return newIndex >= currentIndex - halfRange + maxValue + 1 || newIndex < currentIndex;
+        }
+    }
+
     public sendFrame(frame: Frame, flags = RakNetPriority.NORMAL): void {
         assert(typeof frame.orderChannel === 'number', 'Frame OrderChannel cannot be null');
 
@@ -281,7 +289,9 @@ export default class Session {
             // If we use the frame as reference, we have to copy somewhere
             // the original buffer. Then we will point to this buffer content
             const buffer = Buffer.from(frame.content);
+            // Original RakNet says: This is the maximum number of split messages we can send simultaneously per connection.
             const fragmentId = this.outputFragmentIndex++ % 65536;
+            let fragmentIndex = 0;
             for (let i = 0; i < buffer.byteLength; i += maxSize) {
                 // Like the original raknet, we like to use a pointer to the original
                 // frame, we don't really care about side effects in this case.
@@ -294,8 +304,8 @@ export default class Session {
                     frame.reliableIndex = this.outputReliableIndex++;
                 }
 
-                frame.content = buffer.slice(i, i + maxSize);
-                frame.fragmentIndex = i / maxSize;
+                frame.content = buffer.subarray(i, i + maxSize);
+                frame.fragmentIndex = fragmentIndex++;
                 frame.fragmentId = fragmentId;
                 frame.fragmentSize = Math.ceil(buffer.byteLength / maxSize);
                 this.addFrameToQueue(frame, flags | RakNetPriority.IMMEDIATE);
@@ -387,15 +397,18 @@ export default class Session {
         if (!this.fragmentsQueue.has(frame.fragmentId)) {
             this.fragmentsQueue.set(frame.fragmentId, new Map([[frame.fragmentIndex, frame]]));
         } else {
-            const value = this.fragmentsQueue.get(frame.fragmentId)!;
-            value.set(frame.fragmentIndex, frame);
+            const entry = this.fragmentsQueue.get(frame.fragmentId)!;
+            entry.set(frame.fragmentIndex, frame);
 
             // If we have all pieces, put them together
-            if (value.size === frame.fragmentSize) {
+            if (entry.size === entry.values().next().value!.fragmentSize) {
                 const stream = new BinaryStream();
                 // Ensure the correctness of the buffer orders
-                for (let i = 0; i < value.size; i++) {
-                    const splitPacket = value.get(i)!;
+                for (let i = 0; i < entry.size; i++) {
+                    const splitPacket = entry.get(i);
+                    // A broken or malicious client may send holes
+                    // that could be a possible issue
+                    if (!splitPacket) return;
                     stream.write(splitPacket.content);
                 }
 
