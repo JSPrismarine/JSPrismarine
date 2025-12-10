@@ -27,12 +27,12 @@ describe('block', () => {
             const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
             const blocks = fs.readdirSync(path.resolve(__dirname, 'blocks'));
 
-            blocks.forEach(async (file) => {
+            for (const file of blocks) {
                 const block = new (await import(`./blocks/${file}`)).default() as Block;
 
                 expect(IDs.has(block.getName())).toBe(false);
                 IDs.add(block.getName());
-            });
+            }
         });
 
         it('should return the correct name', () => {
