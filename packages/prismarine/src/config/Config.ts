@@ -16,7 +16,7 @@ export class Config {
 
     private port!: number;
     private serverIp!: string;
-    private levelName!: string;
+    private worldName!: string;
     private worlds!: any;
     private maxPlayers!: number;
     private gamemode!: string;
@@ -55,7 +55,7 @@ export class Config {
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
         this.port = this.configBuilder.get('port', 19132) as number;
         this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0') as string;
-        this.levelName = this.configBuilder.get('level-name', 'world') as string;
+        this.worldName = this.configBuilder.get('world-name', 'world') as string;
         this.worlds = this.configBuilder.get('worlds', {
             world: {
                 generator: 'Flat',
@@ -112,8 +112,8 @@ export class Config {
      * If the world doesn't exist as a part of the `worlds` array the `worldManager` will
      * fail to initialize.
      */
-    public getLevelName(): string {
-        return this.levelName;
+    public getWorldName(): string {
+        return this.worldName;
     }
 
     public getWorlds(): any {

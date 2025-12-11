@@ -1,4 +1,5 @@
 import { creativeitems as CreativeItems } from '@jsprismarine/bedrock-data';
+import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import Heap from 'heap';
 import type Player from '../Player';
@@ -6,16 +7,16 @@ import type Server from '../Server';
 import type { CommandArgument } from '../command/CommandArguments';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
 import type { Attributes } from '../entity/Attribute';
+import type { Entity } from '../entity/Entity';
 import type { Metadata } from '../entity/Metadata';
 import { WindowIds } from '../inventory/WindowIds';
 import { Item } from '../item/Item';
-import UUID from '../utils/UUID';
 import BlockPosition from '../world/BlockPosition';
 import CoordinateUtils from '../world/CoordinateUtils';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
 import type { DataPacket } from './Packets';
-import { BatchPacket } from './Packets';
+import { AddActorPacket, BatchPacket } from './Packets';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
@@ -144,9 +145,32 @@ export default class PlayerSession {
         await this.send(packet);
     }
 
+    /**
+     * Sends an AddActorPacket to the player session.
+     * @param actor - The entity to spawn.
+     */
+    public sendAddActor(actor: Entity): void {
+        const packet = new AddActorPacket();
+        packet.runtimeEntityId = actor.getRuntimeId();
+        packet.type = actor.getType(); // TODO
+        packet.position = actor.getPosition();
+        packet.motion = new Vector3(0, 0, 0); // TODO: motion
+        packet.pitch = actor.pitch;
+        packet.yaw = actor.yaw;
+        packet.headYaw = actor.headYaw;
+        packet.metadata = actor.metadata;
+        this.send(packet);
+    }
+
+    public sendRemoveActor(actor: Entity): void {
+        const packet = new RemoveActorPacket();
+        packet.uniqueEntityId = actor.getRuntimeId();
+        this.send(packet);
+    }
+
     public async needNewChunks(forceResend = false, dist?: number): Promise<void> {
-        const currentXChunk = CoordinateUtils.fromBlockToChunk(this.player.getX());
-        const currentZChunk = CoordinateUtils.fromBlockToChunk(this.player.getZ());
+        const currentXChunk = CoordinateUtils.fromBlockToChunk(this.player.getPosition().getX());
+        const currentZChunk = CoordinateUtils.fromBlockToChunk(this.player.getPosition().getZ());
 
         const viewDistance = this.player.viewDistance || dist || 0;
 
@@ -532,7 +556,7 @@ export default class PlayerSession {
      */
     public async addToPlayerList(): Promise<void> {
         const entry = new PlayerListEntry({
-            uuid: UUID.fromString(this.player.getUUID()),
+            uuid: this.player.getUUID(),
             runtimeId: this.player.getRuntimeId(),
             name: this.player.getName(),
             xuid: this.player.xuid,
@@ -543,7 +567,7 @@ export default class PlayerSession {
             isHost: false
         });
 
-        this.server.getSessionManager().getPlayerList().set(this.player.getUUID(), entry);
+        this.server.getSessionManager().getPlayerList().set(this.player.getUUID().toString(), entry);
 
         const packet = new PlayerListPacket();
         packet.type = PlayerListAction.TYPE_ADD;
@@ -556,10 +580,10 @@ export default class PlayerSession {
      */
     public async removeFromPlayerList(): Promise<void> {
         const entry = new PlayerListEntry({
-            uuid: UUID.fromString(this.player.getUUID())
+            uuid: this.getPlayer().getUUID()
         });
 
-        this.server.getSessionManager().getPlayerList().delete(this.player.getUUID());
+        this.server.getSessionManager().getPlayerList().delete(this.player.getUUID().toString());
 
         const packet = new PlayerListPacket();
         packet.type = PlayerListAction.TYPE_REMOVE;
@@ -589,13 +613,13 @@ export default class PlayerSession {
         }
 
         const pk = new AddPlayerPacket();
-        pk.uuid = UUID.fromString(this.player.getUUID()); // TODO: temp solution
+        pk.uuid = this.player.getUUID(); // TODO: temp solution
         pk.runtimeEntityId = this.player.getRuntimeId();
         pk.name = this.player.getName();
 
-        pk.positionX = this.player.getX();
-        pk.positionY = this.player.getY();
-        pk.positionZ = this.player.getZ();
+        pk.positionX = this.player.getPosition().getX();
+        pk.positionY = this.player.getPosition().getY();
+        pk.positionZ = this.player.getPosition().getZ();
 
         // TODO: motion
         pk.motionX = 0;

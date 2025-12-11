@@ -1,7 +1,6 @@
 import type InteractPacket from '../packet/InteractPacket';
 import { InteractAction } from '../packet/InteractPacket';
 
-import { Vector3 } from '@jsprismarine/math';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import Identifiers from '../Identifiers';
@@ -21,7 +20,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 const pk = new ContainerOpenPacket();
                 pk.windowId = player.getInventory().getId();
                 pk.containerType = -1; // -> inventory (TODO)
-                pk.containerPos = new Vector3(player.getX(), player.getY(), player.getZ());
+                pk.containerPos = player.getPosition();
                 pk.containerEntityId = player.getRuntimeId();
                 await session.getConnection().sendDataPacket(pk);
                 break;

@@ -3,7 +3,7 @@ import { argument, literal } from '@jsprismarine/brigadier';
 // eslint-disable-next-line unused-imports/no-unused-imports
 import type { Gametype } from '@jsprismarine/minecraft';
 import { getGametypeId } from '@jsprismarine/minecraft';
-import type Player from '../../Player';
+import Player from '../../Player';
 import { Chat } from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
 import { Command } from '../Command';
@@ -35,7 +35,7 @@ export default class GamemodeCommand extends Command {
             return;
         }
 
-        if (!target.isPlayer()) {
+        if (!(target instanceof Player)) {
             const event = new ChatEvent(
                 new Chat({
                     sender: source,

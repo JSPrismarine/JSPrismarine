@@ -214,7 +214,6 @@ export class PermissionManager implements Service {
             if (!executer) throw new Error(`Executer can't be undefined or null`);
 
             if (!permission) return true;
-            if (executer.isConsole()) return true;
             if (executer.isOp()) return true;
             if (executer.getPermissions().includes(permission)) return true;
             if (executer.getPermissions().includes('*')) return true;

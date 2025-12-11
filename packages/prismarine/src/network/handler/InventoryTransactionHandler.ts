@@ -120,9 +120,9 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                         const soundPk = new LevelSoundEventPacket();
                         soundPk.sound = 5; // TODO: enum
 
-                        soundPk.positionX = player.getX();
-                        soundPk.positionY = player.getY();
-                        soundPk.positionZ = player.getZ();
+                        soundPk.positionX = player.getPosition().getX();
+                        soundPk.positionY = player.getPosition().getY();
+                        soundPk.positionZ = player.getPosition().getZ();
 
                         // ? 0 or id & 0xf
                         soundPk.extraData = BlockMappings.getRuntimeId(block.getName()); // In this case refers to block runtime Id
@@ -134,7 +134,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                             player
                                 .getWorld()
                                 .getPlayers()
-                                .map((target) => target.getNetworkSession().send(soundPk))
+                                .map((target: any) => target.getNetworkSession().send(soundPk))
                         );
                         break;
                     }
