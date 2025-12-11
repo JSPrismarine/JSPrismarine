@@ -32,7 +32,7 @@
         "build": "vite build",
         "typecheck": "tsc -noEmit",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
-        "dev": "nodemon --delay 0 --quiet --spawn --no-stdin --watch \"../**/src/**/*.ts\" --ext \"ts\" --exec \"vite-node ./src/Server.ts\""
+        "dev": "tsx watch --clear-screen=false ./src/Server.ts"
     },
     "repository": {
         "type": "git",
@@ -55,7 +55,6 @@
         "tsx": "4.21.0",
         "typescript": "5.9.3",
         "vite": "7.2.7",
-        "vite-node": "5.2.0",
         "vitest": "4.0.15"
     },
     "dependencies": {

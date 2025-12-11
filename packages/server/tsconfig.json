@@ -3,6 +3,9 @@
     "extends": ["../../tsconfig.build.json"],
     "compilerOptions": {
         "baseUrl": ".",
+        "paths": {
+            "@jsprismarine/*": ["../*/src/index.ts"]
+        },
         "outDir": "./dist",
         "rootDir": "../../",
         "typeRoots": ["./node_modules/@types", "./src/@types", "./dist/index.d.ts"]
