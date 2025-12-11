@@ -54,6 +54,6 @@
         "vitest": "4.0.15"
     },
     "dependencies": {
-        "@jsprismarine/jsbinaryutils": "5.5.3"
+        "@jsprismarine/jsbinaryutils": "6.0.0"
     }
 }

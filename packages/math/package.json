@@ -54,6 +54,6 @@
     },
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
-        "@jsprismarine/jsbinaryutils": "5.5.3"
+        "@jsprismarine/jsbinaryutils": "6.0.0"
     }
 }

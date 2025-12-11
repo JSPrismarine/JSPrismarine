@@ -68,7 +68,7 @@
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
         "@jsprismarine/errors": "workspace:*",
-        "@jsprismarine/jsbinaryutils": "5.5.3",
+        "@jsprismarine/jsbinaryutils": "6.0.0",
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/math": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
