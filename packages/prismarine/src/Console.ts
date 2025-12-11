@@ -48,8 +48,9 @@ export default class Console extends EntityLike implements Service {
         }
 
         process.stdin.setRawMode(true);
-        process.stdin.setNoDelay(true);
-        process.stdin.setKeepAlive(true);
+        // setNoDelay and setKeepAlive are Node.js-specific and not available in Bun
+        if (typeof process.stdin.setNoDelay === 'function') process.stdin.setNoDelay(true);
+        if (typeof process.stdin.setKeepAlive === 'function') process.stdin.setKeepAlive(true);
         process.stdin.resume();
 
         this.cli = readline.createInterface({

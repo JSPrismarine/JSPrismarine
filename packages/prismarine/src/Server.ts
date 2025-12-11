@@ -337,7 +337,7 @@ export default class Server extends EventEmitter {
                 this.tps = Math.min(this.tps, 20); // Ensure tps does not exceed 20
 
                 lastTickTime = endTime;
-                this.tickerTimer = setTimeout(tick, sleepTime);
+                this.tickerTimer = setTimeout(tick, Math.max(0, sleepTime));
                 this.tickerTimer.unref();
             };
 

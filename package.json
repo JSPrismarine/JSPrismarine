@@ -17,6 +17,7 @@
         "prepare": "husky || true",
         "start": "node ./packages/server/dist/Server.es.js --warning --circular",
         "dev": "pnpm --filter ./packages/server run dev",
+        "dev:bun": "pnpm --filter ./packages/server run dev:bun",
         "clean": "turbo run clean",
         "build": "turbo run build --env-mode=loose",
         "build:docs": "typedoc",

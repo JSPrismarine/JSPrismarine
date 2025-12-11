@@ -32,7 +32,8 @@
         "build": "vite build",
         "typecheck": "tsc -noEmit",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
-        "dev": "tsx watch --clear-screen=false ./src/Server.ts"
+        "dev": "tsx watch --clear-screen=false ./src/Server.ts",
+        "dev:bun": "bun --watch ./src/Server.ts"
     },
     "repository": {
         "type": "git",
