@@ -28,8 +28,9 @@
         "./package.json": "./package.json"
     },
     "scripts": {
-        "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
-        "build": "vite build",
+        "clean": "rimraf dist *.tsbuildinfo .tsup .turbo",
+        "build": "tsup",
+        "build:watch": "tsup --watch",
         "typecheck": "tsc -noEmit",
         "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
         "dev": "tsx watch --clear-screen=false ./src/Server.ts",
@@ -55,7 +56,6 @@
         "rimraf": "6.1.2",
         "tsx": "4.21.0",
         "typescript": "5.9.3",
-        "vite": "7.2.7",
         "vitest": "4.0.15"
     },
     "dependencies": {

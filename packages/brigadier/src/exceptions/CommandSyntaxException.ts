@@ -1,11 +1,24 @@
+import { createRequire } from 'node:module';
 import type Message from '../Message';
-import BuiltInExceptions from './BuiltInExceptions';
 import type BuiltInExceptionProvider from './BuiltInExceptionProvider';
 import type CommandExceptionType from './CommandExceptionType';
 
+// Lazy initialization holder to avoid circular dependency
+let _builtInExceptions: BuiltInExceptionProvider | null = null;
+
 export default class CommandSyntaxException extends Error {
     public static CONTEXT_AMOUNT = 10;
-    public static BUILT_IN_EXCEPTIONS: BuiltInExceptionProvider = new BuiltInExceptions();
+
+    public static get BUILT_IN_EXCEPTIONS(): BuiltInExceptionProvider {
+        if (!_builtInExceptions) {
+            // Lazy import to avoid circular dependency at module initialization
+            // Using createRequire for ESM compatibility
+            const require = createRequire(import.meta.url);
+            const { default: BuiltInExceptions } = require('./BuiltInExceptions');
+            _builtInExceptions = new BuiltInExceptions();
+        }
+        return _builtInExceptions;
+    }
 
     private type: CommandExceptionType;
     private __message: Message;

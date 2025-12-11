@@ -28,7 +28,9 @@
     },
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
-        "build": "vite build",
+        "clean": "rimraf dist *.tsbuildinfo .tsup .turbo",
+        "build": "tsup",
+        "build:watch": "tsup --watch",
         "typecheck": "tsc -noEmit"
     },
     "repository": {
@@ -47,8 +49,8 @@
         "@types/node": "22.18.11",
         "@types/semver": "7.7.1",
         "glob": "13.0.0",
+        "rimraf": "6.1.2",
         "typescript": "5.9.3",
-        "vite": "7.2.7",
         "vitest": "4.0.15"
     },
     "dependencies": {

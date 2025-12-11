@@ -2,6 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'vitest/config';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 const reporters = ['verbose'];
 const extraReporters = !process.env.GITHUB_ACTIONS ? [] : ['github-actions', 'junit'];
@@ -42,6 +43,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
     root: resolve(__dirname),
+    plugins: [tsconfigPaths()],
     optimizeDeps: {
         force: true,
         esbuildOptions: {

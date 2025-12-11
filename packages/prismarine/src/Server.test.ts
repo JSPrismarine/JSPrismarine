@@ -3,18 +3,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
 
-describe('Server', () => {
-    vi.mock('@jsprismarine/raknet', async (importActual) => {
-        const MockRakNetListener = vi.fn(function (this: any) {
-            this.start = vi.fn();
-            this.on = vi.fn();
-        });
-        return {
-            ...(((await importActual()) as any) || {}),
-            RakNetListener: MockRakNetListener
-        };
+vi.mock('@jsprismarine/raknet', async (importActual) => {
+    const MockRakNetListener = vi.fn(function (this: any) {
+        this.start = vi.fn();
+        this.close = vi.fn();
+        this.on = vi.fn();
     });
+    return {
+        ...(((await importActual()) as any) || {}),
+        RakNetListener: MockRakNetListener
+    };
+});
 
+describe('Server', () => {
     const config = new (class DebugConfig {
         public enable() {}
         public disable() {}
@@ -96,7 +97,7 @@ describe('Server', () => {
 
         const mockExit = vi.spyOn(prismarine, 'shutdown').mockImplementation((() => {}) as any);
 
-        await prismarine.bootstrap('0.0.0.0', 12345);
+        await prismarine.bootstrap('0.0.0.0', 12346);
         await expect(() => prismarine.shutdown()).not.toThrow();
         expect(mockExit).toBeCalledTimes(1);
     });

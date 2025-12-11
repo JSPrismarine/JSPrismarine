@@ -26,7 +26,8 @@ import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import type { Config } from './config/Config';
 
 import type { Logger } from '@jsprismarine/logger';
-import { version } from '../package.json' with { type: 'json' };
+import pkg from '../package.json' with { type: 'json' };
+const { version } = pkg;
 
 /**
  * JSPrismarine's main server class.

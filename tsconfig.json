@@ -2,7 +2,11 @@
     "extends": "./tsconfig.build.json",
 
     "compilerOptions": {
-        "noEmit": true
+        "noEmit": true,
+        "baseUrl": ".",
+        "paths": {
+            "@jsprismarine/*": ["./packages/*/src/index.ts"]
+        }
     },
 
     "exclude": ["**/*.config.*", "**/*.stories.*", "**/*.test.*"]

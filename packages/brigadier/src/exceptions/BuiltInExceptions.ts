@@ -3,82 +3,133 @@ import type BuiltInExceptionProvider from './BuiltInExceptionProvider';
 import SimpleCommandExceptionType from './SimpleCommandExceptionType';
 import DynamicCommandExceptionType from './DynamicCommandExceptionType';
 
+// Lazy initialization holders to avoid circular dependency at module load time
+let _FLOAT_TOO_SMALL: DynamicCommandExceptionType | null = null;
+let _FLOAT_TOO_BIG: DynamicCommandExceptionType | null = null;
+let _INTEGER_TOO_SMALL: DynamicCommandExceptionType | null = null;
+let _INTEGER_TOO_BIG: DynamicCommandExceptionType | null = null;
+let _LITERAL_INCORRECT: DynamicCommandExceptionType | null = null;
+let _READER_EXPECTED_START_OF_QUOTE: SimpleCommandExceptionType | null = null;
+let _READER_EXPECTED_END_OF_QUOTE: SimpleCommandExceptionType | null = null;
+let _READER_INVALID_ESCAPE: DynamicCommandExceptionType | null = null;
+let _READER_INVALID_BOOL: DynamicCommandExceptionType | null = null;
+let _READER_INVALID_INT: DynamicCommandExceptionType | null = null;
+let _READER_EXPECTED_INT: SimpleCommandExceptionType | null = null;
+let _READER_INVALID_FLOAT: DynamicCommandExceptionType | null = null;
+let _READER_EXPECTED_FLOAT: SimpleCommandExceptionType | null = null;
+let _READER_EXPECTED_BOOL: SimpleCommandExceptionType | null = null;
+let _READER_EXPECTED_SYMBOL: DynamicCommandExceptionType | null = null;
+let _DISPATCHER_UNKNOWN_COMMAND: SimpleCommandExceptionType | null = null;
+let _DISPATCHER_UNKNOWN_ARGUMENT: SimpleCommandExceptionType | null = null;
+let _DISPATCHER_EXPECTED_ARGUMENT_SEPARATOR: SimpleCommandExceptionType | null = null;
+let _DISPATCHER_PARSE_EXCEPTION: DynamicCommandExceptionType | null = null;
+
 export default class BuiltInExceptions implements BuiltInExceptionProvider {
-    private static FLOAT_TOO_SMALL = new DynamicCommandExceptionType(
-        (found, min) => new LiteralMessage('Float must not be less than ' + min + ', found ' + found)
-    );
+    private static get FLOAT_TOO_SMALL() {
+        return (_FLOAT_TOO_SMALL ??= new DynamicCommandExceptionType(
+            (found, min) => new LiteralMessage('Float must not be less than ' + min + ', found ' + found)
+        ));
+    }
 
-    private static FLOAT_TOO_BIG = new DynamicCommandExceptionType(
-        (found, max) => new LiteralMessage('Float must not be more than ' + max + ', found ' + found)
-    );
+    private static get FLOAT_TOO_BIG() {
+        return (_FLOAT_TOO_BIG ??= new DynamicCommandExceptionType(
+            (found, max) => new LiteralMessage('Float must not be more than ' + max + ', found ' + found)
+        ));
+    }
 
-    private static INTEGER_TOO_SMALL = new DynamicCommandExceptionType(
-        (found, min) => new LiteralMessage('Integer must not be less than ' + min + ', found ' + found)
-    );
+    private static get INTEGER_TOO_SMALL() {
+        return (_INTEGER_TOO_SMALL ??= new DynamicCommandExceptionType(
+            (found, min) => new LiteralMessage('Integer must not be less than ' + min + ', found ' + found)
+        ));
+    }
 
-    private static INTEGER_TOO_BIG = new DynamicCommandExceptionType(
-        (found, max) => new LiteralMessage('Integer must not be more than ' + max + ', found ' + found)
-    );
+    private static get INTEGER_TOO_BIG() {
+        return (_INTEGER_TOO_BIG ??= new DynamicCommandExceptionType(
+            (found, max) => new LiteralMessage('Integer must not be more than ' + max + ', found ' + found)
+        ));
+    }
 
-    private static LITERAL_INCORRECT: DynamicCommandExceptionType = new DynamicCommandExceptionType(
-        (expected) => new LiteralMessage('Expected literal ' + expected)
-    );
+    private static get LITERAL_INCORRECT() {
+        return (_LITERAL_INCORRECT ??= new DynamicCommandExceptionType(
+            (expected) => new LiteralMessage('Expected literal ' + expected)
+        ));
+    }
 
-    private static READER_EXPECTED_START_OF_QUOTE: SimpleCommandExceptionType = new SimpleCommandExceptionType(
-        new LiteralMessage('Expected quote to start a string')
-    );
+    private static get READER_EXPECTED_START_OF_QUOTE() {
+        return (_READER_EXPECTED_START_OF_QUOTE ??= new SimpleCommandExceptionType(
+            new LiteralMessage('Expected quote to start a string')
+        ));
+    }
 
-    private static READER_EXPECTED_END_OF_QUOTE: SimpleCommandExceptionType = new SimpleCommandExceptionType(
-        new LiteralMessage('Unclosed quoted string')
-    );
+    private static get READER_EXPECTED_END_OF_QUOTE() {
+        return (_READER_EXPECTED_END_OF_QUOTE ??= new SimpleCommandExceptionType(
+            new LiteralMessage('Unclosed quoted string')
+        ));
+    }
 
-    private static READER_INVALID_ESCAPE: DynamicCommandExceptionType = new DynamicCommandExceptionType(
-        (character) => new LiteralMessage("Invalid escape sequence '" + character + "' in quoted string")
-    );
+    private static get READER_INVALID_ESCAPE() {
+        return (_READER_INVALID_ESCAPE ??= new DynamicCommandExceptionType(
+            (character) => new LiteralMessage("Invalid escape sequence '" + character + "' in quoted string")
+        ));
+    }
 
-    private static READER_INVALID_BOOL: DynamicCommandExceptionType = new DynamicCommandExceptionType(
-        (value) => new LiteralMessage("Invalid bool, expected true or false but found '" + value + "'")
-    );
+    private static get READER_INVALID_BOOL() {
+        return (_READER_INVALID_BOOL ??= new DynamicCommandExceptionType(
+            (value) => new LiteralMessage("Invalid bool, expected true or false but found '" + value + "'")
+        ));
+    }
 
-    private static READER_INVALID_INT: DynamicCommandExceptionType = new DynamicCommandExceptionType(
-        (value) => new LiteralMessage("Invalid integer '" + value + "'")
-    );
+    private static get READER_INVALID_INT() {
+        return (_READER_INVALID_INT ??= new DynamicCommandExceptionType(
+            (value) => new LiteralMessage("Invalid integer '" + value + "'")
+        ));
+    }
 
-    private static READER_EXPECTED_INT: SimpleCommandExceptionType = new SimpleCommandExceptionType(
-        new LiteralMessage('Expected integer')
-    );
+    private static get READER_EXPECTED_INT() {
+        return (_READER_EXPECTED_INT ??= new SimpleCommandExceptionType(new LiteralMessage('Expected integer')));
+    }
 
-    private static READER_INVALID_FLOAT: DynamicCommandExceptionType = new DynamicCommandExceptionType(
-        (value) => new LiteralMessage("Invalid float '" + value + "'")
-    );
+    private static get READER_INVALID_FLOAT() {
+        return (_READER_INVALID_FLOAT ??= new DynamicCommandExceptionType(
+            (value) => new LiteralMessage("Invalid float '" + value + "'")
+        ));
+    }
 
-    private static READER_EXPECTED_FLOAT: SimpleCommandExceptionType = new SimpleCommandExceptionType(
-        new LiteralMessage('Expected float')
-    );
+    private static get READER_EXPECTED_FLOAT() {
+        return (_READER_EXPECTED_FLOAT ??= new SimpleCommandExceptionType(new LiteralMessage('Expected float')));
+    }
 
-    private static READER_EXPECTED_BOOL: SimpleCommandExceptionType = new SimpleCommandExceptionType(
-        new LiteralMessage('Expected bool')
-    );
+    private static get READER_EXPECTED_BOOL() {
+        return (_READER_EXPECTED_BOOL ??= new SimpleCommandExceptionType(new LiteralMessage('Expected bool')));
+    }
 
-    private static READER_EXPECTED_SYMBOL: DynamicCommandExceptionType = new DynamicCommandExceptionType(
-        (symbol) => new LiteralMessage("Expected '" + symbol + "'")
-    );
+    private static get READER_EXPECTED_SYMBOL() {
+        return (_READER_EXPECTED_SYMBOL ??= new DynamicCommandExceptionType(
+            (symbol) => new LiteralMessage("Expected '" + symbol + "'")
+        ));
+    }
 
-    private static DISPATCHER_UNKNOWN_COMMAND: SimpleCommandExceptionType = new SimpleCommandExceptionType(
-        new LiteralMessage('Unknown command')
-    );
+    private static get DISPATCHER_UNKNOWN_COMMAND() {
+        return (_DISPATCHER_UNKNOWN_COMMAND ??= new SimpleCommandExceptionType(new LiteralMessage('Unknown command')));
+    }
 
-    private static DISPATCHER_UNKNOWN_ARGUMENT: SimpleCommandExceptionType = new SimpleCommandExceptionType(
-        new LiteralMessage('Incorrect argument for command')
-    );
+    private static get DISPATCHER_UNKNOWN_ARGUMENT() {
+        return (_DISPATCHER_UNKNOWN_ARGUMENT ??= new SimpleCommandExceptionType(
+            new LiteralMessage('Incorrect argument for command')
+        ));
+    }
 
-    private static DISPATCHER_EXPECTED_ARGUMENT_SEPARATOR: SimpleCommandExceptionType = new SimpleCommandExceptionType(
-        new LiteralMessage('Expected whitespace to end one argument, but found trailing data')
-    );
+    private static get DISPATCHER_EXPECTED_ARGUMENT_SEPARATOR() {
+        return (_DISPATCHER_EXPECTED_ARGUMENT_SEPARATOR ??= new SimpleCommandExceptionType(
+            new LiteralMessage('Expected whitespace to end one argument, but found trailing data')
+        ));
+    }
 
-    private static DISPATCHER_PARSE_EXCEPTION: DynamicCommandExceptionType = new DynamicCommandExceptionType(
-        (message) => new LiteralMessage('Could not parse command: ' + message)
-    );
+    private static get DISPATCHER_PARSE_EXCEPTION() {
+        return (_DISPATCHER_PARSE_EXCEPTION ??= new DynamicCommandExceptionType(
+            (message) => new LiteralMessage('Could not parse command: ' + message)
+        ));
+    }
 
     public floatTooLow(): DynamicCommandExceptionType {
         return BuiltInExceptions.FLOAT_TOO_SMALL;
