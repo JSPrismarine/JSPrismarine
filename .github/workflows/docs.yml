@@ -29,5 +29,4 @@ jobs:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
                   publish_dir: ./dist
                   enable_jekyll: false
-                  cname: 'docs.jsprismarine.org'
                   commit_message: ${{ github.event.workflow_run.head_commit.message }}
