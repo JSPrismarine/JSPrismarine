@@ -2,15 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { Entity } from '../entity/Entity';
 import Sheep from '../entity/passive/Sheep';
+import { Position } from '../world';
 import ParseTargetSelector from './ParseTargetSelector';
 
 describe('utils', () => {
     describe('ParseTargetSelector', () => {
         it('returns source upon "@s"', () => {
-            const source = new Entity({
-                world: null as any,
-                server: null as any
-            });
+            const source = new Entity(new Position(0, 0, 0, null as any));
 
             expect(
                 ParseTargetSelector({
@@ -22,10 +20,7 @@ describe('utils', () => {
         });
 
         it('returns all players upon "@a"', () => {
-            const source = new Entity({
-                world: null as any,
-                server: null as any
-            });
+            const source = new Entity(new Position(0, 0, 0, null as any));
             const players = [{ isPlayer: () => true } as any, { isPlayer: () => true } as any];
             const entities = [source, ...players];
 
@@ -39,24 +34,12 @@ describe('utils', () => {
         });
 
         it('returns all entities upon "@e"', () => {
-            const source = new Sheep({
-                world: null as any,
-                server: null as any
-            });
+            const source = new Sheep(new Position(0, 0, 0, null as any));
             const entities = [
                 source,
-                new Sheep({
-                    world: null as any,
-                    server: null as any
-                }),
-                new Sheep({
-                    world: null as any,
-                    server: null as any
-                }),
-                new Sheep({
-                    world: null as any,
-                    server: null as any
-                })
+                new Sheep(new Position(0, 0, 0, null as any)),
+                new Sheep(new Position(0, 0, 0, null as any)),
+                new Sheep(new Position(0, 0, 0, null as any))
             ];
 
             expect(
@@ -69,24 +52,15 @@ describe('utils', () => {
         });
 
         it('returns all non player entities upon "@e[type=!player]"', () => {
-            const source = new Sheep({
-                world: null as any,
-                server: null as any
-            });
+            const source = new Sheep(new Position(0, 0, 0, null as any));
             const player = {
                 isPlayer: () => true,
                 getType: () => 'minecraft:player'
             } as any;
             const entities = [
                 source,
-                new Sheep({
-                    world: null as any,
-                    server: null as any
-                }),
-                new Sheep({
-                    world: null as any,
-                    server: null as any
-                })
+                new Sheep(new Position(0, 0, 0, null as any)),
+                new Sheep(new Position(0, 0, 0, null as any))
             ];
 
             expect(
@@ -107,24 +81,15 @@ describe('utils', () => {
         });
 
         it('returns only player entities upon "@e[type=player]"', () => {
-            const source = new Sheep({
-                world: null as any,
-                server: null as any
-            });
+            const source = new Sheep(new Position(0, 0, 0, null as any));
             const player = {
                 isPlayer: () => true,
                 getType: () => 'minecraft:player'
             } as any;
             const entities = [
                 source,
-                new Sheep({
-                    world: null as any,
-                    server: null as any
-                }),
-                new Sheep({
-                    world: null as any,
-                    server: null as any
-                })
+                new Sheep(new Position(0, 0, 0, null as any)),
+                new Sheep(new Position(0, 0, 0, null as any))
             ];
 
             expect(

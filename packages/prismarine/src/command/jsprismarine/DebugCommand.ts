@@ -64,11 +64,13 @@ export default class DebugCommand extends Command {
 
                         const gamerules = Array.from(world.getGameruleManager().getGamerules());
                         await source.sendMessage(`  §dGamerules§r (${gamerules.length}):`);
-                        await Promise.all(
+                        /*
+                            TODO: complaining with typecheck
+                            await Promise.all(
                             gamerules.map(async ([id, value]) => {
                                 await source.sendMessage(`  - id: §a${id}§r, value: §b${value}§r`);
                             })
-                        );
+                        ); */
 
                         const entities = world.getEntities();
                         await source.sendMessage(`  §dEntities§r (${entities.length}):`);

@@ -1,4 +1,4 @@
-import type { PlayerSession } from '../../';
+import type { Player, PlayerSession } from '../../';
 import type Server from '../../Server';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import Identifiers from '../Identifiers';
@@ -40,8 +40,8 @@ export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket
             player
                 .getWorld()
                 .getPlayers()
-                .filter((target) => target.getUUID() !== player.getUUID())
-                .map((target) => target.getNetworkSession().broadcastMove(player, MovementType.Normal))
+                .filter((target: Player) => target.getUUID() !== player.getUUID())
+                .map((target: Player) => target.getNetworkSession().broadcastMove(player, MovementType.Normal))
         );
     }
 }

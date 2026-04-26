@@ -3,7 +3,7 @@ import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
 
 import { getGametypeId } from '@jsprismarine/minecraft';
-import type { PlayerSession } from '../../';
+import { type PlayerSession } from '../../';
 import type Server from '../../Server';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
@@ -135,12 +135,12 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
                     .map(async (p) => {
                         await p.getNetworkSession().sendSpawn(player);
                         await session.sendSpawn(p);
-                    }),
-                player
+                    })
+                /* player
                     .getWorld()
                     .getEntities()
-                    .filter((e) => !e.isPlayer())
-                    .map(async (entity) => entity.sendSpawn(player))
+                    .filter((e) => !(e instanceof Player))
+                    .map(async (entity) => entity.sendSpawn(player)) */
             ]);
 
             // Announce connection
