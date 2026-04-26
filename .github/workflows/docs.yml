@@ -1,13 +1,15 @@
 name: Generate Documentations
 on:
-    push:
-        branches:
-            - master
+    workflow_run:
+        workflows: ['Linting']
+        types: [completed]
+        branches: [master]
 
 jobs:
     build-and-publish-docs:
         name: 📖 Build and Publish Docs
         runs-on: ubuntu-latest
+        if: github.event.workflow_run.conclusion == 'success'
         env:
             TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
             TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
@@ -23,10 +25,9 @@ jobs:
             - run: pnpm run build:docs
 
             - uses: peaceiris/actions-gh-pages@v4
-              if: github.event_name == 'push' && github.ref == 'refs/heads/master'
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
                   publish_dir: ./dist
                   enable_jekyll: false
                   cname: 'docs.jsprismarine.org'
-                  commit_message: ${{ github.event.head_commit.message }}
+                  commit_message: ${{ github.event.workflow_run.head_commit.message }}
