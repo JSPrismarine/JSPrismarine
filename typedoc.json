@@ -21,7 +21,6 @@
     "exclude": ["**/node_modules/**", "node_modules/**"],
     "readme": "./README.md",
     "themeColor": "#5CA48A",
-    "titleLink": "https://jsprismarine.org/",
     "tsconfig": "./tsconfig.json",
     "mergeModulesRenameDefaults": true,
     "mergeModulesMergeMode": "module"
