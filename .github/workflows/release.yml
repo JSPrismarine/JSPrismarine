@@ -10,6 +10,7 @@ concurrency:
 
 env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    NPM_CONFIG_PROVENANCE: true
 
 permissions:
     contents: write
