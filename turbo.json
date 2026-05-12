@@ -16,6 +16,7 @@
             "outputs": [
                 "**/dist/**",
                 "**/docs/**",
+                "**/src/generated/**",
                 "!*/**/coverage/**"
             ]
         },
