@@ -36,8 +36,8 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
-            - name: 🔨 Build
-              run: pnpm run build
+            # - name: 🔨 Build
+            #   run: pnpm run build
 
             - name: 🤝 Create Release Pull Request or Publish to NPM
               id: changesets
