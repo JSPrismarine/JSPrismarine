@@ -19,7 +19,7 @@ JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScri
 
 ## Getting started
 
-**[You can find the documentation over at jsprismarine.org/docs](https://jsprismarine.org/docs/).**
+**[You can find the documentation over at jsprismarine.github.io/JSPrismarine](https://jsprismarine.github.io/JSPrismarine/).**
 
 Prebuilt binaries will be provided once a stable release is available. For now, you can follow the steps below or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions/workflows/nightly.yml?query=branch%3Amaster) (which may or may not work before reaching `v1.0.0`).
 
@@ -54,8 +54,8 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 
 ## Documentation
 
-- [jsprismarine.org/docs](https://jsprismarine.org/docs/).
-- [Running JSPrismarine](./docs/running.md).
+- [Docs](https://jsprismarine.github.io/JSPrismarine/).
+- [Running JSPrismarine](https://jsprismarine.github.io/JSPrismarine/documents/Running_JSPrismarine.html).
 
 ## Remarks
 
