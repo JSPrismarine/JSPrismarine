@@ -1,12 +1,11 @@
+/// <reference types="vite/client" />
 import { describe, it, expect, vi } from 'vitest';
-
-import url from 'node:url';
-import fs from 'node:fs';
-import path from 'node:path';
 
 import { Block } from './Block';
 import { Item } from '../item/Item';
 import type Server from '../Server';
+
+const blockModules = import.meta.glob<{ default: new () => Block }>('./blocks/*.ts', { eager: true });
 
 describe('block', () => {
     describe('Block', () => {
@@ -22,13 +21,11 @@ describe('block', () => {
             emit: vi.fn().mockResolvedValue({})
         }))();
 
-        it('every block show have unique namespace id', async () => {
+        it('every block show have unique namespace id', () => {
             const IDs: Set<string> = new Set();
-            const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-            const blocks = fs.readdirSync(path.resolve(__dirname, 'blocks'));
 
-            for (const file of blocks) {
-                const block = new (await import(`./blocks/${file}`)).default() as Block;
+            for (const module of Object.values(blockModules)) {
+                const block = new module.default();
 
                 expect(IDs.has(block.getName())).toBe(false);
                 IDs.add(block.getName());

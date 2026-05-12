@@ -3,7 +3,7 @@ import type CommandExceptionType from './CommandExceptionType';
 import CommandSyntaxException from './CommandSyntaxException';
 import type ImmutableStringReader from '../ImmutableStringReader';
 
-export default class DynamicCommandExceptionType implements CommandExceptionType {
+export class DynamicCommandExceptionType implements CommandExceptionType {
     private fn: Function;
 
     public constructor(fn: (...args: any[]) => Message) {
@@ -19,3 +19,5 @@ export default class DynamicCommandExceptionType implements CommandExceptionType
         return new CommandSyntaxException(this, this.fn(...args), reader.getString(), reader.getCursor());
     }
 }
+
+export default DynamicCommandExceptionType;

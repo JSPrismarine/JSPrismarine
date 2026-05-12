@@ -3,18 +3,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
 
-describe('Server', () => {
-    vi.mock('@jsprismarine/raknet', async (importActual) => {
-        const MockRakNetListener = vi.fn(function (this: any) {
-            this.start = vi.fn();
-            this.on = vi.fn();
-        });
-        return {
-            ...(((await importActual()) as any) || {}),
-            RakNetListener: MockRakNetListener
-        };
+vi.mock('@jsprismarine/raknet', async (importActual) => {
+    const MockRakNetListener = vi.fn(function (this: any) {
+        this.start = vi.fn();
+        this.on = vi.fn();
     });
+    return {
+        ...(((await importActual()) as any) || {}),
+        RakNetListener: MockRakNetListener
+    };
+});
 
+describe('Server', () => {
     const config = new (class DebugConfig {
         public enable() {}
         public disable() {}

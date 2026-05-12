@@ -17,7 +17,7 @@ export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug' | 'silly'
 
 /**
  * Helper class for general logging.
- * @document docs/log-levels.md
+ * @document ../../../docs/log-levels.md
  * @class
  * @public
  */

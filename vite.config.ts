@@ -4,7 +4,6 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import dts from 'vite-plugin-dts';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 import pkg from './package.json' with { type: 'json' };
 
@@ -14,7 +13,8 @@ export default defineConfig({
     root: __dirname,
     envDir: process.cwd(),
     resolve: {
-        alias: []
+        alias: [],
+        tsconfigPaths: true
     },
     build: {
         copyPublicDir: false,
@@ -23,7 +23,7 @@ export default defineConfig({
         outDir: 'dist',
         sourcemap: 'inline',
         target: 'esnext',
-        rollupOptions: {
+        rolldownOptions: {
             treeshake: true,
             external: [
                 ...Object.keys(pkg.dependencies ?? {}),
@@ -64,26 +64,18 @@ export default defineConfig({
             ],
             output: {
                 exports: 'named',
-                hoistTransitiveImports: true,
-                indent: false,
-                interop: 'auto',
                 preserveModules: true,
-                strict: true,
-                validate: true
+                strict: true
             }
         }
     },
     plugins: [
-        tsconfigPaths({
-            root: process.cwd()
-        }),
         dts({
             root: process.cwd(),
             clearPureImport: false,
             copyDtsFiles: true,
             entryRoot: `./src`,
             insertTypesEntry: true,
-            rollupTypes: false,
             tsconfigPath: `./tsconfig.json`
         })
     ]

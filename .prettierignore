@@ -16,3 +16,4 @@ node_modules
 *.nbt
 
 packages/bedrock-data/src/resources/*
+packages/bedrock-data/src/generated/*

@@ -5,7 +5,16 @@ import type CommandExceptionType from './CommandExceptionType';
 
 export default class CommandSyntaxException extends Error {
     public static CONTEXT_AMOUNT = 10;
-    public static BUILT_IN_EXCEPTIONS: BuiltInExceptionProvider = new BuiltInExceptions();
+    private static _builtInExceptions: BuiltInExceptionProvider | null = null;
+    // Lazy-instantiate to break the BuiltInExceptions -> SimpleCommandExceptionType ->
+    // CommandSyntaxException -> BuiltInExceptions module load cycle that Vite 8 (Rolldown)
+    // refuses to swallow the way the previous esbuild-based bundler did.
+    public static get BUILT_IN_EXCEPTIONS(): BuiltInExceptionProvider {
+        if (this._builtInExceptions === null) {
+            this._builtInExceptions = new BuiltInExceptions();
+        }
+        return this._builtInExceptions;
+    }
 
     private type: CommandExceptionType;
     private __message: Message;

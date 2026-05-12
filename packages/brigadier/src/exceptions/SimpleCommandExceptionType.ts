@@ -3,7 +3,7 @@ import type ImmutableStringReader from '../ImmutableStringReader';
 import type CommandExceptionType from './CommandExceptionType';
 import CommandSyntaxException from './CommandSyntaxException';
 
-export default class SimpleCommandExceptionType implements CommandExceptionType {
+export class SimpleCommandExceptionType implements CommandExceptionType {
     private message: Message;
 
     public constructor(message: Message) {
@@ -23,3 +23,5 @@ export default class SimpleCommandExceptionType implements CommandExceptionType 
         return this.message.getString();
     }
 }
+
+export default SimpleCommandExceptionType;

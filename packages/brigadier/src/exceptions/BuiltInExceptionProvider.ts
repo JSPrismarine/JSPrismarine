@@ -1,5 +1,5 @@
-import type DynamicCommandExceptionType from './DynamicCommandExceptionType';
-import type SimpleCommandExceptionType from './SimpleCommandExceptionType';
+import type { DynamicCommandExceptionType } from './DynamicCommandExceptionType';
+import type { SimpleCommandExceptionType } from './SimpleCommandExceptionType';
 
 export default interface BuiltInExceptionProvider {
     floatTooLow(): DynamicCommandExceptionType;

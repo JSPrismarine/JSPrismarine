@@ -2,7 +2,7 @@ import { assert, describe, it } from 'vitest';
 import StringReader from '../StringReader';
 import LiteralMessage from '../LiteralMessage';
 import CommandSyntaxException from '../exceptions/CommandSyntaxException';
-import SimpleCommandExceptionType from '../exceptions/SimpleCommandExceptionType';
+import { SimpleCommandExceptionType } from '../exceptions/SimpleCommandExceptionType';
 
 describe('SimpleCommandSyntaxExceptionTypeTest', () => {
     it('createWithContext', () => {
