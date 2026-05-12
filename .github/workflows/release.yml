@@ -62,5 +62,6 @@ jobs:
               env:
                   NPM_TOKEN: ''
               run: |
+                  git checkout master
                   pnpm run version:unstable
                   pnpm run release:unstable
