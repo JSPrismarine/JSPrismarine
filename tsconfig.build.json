@@ -7,7 +7,6 @@
         "composite": false, // FIXME: Fix ` Projects must list all files or use an 'include' pattern.`.
         "declaration": true,
         "declarationMap": true,
-        "downlevelIteration": false,
         "emitDecoratorMetadata": true,
         "esModuleInterop": true,
         "experimentalDecorators": true,
