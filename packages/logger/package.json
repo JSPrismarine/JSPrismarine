@@ -3,6 +3,9 @@
     "version": "0.13.1",
     "description": "JSPrismarine logger and utilities",
     "sideEffects": false,
+    "publishConfig": {
+        "access": "public"
+    },
     "type": "module",
     "files": [
         "dist",
