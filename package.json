@@ -79,7 +79,7 @@
         "@turbo/gen": "2.9.12",
         "@types/heap": "0.2.35",
         "@types/node": "22.18.11",
-        "@vitest/coverage-v8": "4.0.15",
+        "@vitest/coverage-v8": "4.1.6",
         "concurrently": "9.2.1",
         "cross-env": "10.1.0",
         "eslint": "9.39.1",
@@ -106,7 +106,7 @@
         "vite": "7.3.3",
         "vite-plugin-dts": "4.5.4",
         "vite-tsconfig-paths": "5.1.4",
-        "vitest": "4.0.15"
+        "vitest": "4.1.6"
     },
     "dependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
