@@ -1,5 +1,21 @@
 # @jsprismarine/prismarine
 
+## 0.13.2
+
+### Patch Changes
+
+- [`ab719cb`](https://github.com/JSPrismarine/JSPrismarine/commit/ab719cb2a58f3b099a3017694ce4ce610bf5cf54) Thanks [@filiphsps](https://github.com/filiphsps)! - Update dependenices (including vulnerable dependencies).
+
+- Updated dependencies []:
+    - @jsprismarine/color-parser@0.13.2
+    - @jsprismarine/errors@0.13.2
+    - @jsprismarine/logger@0.13.2
+    - @jsprismarine/math@0.13.2
+    - @jsprismarine/minecraft@0.13.2
+    - @jsprismarine/nbt@0.13.2
+    - @jsprismarine/protocol@0.13.2
+    - @jsprismarine/raknet@0.13.2
+
 ## 0.13.1
 
 ### Patch Changes
@@ -357,7 +373,6 @@
 - [#1279](https://github.com/JSPrismarine/JSPrismarine/pull/1279) [`4ca96b5`](https://github.com/JSPrismarine/JSPrismarine/commit/4ca96b59696dbe67e39b7f46d85fe421a74d23d5) Thanks [@filiphsps](https://github.com/filiphsps)! - Add Codecov bundler plugin to vite.
 
 - [`fad26e2`](https://github.com/JSPrismarine/JSPrismarine/commit/fad26e2affc095a94cfaed417891bbc9605af589) Thanks [@filiphsps](https://github.com/filiphsps)! - - Remove `Server.instance`.
-
     - Remove passing of version from `@jsprismarine/server` to `@jsprismarine/prismarine`.
 
 - [`91b556d`](https://github.com/JSPrismarine/JSPrismarine/commit/91b556de0064b8e670ea46b61f0c51817ea7b425) Thanks [@filiphsps](https://github.com/filiphsps)! - Resolve `js/insecure-randomness`.
@@ -393,7 +408,6 @@
 - [#1259](https://github.com/JSPrismarine/JSPrismarine/pull/1259) [`c9d207f`](https://github.com/JSPrismarine/JSPrismarine/commit/c9d207f03417a8961557d569ec60b1091e9114c1) Thanks [@renovate](https://github.com/apps/renovate)! - Deps: Update dependency @types/node to v20.12.3.
 
 - [#1249](https://github.com/JSPrismarine/JSPrismarine/pull/1249) [`6477e70`](https://github.com/JSPrismarine/JSPrismarine/commit/6477e7079ef9f8eca981f4ab539b7045ee514e2f) Thanks [@filiphsps](https://github.com/filiphsps)! - - Remove `@jsprismarine/updater`.
-
     - We don't need an updater at the moment, in the future that job should probably be up to npm/jsr/etc.
 
 - [#1252](https://github.com/JSPrismarine/JSPrismarine/pull/1252) [`6001709`](https://github.com/JSPrismarine/JSPrismarine/commit/6001709dcfddb12e6ddf0c8fe919cabacb5d6122) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix running a command using it's full ID (`/minecraft:help`).
@@ -411,7 +425,6 @@
 - [`323a666`](https://github.com/JSPrismarine/JSPrismarine/commit/323a666b2d4b82e399ff21711ff8cc7ca6f520dd) Thanks [@filiphsps](https://github.com/filiphsps)! - Add safety checks and fix invalid logic.
 
 - [#1231](https://github.com/JSPrismarine/JSPrismarine/pull/1231) [`491b688`](https://github.com/JSPrismarine/JSPrismarine/commit/491b688adc0c38426b767646b6cc748b8e774e30) Thanks [@filiphsps](https://github.com/filiphsps)! - - Remove `EvalCommand`.
-
     - It was potentially if not already a security risk.
     - We could potentially add something similar running under a virtual environment in the future, but not a priority at the moment.
     - Fix and substantially improve stdin/tty.

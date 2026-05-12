@@ -1,5 +1,16 @@
 # @jsprismarine/server
 
+## 0.13.2
+
+### Patch Changes
+
+- Updated dependencies [[`ab719cb`](https://github.com/JSPrismarine/JSPrismarine/commit/ab719cb2a58f3b099a3017694ce4ce610bf5cf54)]:
+    - @jsprismarine/prismarine@0.13.2
+    - @jsprismarine/color-parser@0.13.2
+    - @jsprismarine/logger@0.13.2
+    - @jsprismarine/minecraft@0.13.2
+    - @jsprismarine/raknet@0.13.2
+
 ## 0.13.1
 
 ### Patch Changes
@@ -236,7 +247,6 @@
 ### Minor Changes
 
 - [`2859dd2`](https://github.com/JSPrismarine/JSPrismarine/commit/2859dd2d9052fe7da9c222c6cab908412fce223e) Thanks [@filiphsps](https://github.com/filiphsps)! - - Remove `async-exit-hook`.
-
     - It got in the way of `@jsprismarine/prismarine`.
 
 - [#1249](https://github.com/JSPrismarine/JSPrismarine/pull/1249) [`6477e70`](https://github.com/JSPrismarine/JSPrismarine/commit/6477e7079ef9f8eca981f4ab539b7045ee514e2f) Thanks [@filiphsps](https://github.com/filiphsps)! - - Remove `@jsprismarine/updater`.
