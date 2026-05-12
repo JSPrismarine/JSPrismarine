@@ -32,7 +32,7 @@ importers:
         version: 6.1.0
       '@codecov/vite-plugin':
         specifier: 2.0.1
-        version: 2.0.1(vite@7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2))
+        version: 2.0.1(vite@7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2))
       '@eslint/js':
         specifier: 9.39.1
         version: 9.39.1
@@ -121,14 +121,14 @@ importers:
         specifier: 8.49.0
         version: 8.49.0(eslint@9.39.1)(typescript@5.9.3)
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vite-plugin-dts:
         specifier: 4.5.4
-        version: 4.5.4(@types/node@22.18.11)(rollup@4.53.3)(typescript@5.9.3)(vite@7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2))
+        version: 4.5.4(@types/node@22.18.11)(rollup@4.53.3)(typescript@5.9.3)(vite@7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2))
       vite-tsconfig-paths:
         specifier: 5.1.4
-        version: 5.1.4(typescript@5.9.3)(vite@7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2))
+        version: 5.1.4(typescript@5.9.3)(vite@7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2))
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -148,8 +148,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -169,8 +169,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -203,8 +203,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -228,8 +228,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -249,8 +249,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -280,8 +280,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -308,8 +308,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -336,8 +336,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -361,8 +361,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -425,8 +425,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -450,8 +450,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -475,8 +475,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -524,8 +524,8 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: 7.3.2
-        version: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+        specifier: 7.3.3
+        version: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
         specifier: 4.0.15
         version: 4.0.15(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
@@ -3720,6 +3720,46 @@ packages:
       yaml:
         optional: true
 
+  vite@7.3.3:
+    resolution: {integrity: sha512-/4XH147Ui7OGTjg3HbdWe5arnZQSbfuRzdr9Ec7TQi5I7R+ir0Rlc9GIvD4v0XZurELqA035KVXJXpR61xhiTA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^20.19.0 || >=22.12.0
+      jiti: '>=1.21.0'
+      less: ^4.0.0
+      lightningcss: ^1.21.0
+      sass: ^1.70.0
+      sass-embedded: ^1.70.0
+      stylus: '>=0.54.8'
+      sugarss: ^5.0.0
+      terser: ^5.16.0
+      tsx: ^4.8.1
+      yaml: ^2.4.2
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      jiti:
+        optional: true
+      less:
+        optional: true
+      lightningcss:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+      tsx:
+        optional: true
+      yaml:
+        optional: true
+
   vitest@4.0.15:
     resolution: {integrity: sha512-n1RxDp8UJm6N0IbJLQo+yzLZ2sQCDyl1o0LeugbPWf8+8Fttp29GghsQBjYJVmWq3gBFfe9Hs1spR44vovn2wA==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
@@ -4073,11 +4113,11 @@ snapshots:
       unplugin: 1.16.1
       zod: 3.25.76
 
-  '@codecov/vite-plugin@2.0.1(vite@7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2))':
+  '@codecov/vite-plugin@2.0.1(vite@7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@codecov/bundler-plugin-core': 2.0.1
       unplugin: 1.16.1
-      vite: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
 
   '@colors/colors@1.6.0': {}
 
@@ -7178,7 +7218,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite-plugin-dts@4.5.4(@types/node@22.18.11)(rollup@4.53.3)(typescript@5.9.3)(vite@7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)):
+  vite-plugin-dts@4.5.4(@types/node@22.18.11)(rollup@4.53.3)(typescript@5.9.3)(vite@7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)):
     dependencies:
       '@microsoft/api-extractor': 7.55.2(@types/node@22.18.11)
       '@rollup/pluginutils': 5.3.0(rollup@4.53.3)
@@ -7191,24 +7231,38 @@ snapshots:
       magic-string: 0.30.21
       typescript: 5.9.3
     optionalDependencies:
-      vite: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
     transitivePeerDependencies:
       - '@types/node'
       - rollup
       - supports-color
 
-  vite-tsconfig-paths@5.1.4(typescript@5.9.3)(vite@7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)):
+  vite-tsconfig-paths@5.1.4(typescript@5.9.3)(vite@7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)):
     dependencies:
       debug: 4.4.3
       globrex: 0.1.2
       tsconfck: 3.1.6(typescript@5.9.3)
     optionalDependencies:
-      vite: 7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
+      vite: 7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2)
     transitivePeerDependencies:
       - supports-color
       - typescript
 
   vite@7.3.2(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2):
+    dependencies:
+      esbuild: 0.27.1
+      fdir: 6.5.0(picomatch@4.0.3)
+      picomatch: 4.0.3
+      postcss: 8.5.6
+      rollup: 4.53.3
+      tinyglobby: 0.2.15
+    optionalDependencies:
+      '@types/node': 22.18.11
+      fsevents: 2.3.3
+      tsx: 4.21.0
+      yaml: 2.8.2
+
+  vite@7.3.3(@types/node@22.18.11)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       esbuild: 0.27.1
       fdir: 6.5.0(picomatch@4.0.3)
