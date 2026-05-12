@@ -85,7 +85,7 @@
         "eslint": "9.39.4",
         "eslint-config-prettier": "10.1.8",
         "eslint-plugin-import": "2.32.0",
-        "eslint-plugin-jsdoc": "61.7.1",
+        "eslint-plugin-jsdoc": "62.9.0",
         "eslint-plugin-prettier": "5.5.5",
         "eslint-plugin-unused-imports": "4.4.1",
         "glob": "13.0.6",
