@@ -1,5 +1,27 @@
 # @jsprismarine/prismarine
 
+## 0.14.0
+
+### Minor Changes
+
+- [`4364c2f`](https://github.com/JSPrismarine/JSPrismarine/commit/4364c2fee5b4cc8f8dce04ee3213db3f5a434e4a) Thanks [@filiphsps](https://github.com/filiphsps)! - Republish every package with its compiled `dist/` output. The previous stable release shipped without any built code — every tarball on npm contained only `package.json`, `README.md`, `CHANGELOG.md`, and `LICENSE` — because `pnpm run build` had been commented out of the release workflow at the time of the cut. The build step has since been restored; this minor bump forces a fresh stable publish so consumers actually receive the compiled code.
+
+### Patch Changes
+
+- [`c572c06`](https://github.com/JSPrismarine/JSPrismarine/commit/c572c06c61f668cd7cfababb05e7adbc219876ca) Thanks [@filiphsps](https://github.com/filiphsps)! - Bogus change to test changeset PR creation with `MACHINE_USER`.
+
+- [`3aa7813`](https://github.com/JSPrismarine/JSPrismarine/commit/3aa78132d3805cefe776d8de835b0b1081ca3095) Thanks [@filiphsps](https://github.com/filiphsps)! - Bump TypeScript to 6.0.3 and drop deprecated `downlevelIteration`/`baseUrl` from tsconfigs.
+
+- Updated dependencies [[`4364c2f`](https://github.com/JSPrismarine/JSPrismarine/commit/4364c2fee5b4cc8f8dce04ee3213db3f5a434e4a), [`3aa7813`](https://github.com/JSPrismarine/JSPrismarine/commit/3aa78132d3805cefe776d8de835b0b1081ca3095)]:
+    - @jsprismarine/color-parser@0.14.0
+    - @jsprismarine/errors@0.14.0
+    - @jsprismarine/logger@0.14.0
+    - @jsprismarine/math@0.14.0
+    - @jsprismarine/minecraft@0.14.0
+    - @jsprismarine/nbt@0.14.0
+    - @jsprismarine/protocol@0.14.0
+    - @jsprismarine/raknet@0.14.0
+
 ## 0.13.5
 
 ### Patch Changes

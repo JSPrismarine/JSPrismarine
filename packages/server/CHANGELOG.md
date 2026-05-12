@@ -1,5 +1,20 @@
 # @jsprismarine/server
 
+## 0.14.0
+
+### Minor Changes
+
+- [`4364c2f`](https://github.com/JSPrismarine/JSPrismarine/commit/4364c2fee5b4cc8f8dce04ee3213db3f5a434e4a) Thanks [@filiphsps](https://github.com/filiphsps)! - Republish every package with its compiled `dist/` output. The previous stable release shipped without any built code — every tarball on npm contained only `package.json`, `README.md`, `CHANGELOG.md`, and `LICENSE` — because `pnpm run build` had been commented out of the release workflow at the time of the cut. The build step has since been restored; this minor bump forces a fresh stable publish so consumers actually receive the compiled code.
+
+### Patch Changes
+
+- Updated dependencies [[`4364c2f`](https://github.com/JSPrismarine/JSPrismarine/commit/4364c2fee5b4cc8f8dce04ee3213db3f5a434e4a), [`c572c06`](https://github.com/JSPrismarine/JSPrismarine/commit/c572c06c61f668cd7cfababb05e7adbc219876ca), [`3aa7813`](https://github.com/JSPrismarine/JSPrismarine/commit/3aa78132d3805cefe776d8de835b0b1081ca3095)]:
+    - @jsprismarine/color-parser@0.14.0
+    - @jsprismarine/logger@0.14.0
+    - @jsprismarine/minecraft@0.14.0
+    - @jsprismarine/prismarine@0.14.0
+    - @jsprismarine/raknet@0.14.0
+
 ## 0.13.5
 
 ### Patch Changes

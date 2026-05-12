@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/bedrock-data",
-    "version": "0.13.5",
+    "version": "0.14.0",
     "description": "BedrockData from PMMP exported in a nodejs friendly way.",
     "sideEffects": false,
     "publishConfig": {
