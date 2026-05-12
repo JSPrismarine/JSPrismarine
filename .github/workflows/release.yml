@@ -9,14 +9,15 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
 
 env:
-#    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-#    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 permissions:
     contents: write
     issues: write
     pull-requests: write
+    id-token: write
 
 jobs:
     release:
@@ -26,6 +27,7 @@ jobs:
             contents: write
             issues: write
             pull-requests: write
+            id-token: write
         steps:
             - name: 🕶️ Checkout repository
               uses: actions/checkout@v6
