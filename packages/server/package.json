@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/server",
-    "version": "0.13.2",
+    "version": "0.13.4",
     "description": "Minecraft: Bedrock Edition dedicated server entrypoint",
     "sideEffects": false,
     "publishConfig": {
