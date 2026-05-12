@@ -11,6 +11,7 @@ concurrency:
 env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     NPM_CONFIG_PROVENANCE: true
+    HUSKY: 0
 
 permissions:
     contents: write
@@ -37,8 +38,8 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
-            # - name: 🔨 Build
-            #   run: pnpm run build
+            - name: 🔨 Build
+              run: pnpm run build
 
             - name: 🤝 Create Release Pull Request or Publish to NPM
               id: changesets
