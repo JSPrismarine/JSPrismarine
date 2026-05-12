@@ -11,14 +11,21 @@ concurrency:
 env:
     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-    GITHUB_TOKEN: ${{ secrets.MACHINE_USER }}
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-permissions: write-all
+permissions:
+    contents: write
+    issues: write
+    pull-requests: write
 
 jobs:
     release:
         name: 🚚 Release
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            issues: write
+            pull-requests: write
         steps:
             - name: 🕶️ Checkout repository
               uses: actions/checkout@v6
