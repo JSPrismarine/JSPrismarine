@@ -55,9 +55,9 @@
     "author": "JSPrismarine",
     "contributors": [
         {
-            "name": "Filiph Siitam Sandström",
-            "email": "filiph@nordcom.io",
-            "url": "https://nordcom.io/"
+            "name": "Filiph Sandström",
+            "email": "filiph@hotmail.se",
+            "url": "https://github.com/filiphsps"
         },
         {
             "name": "Enrico Angelon",
@@ -69,7 +69,7 @@
     "bugs": {
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
-    "homepage": "https://jsprismarine.org/",
+    "homepage": "https://jsprismarine.github.io/JSPrismarine/",
     "devDependencies": {
         "@changesets/changelog-github": "0.5.2",
         "@changesets/cli": "2.29.8",
