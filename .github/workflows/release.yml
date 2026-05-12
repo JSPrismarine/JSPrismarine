@@ -39,7 +39,7 @@ jobs:
                   createGithubReleases: true
                   version: pnpm run version
                   publish: pnpm run release
-                  setupGitUser: false
+                  setupGitUser: true
                   commit: |
                       Changeset: Increment package & dependecy versions.
 
