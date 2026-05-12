@@ -4,3 +4,6 @@ packages:
 onlyBuiltDependencies:
   - core-js-pure
   - esbuild
+
+allowBuilds:
+  esbuild: true
