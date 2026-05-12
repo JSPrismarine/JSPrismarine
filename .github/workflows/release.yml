@@ -9,7 +9,7 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
 
 env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    GITHUB_TOKEN: ${{ secrets.MACHINE_USER }}
     NPM_CONFIG_PROVENANCE: true
     HUSKY: 0
 
