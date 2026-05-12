@@ -34,10 +34,9 @@
         "package": "bun build --sourcemap --compile ./packages/server/src/Server.ts --outfile ./dist/prismarine",
         "version": "changeset version",
         "postversion": "pnpm install",
-        "create": "turbo gen",
         "version:unstable": "changeset version --snapshot unstable",
         "release": "changeset publish",
-        "release:unstable": "changeset publish --snapshot --no-git-tag --tag unstable",
+        "release:unstable": "changeset publish --no-git-tag --tag unstable",
         "changeset": "changeset"
     },
     "repository": {
