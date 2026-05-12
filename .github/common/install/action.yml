@@ -7,7 +7,7 @@ runs:
         - name: 🏎️ Setup Node
           uses: actions/setup-node@v6
           with:
-              # registry-url: 'https://registry.npmjs.org/'
+              registry-url: 'https://registry.npmjs.org/'
               node-version-file: '.nvmrc'
 
         - name: 🏎️ Setup pnpm
@@ -19,6 +19,7 @@ runs:
           uses: oven-sh/setup-bun@v2
           with:
               bun-version: canary
+              registry-url: 'https://registry.npmjs.org/'
 
         - name: Get pnpm store directory
           shell: bash
