@@ -43,7 +43,7 @@ jobs:
               id: changesets
               uses: changesets/action@v1
               env:
-                  NPM_TOKEN: ""
+                  NPM_TOKEN: ''
               with:
                   createGithubReleases: true
                   version: pnpm run version
@@ -58,6 +58,8 @@ jobs:
 
             - name: 🫨 Create Unstable Release
               if: steps.changesets.outputs.published != 'true'
+              env:
+                  NPM_TOKEN: ''
               run: |
                   git checkout master
                   pnpm run version:unstable
