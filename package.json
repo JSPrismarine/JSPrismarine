@@ -89,7 +89,7 @@
         "eslint-plugin-jsdoc": "61.5.0",
         "eslint-plugin-prettier": "5.5.5",
         "eslint-plugin-unused-imports": "4.3.0",
-        "glob": "13.0.0",
+        "glob": "13.0.6",
         "husky": "9.1.7",
         "lint-staged": "16.2.7",
         "prettier": "3.7.4",
