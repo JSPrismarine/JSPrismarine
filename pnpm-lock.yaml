@@ -32,7 +32,7 @@ importers:
         version: 6.1.0
       '@codecov/vite-plugin':
         specifier: 2.0.1
-        version: 2.0.1(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 2.0.1(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
       '@eslint/js':
         specifier: 9.39.4
         version: 9.39.4
@@ -122,16 +122,16 @@ importers:
         version: 8.59.3(eslint@9.39.4)(typescript@6.0.3)
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vite-plugin-dts:
         specifier: 5.0.0
-        version: 5.0.0(esbuild@0.27.1)(rolldown@1.0.0)(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 5.0.0(esbuild@0.27.1)(rolldown@1.0.0)(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
       vite-tsconfig-paths:
         specifier: 6.1.1
-        version: 6.1.1(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 6.1.1(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/bedrock-data:
     devDependencies:
@@ -149,10 +149,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/brigadier:
     devDependencies:
@@ -170,10 +170,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/client:
     dependencies:
@@ -204,10 +204,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/color-parser:
     dependencies:
@@ -229,10 +229,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/errors:
     devDependencies:
@@ -250,10 +250,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/logger:
     dependencies:
@@ -281,10 +281,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/math:
     dependencies:
@@ -309,10 +309,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/minecraft:
     dependencies:
@@ -337,10 +337,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/nbt:
     dependencies:
@@ -362,10 +362,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/prismarine:
     dependencies:
@@ -426,10 +426,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/protocol:
     dependencies:
@@ -451,10 +451,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/raknet:
     dependencies:
@@ -476,10 +476,10 @@ importers:
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   packages/server:
     dependencies:
@@ -518,17 +518,17 @@ importers:
         specifier: 6.1.3
         version: 6.1.3
       tsx:
-        specifier: 4.21.0
-        version: 4.21.0
+        specifier: 4.21.1
+        version: 4.21.1
       typescript:
         specifier: 6.0.3
         version: 6.0.3
       vite:
         specifier: 8.0.12
-        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+        version: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+        version: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
 packages:
 
@@ -2378,9 +2378,6 @@ packages:
     resolution: {integrity: sha512-w9UMqWwJxHNOvoNzSJ2oPF5wvYcvP7jUvYzhp67yEhTi17ZDBBC1z9pTdGuzjD+EFIqLSYRweZjqfiPzQ06Ebg==}
     engines: {node: '>= 0.4'}
 
-  get-tsconfig@4.13.0:
-    resolution: {integrity: sha512-1VKTZJCwBrvbd+Wn3AOgQP/2Av+TfTCOlE4AcRJE72W1ksZXbAx8PPBR9RzgTeSPzlPMHrbANMH3LbltH73wxQ==}
-
   glob-parent@5.1.2:
     resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
     engines: {node: '>= 6'}
@@ -3178,9 +3175,6 @@ packages:
     resolution: {integrity: sha512-qYg9KP24dD5qka9J47d0aVky0N+b4fTU89LN9iDnjB5waksiC49rvMB0PrUJQGoTmH50XPiqOvAjDfaijGxYZw==}
     engines: {node: '>=8'}
 
-  resolve-pkg-maps@1.0.0:
-    resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
-
   resolve@1.22.11:
     resolution: {integrity: sha512-RfqAvLnMl313r7c9oclB1HhUEAezcpLjz95wFH4LVuhk9JF/r22qmVP9AMmOU4vMX7Q8pN8jwNg/CSpdFnMjTQ==}
     engines: {node: '>= 0.4'}
@@ -3513,8 +3507,8 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
-  tsx@4.21.0:
-    resolution: {integrity: sha512-5C1sg4USs1lfG0GFb2RLXsdpXqBSEhAaA/0kPL01wxzpMqLILNxIxIOKiILz+cdg/pLnOUxFYOR5yhHU666wbw==}
+  tsx@4.21.1:
+    resolution: {integrity: sha512-5QE2Q04cN1u0993w0LT5rPw3faZqZU1fFn1mGE0pV53N1Dn7c+QFFxQu1mBeSgeOXwFyTicZw02wVgp3Tb5cAQ==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -4085,11 +4079,11 @@ snapshots:
       unplugin: 1.16.1
       zod: 3.25.76
 
-  '@codecov/vite-plugin@2.0.1(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))':
+  '@codecov/vite-plugin@2.0.1(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))':
     dependencies:
       '@codecov/bundler-plugin-core': 2.0.1
       unplugin: 1.16.1
-      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
 
   '@colors/colors@1.6.0': {}
 
@@ -4935,7 +4929,7 @@ snapshots:
       obug: 2.1.1
       std-env: 4.1.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+      vitest: 4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
 
   '@vitest/expect@4.1.6':
     dependencies:
@@ -4946,13 +4940,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.0
 
-  '@vitest/mocker@4.1.6(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))':
+  '@vitest/mocker@4.1.6(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))':
     dependencies:
       '@vitest/spy': 4.1.6
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
 
   '@vitest/pretty-format@4.1.6':
     dependencies:
@@ -5878,10 +5872,6 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
 
-  get-tsconfig@4.13.0:
-    dependencies:
-      resolve-pkg-maps: 1.0.0
-
   glob-parent@5.1.2:
     dependencies:
       is-glob: 4.0.3
@@ -6633,8 +6623,6 @@ snapshots:
 
   resolve-from@5.0.0: {}
 
-  resolve-pkg-maps@1.0.0: {}
-
   resolve@1.22.11:
     dependencies:
       is-core-module: 2.16.1
@@ -6976,10 +6964,9 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  tsx@4.21.0:
+  tsx@4.21.1:
     dependencies:
       esbuild: 0.27.1
-      get-tsconfig: 4.13.0
     optionalDependencies:
       fsevents: 2.3.3
 
@@ -7096,7 +7083,7 @@ snapshots:
 
   universalify@0.1.2: {}
 
-  unplugin-dts@1.0.0(esbuild@0.27.1)(rolldown@1.0.0)(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)):
+  unplugin-dts@1.0.0(esbuild@0.27.1)(rolldown@1.0.0)(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)):
     dependencies:
       '@rollup/pluginutils': 5.3.0
       '@volar/typescript': 2.4.26
@@ -7110,7 +7097,7 @@ snapshots:
     optionalDependencies:
       esbuild: 0.27.1
       rolldown: 1.0.0
-      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -7132,11 +7119,11 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite-plugin-dts@5.0.0(esbuild@0.27.1)(rolldown@1.0.0)(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)):
+  vite-plugin-dts@5.0.0(esbuild@0.27.1)(rolldown@1.0.0)(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)):
     dependencies:
-      unplugin-dts: 1.0.0(esbuild@0.27.1)(rolldown@1.0.0)(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+      unplugin-dts: 1.0.0(esbuild@0.27.1)(rolldown@1.0.0)(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
     optionalDependencies:
-      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
     transitivePeerDependencies:
       - '@rspack/core'
       - '@vue/language-core'
@@ -7146,17 +7133,17 @@ snapshots:
       - typescript
       - webpack
 
-  vite-tsconfig-paths@6.1.1(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)):
+  vite-tsconfig-paths@6.1.1(typescript@6.0.3)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)):
     dependencies:
       debug: 4.4.3
       globrex: 0.1.2
       tsconfck: 3.1.6(typescript@6.0.3)
-      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
     transitivePeerDependencies:
       - supports-color
       - typescript
 
-  vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0):
+  vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
@@ -7167,13 +7154,13 @@ snapshots:
       '@types/node': 24.12.4
       esbuild: 0.27.1
       fsevents: 2.3.3
-      tsx: 4.21.0
+      tsx: 4.21.1
       yaml: 2.9.0
 
-  vitest@4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)):
+  vitest@4.1.6(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)):
     dependencies:
       '@vitest/expect': 4.1.6
-      '@vitest/mocker': 4.1.6(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0))
+      '@vitest/mocker': 4.1.6(vite@8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0))
       '@vitest/pretty-format': 4.1.6
       '@vitest/runner': 4.1.6
       '@vitest/snapshot': 4.1.6
@@ -7190,7 +7177,7 @@ snapshots:
       tinyexec: 1.1.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.1.0
-      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.0)(yaml@2.9.0)
+      vite: 8.0.12(@types/node@24.12.4)(esbuild@0.27.1)(tsx@4.21.1)(yaml@2.9.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 24.12.4
