@@ -6,7 +6,7 @@
         "access": "public"
     },
     "type": "module",
-    "version": "0.14.0",
+    "version": "0.14.1",
     "description": "Dedicated Minecraft Bedrock Edition server written in TypeScript",
     "prettier": "@nordcom/prettier",
     "files": [

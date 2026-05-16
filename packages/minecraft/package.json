@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/minecraft",
-    "version": "0.14.0",
+    "version": "0.14.1",
     "description": "Minecraft: Bedrock Edition data and related utilities",
     "sideEffects": false,
     "publishConfig": {
