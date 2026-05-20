@@ -50,7 +50,7 @@
         "glob": "13.0.6",
         "typescript": "6.0.3",
         "vite": "8.0.13",
-        "vitest": "4.1.6"
+        "vitest": "4.1.7"
     },
     "dependencies": {
         "@jsprismarine/minecraft": "workspace:*",
