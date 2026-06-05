@@ -80,7 +80,7 @@
         "@types/heap": "0.2.35",
         "@types/node": "24.12.4",
         "@vitest/coverage-v8": "4.1.8",
-        "concurrently": "10.0.0",
+        "concurrently": "10.0.3",
         "cross-env": "10.1.0",
         "eslint": "9.39.4",
         "eslint-config-prettier": "10.1.8",
