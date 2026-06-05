@@ -78,7 +78,7 @@
         "@nordcom/prettier": "0.1.1",
         "@turbo/gen": "2.9.16",
         "@types/heap": "0.2.35",
-        "@types/node": "24.12.4",
+        "@types/node": "24.13.0",
         "@vitest/coverage-v8": "4.1.8",
         "concurrently": "10.0.3",
         "cross-env": "10.1.0",
