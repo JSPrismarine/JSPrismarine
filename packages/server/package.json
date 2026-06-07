@@ -52,7 +52,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/server",
     "devDependencies": {
-        "@types/node": "24.13.0",
+        "@types/node": "24.13.1",
         "cross-env": "10.1.0",
         "glob": "13.0.6",
         "rimraf": "6.1.3",
