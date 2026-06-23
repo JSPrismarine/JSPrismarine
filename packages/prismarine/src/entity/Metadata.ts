@@ -45,6 +45,7 @@ export enum FlagType {
     VECTOR
 }
 
+// TODO: use the minecraft data types
 export type MetadataContainer = Map<number, [number, bigint | number | boolean | string]>;
 export class MetadataWriter {
     private readonly metadata: MetadataContainer = new Map();
@@ -178,7 +179,7 @@ export class Metadata extends MetadataWriter {
      * @param {boolean} [setDefaults=true]
      * @returns {Metadata} the metadata object.
      */
-    constructor(setDefaults = true) {
+    public constructor(setDefaults = true) {
         super();
 
         if (!setDefaults) return;
@@ -191,6 +192,9 @@ export class Metadata extends MetadataWriter {
      * @TODO: Add missing functions.
      */
     protected setDefaults(): void {
+        // TODO: This method is wrong. Default generic metadata doesn't exists,
+        // a Player Entity may have some default metadata, but not all entities.
+        // for example a Minecart doesn't have THOSE tags as defaults...
         this.setLong(MetadataFlag.INDEX, 0n);
 
         this.setShort(MetadataFlag.MAX_AIR, 300);
@@ -215,6 +219,7 @@ export class Metadata extends MetadataWriter {
     public setNameTag(name: string): void {
         this.setString(MetadataFlag.NAMETAG, name);
     }
+
     /**
      * Get the entity's name tag.
      * @returns {string} The entity's name tag.
@@ -230,6 +235,7 @@ export class Metadata extends MetadataWriter {
     public setScale(scale: number = 1): void {
         this.setFloat(MetadataFlag.SCALE, scale);
     }
+
     /**
      * Get the entity's scale.
      * @returns {number} The entity's scale.
@@ -245,6 +251,7 @@ export class Metadata extends MetadataWriter {
     public setAffectedByGravity(affected: boolean = true): void {
         this.setGenericFlag(MetadataFlag.AFFECTED_BY_GRAVITY, affected);
     }
+
     /**
      * Get if the entity is affected by gravity.
      * @returns {boolean} if the entity is affected by gravity.
@@ -260,6 +267,7 @@ export class Metadata extends MetadataWriter {
     public setCollidable(collidable: boolean = true): void {
         this.setGenericFlag(MetadataFlag.HAS_COLLISION, collidable);
     }
+
     /**
      * Get entity's collidable state.
      * @returns {boolean} if the entity is collidable.
@@ -275,6 +283,7 @@ export class Metadata extends MetadataWriter {
     public setSprinting(sprinting: boolean = true): void {
         this.setDataFlag(MetadataFlag.INDEX, MetadataFlag.SPRINTING, sprinting, FlagType.BYTE);
     }
+
     /**
      * Get entity's sprinting state.
      * @returns {boolean} if the entity is sprinting.
@@ -290,6 +299,7 @@ export class Metadata extends MetadataWriter {
     public setCanFly(canFly: boolean = true): void {
         this.setDataFlag(MetadataFlag.INDEX, MetadataFlag.CAN_FLY, canFly, FlagType.BYTE);
     }
+
     /**
      * Get entity's can fly state.
      * @returns {boolean} if the entity can fly.
@@ -305,6 +315,7 @@ export class Metadata extends MetadataWriter {
     public setCanClimb(canClimb: boolean = true): void {
         this.setDataFlag(MetadataFlag.INDEX, MetadataFlag.CAN_CLIMB, canClimb, FlagType.BYTE);
     }
+
     /**
      * Get entity's can climb state.
      * @returns {boolean} if the entity can climb.

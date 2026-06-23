@@ -34,7 +34,7 @@ export default class GameruleCommand extends Command {
                 .executes(async (context) => {
                     const source = context.getSource() as Player;
                     const gamerules = Array.from(source.getWorld().getGameruleManager().getGamerules());
-                    await source.sendMessage(gamerules.map(([id, [value]]) => `§a${id}§r: §b${value}§r`).join(', '));
+                    await source.sendMessage(gamerules.map((value) => `§a${value[0]}§r: §b${value[1]}§r`).join(', '));
                 })
         );
     }

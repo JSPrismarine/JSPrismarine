@@ -21,7 +21,7 @@ describe('config', () => {
         });
 
         it('should have the default level name', () => {
-            expect(config.getLevelName()).toBe('world');
+            expect(config.getWorldName()).toBe('world');
         });
 
         it('should have the default worlds', () => {
