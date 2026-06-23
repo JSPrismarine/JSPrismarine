@@ -90,7 +90,7 @@
         "eslint-plugin-unused-imports": "4.4.1",
         "glob": "13.0.6",
         "husky": "9.1.7",
-        "lint-staged": "17.0.7",
+        "lint-staged": "17.0.8",
         "prettier": "3.8.4",
         "prettier-eslint": "17.1.0",
         "ts-mockito": "2.6.1",
