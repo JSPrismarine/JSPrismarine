@@ -40,6 +40,9 @@
         "type": "git",
         "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
+    "bugs": {
+        "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
+    },
     "keywords": [
         "nodejs",
         "minecraft",
