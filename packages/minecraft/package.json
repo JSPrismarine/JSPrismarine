@@ -52,7 +52,7 @@
         "glob": "13.0.6",
         "typescript": "6.0.3",
         "vite": "8.1.3",
-        "vitest": "4.1.9"
+        "vitest": "4.1.10"
     },
     "dependencies": {
         "@jsprismarine/errors": "workspace:*",
