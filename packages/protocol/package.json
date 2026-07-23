@@ -48,7 +48,7 @@
     "devDependencies": {
         "@types/node": "24.13.3",
         "glob": "13.0.6",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
         "vite": "8.1.5",
         "vitest": "4.1.10"
     },
