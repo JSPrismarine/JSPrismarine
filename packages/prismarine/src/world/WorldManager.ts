@@ -26,7 +26,7 @@ const DEFAULT_WORLD_PROVIDER = 'Filesystem';
  */
 export default class WorldManager implements Service {
     private readonly worlds: Map<string, World> = new Map() as Map<string, World>;
-    private defaultWorld: World | undefined;
+    private defaultWorld!: World;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
     private providers: Map<string, any> = new Map() as Map<string, any>; // TODO: this should be a manager
@@ -49,16 +49,20 @@ export default class WorldManager implements Service {
         this.addProvider('Anvil', Anvil);
         this.addProvider('Filesystem', Filesystem);
 
-        const defaultWorld = this.server.getConfig().getLevelName();
-        if (!defaultWorld) {
+        const defWorlName = this.server.getConfig().getWorldName();
+        if (!defWorlName) {
             this.server.getLogger().warn(`Invalid world!`);
             return;
         }
 
-        const worldData = this.server.getConfig().getWorlds()[defaultWorld];
-        if (!worldData) throw new Error(`Invalid level-name`);
+        // TODO: this should be the world 'generator', not an actual
+        // world instance. It's creating confusion.
+        const worldData = this.server.getConfig().getWorlds()[defWorlName];
+        if (!worldData) throw new Error(`Invalid world-name`);
 
-        await this.loadWorld(worldData, defaultWorld);
+        // Loads the default level
+        this.defaultWorld = await this.loadWorld(worldData, defWorlName);
+        this.server.getLogger().info(`Loading ${this.defaultWorld.getFormattedName()} as default world!`);
     }
 
     /**
@@ -141,12 +145,6 @@ export default class WorldManager implements Service {
         });
         this.worlds.set(world.getUUID(), world);
 
-        // First level to be loaded is also the default one
-        if (!this.defaultWorld) {
-            this.defaultWorld = this.worlds.get(world.getUUID())!;
-            this.server.getLogger().info(`Loading ${world.getFormattedName()} as default world!`);
-        }
-
         await world.enable();
         this.server.getLogger().verbose(`World ${world.getFormattedName()} successfully loaded!`);
 
@@ -200,8 +198,12 @@ export default class WorldManager implements Service {
         return Array.from(this.worlds.values());
     }
 
-    public getDefaultWorld() {
-        return this.defaultWorld ?? this.getWorlds()[0];
+    /**
+     * Returns the default world.
+     * @returns {World} the world instance
+     */
+    public getDefaultWorld(): World {
+        return this.defaultWorld;
     }
 
     public getGeneratorManager(): GeneratorManager {
