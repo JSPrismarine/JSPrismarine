@@ -25,19 +25,26 @@ Prebuilt binaries will be provided once a stable release is available. For now, 
 
 Requirements: Linux/MacOS/Unix-based OS or a modern Windows (WSL2 is recommended), [Node.js](https://nodejs.org) v21+ and [pnpm](https://pnpm.io).
 
-```bash
-# Enable (or install) corepack.
-corepack enable
 
-# Clone the repository. The --recurse-submodules flag is required!
+### Enable (or install) corepack.
+```bash
+corepack enable
+```
+
+### Clone the repository. The --recurse-submodules flag is required!
+```bash
 git clone --recurse-submodules https://github.com/JSPrismarine/JSPrismarine.git
 cd JSPrismarine
+```
 
-# Install dependencies and build the project.
+### Install dependencies and build the project.
+```bash
 pnpm install
 pnpm run build
+```
 
-# Run the server (use `pnpm run dev` for development).
+### Run the server (use `pnpm run dev` for development).
+```bash
 pnpm run start
 ```
 
