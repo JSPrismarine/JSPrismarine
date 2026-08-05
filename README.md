@@ -23,15 +23,33 @@ JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScri
 
 Prebuilt binaries will be provided once a stable release is available. For now, you can follow the steps below or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions/workflows/nightly.yml?query=branch%3Amaster) (which may or may not work before reaching `v1.0.0`).
 
-- Linux/MacOS/Unix-based OS or a modern Windows (WSL2 is recommended)
-  - You need [Node.js](https://nodejs.org) v21+ and [pnpm](https://pnpm.io).
-  - Enable (or install) corepack `corepack enable`.
-  - Clone the repository: `git clone --recursive-submodules https://github.com/JSPrismarine/JSPrismarine.git`.
-    - Make sure to include `--recursive-submodules`!
-  - Go to the cloned repository: `cd JSPrismarine`.
-  - Install dependencies: `pnpm install`.
-  - Build the project: `pnpm run build`.
-  - Run the server: `pnpm run start` (or `pnpm run dev` for development).
+Requirements: Linux/MacOS/Unix-based OS or a modern Windows (WSL2 is recommended), [Node.js](https://nodejs.org) v21+ and [pnpm](https://pnpm.io).
+
+
+### Enable (or install) corepack.
+```bash
+corepack enable
+```
+
+### Clone the repository. The --recurse-submodules flag is required!
+```bash
+git clone --recurse-submodules https://github.com/JSPrismarine/JSPrismarine.git
+cd JSPrismarine
+```
+
+### Install dependencies and build the project.
+```bash
+pnpm install
+pnpm run build
+```
+
+### Run the server (use `pnpm run dev` for development).
+```bash
+pnpm run start
+```
+
+> [!NOTE]
+> Already cloned without `--recurse-submodules`? Run `git submodule update --init --recursive`. The `bedrock-data` resources submodule is required to build.
 
 ## FAQ
 
