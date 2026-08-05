@@ -16,7 +16,9 @@
     "scripts": {
         "prepare": "husky || true",
         "start": "node ./packages/server/dist/Server.es.js --warning --circular",
+        "predev": "pnpm --filter ./packages/bedrock-data run generate",
         "dev": "pnpm --filter ./packages/server run dev",
+        "predev:bun": "pnpm --filter ./packages/bedrock-data run generate",
         "dev:bun": "pnpm --filter ./packages/server run dev:bun",
         "clean": "turbo run clean",
         "build": "turbo run build --env-mode=loose",
