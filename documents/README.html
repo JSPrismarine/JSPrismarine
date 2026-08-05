@@ -186,23 +186,26 @@
 <h2 id="getting-started" class="tsd-anchor-link">Getting started<a href="#getting-started" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p><strong><a href="https://jsprismarine.github.io/JSPrismarine/">You can find the documentation over at jsprismarine.github.io/JSPrismarine</a>.</strong></p>
 <p>Prebuilt binaries will be provided once a stable release is available. For now, you can follow the steps below or download the <a href="https://github.com/JSPrismarine/JSPrismarine/actions/workflows/nightly.yml?query=branch%3Amaster">latest nightly</a> (which may or may not work before reaching <code>v1.0.0</code>).</p>
-<ul>
-<li>Linux/MacOS/Unix-based OS or a modern Windows (WSL2 is recommended)
-<ul>
-<li>You need <a href="https://nodejs.org">Node.js</a> v21+ and <a href="https://pnpm.io">pnpm</a>.</li>
-<li>Enable (or install) corepack <code>corepack enable</code>.</li>
-<li>Clone the repository: <code>git clone --recursive-submodules https://github.com/JSPrismarine/JSPrismarine.git</code>.
-<ul>
-<li>Make sure to include <code>--recursive-submodules</code>!</li>
-</ul>
-</li>
-<li>Go to the cloned repository: <code>cd JSPrismarine</code>.</li>
-<li>Install dependencies: <code>pnpm install</code>.</li>
-<li>Build the project: <code>pnpm run build</code>.</li>
-<li>Run the server: <code>pnpm run start</code> (or <code>pnpm run dev</code> for development).</li>
-</ul>
-</li>
-</ul>
+<p>Requirements: Linux/MacOS/Unix-based OS or a modern Windows (WSL2 is recommended), <a href="https://nodejs.org">Node.js</a> v21+ and <a href="https://pnpm.io">pnpm</a>.</p>
+<h3 id="enable-or-install-corepack" class="tsd-anchor-link">Enable (or install) corepack.<a href="#enable-or-install-corepack" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<pre><code class="bash"><span class="hl-0">corepack</span><span class="hl-1"> </span><span class="hl-2">enable</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="clone-the-repository-the-recurse-submodules-flag-is-required" class="tsd-anchor-link">Clone the repository. The --recurse-submodules flag is required!<a href="#clone-the-repository-the-recurse-submodules-flag-is-required" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<pre><code class="bash"><span class="hl-0">git</span><span class="hl-1"> </span><span class="hl-2">clone</span><span class="hl-1"> </span><span class="hl-3">--recurse-submodules</span><span class="hl-1"> </span><span class="hl-2">https://github.com/JSPrismarine/JSPrismarine.git</span><br/><span class="hl-0">cd</span><span class="hl-1"> </span><span class="hl-2">JSPrismarine</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="install-dependencies-and-build-the-project" class="tsd-anchor-link">Install dependencies and build the project.<a href="#install-dependencies-and-build-the-project" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<pre><code class="bash"><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">install</span><br/><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span>
+</code><button type="button">Copy</button></pre>
+
+<h3 id="run-the-server-use-for-development" class="tsd-anchor-link">Run the server (use <code>pnpm run dev</code> for development).<a href="#run-the-server-use-for-development" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<pre><code class="bash"><span class="hl-0">pnpm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">start</span>
+</code><button type="button">Copy</button></pre>
+
+<div class="tsd-alert tsd-alert-note"><div class="tsd-alert-title"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><use href="../assets/icons.svg#icon-alertNote"></use></svg><span>Note</span></div><p>
+Already cloned without <code>--recurse-submodules</code>? Run <code>git submodule update --init --recursive</code>. The <code>bedrock-data</code> resources submodule is required to build.</p>
+</div>
 <h2 id="faq" class="tsd-anchor-link">FAQ<a href="#faq" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <ul>
 <li>Can I contribute?
@@ -273,6 +276,12 @@
 <ul>
 <li><a href="#why-use-jsprismarine"><span>Why use <wbr/>JS<wbr/>Prismarine?</span></a></li>
 <li><a href="#getting-started"><span>Getting started</span></a></li>
+<li>
+<ul>
+<li><a href="#enable-or-install-corepack"><span>Enable (or install) corepack.</span></a></li>
+<li><a href="#clone-the-repository-the-recurse-submodules-flag-is-required"><span>Clone the repository. <wbr/>The --<wbr/>recurse-<wbr/>submodules flag is required!</span></a></li>
+<li><a href="#install-dependencies-and-build-the-project"><span>Install dependencies and build the project.</span></a></li>
+<li><a href="#run-the-server-use-for-development"><span>Run the server (use  for development).</span></a></li></ul></li>
 <li><a href="#faq"><span>FAQ</span></a></li>
 <li><a href="#documentation"><span>Documentation</span></a></li>
 <li><a href="#remarks"><span>Remarks</span></a></li></ul></div></details></div>
@@ -283,7 +292,7 @@
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a><br>
             <span id="generation-date"></span>
             <script>
-                window.GENERATION_DATE = 1785794768937;
+                window.GENERATION_DATE = 1785922408328;
 
                 (() => {
                     
