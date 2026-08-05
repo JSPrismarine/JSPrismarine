@@ -32,7 +32,8 @@
     },
     "scripts": {
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
-        "build": "node utils/build.js && vite build",
+        "generate": "node utils/build.js",
+        "build": "pnpm run generate && vite build",
         "build:watch": "pnpm run build",
         "typecheck": "tsc -noEmit"
     },
