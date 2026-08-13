@@ -74,7 +74,7 @@
     "devDependencies": {
         "@changesets/changelog-github": "1.0.0",
         "@changesets/cli": "3.0.0",
-        "@changesets/types": "6.1.0",
+        "@changesets/types": "7.0.0",
         "@codecov/vite-plugin": "2.0.1",
         "@eslint/js": "9.39.5",
         "@nordcom/prettier": "0.1.1",
