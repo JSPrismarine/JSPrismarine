@@ -32,7 +32,7 @@ jobs:
 
             - name: 🦺 Report Coverage to GitHub
               if: ${{ !cancelled() }}
-              uses: davelosert/vitest-coverage-report-action@v2.12.2
+              uses: davelosert/vitest-coverage-report-action@v2.13.0
 
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
