@@ -75,7 +75,7 @@
         "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
-        "confbox": "0.2.4",
+        "confbox": "0.3.1",
         "evt": "2.5.9",
         "fast-jwt": "6.3.3",
         "heap": "0.2.7"
