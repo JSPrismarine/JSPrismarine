@@ -404,7 +404,7 @@ export default class Session {
         pk.encode();
 
         const sendPacket = new Frame();
-        sendPacket.reliability = FrameReliability.UNRELIABLE;
+        sendPacket.reliability = FrameReliability.RELIABLE;
         sendPacket.orderChannel = 0;
         sendPacket.content = pk.getBuffer();
 
@@ -421,7 +421,7 @@ export default class Session {
         pk.encode();
 
         const sendPacket = new Frame();
-        sendPacket.reliability = FrameReliability.UNRELIABLE;
+        sendPacket.reliability = FrameReliability.RELIABLE;
         sendPacket.orderChannel = 0;
         sendPacket.content = pk.getBuffer();
 
