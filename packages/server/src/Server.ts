@@ -63,9 +63,6 @@ let forceExitTriggered = false;
         }
 
         void server.shutdown({ crash: error === 'uncaughtException' });
-
-        // FIXME: This is a temporary fix for the server not shutting down properly.
-        process.exit(1);
     });
 });
 
