@@ -7,11 +7,7 @@
         }
     ],
     "commit": false,
-    "fixed": [
-        [
-            "{,@jsprismarine/}{,*,!color-parser,!brigadier,!bedrock-data}"
-        ]
-    ],
+    "fixed": [["{,@jsprismarine/}{,*,!color-parser,!brigadier,!bedrock-data}"]],
     "linked": [],
     "access": "public",
     "baseBranch": "master",

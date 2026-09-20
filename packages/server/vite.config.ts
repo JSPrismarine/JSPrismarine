@@ -1,13 +1,10 @@
+import { codecovVitePlugin } from '@codecov/vite-plugin';
 import { globSync } from 'glob';
-import { defineConfig, mergeConfig } from 'vite';
-
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-import { codecovVitePlugin } from '@codecov/vite-plugin';
+import { defineConfig, mergeConfig } from 'vite';
+import base from '../../vite.config.ts';
 import pkg from './package.json' with { type: 'json' };
-
-import base from '../../vite.config';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

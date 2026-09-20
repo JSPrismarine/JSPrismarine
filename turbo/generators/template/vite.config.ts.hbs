@@ -6,7 +6,7 @@ import { codecovVitePlugin } from '@codecov/vite-plugin';
 import { defineConfig, mergeConfig } from 'vite';
 import pkg from './package.json' with { type: 'json' };
 
-import base from '../../vite.config';
+import base from '../../vite.config.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

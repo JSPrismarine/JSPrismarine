@@ -163,8 +163,8 @@ export class Item {
             return new Item({ id: 0, name: 'minecraft:air' });
         }
 
-        const _count = stream.readUnsignedShortLE(); // eslint-disable-line unused-imports/no-unused-vars
-        const _netData = stream.readUnsignedVarInt(); // eslint-disable-line unused-imports/no-unused-vars
+        const _count = stream.readUnsignedShortLE();
+        const _netData = stream.readUnsignedVarInt();
 
         // TODO: refactor everything basically...
         if (extra && stream.readBoolean()) {
