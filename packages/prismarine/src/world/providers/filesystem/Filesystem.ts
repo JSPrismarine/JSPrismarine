@@ -18,7 +18,7 @@ export default class Filesystem extends BaseProvider {
             const buffer = Buffer.from(
                 await fs.promises.readFile(path.join(this.getPath(), 'chunks', `${cx}_${cz}.dat`), {
                     flag: 'r',
-                    encoding: 'utf-8'
+                    encoding: 'binary'
                 })
             );
 
@@ -36,7 +36,7 @@ export default class Filesystem extends BaseProvider {
         await fs.promises.writeFile(
             path.join(this.getPath(), 'chunks', `${chunk.getX()}_${chunk.getZ()}.dat`),
             chunk.networkSerialize(),
-            { flag: 'w+', encoding: 'utf-8', flush: true }
+            { flag: 'w+', encoding: 'binary', flush: true }
         );
     }
 }
