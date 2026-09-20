@@ -171,7 +171,7 @@ export class World implements Service {
         this.currentTick++;
 
         // Auto save every 2 minutes
-        if (this.currentTick / 20 === 120) {
+        if (this.currentTick % (20 * 120) === 0) {
             await this.save();
         }
 
