@@ -37,6 +37,7 @@ export default class Player extends Human {
      */
     private timer: Timer;
     private connected = false;
+    private readonly onChat: Player['chatHandler'];
 
     public xuid = '';
     public randomId = 0;
@@ -77,12 +78,13 @@ export default class Player extends Human {
         });
 
         this.timer = new Timer();
+        this.onChat = this.chatHandler.bind(this);
 
         this.address = connection.getRakNetSession().getAddress();
         this.networkSession = new PlayerSession(server, connection, this);
         this.permissions = [];
 
-        this.server.on('chat', this.chatHandler.bind(this));
+        this.server.on('chat', this.onChat);
     }
 
     /**
@@ -147,7 +149,7 @@ export default class Player extends Human {
         await this.server.emit('chat', event);
 
         this.connected = false;
-        this.server.removeListener('chat', this.chatHandler);
+        this.server.removeListener('chat', this.onChat);
     }
 
     private async chatHandler(evt: ChatEvent) {

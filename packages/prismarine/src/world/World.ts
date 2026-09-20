@@ -11,6 +11,7 @@ import { Timer, UUID } from '../';
 import { BlockMappings } from '../block/BlockMappings';
 import * as Entities from '../entity/Entities';
 import type { Entity } from '../entity/Entity';
+import type { TickEvent } from '../events/Events';
 import { Item } from '../item/Item';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
@@ -73,6 +74,7 @@ export class World implements Service {
     private readonly generator: Generator;
     private readonly config: Object;
     private spawn: Vector3 | null = null;
+    private readonly onTick: World['tickHandler'];
 
     public constructor({ name, server, provider, seed, generator, config }: WorldData) {
         this.name = name;
@@ -82,8 +84,8 @@ export class World implements Service {
         this.seed = seed;
         this.generator = generator;
         this.config = config ?? {};
-
         this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);
+        this.onTick = this.tickHandler.bind(this);
 
         try {
             // Create folders if they don't exist.
@@ -95,12 +97,16 @@ export class World implements Service {
         }
     }
 
+    private async tickHandler(event: TickEvent) {
+        await this.update(event.getTick());
+    }
+
     /**
      * On enable hook.
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        this.server.on('tick', async (evt) => this.update(evt.getTick()));
+        await this.server.on('tick', this.onTick);
 
         const level = await this.getLevelData();
         if (level.spawn) this.setSpawnPosition(Vector3.fromObject(level.spawn));
@@ -151,6 +157,8 @@ export class World implements Service {
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
+        await this.server.removeListener('tick', this.onTick.bind(this));
+
         await this.save();
         await this.provider.disable();
     }
