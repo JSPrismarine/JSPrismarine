@@ -263,7 +263,7 @@ export class World implements Service {
         const z = 0; // TODO: replace with actual data
         const chunk = await this.getChunkAt(x, z);
         const y = chunk.getHighestBlockAt(x, z) + 1;
-        return new Vector3(z, y + 2, z);
+        return new Vector3(x, y + 2, z);
     }
 
     /**
