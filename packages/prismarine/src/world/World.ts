@@ -441,10 +441,12 @@ export class World implements Service {
     }
 
     public async save(): Promise<void> {
-        // Save chunks
-        this.getPlayers().forEach(async (player) => {
+        await Promise.all(
+            this.getPlayers().map(async (player) => {
             await this.savePlayerData(player);
-        });
+            })
+        );
+
         await this.saveChunks();
         await this.saveLevelData();
     }
