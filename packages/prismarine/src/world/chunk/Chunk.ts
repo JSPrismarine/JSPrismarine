@@ -16,9 +16,10 @@ export default class Chunk {
     private subChunks: Map<number, SubChunk> = new Map();
     private static readonly EMPTY_SUBCHUNK = new SubChunk();
 
-    public constructor(chunkX = 0, chunkZ = 0, _subChunks: Map<number, SubChunk> = new Map()) {
+    public constructor(chunkX = 0, chunkZ = 0, subChunks: Map<number, SubChunk> = new Map()) {
         this.x = chunkX;
         this.z = chunkZ;
+        this.subChunks = subChunks;
         this.hasChanged = false;
     }
 
