@@ -2,18 +2,28 @@
 build
 coverage
 node_modules
+dist
 .next
 .vercel
+.turbo
 
 **/*.woff2
 **/*.ttf
 
-# Misc
 .DS_Store
 .swc
 .bak
-*.dat
-*.nbt
 
 packages/bedrock-data/src/resources/*
 packages/bedrock-data/src/generated/*
+
+# Test files
+.test/config_test.*
+
+# File formats
+*.dat
+*.nbt
+*.yaml
+*.yml
+*.hbs
+*.md
