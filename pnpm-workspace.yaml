@@ -7,3 +7,5 @@ onlyBuiltDependencies:
 
 allowBuilds:
   esbuild: true
+
+minimumReleaseAge: 0
