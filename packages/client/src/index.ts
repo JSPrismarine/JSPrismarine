@@ -1,6 +1,7 @@
 import { Logger } from '@jsprismarine/logger';
 import { Protocol as JSPProtocol } from '@jsprismarine/prismarine';
 import { ConnectionPriority, InetAddress, MessageIdentifiers, Protocol, RakNetSession } from '@jsprismarine/raknet';
+import { RAKNET_TICK_LENGTH } from '@jsprismarine/raknet/Constants';
 import Crypto, { randomBytes } from 'node:crypto';
 import Dgram, { type Socket } from 'node:dgram';
 import { EventEmitter } from 'node:events';
@@ -18,10 +19,6 @@ const PROTOCOL = 10;
 
 // Max net transfer unit
 const DEF_MTU_SIZE = 1455;
-
-// Raknet ticks
-const RAKNET_TPS = 100;
-const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 
 export default class Client extends EventEmitter {
     private clientGUID = Crypto.randomBytes(8).readBigInt64BE();

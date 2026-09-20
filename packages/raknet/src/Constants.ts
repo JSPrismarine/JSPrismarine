@@ -1,4 +1,5 @@
-export const RAKNET_TPS = 10;
+export const RAKNET_TPS = 100;
+export const RAKNET_TICK_LENGTH = 1 / RAKNET_TPS;
 export const MAX_CHANNELS = 32;
 export const MINECRAFT_PROTOCOL_VERSION = 11;
 export const UDP_HEADER_SIZE = 28;

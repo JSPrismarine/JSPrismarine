@@ -49,16 +49,13 @@ export default class ServerSocket extends EventEmitter {
             }
         }
 
-        const tick = () =>
-            setTimeout(() => {
-                for (const session of this.sessions.values()) {
-                    session.update(Date.now());
-                }
-                tick();
-            }, RAKNET_TPS);
+        this.ticker = setInterval(() => {
+            for (const session of this.sessions.values()) {
+                session.update(Date.now());
+            }
+        }, 1000 / RAKNET_TPS);
 
         // Start ticking
-        this.ticker = tick();
         this.ticker.unref();
 
         this.socket.on('message', this.handleMessage.bind(this));
@@ -91,7 +88,7 @@ export default class ServerSocket extends EventEmitter {
             session.sendFrameQueue();
         }
 
-        clearTimeout(this.ticker);
+        clearInterval(this.ticker);
 
         // Make sure we don't send any more events.
         this.removeAllListeners();
