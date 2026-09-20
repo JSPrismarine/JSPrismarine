@@ -50,16 +50,16 @@ jobs:
               env:
                   NPM_TOKEN: ''
               with:
-                  createGithubReleases: true
-                  version: pnpm run version
-                  publish: pnpm run release
+                  create-github-releases: true
+                  version-script: pnpm run version
+                  publish-script: pnpm run release
                   setupGitUser: true
-                  commit: |
+                  commit-message: |
                       Changeset: Increment package & dependecy versions.
 
                       Congratulations on the new release! 🎉
                       This is an automated commit triggered by the `release` workflow.
-                  title: 🚀 Release packages
+                  pr-title: 🚀 Release packages
 
             - name: 🫨 Create Unstable Release
               if: steps.changesets.outputs.published != 'true'
