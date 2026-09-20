@@ -16,7 +16,7 @@ jobs:
 
         steps:
             - name: 🕶️ Checkout repository
-              uses: actions/checkout@v7
+              uses: actions/checkout@v7.0.1
               with:
                   fetch-depth: 0
                   ref: ${{github.event.pull_request.head.ref}}
@@ -31,5 +31,5 @@ jobs:
               uses: mscharley/dependency-changesets-action@v1.2.5
               with:
                   use-conventional-commits: false
-                  commit-message: 'Deps: Add changeset.'
+                  commit-message: 'deps: Add changeset.'
                   token: ${{ secrets.GITHUB_TOKEN }}
