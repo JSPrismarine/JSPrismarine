@@ -4,17 +4,17 @@ import { BlockMappings } from '../../block/BlockMappings';
 import type BinaryStream from '@jsprismarine/jsbinaryutils';
 
 interface BlockStorageData {
-    blocks?: number[];
-    palette?: number[];
+    blocks?: Uint16Array;
+    palette?: Uint16Array;
 }
 
 export default class BlockStorage {
-    private blocks: number[];
-    private palette: number[];
+    private blocks: Uint16Array;
+    private palette: Uint16Array;
 
     public constructor({ blocks, palette }: BlockStorageData) {
-        this.palette = palette ?? [BlockMappings.getRuntimeId('minecraft:air')];
-        this.blocks = blocks ?? Array.from<number>({ length: 4096 }).fill(0);
+        this.palette = palette ?? new Uint16Array([BlockMappings.getRuntimeId('minecraft:air')]);
+        this.blocks = blocks ?? new Uint16Array(4096);
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {
@@ -32,7 +32,10 @@ export default class BlockStorage {
 
     public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
         if (!this.palette.includes(runtimeId)) {
-            this.palette.push(runtimeId);
+            const nextPalette = new Uint16Array(this.palette.length + 1);
+            nextPalette.set(this.palette);
+            nextPalette[this.palette.length] = runtimeId;
+            this.palette = nextPalette;
         }
         this.blocks[BlockStorage.getIndex(bx, by, bz)] = this.palette.indexOf(runtimeId);
     }
@@ -96,7 +99,7 @@ export default class BlockStorage {
         }
 
         const paletteCount = stream.readVarInt();
-        const palette: number[] = new Array(paletteCount);
+        const palette = new Uint16Array(paletteCount);
         for (let i = 0; i < paletteCount; i++) {
             palette[i] = stream.readVarInt();
         }
