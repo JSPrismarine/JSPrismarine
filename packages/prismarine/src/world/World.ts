@@ -176,7 +176,11 @@ export class World implements Service {
         }
 
         await Promise.all(this.getEntities().map((entity) => entity.update(tick)));
-        await this.sendTime();
+
+        // Per vanilla bedrock sync time every ~256 ticks
+        if (this.currentTick % 256 === 0) {
+            await this.sendTime();
+        }
     }
 
     /**
