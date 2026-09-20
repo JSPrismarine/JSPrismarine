@@ -299,10 +299,6 @@ export default class Server extends EventEmitter {
                 void this.emit('tick', event);
 
                 const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
-
-                // Update all worlds.
-                await Promise.all(this.worldManager.getWorlds().map((world) => world.update(event.getTick())));
-
                 if (this.config.getEnableProcessTitle() && this.getTick() % ticksPerSecond === 0 && !this.headless) {
                     // Update the process title with TPS and tick.
                     process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
