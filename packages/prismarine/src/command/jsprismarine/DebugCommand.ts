@@ -62,10 +62,10 @@ export default class DebugCommand extends Command {
                             `- uuid: §a${world.getUUID()}§r, name: §b${world.getName()}§r, ticks: §b${world.getTicks()}§r`
                         );
 
-                        const gamerules = Array.from(world.getGameruleManager().getGamerules());
-                        await source.sendMessage(`  §dGamerules§r (${gamerules.length}):`);
+                        const gameRules = Array.from(world.getGameRuleManager().getGameRules());
+                        await source.sendMessage(`  §dGameRules§r (${gameRules.length}):`);
                         await Promise.all(
-                            gamerules.map(async ([id, value]) => {
+                            gameRules.map(async ([id, value]) => {
                                 await source.sendMessage(`  - id: §a${id}§r, value: §b${value}§r`);
                             })
                         );

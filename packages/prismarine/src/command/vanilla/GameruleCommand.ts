@@ -4,7 +4,7 @@ import { argument, literal, string } from '@jsprismarine/brigadier';
 import type Player from '../../Player';
 import { Command } from '../Command';
 
-export default class GameruleCommand extends Command {
+export default class GameRuleCommand extends Command {
     public constructor() {
         super({
             id: 'minecraft:gamerule',
@@ -15,7 +15,7 @@ export default class GameruleCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<any>) {
         dispatcher.register(
-            literal('gamerule')
+            literal('gameRule')
                 .then(
                     argument('name', string()).then(
                         argument('value', string()).executes(async (context) => {
@@ -23,7 +23,7 @@ export default class GameruleCommand extends Command {
                             const name = context.getArgument('name');
                             let value = context.getArgument('value').toLowerCase() === 'true' ? true : false;
 
-                            source.getWorld().getGameruleManager().setGamerule(name, value, true);
+                            source.getWorld().getGameRuleManager().setGameRule(name, value, true);
 
                             const res = `Set ${name} to ${value}`;
                             await source.sendMessage(res);
@@ -33,8 +33,8 @@ export default class GameruleCommand extends Command {
                 )
                 .executes(async (context) => {
                     const source = context.getSource() as Player;
-                    const gamerules = Array.from(source.getWorld().getGameruleManager().getGamerules());
-                    await source.sendMessage(gamerules.map(([id, [value]]) => `§a${id}§r: §b${value}§r`).join(', '));
+                    const gameRules = Array.from(source.getWorld().getGameRuleManager().getGameRules());
+                    await source.sendMessage(gameRules.map(([id, [value]]) => `§a${id}§r: §b${value}§r`).join(', '));
                 })
         );
     }

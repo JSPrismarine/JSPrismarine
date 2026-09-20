@@ -69,7 +69,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             startGame.time = world.getTicks();
             startGame.worldName = world.getName();
             startGame.seed = world.getSeed();
-            startGame.gamerules = world.getGameruleManager();
+            startGame.gameRules = world.getGameRuleManager();
             await session.getConnection().sendDataPacket(startGame);
 
             const itemComponent = new ItemComponentPacket();

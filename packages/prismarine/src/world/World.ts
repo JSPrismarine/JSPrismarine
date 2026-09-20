@@ -1,4 +1,4 @@
-import GameruleManager, { GameRules } from './GameruleManager';
+import GameRuleManager, { GameRules } from './GameRuleManager';
 
 import fs from 'node:fs';
 
@@ -65,7 +65,7 @@ export class World implements Service {
 
     private readonly entities: Map<bigint, Entity> = new Map();
     private readonly chunks: Map<bigint, Chunk> = new Map();
-    private readonly gameruleManager: GameruleManager;
+    private readonly gameRuleManager: GameRuleManager;
     private currentTick = 0;
     private readonly provider: BaseProvider;
     private readonly server: Server;
@@ -78,12 +78,12 @@ export class World implements Service {
         this.name = name;
         this.server = server;
         this.provider = provider;
-        this.gameruleManager = new GameruleManager(server);
+        this.gameRuleManager = new GameRuleManager(server);
         this.seed = seed;
         this.generator = generator;
         this.config = config ?? {};
 
-        this.gameruleManager.setGamerule(GameRules.ShowCoordinates, true, true);
+        this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);
 
         try {
             // Create folders if they don't exist.
@@ -106,7 +106,7 @@ export class World implements Service {
         if (level.spawn) this.setSpawnPosition(Vector3.fromObject(level.spawn));
         if (level.gameRules) {
             level.gameRules.forEach(([name, [value, editable]]) =>
-                this.gameruleManager.setGamerule(name, value, editable)
+                this.gameRuleManager.setGameRule(name, value, editable)
             );
         }
         if (level.entities) {
@@ -443,7 +443,7 @@ export class World implements Service {
     public async save(): Promise<void> {
         await Promise.all(
             this.getPlayers().map(async (player) => {
-            await this.savePlayerData(player);
+                await this.savePlayerData(player);
             })
         );
 
@@ -451,8 +451,8 @@ export class World implements Service {
         await this.saveLevelData();
     }
 
-    public getGameruleManager(): GameruleManager {
-        return this.gameruleManager;
+    public getGameRuleManager(): GameRuleManager {
+        return this.gameRuleManager;
     }
 
     public getTicks(): number {
@@ -500,7 +500,7 @@ export class World implements Service {
     public async saveLevelData(): Promise<void> {
         const data = {
             spawn: await this.getSpawnPosition(),
-            gamerules: Array.from(this.getGameruleManager().getGamerules()),
+            gameRules: Array.from(this.getGameRuleManager().getGameRules()),
             entities: this.getEntities()
                 .filter((entity) => !entity.isPlayer() && !entity.isConsole())
                 .map((entity) => ({

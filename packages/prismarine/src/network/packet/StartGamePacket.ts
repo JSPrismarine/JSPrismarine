@@ -3,7 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
-import type GameruleManager from '../../world/GameruleManager';
+import type GameRuleManager from '../../world/GameRuleManager';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
@@ -30,7 +30,7 @@ export default class StartGamePacket extends DataPacket {
 
     public worldSpawnPos!: Vector3;
 
-    public gamerules!: GameruleManager;
+    public gameRules!: GameRuleManager;
 
     // Cache item IDs mappings
     public static cachedItemIds: Buffer | null = null;
@@ -90,7 +90,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(1); // Commands enabled
         this.writeByte(0); // Texture required
 
-        this.gamerules.networkSerialize(this);
+        this.gameRules.networkSerialize(this);
 
         this.writeUnsignedIntLE(0); // Experiment count
         this.writeBoolean(false); // Experiments previously toggled?

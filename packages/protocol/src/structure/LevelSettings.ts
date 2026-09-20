@@ -122,7 +122,7 @@ export default class LevelSettings extends NetworkStructure {
         private rainLevel: number,
         private lightningLevel: number,
         private readonly commandsEnabled: boolean,
-        private readonly gamerules: Set<{}>,
+        private readonly gameRules: Set<{}>,
         private readonly playerPermissions: PlayerPermissionLevel,
         config: LevelSettingsConfig = {}
     ) {
@@ -186,8 +186,8 @@ export default class LevelSettings extends NetworkStructure {
         stream.writeVarInt(this.platformBroadcastSettings);
         stream.writeBoolean(this.commandsEnabled);
         stream.writeBoolean(this.texturePacksRequired);
-        // TODO: Implement gamerule class & serialization
-        stream.writeUnsignedVarInt(this.gamerules.size);
+        // TODO: Implement gameRule class & serialization
+        stream.writeUnsignedVarInt(this.gameRules.size);
         this.experiments.serialize(stream);
         stream.writeBoolean(this.bonusChestEnabled);
         stream.writeBoolean(this.startWithMapEnabled);

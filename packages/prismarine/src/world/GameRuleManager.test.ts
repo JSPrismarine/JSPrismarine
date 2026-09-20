@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type Server from '../Server';
-import GameruleManager from './GameruleManager';
+import GameRuleManager from './GameRuleManager';
 
-describe('GameruleManager', () => {
+describe('GameRuleManager', () => {
     let server: Server;
-    let gameruleManager: GameruleManager;
+    let gameRuleManager: GameRuleManager;
 
     beforeEach(() => {
         server = vi.fn().mockImplementation(() => ({
@@ -17,35 +17,35 @@ describe('GameruleManager', () => {
             on: vi.fn(),
             emit: vi.fn().mockResolvedValue({})
         }))();
-        gameruleManager = new GameruleManager(server);
+        gameRuleManager = new GameRuleManager(server);
     });
 
-    it('should set a gamerule', () => {
+    it('should set a gameRule', () => {
         const name = 'CommandBlockOutput';
         const value = true;
         const editable = true;
 
-        gameruleManager.setGamerule(name, value, editable);
+        gameRuleManager.setGameRule(name, value, editable);
 
-        const rule = gameruleManager.getGamerule(name);
+        const rule = gameRuleManager.getGameRule(name);
         expect(rule).toEqual([value, editable]);
     });
 
-    it('should get a gamerule', () => {
+    it('should get a gameRule', () => {
         const name = 'CommandBlockOutput';
         const value = true;
         const editable = true;
 
-        gameruleManager.setGamerule(name, value, editable);
+        gameRuleManager.setGameRule(name, value, editable);
 
-        const rule = gameruleManager.getGamerule(name);
+        const rule = gameRuleManager.getGameRule(name);
         expect(rule).toEqual([value, editable]);
     });
 
-    it('should return null for unknown gamerule', () => {
-        const name = 'UnknownGamerule';
+    it('should return null for unknown gameRule', () => {
+        const name = 'UnknownGameRule';
 
-        const rule = gameruleManager.getGamerule(name);
+        const rule = gameRuleManager.getGameRule(name);
         expect(rule).toBeNull();
     });
 });

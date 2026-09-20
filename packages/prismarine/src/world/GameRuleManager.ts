@@ -24,7 +24,7 @@ export const GameRules = {
     sendCommandFeedback: 'sendcommandfeedback'
 };
 
-export default class GameruleManager {
+export default class GameRuleManager {
     private readonly server: Server;
     private readonly rules: Map<string, [boolean | number, boolean]> = new Map() as Map<
         string,
@@ -35,51 +35,51 @@ export default class GameruleManager {
         this.server = server;
 
         // Set default values
-        this.setGamerule('CommandBlockOutput', true, true);
-        this.setGamerule('DoDayLightCycle', true, true);
-        this.setGamerule('DoEntityDrops', true, true);
-        this.setGamerule('DoFireTick', true, true);
-        this.setGamerule('DoMobLoot', true, true);
-        this.setGamerule('DoMobSpawning', true, true);
-        this.setGamerule('DoTileDrops', true, true);
-        this.setGamerule('DoWeatherCycle', true, true);
-        this.setGamerule('DrowningDamage', true, true);
-        this.setGamerule('FallDamage', true, true);
-        this.setGamerule('FireDamage', true, true);
-        this.setGamerule('KeepInventory', false, true);
-        this.setGamerule('MobGriefing', true, true);
-        this.setGamerule('NaturalRegeneration', true, true);
-        this.setGamerule('PVP', true, true);
-        this.setGamerule('ShowCoordinates', false, true);
-        this.setGamerule('RandomTickSpeed', 3, true);
-        this.setGamerule('TNTExplodes', true, true);
-        this.setGamerule('sendCommandFeedback', true, true);
+        this.setGameRule('CommandBlockOutput', true, true);
+        this.setGameRule('DoDayLightCycle', true, true);
+        this.setGameRule('DoEntityDrops', true, true);
+        this.setGameRule('DoFireTick', true, true);
+        this.setGameRule('DoMobLoot', true, true);
+        this.setGameRule('DoMobSpawning', true, true);
+        this.setGameRule('DoTileDrops', true, true);
+        this.setGameRule('DoWeatherCycle', true, true);
+        this.setGameRule('DrowningDamage', true, true);
+        this.setGameRule('FallDamage', true, true);
+        this.setGameRule('FireDamage', true, true);
+        this.setGameRule('KeepInventory', false, true);
+        this.setGameRule('MobGriefing', true, true);
+        this.setGameRule('NaturalRegeneration', true, true);
+        this.setGameRule('PVP', true, true);
+        this.setGameRule('ShowCoordinates', false, true);
+        this.setGameRule('RandomTickSpeed', 3, true);
+        this.setGameRule('TNTExplodes', true, true);
+        this.setGameRule('sendCommandFeedback', true, true);
     }
 
     /**
      * Sets a game rule.
-     * @param {string} name - the gamerule's name.
+     * @param {string} name - the gameRule's name.
      * @param {boolean | number} value - the value, boolean OR number.
-     * @param {boolean} editable - if the gamerule is editable.
-     * @TODO: notify clients about gamerule change.
+     * @param {boolean} editable - if the gameRule is editable.
+     * @TODO: notify clients about gameRule change.
      */
-    public setGamerule(name: string, value: boolean | number, editable: boolean): void {
+    public setGameRule(name: string, value: boolean | number, editable: boolean): void {
         this.rules.set(name.toLowerCase(), [value, editable]);
     }
 
     /**
-     * Returns the gamerule value.
-     * @param {string} name - the gamerule's name.
+     * Returns the gameRule value.
+     * @param {string} name - the gameRule's name.
      */
-    public getGamerule(name: string) {
+    public getGameRule(name: string) {
         if (!Object.values(GameRules).includes(name.toLowerCase())) {
-            this.server.getLogger().error(`Unknown Gamerule with name ${name}`);
+            this.server.getLogger().error(`Unknown GameRule with name ${name}`);
         }
 
         return this.rules.get(name.toLowerCase()) ?? null;
     }
 
-    public getGamerules() {
+    public getGameRules() {
         return this.rules;
     }
 
@@ -88,8 +88,8 @@ export default class GameruleManager {
             return n % 1 === 0;
         };
 
-        stream.writeUnsignedVarInt(this.getGamerules().size);
-        for (const [name, [value, editable]] of this.getGamerules()) {
+        stream.writeUnsignedVarInt(this.getGameRules().size);
+        for (const [name, [value, editable]] of this.getGameRules()) {
             NetworkUtil.writeString(stream, name.toLowerCase());
             stream.writeBoolean(editable);
             switch (typeof value) {
@@ -107,7 +107,7 @@ export default class GameruleManager {
                     }
                     break;
                 default:
-                    this.server.getLogger().error('Gamerule format not implemented');
+                    this.server.getLogger().error('GameRule format not implemented');
             }
         }
     }

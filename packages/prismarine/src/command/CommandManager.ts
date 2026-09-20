@@ -245,8 +245,8 @@ export class CommandManager implements Service {
 
             const feedback = (sender as any as Entity)
                 .getWorld()
-                .getGameruleManager()
-                .getGamerule('sendCommandFeedback');
+                .getGameRuleManager()
+                .getGameRule('sendCommandFeedback');
 
             // Make sure we don't send feedback if sendCommandFeedback is set to false
             if (!feedback) return;
