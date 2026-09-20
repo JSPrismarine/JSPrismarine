@@ -53,13 +53,14 @@ jobs:
                   create-github-releases: true
                   version-script: pnpm run version
                   publish-script: pnpm run release
-                  setupGitUser: true
+                  push-with-git-cli: true
                   commit-message: |
                       Changeset: Increment package & dependecy versions.
 
                       Congratulations on the new release! 🎉
                       This is an automated commit triggered by the `release` workflow.
                   pr-title: 🚀 Release packages
+                  github-token: ${{ secrets.MACHINE_USER }}
 
             - name: 🫨 Create Unstable Release
               if: steps.changesets.outputs.published != 'true'
