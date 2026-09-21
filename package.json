@@ -104,7 +104,7 @@
         "typedoc-plugin-merge-modules": "7.0.0",
         "typedoc-plugin-rename-defaults": "0.7.3",
         "typescript": "6.0.3",
-        "typescript-eslint": "8.70.0",
+        "typescript-eslint": "8.70.1",
         "vite": "8.3.0",
         "vite-plugin-dts": "5.1.1",
         "vite-tsconfig-paths": "6.1.1",
