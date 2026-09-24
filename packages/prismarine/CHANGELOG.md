@@ -1,5 +1,20 @@
 # @jsprismarine/prismarine
 
+## 0.14.2
+
+### Patch Changes
+
+- [`6b15f32`](https://github.com/JSPrismarine/JSPrismarine/commit/6b15f32341e8131b1c498013f2f951b774adff64) Thanks [@filiphsps](https://github.com/filiphsps)! - Fix several long standing bugs and issues.
+- Updated dependencies []:
+  - @jsprismarine/color-parser@0.14.2
+  - @jsprismarine/errors@0.14.2
+  - @jsprismarine/logger@0.14.2
+  - @jsprismarine/math@0.14.2
+  - @jsprismarine/minecraft@0.14.2
+  - @jsprismarine/nbt@0.14.2
+  - @jsprismarine/protocol@0.14.2
+  - @jsprismarine/raknet@0.14.2
+
 ## 0.14.1
 
 ### Patch Changes
