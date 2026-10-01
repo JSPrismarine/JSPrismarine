@@ -1,5 +1,9 @@
 # @jsprismarine/raknet
 
+## 0.14.2
+
+No changes in this release.
+
 ## 0.14.1
 
 ### Patch Changes
