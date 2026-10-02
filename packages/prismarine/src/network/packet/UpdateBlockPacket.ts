@@ -26,7 +26,7 @@ export default class UpdateBlockPacket extends DataPacket {
 
     public decodePayload(): void {
         this.x = this.readVarInt();
-        this.y = this.readUnsignedVarInt();
+        this.y = this.readVarInt();
         this.z = this.readVarInt();
 
         this.blockRuntimeId = this.readUnsignedVarInt();
@@ -35,8 +35,12 @@ export default class UpdateBlockPacket extends DataPacket {
     }
 
     public encodePayload(): void {
+        // All three signed. The unsigned height was the layout up to protocol 924; `UBlockPos`
+        // was removed entirely at 1.26.10 and every block position has been a signed `BlockPos`
+        // since. The lengths still parsed either way, so nothing broke loudly - the client just
+        // zig-zag decoded the height and put every block change at the wrong one.
         this.writeVarInt(this.x);
-        this.writeUnsignedVarInt(this.y);
+        this.writeVarInt(this.y);
         this.writeVarInt(this.z);
 
         this.writeUnsignedVarInt(this.blockRuntimeId);

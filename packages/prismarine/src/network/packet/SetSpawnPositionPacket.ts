@@ -25,14 +25,16 @@ export default class SetSpawnPositionPacket extends DataPacket {
     public encodePayload(): void {
         this.writeVarInt(this.type);
 
+        // Three signed varints. The Y went out unsigned, which is the same bytes above sea
+        // level and the wrong ones below it.
         this.writeVarInt(this.position.getX());
-        this.writeUnsignedVarInt(this.position.getY());
+        this.writeVarInt(this.position.getY());
         this.writeVarInt(this.position.getZ());
 
         this.writeVarInt(this.dimension);
 
         this.writeVarInt(this.blockPosition.getX());
-        this.writeUnsignedVarInt(this.blockPosition.getY());
+        this.writeVarInt(this.blockPosition.getY());
         this.writeVarInt(this.blockPosition.getZ());
     }
 }

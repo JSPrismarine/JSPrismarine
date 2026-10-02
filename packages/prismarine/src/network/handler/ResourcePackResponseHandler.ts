@@ -11,10 +11,10 @@ import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
 import ItemComponentPacket from '../packet/ItemComponentPacket';
+import JigsawStructureDataPacket from '../packet/JigsawStructureDataPacket';
 import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
-import PlayStatusType from '../type/PlayStatusType';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import type PacketHandler from './PacketHandler';
 
@@ -48,11 +48,16 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             await session.addToPlayerList();
             await session.sendTime(world.getTicks());
 
+            // Before StartGame, not after: a client at 2193 that reaches StartGame without the
+            // jigsaw rules disconnects with `MissingStructureData`.
+            await session.getConnection().sendDataPacket(new JigsawStructureDataPacket());
+
             const startGame = new StartGamePacket();
             startGame.entityId = player.getRuntimeId();
             startGame.runtimeEntityId = player.getRuntimeId();
             startGame.gamemode = player.gamemode;
             startGame.defaultGamemode = getGametypeId(server.getConfig().getGamemode());
+            startGame.difficulty = server.getConfig().getDifficulty();
 
             const worldSpawnPos = await world.getSpawnPosition();
             startGame.worldSpawnPos = worldSpawnPos;
@@ -84,7 +89,6 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
 
             await session.sendTime(world.getTicks());
 
-            // TODO: set difficulty packet
             // TODO: set commands enabled packet
 
             await session.sendSettings();
@@ -102,6 +106,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             await session.sendAttributes();
             await session.sendMetadata();
             await session.sendAbilities();
+            await session.sendCraftingData();
             await session.sendCreativeContents();
 
             // Some packets...
@@ -121,33 +126,27 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             respawnPacket.state = RespawnState.CLIENT_READY_TO_SPAWN;
             await session.getConnection().sendDataPacket(respawnPacket);
 
-            // Sent to let know the client saved chunks
-            await session.getPlayer().sendSpawn();
-            await session.getPlayer().sendInitialSpawnChunks();
-            await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+            await session.getPlayer().completeSpawn();
 
-            // Summon player(s) & entities
-            await Promise.all([
-                server
-                    .getSessionManager()
-                    .getAllPlayers()
-                    .filter((p) => p !== player)
-                    .map(async (p) => {
-                        await p.getNetworkSession().sendSpawn(player);
-                        await session.sendSpawn(p);
-                    }),
-                player
-                    .getWorld()
-                    .getEntities()
-                    .filter((e) => !e.isPlayer())
-                    .map(async (entity) => entity.sendSpawn(player))
-            ]);
+            // The spawn chunks and the PlayerSpawn status are NOT sent here. A retail client
+            // discards any terrain that arrives before it has requested a chunk radius and been
+            // answered, so both wait for that first request - see PlayerSession.setViewDistance.
+            // Sent from here, as they were, a real client threw the chunks away and never
+            // finished spawning; the server's own client tolerated the wrong order and hid it.
+
+            // The entities are not summoned here either. A Bedrock Dedicated Server sends the
+            // entity spawns *after* PlayerSpawn, once the terrain is there to put them on, and a
+            // real client sent them beforehand has nowhere to place them. PlayerSession does it
+            // from `announceSpawnIfReady`, which also has the view distance the client asked for
+            // - this ran with a view distance of zero, before the client had named one.
 
             // Announce connection
             const chatSpawnEvent = new ChatEvent(
                 new Chat({
                     sender: server.getConsole()!,
-                    message: `§e%multiplayer.player.joined`,
+                    // The bare translation key: a colour code in front of the `%` stops the
+                    // client resolving it, and it renders the unresolved string instead.
+                    message: `%multiplayer.player.joined`,
                     parameters: [player.getName()],
                     needsTranslation: true,
                     type: ChatType.TRANSLATION

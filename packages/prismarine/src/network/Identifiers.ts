@@ -1,6 +1,6 @@
 const Identifiers = {
-    Protocol: 748,
-    MinecraftVersions: ['1.21.40'],
+    Protocol: 2193,
+    MinecraftVersions: ['1.26.50', '1.26.51'],
 
     LoginPacket: 0x01,
     PlayStatusPacket: 0x02,
@@ -165,7 +165,16 @@ const Identifiers = {
     RequestNetworkSettingsPacket: 0xc1,
     UpdateAdventureSettingsPacket: 0xbc,
     UpdateAbilitiesPacket: 0xbb,
-    ToastRequestPacket: 0xba
+    ToastRequestPacket: 0xba,
+    TickingAreasLoadStatusPacket: 0xb3,
+    SetPlayerInventoryOptionsPacket: 0x133,
+    /**
+     * The jigsaw structure rules, which a client at 2193 refuses to join without: it
+     * disconnects with `MissingStructureData` if `StartGamePacket` arrives before this.
+     */
+    JigsawStructureDataPacket: 0x139,
+    SetPlayerFurnaceOptionsPacket: 0x15f,
+    RecordStartedPacket: 0x160
 };
 
 export default Identifiers;

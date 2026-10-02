@@ -6,11 +6,11 @@ export enum CompressionThreshold {
     COMPRESS_EVERYTHING
 }
 
-export enum PacketCompressionAlgorithm {
-    ZLIB,
-    SNAPPY,
-    NONE = 0xffff & 0xff // Mojang defined it as 0xFFFF but it's actually a byte :'D
-}
+// `PacketCompressionAlgorithm` lives in `@jsprismarine/minecraft`, where every other
+// protocol enum does. A copy here declared `NONE` as `0xffff & 0xff` - 255 - reasoning that
+// the field is a byte. It is not: `compressionAlgorithm` is written with
+// `writeUnsignedShortLE` a few lines below, and Mojang's documentation for protocol 748
+// says 0xffff. The copy shadowed the real one for every importer.
 
 export default class NetworkSettingsPacket extends DataPacket {
     public static NetID = Identifiers.NetworkSettingsPacket;

@@ -1,11 +1,9 @@
 import type InteractPacket from '../packet/InteractPacket';
 import { InteractAction } from '../packet/InteractPacket';
 
-import { Vector3 } from '@jsprismarine/math';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import Identifiers from '../Identifiers';
-import ContainerOpenPacket from '../packet/ContainerOpenPacket';
 import type PacketHandler from './PacketHandler';
 
 export default class InteractHandler implements PacketHandler<InteractPacket> {
@@ -16,16 +14,9 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
             case InteractAction.LeaveVehicle:
             case InteractAction.MouseOver:
                 break;
-            case InteractAction.OpenInventory: {
-                const player = session.getPlayer();
-                const pk = new ContainerOpenPacket();
-                pk.windowId = player.getInventory().getId();
-                pk.containerType = -1; // -> inventory (TODO)
-                pk.containerPos = new Vector3(player.getX(), player.getY(), player.getZ());
-                pk.containerEntityId = player.getRuntimeId();
-                await session.getConnection().sendDataPacket(pk);
+            case InteractAction.OpenInventory:
+                await session.openMainInventory();
                 break;
-            }
             default:
                 server.getLogger().verbose(`Unknown interact action id ${packet.action}`);
         }
