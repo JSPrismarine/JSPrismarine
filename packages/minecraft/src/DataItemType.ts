@@ -1,12 +1,6 @@
-export enum DataItemType {
-    BYTE,
-    SHORT,
-    INT,
-    FLOAT,
-    STRING,
-    COMPOUND_TAG,
-    POS,
-    LONG,
-    VEC3,
-    UNKNOWN
-}
+/**
+ * Re-exported from the generated source, which is built from Mojang's protocol documentation
+ * for the version pinned in `datagen/manifest.json`. Nothing here is maintained by hand:
+ * change the manifest and run `pnpm generate`.
+ */
+export { DataItemType } from './generated/DataItemType';

@@ -16,6 +16,9 @@ dist
 
 packages/bedrock-data/src/resources/*
 packages/bedrock-data/src/generated/*
+packages/bedrock-data/src/jsp/*
+packages/minecraft/src/generated/*
+packages/minecraft/datagen/snapshot/*
 
 # Test files
 .test/config_test.*

@@ -1,0 +1,368 @@
+{
+    "$comment": [
+        "What the generated sources are built from, and the decisions a machine cannot make.",
+        "",
+        "Everything here is a choice: which release to read, which enums are part of this",
+        "package's public API, and what they are called. The generator makes none of them - it",
+        "only applies them - so a change in behaviour is a change in this file, reviewable on",
+        "its own.",
+        "",
+        "Two sources, because Mojang changed how it publishes. `schemas` is the release this",
+        "package targets - the JSON schemas attached to a GitHub release, one file per type,",
+        "which is all Mojang publishes since 1.26.40 - and it is read through `import-schemas.js`",
+        "into `snapshot/enums.json`. `source` is the last `enums.html` Mojang published, at",
+        "1.26.40, kept for the enums the schemas do not describe: a schema exists only for a",
+        "type some packet field is declared with, and `LevelEvent`, `ActorDataIDs` and their",
+        "kind travel as plain integers. An enum in both is taken from the schemas.",
+        "",
+        "Everything is pinned to a hash because Mojang deletes what it published: the branches",
+        "that carried `enums.html` were gone within a month of this project pinning one. The",
+        "pin is what makes a build reproducible after that happens, and the cached copy beside",
+        "it is the only one there will be."
+    ],
+    "schemas": {
+        "$comment": [
+            "The release this package targets: `metadata.zip` from the GitHub release of that",
+            "version, hashed. Its schemas list each enum's members without values - `GameType`",
+            "is `Undefined, Survival, ...` and nothing says `Undefined` is -1 - so the values are",
+            "read from `values`, the first later release whose schemas carry them as",
+            "`x-enum-binary-value`. The two agree on every member they share; every member of the",
+            "release that the values release lacks fails the import rather than being guessed.",
+            "",
+            "1.26.50 and 1.26.51 are the same protocol, 2193; the hotfix is read because it is",
+            "what a client of this version runs. The values come from the 1.26.60 preview, 2211,",
+            "which is where `x-enum-binary-value` first appeared.",
+            "",
+            "`schemaNames` maps an upstream enum name to the schema file that describes it where",
+            "the two differ: the documentation flattens `A::B` to `A__B` for most, and to something",
+            "else for a few."
+        ],
+        "repo": "Mojang/bedrock-protocol-docs",
+        "release": "v1.26.51",
+        "asset": "metadata.zip",
+        "sha256": "a364a6f6a4ff3da35e564f94a5089c74703df6fa6bd6bed8555d364c9d9b207f",
+        "minecraftVersion": "1.26.51",
+        "networkProtocolVersion": 2193,
+        "values": {
+            "release": "v1.26.60-preview.25",
+            "asset": "metadata.zip",
+            "sha256": "fa548575d5249ce7dcb54832a964624ed785ceb89270926bedeecb499ad5eee8",
+            "networkProtocolVersion": 2211
+        },
+        "schemaNames": {
+            "SharedTypes::Legacy::LevelSoundEvent": "LevelSoundEvent",
+            "SetTitlePacket::TitleType": "SetTitlePacket_TitleType"
+        }
+    },
+    "source": {
+        "$comment": [
+            "The last `enums.html` Mojang published, from the 1.26.40 build: every enum in the",
+            "game, with values, which the JSON schemas above do not have and do not cover. Read",
+            "for the enums `snapshot/enums.json` lists as absent, and nothing else.",
+            "",
+            "Pinned to the commit, not the branch, and the branch is gone now: `automated/1.26.40`",
+            "was deleted along with the rest of the `automated/*` family when the repository moved",
+            "to publishing releases. The cached copy in `snapshot/` is the only one there is."
+        ],
+        "repo": "Mojang/bedrock-protocol-docs",
+        "ref": "0e00fe80f4f3c71572ff6429de40146d1f4412fc",
+        "branch": "automated/1.26.40",
+        "path": "html/enums.html",
+        "sha256": "9b293f41d51947868cb84035eea46cc371e53271c57fbb5400c52d4b8605eb70",
+        "minecraftVersion": "1.26.40",
+        "networkProtocolVersion": 2168
+    },
+    "thresholds": {
+        "$comment": "A parser that quietly returns a subset is worse than one that stops. If the document changes shape these fail the run instead of producing a small, plausible diff.",
+        "minEnums": 100,
+        "minMembersPerEnum": 2
+    },
+    "enums": {
+        "$comment": "Ours on the left, Mojang's on the right. An entry here is a decision that this enum is part of the package's public API; absence is not an oversight, it is a no. The upstream name is not stable across releases - LevelSoundEvent sits under Puv::Legacy at 748 and SharedTypes::Legacy later - which is why the mapping is data and not a convention.",
+        "Gametype": "GameType",
+        "Difficulty": "Difficulty",
+        "LevelEvent": "LevelEvent",
+        "LevelSoundEvent": "SharedTypes::Legacy::LevelSoundEvent",
+        "ActorDataID": "ActorDataIDs",
+        "ActorFlags": "ActorFlags",
+        "DataItemType": "DataItemType",
+        "BuildPlatform": "BuildPlatform",
+        "CommandPermissionLevel": "CommandPermissionLevel",
+        "PlayerPermissionLevel": "PlayerPermissionLevel",
+        "PacketCompressionAlgorithm": "PacketCompressionAlgorithm",
+        "ResourcePackResponse": "ResourcePackResponse",
+        "ServerAuthMovementMode": "ServerAuthMovementMode",
+        "ItemStackRequestActionType": "ItemStackRequestActionType",
+        "ActorEvent": "ActorEvent",
+        "TitleType": "SetTitlePacket::TitleType",
+        "ContainerUiId": "ContainerEnumName",
+        "WindowTypes": "ContainerType",
+        "WindowIds": "ContainerID",
+        "AbilityLayerFlag": "AbilitiesIndex",
+        "RecipeEntryType": "CraftingDataEntryType",
+        "ItemStackResponseResult": "ItemStackNetResult",
+        "InventoryLeftTab": "InventoryLeftTabIndex",
+        "InventoryRightTab": "InventoryRightTabIndex",
+        "InventoryLayout": "InventoryLayout",
+        "ItemDescriptorType": "ItemDescriptorType",
+        "PlayerAuthInputData": "PlayerAuthInputData",
+        "DisconnectReason": "DisconnectFailReason"
+    },
+    "unmapped": {
+        "$comment": [
+            "Hand-written enums with no counterpart found in the docs, kept here so that the gap",
+            "is recorded rather than rediscovered. Each is either named differently upstream - to",
+            "be looked for among the 196 - or is not a protocol enum at all.",
+            "",
+            "Not listed, and never generated: BehaviorPack, ResourcePack, StackPack, Experiment",
+            "and BlockProperty are payload structures, not enums. No source will ever supply them."
+        ],
+        "Dimension": "not found by name",
+        "Generator": "GeneratorType, shape differs",
+        "PlayerPositionMode": "PlayerPositionModeComponent::PositionMode, nested",
+        "SpawnBiome": "SpawnBiomeType, shape differs"
+    },
+    "rules": {
+        "$comment": "Exceptions, so that adopting a generated enum never means renaming a call site. `aliases` keep the name this codebase has always used on the value vanilla documents; `extras` add what the document does not carry; `skip` drops what is not protocol - the dump lists preprocessor directives as if they were members.",
+        "Gametype": {
+            "extras": {
+                "SURVIVAL_VIEWER": 3,
+                "CREATIVE_VIEWER": 4,
+                "WORLD_DEFAULT": 0
+            }
+        },
+        "LevelEvent": {
+            "aliases": {
+                "deprecated": "DEPRECATED"
+            },
+            "extras": {
+                "PARTICLE_LEGACY_EVENT": 16384
+            }
+        },
+        "PacketCompressionAlgorithm": {
+            "aliases": {
+                "ZLib": "ZLIB"
+            }
+        },
+        "ServerAuthMovementMode": {
+            "aliases": {
+                "LegacyClientAuthoritativeV1": "CLIENT_AUTHORITATIVE",
+                "ClientAuthoritativeV2": "SERVER_AUTHORITATIVE",
+                "ServerAuthoritativeV3": "SERVER_AUTHORITATIVE_WITH_REWIND"
+            }
+        },
+        "DataItemType": {
+            "aliases": {
+                "Int64": "LONG"
+            }
+        },
+        "BuildPlatform": {
+            "$comment": "1.26.50 dropped the retired platforms - UWP, GearVR, tvOS and Windows Phone - and renamed Nx to Nintendo. A server validates a login against this list now, so the retired values are not kept as extras: a client reporting one is refused.",
+            "aliases": {
+                "iOS": "IOS"
+            }
+        },
+        "ActorFlags": {
+            "aliases": {
+                "DEPRECATED_1": "SCENTING",
+                "DEPRECATED_2": "RISING",
+                "DEPRECATED_3": "FEELING_HAPPY",
+                "Count": "COUNT"
+            },
+            "extras": {
+                "UNKNOWN": -1
+            }
+        },
+        "ActorDataID": {
+            "aliases": {
+                "RESERVED_009": "EFFECT_AMBIENCE",
+                "DATA_SPAWN_TIME_deprecated": "DATA_SPAWN_TIME",
+                "Count": "Count"
+            }
+        },
+        "ItemStackRequestActionType": {
+            "$comment": [
+                "Names kept as this codebase has them, with one exception: 16 is",
+                "CraftRepairAndDisenchant upstream, which is the anvil as well as the grindstone. It",
+                "was called CRAFTING_GRINDSTONE here, and the upstream name is the accurate one.",
+                "",
+                "The two deprecated container actions, 7 and 8, are gone from the release: the wire",
+                "never carried them, and their absence is why the selector an action is sent under",
+                "runs two behind the type from the lab table on. The last two lost their",
+                "`_DEPRECATEDASKTYLAING` suffix upstream at 1.26.50; the names here keep saying",
+                "deprecated, because they are."
+            ],
+            "aliases": {
+                "Consume": "CRAFTING_CONSUME_INPUT",
+                "Create": "CRAFTING_CREATE_SPECIFIC_RESULT",
+                "ScreenLabTableCombine": "LAB_TABLE_COMBINE",
+                "ScreenBeaconPayment": "BEACON_PAYMENT",
+                "ScreenHUDMineBlock": "MINE_BLOCK",
+                "CraftRecipe": "CRAFTING_RECIPE",
+                "CraftRecipeAuto": "CRAFTING_RECIPE_AUTO",
+                "CraftCreative": "CREATIVE_CREATE",
+                "CraftRecipeOptional": "CRAFTING_RECIPE_OPTIONAL",
+                "CraftLoom": "CRAFTING_LOOM",
+                "CraftNonImplemented": "CRAFTING_NON_IMPLEMENTED_DEPRECATED",
+                "CraftResults": "CRAFTING_RESULTS_DEPRECATED"
+            }
+        },
+        "TitleType": {
+            "aliases": {
+                "CLEAR": "ClearTitle",
+                "RESET": "ResetTitle",
+                "TITLE": "SetTitle",
+                "SUBTITLE": "SetSubtitle",
+                "ACTIONBAR": "SetActionBarMessage",
+                "TIMES": "SetDurations"
+            }
+        },
+        "ActorEvent": {
+            "$comment": "The hand-written copy had five members of the fifty-eight, and called 4 ARM_SWING where upstream calls it StartAttacking.",
+            "aliases": {
+                "HURT": "HURT_ANIMATION",
+                "DEATH": "DEATH_ANIMATION"
+            }
+        },
+        "ContainerUiId": {
+            "$comment": "Every member is a `...Container`, which reads as noise on an enum already called that. Only the ones this server names are shortened; the other fifty-seven keep the documented name.",
+            "aliases": {
+                "CombinedHotbarAndInventoryContainer": "COMBINED_HOTBAR_AND_INVENTORY",
+                "CraftingInputContainer": "CRAFTING_INPUT",
+                "HotbarContainer": "HOTBAR",
+                "InventoryContainer": "INVENTORY",
+                "OffhandContainer": "OFFHAND",
+                "CursorContainer": "CURSOR",
+                "CreatedOutputContainer": "CREATED_OUTPUT"
+            }
+        },
+        "WindowIds": {
+            "$comment": "`CONTAINER_ID_` on every member of an enum called ContainerID. FIRST and LAST bound the range a server may open a window under, which is why they are worth having by name.",
+            "aliases": {
+                "CONTAINER_ID_NONE": "UNKNOWN",
+                "CONTAINER_ID_INVENTORY": "INVENTORY",
+                "CONTAINER_ID_FIRST": "FIRST",
+                "CONTAINER_ID_LAST": "LAST",
+                "CONTAINER_ID_OFFHAND": "OFFHAND",
+                "CONTAINER_ID_ARMOR": "ARMOR",
+                "CONTAINER_ID_SELECTION_SLOTS": "SELECTION_SLOTS",
+                "CONTAINER_ID_PLAYER_ONLY_UI": "PLAYER_ONLY_UI",
+                "CONTAINER_ID_REGISTRY": "REGISTRY"
+            }
+        },
+        "RecipeEntryType": {
+            "$comment": [
+                "`FurnaceRecipe` and `FurnaceAuxRecipe` are gone from the document at 2168: the",
+                "Cereal conversion of CraftingDataPacket serialises recipes as one vector per shape,",
+                "so the tagged union these two discriminated no longer exists.",
+                "",
+                "They are kept as extras because our CraftingDataPacket still writes the 748 format",
+                "and needs the two numbers to do it. They come out when that packet is converted -",
+                "which is the real fix, and is not this change."
+            ],
+            "aliases": {
+                "ShapelessRecipe": "SHAPELESS",
+                "ShapedRecipe": "SHAPED",
+                "SmithingTransformRecipe": "SMITHING_TRANSFORM"
+            },
+            "extras": {
+                "FURNACE": 2,
+                "FURNACE_DATA": 3
+            }
+        },
+        "ItemStackResponseResult": {
+            "$comment": "Sixty-eight ways for a request to go wrong, against the two this server distinguishes. Worth generating whole: a refusal currently says only `Error`, and every one of these is a reason we could be giving instead.",
+            "aliases": {
+                "Success": "OK",
+                "Error": "ERROR"
+            }
+        },
+        "ItemDescriptorType": {
+            "$comment": "The kind of item descriptor a client's request carries: empty, a name, a MoLang expression or a tag. Up to 1.26.40 this package generated `ItemDescriptor::InternalType` under this name instead, an enum of the game's internals with two more members, which the schemas do not describe and nothing here used."
+        },
+        "DisconnectReason": {
+            "$comment": "The hand-written copy stopped at 108 of these; the documented enum has a hundred and fifty, the last two of which - MissingStructureData and UnsupportedTransport - arrived at 2193 and are the two a client of this version is most likely to leave with. The aliases keep the names this codebase used for the members upstream prefixes with INTERNAL_ or TESTONLY_, and the two it calls deprecated.",
+            "aliases": {
+                "INTERNAL_UserLeaveGameAttempted": "USER_LEAVE_GAME_ATTEMPTED",
+                "TESTONLY_CantConnect": "CANT_CONNECT",
+                "INTERNAL_NoFailOccurred": "NO_FAIL_OCCURRED",
+                "NoWiFi": "NO_WIFI",
+                "DisconnectPacket": "DISCONNECT_PACKET_DEPRECATED",
+                "ReasonNotSet": "REASON_NOT_SET_DEPRECATED",
+                "INTERNAL_RequestServerShutdown": "REQUEST_SERVER_SHUTDOWN"
+            }
+        },
+        "LevelSoundEvent": {
+            "names": true
+        }
+    },
+    "blocks": {
+        "$comment": [
+            "Where the block state catalogue comes from and goes.",
+            "",
+            "Captured from a Bedrock Dedicated Server, in two halves, because neither half alone",
+            "is the answer. The network palette is not on the wire - with hashed runtime ids",
+            "StartGamePacket carries only custom blocks - and the Script API answers a different",
+            "question: it reports the game's internal blocks, where a flattened name still carries",
+            "its legacy states, 56957 of them against the 17487 the network has.",
+            "",
+            "So: which properties a block has comes from a *saved world*, whose sub chunk palettes",
+            "store exactly what the network carries; which values each takes comes from the game,",
+            "asked block by block rather than by property name - `age` is declared 0..15 game wide",
+            "and cocoa takes 0..2.",
+            "",
+            "Validated against the third party dump this replaced: of 1218 blocks present in both,",
+            "1186 have identical property sets and the other 32 differ by one real rename",
+            "(`direction` became `minecraft:cardinal_direction`). Every shared property's values",
+            "agree exactly. `README-palette.md` is how to capture it again.",
+            "",
+            "This is the last thing that came from pmmp/BedrockData other than item tags and the",
+            "creative list, and it was the one that needed a native mod hooking the server binary."
+        ],
+        "source": "snapshot/block-palette.json",
+        "target": "../src/generated/block-schemas.json"
+    },
+    "recipes": {
+        "$comment": [
+            "Mojang's own recipe files, from an unpacked Bedrock Dedicated Server of the version pinned",
+            "above. Not a third party's processed dump: these agree with the item table the same server",
+            "sends, which the dump they replaced did not - it disagreed with its own companion item map",
+            "for 58% of the names it used, and the recipe for a plank was dropped for it.",
+            "",
+            "`bedrockServer` is a local path and the one thing here not in the repository: BDS is 58 MB",
+            "and Mojang's to distribute. Download the version above, unpack it, and point this at it,",
+            "or pass the path in `BEDROCK_SERVER` without editing this file. The output is committed,",
+            "so this is only needed to regenerate.",
+            "",
+            "`itemAliases` brings the legacy names those files still use up to the ones the item table",
+            "knows - `reeds` for sugar cane, `sign` for an oak sign. Without it 52 recipes name something",
+            "no item table can resolve and are dropped."
+        ],
+        "bedrockServer": "/path/to/bedrock-server-1.26.51.1",
+        "$source": [
+            "The behaviour pack directory, not one pack's recipes: BDS ships a 1.13 baseline in",
+            "`vanilla` and a layer per release on top, and the game composes them. The generator",
+            "reads `vanilla` and every `vanilla_<version>` up to the version pinned above, later",
+            "layers winning. `chemistry` and `experimental_` are not layers and are excluded."
+        ],
+        "source": "behavior_packs",
+        "itemAliases": "../../bedrock-data/src/resources/r16_to_current_item_map.json",
+        "$itemAliasOverrides": [
+            "What the alias map above does not cover. Kept here rather than patched into the output,",
+            "so regenerating cannot quietly lose it - and listed one by one, so a name that stops being",
+            "needed is visible instead of hiding inside a rule."
+        ],
+        "itemAliasOverrides": {
+            "minecraft:muttonCooked": "minecraft:cooked_mutton",
+            "minecraft:muttonRaw": "minecraft:mutton",
+            "$chain": [
+                "Renamed when copper chains arrived and the iron one stopped being the only one.",
+                "The alias map beside this predates the rename, and 25 recipes in the older pack",
+                "layers still say `chain` - the game resolves them through its own table, which is",
+                "the thing this override stands in for."
+            ],
+            "minecraft:chain": "minecraft:iron_chain"
+        },
+        "target": "../src/generated/recipes.json"
+    }
+}
