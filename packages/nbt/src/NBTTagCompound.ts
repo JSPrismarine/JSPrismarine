@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BinaryStream from '@jsprismarine/binaryutils';
 import type { ByteOrder } from './ByteOrder';
 import NBTReader from './NBTReader';
 import NBTWriter from './NBTWriter';
