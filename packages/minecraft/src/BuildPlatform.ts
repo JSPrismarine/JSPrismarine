@@ -1,17 +1,6 @@
-export enum BuildPlatform {
-    GOOGLE = 1,
-    IOS,
-    OSX,
-    AMAZON,
-    GEAR_VR,
-    UWP = 7,
-    WIN32,
-    DEDICATED,
-    TVOS,
-    SONY,
-    NX,
-    XBOX,
-    WINDOWS_PHONE,
-    LINUX,
-    UNKNOWN = -1
-}
+/**
+ * Re-exported from the generated source, which is built from Mojang's protocol documentation
+ * for the version pinned in `datagen/manifest.json`. Nothing here is maintained by hand:
+ * change the manifest and run `pnpm generate`.
+ */
+export { BuildPlatform } from './generated/BuildPlatform';

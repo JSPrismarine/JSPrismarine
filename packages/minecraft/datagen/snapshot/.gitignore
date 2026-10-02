@@ -1,0 +1,3 @@
+# The release assets the importer reads. Fetched on demand and hashed against the manifest;
+# Mojang's to distribute, and half a megabyte each.
+*-metadata.zip
