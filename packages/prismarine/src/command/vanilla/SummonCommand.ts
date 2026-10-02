@@ -38,12 +38,12 @@ export default class SummonCommand extends Command {
 
                         if (!Entity) throw new Error(`No such entity "${entityId}"!`);
 
-                        const mob: Entity = new Entity(source.getWorld(), source.getServer());
+                        // Summoned where the player stands, in one step. The two positional
+                        // arguments here never matched the constructor, which takes a single
+                        // options object - the `any` above hid it from the compiler, so the
+                        // entity was built with no world and the first read of it threw.
+                        const mob: Entity = new Entity({ position: source.getPosition() });
                         await source.getWorld().addEntity(mob);
-
-                        await mob.setPosition({
-                            position: source.getPosition()
-                        });
 
                         const res = `Summoned ${Entity.MOB_ID}`;
                         await source.sendMessage(res);
