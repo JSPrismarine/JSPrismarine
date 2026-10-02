@@ -4,7 +4,7 @@ import { Solid } from '../Solid';
 export default class DoubleStoneSlab extends Solid {
     public constructor() {
         super({
-            name: 'minecraft:double_stone_slab',
+            name: 'minecraft:smooth_stone_double_slab',
             id: BlockIdsType.DoubleStoneSlab,
             hardness: 2
         });

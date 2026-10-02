@@ -6,7 +6,7 @@ import { Solid } from '../Solid';
 export default class EndStoneBrickStairs extends Solid {
     public constructor() {
         super({
-            name: 'minecraft:end_stone_brick_stairs', // Should be "end_brick_stairs", but we match Java Edition
+            name: 'minecraft:end_brick_stairs', // Should be "end_brick_stairs", but we match Java Edition
             id: BlockIdsType.EndStoneBrickStairs,
             hardness: 2
         });
