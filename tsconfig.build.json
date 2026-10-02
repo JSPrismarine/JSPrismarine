@@ -54,6 +54,7 @@
         { "path": "./packages/client/tsconfig.json" },
         { "path": "./packages/color-parser/tsconfig.json" },
         { "path": "./packages/errors/tsconfig.json" },
+        { "path": "./packages/leveldb/tsconfig.json" },
         { "path": "./packages/logger/tsconfig.json" },
         { "path": "./packages/math/tsconfig.json" },
         { "path": "./packages/minecraft/tsconfig.json" },
