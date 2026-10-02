@@ -28,7 +28,7 @@ describe('config', () => {
             expect(config.getWorlds()).toEqual({
                 world: {
                     generator: 'Flat',
-                    provider: 'Filesystem',
+                    provider: 'LevelDB',
                     seed: expect.any(Number)
                 }
             });
@@ -56,6 +56,29 @@ describe('config', () => {
 
         it('should have the default packet compression level', () => {
             expect(config.getPacketCompressionLevel()).toBe(7);
+        });
+
+        it('should clamp a compression level zlib would reject', () => {
+            // A typo in the config file used to surface as a rejection on the chunk sending
+            // path, which took the server's tick down with it.
+            for (const [configured, expected] of [
+                [10, 9],
+                [100, 9],
+                [-2, -1],
+                [0, 0],
+                [9, 9],
+                [-1, -1]
+            ]) {
+                (config as any).packetCompressionLevel = configured;
+                expect(config.getPacketCompressionLevel()).toBe(expected);
+            }
+        });
+
+        it('should fall back to the default for a compression level that is not a number', () => {
+            for (const configured of ['fast', undefined, Number.NaN, 4.5]) {
+                (config as any).packetCompressionLevel = configured;
+                expect(config.getPacketCompressionLevel()).toBe(7);
+            }
         });
 
         it('should set the gamemode', () => {

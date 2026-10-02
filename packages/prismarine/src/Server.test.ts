@@ -1,4 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
@@ -15,68 +18,105 @@ vi.mock('@jsprismarine/raknet', async (importActual) => {
 });
 
 describe('Server', () => {
-    const config = new (class DebugConfig {
-        public enable() {}
-        public disable() {}
+    let worldRoot: string;
 
-        public getPort() {
-            return 19199;
-        }
+    beforeAll(() => {
+        // This used to configure no world at all, which only booted because a missing
+        // default world was warned about and shrugged off - leaving `getDefaultWorld()`
+        // undefined and every caller asserting it away. It now fails at startup instead, so
+        // the smoke test loads a real world. Pointed at a temp directory via `JSP_DIR` so
+        // the run writes nothing into the repository.
+        worldRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-server-test-'));
+        vi.stubEnv('JSP_DIR', worldRoot);
+    });
 
-        public getServerIp() {
-            return '0.0.0.0';
-        }
+    afterAll(() => {
+        vi.unstubAllEnvs();
+        rmSync(worldRoot, { recursive: true, force: true });
+    });
 
-        public getLevelName() {
-            return '';
-        }
+    /**
+     * A config naming a world of its own.
+     *
+     * One folder per test on purpose: these tests stub `shutdown`, so the server they started is
+     * left running and still holding its world. LevelDB takes a directory lock - two writers on
+     * one world delete each other's files - so a second server pointed at the same folder is
+     * refused, as it should be.
+     */
+    const debugConfig = (levelName: string) =>
+        new (class DebugConfig {
+            public enable() {}
+            public disable() {}
 
-        public getWorlds() {
-            return {};
-        }
+            public getPort() {
+                return 19199;
+            }
 
-        public getMaxPlayers() {
-            return 1;
-        }
+            public getServerIp() {
+                return '0.0.0.0';
+            }
 
-        public getGamemode() {
-            return 1;
-        }
+            public getLevelName() {
+                return levelName;
+            }
 
-        public getMotd() {
-            return 'CI';
-        }
+            public getWorlds() {
+                return {
+                    [levelName]: { generator: 'Flat', provider: 'LevelDB', seed: 1 }
+                };
+            }
 
-        public getViewDistance() {
-            return 4;
-        }
+            /** Zero: this is a startup smoke test, not a terrain generation one. */
+            public getPreloadRadius() {
+                return 0;
+            }
 
-        public getOnlineMode() {
-            return false;
-        }
+            public getChunkSendBudgetMs() {
+                return 5;
+            }
 
-        public getEnableEval() {
-            return false;
-        }
+            public getMaxPlayers() {
+                return 1;
+            }
 
-        public getEnableTicking() {
-            return false;
-        }
+            public getGamemode() {
+                return 1;
+            }
 
-        public getEnableProcessTitle() {
-            return false;
-        }
+            public getMotd() {
+                return 'CI';
+            }
 
-        public getPacketCompressionLevel() {
-            return 7;
-        }
-    })() as any;
+            public getViewDistance() {
+                return 4;
+            }
+
+            public getOnlineMode() {
+                return false;
+            }
+
+            public getEnableEval() {
+                return false;
+            }
+
+            public getEnableTicking() {
+                return false;
+            }
+
+            public getEnableProcessTitle() {
+                return false;
+            }
+
+            public getPacketCompressionLevel() {
+                return 7;
+            }
+        })() as any;
 
     it('starts and stops without crashing', async () => {
         const logger = new Logger();
         const prismarine = new Server({
             logger,
-            config
+            config: debugConfig('test-world')
         });
 
         const mockExit = vi.spyOn(prismarine, 'shutdown').mockImplementation((() => {}) as any);
@@ -90,7 +130,7 @@ describe('Server', () => {
         const logger = new Logger();
         const prismarine = new Server({
             logger,
-            config,
+            config: debugConfig('test-world-headless'),
             headless: true
         });
 
