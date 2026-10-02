@@ -1,20 +1,11 @@
 {
+    "$schema": "https://json.schemastore.org/tsconfig.json",
+    "extends": ["../../tsconfig.build.json"],
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "es2020",
-        "outDir": "dist",
-        "lib": ["es2020"],
-        "types": ["node", "jest"],
-        "strict": true,
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "resolveJsonModule": true,
-        "declaration": true,
-        "allowSyntheticDefaultImports": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+        "outDir": "./dist",
+        "rootDir": "../../",
+        "typeRoots": ["./node_modules/@types", "./src/@types", "./dist/index.d.ts"]
     },
-    "include": ["./src/**/*.ts"],
-    "exclude": ["node_modules", "dist"],
-    "typeRoots": ["node_modules/@types", "./src/types"]
+    "exclude": ["src/**/*.test.*", "../**/src/**/*.test.*"],
+    "include": ["src/**/*", "src/**/*.json"]
 }

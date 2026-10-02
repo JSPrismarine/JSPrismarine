@@ -1,4 +1,6 @@
-import BinaryStream from './BinaryStream';
+import { describe, expect, it } from 'vitest';
+
+import { BinaryStream } from './BinaryStream';
 
 describe('Test binary r/w', () => {
     it('Buffer', () => {
@@ -7,9 +9,7 @@ describe('Test binary r/w', () => {
         writeStream.write(dummyBuffer);
 
         const readStream = new BinaryStream(writeStream.getWriteBuffer());
-        expect(readStream.read(dummyBuffer.byteLength)).toStrictEqual(
-            dummyBuffer
-        );
+        expect(readStream.read(dummyBuffer.byteLength)).toStrictEqual(dummyBuffer);
 
         expect(readStream.readRemaining().byteLength).toBe(0);
     });
