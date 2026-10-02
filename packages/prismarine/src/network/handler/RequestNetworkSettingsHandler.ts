@@ -1,12 +1,10 @@
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import Identifiers from '../Identifiers';
 import type Server from '../../Server';
 import type RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
 import type ClientConnection from '../ClientConnection';
-import NetworkSettingsPacket, {
-    PacketCompressionAlgorithm,
-    CompressionThreshold
-} from '../packet/NetworkSettingsPacket';
+import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
 
 export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<RequestNetworkSettingsPacket> {
     public static NetID = Identifiers.RequestNetworkSettingsPacket;
@@ -17,7 +15,7 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
         connection: ClientConnection
     ): Promise<void> {
         if (packet.protocolVersion !== Identifiers.Protocol) {
-            connection.disconnect(`Unsupported protocol version: ${packet.protocolVersion}`);
+            await connection.disconnect(`Unsupported protocol version: ${packet.protocolVersion}`);
             return;
         }
 

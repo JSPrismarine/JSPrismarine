@@ -33,7 +33,10 @@ export default class InteractPacket extends DataPacket {
         this.action = this.readByte();
         this.target = this.readUnsignedVarLong();
 
-        if (this.action === InteractAction.MouseOver) {
+        // The position is an optional now - a byte saying whether it is there - rather than
+        // something inferred from the action. Reading it off the action meant the presence byte
+        // was taken as the first byte of a float, and the decode ran off the end of the packet.
+        if (this.readBoolean()) {
             this.x = this.readFloatLE();
             this.y = this.readFloatLE();
             this.z = this.readFloatLE();

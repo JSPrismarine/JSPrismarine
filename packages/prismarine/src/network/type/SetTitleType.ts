@@ -1,8 +1,4 @@
-export enum TitleType {
-    ClearTitle = 0,
-    ResetTitle = 1,
-    SetTitle = 2,
-    SetSubtitle = 3,
-    SetActionBarMessage = 4,
-    SetAnimationTimes = 5
-}
+/**
+ * Generated from Mojang's protocol documentation; see `@jsprismarine/minecraft`.
+ */
+export { TitleType } from '@jsprismarine/minecraft';

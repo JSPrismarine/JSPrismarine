@@ -1,3 +1,4 @@
+import { AbilityLayerFlag } from '@jsprismarine/minecraft';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
 import type PermissionType from '../type/PermissionType';
@@ -11,33 +12,22 @@ export enum AbilityLayerType {
     EDITOR
 }
 
-export enum AbilityLayerFlag {
-    BUILD,
-    MINE,
-    DOORS_AND_SWITCHES,
-    OPEN_CONTAINERS,
-    ATTACK_PLAYERS,
-    ATTACK_MOBS,
-    OPERATOR_COMMANDS,
-    TELEPORT,
-    INVULNERABLE,
-    FLYING,
-    MAY_FLY,
-    INSTABUILD,
-    LIGHTNING,
-    FLY_SPEED,
-    WALK_SPEED,
-    MUTED,
-    WORLD_BUILDER,
-    NO_CLIP,
-    PRIVILEGED_BUILDER
-}
+// `AbilityLayerFlag` is generated from Mojang's documentation, where it is `AbilitiesIndex`.
+export { AbilityLayerFlag };
 
 export class AbilityLayer {
     public layerType!: AbilityLayerType;
     public layerFlags!: Map<AbilityLayerFlag, boolean>;
 
     public flySpeed!: number;
+    /**
+     * How fast the player climbs and descends while flying.
+     *
+     * Added at 2168, between the other two rather than after them - a layer that writes only
+     * the horizontal speeds is four bytes short, and the client rejects the whole packet
+     * rather than the layer.
+     */
+    public verticalFlySpeed = 1;
     public walkSpeed!: number;
 
     public getEncodedFlags(): { flagsHash: number; valuesHash: number } {
@@ -45,7 +35,11 @@ export class AbilityLayer {
         for (const [flag, value] of this.layerFlags.entries()) {
             flagsHash |= 1 << flag;
             // TODO: find a better solution, may work for now but i don't like this hack
-            if ([AbilityLayerFlag.WALK_SPEED, AbilityLayerFlag.FLY_SPEED].includes(flag)) {
+            if (
+                [AbilityLayerFlag.WALK_SPEED, AbilityLayerFlag.FLY_SPEED, AbilityLayerFlag.VERTICAL_FLY_SPEED].includes(
+                    flag
+                )
+            ) {
                 continue;
             }
             valuesHash |= value ? 1 << flag : 0;
@@ -74,6 +68,7 @@ export default class UpdateAbilitiesPacket extends DataPacket {
             this.writeIntLE(encodedFlags.flagsHash);
             this.writeIntLE(encodedFlags.valuesHash);
             this.writeFloatLE(abilityLayer.flySpeed);
+            this.writeFloatLE(abilityLayer.verticalFlySpeed);
             this.writeFloatLE(abilityLayer.walkSpeed);
         }
     }
