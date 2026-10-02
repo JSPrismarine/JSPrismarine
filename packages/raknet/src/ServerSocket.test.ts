@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { RAKNET_TPS } from './Constants';
+import { RAKNET_TICK_INTERVAL_MS } from './Constants';
 import ServerSocket from './ServerSocket';
 
 describe('ServerSocket', () => {
@@ -8,12 +8,14 @@ describe('ServerSocket', () => {
     });
 
     it('stops the ticker when killed after a tick has run', () => {
-        vi.useFakeTimers();
+        // Only the timers the ticker uses: `kill` hands the socket close to a `setImmediate`,
+        // which a faked `setImmediate` would otherwise leave counted as a pending timer.
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
 
         const server = new ServerSocket(1, false, { setOnlinePlayerCount: vi.fn() }, {} as any);
         server.start('127.0.0.1', 0);
 
-        vi.advanceTimersByTime(1000 / RAKNET_TPS);
+        vi.advanceTimersByTime(RAKNET_TICK_INTERVAL_MS);
         server.kill();
 
         expect(vi.getTimerCount()).toBe(0);
