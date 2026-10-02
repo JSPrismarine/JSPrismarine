@@ -32,7 +32,14 @@
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "vite build",
-        "typecheck": "tsc -noEmit"
+        "typecheck": "tsc -noEmit",
+        "generate": "node datagen/import-schemas.js && node datagen/generate-enums.js && node datagen/generate-blocks.js && node datagen/generate-recipes.js",
+        "generate:import": "node datagen/import-schemas.js",
+        "generate:enums": "node datagen/generate-enums.js",
+        "generate:verify": "node datagen/generate-enums.js --verify",
+        "generate:compare": "node datagen/generate-enums.js --compare",
+        "generate:blocks": "node datagen/generate-blocks.js",
+        "generate:recipes": "node datagen/generate-recipes.js"
     },
     "repository": {
         "type": "git",
@@ -47,6 +54,8 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/minecraft",
     "devDependencies": {
+        "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/leveldb": "workspace:*",
         "@types/node": "24.13.6",
         "@types/semver": "7.8.0",
         "glob": "13.0.6",
