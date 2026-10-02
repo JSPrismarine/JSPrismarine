@@ -13,12 +13,12 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
         session: PlayerSession
     ): Promise<void> {
         const player = session.getPlayer();
-        const world = server.getWorldManager().getDefaultWorld()!;
+        const world = server.getWorldManager().getDefaultWorld();
 
         // Add player to the world.
         await world.addEntity(player);
 
         // Send the spawn packets.
-        await player.sendSpawn();
+        await player.completeSpawn();
     }
 }

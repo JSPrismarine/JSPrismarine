@@ -1,4 +1,4 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import BlockPosition from '../world/BlockPosition';
 
@@ -59,21 +59,17 @@ export class NetworkUtil {
         stream.writeVarInt(pos.getZ());
     }
     /**
-     * Serialize a `BlockPosition` instance into a `BinaryStream`.
-     * @param {BinaryStream} stream - The network stream.
-     * @param {BlockPosition} pos - The block position to serialize.
-     */
-    public static writeUnsignedBlockPosition(stream: BinaryStream, pos: BlockPosition): void {
-        stream.writeVarInt(pos.getX());
-        stream.writeUnsignedVarInt(pos.getY());
-        stream.writeVarInt(pos.getZ());
-    }
-    /**
      * Deserialize a `BlockPosition` from a `BinaryStream`.
+     *
+     * Three signed varints. The y used to be read unsigned, which was the layout of the
+     * packets a client sent up to 1.26.0 - `PlayerAction` among them - and has not been since
+     * 1.26.10: every block position the protocol carries is `BlockPos` now, signed all the
+     * way through. Read unsigned, a zigzag encoded y comes out doubled (64 reads as 128)
+     * and anything below sea level as a number in the billions.
      * @param {BinaryStream} stream - The network stream.
      * @returns {BlockPosition} The deserialized `BlockPosition`.
      */
     public static readBlockPosition(stream: BinaryStream): Vector3 {
-        return new BlockPosition(stream.readVarInt(), stream.readUnsignedVarInt(), stream.readVarInt());
+        return new BlockPosition(stream.readVarInt(), stream.readVarInt(), stream.readVarInt());
     }
 }

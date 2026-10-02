@@ -1,4 +1,4 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import type UUID from '../../utils/UUID';
 import type Skin from '../../utils/skin/Skin';
@@ -61,6 +61,9 @@ export class PlayerListEntry {
         stream.writeBoolean(this.isTeacher());
         stream.writeBoolean(this.isHost());
         stream.writeBoolean(false); // is sub client
+        // The colour the client tints this player's name with, ARGB and big endian. New at
+        // 2168, and four bytes the entry after this one is read from without it.
+        stream.writeInt(PLAYER_COLOUR);
     }
 
     public getUUID(): UUID {
@@ -100,6 +103,9 @@ export class PlayerListEntry {
     }
 }
 
+/** White: the client tints a name with this, and nothing here has an opinion about it. */
+const PLAYER_COLOUR = 0xff_ff_ff_ff | 0;
+
 export enum PlayerListAction {
     TYPE_ADD,
     TYPE_REMOVE
@@ -112,20 +118,20 @@ export default class PlayerListPacket extends DataPacket {
     public type!: number;
 
     public encodePayload(): void {
-        this.writeByte(this.type);
+        // Every entry says for itself whether it is an addition or a removal. 748 said it once
+        // for the packet and then wrote a trailing run of booleans after the entries; at 2168
+        // the action is a tagged variant on each entry, and there are no trailing booleans.
+        const adding = this.type === PlayerListAction.TYPE_ADD;
+
         this.writeUnsignedVarInt(this.entries.length);
         for (const entry of this.entries) {
+            // The selector, then the same action as a byte - the alternative's own first
+            // field. The two are numbered opposite ways round: `Add` selects 1 and is 0.
+            this.writeUnsignedVarInt(adding ? 1 : 0);
+            this.writeByte(this.type);
+
             entry.getUUID().networkSerialize(this);
-
-            if (this.type === PlayerListAction.TYPE_ADD) {
-                entry.networkSerialize(this);
-            }
-        }
-
-        if (this.type === PlayerListAction.TYPE_ADD) {
-            for (let i = 0; i < this.entries.length; i++) {
-                this.writeBoolean(true);
-            }
+            if (adding) entry.networkSerialize(this);
         }
     }
 }
