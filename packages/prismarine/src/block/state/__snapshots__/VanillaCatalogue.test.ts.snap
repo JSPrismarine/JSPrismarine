@@ -1,0 +1,31 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`block > vanilla catalogue > keeps the ids of a sample of blocks stable across releases 1`] = `
+{
+  "minecraft:air": [
+    "minecraft:air=-604749536",
+  ],
+  "minecraft:oak_log": [
+    "minecraft:oak_log[pillar_axis=y]=825916963",
+    "minecraft:oak_log[pillar_axis=x]=-229389608",
+    "minecraft:oak_log[pillar_axis=z]=1881223534",
+  ],
+  "minecraft:stone": [
+    "minecraft:stone=-2144268767",
+  ],
+  "minecraft:stone_button": [
+    "minecraft:stone_button[button_pressed_bit=0,facing_direction=0]=761806540",
+    "minecraft:stone_button[button_pressed_bit=0,facing_direction=1]=700331717",
+    "minecraft:stone_button[button_pressed_bit=0,facing_direction=2]=638856894",
+    "minecraft:stone_button[button_pressed_bit=0,facing_direction=3]=577382071",
+    "minecraft:stone_button[button_pressed_bit=0,facing_direction=4]=1007705832",
+    "minecraft:stone_button[button_pressed_bit=0,facing_direction=5]=946231009",
+    "minecraft:stone_button[button_pressed_bit=1,facing_direction=0]=-104280807",
+    "minecraft:stone_button[button_pressed_bit=1,facing_direction=1]=-42805984",
+    "minecraft:stone_button[button_pressed_bit=1,facing_direction=2]=-227230453",
+    "minecraft:stone_button[button_pressed_bit=1,facing_direction=3]=-165755630",
+    "minecraft:stone_button[button_pressed_bit=1,facing_direction=4]=-350180099",
+    "minecraft:stone_button[button_pressed_bit=1,facing_direction=5]=-288705276",
+  ],
+}
+`;

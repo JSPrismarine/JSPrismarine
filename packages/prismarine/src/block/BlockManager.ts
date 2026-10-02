@@ -5,6 +5,7 @@ import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
 import Timer from '../utils/Timer';
 import type { Block } from './Block';
 import { BlockIdsType } from './BlockIdsType';
+import { BlockStateSchemas } from './state/BlockStateSchema';
 
 export default class BlockManager {
     private readonly server: Server;
@@ -21,6 +22,32 @@ export default class BlockManager {
      */
     public async enable(): Promise<void> {
         await this.importBlocks();
+        this.reportBlocksWithoutSchema();
+    }
+
+    /**
+     * Names every registered block the state catalogue does not know about.
+     *
+     * Bedrock renames blocks between versions - `grass` became `grass_block`, `bricks`
+     * became `brick_block` - and a registered block whose name no longer exists cannot be
+     * given a runtime id. Without this the first such block only surfaces when a chunk
+     * containing it is generated, one crash at a time; here the whole list arrives at
+     * startup, which is what makes a client version bump a five minute job.
+     */
+    private reportBlocksWithoutSchema(): void {
+        const unknown = this.getBlocks()
+            .map((block) => block.getStateName())
+            .filter((name) => BlockStateSchemas.get(name) === null)
+            .sort();
+
+        if (unknown.length === 0) return;
+
+        this.server
+            .getLogger()
+            .error(
+                `${unknown.length} registered block(s) have no state schema and cannot be placed: ${unknown.join(', ')}. ` +
+                    'They were probably renamed by a Minecraft update; the current names are in block/state/vanilla-block-schemas.json.'
+            );
     }
 
     /**

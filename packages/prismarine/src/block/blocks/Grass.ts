@@ -7,7 +7,7 @@ import { Solid } from '../Solid';
 export default class Grass extends Solid {
     public constructor() {
         super({
-            name: 'minecraft:grass',
+            name: 'minecraft:grass_block',
             javaName: 'minecraft:grass_block',
             id: BlockIdsType.Grass,
             hardness: 0.6
