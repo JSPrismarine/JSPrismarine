@@ -1,4 +1,4 @@
-// import BinaryStream from '@jsprismarine/jsbinaryutils';
+// import BinaryStream from '@jsprismarine/binaryutils';
 import type Server from '../Server';
 import { NetworkUtil } from '../network/NetworkUtil';
 
@@ -11,7 +11,10 @@ export const GameRules = {
     DoMobSpawning: 'domobspawning',
     DoTileDrops: 'dotiledrops',
     DoWeatherCycle: 'doweathercycle',
-    DrowingDamage: 'drowningdamage',
+    // Spelt correctly at last. The value was always right - the constant's *name* was missing an
+    // `n`, so anything reaching for `GameRules.DrowningDamage` got `undefined` and looked up a
+    // gamerule called "undefined".
+    DrowningDamage: 'drowningdamage',
     FallDamage: 'falldamage',
     FireDamage: 'firedamage',
     KeepInventory: 'keepinventory',
@@ -99,10 +102,14 @@ export default class GameRuleManager {
                     break;
                 case 'number':
                     if (isInt(value)) {
-                        stream.writeByte(2); // Maybe value type ??
-                        stream.writeUnsignedVarInt(value);
+                        stream.writeByte(2);
+                        // Four fixed bytes, not a varint. The two encodings agree for small
+                        // values and diverge for the rest, so a rule like `maxcommandchainlength`
+                        // shortens the packet and everything after the gamerules is read from
+                        // the wrong place.
+                        stream.writeUnsignedIntLE(value);
                     } else {
-                        stream.writeByte(3); // Maybe value type ??
+                        stream.writeByte(3);
                         stream.writeFloatLE(value);
                     }
                     break;
