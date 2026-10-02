@@ -1,10 +1,12 @@
-import { codecovVitePlugin } from '@codecov/vite-plugin';
 import { globSync } from 'glob';
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { codecovVitePlugin } from '@codecov/vite-plugin';
 import { defineConfig, mergeConfig } from 'vite';
-import base from '../../vite.config.ts';
 import pkg from './package.json' with { type: 'json' };
+
+import base from '../../vite.config.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -23,21 +25,8 @@ export default mergeConfig(
     defineConfig({
         root: __dirname,
         resolve: {
-            alias: [
-                // Resolve `@/` imports.
-                {
-                    find: /^@\//,
-                    replacement: `${resolve(__dirname, 'src')}/`
-                },
-
-                // Resolve `@jsprismarine/*` imports.
-                {
-                    find: /^@jsprismarine\/(?!bedrock-data)(.+)/,
-                    replacement: `${resolve(__dirname, '../')}/$1/src/index.ts`
-                }
-            ]
+            alias: []
         },
-        assetsInclude: ['node_modules/@jsprismarine/bedrock-data/{jsp,resource}/**/*'],
         build: {
             lib: {
                 entry: input,

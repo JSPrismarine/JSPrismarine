@@ -56,7 +56,7 @@
         "vitest": "5.0.1"
     },
     "dependencies": {
-        "@jsprismarine/color-parser": "workspace:*",
-        "@jsprismarine/jsbinaryutils": "5.5.3"
+        "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/color-parser": "workspace:*"
     }
 }

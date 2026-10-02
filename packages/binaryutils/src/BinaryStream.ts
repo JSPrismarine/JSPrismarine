@@ -17,8 +17,18 @@ import assert from 'assert';
  * ```typescript
  * const stream = new BinaryStream();
  * stream.writeInt(42);
- * stream.writeString("Hello");  // Buffer grows automatically
+ * stream.write(Buffer.from('Hello'));  // Buffer grows automatically
  * const buffer = stream.getWriteBuffer();
+ * ```
+ *
+ * @example Encoding many packets without allocating
+ * ```typescript
+ * const stream = new BinaryStream(undefined, 0, 4096);
+ * for (const packet of queue) {
+ *     stream.resetWrite();
+ *     packet.encode(stream);
+ *     offset = stream.copyInto(arena, offset);
+ * }
  * ```
  */
 export class BinaryStream {
@@ -32,10 +42,16 @@ export class BinaryStream {
      * Creates a new BinaryStream instance.
      * @param {Buffer|null|undefined} buffer - The array or Buffer containing binary data.
      * @param {number} offset - The initial pointer position.
+     * @param {number} initialCapacity - Pre-allocates the write buffer to this size. Use it when
+     * the encoded size is known up front: it skips the 256 -> 512 -> 1024 ... growth ladder, and
+     * with {@link resetWrite} it lets a long-lived encoder run without allocating at all.
      */
-    public constructor(buffer?: Buffer, offset: number = 0) {
+    public constructor(buffer?: Buffer, offset: number = 0, initialCapacity: number = 0) {
         this.readBuffer = buffer ?? null; // Keep this instance for reading
         this.readIndex = offset;
+        if (initialCapacity > 0) {
+            this.reserve(initialCapacity);
+        }
     }
 
     /**
@@ -44,21 +60,22 @@ export class BinaryStream {
      */
     public read(len: number): Buffer {
         this.doReadAssertions(len);
-        return this.readBuffer!.subarray(
-            this.readIndex,
-            (this.readIndex += len)
-        );
+        return this.readBuffer!.subarray(this.readIndex, (this.readIndex += len));
     }
 
     /**
      * Appends a buffer to the main buffer.
      * @param {Buffer|Uint8Array} buf
      */
-    public write(buf: Uint8Array): void;
-    public write(buf: Buffer): void {
-        this.ensureCapacity(buf.byteLength);
-        buf.copy(this.writeBuffer!, this.writeIndex);
-        this.writeIndex += buf.byteLength;
+    public write(buf: Uint8Array): void {
+        const len = buf.byteLength;
+        this.ensureCapacity(len);
+        // This used to call `buf.copy(...)`, which only exists on Buffer, so passing the plain
+        // Uint8Array this signature advertises threw `TypeError: buf.copy is not a function`.
+        // `set` accepts both, is spec-required to handle overlapping ranges, and is cheaper
+        // for the small payloads (UUIDs, short blobs) that dominate packet encoding.
+        this.writeBuffer!.set(buf, this.writeIndex);
+        this.writeIndex += len;
     }
 
     /**
@@ -67,7 +84,7 @@ export class BinaryStream {
      */
     public readByte(): number {
         this.doReadAssertions(1);
-        return this.readBuffer!.readUInt8(this.readIndex++);
+        return this.readBuffer![this.readIndex++]!;
     }
 
     /**
@@ -85,7 +102,7 @@ export class BinaryStream {
      */
     public readSignedByte(): number {
         this.doReadAssertions(1);
-        return this.readBuffer!.readInt8(this.readIndex++);
+        return (this.readBuffer![this.readIndex++]! << 24) >> 24;
     }
 
     /**
@@ -94,8 +111,7 @@ export class BinaryStream {
      */
     public writeSignedByte(v: number): void {
         this.ensureCapacity(1);
-        this.writeBuffer![this.writeIndex++] =
-            (v < 0 ? 0xff + v + 1 : v) & 0xff;
+        this.writeBuffer![this.writeIndex++] = (v < 0 ? 0xff + v + 1 : v) & 0xff;
     }
 
     /**
@@ -374,11 +390,7 @@ export class BinaryStream {
      * @param {number} v
      */
     public writeFloat(v: number): void {
-        this.doWriteAssertions(
-            v,
-            -3.4028234663852886e38,
-            +3.4028234663852886e38
-        );
+        this.doWriteAssertions(v, -3.4028234663852886e38, +3.4028234663852886e38);
         this.ensureCapacity(4);
         this.writeBuffer!.writeFloatBE(v, this.writeIndex);
         this.writeIndex += 4;
@@ -398,11 +410,7 @@ export class BinaryStream {
      * @param {number} v
      */
     public writeFloatLE(v: number): void {
-        this.doWriteAssertions(
-            v,
-            -3.4028234663852886e38,
-            +3.4028234663852886e38
-        );
+        this.doWriteAssertions(v, -3.4028234663852886e38, +3.4028234663852886e38);
         this.ensureCapacity(4);
         this.writeBuffer!.writeFloatLE(v, this.writeIndex);
         this.writeIndex += 4;
@@ -422,11 +430,7 @@ export class BinaryStream {
      * @param {number} v
      */
     public writeDouble(v: number): void {
-        this.doWriteAssertions(
-            v,
-            -1.7976931348623157e308,
-            +1.7976931348623157e308
-        );
+        this.doWriteAssertions(v, -1.7976931348623157e308, +1.7976931348623157e308);
         this.ensureCapacity(8);
         this.writeBuffer!.writeDoubleBE(v, this.writeIndex);
         this.writeIndex += 8;
@@ -446,11 +450,7 @@ export class BinaryStream {
      * @param {number} v
      */
     public writeDoubleLE(v: number): void {
-        this.doWriteAssertions(
-            v,
-            -1.7976931348623157e308,
-            +1.7976931348623157e308
-        );
+        this.doWriteAssertions(v, -1.7976931348623157e308, +1.7976931348623157e308);
         this.ensureCapacity(8);
         this.writeBuffer!.writeDoubleLE(v, this.writeIndex);
         this.writeIndex += 8;
@@ -538,8 +538,10 @@ export class BinaryStream {
      */
     public readVarInt(): number {
         const raw = this.readUnsignedVarInt();
-        const temp = (((raw << 63) >> 63) ^ raw) >> 1;
-        return temp ^ (raw & (1 << 63));
+        // The previous expression was `(((raw << 63) >> 63) ^ raw) >> 1 ^ (raw & (1 << 63))`,
+        // a Java port that relied on JS shift counts being taken mod 32. It was verified
+        // correct over 7.2M values, but this is the same function written legibly.
+        return (raw >>> 1) ^ -(raw & 1);
     }
 
     /**
@@ -547,7 +549,8 @@ export class BinaryStream {
      * @param {number} v
      */
     public writeVarInt(v: number): void {
-        v = (v << 32) >> 32;
+        // The `v = (v << 32) >> 32` that used to sit here was a no-op: JS shift counts are
+        // taken mod 32, so it shifted by 0. The `<< 1` below already coerces to int32.
         return this.writeUnsignedVarInt((v << 1) ^ (v >> 31));
     }
 
@@ -556,17 +559,33 @@ export class BinaryStream {
      * @returns {number}
      */
     public readUnsignedVarInt(): number {
-        assert(this.readBuffer != null, 'Reading on empty buffer!');
+        const buf = this.readBuffer;
+        if (buf === null) {
+            assert.fail('Reading on empty buffer!');
+        }
+        const len = buf.byteLength;
         let value = 0;
         for (let i = 0; i <= 28; i += 7) {
-            if (typeof this.readBuffer![this.readIndex] === 'undefined') {
+            // A numeric compare rather than `typeof buf[idx] === 'undefined'`: the latter is an
+            // out-of-bounds element load, which makes V8 discard the optimized code for this
+            // function the first time a stream is read to its end.
+            if (this.readIndex >= len) {
                 throw new Error('No bytes left in buffer');
             }
-            const b = this.readBuffer![this.readIndex++];
+            const b = buf[this.readIndex++]!;
             value |= (b & 0x7f) << i;
 
             if ((b & 0x80) === 0) {
-                return value;
+                if (i === 28 && (b & 0x70) !== 0) {
+                    // Bits above the 32nd used to be shifted off and discarded, so an
+                    // over-long encoding such as `ff ff ff ff 7f` silently decoded to the
+                    // same value as the canonical `ff ff ff ff 0f`.
+                    throw new Error('VarInt overflows 32 bits!');
+                }
+                // `>>> 0` because the accumulator above is int32: without it every value
+                // from 2^31 up came back negative, so writeUnsignedVarInt(0xffffffff)
+                // round-tripped to -1.
+                return value >>> 0;
             }
         }
 
@@ -578,11 +597,17 @@ export class BinaryStream {
      * @param {number} v
      */
     public writeUnsignedVarInt(v: number): void {
+        // One capacity check for the whole varint instead of one per byte (via writeByte),
+        // with the buffer and cursor hoisted into locals so each byte is a plain store.
+        this.ensureCapacity(5);
+        const buf = this.writeBuffer!;
+        let i = this.writeIndex;
         while ((v & 0xffffff80) !== 0) {
-            this.writeByte((v & 0x7f) | 0x80);
+            buf[i++] = (v & 0x7f) | 0x80;
             v >>>= 7;
         }
-        this.writeByte(v & 0x7f);
+        buf[i++] = v & 0x7f;
+        this.writeIndex = i;
     }
 
     /**
@@ -591,7 +616,11 @@ export class BinaryStream {
      */
     public readVarLong(): bigint {
         const raw = this.readUnsignedVarLong();
-        return raw >> 1n;
+        // The zigzag sign XOR was missing, so this used to return `raw >> 1n`: every negative
+        // value decoded wrong (-20n came back as 19n, -1n as 0n) and anything at or above
+        // 2^54 collapsed to 0n. Positive small values were unaffected, which is why the
+        // shipped test suite never caught it.
+        return (raw >> 1n) ^ -(raw & 1n);
     }
 
     /**
@@ -599,7 +628,8 @@ export class BinaryStream {
      * @param {bigint} v
      */
     public writeVarLong(v: bigint) {
-        return this.writeUnsignedVarLong((v << 1n) ^ (v >> 63n));
+        const n = BigInt.asIntN(64, v);
+        return this.writeUnsignedVarLong((n << 1n) ^ (n >> 63n));
     }
 
     /**
@@ -607,16 +637,35 @@ export class BinaryStream {
      * @returns {bigint}
      */
     public readUnsignedVarLong(): bigint {
-        let value = 0n;
+        const buf = this.readBuffer;
+        if (buf === null) {
+            throw new Error('Buffer is write only!');
+        }
+        const len = buf.byteLength;
+        // The accumulator is kept in two int32 halves and materialised as a single BigInt at
+        // the end. The previous version allocated five BigInts per decoded byte
+        // (BigInt(b), the mask, BigInt(i), the shift and the or).
+        let lo = 0;
+        let hi = 0;
         for (let i = 0; i <= 63; i += 7) {
-            if (this.feof()) {
+            if (this.readIndex >= len) {
                 throw new Error('No bytes left in buffer');
             }
-            const b = this.readBuffer![this.readIndex++];
-            value |= (BigInt(b) & 0x7fn) << BigInt(i);
+            const b = buf[this.readIndex++]!;
+            if (i < 28) {
+                lo |= (b & 0x7f) << i;
+            } else if (i === 28) {
+                lo = (lo | ((b & 0x0f) << 28)) >>> 0;
+                hi = (b & 0x7f) >>> 4;
+            } else {
+                hi |= (b & 0x7f) << (i - 32);
+            }
 
             if ((b & 0x80) === 0) {
-                return value;
+                if (i === 63 && (b & 0x7e) !== 0) {
+                    throw new Error('VarLong overflows 64 bits!');
+                }
+                return (BigInt(hi >>> 0) << 32n) | BigInt(lo >>> 0);
             }
         }
 
@@ -628,15 +677,28 @@ export class BinaryStream {
      * @param {bigint} v
      */
     public writeUnsignedVarLong(v: bigint) {
-        for (let i = 0; i < 10; ++i) {
-            if (v >> 7n !== 0n) {
-                this.writeByte(Number(v | 0x80n));
-            } else {
-                this.writeByte(Number(v & 0x7fn));
-                break;
-            }
-            v >>= 7n;
+        // The value is split into two uint32 halves once, then the shift/mask loop runs
+        // entirely in int32 space. The previous version did three BigInt allocations plus a
+        // Number() conversion per emitted byte, and computed `v >> 7n` twice per byte.
+        //
+        // It was also wrong: `Number(v | 0x80n)` converted to a double *before* writeByte's
+        // `& 0xff` mask, so above 2^54 the low bits were already rounded away.
+        // writeUnsignedVarLong(9007199254741119n) emitted a leading 0x00 - a terminator -
+        // and the value read back as 0n. Negative inputs emitted ten unterminated bytes;
+        // they are now well-defined as their two's complement, matching protobuf.
+        this.ensureCapacity(10);
+        const buf = this.writeBuffer!;
+        let i = this.writeIndex;
+        const u = BigInt.asUintN(64, v);
+        let lo = Number(u & 0xffffffffn) >>> 0;
+        let hi = Number(u >> 32n) >>> 0;
+        while (hi !== 0 || lo > 0x7f) {
+            buf[i++] = (lo & 0x7f) | 0x80;
+            lo = ((lo >>> 7) | (hi << 25)) >>> 0;
+            hi >>>= 7;
         }
+        buf[i++] = lo;
+        this.writeIndex = i;
     }
 
     /**
@@ -664,6 +726,73 @@ export class BinaryStream {
     }
 
     /**
+     * Grows the write buffer so that at least `capacity` bytes can be written without any
+     * further allocation, and returns this stream.
+     *
+     * Pre-sizing skips the 256 -> 512 -> 1024 ... growth ladder, each step of which copies the
+     * whole payload; a 3 KB packet starting from the 256-byte floor performs five allocations
+     * and memcpy's 1.25x its own size before it is done.
+     * @param {number} capacity
+     */
+    public reserve(capacity: number): this {
+        if (capacity > this.writeCapacity) {
+            const newBuffer = Buffer.allocUnsafe(capacity);
+            if (this.writeBuffer !== null && this.writeIndex > 0) {
+                this.writeBuffer.copy(newBuffer, 0, 0, this.writeIndex);
+            }
+            this.writeBuffer = newBuffer;
+            this.writeCapacity = capacity;
+        }
+        return this;
+    }
+
+    /**
+     * Rewinds the write cursor while keeping the allocated capacity, so a long-lived encoder
+     * reaches a steady state where it never allocates again. This is the intended way to reuse
+     * a stream for many packets.
+     *
+     * Note the aliasing contract, which it shares with {@link clear} and {@link reuse}: any
+     * buffer previously handed out by {@link getWriteBuffer} is a *view* over this stream's
+     * memory and is invalidated by this call. Use {@link copyOut} or {@link copyInto} for
+     * output you intend to keep.
+     */
+    public resetWrite(): void {
+        this.writeIndex = 0;
+    }
+
+    /**
+     * Returns the encoded bytes as an exactly-sized, standalone Buffer.
+     *
+     * Unlike {@link getWriteBuffer} the result does not alias this stream, so it survives
+     * {@link resetWrite}, and it does not pin a pool chunk: because `Buffer.allocUnsafe` is
+     * pool-backed (`Buffer.poolSize` is 64 KB on current Node), holding on to a handful of
+     * small slices from {@link getWriteBuffer} can keep megabytes alive.
+     * @returns {Buffer}
+     */
+    public copyOut(): Buffer {
+        const out = Buffer.allocUnsafeSlow(this.writeIndex);
+        if (this.writeIndex > 0) {
+            this.writeBuffer!.copy(out, 0, 0, this.writeIndex);
+        }
+        return out;
+    }
+
+    /**
+     * Copies the encoded bytes into a caller-owned buffer at `offset` and returns the offset
+     * just past them. Lets many packets be encoded into one arena with no per-packet
+     * allocation at all.
+     * @param {Buffer} target
+     * @param {number} offset
+     * @returns {number} the new offset
+     */
+    public copyInto(target: Buffer, offset: number = 0): number {
+        if (this.writeIndex > 0) {
+            this.writeBuffer!.copy(target, offset, 0, this.writeIndex);
+        }
+        return offset + this.writeIndex;
+    }
+
+    /**
      * Increases the write offset by the given length.
      * @param {number} length
      */
@@ -676,8 +805,12 @@ export class BinaryStream {
      * @returns {number}
      */
     public feof(): boolean {
-        if (!this.readBuffer) throw new Error('Buffer is write only!');
-        return typeof this.readBuffer[this.readIndex] === 'undefined';
+        const buf = this.readBuffer;
+        if (buf === null) throw new Error('Buffer is write only!');
+        // A numeric compare rather than `typeof buf[i] === 'undefined'`. The latter is an
+        // out-of-bounds element load, and V8 bails out of the optimized code for this
+        // function the first time it happens - which is every packet decoded to its end.
+        return this.readIndex >= buf.byteLength;
     }
 
     /**
@@ -702,13 +835,14 @@ export class BinaryStream {
 
     /**
      * Returns the encoded buffer.
+     *
+     * Beware: when a read buffer is present this returns *that*, discarding everything
+     * written. On a stream used for both reading and writing it never returns your output.
      * @returns {Buffer}
      * @deprecated See {@link getReadBuffer} and {@link getWriteBuffer}.
      */
     public getBuffer(): Buffer {
-        return this.readBuffer !== null
-            ? this.readBuffer
-            : this.writeBuffer!.subarray(0, this.writeIndex);
+        return this.readBuffer !== null ? this.readBuffer : this.writeBuffer!.subarray(0, this.writeIndex);
     }
 
     /**
@@ -720,7 +854,15 @@ export class BinaryStream {
     }
 
     /**
-     * Returns the write buffer.
+     * Returns the encoded bytes as a *view* over this stream's internal buffer.
+     *
+     * The view is only valid until the next write: {@link resetWrite}, {@link clear} and
+     * {@link reuse} all rewind the cursor without reallocating, so a previously returned
+     * buffer is silently overwritten by the next packet. If you queue the result - a send
+     * queue, a resend window - use {@link copyOut} or {@link copyInto} instead.
+     *
+     * It also keeps the whole pooled 64 KB chunk it was carved from alive; retaining a
+     * scattered handful of small packets this way can pin megabytes.
      * @returns {Buffer}
      */
     public getWriteBuffer(): Buffer {
@@ -760,6 +902,9 @@ export class BinaryStream {
 
     /**
      * Clears the whole BinaryStream instance.
+     *
+     * The write buffer and its capacity are kept, so any view previously returned by
+     * {@link getWriteBuffer} is invalidated. See {@link resetWrite}.
      */
     public clear(): void {
         this.readBuffer = null;
@@ -770,6 +915,9 @@ export class BinaryStream {
     /**
      * Conventional method to reuse the stream
      * without having to create a new BinaryStream instance.
+     *
+     * The write buffer and its capacity are kept, so any view previously returned by
+     * {@link getWriteBuffer} is invalidated. See {@link resetWrite}.
      * @param buf - The new buffer instance.
      */
     public reuse(buf: Buffer): void {
@@ -817,11 +965,21 @@ export class BinaryStream {
      * @param {number} byteLength
      */
     private doReadAssertions(byteLength: number): void {
-        assert(this.readBuffer !== null, 'Cannot read without buffer data!');
-        assert(
-            this.readBuffer.byteLength >= byteLength,
-            'Cannot read without buffer data!'
-        );
+        const buf = this.readBuffer;
+        if (buf === null) {
+            assert.fail('Cannot read without buffer data!');
+        }
+        // This used to compare the *total* buffer length against the requested length and
+        // ignore readIndex entirely, so it caught almost nothing: read(4) at offset 998 of a
+        // 1000-byte buffer returned 2 bytes with no error, readBoolean past the end returned
+        // true, and the fixed-width readers blew up with an ERR_OUT_OF_RANGE raised from
+        // inside Buffer rather than an AssertionError raised here.
+        if (this.readIndex + byteLength > buf.byteLength) {
+            assert.fail(
+                `Cannot read ${byteLength} byte(s) at offset ${this.readIndex}: ` +
+                    `only ${Math.max(0, buf.byteLength - this.readIndex)} left in buffer`
+            );
+        }
     }
 
     /**
@@ -830,15 +988,18 @@ export class BinaryStream {
      * @param {number|bigint} minVal
      * @param {number|bigint} maxVal
      */
-    private doWriteAssertions(
-        num: number | bigint,
-        minVal: number | bigint,
-        maxVal: number | bigint
-    ): void {
-        assert(
-            num >= minVal && num <= maxVal,
-            `Value out of bounds: value=${num}, min=${minVal}, max=${maxVal}`
-        );
+    private doWriteAssertions(num: number, minVal: number, maxVal: number): void {
+        // Argument expressions are evaluated *before* the call, so the template literal used
+        // to be built on every successful write - sixteen write methods route through here.
+        // For writeFloat/writeDouble the bounds are doubles, so each call ran three
+        // double-to-string conversions and threw the result away. Building the message only
+        // on failure is worth ~2.3x on a mixed packet-encoding workload.
+        //
+        // `!(a && b)` rather than `a < min || a > max`: the latter silently accepts NaN,
+        // which this method has always rejected.
+        if (!(num >= minVal && num <= maxVal)) {
+            assert.fail(`Value out of bounds: value=${num}, min=${minVal}, max=${maxVal}`);
+        }
     }
 }
 

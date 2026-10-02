@@ -28,6 +28,7 @@ export default defineConfig([
             '**/vitest.config.ts',
             'vitest.workspace.ts',
             'packages/bedrock-data/utils/build.js',
+            'packages/binaryutils/bench/',
             'packages/bedrock-data/src/resources/'
         ]
     },
