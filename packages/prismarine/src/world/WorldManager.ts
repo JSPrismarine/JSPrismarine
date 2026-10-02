@@ -1,11 +1,11 @@
 import type { Server, Service } from '../';
 import { withCwd } from '../utils/cwd';
-import { GeneratorManager } from './';
+import { GeneratorManager } from './GeneratorManager';
 import { World } from './World';
 import type Provider from './providers/Provider';
 
 import Anvil from './providers/anvil/Anvil';
-import Filesystem from './providers/filesystem/Filesystem';
+import LevelDB from './providers/leveldb/LevelDB';
 
 import fs from 'node:fs';
 
@@ -19,14 +19,26 @@ export interface WorldData {
 }
 
 const WORLDS_FOLDER = 'worlds';
-const DEFAULT_WORLD_PROVIDER = 'Filesystem';
+/**
+ * What a world with no `provider` in the config gets, and now the only one worth having: the
+ * format the game itself uses, so a world this server creates can be opened in Minecraft and one
+ * made there can be opened here.
+ *
+ * The `Filesystem` provider that used to sit beside it is gone. It wrote chunks as the network
+ * payload, one file each, which is not a format anything else reads - and it never wrote the
+ * block entities, entities or level metadata that the rest of the server had come to depend on,
+ * so worlds saved through it came back missing what made them worlds. A config still naming it
+ * is refused loudly rather than quietly downgraded, because the two store their chunks in
+ * different places and pretending otherwise would read as data loss.
+ */
+const DEFAULT_WORLD_PROVIDER = 'LevelDB';
 
 /**
  * The world manager is responsible level loading, unloading, and general level management.
  */
 export default class WorldManager implements Service {
     private readonly worlds: Map<string, World> = new Map() as Map<string, World>;
-    private defaultWorld: World | undefined;
+    private defaultWorld!: World;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
     private providers: Map<string, any> = new Map() as Map<string, any>; // TODO: this should be a manager
@@ -47,18 +59,19 @@ export default class WorldManager implements Service {
      */
     public async enable(): Promise<void> {
         this.addProvider('Anvil', Anvil);
-        this.addProvider('Filesystem', Filesystem);
+        this.addProvider('LevelDB', LevelDB);
 
         const defaultWorld = this.server.getConfig().getLevelName();
-        if (!defaultWorld) {
-            this.server.getLogger().warn(`Invalid world!`);
-            return;
-        }
+        // Throwing rather than warning-and-returning: `getDefaultWorld()` promises a world to
+        // everyone downstream, and returning here would leave that promise unkept while the
+        // type said otherwise.
+        if (!defaultWorld) throw new Error(`Invalid level-name`);
 
         const worldData = this.server.getConfig().getWorlds()[defaultWorld];
         if (!worldData) throw new Error(`Invalid level-name`);
 
-        await this.loadWorld(worldData, defaultWorld);
+        this.defaultWorld = await this.loadWorld(worldData, defaultWorld);
+        this.server.getLogger().info(`Loading ${this.defaultWorld.getFormattedName()} as default world!`);
     }
 
     /**
@@ -126,7 +139,13 @@ export default class WorldManager implements Service {
         const generator = this.getGeneratorManager().getGenerator(worldData.generator ?? 'Flat');
 
         if (!provider) {
-            throw new Error(`invalid provider with id ${worldData.provider}`);
+            // Named, and with the alternatives listed. The `Filesystem` provider was removed, so
+            // this is the first thing an existing config carrying it will hit, and "invalid
+            // provider" on its own left nowhere to go from there.
+            throw new Error(
+                `Unknown world provider '${worldData.provider}' for world '${folderName}'. ` +
+                    `Available providers: ${[...this.providers.keys()].join(', ')}.`
+            );
         }
 
         const world = new World({
@@ -141,11 +160,10 @@ export default class WorldManager implements Service {
         });
         this.worlds.set(world.getUUID(), world);
 
-        // First level to be loaded is also the default one
-        if (!this.defaultWorld) {
-            this.defaultWorld = this.worlds.get(world.getUUID())!;
-            this.server.getLogger().info(`Loading ${world.getFormattedName()} as default world!`);
-        }
+        // Given somewhere to report its changes before it starts running. Attached from here
+        // rather than built by the world, which must not have to know the network layer
+        // exists in order to announce that a block changed.
+        world.attachChangeSink(this.server.getWorldReplicators().for(world));
 
         await world.enable();
         this.server.getLogger().verbose(`World ${world.getFormattedName()} successfully loaded!`);
@@ -200,8 +218,12 @@ export default class WorldManager implements Service {
         return Array.from(this.worlds.values());
     }
 
-    public getDefaultWorld() {
-        return this.defaultWorld ?? this.getWorlds()[0];
+    /**
+     * Returns the default world.
+     * @returns {World} the world instance.
+     */
+    public getDefaultWorld(): World {
+        return this.defaultWorld;
     }
 
     public getGeneratorManager(): GeneratorManager {
