@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports -- the barrel itself is what this test checks
 import * as AllFromErrors from './';
 
 const { ErrorKind: _errorKind, Error: _error, ...Errors } = AllFromErrors;
