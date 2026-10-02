@@ -62,11 +62,24 @@ export default class BlockManager {
      * Get block by namespaced ID.
      */
     public getBlock(name: string): Block {
-        if (!this.blocks.has(name) && !this.javaBlocks.has(name)) {
+        const block = this.findBlock(name);
+        if (!block) {
             throw new Error(`invalid block with id ${name}`);
         }
 
-        return (this.blocks.get(name) || this.javaBlocks.get(name)) as Block;
+        return block;
+    }
+
+    /**
+     * Get block by namespaced ID, or `null` when nothing is registered under that name.
+     *
+     * The state catalogue knows every block, but only those with a class of their own are
+     * registered here, and names reach this from whatever a player happens to be holding or
+     * looking at. A miss is the ordinary case rather than programmer error, so callers that
+     * can carry on without the block ask with this instead of catching.
+     */
+    public findBlock(name: string): Block | null {
+        return (this.blocks.get(name) ?? this.javaBlocks.get(name) ?? null) as Block | null;
     }
 
     /**
