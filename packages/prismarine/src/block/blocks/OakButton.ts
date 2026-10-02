@@ -5,7 +5,7 @@ import Transparent from '../Transparent';
 export default class WoodenButton extends Transparent {
     public constructor() {
         super({
-            name: 'minecraft:oak_button',
+            name: 'minecraft:wooden_button',
             id: BlockIdsType.WoodenButton,
             hardness: 0.5
         });

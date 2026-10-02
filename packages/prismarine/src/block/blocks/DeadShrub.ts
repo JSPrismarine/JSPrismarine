@@ -6,7 +6,7 @@ export default class DeadShrub extends Flowable {
 
     public constructor() {
         super({
-            name: 'minecraft:dead_shrub',
+            name: 'minecraft:short_grass',
             id: BlockIdsType.TallGrass,
             hardness: 0
         });
