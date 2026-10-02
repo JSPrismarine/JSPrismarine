@@ -1,6 +1,6 @@
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import type { NetworkBinaryStream } from '../';
-import { NetworkStructure } from '../';
+import NetworkStructure from '../NetworkStructure';
 
 interface ItemInstanceUserDataConfig {
     canPlaceOnBlocks?: Array<string>;

@@ -1,5 +1,5 @@
 import type { NetworkBinaryStream } from '../';
-import { NetworkStructure } from '../';
+import NetworkStructure from '../NetworkStructure';
 
 /**
  * Represents the network structure of the data linked to a item.
