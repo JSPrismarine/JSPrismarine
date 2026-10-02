@@ -1,5 +1,5 @@
-import { Vec3 } from '../';
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import Vec3 from './Vec3';
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * Represents the network structure of a block position.

@@ -1,62 +1,69 @@
 {
-    "name": "@jsprismarine/jsbinaryutils",
-    "version": "6.0.1",
+    "name": "@jsprismarine/binaryutils",
+    "version": "0.14.1",
     "description": "Basic binary data managing tool written in TypeScript.",
-    "main": "./dist/cjs/BinaryStream.js",
-    "module": "./dist/esm/BinaryStream.js",
-    "types": "./dist/esm/BinaryStream.d.ts",
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public"
+    },
+    "type": "module",
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "README.md"
+    ],
+    "main": "./dist/index.cjs.cjs",
+    "module": "./dist/index.es.js",
+    "types": "./dist/index.d.ts",
     "exports": {
-        "require": "./dist/cjs/BinaryStream.js",
-        "import": "./dist/esm/BinaryStream.js"
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.es.js",
+            "module": "./dist/index.es.js",
+            "require": "./dist/index.cjs.cjs"
+        },
+        "./*": {
+            "types": "./dist/*.d.ts",
+            "import": "./dist/*.es.js",
+            "module": "./dist/*.es.js",
+            "require": "./dist/*.cjs.cjs"
+        },
+        "./package.json": "./package.json"
     },
     "scripts": {
-        "test": "jest",
-        "test:watch": "jest --watchAll",
-        "lint": "eslint src/**/*.ts",
-        "lint:fix": "eslint src/**/*.ts --fix",
-        "format": "prettier --write src/**/*.ts",
-        "format:check": "prettier --check src/**/*.ts",
-        "prepare": "husky || true",
-        "prepublishOnly": "npm run test && npm run build",
-        "clean": "rimraf dist",
-        "build": "npm run clean && npm run build:cjs && npm run build:esm",
-        "build:cjs": "tsc --build tsconfig.cjs.json",
-        "build:esm": "tsc --build tsconfig.esm.json && node -e \"require('fs').writeFileSync('dist/esm/package.json', '{\\\"type\\\":\\\"module\\\"}')\"",
-        "docs": "typedoc",
-        "docs:watch": "typedoc --watch",
-        "release:patch": "npm version patch && git push && git push --tags",
-        "release:minor": "npm version minor && git push && git push --tags",
-        "release:major": "npm version major && git push && git push --tags"
+        "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
+        "build": "vite build",
+        "build:watch": "vite build --watch",
+        "bench": "pnpm run build && node --expose-gc bench/bench.mjs",
+        "typecheck": "tsc -noEmit"
     },
-    "files": [
-        "dist/**/*"
-    ],
     "repository": {
         "type": "git",
-        "url": "git://github.com/JSPrismarine/JSBinaryUtils.git"
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
     },
     "keywords": [
-        "nodejs",
-        "binaryutils"
+        "jsprismarine",
+        "binaryutils",
+        "binary",
+        "stream"
     ],
     "author": "HerryYT",
+    "contributors": [
+        {
+            "name": "JSPrismarine"
+        }
+    ],
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/JSPrismarine/JSBinaryUtils/issues"
+        "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
-    "homepage": "https://github.com/JSPrismarine/JSBinaryUtils#readme",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/binaryutils",
     "devDependencies": {
-        "@types/jest": "^30.0.0",
-        "@types/node": "^24.7.2",
-        "@typescript-eslint/eslint-plugin": "^8.46.1",
-        "@typescript-eslint/parser": "^8.46.1",
-        "eslint": "^9.37.0",
-        "husky": "^9.1.7",
-        "jest": "^30.2.0",
-        "prettier": "^3.6.2",
-        "rimraf": "^6.0.1",
-        "ts-jest": "^29.4.5",
-        "typedoc": "^0.28.14",
-        "typescript": "^5.9.3"
+        "@types/node": "24.13.6",
+        "glob": "13.0.6",
+        "rimraf": "6.1.3",
+        "typescript": "6.0.3",
+        "vite": "8.3.0",
+        "vitest": "5.0.1"
     }
 }
