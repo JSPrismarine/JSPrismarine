@@ -1,7 +1,9 @@
 import { DataItemType } from '@jsprismarine/minecraft';
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import type { NetworkBinaryStream } from '../';
-import { BlockPos, NetworkStructure, Vec3 } from '../';
+import NetworkStructure from '../NetworkStructure';
+import BlockPos from './BlockPos';
+import Vec3 from './Vec3';
 
 type DataItemValue = number | bigint | string | NBTTagCompound | BlockPos | Vec3;
 
