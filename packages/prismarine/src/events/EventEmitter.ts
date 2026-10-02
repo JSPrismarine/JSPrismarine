@@ -1,6 +1,9 @@
 import type BlockRegisterEvent from './block/BlockRegisterEvent';
 import type ChatEvent from './chat/ChatEvent';
 import type CommandRegisterEvent from './command/CommandRegisterEvent';
+import type RecipeRegisterEvent from './crafting/RecipeRegisterEvent';
+import type EntityDamageEvent from './entity/EntityDamageEvent';
+import type EntityDeathEvent from './entity/EntityDeathEvent';
 import { EventEmitterishMixin } from './EventEmitterishMixin';
 import { Evt } from 'evt';
 import type ItemRegisterEvent from './items/ItemRegisterEvent';
@@ -23,7 +26,10 @@ export type EventTypes =
     | ['chat', ChatEvent]
     | ['commandRegister', CommandRegisterEvent]
     | ['itemRegister', ItemRegisterEvent]
+    | ['recipeRegister', RecipeRegisterEvent]
     | ['tick', TickEvent]
+    | ['entityDamage', EntityDamageEvent]
+    | ['entityDeath', EntityDeathEvent]
     | ['playerConnect', PlayerConnectEvent]
     | ['playerDisconnect', PlayerDisconnectEvent]
     | ['playerSpawn', PlayerSpawnEvent]
