@@ -3,9 +3,24 @@ import { argument, literal } from '@jsprismarine/brigadier';
 import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArguments';
 
 import { Vector3 } from '@jsprismarine/math';
-import type Player from '../../Player';
+import Player from '../../Player';
 import MovementType from '../../network/type/MovementType';
 import { Command } from '../Command';
+import type { CommandExecutor } from '../CommandExecutor';
+
+/**
+ * Nudges whole coordinates to the middle of the block they name.
+ *
+ * `/tp 10 64 10` means that block, and standing in the middle of it is 10.5 - away from the
+ * origin on both axes, which is why the sign is consulted rather than just adding a half.
+ * @param {Vector3} position - The parsed destination.
+ * @returns {Vector3} A new vector; the parsed one is left alone.
+ */
+const toBlockCentre = (position: Vector3): Vector3 => {
+    const centre = (value: number) => (Number.isInteger(value) ? (value > 0 ? value - 0.5 : value + 0.5) : value);
+
+    return new Vector3(centre(position.getX()), position.getY(), centre(position.getZ()));
+};
 
 export default class TpCommand extends Command {
     public constructor() {
@@ -23,22 +38,14 @@ export default class TpCommand extends Command {
                 .then(
                     argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
                         async (context) => {
-                            const source = context.getSource() as Player;
+                            // Typed as what brigadier can actually hand over, so the guard
+                            // below narrows instead of being a no-op on an `as Player` cast.
+                            const source = context.getSource() as CommandExecutor;
 
-                            if (!source.isPlayer()) throw new Error(`This command can't be run from the console`);
+                            if (!(source instanceof Player))
+                                throw new Error(`This command can't be run from the console`);
 
-                            const position = context.getArgument('position') as Vector3;
-
-                            if (Number.isInteger(position.getX())) {
-                                if (position.getX() > 0) {
-                                    position.setX(position.getX() - 0.5);
-                                } else position.setX(position.getX() + 0.5);
-                            }
-                            if (Number.isInteger(position.getZ())) {
-                                if (position.getZ() > 0) {
-                                    position.setZ(position.getZ() - 0.5);
-                                } else position.setZ(position.getZ() + 0.5);
-                            }
+                            const position = toBlockCentre(context.getArgument('position') as Vector3);
 
                             await source.setPosition({
                                 position,
@@ -54,18 +61,7 @@ export default class TpCommand extends Command {
                             argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
                                 async (context) => {
                                     const targets = context.getArgument('player') as Player[];
-                                    const position = context.getArgument('position') as Vector3;
-
-                                    if (Number.isInteger(position.getX())) {
-                                        if (position.getX() > 0) {
-                                            position.setX(position.getX() - 0.5);
-                                        } else position.setX(position.getX() + 0.5);
-                                    }
-                                    if (Number.isInteger(position.getZ())) {
-                                        if (position.getZ() > 0) {
-                                            position.setZ(position.getZ() - 0.5);
-                                        } else position.setZ(position.getZ() + 0.5);
-                                    }
+                                    const position = toBlockCentre(context.getArgument('position') as Vector3);
 
                                     if (!targets.length)
                                         throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
@@ -111,13 +107,14 @@ export default class TpCommand extends Command {
                             )
                         )
                         .executes(async (context) => {
-                            const source = context.getSource() as Player;
+                            const source = context.getSource() as CommandExecutor;
                             const target = context.getArgument('player')?.[0] as Player;
 
-                            if (!source.isPlayer()) throw new Error(`This command can't be run from the console`);
+                            if (!(source instanceof Player))
+                                throw new Error(`This command can't be run from the console`);
 
                             await source.setPosition({
-                                position: new Vector3(target.getX(), target.getY(), target.getZ()),
+                                position: target.getPosition(),
                                 type: MovementType.Teleport
                             });
                             return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;

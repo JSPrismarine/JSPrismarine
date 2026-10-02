@@ -1,5 +1,5 @@
 import { getGametypeName } from '@jsprismarine/minecraft';
-import type Player from '../Player';
+import Player from '../Player';
 import type { Entity } from '../entity/Entity';
 
 /**
@@ -63,7 +63,7 @@ const ParseTargetSelector = ({
     // Apply filters based on type
     switch (type) {
         case 'a':
-            targets = targets.filter((entity) => entity.isPlayer());
+            targets = targets.filter((entity) => entity instanceof Player);
             sort = 'arbitrary';
             break;
         case 'e':
@@ -111,7 +111,7 @@ const ParseTargetSelector = ({
             case 'gamemode': // Java
                 targets = targets.filter(
                     (entity) =>
-                        entity.isPlayer() &&
+                        entity instanceof Player &&
                         (filter.reverse
                             ? getGametypeName((entity as Player).gamemode).toLowerCase() !== filter.value.toLowerCase()
                             : getGametypeName((entity as Player).gamemode).toLowerCase() === filter.value.toLowerCase())
@@ -134,7 +134,7 @@ const ParseTargetSelector = ({
 
     switch (sort) {
         case 'nearest':
-            targets = source.getNearestEntity(targets.filter((entity) => entity.isPlayer()));
+            targets = source.getNearestEntity(targets.filter((entity) => entity instanceof Player));
             break;
         case 'random':
             // FIXME: respect limit filter

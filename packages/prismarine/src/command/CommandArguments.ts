@@ -180,21 +180,33 @@ export class CommandArgumentEntity implements CommandArgument {
     }
 }
 
-export class CommandArgumentPosition extends Vector3 implements CommandArgument {
+/**
+ * The `x y z` argument of a command.
+ *
+ * Describes the argument; it is not itself a position. It used to extend `Vector3` and have
+ * `parse` write the parsed coordinates into `this` before returning it - but the instance is
+ * built once, when the command is registered, and shared by every execution of it. Two
+ * players teleporting at the same time therefore parsed into the same object and one of them
+ * travelled to the other's destination.
+ */
+export class CommandArgumentPosition implements CommandArgument {
     private name: string;
     private optional: boolean;
     private flags: CommandParameterFlags;
     private postfix: string | null;
 
     public constructor(data?: { name?: string; optional?: boolean; flags?: CommandParameterFlags; postfix?: string }) {
-        super(0, 0, 0);
         this.name = data?.name ?? 'position';
         this.optional = data?.optional ?? false;
         this.flags = data?.flags ?? CommandParameterFlags.NONE;
         this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, context: CommandContext<Player>) {
+    /**
+     * @returns A fresh vector per invocation, so concurrent executions cannot overwrite
+     * each other's coordinates.
+     */
+    public parse(reader: StringReader, context: CommandContext<Player>): Vector3 {
         const getPos = () => {
             let pos = '';
             while (reader.canRead()) {
@@ -210,30 +222,22 @@ export class CommandArgumentPosition extends Vector3 implements CommandArgument 
             return pos;
         };
 
-        this.setX(
+        const axis = (type: 'x' | 'y' | 'z') =>
             ParseTildeCaretNotation({
                 input: getPos(),
                 source: context.getSource(),
-                type: 'x'
-            })
-        );
+                type
+            });
+
+        // Read in order: each call consumes from the reader, so the arguments have to be
+        // evaluated left to right rather than left to a constructor's argument order.
+        const x = axis('x');
         reader.skip();
-        this.setY(
-            ParseTildeCaretNotation({
-                input: getPos(),
-                source: context.getSource(),
-                type: 'y'
-            })
-        );
+        const y = axis('y');
         reader.skip();
-        this.setZ(
-            ParseTildeCaretNotation({
-                input: getPos(),
-                source: context.getSource(),
-                type: 'z'
-            })
-        );
-        return this;
+        const z = axis('z');
+
+        return new Vector3(x, y, z);
     }
 
     public getReadableType(): string {

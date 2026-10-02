@@ -1,4 +1,4 @@
-import { Vector3 } from '@jsprismarine/math';
+import type { Vector3 } from '@jsprismarine/math';
 import type Player from '../../Player';
 import MovementType from '../../network/type/MovementType';
 import { Event } from '../Event';
@@ -16,7 +16,7 @@ export default class PlayerMoveEvent extends Event {
         super();
         this.player = player;
 
-        this.from = new Vector3(player.getX(), player.getY(), player.getZ());
+        this.from = player.getPosition();
         this.to = to;
         this.mode = mode;
     }
