@@ -18,7 +18,9 @@ export default class Flat extends BaseGenerator {
                     size: 2
                 },
                 {
-                    block: 'grass',
+                    // `grass` was the grass block's name in older Bedrock versions; the
+                    // plant took the name over and the block became `grass_block`.
+                    block: 'grass_block',
                     size: 1
                 }
             ];
@@ -38,10 +40,14 @@ export default class Flat extends BaseGenerator {
                 }
             });
 
+            // Stacked up from the world floor, which is -64 in the Overworld - the same place
+            // vanilla puts a flat world's bedrock.
+            const floor = chunk.getMinY();
+
             for (let x = 0; x < 16; x++) {
                 for (let z = 0; z < 16; z++) {
                     blocks.forEach((block, place) => {
-                        chunk.setBlock(x, place, z, block);
+                        chunk.setBlock(x, floor + place, z, block);
                     });
                 }
             }

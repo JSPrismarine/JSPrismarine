@@ -1,20 +1,31 @@
-import type { LegacyId } from '../../block/BlockMappings';
-import { BlockMappings } from '../../block/BlockMappings';
+import type { BlockState } from '../../block/state/BlockState';
+import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 interface BlockStorageData {
-    blocks?: Uint16Array;
-    palette?: Uint16Array;
+    blocks?: number[];
+    palette?: number[];
 }
 
 export default class BlockStorage {
-    private blocks: Uint16Array;
-    private palette: Uint16Array;
+    private blocks: number[];
+    private palette: number[];
+
+    /**
+     * Where each runtime id sits in {@link palette}.
+     *
+     * The palette stays an array because `networkSerialize` writes it in order; this is the
+     * reverse lookup, so placing a block is one hash lookup rather than the two linear
+     * scans - `includes` then `indexOf` - it used to cost. World generation places roughly
+     * 18000 blocks per chunk, so that difference is most of the generator's time.
+     */
+    private readonly paletteIndex: Map<number, number>;
 
     public constructor({ blocks, palette }: BlockStorageData) {
-        this.palette = palette ?? new Uint16Array([BlockMappings.getRuntimeId('minecraft:air')]);
-        this.blocks = blocks ?? new Uint16Array(4096);
+        this.palette = palette ?? [BlockRuntimeIds.getByName('minecraft:air')];
+        this.blocks = blocks ?? Array.from<number>({ length: 4096 }).fill(0);
+        this.paletteIndex = new Map(this.palette.map((runtimeId, index) => [runtimeId, index]));
     }
 
     private static getIndex(bx: number, by: number, bz: number): number {
@@ -24,20 +35,58 @@ export default class BlockStorage {
         return ((bx << 8) + (bz << 4)) | by;
     }
 
-    public getBlock(bx: number, by: number, bz: number): LegacyId {
+    public getBlock(bx: number, by: number, bz: number): BlockState {
         const paletteIndex = this.blocks[BlockStorage.getIndex(bx, by, bz)]!;
         const runtimeId = this.palette[paletteIndex]!;
-        return BlockMappings.getLegacyId(runtimeId);
+        const state = BlockRuntimeIds.getState(runtimeId);
+        if (!state) {
+            throw new Error(`Chunk holds runtime id ${runtimeId}, which no registered block produces`);
+        }
+
+        return state;
+    }
+
+    /**
+     * The runtime id at a position, without resolving it to a state.
+     *
+     * Decoration inspects a great many blocks just to ask "is this stone?", and going
+     * through {@link getBlock} would cost a reverse index lookup and a BlockState for each.
+     */
+    public getRuntimeId(bx: number, by: number, bz: number): number {
+        return this.palette[this.blocks[BlockStorage.getIndex(bx, by, bz)]!]!;
     }
 
     public setBlock(bx: number, by: number, bz: number, runtimeId: number): void {
-        if (!this.palette.includes(runtimeId)) {
-            const nextPalette = new Uint16Array(this.palette.length + 1);
-            nextPalette.set(this.palette);
-            nextPalette[this.palette.length] = runtimeId;
-            this.palette = nextPalette;
-        }
-        this.blocks[BlockStorage.getIndex(bx, by, bz)] = this.palette.indexOf(runtimeId);
+        this.blocks[BlockStorage.getIndex(bx, by, bz)] = this.getOrAddPaletteIndex(runtimeId);
+    }
+
+    /**
+     * The palette itself, in order. Read only - the disk codec writes one NBT compound per entry
+     * and needs them in exactly the order the packed indices refer to.
+     */
+    public getPalette(): readonly number[] {
+        return this.palette;
+    }
+
+    /**
+     * The palette slot a position holds, rather than the runtime id it resolves to.
+     *
+     * The disk format stores these indices directly, so going through {@link getRuntimeId} and
+     * looking the id back up would be a round trip through the palette for every one of the 4096
+     * blocks, and would silently collapse duplicate entries a foreign world happens to contain.
+     */
+    public getPaletteIndexAt(bx: number, by: number, bz: number): number {
+        return this.blocks[BlockStorage.getIndex(bx, by, bz)]!;
+    }
+
+    /** The palette slot for a runtime id, appending it if this storage has not seen it. */
+    private getOrAddPaletteIndex(runtimeId: number): number {
+        const existing = this.paletteIndex.get(runtimeId);
+        if (existing !== undefined) return existing;
+
+        const index = this.palette.push(runtimeId) - 1;
+        this.paletteIndex.set(runtimeId, index);
+        return index;
     }
 
     public networkSerialize(stream: BinaryStream): void {
@@ -99,7 +148,7 @@ export default class BlockStorage {
         }
 
         const paletteCount = stream.readVarInt();
-        const palette = new Uint16Array(paletteCount);
+        const palette: number[] = new Array(paletteCount);
         for (let i = 0; i < paletteCount; i++) {
             palette[i] = stream.readVarInt();
         }
