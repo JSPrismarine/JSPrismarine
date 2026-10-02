@@ -1,4 +1,4 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BinaryStream from '@jsprismarine/binaryutils';
 import type { InetAddress } from '@jsprismarine/raknet';
 import type Server from '../Server';
 
@@ -81,7 +81,7 @@ export class QueryManager {
                                 'plugins',
                                 `JSPrismarine on Prismarine ${this.server.getVersion()} ${plugins.join('; ')}`, // TODO
                                 'map',
-                                this.server.getWorldManager().getDefaultWorld()!.getName(),
+                                this.server.getWorldManager().getDefaultWorld().getName(),
                                 'numplayers',
                                 this.server.getMetadata().getOnlinePlayerCount(),
                                 'maxplayers',

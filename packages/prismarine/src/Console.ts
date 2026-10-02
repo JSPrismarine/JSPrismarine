@@ -1,6 +1,5 @@
-import { Vector3 } from '@jsprismarine/math';
 import type { Server, Service } from './';
-import { EntityLike } from './entity/';
+import type { CommandExecutor } from './command/CommandExecutor';
 import type ChatEvent from './events/chat/ChatEvent';
 
 import process from 'node:process';
@@ -19,20 +18,51 @@ declare module 'node:readline' {
     }
 }
 
+/** The minimum of a readline interface needed to print above its prompt. */
+export interface PromptWriter {
+    output: { write: (data: string) => void };
+    line?: string;
+    prompt(preserveCursor?: boolean): void;
+    _refreshLine?(): void;
+}
+
+/**
+ * Prints a line without destroying whatever is half-typed at the prompt.
+ *
+ * A log arriving mid-keystroke lands on the same terminal row the prompt and the typed
+ * text occupy. Writing it straight out leaves the row in a mess: the prompt scrolls away
+ * with the message, and a message shorter than the input leaves the tail of the input
+ * stranded after it.
+ *
+ * So the row is wiped first, the message takes it, and readline is asked to draw itself
+ * again underneath - prompt, the text being typed, and the cursor wherever in that text it
+ * had been left.
+ */
+export const writeAbovePrompt = (cli: PromptWriter, line: string): void => {
+    // \x1b[2K erases the whole row, \r returns to its start. Both are needed: \r alone
+    // would overwrite only as far as the new text reaches.
+    cli.output.write(`\x1b[2K\r${line}\n`);
+
+    if (cli._refreshLine) {
+        // Redraws prompt, buffer and cursor in one go, which is exactly the job.
+        cli._refreshLine();
+        return;
+    }
+
+    // Without that internal, the best available is the prompt plus an echo of the buffer.
+    // The cursor ends up at the end of the text rather than where it was, which is worth
+    // it against losing the input altogether.
+    cli.prompt(true);
+    if (cli.line) cli.output.write(cli.line);
+};
+
 /**
  * Server console.
  */
-export default class Console extends EntityLike implements Service {
+export default class Console implements CommandExecutor, Service {
     private cli?: readline.Interface;
 
-    public constructor(server: Server, runtimeId = BigInt(-1)) {
-        const world = server.getWorldManager().getDefaultWorld()!;
-        super({
-            server,
-            runtimeId,
-            world
-        });
-    }
+    public constructor(private readonly server: Server) {}
 
     /**
      * On enable hook.
@@ -65,7 +95,7 @@ export default class Console extends EntityLike implements Service {
 
         this.server.on('chat', async (evt: ChatEvent) => {
             if (evt.isCancelled()) return;
-            await this.sendMessage(evt.getChat().getMessage());
+            this.sendMessage(evt.getChat().getMessage());
         });
         this.server.getLogger().setConsole(this);
 
@@ -89,7 +119,13 @@ export default class Console extends EntityLike implements Service {
             // Fix cursor positioning.
             this.cli?.output.write(`\x1b[2D`);
 
-            void this.server.getCommandManager().dispatchCommand(this as any, this as any, input);
+            this.server
+                .getCommandManager()
+                .dispatchCommand(this, this, input)
+                .catch((error: unknown) => {
+                    this.server.getLogger().error(`Command "${input}" failed`);
+                    this.server.getLogger().error(error);
+                });
         });
     }
 
@@ -119,14 +155,12 @@ export default class Console extends EntityLike implements Service {
     }
 
     public write(line: string): void {
-        // Remove the prompt that's prefixed when logging.
-        this.cli?.output.write(`\x1b[${this.cli.getPrompt().length}D`);
+        if (!this.cli) {
+            process.stdout.write(`${line}\n`);
+            return;
+        }
 
-        // Write the line.
-        this.cli?.output.write(`\r${line}\n\r`);
-
-        this.cli?._refreshLine?.();
-        this.cli?.prompt();
+        writeAbovePrompt(this.cli, line);
     }
 
     public getName(): string {
@@ -137,41 +171,11 @@ export default class Console extends EntityLike implements Service {
         return '[CONSOLE]';
     }
 
-    public async sendMessage(message: string): Promise<void> {
+    public sendMessage(message: string): void {
         this.server.getLogger().info(message);
     }
 
-    public getWorld() {
-        return this.server.getWorldManager().getDefaultWorld()!;
-    }
-
-    public isPlayer(): boolean {
-        return false;
-    }
-
-    public isOp(): boolean {
-        return true;
-    }
-
-    public getX(): number {
-        return 0;
-    }
-    public getY(): number {
-        return 0;
-    }
-    public getZ(): number {
-        return 0;
-    }
-
-    public getPosition(): Vector3 {
-        return new Vector3(0, 0, 0);
-    }
-
-    public getType() {
-        return 'jsprismarine:console';
-    }
-
-    public isConsole(): boolean {
-        return true;
+    public getServer(): Server {
+        return this.server;
     }
 }

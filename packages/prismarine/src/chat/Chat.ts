@@ -1,5 +1,4 @@
-import type Console from '../Console';
-import type Player from '../Player';
+import type { CommandExecutor } from '../command/CommandExecutor';
 
 export enum ChatType {
     RAW = 0,
@@ -11,7 +10,7 @@ export enum ChatType {
 
 export class Chat {
     private readonly channel: string;
-    private readonly sender: Player | Console;
+    private readonly sender: CommandExecutor;
     private readonly message: string;
     private readonly parameters: string[];
     private readonly needsTranslation: boolean;
@@ -29,7 +28,7 @@ export class Chat {
         message: string;
         needsTranslation?: boolean;
         parameters?: string[];
-        sender: Player | Console;
+        sender: CommandExecutor;
         type?: ChatType;
     }) {
         this.channel = channel ?? '*.everyone';
