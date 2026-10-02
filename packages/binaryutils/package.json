@@ -1,0 +1,62 @@
+{
+    "name": "@jsprismarine/jsbinaryutils",
+    "version": "6.0.1",
+    "description": "Basic binary data managing tool written in TypeScript.",
+    "main": "./dist/cjs/BinaryStream.js",
+    "module": "./dist/esm/BinaryStream.js",
+    "types": "./dist/esm/BinaryStream.d.ts",
+    "exports": {
+        "require": "./dist/cjs/BinaryStream.js",
+        "import": "./dist/esm/BinaryStream.js"
+    },
+    "scripts": {
+        "test": "jest",
+        "test:watch": "jest --watchAll",
+        "lint": "eslint src/**/*.ts",
+        "lint:fix": "eslint src/**/*.ts --fix",
+        "format": "prettier --write src/**/*.ts",
+        "format:check": "prettier --check src/**/*.ts",
+        "prepare": "husky || true",
+        "prepublishOnly": "npm run test && npm run build",
+        "clean": "rimraf dist",
+        "build": "npm run clean && npm run build:cjs && npm run build:esm",
+        "build:cjs": "tsc --build tsconfig.cjs.json",
+        "build:esm": "tsc --build tsconfig.esm.json && node -e \"require('fs').writeFileSync('dist/esm/package.json', '{\\\"type\\\":\\\"module\\\"}')\"",
+        "docs": "typedoc",
+        "docs:watch": "typedoc --watch",
+        "release:patch": "npm version patch && git push && git push --tags",
+        "release:minor": "npm version minor && git push && git push --tags",
+        "release:major": "npm version major && git push && git push --tags"
+    },
+    "files": [
+        "dist/**/*"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/JSPrismarine/JSBinaryUtils.git"
+    },
+    "keywords": [
+        "nodejs",
+        "binaryutils"
+    ],
+    "author": "HerryYT",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/JSPrismarine/JSBinaryUtils/issues"
+    },
+    "homepage": "https://github.com/JSPrismarine/JSBinaryUtils#readme",
+    "devDependencies": {
+        "@types/jest": "^30.0.0",
+        "@types/node": "^24.7.2",
+        "@typescript-eslint/eslint-plugin": "^8.46.1",
+        "@typescript-eslint/parser": "^8.46.1",
+        "eslint": "^9.37.0",
+        "husky": "^9.1.7",
+        "jest": "^30.2.0",
+        "prettier": "^3.6.2",
+        "rimraf": "^6.0.1",
+        "ts-jest": "^29.4.5",
+        "typedoc": "^0.28.14",
+        "typescript": "^5.9.3"
+    }
+}

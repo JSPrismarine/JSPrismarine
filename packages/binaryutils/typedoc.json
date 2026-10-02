@@ -1,0 +1,29 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["./src/BinaryStream.ts"],
+  "out": "docs",
+  "plugin": [],
+  "name": "JSBinaryUtils",
+  "readme": "README.md",
+  "includeVersion": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/JSPrismarine/JSBinaryUtils",
+    "NPM": "https://www.npmjs.com/package/@jsprismarine/jsbinaryutils"
+  },
+  "sidebarLinks": {
+    "Issues": "https://github.com/JSPrismarine/JSBinaryUtils/issues",
+    "Contributing": "https://github.com/JSPrismarine/JSBinaryUtils/blob/master/CONTRIBUTING.md"
+  },
+  "excludePrivate": false,
+  "excludeProtected": false,
+  "excludeInternal": false,
+  "cleanOutputDir": true,
+  "gitRevision": "master",
+  "sort": ["kind", "instance-first", "alphabetical"],
+  "kindSortOrder": [
+    "Constructor",
+    "Property",
+    "Method",
+    "Accessor"
+  ]
+}

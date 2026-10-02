@@ -1,0 +1,10 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "esnext",
+        "target": "es2020",
+        "outDir": "dist/esm",
+    },
+    "include": ["./src/BinaryStream.ts", "./src/types"],
+    "typeRoots": ["node_modules/@types", "./src/types"]
+}
