@@ -6,6 +6,8 @@ const files = [
     'resources/biome_definitions.nbt',
     'resources/entity_identifiers.nbt',
     'jsp/runtime_block_states.dat',
+    'jsp/jigsaw_structure_data.nbt',
+    'jsp/biome_definitions_network.nbt',
     'resources/r12_to_current_block_map.bin'
 ];
 

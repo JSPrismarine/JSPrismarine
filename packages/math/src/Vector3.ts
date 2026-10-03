@@ -23,7 +23,7 @@ export class Vector3 extends Vector2 {
      */
     public constructor(
         x: number,
-        protected y: number,
+        protected readonly y: number,
         z: number
     ) {
         super(x, z);
@@ -43,15 +43,57 @@ export class Vector3 extends Vector2 {
     }
 
     /**
-     * Set the Y coordinate.
+     * Builds another instance of whatever class this actually is, from raw coordinates.
+     *
+     * Every method that derives a new vector goes through here, so a subclass keeps its own
+     * type instead of decaying to a plain `Vector3` - and a subclass carrying extra state,
+     * such as a position carrying its world, gets one place to reattach it.
+     * @param {number} x - The X coordinate.
      * @param {number} y - The Y coordinate.
+     * @param {number} z - The Z coordinate.
+     * @returns {this} A new instance of the concrete class.
+     */
+    protected create(x: number, y: number, z: number): this {
+        return new (this.constructor as new (x: number, y: number, z: number) => this)(x, y, z);
+    }
+
+    /**
+     * Returns a copy with a different X coordinate.
+     * @param {number} x - The X coordinate.
+     * @returns {this} A new vector; this one is left alone.
      * @example
      * ```typescript
-     * entity.setY(10);
+     * const moved = vector.withX(10);
      * ```
      */
-    public setY(y: number): void {
-        this.y = y;
+    public override withX(x: number): this {
+        return this.create(x, this.y, this.z);
+    }
+
+    /**
+     * Returns a copy with a different Y coordinate.
+     * @param {number} y - The Y coordinate.
+     * @returns {this} A new vector; this one is left alone.
+     * @example
+     * ```typescript
+     * const moved = vector.withY(10);
+     * ```
+     */
+    public withY(y: number): this {
+        return this.create(this.x, y, this.z);
+    }
+
+    /**
+     * Returns a copy with a different Z coordinate.
+     * @param {number} z - The Z coordinate.
+     * @returns {this} A new vector; this one is left alone.
+     * @example
+     * ```typescript
+     * const moved = vector.withZ(10);
+     * ```
+     */
+    public override withZ(z: number): this {
+        return this.create(this.x, this.y, z);
     }
 
     /**
@@ -64,18 +106,18 @@ export class Vector3 extends Vector2 {
 
     /**
      * Returns a new Vector3 with each component rounded down to the nearest integer.
-     * @returns {Vector3} A new Vector3 with rounded down components.
+     * @returns {this} A new vector with rounded down components.
      */
-    public floor(): Vector3 {
-        return new Vector3(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
+    public override floor(): this {
+        return this.create(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
     }
 
     /**
      * Returns a new Vector3 with each component truncated to the nearest integer.
-     * @returns {Vector3} A new Vector3 with truncated axis.
+     * @returns {this} A new vector with truncated axis.
      */
-    public trunc(): Vector3 {
-        return new Vector3(Math.trunc(this.x), Math.trunc(this.y), Math.trunc(this.z));
+    public override trunc(): this {
+        return this.create(Math.trunc(this.x), Math.trunc(this.y), Math.trunc(this.z));
     }
 
     /**
@@ -83,7 +125,43 @@ export class Vector3 extends Vector2 {
      * @param {Vector3} vector - The `Vector3` to compare to.
      * @returns {boolean} `true` if they're equal otherwise `false`.
      */
-    public equals(vector: typeof this): boolean {
-        return JSON.stringify(this) === JSON.stringify(vector);
+    public override equals(vector: Vector3): boolean {
+        return this.x === vector.x && this.y === vector.y && this.z === vector.z;
+    }
+
+    /**
+     * The squared distance to another vector.
+     *
+     * Squared, and offered first, because almost every caller compares a distance against
+     * another distance - and a comparison of squares gives the same answer without the square
+     * root. Prefer this to {@link Vector3.distanceTo} wherever the number itself is not shown
+     * to anyone.
+     * @param {Vector3} vector - The vector to measure to.
+     * @returns {number} The squared distance.
+     * @example
+     * ```typescript
+     * if (a.distanceSquaredTo(b) <= range * range) {
+     *     // within range, with no square root taken
+     * }
+     * ```
+     */
+    public distanceSquaredTo(vector: Vector3): number {
+        const dx = this.x - vector.x;
+        const dy = this.y - vector.y;
+        const dz = this.z - vector.z;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    /**
+     * The distance to another vector.
+     * @param {Vector3} vector - The vector to measure to.
+     * @returns {number} The distance.
+     * @example
+     * ```typescript
+     * const metres = player.getPosition().distanceTo(target.getPosition());
+     * ```
+     */
+    public distanceTo(vector: Vector3): number {
+        return Math.sqrt(this.distanceSquaredTo(vector));
     }
 }

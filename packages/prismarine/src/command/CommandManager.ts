@@ -7,11 +7,16 @@ import {
     GenericNamespaceInvalidError
 } from '@jsprismarine/errors';
 
-import type { Command, CommandArgument, Entity, Player, Server, Service } from '../';
-import { Chat } from '../';
+import type { Command, CommandArgument, Entity, Server, Service } from '../';
+import { Chat } from '../chat/Chat';
+// Imported straight from its module rather than through the barrel: `index.ts` exports
+// `./world/` before `Player`, so reaching for it via '../' lands in a half-initialised
+// module and the binding is not a constructor yet by the time `instanceof` runs.
+import Player from '../Player';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
 import Timer from '../utils/Timer';
-import { Commands } from './';
+import * as Commands from './Commands';
+import type { CommandExecutor } from './CommandExecutor';
 
 export class CommandManager implements Service {
     private readonly commands: Map<string, Command> = new Map();
@@ -206,32 +211,34 @@ export class CommandManager implements Service {
      * @param target - the Player/entity/console who should execute the command
      * @param input - the command input including arguments
      */
-    public async dispatchCommand(sender: Player, target: Entity | Player, input = '') {
+    public async dispatchCommand(sender: CommandExecutor, target: CommandExecutor | Entity, input = ''): Promise<void> {
         try {
             if (input.startsWith('/')) input = input.slice(1);
 
             const parsed = this.dispatcher.parse(input.trim(), target as Player);
             const id = parsed.getReader().getString().split(' ')[0]!;
 
-            if (!sender.isConsole()) {
+            // Get command from parsed string.
+            const command = this.getCommand(id);
+
+            // Permissions gate players only. The console is the process operator: it is
+            // trusted by the fact that it exists, not by a permission node - which is what
+            // the `isConsole()` bypass inside the permission manager used to say.
+            if (sender instanceof Player) {
                 this.server
                     .getLogger()
                     .debug(
                         `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${id})`,
                         'CommandManager/dispatchCommand'
                     );
-            }
 
-            // Get command from parsed string.
-            const command = this.getCommand(id);
-
-            // Validate permissions.
-            if (!this.server.getPermissionManager().can(sender).execute(command.permission)) {
-                await sender.sendMessage(
-                    "§cI'm sorry, but you do not have permission to perform this command. " +
-                        'Please contact the server administrators if you believe that this is in error.'
-                );
-                return;
+                if (!this.server.getPermissionManager().can(sender).execute(command.permission)) {
+                    await sender.sendMessage(
+                        "§cI'm sorry, but you do not have permission to perform this command. " +
+                            'Please contact the server administrators if you believe that this is in error.'
+                    );
+                    return;
+                }
             }
 
             let res: string[] = [];
@@ -243,10 +250,12 @@ export class CommandManager implements Service {
 
             res = await Promise.all(this.dispatcher.execute(parsed));
 
-            const feedback = (sender as any as Entity)
-                .getWorld()
-                .getGameRuleManager()
-                .getGameRule('sendCommandFeedback');
+            // `sendCommandFeedback` is a per-world gamerule, so it is read from the world the
+            // sender is standing in. The console stands in none; the default world answers
+            // for it.
+            const world =
+                sender instanceof Player ? sender.getWorld() : this.server.getWorldManager().getDefaultWorld();
+            const feedback = world.getGameRuleManager().getGameRule('sendCommandFeedback');
 
             // Make sure we don't send feedback if sendCommandFeedback is set to false
             if (!feedback) return;

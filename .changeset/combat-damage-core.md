@@ -1,0 +1,21 @@
+---
+'@jsprismarine/prismarine': minor
+---
+
+Give damage an attacker, a grace period and a way of reaching the client.
+
+There was already a working health system - health is an attribute, `damage` takes it off, `onDeath` fires once on the transition - and falling, drowning and starving all used it. What it could not express was somebody doing it to somebody else, which is every interesting kind of damage there is. This lays the pipeline that the rest of combat is built on; nothing yet swings a weapon.
+
+**`DamageSource`** replaces the bare cause at the point where it matters. It carries who is answerable for a hit, what actually made contact when that is not the same thing, and how much extra shove the blow is worth. `damage()` takes either form - `DamageSource.of` normalises - so every existing call site that only ever had a cause was left exactly as it was. `DamageCause` moved into a file of its own, re-exported from `Entity`, because `DamageSource` names both it and `Entity` and leaving it where it was would have closed a runtime import cycle. It gained the causes the rest of the work needs: lava, contact, suffocation, explosion, projectile, magic, wither and thorns.
+
+**The reduction formulas** are in `entity/Damage.ts` as pure functions, checked against numbers a player can look up: a ten point blow is six through full iron and three through diamond. Armour first, then the Protection enchantments on it, then Resistance - the order is load-bearing, since each takes a percentage of what the last one left. Armour points and armour *enchantments* are bypassed by separate lists, which is not fussiness: a fall ignores the points but is still reduced by Feather Falling, and folding the two together makes the best boots in the game do nothing.
+
+**Invulnerability frames.** Ten ticks after a hit lands, and the vanilla rule rather than the obvious one: a *harder* blow still gets through, for the difference, so swinging a better weapon at a freshly-hit target is worth doing. The flash, the shove and the timer belong to the hit that opened the period; a follow-up that only lands the difference is not a second hit to look at. Without any of this a mob standing in a cactus would die in a fifth of a second.
+
+**Knockback** is worked out in one place - direction from the source, strength from the blow, scaled by the knockback resistance attribute - and handed to an `applyKnockback` the two kinds of entity implement completely differently. A `Mob` queues it and spends it in `applyPhysics` alongside the shove from its neighbours, for the reason the comment there already gives: a blow is something happening *to* the mob, and putting it through the acceleration model would absorb two thirds of it. A `Player` cannot be moved by the server at all - their position is their own client's - so they are sent a velocity and asked to do it themselves, which is what `SetActorMotionPacket` is for.
+
+**A mob's health can now reach the client at all.** It could not before: the only code that sent attributes had the local player's runtime id written into it, so a mob's health changed on the server and no client was ever told. Attributes reached a client exactly once, inside the packet that spawned the entity - which is why the bar over a hurt zombie never moved and it appeared to die in one hit from full. `WorldChangeSink` gained `entityAttributesChanged`, the world drains each entity's dirty set once per tick next to where it flushes movement, and the replicator turns that into `UpdateAttributesPacket` for whoever is tracking the entity.
+
+**Death messages** moved out of `Player` into `entity/DeathMessages.ts` and learned who did it, so a death can be announced as somebody's work - and vanilla's distinction between being slain by a person and by a mob is kept. `World.getEntity(runtimeId)` exposes the map that was already there, because everything arriving from a client names an entity by runtime id and resolving that by walking every entity in the world is a linear scan for something a map answers in one step.
+
+`EntityDamageEvent` is cancellable and its amount writable, so a plugin can make a region safe or a mob tougher in one place rather than intercepting every source separately. `EntityDeathEvent` is not - by the time it runs the health is gone and the client has been told.

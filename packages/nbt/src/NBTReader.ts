@@ -1,6 +1,5 @@
-/* eslint-disable complexity */
 import { Allocation } from './Allocation';
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
 import type { ByteOrder } from './ByteOrder';
 import { NBTDefinitions } from './NBTDefinitions';
 import NBTStreamReader from './NBTStreamReader';
@@ -105,7 +104,7 @@ export default class NBTReader extends NBTStreamReader {
             case NBTDefinitions.TAG_BYTE:
                 this.expectInput(listLength, 'Invalid NBT Data: Expected bytes for list');
                 for (let i = 0; i < listLength; i++) {
-                    backingList.add(this.readShortValue());
+                    backingList.add(this.readByteValue());
                 }
 
                 break;

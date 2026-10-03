@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BinaryStream from '@jsprismarine/binaryutils';
 import { InetAddress } from '@jsprismarine/raknet';
 
-import { QueryManager } from '../';
+import { QueryManager } from '../query/QueryManager';
 import type { Server } from '../';
 
 describe('QueryManager', () => {

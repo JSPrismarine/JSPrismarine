@@ -1,4 +1,4 @@
-import { InetAddress } from '../../';
+import InetAddress from '../../utils/InetAddress';
 import { MessageIdentifiers } from '../MessageIdentifiers';
 import Packet from '../Packet';
 

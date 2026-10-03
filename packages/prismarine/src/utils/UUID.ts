@@ -1,4 +1,4 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BinaryStream from '@jsprismarine/binaryutils';
 import { randomUUID } from 'node:crypto';
 
 export default class UUID {

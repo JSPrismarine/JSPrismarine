@@ -19,8 +19,8 @@ export class Vector2 {
      * ```
      */
     public constructor(
-        protected x: number = 0,
-        protected z: number = 0
+        protected readonly x: number = 0,
+        protected readonly z: number = 0
     ) {}
 
     public toString(): string {
@@ -37,27 +37,29 @@ export class Vector2 {
     }
 
     /**
-     * Set the X coordinate.
+     * Returns a copy with a different X coordinate.
      * @param {number} x - The X coordinate.
+     * @returns {Vector2} A new vector; this one is left alone.
      * @example
      * ```typescript
-     * await entity.setX(10);
+     * const moved = vector.withX(10);
      * ```
      */
-    public setX(x: number): void {
-        this.x = x;
+    public withX(x: number): Vector2 {
+        return new Vector2(x, this.z);
     }
 
     /**
-     * Set the Z coordinate.
+     * Returns a copy with a different Z coordinate.
      * @param {number} z - The Z coordinate.
+     * @returns {Vector2} A new vector; this one is left alone.
      * @example
      * ```typescript
-     * await entity.setZ(10);
+     * const moved = vector.withZ(10);
      * ```
      */
-    public setZ(z: number): void {
-        this.z = z;
+    public withZ(z: number): Vector2 {
+        return new Vector2(this.x, z);
     }
 
     /**
@@ -83,12 +85,18 @@ export class Vector2 {
     public trunc(): Vector2 {
         return new Vector2(Math.trunc(this.x), Math.trunc(this.z));
     }
+
     /**
-     * Compare an instance of `Vector3` with another.
-     * @param {Vector2} vector - The `Vector3` to compare to.
+     * Compare an instance of `Vector2` with another.
+     *
+     * Compares coordinates and nothing else. The previous implementation compared
+     * `JSON.stringify` of both sides, which dragged in whatever fields a subclass had
+     * added - and for a subclass holding a reference back into the object graph, such as
+     * a position carrying its world, serialising it threw on the circular structure.
+     * @param {Vector2} vector - The `Vector2` to compare to.
      * @returns {boolean} `true` if they're equal otherwise `false`.
      */
     public equals(vector: Vector2): boolean {
-        return JSON.stringify(this) === JSON.stringify(vector);
+        return this.x === vector.x && this.z === vector.z;
     }
 }

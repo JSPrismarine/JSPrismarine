@@ -1,5 +1,6 @@
-export enum PacketCompressionAlgorithm {
-    ZLIB,
-    SNAPPY,
-    NONE = 0xff
-}
+/**
+ * Re-exported from the generated source, which is built from Mojang's protocol documentation
+ * for the version pinned in `datagen/manifest.json`. Nothing here is maintained by hand:
+ * change the manifest and run `pnpm generate`.
+ */
+export { PacketCompressionAlgorithm } from './generated/PacketCompressionAlgorithm';

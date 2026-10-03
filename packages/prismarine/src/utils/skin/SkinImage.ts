@@ -1,4 +1,4 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 export default class SkinImage {
     public width: number;

@@ -1,5 +1,5 @@
-import { Entity } from '../Entity';
+import { Mob } from '../Mob';
 
-export default class Horse extends Entity {
+export default class Horse extends Mob {
     public static MOB_ID = 'minecraft:horse';
 }

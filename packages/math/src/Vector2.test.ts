@@ -3,12 +3,25 @@ import { describe, expect, it } from 'vitest';
 import { Vector2 } from './Vector2';
 
 describe('math', () => {
-    describe('Vector3', () => {
+    describe('Vector2', () => {
         const vector = new Vector2(1.5, 2.75);
 
         it('should retrieve values correctly', () => {
             expect(vector.getX()).toBe(1.5);
             expect(vector.getZ()).toBe(2.75);
+        });
+
+        it('should derive a vector with a different coordinate', () => {
+            expect(vector.withX(10).getX()).toBe(10);
+            expect(vector.withZ(10).getZ()).toBe(10);
+        });
+
+        it('should leave the original untouched when deriving', () => {
+            const derived = vector.withX(10);
+
+            expect(derived.getX()).toBe(10);
+            expect(vector.getX()).toBe(1.5);
+            expect(derived.getZ()).toBe(vector.getZ());
         });
 
         it('should floor the vector correctly', () => {

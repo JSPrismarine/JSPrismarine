@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BinaryStream from '@jsprismarine/binaryutils';
 import UUID from './UUID';
 
 describe('utils', () => {

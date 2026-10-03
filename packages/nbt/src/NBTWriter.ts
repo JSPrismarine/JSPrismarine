@@ -1,4 +1,4 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder } from './ByteOrder';
 import ByteVal from './types/ByteVal';
 import DoubleVal from './types/DoubleVal';
@@ -46,14 +46,27 @@ export default class NBTWriter {
             if (this.useVarint) {
                 this.buf.writeUnsignedVarInt(Buffer.byteLength(value));
             } else {
-                this.writeShortValue(Buffer.byteLength(value));
+                this.writeStringLength(Buffer.byteLength(value));
             }
 
             this.buf.write(bytes);
         } else if (this.useVarint) {
             this.writeByteValue(0);
         } else {
-            this.writeShortValue(0);
+            this.writeStringLength(0);
+        }
+    }
+
+    /**
+     * A string's byte count, which is unsigned - unlike {@link writeShortValue}, whose values are
+     * signed. Keeping the two apart is what lets a string be longer than 32767 bytes while a
+     * TAG_Short still round-trips a negative number.
+     */
+    private writeStringLength(length: number): void {
+        if (this.order === ByteOrder.LITTLE_ENDIAN) {
+            this.buf.writeUnsignedShortLE(length);
+        } else {
+            this.buf.writeUnsignedShort(length);
         }
     }
 
@@ -61,11 +74,16 @@ export default class NBTWriter {
         this.buf.writeByte(value);
     }
 
+    /**
+     * NBT integers are signed, so these three go through the signed writers. The unsigned ones
+     * assert on anything below zero, and real Bedrock payloads are full of negative values -
+     * `Fire: -20` on an actor, a block entity's `y` below the world floor.
+     */
     public writeShortValue(value: number): void {
         if (this.order === ByteOrder.LITTLE_ENDIAN) {
-            this.buf.writeUnsignedShortLE(value);
+            this.buf.writeShortLE(value);
         } else {
-            this.buf.writeUnsignedShort(value);
+            this.buf.writeShort(value);
         }
     }
 
@@ -73,9 +91,9 @@ export default class NBTWriter {
         if (this.useVarint) {
             this.buf.writeVarInt(value);
         } else if (this.order === ByteOrder.LITTLE_ENDIAN) {
-            this.buf.writeUnsignedIntLE(value);
+            this.buf.writeIntLE(value);
         } else {
-            this.buf.writeUnsignedInt(value);
+            this.buf.writeInt(value);
         }
     }
 
@@ -83,9 +101,9 @@ export default class NBTWriter {
         if (this.useVarint) {
             this.buf.writeVarLong(value);
         } else if (this.order === ByteOrder.LITTLE_ENDIAN) {
-            this.buf.writeUnsignedLongLE(value);
+            this.buf.writeLongLE(value);
         } else {
-            this.buf.writeUnsignedLong(value);
+            this.buf.writeLong(value);
         }
     }
 
@@ -119,7 +137,9 @@ export default class NBTWriter {
 
     private writeListValue(value: Set<any>): void {
         if (value.size > 0) {
-            const listNbtType = this.getNBTTypeFromValue(value.entries().next().value);
+            // `values()`, not `entries()`: a Set's entries are `[value, value]` pairs, so the type
+            // of every list came out as TAG_INT_ARRAY and writing any list at all threw.
+            const listNbtType = this.getNBTTypeFromValue(value.values().next().value);
             this.writeByteValue(listNbtType);
             this.writeIntegerValue(value.size);
             for (const rawValue of value) {
@@ -143,7 +163,7 @@ export default class NBTWriter {
                         this.writeDoubleValue(rawValue.getValue());
                         break;
                     case NBTDefinitions.TAG_BYTE_ARRAY:
-                        this.writeDoubleValue(rawValue);
+                        this.writeByteArrayValue(rawValue);
                         break;
                     case NBTDefinitions.TAG_STRING:
                         this.writeStringValue(rawValue.getValue());
@@ -203,7 +223,7 @@ export default class NBTWriter {
                     this.writeCompoundValue(value);
                     break;
                 case NBTDefinitions.TAG_INT_ARRAY:
-                    this.writeIntegerValue(value);
+                    this.writeIntegerArrayValue(value);
                     break;
                 default:
                     throw new Error('Invalid NBTTagType');
