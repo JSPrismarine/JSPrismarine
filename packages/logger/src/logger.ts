@@ -110,6 +110,11 @@ export class Logger {
 
     /**
      * Get callee's namespace from the stack trace.
+     *
+     * Capturing a stack costs ~15 us, so every log method checks the level *before*
+     * calling this - winston would otherwise drop the message only after we had paid for
+     * it. That guard has to stay inline in each method: this reads frame 3, the caller of
+     * the log method, and any helper wrapped around the call would shift it.
      * @private
      * @internal
      */
@@ -158,6 +163,9 @@ export class Logger {
      * @param {...string} message - The message to log.
      */
     public info = (...message: string[]): void => {
+        // Guard inline; see getNamespace() for why it must not move into a helper.
+        if (!this.logger!.isLevelEnabled('info')) return;
+
         this.logger!.log('info', this.parseMessage(message), {
             namespace: this.getNamespace()
         });
@@ -168,6 +176,9 @@ export class Logger {
      * @param {...string} message - The message to log.
      */
     public warn = (...message: string[]): void => {
+        // Guard inline; see getNamespace() for why it must not move into a helper.
+        if (!this.logger!.isLevelEnabled('warn')) return;
+
         this.logger!.log('warn', this.parseMessage(message), {
             namespace: this.getNamespace()
         });
@@ -200,6 +211,9 @@ export class Logger {
      * @param {...string} message - The message to log.
      */
     public verbose = (...message: string[]): void => {
+        // Guard inline; see getNamespace() for why it must not move into a helper.
+        if (!this.logger!.isLevelEnabled('verbose')) return;
+
         this.logger!.log('verbose', this.parseMessage(message), {
             namespace: this.getNamespace()
         });
@@ -210,6 +224,9 @@ export class Logger {
      * @param {...string} message - The message to log.
      */
     public debug = (...message: string[]): void => {
+        // Guard inline; see getNamespace() for why it must not move into a helper.
+        if (!this.logger!.isLevelEnabled('debug')) return;
+
         this.logger!.log('debug', this.parseMessage(message), {
             namespace: this.getNamespace()
         });
@@ -220,6 +237,9 @@ export class Logger {
      * @param {...string} message - The message to log.
      */
     public silly = (...message: string[]): void => {
+        // Guard inline; see getNamespace() for why it must not move into a helper.
+        if (!this.logger!.isLevelEnabled('silly')) return;
+
         this.logger!.log('silly', this.parseMessage(message), {
             namespace: this.getNamespace()
         });

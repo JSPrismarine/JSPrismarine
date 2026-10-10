@@ -11,7 +11,7 @@ describe('network', () => {
 
             it('decode', () => {
                 const pk = new TickSyncPacket();
-                (pk as any).buffer = dump;
+                pk.setReadBuffer(dump);
                 pk.decode();
 
                 expect(pk.clientRequestTimestamp).toEqual(BigInt(0xdeadbeef));

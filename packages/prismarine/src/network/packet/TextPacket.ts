@@ -6,6 +6,36 @@ import DataPacket from './DataPacket';
 /**
  * Packet for chat messages, announcements etc.
  */
+/** Which of the three shapes a message has, which the client is told before the type. */
+const enum TextCategory {
+    MessageOnly = 0,
+    AuthoredMessage = 1,
+    MessageWithParameters = 2
+}
+
+/**
+ * The category a text type belongs to.
+ *
+ * Derived rather than stored: it is a restatement of the type, and the two disagreeing is a
+ * packet the client reads the wrong number of strings out of.
+ */
+const categoryOf = (type: TextType): TextCategory => {
+    switch (type) {
+        case TextType.Chat:
+        case TextType.Whisper:
+        case TextType.Announcement:
+            return TextCategory.AuthoredMessage;
+
+        case TextType.Translation:
+        case TextType.Popup:
+        case TextType.JukeboxPopup:
+            return TextCategory.MessageWithParameters;
+
+        default:
+            return TextCategory.MessageOnly;
+    }
+};
+
 export default class TextPacket extends DataPacket {
     public static NetID = Identifiers.TextPacket;
 
@@ -27,8 +57,13 @@ export default class TextPacket extends DataPacket {
     public filtered!: string;
 
     public decodePayload(): void {
-        this.type = this.readByte();
+        // Mirror encodePayload: needsTranslation, then a category byte (a restatement of the
+        // type, discarded here), then the type. Reading the type first - the 748 layout - takes
+        // it from the needsTranslation byte and never consumes the category, so every field
+        // after comes out one byte wrong.
         this.needsTranslation = this.readBoolean();
+        this.readByte(); // category, derived from type on the way out
+        this.type = this.readByte();
 
         switch (this.type) {
             case TextType.Chat:
@@ -63,12 +98,18 @@ export default class TextPacket extends DataPacket {
 
         this.xuid = NetworkUtil.readString(this);
         this.platformChatId = NetworkUtil.readString(this);
-        this.filtered = NetworkUtil.readString(this);
+
+        // Optional, matching encodePayload: a byte says whether the string is there.
+        this.filtered = this.readBoolean() ? NetworkUtil.readString(this) : '';
     }
 
     public encodePayload(): void {
-        this.writeByte(this.type);
+        // The order turned over at 2168, and a category was added in front of the type: the
+        // message is a variant now, and the category says which of the three shapes follows.
+        // Writing the type first puts it where the client reads a boolean.
         this.writeBoolean(this.needsTranslation);
+        this.writeByte(categoryOf(this.type));
+        this.writeByte(this.type);
 
         switch (this.type) {
             case TextType.Chat:
@@ -99,6 +140,10 @@ export default class TextPacket extends DataPacket {
 
         NetworkUtil.writeString(this, this.xuid);
         NetworkUtil.writeString(this, this.platformChatId);
-        NetworkUtil.writeString(this, this.filtered);
+
+        // Optional, with a byte saying whether it is there. 748 wrote the string always.
+        const filtered = this.filtered ?? '';
+        this.writeBoolean(filtered.length > 0);
+        if (filtered.length > 0) NetworkUtil.writeString(this, filtered);
     }
 }

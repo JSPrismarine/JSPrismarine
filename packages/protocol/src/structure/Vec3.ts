@@ -1,4 +1,4 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
 import Vec2 from './Vec2';
 
 /**

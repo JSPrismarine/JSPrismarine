@@ -6,6 +6,17 @@ import type CommandEnumConstraint from '../type/CommandEnumConstraint';
 import DataPacket from './DataPacket';
 
 /**
+ * The name 1.26.50 carries a command's permission level under.
+ *
+ * The level itself is still a small integer everywhere else; only the wire spells it out.
+ * Anything unrecognised is `unknown`, which is what the client's own table falls back to.
+ * @param {number} level - The permission level.
+ * @returns {string} The name the client reads.
+ */
+const commandPermissionToString = (level: number): string =>
+    ['any', 'gamedirectors', 'admin', 'host', 'owner', 'internal'][level] ?? 'unknown';
+
+/**
  * AvailableCommandsPacket is sent by the server to the client to provide information about available commands.
  * @TODO: Argument types are not implemented.
  */
@@ -120,33 +131,43 @@ export default class AvailableCommandsPacket extends DataPacket {
         NetworkUtil.writeString(this, name);
         this.writeUnsignedVarInt(values.length);
 
-        const listSize = enumValueMap.size;
         values.forEach((value: string) => {
             const index = enumValueMap.get(value) ?? -1;
             if (index === -1) return;
-            this.writeEnumValueIndex(index, listSize);
+            this.writeEnumValueIndex(index);
         });
     }
 
-    private writeEnumValueIndex(index: number, valueCount: number): void {
-        if (valueCount < 256) {
-            this.writeByte(index);
-        } else if (valueCount < 65536) {
-            this.writeUnsignedShortLE(index);
-        } else {
-            this.writeUnsignedIntLE(index);
-        }
+    /**
+     * An enum's value index, which is a fixed 32 bit little endian integer.
+     *
+     * It used to be written at whatever width the number of enum values needed - one byte under
+     * 256, two under 65536, four beyond - which is how it worked for years. 1.26.50 does not:
+     * `CommandEnumContext.Marshal` reads the indices with `FuncSlice(..., Uint32)`, four bytes
+     * each, unconditionally. Writing one byte where the client reads four makes it run off the
+     * end of the packet, and a packet that ends early is a *malformed* packet to a real client:
+     * it drops the connection with `initialconnection-90`, which says only "bad packet" and
+     * names nothing. This server's own client never read the packet at all, so nothing caught it.
+     * @param {number} index - The position of the value in the shared enum value table.
+     */
+    private writeEnumValueIndex(index: number): void {
+        this.writeUnsignedIntLE(index);
     }
 
     private writeCommandData(
         data: CommandData,
         enumIndexes: Map<string, number>,
-        _postfixIndexes: Map<string, number>
+        postfixIndexes: Map<string, number>
     ): void {
         NetworkUtil.writeString(this, data.commandName);
         NetworkUtil.writeString(this, data.commandDescription);
         this.writeShortLE(data.flags);
-        this.writeByte(data.permission);
+
+        // A string, not the byte the permission level is held as. `Command.Marshal` turns the
+        // level into one of a fixed set of names and writes that; a client reading a length
+        // prefixed string where a bare byte was written takes the next bytes as the string's
+        // contents and every field after it is lost.
+        NetworkUtil.writeString(this, commandPermissionToString(data.permission));
 
         if (data.aliases !== null) {
             this.writeIntLE(enumIndexes.get(data.aliases.name) ?? -1);
@@ -156,34 +177,35 @@ export default class AvailableCommandsPacket extends DataPacket {
 
         this.writeUnsignedVarInt(0); // chainedSubCommandData
 
-        this.writeUnsignedVarInt(0);
-        /*this.writeUnsignedVarInt(data.overloads.length);
+        // The overloads - a command's argument signatures - were stubbed out as a hard zero,
+        // with the real writer commented out beneath it. A command with no overloads is one the
+        // client will list but cannot call: it has nothing to parse `1` in `/gamemode 1`
+        // against, so it never sends the command at all and typing it does nothing. The server
+        // has been building these all along (`PlayerSession.sendAvailableCommands`); only this
+        // threw them away. Each overload is a chaining flag and then its parameters.
+        this.writeUnsignedVarInt(data.overloads.length);
         data.overloads.forEach((overload) => {
+            this.writeBoolean(false); // Chaining.
             this.writeUnsignedVarInt(overload.length);
+
             overload.forEach((parameter) => {
                 NetworkUtil.writeString(this, parameter.paramName);
 
-                let type = parameter.paramType;
+                let type: number = parameter.paramType;
                 if (parameter.enum !== null) {
-                    if (parameter.enum.soft) {
-                        type =
-                            this.ARG_FLAG_SOFT_ENUM |
-                            this.ARG_FLAG_VALID |
-                            (enumIndexes.get(parameter.enum.name) ?? -1);
-                    } else {
-                        type = this.ARG_FLAG_ENUM | this.ARG_FLAG_VALID | (enumIndexes.get(parameter.enum.name) ?? -1);
-                    }
+                    const index = enumIndexes.get(parameter.enum.name) ?? 0;
+                    type = parameter.enum.soft
+                        ? this.ARG_FLAG_SOFT_ENUM | this.ARG_FLAG_VALID | index
+                        : this.ARG_FLAG_ENUM | this.ARG_FLAG_VALID | index;
                 } else if (parameter.postfix !== null) {
-                    const key = postfixIndexes.get(parameter.postfix) ?? -1;
-                    if (key === -1) return;
-                    type = this.ARG_FLAG_POSTFIX | key;
+                    type = this.ARG_FLAG_POSTFIX | (postfixIndexes.get(parameter.postfix) ?? 0);
                 }
 
-                this.writeIntLE(type);
+                this.writeUnsignedIntLE(type >>> 0);
                 this.writeBoolean(parameter.isOptional);
                 this.writeByte(parameter.flags);
             });
-        });*/
+        });
     }
 
     private writeSoftEnum(_enum: CommandEnum): void {

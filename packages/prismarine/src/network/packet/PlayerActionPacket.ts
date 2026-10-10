@@ -56,8 +56,8 @@ export default class PlayerActionPacket extends DataPacket {
     public encodePayload(): void {
         this.writeUnsignedVarLong(this.runtimeEntityId);
         this.writeVarInt(this.action);
-        NetworkUtil.writeUnsignedBlockPosition(this, this.blockPosition);
-        NetworkUtil.writeUnsignedBlockPosition(this, this.resultPosition);
+        NetworkUtil.writeBlockPosition(this, this.blockPosition);
+        NetworkUtil.writeBlockPosition(this, this.resultPosition);
         this.writeVarInt(this.blockFace);
     }
 }

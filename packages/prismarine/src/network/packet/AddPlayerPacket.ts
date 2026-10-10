@@ -1,5 +1,5 @@
 import { Metadata } from '../../entity/Metadata';
-import type { Item } from '../../item/Item';
+import { Item } from '../../item/Item';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import type UUID from '../../utils/UUID';
 import Identifiers from '../Identifiers';
@@ -57,9 +57,11 @@ export default class AddPlayerPacket extends DataPacket {
         this.writeFloatLE(this.yaw);
         this.writeFloatLE(this.headYaw);
 
-        // TODO: figure out how to send AIR as item
-        this.writeVarInt(0);
-        // this.item.networkSerialize(this);
+        // The held stack, in the tracked form. Air is a full empty stack at this version, not
+        // a bare zero - a single byte here left the client reading the gamemode out of the
+        // middle of it, and everything after that was one field out.
+        (this.item ?? Item.air()).networkSerialize(this);
+
         this.writeVarInt(this.gamemode); // TODO: gamemode
         this.metadata.networkSerialize(this);
 

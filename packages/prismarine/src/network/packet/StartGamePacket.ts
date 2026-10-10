@@ -1,9 +1,12 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import { block_definitions } from '@jsprismarine/bedrock-data';
+import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
-import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
+import { Difficulty } from '@jsprismarine/minecraft';
+import { ByteOrder, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
+import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
@@ -14,6 +17,14 @@ export default class StartGamePacket extends DataPacket {
     public runtimeEntityId!: bigint;
     public gamemode!: number;
     public defaultGamemode: number = 0;
+
+    /**
+     * How dangerous the world is, which the client draws on its own pause screen.
+     *
+     * Was hardcoded to zero, which is peaceful - so however the server was configured, every
+     * client was told monsters could not hurt anybody.
+     */
+    public difficulty: Difficulty = Difficulty.NORMAL;
 
     public playerPos: Vector3 = new Vector3(0, 5, 0);
     public pitch: number = 0;
@@ -31,9 +42,6 @@ export default class StartGamePacket extends DataPacket {
     public worldSpawnPos!: Vector3;
 
     public gameRules!: GameRuleManager;
-
-    // Cache item IDs mappings
-    public static cachedItemIds: Buffer | null = null;
 
     public encodePayload(): void {
         this.writeVarLong(this.entityId);
@@ -57,11 +65,12 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeBoolean(false); // Is hardcore enabled
 
-        this.writeVarInt(0); // Difficulty
+        this.writeVarInt(this.difficulty);
 
-        // world spawn vector 3
+        // World spawn, three signed varints. The Y used to go out unsigned, which is the same
+        // bytes for a spawn above sea level and the wrong ones for anything below it.
         this.writeVarInt(this.worldSpawnPos.getX());
-        this.writeUnsignedVarInt(this.worldSpawnPos.getY());
+        this.writeVarInt(this.worldSpawnPos.getY());
         this.writeVarInt(this.worldSpawnPos.getZ());
 
         // Recently found that may crash the client
@@ -73,7 +82,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeBoolean(false); // Exported from editor mode?
 
         this.writeVarInt(this.time); // Day cycle / time
-        this.writeVarInt(0); // Edu edition offer
+        this.writeUnsignedVarInt(0); // Edu edition offer
         this.writeBoolean(false); // Edu features
         NetworkUtil.writeString(this, ''); // Edu product id
 
@@ -98,7 +107,7 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // Bonus chest
         this.writeByte(0); // Start with map
 
-        this.writeVarInt(1); // Player perms
+        this.writeByte(1); // Player perms, a single byte rather than a varint
 
         this.writeUnsignedIntLE(4); // Chunk tick range
 
@@ -128,16 +137,23 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // Chat restriction level
         this.writeByte(0); // Disable player interactions
 
-        NetworkUtil.writeString(this, this.serverIdentifier);
-        NetworkUtil.writeString(this, this.worldIdentifier);
-        NetworkUtil.writeString(this, this.scenarioIdentifier);
+        this.writeVarInt(0); // Server editor connection policy
+        this.writeBoolean(false); // Allow anonymous block drops in editor worlds
+
+        // The three telemetry identifiers that used to sit here are written at the very end
+        // of the packet from 2168 on; only the level and world names remain in the middle.
         NetworkUtil.writeString(this, this.levelId);
         NetworkUtil.writeString(this, this.worldName);
         NetworkUtil.writeString(this, '00000000-0000-0000-0000-000000000000'); // Template content identity
 
         this.writeByte(0); // Is trial
 
-        this.writeUnsignedVarInt(0); // Server auth movement
+        // The movement settings are a rewind history size and a flag, and nothing in front
+        // of them. The movement *mode* that used to lead them went with 1.21.90, when client
+        // authoritative movement was retired - every client speaks the server authoritative
+        // protocol now and sends `PlayerAuthInputPacket` - and a server that still writes it
+        // puts every field after it one byte out. Verified against the packet a BDS 1.26.51
+        // sends, which decodes to exactly this and not a byte more.
         this.writeVarInt(0); // Rewind History Size
         this.writeBoolean(false); // Is Server Authoritative Block Breaking
 
@@ -145,20 +161,37 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeVarInt(0); // Enchantment seed
 
-        this.writeUnsignedVarInt(0); // Blocks palette
+        // Block properties: the definitions of every block the client does not have built
+        // in. That is a plugin's blocks, and since 1.26.50 it is also a slice of vanilla -
+        // the wool stairs and slabs, the concrete slabs - which vanilla now defines in data
+        // and which a real server declares here, ninety-odd of them. Those go out exactly as
+        // a Bedrock Dedicated Server sends them. Every other vanilla block is absent on
+        // purpose: the client already has those, and with hashed runtime ids nothing depends
+        // on the order or size of this list.
+        const customBlocks = BlockStateSchemas.getCustomSchemas();
+        this.writeUnsignedVarInt(block_definitions.length + customBlocks.length);
+        for (const block of block_definitions) {
+            NetworkUtil.writeString(this, block.name);
+            this.write(block.definition);
+        }
+        for (const schema of customBlocks) {
+            NetworkUtil.writeString(this, schema.name);
 
-        /* Item palette
-        if (StartGamePacket.cachedItemIds) {
-            this.write(StartGamePacket.cachedItemIds);
-        } else {
-            const palette = this.generateItemPalette();
-            StartGamePacket.cachedItemIds = palette;
-            this.write(palette);
-        } */
-        this.writeUnsignedVarInt(0);
+            // Network NBT here - varint lengths - which is *not* the encoding the runtime id
+            // is hashed from. Same compound, two encodings, and using the wrong one here
+            // would put bytes on the wire the client cannot parse.
+            const stream = new BinaryStream();
+            const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+            writer.setUseVarint(true);
+            writer.writeCompound(schema.getDefaultState().toNBT(schema.getPropertyTypes()));
+            this.write(stream.getBuffer());
+        }
 
-        NetworkUtil.writeString(this, '');
-        this.writeBoolean(true); // New inventory system
+        // The item table used to be written here. It moved out at 1.21.60, into a packet of
+        // its own - `ItemRegistryPacket` - and writing it here now puts seventeen hundred
+        // entries where the client expects a correlation id.
+        NetworkUtil.writeString(this, ''); // Multiplayer correlation id
+        this.writeBoolean(true); // Server authoritative inventory
 
         NetworkUtil.writeString(this, Identifiers.MinecraftVersions.at(0)!);
 
@@ -175,19 +208,21 @@ export default class StartGamePacket extends DataPacket {
         UUID.fromRandom().networkSerialize(this);
 
         this.writeBoolean(true); // Use client side chunk generation
-        this.writeByte(0); // Block NET IDs are hashes
-        this.writeByte(0); // Disable client audio
-    }
+        // Block runtime ids are hashes of each block's own name and state, not positions in
+        // the client's canonical palette. That is what lets the server compute them from its
+        // own definitions - no copy of the client's ordering, and a plugin's block cannot
+        // renumber anyone else's.
+        this.writeByte(1); // Block NET IDs are hashes
+        this.writeByte(0); // Server authoritative sound
 
-    /* private generateItemPalette(): Buffer {
-        const stream = new BinaryStream();
-        const itemMappings = Object.entries(item_id_map);
-        stream.writeUnsignedVarInt(itemMappings.length);
-        for (const [name, data] of itemMappings) {
-            NetworkUtil.writeString(stream, name);
-            stream.writeShortLE((data as any).runtime_id as number);
-            stream.writeByte(0); // unknown
-        }
-        return stream.getBuffer();
-    } */
+        // Optional, and absent: a single byte saying there is no join information to read.
+        this.writeBoolean(false);
+
+        // Telemetry identifiers, which moved to the end of the packet at 2168 from the middle,
+        // where `levelId` and `worldName` now sit alone.
+        NetworkUtil.writeString(this, this.serverIdentifier);
+        NetworkUtil.writeString(this, this.scenarioIdentifier);
+        NetworkUtil.writeString(this, this.worldIdentifier);
+        NetworkUtil.writeString(this, ''); // Owner id
+    }
 }

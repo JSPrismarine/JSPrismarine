@@ -38,7 +38,10 @@ export default class MovePlayerPacket extends DataPacket {
         this.onGround = this.readBoolean();
         this.ridingEntityRuntimeId = this.readUnsignedVarLong();
 
-        if (this.mode === MovementType.Teleport) {
+        // Optional, with a byte of its own saying whether it is there. 748 inferred that from
+        // the mode and wrote nothing; at 2168 the byte is always on the wire, so a reader that
+        // skips it takes it for the first byte of the tick.
+        if (this.readBoolean()) {
             this.teleportCause = this.readIntLE();
             this.teleportItemId = this.readIntLE();
         }
@@ -58,7 +61,9 @@ export default class MovePlayerPacket extends DataPacket {
         this.writeBoolean(this.onGround);
         this.writeUnsignedVarLong(this.ridingEntityRuntimeId);
 
-        if (this.mode === MovementType.Teleport) {
+        const teleporting = this.mode === MovementType.Teleport;
+        this.writeBoolean(teleporting);
+        if (teleporting) {
             this.writeIntLE(this.teleportCause);
             this.writeIntLE(this.teleportItemId);
         }

@@ -27,10 +27,18 @@ export default class SessionManager {
         return this.playerList;
     }
 
+    /**
+     * Every player on the server, in any world.
+     *
+     * Online only, the same test `World.getPlayers` applies. A connection has a session from
+     * the moment it authenticates, well before the client is ready to be sent anything, and
+     * without this the login handshake was among the recipients of every broadcast.
+     * @returns {Player[]} The online players.
+     */
     public getAllPlayers(): Player[] {
         return Array.from(this.connections.values())
-            .map((conn) => conn.getPlayerSession()?.getPlayer()!)
-            .filter((p: any) => p) as Player[];
+            .map((conn) => conn.getPlayerSession()?.getPlayer())
+            .filter((player): player is Player => Boolean(player?.isOnline()));
     }
 
     /**

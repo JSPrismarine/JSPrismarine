@@ -1,4 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
+import type { Attribute } from '../../entity/Attribute';
 import type { Metadata } from '../../entity/Metadata';
 import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
@@ -32,7 +33,13 @@ export default class AddActorPacket extends DataPacket {
     public yaw!: number;
     public headYaw!: number;
 
-    public attributes = [];
+    /**
+     * The entity's attributes, in the short `AddActor` layout - see
+     * {@link Attribute.networkSerializeInitial}. This used to be an empty array that was
+     * never read: the count was hard-coded to zero, so every entity arrived at the client
+     * with no health, no speed and no reach, and had to be told separately afterwards.
+     */
+    public attributes: Attribute[] = [];
     public metadata!: Metadata;
     public links = [];
 
@@ -55,11 +62,16 @@ export default class AddActorPacket extends DataPacket {
         this.writeFloatLE(this.headYaw);
         this.writeFloatLE(this.yaw); // bodyYaw
 
-        this.writeUnsignedVarInt(0); // TODO: attributes.
+        this.writeUnsignedVarInt(this.attributes.length);
+        for (const attribute of this.attributes) attribute.networkSerializeInitial(this);
+
         this.metadata.networkSerialize(this);
 
-        this.writeUnsignedVarInt(0); // ? unknown
-        this.writeUnsignedVarInt(0); // ? unknown
+        // Entity properties: the int list and the float list, both empty. Named now rather
+        // than left as "? unknown", because the client reads two counts here whatever we
+        // call them.
+        this.writeUnsignedVarInt(0);
+        this.writeUnsignedVarInt(0);
 
         // TODO: links
         this.writeUnsignedVarInt(this.links.length);

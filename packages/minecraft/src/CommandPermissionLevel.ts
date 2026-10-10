@@ -1,8 +1,6 @@
-export enum CommandPermissionLevel {
-    ANY,
-    GAME_DIRECTORS,
-    ADMIN,
-    HOST,
-    OWNER,
-    INTERNAL
-}
+/**
+ * Re-exported from the generated source, which is built from Mojang's protocol documentation
+ * for the version pinned in `datagen/manifest.json`. Nothing here is maintained by hand:
+ * change the manifest and run `pnpm generate`.
+ */
+export { CommandPermissionLevel } from './generated/CommandPermissionLevel';

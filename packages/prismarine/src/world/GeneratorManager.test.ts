@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as Generators from './generators/Generators';
-import { GeneratorManager } from './';
+import { GeneratorManager } from './GeneratorManager';
 import type Server from '../Server';
 
 describe('world', () => {

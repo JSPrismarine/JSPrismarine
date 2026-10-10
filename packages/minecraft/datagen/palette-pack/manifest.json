@@ -1,0 +1,25 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "JSPrismarine palette capture",
+        "description": "Captures the block palette. Point the script module at place.js or domains.js.",
+        "uuid": "1f8c2a10-5b3e-4d21-9c47-8e0a2b6d4f11",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 0]
+    },
+    "modules": [
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "2a9d3b21-6c4f-4e32-ad58-9f1b3c7e5a22",
+            "version": [1, 0, 0],
+            "entry": "scripts/domains.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.0.0"
+        }
+    ]
+}

@@ -5,7 +5,7 @@ import { Flowable } from '../Flowable';
 export default class Cobweb extends Flowable {
     public constructor() {
         super({
-            name: 'minecraft:cobweb',
+            name: 'minecraft:web',
             id: BlockIdsType.Cobweb,
             hardness: 4
         });

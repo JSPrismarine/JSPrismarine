@@ -1,13 +1,14 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
-// eslint-disable-next-line unused-imports/no-unused-imports
 import type { Gametype } from '@jsprismarine/minecraft';
 import { getGametypeId } from '@jsprismarine/minecraft';
-import type Player from '../../Player';
+import Player from '../../Player';
 import { Chat } from '../../chat/Chat';
+import type { Entity } from '../../entity/Entity';
 import ChatEvent from '../../events/chat/ChatEvent';
 import { Command } from '../Command';
 import { CommandArgumentEntity, CommandArgumentGamemode } from '../CommandArguments';
+import type { CommandExecutor } from '../CommandExecutor';
 
 /**
  * Manage a player's {@link Gametype} (gamemode).
@@ -22,7 +23,12 @@ export default class GamemodeCommand extends Command {
         });
     }
 
-    private async setGamemode(source: Player, target: Player, gamemode: string) {
+    /**
+     * @param source - Whoever asked; may be the console.
+     * @param target - Whatever the selector matched, which an `@e` query makes any entity -
+     * and, for the no-argument form issued from the console, the console itself.
+     */
+    private async setGamemode(source: CommandExecutor, target: Entity | CommandExecutor, gamemode: string) {
         if (!(target as any)) {
             const event = new ChatEvent(
                 new Chat({
@@ -35,7 +41,7 @@ export default class GamemodeCommand extends Command {
             return;
         }
 
-        if (!target.isPlayer()) {
+        if (!(target instanceof Player)) {
             const event = new ChatEvent(
                 new Chat({
                     sender: source,

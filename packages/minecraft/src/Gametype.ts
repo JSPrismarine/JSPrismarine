@@ -1,19 +1,12 @@
 import { GametypeInvalidError } from '@jsprismarine/errors';
 
+import { Gametype } from './generated/Gametype';
+
 /**
- * Gametype.
- * @remarks Also known as `Gamemode`.
- * @group Gametype
+ * Re-exported from the generated source, built from Mojang's protocol documentation for the
+ * version pinned in `datagen/manifest.json`. Only the helpers below are maintained by hand.
  */
-export enum Gametype {
-    UNDEFINED = -1,
-    SURVIVAL = 0,
-    CREATIVE = 1,
-    ADVENTURE = 2,
-    DEFAULT = 0,
-    SPECTATOR = 3,
-    WORLD_DEFAULT = SURVIVAL
-}
+export { Gametype };
 
 /**
  * Gametype name.
@@ -71,6 +64,10 @@ export function getGametypeId(mode: GametypeName | string | number): Gametype {
         case type === '2' || 'adventure'.startsWith(type):
             return Gametype.ADVENTURE;
         case type === '3' || 'spectator'.startsWith(type):
+            // Three is accepted for spectator because that is what it has always meant here,
+            // and a command or a config that says 3 predates the correction.
+            return Gametype.SPECTATOR;
+        case type === '6':
             return Gametype.SPECTATOR;
         default:
             throw new GametypeInvalidError(mode.toString());

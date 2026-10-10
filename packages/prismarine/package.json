@@ -66,9 +66,10 @@
         "vitest": "5.0.1"
     },
     "dependencies": {
+        "@jsprismarine/binaryutils": "workspace:*",
         "@jsprismarine/color-parser": "workspace:*",
         "@jsprismarine/errors": "workspace:*",
-        "@jsprismarine/jsbinaryutils": "5.5.3",
+        "@jsprismarine/leveldb": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/math": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",

@@ -6,7 +6,7 @@ import { Solid } from '../Solid';
 export default class NoteBlock extends Solid {
     public constructor() {
         super({
-            name: 'minecraft:note_block',
+            name: 'minecraft:noteblock',
             id: BlockIdsType.NoteBlock,
             hardness: 0.8
         });
