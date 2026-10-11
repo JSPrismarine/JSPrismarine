@@ -345,8 +345,8 @@ importers:
         specifier: workspace:*
         version: link:../raknet
       set-interval-async:
-        specifier: 3.0.3
-        version: 3.0.3
+        specifier: 3.0.4
+        version: 3.0.4
     devDependencies:
       '@types/node':
         specifier: 24.13.6
@@ -2973,8 +2973,8 @@ packages:
     resolution: {integrity: sha512-7PGFlmtwsEADb0WYyvCMa1t+yke6daIG4Wirafur5kcf+MhUnPms1UeR0CKQdTZD81yESwMHbtn+TR+dMviakQ==}
     engines: {node: '>= 0.4'}
 
-  set-interval-async@3.0.3:
-    resolution: {integrity: sha512-o4DyBv6mko+A9cH3QKek4SAAT5UyJRkfdTi6JHii6ZCKUYFun8SwgBmQrOXd158JOwBQzA+BnO8BvT64xuCaSw==}
+  set-interval-async@3.0.4:
+    resolution: {integrity: sha512-9J9nMENS8jXDhirqfXY6qMNy0mgrHc9XQ6AjceAfBuDHxRWBFSnHyPCmQvfg3otcByePOaWVe8DluX0g24cxvQ==}
     engines: {node: '>= 14.0.0'}
 
   set-proto@1.0.0:
@@ -5906,7 +5906,7 @@ snapshots:
       functions-have-names: 1.2.3
       has-property-descriptors: 1.0.2
 
-  set-interval-async@3.0.3: {}
+  set-interval-async@3.0.4: {}
 
   set-proto@1.0.0:
     dependencies:
