@@ -2,6 +2,6 @@ import StainedGlass, { StainedGlassType } from './WhiteStainedGlass';
 
 export default class LightGrayStainedGlass extends StainedGlass {
     public constructor() {
-        super('minecraft:silver_stained_glass', StainedGlassType.LightGray);
+        super('minecraft:light_gray_stained_glass', StainedGlassType.LightGray);
     }
 }

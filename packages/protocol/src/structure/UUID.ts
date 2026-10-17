@@ -1,5 +1,5 @@
 import type { NetworkBinaryStream } from '../';
-import { NetworkStructure } from '../';
+import NetworkStructure from '../NetworkStructure';
 
 export default class UUID extends NetworkStructure {
     public constructor(

@@ -1,4 +1,4 @@
-import type BinaryStream from '@jsprismarine/jsbinaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder } from './ByteOrder';
 import ByteVal from './types/ByteVal';
 import DoubleVal from './types/DoubleVal';
@@ -38,7 +38,7 @@ export default class NBTStreamReader {
     }
 
     protected readStringValue(): StringVal {
-        const length: number = this.useVarint ? this.input.readUnsignedVarInt() : this.readShortValue().getValue();
+        const length: number = this.useVarint ? this.input.readUnsignedVarInt() : this.readStringLength();
         this.expectInput(length, 'Invalid NBT Data: Expected string bytes');
 
         const data: Buffer = this.input.read(length);
@@ -54,6 +54,17 @@ export default class NBTStreamReader {
         }
 
         return new ShortVal(this.input.readShort());
+    }
+
+    /** The unsigned counterpart of {@link readShortValue}, for string byte counts only. */
+    private readStringLength(): number {
+        this.expectInput(2, 'Invalid NBT Data: Expected string length');
+
+        if (this.byteOrder === ByteOrder.LITTLE_ENDIAN) {
+            return this.input.readUnsignedShortLE();
+        }
+
+        return this.input.readUnsignedShort();
     }
 
     protected readIntValue(): NumberVal {
@@ -126,8 +137,9 @@ export default class NBTStreamReader {
             this.alterAllocationLimit(remaining);
         }
 
-        const length = this.input.readRemaining().byteLength;
-        this.input.skip(-length);
+        // Measured, not read: `readRemaining()` allocates a Buffer view of the whole tail and has
+        // to be rewound afterwards, and this runs once per tag in the payload.
+        const length = this.input.getBuffer().byteLength - this.input.getReadIndex();
         if (length < remaining) {
             throw new Error(message);
         }

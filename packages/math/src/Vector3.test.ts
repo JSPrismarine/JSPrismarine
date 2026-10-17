@@ -12,9 +12,28 @@ describe('math', () => {
             expect(vector.getZ()).toBe(2.75);
         });
 
-        it('should set and get Y coordinate correctly', () => {
-            vector.setY(10);
-            expect(vector.getY()).toBe(10);
+        it('should derive a vector with a different coordinate', () => {
+            expect(vector.withX(10).getX()).toBe(10);
+            expect(vector.withY(10).getY()).toBe(10);
+            expect(vector.withZ(10).getZ()).toBe(10);
+        });
+
+        it('should leave the original untouched when deriving', () => {
+            const derived = vector.withY(10);
+
+            expect(derived.getY()).toBe(10);
+            expect(vector.getY()).toBe(0);
+            expect(derived.getX()).toBe(vector.getX());
+            expect(derived.getZ()).toBe(vector.getZ());
+        });
+
+        it('should keep the concrete class when deriving', () => {
+            class Tagged extends Vector3 {}
+
+            const tagged = new Tagged(1, 2, 3);
+
+            expect(tagged.withY(10)).toBeInstanceOf(Tagged);
+            expect(tagged.floor()).toBeInstanceOf(Tagged);
         });
 
         it('should floor the vector correctly', () => {
@@ -31,6 +50,27 @@ describe('math', () => {
 
             expect(vector1.equals(vector2)).toBe(true);
             expect(vector1.equals(vector3)).toBe(false);
+        });
+
+        it('should compare coordinates only, ignoring subclass state', () => {
+            // A subclass holding a reference back into the object graph used to throw here:
+            // equality went through JSON.stringify, which walked into the circular structure.
+            class Anchored extends Vector3 {
+                public constructor(
+                    x: number,
+                    y: number,
+                    z: number,
+                    public readonly anchor: unknown
+                ) {
+                    super(x, y, z);
+                }
+            }
+
+            const circular: Record<string, unknown> = {};
+            circular.self = circular;
+
+            expect(new Anchored(1, 2, 3, circular).equals(new Vector3(1, 2, 3))).toBe(true);
+            expect(new Anchored(1, 2, 3, circular).equals(new Vector3(4, 5, 6))).toBe(false);
         });
     });
 });

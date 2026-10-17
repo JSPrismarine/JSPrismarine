@@ -4,7 +4,7 @@ import { Flowable } from '../Flowable';
 export default class Fire extends Flowable {
     public constructor() {
         super({
-            name: 'minecraft:Fire',
+            name: 'minecraft:fire',
             id: BlockIdsType.Fire,
             hardness: 0
         });

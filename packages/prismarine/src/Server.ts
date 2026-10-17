@@ -3,8 +3,10 @@ import Console from './Console';
 import SessionManager from './SessionManager';
 import BanManager from './ban/BanManager';
 import BlockManager from './block/BlockManager';
-import { BlockMappings } from './block/BlockMappings';
+import type { Random } from './block/DropTable';
 import { ChatManager } from './chat/ChatManager';
+import { StationRegistry } from './crafting/CraftingStation';
+import RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
 import { EventEmitter } from './events/EventEmitter';
 import { TickEvent } from './events/Events';
@@ -14,12 +16,16 @@ import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPac
 import ItemManager from './item/ItemManager';
 import ClientConnection from './network/ClientConnection';
 import Identifiers from './network/Identifiers';
+import { WorldReplicators } from './network/NetworkWorldReplicator';
+import { PacketLogFilter } from './network/PacketLogFilter';
 import PacketRegistry from './network/PacketRegistry';
 import type { DataPacket } from './network/Packets';
 import BatchPacket from './network/packet/BatchPacket';
+import { readPacketId } from './network/packet/DataPacket';
 import { PermissionManager } from './permission/PermissionManager';
 import { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
+import ChunkScheduler from './world/ChunkScheduler';
 import WorldManager from './world/WorldManager';
 
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
@@ -36,17 +42,53 @@ export default class Server extends EventEmitter {
     private raknet: RakNetListener | undefined;
     private readonly logger: Logger;
     private readonly config: Config;
+    private packetLogFilter: PacketLogFilter | null = null;
     private readonly console: Console | undefined;
     private readonly packetRegistry: PacketRegistry;
     private readonly sessionManager = new SessionManager();
     private readonly commandManager: CommandManager;
     private readonly worldManager: WorldManager;
+
+    /**
+     * Feeds chunks to players a slice at a time.
+     *
+     * Server wide rather than per player on purpose: the budget it enforces has to be
+     * shared, or ten players joining would each claim a full slice and the tick would
+     * overrun by tenfold.
+     */
+    private readonly chunkScheduler: ChunkScheduler = new ChunkScheduler(undefined, (error, coord) => {
+        // Reported rather than thrown: see the comment on the scheduler's own catch. The
+        // logger is read when the failure happens, not when this closure is built.
+        this.logger.warn(
+            coord
+                ? `Failed to send chunk §b${coord.x}, ${coord.z}§r: ${(error as Error)?.message ?? String(error)}`
+                : `Failed to flush a chunk batch: ${(error as Error)?.message ?? String(error)}`
+        );
+        this.logger.error(error);
+    });
+    /**
+     * The network's view of each world: who is watching it, and what they are told.
+     *
+     * Held here rather than on the `World` itself, which knows the players in it and nothing
+     * about their connections - see {@link WorldChangeSink}.
+     */
+    private readonly worldReplicators = new WorldReplicators(this);
     private readonly itemManager: ItemManager;
     private readonly blockManager: BlockManager;
+    private readonly recipeManager: RecipeManager;
+
+    /**
+     * The blocks a player can craft at. Derived from the recipe book once it is loaded, so a
+     * plugin's recipe brings its station with it.
+     */
+    private readonly stationRegistry = new StationRegistry();
     private readonly queryManager: QueryManager;
     private readonly chatManager: ChatManager;
     private readonly permissionManager: PermissionManager;
     private readonly banManager: BanManager;
+
+    /** The source of chance for anything that rolls - see {@link Server.getRandom}. */
+    private random: Random = Math.random;
 
     /**
      * If the server is stopping.
@@ -82,6 +124,17 @@ export default class Server extends EventEmitter {
     private static readonly MINECRAFT_TICK_TIME_MS = 1000 / 20;
 
     /**
+     * How far behind schedule the loop may fall before it stops trying to make the time
+     * back. Below this, missed ticks are run back to back until the clock is caught: a
+     * hitch of a few ticks should not leave the world permanently running late. Above it,
+     * the backlog is written off - a ten second stall would otherwise be repaid as two
+     * hundred consecutive ticks, running the world at maximum speed and starving the
+     * event loop exactly when it is already struggling.
+     * @internal
+     */
+    private static readonly MAX_CATCH_UP_MS = 2000;
+
+    /**
      * Creates a new server instance.
      * @param {object} options - The options.
      * @param {LoggerBuilder} options.logger - The logger.
@@ -102,6 +155,7 @@ export default class Server extends EventEmitter {
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
+        this.recipeManager = new RecipeManager(this);
         this.worldManager = new WorldManager(this);
         if (!this.headless) this.console = new Console(this);
         this.commandManager = new CommandManager(this);
@@ -117,8 +171,6 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private async enable(): Promise<void> {
-        await BlockMappings.initMappings(this);
-
         await this.config.enable();
         await this.console?.enable();
         await this.logger.enable();
@@ -126,6 +178,8 @@ export default class Server extends EventEmitter {
         await this.packetRegistry.enable();
         await this.itemManager.enable();
         await this.blockManager.enable();
+        await this.recipeManager.enable();
+        this.stationRegistry.registerRecipeStations(this);
         await this.banManager.enable();
         await this.commandManager.enable();
         await this.worldManager.enable();
@@ -142,14 +196,13 @@ export default class Server extends EventEmitter {
         await this.worldManager.disable();
         await this.commandManager.disable();
         await this.banManager.disable();
+        await this.recipeManager.disable();
         await this.blockManager.disable();
         await this.itemManager.disable();
         await this.permissionManager.disable();
         await this.packetRegistry.disable();
         await this.config.disable();
         await this.logger.disable();
-
-        BlockMappings.reset();
     }
 
     public getMetadata() {
@@ -203,18 +256,26 @@ export default class Server extends EventEmitter {
 
             const timer = new Timer();
             this.logger.debug(`${token} is attempting to connect`);
-            this.sessionManager.add(token, new ClientConnection(session, this.logger));
+            this.sessionManager.add(token, new ClientConnection(session, this.logger, this.getPacketLogFilter()));
             this.logger.verbose(`New connection handling took §e${timer.stop()} ms§r`);
         });
 
         this.raknet.on('closeConnection', async (inetAddr: InetAddress, reason: string) => {
-            const event = new RaknetDisconnectEvent(inetAddr, reason);
-            await this.emit('raknetDisconnect', event);
-
             const time = Date.now();
             const token = inetAddr.toToken();
 
+            // Claimed before anything is awaited. RakNet frees the address the instant it
+            // forgets a session, and both this handler and the check in `openConnection` key
+            // on the token, so leaving the entry in place across the awaits below left a
+            // window in which a client reconnecting from the same port was turned away as
+            // "already connected" - and the tear-down that then ran released the connection
+            // that had just replaced it.
             const session = this.sessionManager.get(token);
+            this.sessionManager.remove(token);
+
+            const event = new RaknetDisconnectEvent(inetAddr, reason);
+            await this.emit('raknetDisconnect', event);
+
             if (!session) {
                 this.logger.debug(`Cannot remove connection from non-existing player (${token})`);
                 return;
@@ -222,7 +283,6 @@ export default class Server extends EventEmitter {
 
             await session.closePlayerSession();
 
-            this.sessionManager.remove(token);
             this.logger.debug(`${token} disconnected due to ${reason}`);
             this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
         });
@@ -244,7 +304,7 @@ export default class Server extends EventEmitter {
 
                 // Read all packets inside batch and handle them
                 for (const buf of await batched.asyncDecode()) {
-                    const pid = buf[0]!;
+                    const pid = readPacketId(buf);
 
                     if (!this.packetRegistry.getPackets().has(pid)) {
                         this.logger.warn(`Packet 0x${pid.toString(16)} isn't implemented`);
@@ -264,7 +324,8 @@ export default class Server extends EventEmitter {
 
                     try {
                         const handler = this.packetRegistry.getHandler(pid);
-                        this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
+                        if (this.getPacketLogFilter().shouldLog(packet))
+                            this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
                         await (handler as any).handle(packet, this, connection.getPlayerSession() ?? connection);
                     } catch (error: unknown) {
                         this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);
@@ -288,53 +349,109 @@ export default class Server extends EventEmitter {
         });
 
         if (this.config.getEnableTicking()) {
-            let startTime = Date.now();
-            let tpsStartTime = Date.now();
-            let lastTickTime = Date.now();
-            let tpsStartTick = this.getTick();
+            // Monotonic, not wall clock: `Date.now()` follows the system time, and an NTP
+            // correction or a VM resume moves it under the scheduler. A forward step used to
+            // read as accumulated lateness and trigger a catch-up burst; a backward one as
+            // time to kill, stalling the server for the size of the step.
+            const now = () => performance.now();
+
+            // Every tick's deadline is derived from one fixed origin, so a tick that runs
+            // long is absorbed rather than shifting every deadline behind it.
+            //
+            // The previous form corrected the same lateness twice - once against the last
+            // period (`MINECRAFT_TICK_TIME_MS - executionTime`, where `executionTime` was
+            // measured from the *end* of the previous tick and so already included its
+            // sleep) and again against the accumulated total. Two corrections for one error
+            // is a loop gain of two, and the loop oscillated accordingly: it alternated a
+            // near-zero gap with a near-100ms one, averaging a correct 20 TPS while never
+            // actually holding 50ms. Everything leaving the tick in a batch - entity
+            // movement, chunk sends - went out in pairs separated by silence.
+            let epoch = now();
+
+            // Completion times of the ticks within the last second, oldest first.
+            const recentTicks: number[] = [];
             const tick = async () => {
                 if (this.stopping) return;
 
-                const event = new TickEvent(this.getTick());
-                void this.emit('tick', event);
+                // The next tick is scheduled from `finally`, and everything that can throw is
+                // inside the `try`, because the timer for the next tick is installed only
+                // once this one has finished. Anything escaping - a chunk that will not
+                // generate, a world update, a plugin's tick listener - used to leave no timer
+                // behind, and the server then sat there accepting connections while time
+                // stood still. A tick that fails is worth a log line; it is not worth the
+                // server.
+                try {
+                    const event = new TickEvent(this.getTick());
 
-                const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
-                if (this.config.getEnableProcessTitle() && this.getTick() % ticksPerSecond === 0 && !this.headless) {
-                    // Update the process title with TPS and tick.
-                    process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
+                    // Awaited, so a plugin's tick handler runs *inside* this tick like every
+                    // other piece of tick work. Discarding the promise let its continuation
+                    // land in the middle of some later tick, and its rejection could not
+                    // reach the catch below - it surfaced as an unhandled rejection instead.
+                    await this.emit('tick', event);
+
+                    const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
+
+                    // Update all worlds.
+                    await Promise.all(this.worldManager.getWorlds().map((world) => world.update(event.getTick())));
+
+                    // Whatever fits in this tick's slice; the rest waits for the next one.
+                    this.chunkScheduler.setBudget(this.config.getChunkSendBudgetMs());
+                    await this.chunkScheduler.tick();
+
+                    if (
+                        this.config.getEnableProcessTitle() &&
+                        this.getTick() % ticksPerSecond === 0 &&
+                        !this.headless
+                    ) {
+                        // Update the process title with TPS and tick.
+                        process.title = `TPS: ${this.getTPS().toFixed(2)} | Tick: ${this.getTick()} | ${process.title.split('| ').at(-1)!}`;
+                    }
+                } catch (error: unknown) {
+                    this.logger.error(error);
+                } finally {
+                    this.currentTick++;
+                    const endTime = now();
+
+                    // TPS over a sliding window of the last second. The window used to be
+                    // rebased whenever it crossed a second, which left the next reading
+                    // measured over a single tick - noise, reported as a rate.
+                    // Never pruned below two, so there is always a pair to measure between.
+                    // Dropping to one collapses the window to zero width, and the reading
+                    // then holds its last value - a server slowed past one tick a second
+                    // would have gone on reporting whatever it managed before, which for a
+                    // server that had never yet been measured is the optimistic 20 it starts
+                    // life with.
+                    recentTicks.push(endTime);
+                    while (recentTicks.length > 2 && endTime - recentTicks[0]! > 1000) recentTicks.shift();
+                    const window = endTime - recentTicks[0]!;
+                    // Deliberately not clamped to 20. A loop making up lost time genuinely
+                    // runs faster than that, and hiding it behind the target rate meant the
+                    // one metric that should expose the fault reported perfect health.
+                    if (window > 0) this.tps = ((recentTicks.length - 1) * 1000) / window;
+
+                    // One correction, against one deadline.
+                    let sleepTime = epoch + this.getTick() * Server.MINECRAFT_TICK_TIME_MS - endTime;
+
+                    if (-sleepTime > Server.MAX_CATCH_UP_MS) {
+                        // Too far behind to make up. Move the origin forward by the debt so
+                        // the schedule resumes from here instead of chasing a deadline that
+                        // has already passed for the next forty ticks.
+                        const behindBy = -sleepTime;
+                        epoch += behindBy;
+                        sleepTime = 0;
+                        this.logger.warn(
+                            `Can't keep up! Skipping ${(behindBy / Server.MINECRAFT_TICK_TIME_MS).toFixed(0)} ticks (${behindBy.toFixed(0)} ms behind)`,
+                            'Server/tick'
+                        );
+                    }
+
+                    // Not while shutting down: `shutdown` clears the timer, and a tick still
+                    // in flight at that moment would otherwise install a fresh one behind it.
+                    if (!this.stopping) {
+                        this.tickerTimer = setTimeout(tick, Math.max(0, sleepTime));
+                        this.tickerTimer.unref();
+                    }
                 }
-
-                this.currentTick++;
-                const endTime = Date.now();
-                const elapsedTime = endTime - startTime;
-                const expectedElapsedTime = this.getTick() * Server.MINECRAFT_TICK_TIME_MS;
-                const executionTime = endTime - lastTickTime;
-
-                // Adjust sleepTime based on execution speed.
-                let sleepTime = Server.MINECRAFT_TICK_TIME_MS - executionTime;
-                if (elapsedTime < expectedElapsedTime) {
-                    // If we're running faster than expected, increase sleepTime.
-                    sleepTime += expectedElapsedTime - elapsedTime;
-                } else if (elapsedTime > expectedElapsedTime) {
-                    // If we're running slower than expected, decrease sleepTime but don't let it go below 0.
-                    sleepTime = Math.max(0, sleepTime - (elapsedTime - expectedElapsedTime));
-                }
-
-                // Calculate tps based on the actual elapsed time since the start of the tick.
-                if (tpsStartTime !== endTime) {
-                    this.tps = ((this.getTick() - tpsStartTick) * 1000) / (endTime - tpsStartTime);
-                }
-
-                if (endTime - tpsStartTime >= 1000) {
-                    tpsStartTick = this.getTick();
-                    tpsStartTime = endTime;
-                }
-
-                this.tps = Math.min(this.tps, 20); // Ensure tps does not exceed 20
-
-                lastTickTime = endTime;
-                this.tickerTimer = setTimeout(tick, Math.max(0, sleepTime));
-                this.tickerTimer.unref();
             };
 
             // Start ticking
@@ -383,11 +500,34 @@ export default class Server extends EventEmitter {
         }
     }
 
+    /**
+     * Sends a packet to every player on the server, in every world.
+     *
+     * The genuinely global channel: the player list, the command tree, a shutdown notice -
+     * things that are about the server rather than about a place in it. Anything that happens
+     * somewhere belongs on `World.broadcastAround`, which only reaches the players near it.
+     * @param {DataPacket} dataPacket - The packet to send.
+     */
     public async broadcastPacket<T extends DataPacket>(dataPacket: T): Promise<void> {
-        // Maybe i can improve this by using the UDP broadcast, all unconnected clients
-        // will ignore the connected packet probably, but may cause issues.
-        for (const onlinePlayer of this.sessionManager.getAllPlayers()) {
-            await onlinePlayer.getNetworkSession().getConnection().sendDataPacket(dataPacket);
+        const audience = this.sessionManager.getAllPlayers();
+        if (audience.length === 0) return;
+
+        // Compressed once for everybody. This was a serial `await` in a loop that built a
+        // fresh batch per player, so a packet going to twenty clients meant twenty runs of
+        // zlib over identical bytes, each waiting on the one before it.
+        const batch = new BatchPacket();
+        try {
+            batch.addPacket(dataPacket);
+            batch.compressionLevel = this.config.getPacketCompressionLevel();
+            batch.encode();
+        } catch (error: unknown) {
+            this.logger.error(error);
+            return;
+        }
+
+        const content = batch.getBuffer();
+        for (const onlinePlayer of audience) {
+            onlinePlayer.getNetworkSession().getConnection().sendSharedBatch(content, dataPacket);
         }
     }
 
@@ -439,6 +579,18 @@ export default class Server extends EventEmitter {
      * Returns the world manager.
      * @returns {WorldManager} The world manager.
      */
+    public getChunkScheduler(): ChunkScheduler {
+        return this.chunkScheduler;
+    }
+
+    /**
+     * The per-world replicators: what turns something happening in a world into packets.
+     * @returns {WorldReplicators} The registry, which builds one per world on first use.
+     */
+    public getWorldReplicators(): WorldReplicators {
+        return this.worldReplicators;
+    }
+
     public getWorldManager(): WorldManager {
         return this.worldManager;
     }
@@ -477,6 +629,26 @@ export default class Server extends EventEmitter {
     }
 
     /**
+     * Where anything that rolls for something gets its chance from.
+     *
+     * One source, reachable, rather than a `Math.random()` at each site: a drop table that is
+     * handed its randomness can be rolled ten thousand times in a test and checked against the
+     * odds it claims, and a plugin that wants a seeded server has somewhere to say so.
+     * @returns {Random} the source of chance.
+     */
+    public getRandom(): Random {
+        return this.random;
+    }
+
+    /**
+     * Replaces the source of chance.
+     * @param {Random} random - what to roll with from now on.
+     */
+    public setRandom(random: Random): void {
+        this.random = random;
+    }
+
+    /**
      * Returns the packet registry.
      * @returns {PacketRegistry} The packet registry.
      */
@@ -508,8 +680,37 @@ export default class Server extends EventEmitter {
      * console.log(server.getConfig().getMaxPlayers()); // 20
      * ```
      */
+    /**
+     * Every recipe the server knows.
+     * @returns {RecipeManager} the manager.
+     */
+    public getRecipeManager(): RecipeManager {
+        return this.recipeManager;
+    }
+
+    /**
+     * Where a player can craft, and what each block does with a grid.
+     * @returns {StationRegistry} the registry.
+     */
+    public getStationRegistry(): StationRegistry {
+        return this.stationRegistry;
+    }
+
     public getConfig(): Config {
         return this.config;
+    }
+
+    /**
+     * Which packets the traffic log leaves out, from `log-excluded-packets`.
+     *
+     * Built once and kept: this is consulted for every packet in and out, and rebuilding the
+     * set each time would put a config read on the hot path.
+     * @returns {PacketLogFilter} the filter.
+     */
+    public getPacketLogFilter(): PacketLogFilter {
+        this.packetLogFilter ??= new PacketLogFilter(this.config.getLogExcludedPackets());
+
+        return this.packetLogFilter;
     }
 
     /**

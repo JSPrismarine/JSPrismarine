@@ -1,0 +1,64 @@
+{
+    "name": "@jsprismarine/auth",
+    "version": "0.14.1",
+    "description": "Minecraft: Bedrock Edition login identity: JWT chains, client data and Xbox Live",
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public"
+    },
+    "type": "module",
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "README.md"
+    ],
+    "main": "./dist/index.cjs.cjs",
+    "module": "./dist/index.es.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.es.js",
+            "module": "./dist/index.es.js",
+            "require": "./dist/index.cjs.cjs"
+        },
+        "./*": {
+            "types": "./dist/*.d.ts",
+            "import": "./dist/*.es.js",
+            "module": "./dist/*.es.js",
+            "require": "./dist/*.cjs.cjs"
+        },
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
+        "build": "vite build",
+        "build:watch": "vite build --watch",
+        "typecheck": "tsc -noEmit"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "minecraft",
+        "bedrock",
+        "authentication",
+        "xbox"
+    ],
+    "author": "JSPrismarine",
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/auth",
+    "devDependencies": {
+        "@types/node": "24.13.6",
+        "glob": "13.0.6",
+        "rimraf": "6.1.3",
+        "typescript": "6.0.3",
+        "vite": "8.3.0",
+        "vitest": "5.0.1"
+    },
+    "dependencies": {
+        "@jsprismarine/minecraft": "workspace:*",
+        "fast-jwt": "6.3.3"
+    }
+}

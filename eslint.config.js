@@ -28,6 +28,7 @@ export default defineConfig([
             '**/vitest.config.ts',
             'vitest.workspace.ts',
             'packages/bedrock-data/utils/build.js',
+            'packages/binaryutils/bench/',
             'packages/bedrock-data/src/resources/'
         ]
     },
@@ -73,6 +74,40 @@ export default defineConfig([
                 }
             ],
             '@typescript-eslint/no-require-imports': 'error',
+            // Value imports from a barrel inside the same package are what turn an ordinary
+            // dependency into a runtime import cycle: the barrel re-exports the whole package,
+            // so reaching for one symbol through it drags every sibling in and lands back in a
+            // module that is still initialising. That is a TDZ `ReferenceError` waiting for
+            // someone to move a read into an initialiser - see the comment in world/World.ts,
+            // which records the one that already happened. Type imports are erased, so they
+            // cannot form a cycle and stay allowed.
+            // `paths` and not `patterns`: pattern groups are matched with gitignore
+            // semantics, where `../` means "everything below ../" and would restrict every
+            // relative import in the repository. These are exact specifier matches.
+            '@typescript-eslint/no-restricted-imports': [
+                'error',
+                {
+                    paths: [
+                        '.',
+                        './',
+                        './index',
+                        '..',
+                        '../',
+                        '../index',
+                        '../..',
+                        '../../',
+                        '../../index',
+                        '../../..',
+                        '../../../',
+                        '../../../index'
+                    ].map((name) => ({
+                        name,
+                        allowTypeImports: true,
+                        message:
+                            'Import the concrete module rather than a barrel: value imports from an index create runtime import cycles. `import type` is fine.'
+                    }))
+                }
+            ],
             '@typescript-eslint/no-unnecessary-condition': 'warn',
             '@typescript-eslint/no-unused-vars': 'off',
             '@typescript-eslint/no-explicit-any': 'off',

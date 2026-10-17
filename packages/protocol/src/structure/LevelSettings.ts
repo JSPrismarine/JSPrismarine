@@ -1,7 +1,8 @@
 import type { Difficulty, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { Gametype, Generator } from '@jsprismarine/minecraft';
 import type { BlockPos, NetworkBinaryStream } from '../';
-import { Experiments, NetworkStructure } from '../';
+import NetworkStructure from '../NetworkStructure';
+import Experiments from './Experiments';
 import type SpawnSettings from './SpawnSettings';
 
 export enum EditorWorldType {

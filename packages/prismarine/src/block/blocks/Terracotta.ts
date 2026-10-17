@@ -5,7 +5,7 @@ import { Solid } from '../Solid';
 export default class Terracotta extends Solid {
     public constructor() {
         super({
-            name: 'minecraft:terracotta',
+            name: 'minecraft:hardened_clay',
             id: BlockIdsType.HardenedClay,
             hardness: 1.25
         });

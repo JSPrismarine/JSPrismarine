@@ -1,4 +1,4 @@
-import BinaryStream from '@jsprismarine/jsbinaryutils';
+import BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * Represents an extended version of the BinaryStream class that includes

@@ -1,5 +1,5 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
-import type BlockPosition from '../../world/BlockPosition';
+import BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
@@ -64,22 +64,64 @@ export enum SoundName {
     // TODO: complete
 }
 
+/**
+ * Plays a named sound at a position, once or on a loop.
+ *
+ * The layout is protocol 2193's. The position travels as a block position in eighths of a
+ * block - three signed varints, each the coordinate times eight - and after the pitch come
+ * the fields 1.26.50 added: a loop count, a flag telling the client to play the sound however
+ * far away it is, and two optionals, a handle the server can later stop the sound by and a
+ * position in seconds to start playback from.
+ *
+ * **Bound To:** Client
+ */
 export default class PlaySoundPacket extends DataPacket {
     public static NetID = Identifiers.PlaySoundPacket;
 
-    public name: SoundName | null = null;
+    public name: SoundName | string = '';
     public position: BlockPosition | null = null;
-    public volume: number | null = null;
-    public pitch: number | null = null;
+    public volume = 1;
+    public pitch = 1;
+    /** How many times to loop; -1 plays once. */
+    public loopCount = -1;
+    /** Play it whatever the distance, rather than fading it out by the listener's range. */
+    public bypassListenerRangeCheck = false;
+    /** A handle the server may name in a later packet to stop this sound. */
+    public soundHandle: bigint | null = null;
+    /** Where in the sound to start, in seconds. */
+    public playbackPositionSeconds: number | null = null;
 
     public decodePayload(): void {
-        // Reverse mapping should work theoretically
-        this.name = (SoundName as any)[NetworkUtil.readString(this)] as SoundName;
-        this.position = NetworkUtil.readBlockPosition(this);
-        // TODO: fix position, divide it by 8
+        this.name = NetworkUtil.readString(this);
+        // Eighths of a block on the wire, floored to the block here: the packet asks for a
+        // block position and that is what a reader gets back, not a fraction of one.
+        this.position = new BlockPosition(
+            Math.floor(this.readVarInt() / 8),
+            Math.floor(this.readVarInt() / 8),
+            Math.floor(this.readVarInt() / 8)
+        );
         this.volume = this.readFloatLE();
         this.pitch = this.readFloatLE();
+        this.loopCount = this.readVarInt();
+        this.bypassListenerRangeCheck = this.readBoolean();
+        this.soundHandle = this.readBoolean() ? this.readUnsignedLongLE() : null;
+        this.playbackPositionSeconds = this.readBoolean() ? this.readFloatLE() : null;
     }
 
-    public encodePayload(): void {}
+    public encodePayload(): void {
+        const position = this.position ?? new BlockPosition(0, 0, 0);
+
+        NetworkUtil.writeString(this, this.name);
+        this.writeVarInt(Math.floor(position.getX() * 8));
+        this.writeVarInt(Math.floor(position.getY() * 8));
+        this.writeVarInt(Math.floor(position.getZ() * 8));
+        this.writeFloatLE(this.volume);
+        this.writeFloatLE(this.pitch);
+        this.writeVarInt(this.loopCount);
+        this.writeBoolean(this.bypassListenerRangeCheck);
+        this.writeBoolean(this.soundHandle !== null);
+        if (this.soundHandle !== null) this.writeUnsignedLongLE(this.soundHandle);
+        this.writeBoolean(this.playbackPositionSeconds !== null);
+        if (this.playbackPositionSeconds !== null) this.writeFloatLE(this.playbackPositionSeconds);
+    }
 }

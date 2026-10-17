@@ -16,13 +16,9 @@ export default class ResourcePackStackPacket extends DataPacket {
     public encodePayload(): void {
         this.writeBoolean(this.texturePackRequired);
 
-        this.writeUnsignedVarInt(this.addonList.length);
-        for (const _behaviorPackStack of this.addonList) {
-            NetworkUtil.writeString(this, '');
-            NetworkUtil.writeString(this, '');
-            NetworkUtil.writeString(this, '');
-        }
-
+        // One list, not two. The behaviour pack list that used to come first is gone; a
+        // client on the newer layout reads its count as the texture pack count and every
+        // field after it from the wrong place.
         this.writeUnsignedVarInt(this.texturePackList.length);
         for (const _resourcePackStack of this.texturePackList) {
             NetworkUtil.writeString(this, '');

@@ -2,7 +2,7 @@ import { MessageIdentifiers } from '../MessageIdentifiers';
 import Packet from '../Packet';
 
 export default class ConnectedPing extends Packet {
-    public constructor(buffer: Buffer) {
+    public constructor(buffer?: Buffer) {
         super(MessageIdentifiers.CONNECTED_PING, buffer);
     }
 

@@ -1,4 +1,4 @@
-import { OFFLINE_MESSAGE_DATA_ID } from '../';
+import { OFFLINE_MESSAGE_DATA_ID } from '../Constants';
 import Packet from './Packet';
 
 export default class OfflinePacket extends Packet {

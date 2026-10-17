@@ -8,6 +8,24 @@ describe('world', () => {
                 expect(CoordinateUtils.fromBlockToChunk(16)).toBe(1);
                 expect(CoordinateUtils.fromBlockToChunk(32)).toBe(2);
                 expect(CoordinateUtils.fromBlockToChunk(0)).toBe(0);
+                expect(CoordinateUtils.fromBlockToChunk(15)).toBe(0);
+            });
+
+            it('should floor negative whole coordinates', () => {
+                expect(CoordinateUtils.fromBlockToChunk(-1)).toBe(-1);
+                expect(CoordinateUtils.fromBlockToChunk(-16)).toBe(-1);
+                expect(CoordinateUtils.fromBlockToChunk(-17)).toBe(-2);
+            });
+
+            it('should floor fractional coordinates rather than truncating them', () => {
+                // Entity positions are floats, and a bare `>> 4` converts through `ToInt32`,
+                // which truncates towards zero - so a player standing just west of the origin
+                // was placed in chunk 0 instead of chunk -1.
+                expect(CoordinateUtils.fromBlockToChunk(-0.5)).toBe(-1);
+                expect(CoordinateUtils.fromBlockToChunk(-16.5)).toBe(-2);
+                expect(CoordinateUtils.fromBlockToChunk(0.5)).toBe(0);
+                expect(CoordinateUtils.fromBlockToChunk(15.9)).toBe(0);
+                expect(CoordinateUtils.fromBlockToChunk(16.1)).toBe(1);
             });
         });
 

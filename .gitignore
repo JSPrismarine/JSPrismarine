@@ -36,3 +36,8 @@ assets/
 *.html
 docs/
    
+
+# Pinned upstream sources for datagen. Committed on purpose: Mojang keeps only a rolling
+# window of documentation branches, so this is the only copy that will exist once the branch
+# it came from is deleted.
+!packages/*/datagen/snapshot/**
