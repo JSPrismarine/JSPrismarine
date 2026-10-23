@@ -15,12 +15,6 @@ runs:
           with:
               run_install: false
 
-        - name: 🏎️ Setup Bun
-          uses: oven-sh/setup-bun@v2
-          with:
-              bun-version: canary
-              registry-url: 'https://registry.npmjs.org/'
-
         - name: Get pnpm store directory
           shell: bash
           run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV

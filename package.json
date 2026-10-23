@@ -30,13 +30,14 @@
         "format": "concurrently pnpm:format:*",
         "format:eslint": "eslint  --fix packages/**/src/**/*.ts",
         "format:prettier": "prettier --write .",
-        "package": "bun build --sourcemap --compile ./packages/server/src/Server.ts --outfile ./dist/prismarine",
+        "package": "scriptc build ./packages/server/src/Server.ts --npm-static auto --out ./dist/prismarine",
         "version": "changeset version",
         "postversion": "pnpm install",
         "version:unstable": "changeset version --snapshot unstable",
         "release": "changeset publish",
         "release:unstable": "changeset publish --no-git-tag --tag unstable",
-        "changeset": "changeset"
+        "changeset": "changeset",
+        "package:coverage": "scriptc coverage ./packages/server/src/Server.ts"
     },
     "repository": {
         "type": "git",
@@ -92,6 +93,7 @@
         "lint-staged": "17.6.0",
         "prettier": "3.9.10",
         "prettier-eslint": "17.1.2",
+        "scriptc": "0.4.2",
         "ts-mockito": "2.6.1",
         "turbo": "2.11.10",
         "turbo-ignore": "2.11.10",
@@ -109,8 +111,8 @@
     },
     "dependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
-        "@jsprismarine/brigadier": "workspace:*",
         "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/brigadier": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*"
     }
 }

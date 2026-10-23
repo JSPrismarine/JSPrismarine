@@ -4,8 +4,10 @@ packages:
 onlyBuiltDependencies:
   - core-js-pure
   - esbuild
+  - scriptc
 
 allowBuilds:
   esbuild: true
+  scriptc: true
 
 minimumReleaseAge: 0
