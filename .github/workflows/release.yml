@@ -10,6 +10,10 @@ concurrency:
 
 env:
     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    # setup-node writes an .npmrc that reads its token from NODE_AUTH_TOKEN, so the
+    # unstable publish step authenticates through it directly instead of relying
+    # on the .npmrc changesets/action happens to leave behind.
+    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     NPM_CONFIG_PROVENANCE: true
     GITHUB_TOKEN: ${{ secrets.MACHINE_USER }}
     HUSKY: 0
