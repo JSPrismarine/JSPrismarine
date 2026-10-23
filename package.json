@@ -11,9 +11,11 @@
     ],
     "packageManager": "pnpm@12.15.0",
     "engines": {
-        "node": ">=21.0.0"
+        "node": ">=21.0.0",
+        "pnpm": ">=12"
     },
     "scripts": {
+        "preinstall": "npx only-allow pnpm",
         "prepare": "husky || true",
         "start": "pnpm --filter ./packages/server run start",
         "dev": "pnpm --filter ./packages/server run dev",
