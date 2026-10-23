@@ -4,7 +4,22 @@
     "description": "Minecraft: Bedrock Edition client",
     "sideEffects": false,
     "publishConfig": {
-        "access": "public"
+        "access": "public",
+        "exports": {
+            ".": {
+                "types": "./dist/index.d.ts",
+                "import": "./dist/index.es.js",
+                "module": "./dist/index.es.js",
+                "require": "./dist/index.cjs.cjs"
+            },
+            "./*": {
+                "types": "./dist/*.d.ts",
+                "import": "./dist/*.es.js",
+                "module": "./dist/*.es.js",
+                "require": "./dist/*.cjs.cjs"
+            },
+            "./package.json": "./package.json"
+        }
     },
     "type": "module",
     "files": [
@@ -19,18 +34,8 @@
         "jsp-client": "./dist/cli.es.js"
     },
     "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.es.js",
-            "module": "./dist/index.es.js",
-            "require": "./dist/index.cjs.cjs"
-        },
-        "./*": {
-            "types": "./dist/*.d.ts",
-            "import": "./dist/*.es.js",
-            "module": "./dist/*.es.js",
-            "require": "./dist/*.cjs.cjs"
-        },
+        ".": "./src/index.ts",
+        "./*": "./src/*.ts",
         "./package.json": "./package.json"
     },
     "scripts": {
