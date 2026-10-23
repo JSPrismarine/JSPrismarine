@@ -15,7 +15,7 @@
     },
     "scripts": {
         "prepare": "husky || true",
-        "start": "node ./packages/server/dist/Server.es.js --warning --circular",
+        "start": "pnpm --filter ./packages/server run start",
         "dev": "pnpm --filter ./packages/server run dev",
         "clean": "turbo run clean",
         "build": "turbo run build --env-mode=loose",
