@@ -4,7 +4,20 @@
     "description": "Minecraft: Bedrock Edition dedicated server entrypoint",
     "sideEffects": false,
     "publishConfig": {
-        "access": "public"
+        "access": "public",
+        "exports": {
+            ".": {
+                "import": "./dist/index.es.js",
+                "module": "./dist/index.es.js",
+                "types": "./dist/index.d.ts"
+            },
+            "./*": {
+                "import": "./dist/*.es.js",
+                "module": "./dist/*.es.js",
+                "types": "./dist/*.d.ts"
+            },
+            "./package.json": "./package.json"
+        }
     },
     "type": "module",
     "files": [
@@ -18,16 +31,8 @@
     "module": "./dist/index.es.js",
     "types": "./dist/index.d.ts",
     "exports": {
-        ".": {
-            "import": "./dist/index.es.js",
-            "module": "./dist/index.es.js",
-            "types": "./dist/index.d.ts"
-        },
-        "./*": {
-            "import": "./dist/*.es.js",
-            "module": "./dist/*.es.js",
-            "types": "./dist/*.d.ts"
-        },
+        ".": "./src/index.ts",
+        "./*": "./src/*.ts",
         "./package.json": "./package.json"
     },
     "scripts": {
