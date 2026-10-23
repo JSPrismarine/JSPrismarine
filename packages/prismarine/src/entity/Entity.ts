@@ -227,10 +227,6 @@ export class Entity {
         return (this.constructor as any).MOB_ID;
     }
 
-    public get [Symbol.toStringTag](): string {
-        return `Entity(${this.toString()})`;
-    }
-
     /**
      * Convert to a string representation.
      * @returns {string} The string.
