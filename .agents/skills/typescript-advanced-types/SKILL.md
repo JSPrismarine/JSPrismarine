@@ -1,29 +1,27 @@
 ---
 name: typescript-advanced-types
-description: Use when writing or changing generic, conditional, mapped or template-literal types in this repository, such as typed declarations that keep their literals or types derived from a schema or command tree.
+description: Use when writing or changing generic, conditional, mapped or template-literal types in this repository, such as types derived from declarations or preserved literal values.
 ---
 
 # Advanced types in this repository
 
-The repository uses advanced types for one job: derive types from a single declaration so that the
-runtime value, the README and the handlers can't drift apart. Use them when a declaration already
-exists and callers should get compile errors for names it doesn't contain. Don't add type machinery
-that nothing derives from; a plain interface is easier to read and to change.
+The repository uses advanced types to keep callers' types aligned with runtime declarations. Use
+them when a declaration already exists and callers should get compile errors for names it doesn't
+contain. Don't add type machinery that nothing derives from; a plain interface is easier to read and
+to change.
 
-Code samples follow [`biome.json`](../../../biome.json) and [code style](../../../docs/code-style.md):
-no `any` (use `unknown` and narrow it), `import type` for type-only imports, `T[]` instead of
-`Array<T>`, and `readonly` on declared data. The [TypeScript handbook](https://www.typescriptlang.org/docs/handbook/2/types-from-types.html)
+Code samples follow [`biome.json`](../../../biome.json) and [ESLint](../../../eslint.config.js). Use
+`import type` for type-only imports. Prefer `unknown` for untrusted values when callers should narrow
+them. The [TypeScript handbook](https://www.typescriptlang.org/docs/handbook/2/types-from-types.html)
 covers the language features themselves.
 
 ## Keep literals from a declaration
 
-Declare lists of names `as const` and derive the union from the value, as `tools/docs/src/permissions.ts`
-does for `PumpkinPermission`. Check object literals with `satisfies` so they keep their literal types
-instead of widening to the annotation, as every plugin's `src/info.ts` does with
-`satisfies PluginInfo<typeof PLUGIN_NAME>`.
+Declare lists of names `as const` and derive the union from the value. Check object literals with
+`satisfies` so they keep their literal types instead of widening to the annotation.
 
 ```typescript
-/** Every color the plugin can show. */
+/** Every color the package can show. */
 export const COLORS = ['red', 'green', 'blue'] as const;
 /** One of `COLORS`. */
 export type Color = (typeof COLORS)[number];
@@ -35,56 +33,25 @@ export function isColor(value: string): value is Color {
 ```
 
 When a function returns its argument for later inference, use `const` type parameters so callers
-don't need `as const`. `defineCommands` in `tools/docs/src/commands.ts` works this way.
+don't need `as const`.
 
-## Constrain strings with template literals
+## Derive types from a declaration
 
-Template literal types state a naming rule the compiler can check. Command permission nodes must
-start with the plugin name, so `defineCommands` takes the name as a type parameter and constrains the
-tree to `` `${Name}:${string}` ``:
+Mapped and conditional types turn a declaration into the shape code works with.
 
-```typescript
-interface Command<Node extends string> {
-    readonly description: string;
-    readonly permission: Node;
-}
-
-/** Declares commands whose permission nodes start with the plugin name. */
-export function defineCommands<
-    const Name extends string,
-    const T extends Readonly<Record<string, Command<`${Name}:${string}`>>>,
->(_pluginName: Name, tree: T): T {
-    return tree;
-}
-
-defineCommands('Demo', { demo: { description: 'Shows a demo.', permission: 'Demo:command.demo' } });
-// @ts-expect-error the node does not start with "Demo:"
-defineCommands('Demo', { demo: { description: 'Shows a demo.', permission: 'Other:command.demo' } });
-```
-
-## Derive types from a schema or tree
-
-Mapped and conditional types turn a declaration into the shape code works with:
-
-- `ConfigValues<S>` in `tools/config/src/schema.ts` maps a config schema to its parsed values.
-- `CommandArgumentValues` maps declared arguments to handler arguments, using key remapping
-  (`as Argument['name']`) and a conditional per argument type.
-- `CommandHandlers<T>` walks a command tree recursively and requires one handler per runnable path.
-
-Use `infer` with an `extends` constraint (`infer Nested extends SubcommandTree`) instead of a second
-conditional. To make options mutually exclusive, use a union whose members mark the other keys
-`?: never`, as `CommandBehavior` does.
+Use `infer` with an `extends` constraint when the inferred type must satisfy a shape. To make
+options mutually exclusive, use a union whose members mark the other keys `?: never`.
 
 Keep these types next to the runtime code that reads the same declaration, and export only the ones
-callers name. Types check code at compile time only: validate data from files, the network or the
-host at runtime, as the config validators do.
+callers name. Types check code at compile time only: validate data from files, the network, or other
+runtime sources.
 
 ## Test the types
 
 Type-level behavior that callers depend on needs a test. Use Vitest's `expectTypeOf` for the
-derived type and `// @ts-expect-error <reason>` for inputs that must not compile, as
-`tools/docs/src/commands.test.ts` does. The package's `typecheck` task compiles the test files, and
-that compile is what enforces both.
+derived type and `// @ts-expect-error <reason>` for inputs that must not compile. Check that the
+package's typecheck configuration includes those tests; `packages/prismarine/tsconfig.json` excludes
+`src/**/*.test.*`.
 
 ```typescript
 import { expectTypeOf, it } from 'vitest';

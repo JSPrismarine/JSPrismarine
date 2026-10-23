@@ -18,7 +18,7 @@ completed slice after its relevant checks pass, in dependency order.
 
 - Check the current branch and `git status --short`; distinguish this task's files from existing work.
 - Stage only files for the intended slice. Inspect the staged diff and confirm it covers one domain.
-- Use the repository's Conventional Commit format described in [Merging](../../../docs/ci-and-releases.md#merging).
+- Use the repository's Conventional Commit format. Follow the present-tense, imperative-mood, and 72-character subject-line rules in [Contributing](../../../CONTRIBUTING.md#git-commit-messages).
 
 ## Amendments and branch history
 

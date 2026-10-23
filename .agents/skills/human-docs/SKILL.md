@@ -30,18 +30,4 @@ Read the finished passage as if you were explaining it aloud to a colleague. Rev
 
 - For a requested edit, read the full document. Prune or reorder clearly redundant, stale, or implementation-only details when they undermine the reader's goal. Keep changes within the requested documents.
 - For a review-only request, leave files untouched. Report material findings with their location, the reader problem, and a concise fix.
-- For generated content, edit its source of truth. Use `docs/README.md` to find the relevant guide, then follow its generation and validation workflow instead of duplicating those steps here.
-
-## Example
-
-In the Distant Horizons README, unloaded-chunk behavior and valid all-air terrain are already covered nearby. This paragraph adds an old-cache limitation, so keep that operator-facing consequence and its recovery action; omit the runtime representation details.
-
-**Before:**
-
-> Pumpkin reports a missing chunk as WIT `option-none`; Static Hermes exposes that value as `null`, although generated TypeScript declarations say `undefined`. Both forms now block capture before any block sampling. A genuinely loaded section containing only air remains valid and is still cached. Existing DHP1 cache entries do not record whether their source chunks were loaded, so the plugin does not infer corruption from an all-air payload or remove entries automatically.
-
-**After:**
-
-> An empty cache entry can represent terrain that really contains only air, so the plugin leaves these entries in place. Older entries don't contain enough information to tell whether the terrain was loaded when they were captured.
->
-> If a cached area looks wrong, load its 16 chunks and run `/dhs cache recover <x> <z>` to capture it again.
+- For generated content, edit its source of truth. Inspect the affected package's `package.json` to find the generation and validation workflow instead of duplicating those steps here.
