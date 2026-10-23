@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-import { parseJSON5 } from 'confbox';
+import JSON5 from 'json5';
 
 import { PlayerNotFoundError } from '@jsprismarine/errors';
 import Console from '../Console';
@@ -126,7 +126,7 @@ export class PermissionManager implements Service {
                     name: string;
                     permissions: string[];
                 }>;
-            }> = parseJSON5((await fs.promises.readFile(withCwd(PERMISSION_FILE_NAME))).toString());
+            }> = JSON5.parse((await fs.promises.readFile(withCwd(PERMISSION_FILE_NAME))).toString());
 
             this.defaultPermissions = permissionsObject.defaultPermissions || [];
             this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
@@ -145,7 +145,7 @@ export class PermissionManager implements Service {
                 this.server.getLogger().warn(`Failed to load operators list!`);
                 fs.writeFileSync(withCwd(OPS_FILE_NAME), '[]');
             }
-            const ops: OpType[] = parseJSON5((await fs.promises.readFile(withCwd(OPS_FILE_NAME))).toString());
+            const ops: OpType[] = JSON5.parse((await fs.promises.readFile(withCwd(OPS_FILE_NAME))).toString());
 
             ops.map((op) => this.ops.add(op.name));
         } catch (error: unknown) {

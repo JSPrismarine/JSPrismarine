@@ -2,7 +2,7 @@ import GameRuleManager, { GameRules } from './GameRuleManager';
 
 import fs from 'node:fs';
 
-import { parseJSON5 } from 'confbox';
+import JSON5 from 'json5';
 
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
@@ -1145,7 +1145,7 @@ export class World implements Service {
 
         try {
             const raw = await fs.promises.readFile(path, 'utf-8');
-            return parseJSON5(raw.toString()) as Partial<LevelData>;
+            return JSON5.parse(raw.toString()) as Partial<LevelData>;
         } catch (error: any) {
             // Something went wrong while reading or parsing the level data.
             this.server.getLogger().error(error);
@@ -1195,7 +1195,7 @@ export class World implements Service {
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`),
                 { flag: 'r', encoding: 'utf-8' }
             );
-            return parseJSON5(raw.toString()) as Partial<WorldPlayerData>;
+            return JSON5.parse(raw.toString()) as Partial<WorldPlayerData>;
         } catch (error: unknown) {
             // Missing player data is the ordinary case - it is what a first join looks like -
             // so this is a debug line and not an error. It used to raise "Player has no XUID"
