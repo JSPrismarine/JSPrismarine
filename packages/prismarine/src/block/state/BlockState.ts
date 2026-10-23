@@ -29,10 +29,6 @@ export class BlockState {
         Object.freeze(this);
     }
 
-    public get [Symbol.toStringTag](): string {
-        return `BlockState(${this.toString()})`;
-    }
-
     /** Derives a state with one property changed. */
     public with(property: string, value: BlockStateValue): BlockState {
         return new BlockState(this.name, { ...this.properties, [property]: value });
