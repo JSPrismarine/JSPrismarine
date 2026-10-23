@@ -8,10 +8,11 @@ category: Guides
 
 ## 1. Prerequisites
 
-*   1.1 node `>=21` and pnpm `>=12`.
+*   1.1 node `>=22.18` and pnpm `>=12`.
 
 pnpm is the only supported package manager. Installs with npm or yarn fail
-with a message pointing back to pnpm.
+with a message pointing back to pnpm, and repository tooling runs one-off
+tools through `pnpm dlx` (or `pnpx`) rather than `npx`.
 
 ## 2. Install dependencies
 

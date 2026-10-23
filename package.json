@@ -6,16 +6,13 @@
     "sideEffects": false,
     "private": true,
     "type": "module",
-    "workspaces": [
-        "packages/*"
-    ],
     "packageManager": "pnpm@12.15.0",
     "engines": {
-        "node": ">=21.0.0",
+        "node": ">=22.18.0",
         "pnpm": ">=12"
     },
     "scripts": {
-        "preinstall": "npx only-allow pnpm",
+        "preinstall": "node scripts/ensure-pnpm.mts",
         "prepare": "husky || true",
         "start": "pnpm --filter ./packages/server run start",
         "dev": "pnpm --filter ./packages/server run dev",
@@ -25,7 +22,7 @@
         "build:watch": "turbo run build:watch --concurrency 32",
         "server:build": "turbo run build --filter=@jsprismarine/server --env-mode=loose",
         "test": "vitest run --coverage",
-        "typecheck": "turbo run typecheck",
+        "typecheck": "turbo run typecheck && tsc -p tsconfig.scripts.json",
         "lint": "concurrently pnpm:lint:*",
         "lint:eslint": "eslint packages/**/src/**/*.ts",
         "lint:prettier": "prettier --check .",
@@ -56,7 +53,7 @@
     "author": "JSPrismarine",
     "contributors": [
         {
-            "name": "Filiph Sandström",
+            "name": "Filiph Sandstr\u00f6m",
             "email": "filiph@hotmail.se",
             "url": "https://github.com/filiphsps"
         },
