@@ -31,6 +31,9 @@ When a message asks for an explanation, feasibility assessment, or recommendatio
   completed, validated slices and stage only the files in each slice. Follow
   [commit discipline](.agents/skills/commit-discipline/SKILL.md) when committing. Push, tag, publish,
   or create or modify a pull request only when the user asks.
+- When adding a skill under `.agents/skills/<name>/`, add a relative symlink at
+  `.claude/skills/<name>` pointing to that directory so Claude Code discovers it. Keep the skill
+  files in `.agents/skills/` as the source of truth.
 - For package changes that need a release, add a Changeset with `pnpm changeset`. Let Changesets
   manage package versions and release changelogs.
 - Treat `packages/bedrock-data/src/generated/` as generated output. Its inputs live in the resources
