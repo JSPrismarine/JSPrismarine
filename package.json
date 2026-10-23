@@ -17,8 +17,6 @@
         "prepare": "husky || true",
         "start": "node ./packages/server/dist/Server.es.js --warning --circular",
         "dev": "pnpm --filter ./packages/server run dev",
-        "predev:bun": "pnpm --filter ./packages/bedrock-data run generate",
-        "dev:bun": "pnpm --filter ./packages/server run dev:bun",
         "clean": "turbo run clean",
         "build": "turbo run build --env-mode=loose",
         "build:docs": "typedoc",
@@ -55,7 +53,7 @@
     "author": "JSPrismarine",
     "contributors": [
         {
-            "name": "Filiph Sandström",
+            "name": "Filiph Sandstr\u00f6m",
             "email": "filiph@hotmail.se",
             "url": "https://github.com/filiphsps"
         },
