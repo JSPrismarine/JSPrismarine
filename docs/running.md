@@ -8,7 +8,10 @@ category: Guides
 
 ## 1. Prerequisites
 
-*   1.1 node `lts` and `pnpm`,
+*   1.1 node `>=21` and pnpm `>=12`.
+
+pnpm is the only supported package manager. Installs with npm or yarn fail
+with a message pointing back to pnpm.
 
 ## 2. Install dependencies
 
