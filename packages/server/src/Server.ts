@@ -3,19 +3,19 @@ import { Logger } from '@jsprismarine/logger';
 import { Config, Server } from '@jsprismarine/prismarine';
 import { format, transports } from 'winston';
 
-import dotenv from 'dotenv';
 import path from 'node:path';
 
 process.title = 'JSPrismarine';
 
-dotenv.config({
-    path: [
-        path.join(process.cwd(), '.env.local'),
-        path.join(process.cwd(), '.env'),
-        path.join(process.cwd(), '.env.development.local'),
-        path.join(process.cwd(), '.env.development')
-    ]
-});
+// Values already in the environment win, then earlier files over later ones,
+// matching the dotenv behavior this replaces.
+for (const file of ['.env.local', '.env', '.env.development.local', '.env.development']) {
+    try {
+        process.loadEnvFile(path.join(process.cwd(), file));
+    } catch {
+        // The file is optional.
+    }
+}
 
 const date = new Date();
 let logFile = 'jsprismarine-development.log';
@@ -40,6 +40,7 @@ const logger = new Logger(config.getLogLevel(), [
         format: format.printf(({ level, message, timestamp, namespace }: any) => {
             return `[${timestamp}] [${level}]${colorParser(
                 `${namespace ? ` [${namespace}]` : ''}: ${message}`
+                // eslint-disable-next-line no-control-regex -- strips ANSI escapes from file logs
             )}`.replaceAll(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
         })
     })
