@@ -39,7 +39,7 @@
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "build": "vite build",
         "typecheck": "tsc -noEmit",
-        "start": "cross-env NODE_ENV=production node ./dist/Server.js --unhandled-rejections=strict",
+        "start": "cross-env NODE_ENV=production node --import tsx ./src/Server.ts --unhandled-rejections=strict",
         "dev": "node ./scripts/dev.mjs"
     },
     "repository": {
