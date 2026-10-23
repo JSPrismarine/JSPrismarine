@@ -1,4 +1,3 @@
-import fastJWT from 'fast-jwt';
 import { createHash } from 'node:crypto';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Device from '../../utils/Device';
@@ -56,7 +55,15 @@ export default class LoginPacket extends DataPacket {
         // TODO: content length, to validate it's lenght...
         this.readUnsignedVarInt();
         const chainData = JSON.parse(NetworkUtil.readLELengthASCIIString(this)) as any;
-        const decode = fastJWT.createDecoder();
+        // The signature is checked against the identity chain elsewhere; here the
+        // payload is only read, so a JWT is just three base64url segments.
+        const decode = (token: string): any => {
+            const payload = token.split('.')[1];
+            if (!payload) {
+                throw new Error('The login token is not a JWT');
+            }
+            return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+        };
 
         // Two shapes, and which one arrives depends on the client's version rather than on
         // anything it chose. Up to 1.26.10 the identity was a link in the chain carrying
