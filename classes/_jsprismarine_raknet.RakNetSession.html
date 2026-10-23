@@ -170,7 +170,7 @@
 <li><a href="" aria-current="page">RakNetSession</a></li></ul>
 <h1>Class RakNetSession</h1></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L34">packages/raknet/src/Session.ts:34</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L101">packages/raknet/src/Session.ts:101</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -184,22 +184,29 @@
 <h3 class="tsd-index-heading tsd-anchor-link" id="properties">Properties<a href="#properties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-index-list"><a href="#guid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>guid</span></a>
 <a href="#rinfo" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>rinfo</span></a>
+<a href="#role" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>role</span></a>
 </div></section>
 <section class="tsd-index-section">
 <h3 class="tsd-index-heading tsd-anchor-link" id="methods">Methods<a href="#methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-index-list"><a href="#close" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>close</span></a>
 <a href="#disconnect" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>disconnect</span></a>
+<a href="#disconnectimmediate" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>disconnect<wbr/>Immediate</span></a>
 <a href="#getaddress" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Address</span></a>
 <a href="#getlistener" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Listener</span></a>
 <a href="#getmtu" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>MTU</span></a>
+<a href="#getrtt" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>RTT</span></a>
 <a href="#getstate" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>State</span></a>
 <a href="#handle" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle</span></a>
 <a href="#handleconnectedping" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Connected<wbr/>Ping</span></a>
 <a href="#handleconnectionrequest" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Connection<wbr/>Request</span></a>
 <a href="#handlefragment" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Fragment</span></a>
 <a href="#isactive" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Active</span></a>
+<a href="#isclosing" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Closing</span></a>
 <a href="#isdisconnected" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Disconnected</span></a>
+<a href="#ishandshaking" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Handshaking</span></a>
 <a href="#isolderorderedframe" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Older<wbr/>Ordered<wbr/>Frame</span></a>
+<a href="#sendconnectedping" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Connected<wbr/>Ping</span></a>
+<a href="#sendconnectionrequest" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Connection<wbr/>Request</span></a>
 <a href="#sendframe" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Frame</span></a>
 <a href="#sendframequeue" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Frame<wbr/>Queue</span></a>
 <a href="#update" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>update</span></a>
@@ -211,18 +218,19 @@
 <h3 class="tsd-anchor-link" id="constructor"><span>constructor</span><a href="#constructor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
-<div class="tsd-signature tsd-anchor-link" id="constructorraknetsession"><span class="tsd-signature-keyword">new</span> <span class="tsd-kind-constructor-signature">RakNetSession</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">listener</span><span class="tsd-signature-symbol">:</span> <a href="_jsprismarine_raknet.RakNetListener.html" class="tsd-signature-type tsd-kind-class">RakNetListener</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">mtuSize</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">rinfo</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">RemoteInfo</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">guid</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">RakNetSession</a><a href="#constructorraknetsession" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-signature tsd-anchor-link" id="constructorraknetsession"><span class="tsd-signature-keyword">new</span> <span class="tsd-kind-constructor-signature">RakNetSession</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">listener</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_jsprismarine_raknet.RakNetPeer.html" class="tsd-signature-type tsd-kind-interface">RakNetPeer</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">mtuSize</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">rinfo</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">RemoteInfo</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">guid</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">role</span><span class="tsd-signature-symbol">?:</span> <a href="../enums/_jsprismarine_raknet.RakNetRole.html" class="tsd-signature-type tsd-kind-enum">RakNetRole</a><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">RakNetSession</a><a href="#constructorraknetsession" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
-<li><span><span class="tsd-kind-parameter">listener</span>: <a href="_jsprismarine_raknet.RakNetListener.html" class="tsd-signature-type tsd-kind-class">RakNetListener</a></span></li>
+<li><span><span class="tsd-kind-parameter">listener</span>: <a href="../interfaces/_jsprismarine_raknet.RakNetPeer.html" class="tsd-signature-type tsd-kind-interface">RakNetPeer</a></span></li>
 <li><span><span class="tsd-kind-parameter">mtuSize</span>: <span class="tsd-signature-type">number</span></span></li>
 <li><span><span class="tsd-kind-parameter">rinfo</span>: <span class="tsd-signature-type">RemoteInfo</span></span></li>
-<li><span><span class="tsd-kind-parameter">guid</span>: <span class="tsd-signature-type">bigint</span></span></li></ul></div>
+<li><span><span class="tsd-kind-parameter">guid</span>: <span class="tsd-signature-type">bigint</span></span></li>
+<li><span><span class="tsd-kind-parameter">role</span>: <a href="../enums/_jsprismarine_raknet.RakNetRole.html" class="tsd-signature-type tsd-kind-enum">RakNetRole</a><span class="tsd-signature-symbol"> = RakNetRole.SERVER</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">RakNetSession</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L64">packages/raknet/src/Session.ts:64</a></li></ul></aside></div></li></ul></section></section></details>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L195">packages/raknet/src/Session.ts:195</a></li></ul></aside></div></li></ul></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -230,12 +238,17 @@
 <h3 class="tsd-anchor-link" id="guid"><code class="tsd-tag">Readonly</code><span>guid</span><a href="#guid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">guid</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L68">packages/raknet/src/Session.ts:68</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L199">packages/raknet/src/Session.ts:199</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="rinfo"><code class="tsd-tag">Readonly</code><span>rinfo</span><a href="#rinfo" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">rinfo</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">RemoteInfo</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L67">packages/raknet/src/Session.ts:67</a></li></ul></aside></section></section></details>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L198">packages/raknet/src/Session.ts:198</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="role"><code class="tsd-tag">Readonly</code><span>role</span><a href="#role" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">role</span><span class="tsd-signature-symbol">:</span> <a href="../enums/_jsprismarine_raknet.RakNetRole.html" class="tsd-signature-type tsd-kind-enum">RakNetRole</a><span class="tsd-signature-symbol"> = RakNetRole.SERVER</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L200">packages/raknet/src/Session.ts:200</a></li></ul></aside></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -245,26 +258,59 @@
 <li class="">
 <div class="tsd-signature tsd-anchor-link" id="close-1"><span class="tsd-kind-call-signature">close</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#close-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Queues the goodbye. Tears nothing down on its own - <a href="#disconnect" class="tsd-kind-method">disconnect</a> is what moves
+the session, and this is only the message it sends on the way.</p>
+</div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L485">packages/raknet/src/Session.ts:485</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1176">packages/raknet/src/Session.ts:1176</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="disconnect"><span>disconnect</span><a href="#disconnect" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
 <div class="tsd-signature tsd-anchor-link" id="disconnect-1"><span class="tsd-kind-call-signature">disconnect</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">reason</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#disconnect-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
-<div class="tsd-comment tsd-typography"><p>Kick a client</p>
+<div class="tsd-comment tsd-typography"><p>Hangs up, and keeps the session alive until the peer has acknowledged it.</p>
+<p>The goodbye is reliable, which buys nothing if the session is destroyed in the same
+breath: it would go out once, and a lost datagram would take the message with it -
+along with whatever was framed beside it, which for a kick is the <code>DisconnectPacket</code>
+carrying the reason. The peer would then sit out its own ten second timeout and show
+the player nothing. So the session moves to <a href="../enums/_jsprismarine_raknet.SessionStatus.html#disconnecting" class="tsd-kind-enum-member">SessionStatus.DISCONNECTING</a> and is
+forgotten by <a href="#update" class="tsd-kind-method">update</a> once the acknowledgement lands, which is RakNet's
+DISCONNECT_ASAP: the system stays in the list until <code>IsOutgoingDataWaiting</code> goes false.</p>
 </div>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li><span><span class="tsd-kind-parameter">reason</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#39;client disconnect&#39;</span></span>
-<div class="tsd-comment tsd-typography"><p>the reason message, optional</p>
+<div class="tsd-comment tsd-typography"><p>reported to whoever owns the session; never sent to the peer.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+<div class="tsd-comment tsd-typography">
+<div class="tsd-tag-see">
+<h4 class="tsd-anchor-link" id="see">See<a href="#see" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p><a href="https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L3565">https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L3565</a></p>
+</div></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1199">packages/raknet/src/Session.ts:1199</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="disconnectimmediate"><span>disconnect<wbr/>Immediate</span><a href="#disconnectimmediate" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="disconnectimmediate-1"><span class="tsd-kind-call-signature">disconnectImmediate</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">reason</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#disconnectimmediate-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Forgets the session at once, with no goodbye and no wait for one.</p>
+<p>RakNet's <code>CloseConnectionInternal(..., sendDisconnectionNotification=false, performImmediate=true)</code>: what a timeout does, and what a socket being torn down out
+from under a session has to do, since nothing will be left ticking to finish a linger.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">reason</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = ...</span></span>
+<div class="tsd-comment tsd-typography"><p>defaults to the one the pending disconnect was started with.</p>
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L494">packages/raknet/src/Session.ts:494</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1214">packages/raknet/src/Session.ts:1214</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getaddress"><span>get<wbr/>Address</span><a href="#getaddress" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -273,16 +319,16 @@
 <div class="tsd-description">
 <h4 class="tsd-returns-title">Returns <a href="_jsprismarine_raknet.InetAddress.html" class="tsd-signature-type tsd-kind-class">InetAddress</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L528">packages/raknet/src/Session.ts:528</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1304">packages/raknet/src/Session.ts:1304</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getlistener"><span>get<wbr/>Listener</span><a href="#getlistener" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
-<div class="tsd-signature tsd-anchor-link" id="getlistener-1"><span class="tsd-kind-call-signature">getListener</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="_jsprismarine_raknet.RakNetListener.html" class="tsd-signature-type tsd-kind-class">RakNetListener</a><a href="#getlistener-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-signature tsd-anchor-link" id="getlistener-1"><span class="tsd-kind-call-signature">getListener</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_jsprismarine_raknet.RakNetPeer.html" class="tsd-signature-type tsd-kind-interface">RakNetPeer</a><a href="#getlistener-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
-<h4 class="tsd-returns-title">Returns <a href="_jsprismarine_raknet.RakNetListener.html" class="tsd-signature-type tsd-kind-class">RakNetListener</a></h4><aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <a href="../interfaces/_jsprismarine_raknet.RakNetPeer.html" class="tsd-signature-type tsd-kind-interface">RakNetPeer</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L515">packages/raknet/src/Session.ts:515</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1283">packages/raknet/src/Session.ts:1283</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getmtu"><span>get<wbr/>MTU</span><a href="#getmtu" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -295,7 +341,19 @@ for this connection.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4><p>the UDP adjusted.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L524">packages/raknet/src/Session.ts:524</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1300">packages/raknet/src/Session.ts:1300</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getrtt"><span>get<wbr/>RTT</span><a href="#getrtt" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getrtt-1"><span class="tsd-kind-call-signature">getRTT</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span><a href="#getrtt-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>The smoothed round trip time in milliseconds, or null before the first
+acknowledgement has been measured.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span> <span class="tsd-signature-symbol">|</span> <span class="tsd-signature-type">null</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1291">packages/raknet/src/Session.ts:1291</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getstate"><span>get<wbr/>State</span><a href="#getstate" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -304,7 +362,7 @@ for this connection.</p>
 <div class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L503">packages/raknet/src/Session.ts:503</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1248">packages/raknet/src/Session.ts:1248</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="handle"><span>handle</span><a href="#handle" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -317,7 +375,7 @@ for this connection.</p>
 <li><span><span class="tsd-kind-parameter">buffer</span>: <span class="tsd-signature-type">Buffer</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L137">packages/raknet/src/Session.ts:137</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L272">packages/raknet/src/Session.ts:272</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="handleconnectedping"><span>handle<wbr/>Connected<wbr/>Ping</span><a href="#handleconnectedping" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -330,7 +388,7 @@ for this connection.</p>
 <li><span><span class="tsd-kind-parameter">buffer</span>: <span class="tsd-signature-type">Buffer</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_jsprismarine_raknet.Frame.html" class="tsd-signature-type tsd-kind-class">Frame</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L414">packages/raknet/src/Session.ts:414</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L887">packages/raknet/src/Session.ts:887</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="handleconnectionrequest"><span>handle<wbr/>Connection<wbr/>Request</span><a href="#handleconnectionrequest" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -343,7 +401,7 @@ for this connection.</p>
 <li><span><span class="tsd-kind-parameter">buffer</span>: <span class="tsd-signature-type">Buffer</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="_jsprismarine_raknet.Frame.html" class="tsd-signature-type tsd-kind-class">Frame</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L396">packages/raknet/src/Session.ts:396</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L798">packages/raknet/src/Session.ts:798</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="handlefragment"><span>handle<wbr/>Fragment</span><a href="#handlefragment" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -356,7 +414,7 @@ for this connection.</p>
 <li><span><span class="tsd-kind-parameter">frame</span>: <a href="_jsprismarine_raknet.Frame.html" class="tsd-signature-type tsd-kind-class">Frame</a></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L431">packages/raknet/src/Session.ts:431</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L904">packages/raknet/src/Session.ts:904</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="isactive"><span>is<wbr/>Active</span><a href="#isactive" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -365,7 +423,21 @@ for this connection.</p>
 <div class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L507">packages/raknet/src/Session.ts:507</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1252">packages/raknet/src/Session.ts:1252</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="isclosing"><span>is<wbr/>Closing</span><a href="#isclosing" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="isclosing-1"><span class="tsd-kind-call-signature">isClosing</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#isclosing-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Whether the session is on its way out, whether or not it has got there yet.</p>
+<p>The guard every teardown path shares: a session lingering in
+<a href="../enums/_jsprismarine_raknet.SessionStatus.html#disconnecting" class="tsd-kind-enum-member">SessionStatus.DISCONNECTING</a> has already said what it had to say, and must not
+be sent through any of it a second time.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1267">packages/raknet/src/Session.ts:1267</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="isdisconnected"><span>is<wbr/>Disconnected</span><a href="#isdisconnected" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -374,7 +446,22 @@ for this connection.</p>
 <div class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L511">packages/raknet/src/Session.ts:511</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1256">packages/raknet/src/Session.ts:1256</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="ishandshaking"><span>is<wbr/>Handshaking</span><a href="#ishandshaking" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="ishandshaking-1"><span class="tsd-kind-call-signature">isHandshaking</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#ishandshaking-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Whether the session exists but has not finished the connected handshake.</p>
+<p>RakNet splits this into UNVERIFIED_SENDER and HANDLING_CONNECTION_REQUEST; there is one
+state here because nothing needs to tell them apart. What needs the question is the
+offline handler, deciding whether a repeated <code>OpenConnectionRequest2</code> is a duplicate
+whose reply was lost - which it can only be while the handshake is still running.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1279">packages/raknet/src/Session.ts:1279</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="isolderorderedframe"><span>is<wbr/>Older<wbr/>Ordered<wbr/>Frame</span><a href="#isolderorderedframe" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -388,28 +475,64 @@ for this connection.</p>
 <ul class="tsd-parameter-list">
 <li><span><span class="tsd-kind-parameter">newIndex</span>: <span class="tsd-signature-type">number</span></span></li>
 <li><span><span class="tsd-kind-parameter">currentIndex</span>: <span class="tsd-signature-type">number</span></span></li>
-<li><span><span class="tsd-kind-parameter">maxValue</span>: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 0xffffff</span></span></li></ul></div>
+<li><span><span class="tsd-kind-parameter">maxValue</span>: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = MAX_TRIAD_VALUE</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
 <div class="tsd-comment tsd-typography">
 <div class="tsd-tag-see">
-<h4 class="tsd-anchor-link" id="see">See<a href="#see" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p><a href="https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L2901-L2920">https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L2901-L2920</a></p>
+<h4 class="tsd-anchor-link" id="see-1">See<a href="#see-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p><a href="https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L2901-L2920">https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L2901-L2920</a></p>
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L295">packages/raknet/src/Session.ts:295</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L616">packages/raknet/src/Session.ts:616</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sendconnectedping"><span>send<wbr/>Connected<wbr/>Ping</span><a href="#sendconnectedping" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="sendconnectedping-1"><span class="tsd-kind-call-signature">sendConnectedPing</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#sendconnectedping-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Sends a keepalive. RakNet's client pings on a timer so a connection that is idle in
+both directions still produces traffic before <a href="../variables/_jsprismarine_raknet.SESSION_TIMEOUT_MS.html" class="tsd-kind-variable">SESSION_TIMEOUT_MS</a> elapses.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+<div class="tsd-comment tsd-typography">
+<div class="tsd-tag-see">
+<h4 class="tsd-anchor-link" id="see-2">See<a href="#see-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><p><a href="https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L5971">https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L5971</a></p>
+</div></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L874">packages/raknet/src/Session.ts:874</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sendconnectionrequest"><span>send<wbr/>Connection<wbr/>Request</span><a href="#sendconnectionrequest" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="sendconnectionrequest-1"><span class="tsd-kind-call-signature">sendConnectionRequest</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">clientGuid</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#sendconnectionrequest-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Opens the connected handshake, the client half of <a href="#handleconnectionrequest" class="tsd-kind-method">handleConnectionRequest</a>.</p>
+<p>Called once the offline exchange has agreed an MTU and the session exists. Reliable
+ordered and immediate for the same reason the server's reply is: losing it stalls
+everything until the retransmission timer fires.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">clientGuid</span>: <span class="tsd-signature-type">bigint</span></span>
+<div class="tsd-comment tsd-typography"><p>our own guid, not <a href="#guid" class="tsd-kind-property">guid</a>, which holds the remote's.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L826">packages/raknet/src/Session.ts:826</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="sendframe"><span>send<wbr/>Frame</span><a href="#sendframe" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
-<div class="tsd-signature tsd-anchor-link" id="sendframe-1"><span class="tsd-kind-call-signature">sendFrame</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">frame</span><span class="tsd-signature-symbol">:</span> <a href="_jsprismarine_raknet.Frame.html" class="tsd-signature-type tsd-kind-class">Frame</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">flags</span><span class="tsd-signature-symbol">?:</span> <a href="../enums/_jsprismarine_raknet.RakNetPriority.html" class="tsd-signature-type tsd-kind-enum">RakNetPriority</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#sendframe-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-signature tsd-anchor-link" id="sendframe-1"><span class="tsd-kind-call-signature">sendFrame</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">frame</span><span class="tsd-signature-symbol">:</span> <a href="_jsprismarine_raknet.Frame.html" class="tsd-signature-type tsd-kind-class">Frame</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">priority</span><span class="tsd-signature-symbol">?:</span> <a href="../enums/_jsprismarine_raknet.RakNetPriority.html" class="tsd-signature-type tsd-kind-enum">RakNetPriority</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#sendframe-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li><span><span class="tsd-kind-parameter">frame</span>: <a href="_jsprismarine_raknet.Frame.html" class="tsd-signature-type tsd-kind-class">Frame</a></span></li>
-<li><span><span class="tsd-kind-parameter">flags</span>: <a href="../enums/_jsprismarine_raknet.RakNetPriority.html" class="tsd-signature-type tsd-kind-enum">RakNetPriority</a><span class="tsd-signature-symbol"> = RakNetPriority.NORMAL</span></span></li></ul></div>
+<li><span><span class="tsd-kind-parameter">priority</span>: <a href="../enums/_jsprismarine_raknet.RakNetPriority.html" class="tsd-signature-type tsd-kind-enum">RakNetPriority</a><span class="tsd-signature-symbol"> = RakNetPriority.NORMAL</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L305">packages/raknet/src/Session.ts:305</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L627">packages/raknet/src/Session.ts:627</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="sendframequeue"><span>send<wbr/>Frame<wbr/>Queue</span><a href="#sendframequeue" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -418,20 +541,27 @@ for this connection.</p>
 <div class="tsd-description">
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L465">packages/raknet/src/Session.ts:465</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L1026">packages/raknet/src/Session.ts:1026</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="update"><span>update</span><a href="#update" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
 <li class="">
-<div class="tsd-signature tsd-anchor-link" id="update-1"><span class="tsd-kind-call-signature">update</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">timestamp</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#update-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-signature tsd-anchor-link" id="update-1"><span class="tsd-kind-call-signature">update</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">timestamp</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#update-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
 <div class="tsd-description">
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
-<li><span><span class="tsd-kind-parameter">timestamp</span>: <span class="tsd-signature-type">number</span></span></li></ul></div>
+<li><span><span class="tsd-kind-parameter">timestamp</span>: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = ...</span></span>
+<div class="tsd-comment tsd-typography"><p>a reading of monotonicNow, defaulting to one taken here.</p>
+<p>Every deadline this compares against is on that clock, so a caller passing
+<code>Date.now()</code> is not merely imprecise: epoch milliseconds beside process-relative ones
+expire every retransmission and every reassembly at once and time the session out on
+the first pass where it is idle. Pass a value only to update several sessions against
+one instant, or to drive time forward in a test.</p>
+</div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/9b3c15a65bef9485304c2c6e0312285cbcb3c026/packages/raknet/src/Session.ts#L106">packages/raknet/src/Session.ts:106</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/raknet/src/Session.ts#L224">packages/raknet/src/Session.ts:224</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -448,9 +578,9 @@ for this connection.</p>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Constructors</summary>
 <div><a href="#constructor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a></div></details>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
-<div><a href="#guid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>guid</span></a><a href="#rinfo"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>rinfo</span></a></div></details>
+<div><a href="#guid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>guid</span></a><a href="#rinfo"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>rinfo</span></a><a href="#role"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>role</span></a></div></details>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
-<div><a href="#close"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>close</span></a><a href="#disconnect"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>disconnect</span></a><a href="#getaddress"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Address</span></a><a href="#getlistener"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Listener</span></a><a href="#getmtu"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>MTU</span></a><a href="#getstate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>State</span></a><a href="#handle"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle</span></a><a href="#handleconnectedping"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Connected<wbr/>Ping</span></a><a href="#handleconnectionrequest"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Connection<wbr/>Request</span></a><a href="#handlefragment"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Fragment</span></a><a href="#isactive"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Active</span></a><a href="#isdisconnected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Disconnected</span></a><a href="#isolderorderedframe"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Older<wbr/>Ordered<wbr/>Frame</span></a><a href="#sendframe"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Frame</span></a><a href="#sendframequeue"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Frame<wbr/>Queue</span></a><a href="#update"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>update</span></a></div></details></div></details></div>
+<div><a href="#close"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>close</span></a><a href="#disconnect"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>disconnect</span></a><a href="#disconnectimmediate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>disconnect<wbr/>Immediate</span></a><a href="#getaddress"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Address</span></a><a href="#getlistener"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Listener</span></a><a href="#getmtu"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>MTU</span></a><a href="#getrtt"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>RTT</span></a><a href="#getstate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>State</span></a><a href="#handle"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle</span></a><a href="#handleconnectedping"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Connected<wbr/>Ping</span></a><a href="#handleconnectionrequest"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Connection<wbr/>Request</span></a><a href="#handlefragment"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>handle<wbr/>Fragment</span></a><a href="#isactive"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Active</span></a><a href="#isclosing"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Closing</span></a><a href="#isdisconnected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Disconnected</span></a><a href="#ishandshaking"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Handshaking</span></a><a href="#isolderorderedframe"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>is<wbr/>Older<wbr/>Ordered<wbr/>Frame</span></a><a href="#sendconnectedping"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Connected<wbr/>Ping</span></a><a href="#sendconnectionrequest"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Connection<wbr/>Request</span></a><a href="#sendframe"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Frame</span></a><a href="#sendframequeue"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>send<wbr/>Frame<wbr/>Queue</span></a><a href="#update"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>update</span></a></div></details></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../modules.html">JSPrismarine</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
@@ -458,7 +588,7 @@ for this connection.</p>
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a><br>
             <span id="generation-date"></span>
             <script>
-                window.GENERATION_DATE = 1792763138273;
+                window.GENERATION_DATE = 1792783204381;
 
                 (() => {
                     

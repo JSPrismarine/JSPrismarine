@@ -1,0 +1,763 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>StartGame | JSPrismarine</title><meta name="description" content="Documentation for JSPrismarine"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script><style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-sys-color-primary: #64dbb4;
+    --md-sys-color-on-primary: #003829;
+    --md-sys-color-primary-container: #00513d;
+    --md-sys-color-on-primary-container: #82f8cf;
+    --md-sys-color-secondary: #b2ccc0;
+    --md-sys-color-on-secondary: #1e352c;
+    --md-sys-color-secondary-container: #344c42;
+    --md-sys-color-on-secondary-container: #cee9dc;
+    --md-sys-color-tertiary: #a7cce1;
+    --md-sys-color-on-tertiary: #0b3445;
+    --md-sys-color-tertiary-container: #264b5d;
+    --md-sys-color-on-tertiary-container: #c3e8fe;
+    --md-sys-color-error: #ffb4ab;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #93000a;
+    --md-sys-color-on-error-container: #ffb4ab;
+    --md-sys-color-background: #191c1b;
+    --md-sys-color-on-background: #e1e3e0;
+    --md-sys-color-surface: #191c1b;
+    --md-sys-color-on-surface: #e1e3e0;
+    --md-sys-color-surface-variant: #404944;
+    --md-sys-color-on-surface-variant: #bfc9c3;
+    --md-sys-color-outline: #89938d;
+    --md-sys-color-outline-variant: #404944;
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-scrim: #000000;
+    --md-sys-color-inverse-surface: #e1e3e0;
+    --md-sys-color-inverse-on-surface: #2e312f;
+    --md-sys-color-inverse-primary: #006c52;
+    --md-sys-color-surface-dim: #111412;
+    --md-sys-color-surface-bright: #363a38;
+    --md-sys-color-surface-container-lowest: #0b0f0d;
+    --md-sys-color-surface-container-low: #191c1b;
+    --md-sys-color-surface-container: #1d201e;
+    --md-sys-color-surface-container-high: #272b29;
+    --md-sys-color-surface-container-highest: #323633
+  }
+}
+:root[data-theme="dark"] {
+  --md-sys-color-primary: #64dbb4;
+  --md-sys-color-on-primary: #003829;
+  --md-sys-color-primary-container: #00513d;
+  --md-sys-color-on-primary-container: #82f8cf;
+  --md-sys-color-secondary: #b2ccc0;
+  --md-sys-color-on-secondary: #1e352c;
+  --md-sys-color-secondary-container: #344c42;
+  --md-sys-color-on-secondary-container: #cee9dc;
+  --md-sys-color-tertiary: #a7cce1;
+  --md-sys-color-on-tertiary: #0b3445;
+  --md-sys-color-tertiary-container: #264b5d;
+  --md-sys-color-on-tertiary-container: #c3e8fe;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffb4ab;
+  --md-sys-color-background: #191c1b;
+  --md-sys-color-on-background: #e1e3e0;
+  --md-sys-color-surface: #191c1b;
+  --md-sys-color-on-surface: #e1e3e0;
+  --md-sys-color-surface-variant: #404944;
+  --md-sys-color-on-surface-variant: #bfc9c3;
+  --md-sys-color-outline: #89938d;
+  --md-sys-color-outline-variant: #404944;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-inverse-surface: #e1e3e0;
+  --md-sys-color-inverse-on-surface: #2e312f;
+  --md-sys-color-inverse-primary: #006c52;
+  --md-sys-color-surface-dim: #111412;
+  --md-sys-color-surface-bright: #363a38;
+  --md-sys-color-surface-container-lowest: #0b0f0d;
+  --md-sys-color-surface-container-low: #191c1b;
+  --md-sys-color-surface-container: #1d201e;
+  --md-sys-color-surface-container-high: #272b29;
+  --md-sys-color-surface-container-highest: #323633
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --md-sys-color-primary: #006c52;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #82f8cf;
+    --md-sys-color-on-primary-container: #002117;
+    --md-sys-color-secondary: #4c6359;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #cee9dc;
+    --md-sys-color-on-secondary-container: #082018;
+    --md-sys-color-tertiary: #3f6375;
+    --md-sys-color-on-tertiary: #ffffff;
+    --md-sys-color-tertiary-container: #c3e8fe;
+    --md-sys-color-on-tertiary-container: #001e2b;
+    --md-sys-color-error: #ba1a1a;
+    --md-sys-color-on-error: #ffffff;
+    --md-sys-color-error-container: #ffdad6;
+    --md-sys-color-on-error-container: #410002;
+    --md-sys-color-background: #fbfdf9;
+    --md-sys-color-on-background: #191c1b;
+    --md-sys-color-surface: #fbfdf9;
+    --md-sys-color-on-surface: #191c1b;
+    --md-sys-color-surface-variant: #dbe5de;
+    --md-sys-color-on-surface-variant: #404944;
+    --md-sys-color-outline: #707974;
+    --md-sys-color-outline-variant: #bfc9c3;
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-scrim: #000000;
+    --md-sys-color-inverse-surface: #2e312f;
+    --md-sys-color-inverse-on-surface: #eff1ee;
+    --md-sys-color-inverse-primary: #64dbb4;
+    --md-sys-color-surface-dim: #d8dbd7;
+    --md-sys-color-surface-bright: #f8faf6;
+    --md-sys-color-surface-container-lowest: #ffffff;
+    --md-sys-color-surface-container-low: #f2f4f1;
+    --md-sys-color-surface-container: #eceeeb;
+    --md-sys-color-surface-container-high: #e6e9e5;
+    --md-sys-color-surface-container-highest: #e1e3e0
+  }
+}
+:root[data-theme="light"] {
+  --md-sys-color-primary: #006c52;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #82f8cf;
+  --md-sys-color-on-primary-container: #002117;
+  --md-sys-color-secondary: #4c6359;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #cee9dc;
+  --md-sys-color-on-secondary-container: #082018;
+  --md-sys-color-tertiary: #3f6375;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #c3e8fe;
+  --md-sys-color-on-tertiary-container: #001e2b;
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+  --md-sys-color-background: #fbfdf9;
+  --md-sys-color-on-background: #191c1b;
+  --md-sys-color-surface: #fbfdf9;
+  --md-sys-color-on-surface: #191c1b;
+  --md-sys-color-surface-variant: #dbe5de;
+  --md-sys-color-on-surface-variant: #404944;
+  --md-sys-color-outline: #707974;
+  --md-sys-color-outline-variant: #bfc9c3;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-inverse-surface: #2e312f;
+  --md-sys-color-inverse-on-surface: #eff1ee;
+  --md-sys-color-inverse-primary: #64dbb4;
+  --md-sys-color-surface-dim: #d8dbd7;
+  --md-sys-color-surface-bright: #f8faf6;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f2f4f1;
+  --md-sys-color-surface-container: #eceeeb;
+  --md-sys-color-surface-container-high: #e6e9e5;
+  --md-sys-color-surface-container-highest: #e1e3e0
+}
+</style><link rel="stylesheet" href="../assets/material-style.css"/></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">JSPrismarine</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="../modules/_jsprismarine_protocol.html">@jsprismarine/protocol</a></li>
+<li><a href="" aria-current="page">StartGame</a></li></ul>
+<h1>Interface StartGame</h1></div>
+<div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">StartGame</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#achievementsdisabled">achievementsDisabled</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#allowanonymousblockdropsineditorworlds">allowAnonymousBlockDropsInEditorWorlds</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#basegameversion">baseGameVersion</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#blocknetworkidsarehashes">blockNetworkIdsAreHashes</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#blockproperties">blockProperties</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">BlockProperty</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#blockregistrychecksum">blockRegistryChecksum</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#bonuschestenabled">bonusChestEnabled</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#chatrestrictionlevel">chatRestrictionLevel</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#clientsidegeneration">clientSideGeneration</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#commandsenabled">commandsEnabled</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#confirmedplatformlockedcontent">confirmedPlatformLockedContent</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#createdineditor">createdInEditor</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#currenttick">currentTick</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#customskinsdisabled">customSkinsDisabled</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#daycyclestoptime">dayCycleStopTime</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#difficulty">difficulty</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#dimension">dimension</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#disableplayerinteractions">disablePlayerInteractions</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#editorworldtype">editorWorldType</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#educationeditionoffer">educationEditionOffer</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#educationfeaturesenabled">educationFeaturesEnabled</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#educationproductid">educationProductId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#edushareduriresource">eduSharedUriResource</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">buttonName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">linkUri</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#emotechatmuted">emoteChatMuted</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#enableitemstacknetmanager">enableItemStackNetManager</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#enchantmentseed">enchantmentSeed</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#entityid">entityId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#experiments">experiments</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ExperimentToggle</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#experimentsevertoggled">experimentsEverToggled</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#exportedfromeditor">exportedFromEditor</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#forceexperimentalgameplay">forceExperimentalGameplay</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#gamemode">gamemode</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#gamerules">gameRules</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">GameRule</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#generator">generator</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#hardcore">hardcore</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#haslockedbehaviorpack">hasLockedBehaviorPack</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#haslockedresourcepack">hasLockedResourcePack</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#isfromlockedtemplate">isFromLockedTemplate</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#isfromworldtemplate">isFromWorldTemplate</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#istrial">isTrial</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#isworldtemplateoptionlocked">isWorldTemplateOptionLocked</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#lanbroadcast">lanBroadcast</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#levelid">levelId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#levelname">levelName</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#lightninglevel">lightningLevel</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#limitedworlddepth">limitedWorldDepth</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#limitedworldwidth">limitedWorldWidth</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#multiplayercorrelationid">multiplayerCorrelationId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#multiplayergame">multiplayerGame</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#newnether">newNether</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#onlyspawnv1villagers">onlySpawnV1Villagers</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#ownerid">ownerId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#personadisabled">personaDisabled</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#pitch">pitch</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#platformbroadcastsetting">platformBroadcastSetting</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#playerpermissions">playerPermissions</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#playerpropertydata">playerPropertyData</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#position">position</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Vec3Like</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#rainlevel">rainLevel</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#rewindhistorysize">rewindHistorySize</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#runtimeentityid">runtimeEntityId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#scenarioid">scenarioId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#seed">seed</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#serverauthoritativeblockbreaking">serverAuthoritativeBlockBreaking</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#serverauthoritativesound">serverAuthoritativeSound</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#serverchunktickrange">serverChunkTickRange</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#servereditorconnectionpolicy">serverEditorConnectionPolicy</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#serverid">serverId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#serverjoininformation">serverJoinInformation</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">ServerJoinInformation</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#serverversion">serverVersion</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#spawnbiometype">spawnBiomeType</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#spawnposition">spawnPosition</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Vec3Like</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#startwithmapenabled">startWithMapEnabled</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#templatecontentidentity">templateContentIdentity</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#texturepacksrequired">texturePacksRequired</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#usemsagamertagsonly">useMsaGamertagsOnly</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#userdefinedbiomename">userDefinedBiomeName</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#worldgamemode">worldGamemode</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#worldid">worldId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#worldtemplateid">worldTemplateId</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WireUUID</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#xboxlivebroadcastsetting">xboxLiveBroadcastSetting</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#yaw">yaw</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L73">protocol/src/packet/StartGamePacket.ts:73</a></li></ul></aside>
+<section class="tsd-panel-group tsd-index-group">
+<section class="tsd-panel tsd-index-panel">
+<details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h5 class="tsd-index-heading uppercase">Index</h5></summary>
+<div class="tsd-accordion-details">
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="properties">Properties<a href="#properties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#achievementsdisabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>achievements<wbr/>Disabled</span></a>
+<a href="#allowanonymousblockdropsineditorworlds" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>allow<wbr/>Anonymous<wbr/>Block<wbr/>Drops<wbr/>In<wbr/>Editor<wbr/>Worlds</span></a>
+<a href="#basegameversion" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>base<wbr/>Game<wbr/>Version</span></a>
+<a href="#blocknetworkidsarehashes" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>block<wbr/>Network<wbr/>Ids<wbr/>Are<wbr/>Hashes</span></a>
+<a href="#blockproperties" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>block<wbr/>Properties</span></a>
+<a href="#blockregistrychecksum" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>block<wbr/>Registry<wbr/>Checksum</span></a>
+<a href="#bonuschestenabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>bonus<wbr/>Chest<wbr/>Enabled</span></a>
+<a href="#chatrestrictionlevel" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>chat<wbr/>Restriction<wbr/>Level</span></a>
+<a href="#clientsidegeneration" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>client<wbr/>Side<wbr/>Generation</span></a>
+<a href="#commandsenabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>commands<wbr/>Enabled</span></a>
+<a href="#confirmedplatformlockedcontent" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>confirmed<wbr/>Platform<wbr/>Locked<wbr/>Content</span></a>
+<a href="#createdineditor" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>created<wbr/>In<wbr/>Editor</span></a>
+<a href="#currenttick" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>current<wbr/>Tick</span></a>
+<a href="#customskinsdisabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>custom<wbr/>Skins<wbr/>Disabled</span></a>
+<a href="#daycyclestoptime" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>day<wbr/>Cycle<wbr/>Stop<wbr/>Time</span></a>
+<a href="#difficulty" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>difficulty</span></a>
+<a href="#dimension" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>dimension</span></a>
+<a href="#disableplayerinteractions" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>disable<wbr/>Player<wbr/>Interactions</span></a>
+<a href="#editorworldtype" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>editor<wbr/>World<wbr/>Type</span></a>
+<a href="#educationeditionoffer" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>education<wbr/>Edition<wbr/>Offer</span></a>
+<a href="#educationfeaturesenabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>education<wbr/>Features<wbr/>Enabled</span></a>
+<a href="#educationproductid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>education<wbr/>Product<wbr/>Id</span></a>
+<a href="#edushareduriresource" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>edu<wbr/>Shared<wbr/>Uri<wbr/>Resource</span></a>
+<a href="#emotechatmuted" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>emote<wbr/>Chat<wbr/>Muted</span></a>
+<a href="#enableitemstacknetmanager" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>enable<wbr/>Item<wbr/>Stack<wbr/>Net<wbr/>Manager</span></a>
+<a href="#enchantmentseed" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>enchantment<wbr/>Seed</span></a>
+<a href="#entityid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>entity<wbr/>Id</span></a>
+<a href="#experiments" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>experiments</span></a>
+<a href="#experimentsevertoggled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>experiments<wbr/>Ever<wbr/>Toggled</span></a>
+<a href="#exportedfromeditor" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>exported<wbr/>From<wbr/>Editor</span></a>
+<a href="#forceexperimentalgameplay" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>force<wbr/>Experimental<wbr/>Gameplay?</span></a>
+<a href="#gamemode" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>gamemode</span></a>
+<a href="#gamerules" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>game<wbr/>Rules</span></a>
+<a href="#generator" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>generator</span></a>
+<a href="#hardcore" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>hardcore</span></a>
+<a href="#haslockedbehaviorpack" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>has<wbr/>Locked<wbr/>Behavior<wbr/>Pack</span></a>
+<a href="#haslockedresourcepack" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>has<wbr/>Locked<wbr/>Resource<wbr/>Pack</span></a>
+<a href="#isfromlockedtemplate" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>is<wbr/>From<wbr/>Locked<wbr/>Template</span></a>
+<a href="#isfromworldtemplate" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>is<wbr/>From<wbr/>World<wbr/>Template</span></a>
+<a href="#istrial" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>is<wbr/>Trial</span></a>
+<a href="#isworldtemplateoptionlocked" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>is<wbr/>World<wbr/>Template<wbr/>Option<wbr/>Locked</span></a>
+<a href="#lanbroadcast" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>lan<wbr/>Broadcast</span></a>
+<a href="#levelid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>level<wbr/>Id</span></a>
+<a href="#levelname" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>level<wbr/>Name</span></a>
+<a href="#lightninglevel" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>lightning<wbr/>Level</span></a>
+<a href="#limitedworlddepth" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>limited<wbr/>World<wbr/>Depth</span></a>
+<a href="#limitedworldwidth" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>limited<wbr/>World<wbr/>Width</span></a>
+<a href="#multiplayercorrelationid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>multiplayer<wbr/>Correlation<wbr/>Id</span></a>
+<a href="#multiplayergame" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>multiplayer<wbr/>Game</span></a>
+<a href="#newnether" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>new<wbr/>Nether</span></a>
+<a href="#onlyspawnv1villagers" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>only<wbr/>Spawn<wbr/>V1<wbr/>Villagers</span></a>
+<a href="#ownerid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>owner<wbr/>Id</span></a>
+<a href="#personadisabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>persona<wbr/>Disabled</span></a>
+<a href="#pitch" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>pitch</span></a>
+<a href="#platformbroadcastsetting" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>platform<wbr/>Broadcast<wbr/>Setting</span></a>
+<a href="#playerpermissions" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>player<wbr/>Permissions</span></a>
+<a href="#playerpropertydata" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>player<wbr/>Property<wbr/>Data</span></a>
+<a href="#position" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>position</span></a>
+<a href="#rainlevel" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>rain<wbr/>Level</span></a>
+<a href="#rewindhistorysize" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>rewind<wbr/>History<wbr/>Size</span></a>
+<a href="#runtimeentityid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>runtime<wbr/>Entity<wbr/>Id</span></a>
+<a href="#scenarioid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>scenario<wbr/>Id</span></a>
+<a href="#seed" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>seed</span></a>
+<a href="#serverauthoritativeblockbreaking" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Authoritative<wbr/>Block<wbr/>Breaking</span></a>
+<a href="#serverauthoritativesound" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Authoritative<wbr/>Sound</span></a>
+<a href="#serverchunktickrange" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Chunk<wbr/>Tick<wbr/>Range</span></a>
+<a href="#servereditorconnectionpolicy" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Editor<wbr/>Connection<wbr/>Policy</span></a>
+<a href="#serverid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Id</span></a>
+<a href="#serverjoininformation" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Join<wbr/>Information?</span></a>
+<a href="#serverversion" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Version</span></a>
+<a href="#spawnbiometype" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>spawn<wbr/>Biome<wbr/>Type</span></a>
+<a href="#spawnposition" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>spawn<wbr/>Position</span></a>
+<a href="#startwithmapenabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>start<wbr/>With<wbr/>Map<wbr/>Enabled</span></a>
+<a href="#templatecontentidentity" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>template<wbr/>Content<wbr/>Identity</span></a>
+<a href="#texturepacksrequired" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>texture<wbr/>Packs<wbr/>Required</span></a>
+<a href="#usemsagamertagsonly" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>use<wbr/>Msa<wbr/>Gamertags<wbr/>Only</span></a>
+<a href="#userdefinedbiomename" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>user<wbr/>Defined<wbr/>Biome<wbr/>Name</span></a>
+<a href="#worldgamemode" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>world<wbr/>Gamemode</span></a>
+<a href="#worldid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>world<wbr/>Id</span></a>
+<a href="#worldtemplateid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>world<wbr/>Template<wbr/>Id</span></a>
+<a href="#xboxlivebroadcastsetting" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>xbox<wbr/>Live<wbr/>Broadcast<wbr/>Setting</span></a>
+<a href="#yaw" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>yaw</span></a>
+</div></section></div></details></section></section>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="achievementsdisabled"><span>achievements<wbr/>Disabled</span><a href="#achievementsdisabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">achievementsDisabled</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L93">protocol/src/packet/StartGamePacket.ts:93</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="allowanonymousblockdropsineditorworlds"><span>allow<wbr/>Anonymous<wbr/>Block<wbr/>Drops<wbr/>In<wbr/>Editor<wbr/>Worlds</span><a href="#allowanonymousblockdropsineditorworlds" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">allowAnonymousBlockDropsInEditorWorlds</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L137">protocol/src/packet/StartGamePacket.ts:137</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="basegameversion"><span>base<wbr/>Game<wbr/>Version</span><a href="#basegameversion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">baseGameVersion</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L127">protocol/src/packet/StartGamePacket.ts:127</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="blocknetworkidsarehashes"><span>block<wbr/>Network<wbr/>Ids<wbr/>Are<wbr/>Hashes</span><a href="#blocknetworkidsarehashes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">blockNetworkIdsAreHashes</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L157">protocol/src/packet/StartGamePacket.ts:157</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="blockproperties"><span>block<wbr/>Properties</span><a href="#blockproperties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">blockProperties</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">BlockProperty</span><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L148">protocol/src/packet/StartGamePacket.ts:148</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="blockregistrychecksum"><span>block<wbr/>Registry<wbr/>Checksum</span><a href="#blockregistrychecksum" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">blockRegistryChecksum</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L154">protocol/src/packet/StartGamePacket.ts:154</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="bonuschestenabled"><span>bonus<wbr/>Chest<wbr/>Enabled</span><a href="#bonuschestenabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">bonusChestEnabled</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L113">protocol/src/packet/StartGamePacket.ts:113</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="chatrestrictionlevel"><span>chat<wbr/>Restriction<wbr/>Level</span><a href="#chatrestrictionlevel" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">chatRestrictionLevel</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L134">protocol/src/packet/StartGamePacket.ts:134</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="clientsidegeneration"><span>client<wbr/>Side<wbr/>Generation</span><a href="#clientsidegeneration" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">clientSideGeneration</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L156">protocol/src/packet/StartGamePacket.ts:156</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="commandsenabled"><span>commands<wbr/>Enabled</span><a href="#commandsenabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">commandsEnabled</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L108">protocol/src/packet/StartGamePacket.ts:108</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="confirmedplatformlockedcontent"><span>confirmed<wbr/>Platform<wbr/>Locked<wbr/>Content</span><a href="#confirmedplatformlockedcontent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">confirmedPlatformLockedContent</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L103">protocol/src/packet/StartGamePacket.ts:103</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="createdineditor"><span>created<wbr/>In<wbr/>Editor</span><a href="#createdineditor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">createdInEditor</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L95">protocol/src/packet/StartGamePacket.ts:95</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="currenttick"><span>current<wbr/>Tick</span><a href="#currenttick" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">currentTick</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L146">protocol/src/packet/StartGamePacket.ts:146</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="customskinsdisabled"><span>custom<wbr/>Skins<wbr/>Disabled</span><a href="#customskinsdisabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">customSkinsDisabled</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L125">protocol/src/packet/StartGamePacket.ts:125</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="daycyclestoptime"><span>day<wbr/>Cycle<wbr/>Stop<wbr/>Time</span><a href="#daycyclestoptime" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">dayCycleStopTime</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L97">protocol/src/packet/StartGamePacket.ts:97</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="difficulty"><span>difficulty</span><a href="#difficulty" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">difficulty</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L91">protocol/src/packet/StartGamePacket.ts:91</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="dimension"><span>dimension</span><a href="#dimension" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">dimension</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L87">protocol/src/packet/StartGamePacket.ts:87</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="disableplayerinteractions"><span>disable<wbr/>Player<wbr/>Interactions</span><a href="#disableplayerinteractions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">disablePlayerInteractions</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L135">protocol/src/packet/StartGamePacket.ts:135</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="editorworldtype"><span>editor<wbr/>World<wbr/>Type</span><a href="#editorworldtype" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">editorWorldType</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L94">protocol/src/packet/StartGamePacket.ts:94</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="educationeditionoffer"><span>education<wbr/>Edition<wbr/>Offer</span><a href="#educationeditionoffer" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">educationEditionOffer</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L98">protocol/src/packet/StartGamePacket.ts:98</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="educationfeaturesenabled"><span>education<wbr/>Features<wbr/>Enabled</span><a href="#educationfeaturesenabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">educationFeaturesEnabled</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L99">protocol/src/packet/StartGamePacket.ts:99</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="educationproductid"><span>education<wbr/>Product<wbr/>Id</span><a href="#educationproductid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">educationProductId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L100">protocol/src/packet/StartGamePacket.ts:100</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="edushareduriresource"><span>edu<wbr/>Shared<wbr/>Uri<wbr/>Resource</span><a href="#edushareduriresource" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">eduSharedUriResource</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{</span> <span class="tsd-kind-property">buttonName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span> <span class="tsd-kind-property">linkUri</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span> <span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L131">protocol/src/packet/StartGamePacket.ts:131</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="emotechatmuted"><span>emote<wbr/>Chat<wbr/>Muted</span><a href="#emotechatmuted" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">emoteChatMuted</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L126">protocol/src/packet/StartGamePacket.ts:126</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="enableitemstacknetmanager"><span>enable<wbr/>Item<wbr/>Stack<wbr/>Net<wbr/>Manager</span><a href="#enableitemstacknetmanager" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">enableItemStackNetManager</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L150">protocol/src/packet/StartGamePacket.ts:150</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="enchantmentseed"><span>enchantment<wbr/>Seed</span><a href="#enchantmentseed" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">enchantmentSeed</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L147">protocol/src/packet/StartGamePacket.ts:147</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="entityid"><span>entity<wbr/>Id</span><a href="#entityid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">entityId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span></div>
+<div class="tsd-comment tsd-typography"><p>The player's own entity id, signed and stable for the session.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L75">protocol/src/packet/StartGamePacket.ts:75</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="experiments"><span>experiments</span><a href="#experiments" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">experiments</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">ExperimentToggle</span><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L111">protocol/src/packet/StartGamePacket.ts:111</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="experimentsevertoggled"><span>experiments<wbr/>Ever<wbr/>Toggled</span><a href="#experimentsevertoggled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">experimentsEverToggled</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L112">protocol/src/packet/StartGamePacket.ts:112</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="exportedfromeditor"><span>exported<wbr/>From<wbr/>Editor</span><a href="#exportedfromeditor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">exportedFromEditor</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L96">protocol/src/packet/StartGamePacket.ts:96</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="forceexperimentalgameplay"><code class="tsd-tag">Optional</code><span>force<wbr/>Experimental<wbr/>Gameplay</span><a href="#forceexperimentalgameplay" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">forceExperimentalGameplay</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
+<div class="tsd-comment tsd-typography"><p>Optional on the wire: absent means the world's own setting stands.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L133">protocol/src/packet/StartGamePacket.ts:133</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="gamemode"><span>gamemode</span><a href="#gamemode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">gamemode</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L78">protocol/src/packet/StartGamePacket.ts:78</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="gamerules"><span>game<wbr/>Rules</span><a href="#gamerules" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">gameRules</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">GameRule</span><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L110">protocol/src/packet/StartGamePacket.ts:110</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="generator"><span>generator</span><a href="#generator" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">generator</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L88">protocol/src/packet/StartGamePacket.ts:88</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="hardcore"><span>hardcore</span><a href="#hardcore" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">hardcore</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L90">protocol/src/packet/StartGamePacket.ts:90</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="haslockedbehaviorpack"><span>has<wbr/>Locked<wbr/>Behavior<wbr/>Pack</span><a href="#haslockedbehaviorpack" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">hasLockedBehaviorPack</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L117">protocol/src/packet/StartGamePacket.ts:117</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="haslockedresourcepack"><span>has<wbr/>Locked<wbr/>Resource<wbr/>Pack</span><a href="#haslockedresourcepack" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">hasLockedResourcePack</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L118">protocol/src/packet/StartGamePacket.ts:118</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="isfromlockedtemplate"><span>is<wbr/>From<wbr/>Locked<wbr/>Template</span><a href="#isfromlockedtemplate" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">isFromLockedTemplate</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L119">protocol/src/packet/StartGamePacket.ts:119</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="isfromworldtemplate"><span>is<wbr/>From<wbr/>World<wbr/>Template</span><a href="#isfromworldtemplate" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">isFromWorldTemplate</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L121">protocol/src/packet/StartGamePacket.ts:121</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="istrial"><span>is<wbr/>Trial</span><a href="#istrial" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">isTrial</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L142">protocol/src/packet/StartGamePacket.ts:142</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="isworldtemplateoptionlocked"><span>is<wbr/>World<wbr/>Template<wbr/>Option<wbr/>Locked</span><a href="#isworldtemplateoptionlocked" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">isWorldTemplateOptionLocked</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L122">protocol/src/packet/StartGamePacket.ts:122</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="lanbroadcast"><span>lan<wbr/>Broadcast</span><a href="#lanbroadcast" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">lanBroadcast</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L105">protocol/src/packet/StartGamePacket.ts:105</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="levelid"><span>level<wbr/>Id</span><a href="#levelid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">levelId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L139">protocol/src/packet/StartGamePacket.ts:139</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="levelname"><span>level<wbr/>Name</span><a href="#levelname" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">levelName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L140">protocol/src/packet/StartGamePacket.ts:140</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="lightninglevel"><span>lightning<wbr/>Level</span><a href="#lightninglevel" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">lightningLevel</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L102">protocol/src/packet/StartGamePacket.ts:102</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="limitedworlddepth"><span>limited<wbr/>World<wbr/>Depth</span><a href="#limitedworlddepth" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">limitedWorldDepth</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L129">protocol/src/packet/StartGamePacket.ts:129</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="limitedworldwidth"><span>limited<wbr/>World<wbr/>Width</span><a href="#limitedworldwidth" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">limitedWorldWidth</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L128">protocol/src/packet/StartGamePacket.ts:128</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="multiplayercorrelationid"><span>multiplayer<wbr/>Correlation<wbr/>Id</span><a href="#multiplayercorrelationid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">multiplayerCorrelationId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L149">protocol/src/packet/StartGamePacket.ts:149</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="multiplayergame"><span>multiplayer<wbr/>Game</span><a href="#multiplayergame" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">multiplayerGame</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L104">protocol/src/packet/StartGamePacket.ts:104</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="newnether"><span>new<wbr/>Nether</span><a href="#newnether" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">newNether</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L130">protocol/src/packet/StartGamePacket.ts:130</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="onlyspawnv1villagers"><span>only<wbr/>Spawn<wbr/>V1<wbr/>Villagers</span><a href="#onlyspawnv1villagers" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">onlySpawnV1Villagers</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L123">protocol/src/packet/StartGamePacket.ts:123</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="ownerid"><span>owner<wbr/>Id</span><a href="#ownerid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">ownerId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L164">protocol/src/packet/StartGamePacket.ts:164</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="personadisabled"><span>persona<wbr/>Disabled</span><a href="#personadisabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">personaDisabled</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L124">protocol/src/packet/StartGamePacket.ts:124</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="pitch"><span>pitch</span><a href="#pitch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">pitch</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L80">protocol/src/packet/StartGamePacket.ts:80</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="platformbroadcastsetting"><span>platform<wbr/>Broadcast<wbr/>Setting</span><a href="#platformbroadcastsetting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">platformBroadcastSetting</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L107">protocol/src/packet/StartGamePacket.ts:107</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="playerpermissions"><span>player<wbr/>Permissions</span><a href="#playerpermissions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">playerPermissions</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L115">protocol/src/packet/StartGamePacket.ts:115</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="playerpropertydata"><span>player<wbr/>Property<wbr/>Data</span><a href="#playerpropertydata" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">playerPropertyData</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span></div>
+<div class="tsd-comment tsd-typography"><p>Network NBT, handed on as bytes for the same reason a block definition is.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L153">protocol/src/packet/StartGamePacket.ts:153</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="position"><span>position</span><a href="#position" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">position</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Vec3Like</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L79">protocol/src/packet/StartGamePacket.ts:79</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="rainlevel"><span>rain<wbr/>Level</span><a href="#rainlevel" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">rainLevel</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L101">protocol/src/packet/StartGamePacket.ts:101</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="rewindhistorysize"><span>rewind<wbr/>History<wbr/>Size</span><a href="#rewindhistorysize" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">rewindHistorySize</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+<div class="tsd-comment tsd-typography"><p>How many ticks of input the client keeps for the server to rewind to.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L144">protocol/src/packet/StartGamePacket.ts:144</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="runtimeentityid"><span>runtime<wbr/>Entity<wbr/>Id</span><a href="#runtimeentityid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">runtimeEntityId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span></div>
+<div class="tsd-comment tsd-typography"><p>The id everything on the wire refers to this player by.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L77">protocol/src/packet/StartGamePacket.ts:77</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="scenarioid"><span>scenario<wbr/>Id</span><a href="#scenarioid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">scenarioId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L162">protocol/src/packet/StartGamePacket.ts:162</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="seed"><span>seed</span><a href="#seed" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">seed</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">bigint</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L84">protocol/src/packet/StartGamePacket.ts:84</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="serverauthoritativeblockbreaking"><span>server<wbr/>Authoritative<wbr/>Block<wbr/>Breaking</span><a href="#serverauthoritativeblockbreaking" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">serverAuthoritativeBlockBreaking</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L145">protocol/src/packet/StartGamePacket.ts:145</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="serverauthoritativesound"><span>server<wbr/>Authoritative<wbr/>Sound</span><a href="#serverauthoritativesound" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">serverAuthoritativeSound</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L158">protocol/src/packet/StartGamePacket.ts:158</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="serverchunktickrange"><span>server<wbr/>Chunk<wbr/>Tick<wbr/>Range</span><a href="#serverchunktickrange" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">serverChunkTickRange</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L116">protocol/src/packet/StartGamePacket.ts:116</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="servereditorconnectionpolicy"><span>server<wbr/>Editor<wbr/>Connection<wbr/>Policy</span><a href="#servereditorconnectionpolicy" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">serverEditorConnectionPolicy</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L136">protocol/src/packet/StartGamePacket.ts:136</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="serverid"><span>server<wbr/>Id</span><a href="#serverid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">serverId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L161">protocol/src/packet/StartGamePacket.ts:161</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="serverjoininformation"><code class="tsd-tag">Optional</code><span>server<wbr/>Join<wbr/>Information</span><a href="#serverjoininformation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">serverJoinInformation</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">ServerJoinInformation</span></div>
+<div class="tsd-comment tsd-typography"><p>Optional on the wire; <code>undefined</code> writes the single byte saying there is none.</p>
+</div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L160">protocol/src/packet/StartGamePacket.ts:160</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="serverversion"><span>server<wbr/>Version</span><a href="#serverversion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">serverVersion</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L151">protocol/src/packet/StartGamePacket.ts:151</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="spawnbiometype"><span>spawn<wbr/>Biome<wbr/>Type</span><a href="#spawnbiometype" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">spawnBiomeType</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L85">protocol/src/packet/StartGamePacket.ts:85</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="spawnposition"><span>spawn<wbr/>Position</span><a href="#spawnposition" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">spawnPosition</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Vec3Like</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L92">protocol/src/packet/StartGamePacket.ts:92</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="startwithmapenabled"><span>start<wbr/>With<wbr/>Map<wbr/>Enabled</span><a href="#startwithmapenabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">startWithMapEnabled</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L114">protocol/src/packet/StartGamePacket.ts:114</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="templatecontentidentity"><span>template<wbr/>Content<wbr/>Identity</span><a href="#templatecontentidentity" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">templateContentIdentity</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L141">protocol/src/packet/StartGamePacket.ts:141</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="texturepacksrequired"><span>texture<wbr/>Packs<wbr/>Required</span><a href="#texturepacksrequired" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">texturePacksRequired</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L109">protocol/src/packet/StartGamePacket.ts:109</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="usemsagamertagsonly"><span>use<wbr/>Msa<wbr/>Gamertags<wbr/>Only</span><a href="#usemsagamertagsonly" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">useMsaGamertagsOnly</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L120">protocol/src/packet/StartGamePacket.ts:120</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="userdefinedbiomename"><span>user<wbr/>Defined<wbr/>Biome<wbr/>Name</span><a href="#userdefinedbiomename" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">userDefinedBiomeName</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L86">protocol/src/packet/StartGamePacket.ts:86</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="worldgamemode"><span>world<wbr/>Gamemode</span><a href="#worldgamemode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">worldGamemode</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L89">protocol/src/packet/StartGamePacket.ts:89</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="worldid"><span>world<wbr/>Id</span><a href="#worldid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">worldId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L163">protocol/src/packet/StartGamePacket.ts:163</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="worldtemplateid"><span>world<wbr/>Template<wbr/>Id</span><a href="#worldtemplateid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">worldTemplateId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WireUUID</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L155">protocol/src/packet/StartGamePacket.ts:155</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="xboxlivebroadcastsetting"><span>xbox<wbr/>Live<wbr/>Broadcast<wbr/>Setting</span><a href="#xboxlivebroadcastsetting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">xboxLiveBroadcastSetting</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L106">protocol/src/packet/StartGamePacket.ts:106</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="yaw"><span>yaw</span><a href="#yaw" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">yaw</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/packet/StartGamePacket.ts#L81">protocol/src/packet/StartGamePacket.ts:81</a></li></ul></aside></section></section></details></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
+<div><a href="#achievementsdisabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>achievements<wbr/>Disabled</span></a><a href="#allowanonymousblockdropsineditorworlds"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>allow<wbr/>Anonymous<wbr/>Block<wbr/>Drops<wbr/>In<wbr/>Editor<wbr/>Worlds</span></a><a href="#basegameversion"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>base<wbr/>Game<wbr/>Version</span></a><a href="#blocknetworkidsarehashes"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>block<wbr/>Network<wbr/>Ids<wbr/>Are<wbr/>Hashes</span></a><a href="#blockproperties"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>block<wbr/>Properties</span></a><a href="#blockregistrychecksum"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>block<wbr/>Registry<wbr/>Checksum</span></a><a href="#bonuschestenabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>bonus<wbr/>Chest<wbr/>Enabled</span></a><a href="#chatrestrictionlevel"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>chat<wbr/>Restriction<wbr/>Level</span></a><a href="#clientsidegeneration"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>client<wbr/>Side<wbr/>Generation</span></a><a href="#commandsenabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>commands<wbr/>Enabled</span></a><a href="#confirmedplatformlockedcontent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>confirmed<wbr/>Platform<wbr/>Locked<wbr/>Content</span></a><a href="#createdineditor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>created<wbr/>In<wbr/>Editor</span></a><a href="#currenttick"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>current<wbr/>Tick</span></a><a href="#customskinsdisabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>custom<wbr/>Skins<wbr/>Disabled</span></a><a href="#daycyclestoptime"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>day<wbr/>Cycle<wbr/>Stop<wbr/>Time</span></a><a href="#difficulty"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>difficulty</span></a><a href="#dimension"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>dimension</span></a><a href="#disableplayerinteractions"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>disable<wbr/>Player<wbr/>Interactions</span></a><a href="#editorworldtype"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>editor<wbr/>World<wbr/>Type</span></a><a href="#educationeditionoffer"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>education<wbr/>Edition<wbr/>Offer</span></a><a href="#educationfeaturesenabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>education<wbr/>Features<wbr/>Enabled</span></a><a href="#educationproductid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>education<wbr/>Product<wbr/>Id</span></a><a href="#edushareduriresource"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>edu<wbr/>Shared<wbr/>Uri<wbr/>Resource</span></a><a href="#emotechatmuted"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>emote<wbr/>Chat<wbr/>Muted</span></a><a href="#enableitemstacknetmanager"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>enable<wbr/>Item<wbr/>Stack<wbr/>Net<wbr/>Manager</span></a><a href="#enchantmentseed"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>enchantment<wbr/>Seed</span></a><a href="#entityid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>entity<wbr/>Id</span></a><a href="#experiments"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>experiments</span></a><a href="#experimentsevertoggled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>experiments<wbr/>Ever<wbr/>Toggled</span></a><a href="#exportedfromeditor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>exported<wbr/>From<wbr/>Editor</span></a><a href="#forceexperimentalgameplay"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>force<wbr/>Experimental<wbr/>Gameplay</span></a><a href="#gamemode"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>gamemode</span></a><a href="#gamerules"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>game<wbr/>Rules</span></a><a href="#generator"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>generator</span></a><a href="#hardcore"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>hardcore</span></a><a href="#haslockedbehaviorpack"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>has<wbr/>Locked<wbr/>Behavior<wbr/>Pack</span></a><a href="#haslockedresourcepack"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>has<wbr/>Locked<wbr/>Resource<wbr/>Pack</span></a><a href="#isfromlockedtemplate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>is<wbr/>From<wbr/>Locked<wbr/>Template</span></a><a href="#isfromworldtemplate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>is<wbr/>From<wbr/>World<wbr/>Template</span></a><a href="#istrial"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>is<wbr/>Trial</span></a><a href="#isworldtemplateoptionlocked"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>is<wbr/>World<wbr/>Template<wbr/>Option<wbr/>Locked</span></a><a href="#lanbroadcast"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>lan<wbr/>Broadcast</span></a><a href="#levelid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>level<wbr/>Id</span></a><a href="#levelname"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>level<wbr/>Name</span></a><a href="#lightninglevel"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>lightning<wbr/>Level</span></a><a href="#limitedworlddepth"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>limited<wbr/>World<wbr/>Depth</span></a><a href="#limitedworldwidth"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>limited<wbr/>World<wbr/>Width</span></a><a href="#multiplayercorrelationid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>multiplayer<wbr/>Correlation<wbr/>Id</span></a><a href="#multiplayergame"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>multiplayer<wbr/>Game</span></a><a href="#newnether"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>new<wbr/>Nether</span></a><a href="#onlyspawnv1villagers"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>only<wbr/>Spawn<wbr/>V1<wbr/>Villagers</span></a><a href="#ownerid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>owner<wbr/>Id</span></a><a href="#personadisabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>persona<wbr/>Disabled</span></a><a href="#pitch"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>pitch</span></a><a href="#platformbroadcastsetting"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>platform<wbr/>Broadcast<wbr/>Setting</span></a><a href="#playerpermissions"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>player<wbr/>Permissions</span></a><a href="#playerpropertydata"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>player<wbr/>Property<wbr/>Data</span></a><a href="#position"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>position</span></a><a href="#rainlevel"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>rain<wbr/>Level</span></a><a href="#rewindhistorysize"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>rewind<wbr/>History<wbr/>Size</span></a><a href="#runtimeentityid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>runtime<wbr/>Entity<wbr/>Id</span></a><a href="#scenarioid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>scenario<wbr/>Id</span></a><a href="#seed"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>seed</span></a><a href="#serverauthoritativeblockbreaking"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Authoritative<wbr/>Block<wbr/>Breaking</span></a><a href="#serverauthoritativesound"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Authoritative<wbr/>Sound</span></a><a href="#serverchunktickrange"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Chunk<wbr/>Tick<wbr/>Range</span></a><a href="#servereditorconnectionpolicy"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Editor<wbr/>Connection<wbr/>Policy</span></a><a href="#serverid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Id</span></a><a href="#serverjoininformation"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Join<wbr/>Information</span></a><a href="#serverversion"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>server<wbr/>Version</span></a><a href="#spawnbiometype"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>spawn<wbr/>Biome<wbr/>Type</span></a><a href="#spawnposition"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>spawn<wbr/>Position</span></a><a href="#startwithmapenabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>start<wbr/>With<wbr/>Map<wbr/>Enabled</span></a><a href="#templatecontentidentity"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>template<wbr/>Content<wbr/>Identity</span></a><a href="#texturepacksrequired"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>texture<wbr/>Packs<wbr/>Required</span></a><a href="#usemsagamertagsonly"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>use<wbr/>Msa<wbr/>Gamertags<wbr/>Only</span></a><a href="#userdefinedbiomename"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>user<wbr/>Defined<wbr/>Biome<wbr/>Name</span></a><a href="#worldgamemode"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>world<wbr/>Gamemode</span></a><a href="#worldid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>world<wbr/>Id</span></a><a href="#worldtemplateid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>world<wbr/>Template<wbr/>Id</span></a><a href="#xboxlivebroadcastsetting"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>xbox<wbr/>Live<wbr/>Broadcast<wbr/>Setting</span></a><a href="#yaw"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>yaw</span></a></div></details></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">JSPrismarine</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a><br>
+            <span id="generation-date"></span>
+            <script>
+                window.GENERATION_DATE = 1792783204198;
+
+                (() => {
+                    
+        const formatter = new Intl.RelativeTimeFormat('en', {
+            numeric: 'auto',
+            style: 'short',
+        });
+
+        const divisions = [
+            { amount: 60, name: 'seconds' },
+            { amount: 60, name: 'minutes' },
+            { amount: 24, name: 'hours' },
+            { amount: 7, name: 'days' },
+            { amount: 4.34524, name: 'weeks' },
+            { amount: 12, name: 'months' },
+            { amount: Number.POSITIVE_INFINITY, name: 'years' }
+        ];
+
+        function formatTimeAgo(date) {
+            let duration = (date - new Date()) / 1000;
+            
+            for (const division of divisions) {
+                if (Math.abs(duration) < division.amount) {
+                    return formatter.format(Math.round(duration), division.name);
+                }
+                duration /= division.amount;
+            }
+        }
+
+        document.getElementById('generation-date').title = new Date(window.GENERATION_DATE).toLocaleString();
+        document.getElementById('generation-date').innerText = `Last modified ${formatTimeAgo(window.GENERATION_DATE)}`;
+    
+                })();
+            </script>
+        </p></footer>
+<div class="overlay"></div><script>
+          try {
+            const generateLinkElement = document.querySelector(".tsd-generator a");
+            const link = document.createElement("a");
+            Object.assign(link, {
+              href: "https://github.com/dmnsgn/typedoc-material-theme",
+              target: "_blank",
+              rel: "noreferrer",
+              innerText: "typedoc-material-theme."
+            });
+            generateLinkElement.insertAdjacentElement("afterend", link);
+            generateLinkElement.insertAdjacentText("afterend", " with ");
+          } catch (error) {
+
+          }
+        </script></body></html>

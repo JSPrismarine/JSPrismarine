@@ -1,0 +1,642 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>PlayerAuthInputData | JSPrismarine</title><meta name="description" content="Documentation for JSPrismarine"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script><style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-sys-color-primary: #64dbb4;
+    --md-sys-color-on-primary: #003829;
+    --md-sys-color-primary-container: #00513d;
+    --md-sys-color-on-primary-container: #82f8cf;
+    --md-sys-color-secondary: #b2ccc0;
+    --md-sys-color-on-secondary: #1e352c;
+    --md-sys-color-secondary-container: #344c42;
+    --md-sys-color-on-secondary-container: #cee9dc;
+    --md-sys-color-tertiary: #a7cce1;
+    --md-sys-color-on-tertiary: #0b3445;
+    --md-sys-color-tertiary-container: #264b5d;
+    --md-sys-color-on-tertiary-container: #c3e8fe;
+    --md-sys-color-error: #ffb4ab;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #93000a;
+    --md-sys-color-on-error-container: #ffb4ab;
+    --md-sys-color-background: #191c1b;
+    --md-sys-color-on-background: #e1e3e0;
+    --md-sys-color-surface: #191c1b;
+    --md-sys-color-on-surface: #e1e3e0;
+    --md-sys-color-surface-variant: #404944;
+    --md-sys-color-on-surface-variant: #bfc9c3;
+    --md-sys-color-outline: #89938d;
+    --md-sys-color-outline-variant: #404944;
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-scrim: #000000;
+    --md-sys-color-inverse-surface: #e1e3e0;
+    --md-sys-color-inverse-on-surface: #2e312f;
+    --md-sys-color-inverse-primary: #006c52;
+    --md-sys-color-surface-dim: #111412;
+    --md-sys-color-surface-bright: #363a38;
+    --md-sys-color-surface-container-lowest: #0b0f0d;
+    --md-sys-color-surface-container-low: #191c1b;
+    --md-sys-color-surface-container: #1d201e;
+    --md-sys-color-surface-container-high: #272b29;
+    --md-sys-color-surface-container-highest: #323633
+  }
+}
+:root[data-theme="dark"] {
+  --md-sys-color-primary: #64dbb4;
+  --md-sys-color-on-primary: #003829;
+  --md-sys-color-primary-container: #00513d;
+  --md-sys-color-on-primary-container: #82f8cf;
+  --md-sys-color-secondary: #b2ccc0;
+  --md-sys-color-on-secondary: #1e352c;
+  --md-sys-color-secondary-container: #344c42;
+  --md-sys-color-on-secondary-container: #cee9dc;
+  --md-sys-color-tertiary: #a7cce1;
+  --md-sys-color-on-tertiary: #0b3445;
+  --md-sys-color-tertiary-container: #264b5d;
+  --md-sys-color-on-tertiary-container: #c3e8fe;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffb4ab;
+  --md-sys-color-background: #191c1b;
+  --md-sys-color-on-background: #e1e3e0;
+  --md-sys-color-surface: #191c1b;
+  --md-sys-color-on-surface: #e1e3e0;
+  --md-sys-color-surface-variant: #404944;
+  --md-sys-color-on-surface-variant: #bfc9c3;
+  --md-sys-color-outline: #89938d;
+  --md-sys-color-outline-variant: #404944;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-inverse-surface: #e1e3e0;
+  --md-sys-color-inverse-on-surface: #2e312f;
+  --md-sys-color-inverse-primary: #006c52;
+  --md-sys-color-surface-dim: #111412;
+  --md-sys-color-surface-bright: #363a38;
+  --md-sys-color-surface-container-lowest: #0b0f0d;
+  --md-sys-color-surface-container-low: #191c1b;
+  --md-sys-color-surface-container: #1d201e;
+  --md-sys-color-surface-container-high: #272b29;
+  --md-sys-color-surface-container-highest: #323633
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --md-sys-color-primary: #006c52;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #82f8cf;
+    --md-sys-color-on-primary-container: #002117;
+    --md-sys-color-secondary: #4c6359;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #cee9dc;
+    --md-sys-color-on-secondary-container: #082018;
+    --md-sys-color-tertiary: #3f6375;
+    --md-sys-color-on-tertiary: #ffffff;
+    --md-sys-color-tertiary-container: #c3e8fe;
+    --md-sys-color-on-tertiary-container: #001e2b;
+    --md-sys-color-error: #ba1a1a;
+    --md-sys-color-on-error: #ffffff;
+    --md-sys-color-error-container: #ffdad6;
+    --md-sys-color-on-error-container: #410002;
+    --md-sys-color-background: #fbfdf9;
+    --md-sys-color-on-background: #191c1b;
+    --md-sys-color-surface: #fbfdf9;
+    --md-sys-color-on-surface: #191c1b;
+    --md-sys-color-surface-variant: #dbe5de;
+    --md-sys-color-on-surface-variant: #404944;
+    --md-sys-color-outline: #707974;
+    --md-sys-color-outline-variant: #bfc9c3;
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-scrim: #000000;
+    --md-sys-color-inverse-surface: #2e312f;
+    --md-sys-color-inverse-on-surface: #eff1ee;
+    --md-sys-color-inverse-primary: #64dbb4;
+    --md-sys-color-surface-dim: #d8dbd7;
+    --md-sys-color-surface-bright: #f8faf6;
+    --md-sys-color-surface-container-lowest: #ffffff;
+    --md-sys-color-surface-container-low: #f2f4f1;
+    --md-sys-color-surface-container: #eceeeb;
+    --md-sys-color-surface-container-high: #e6e9e5;
+    --md-sys-color-surface-container-highest: #e1e3e0
+  }
+}
+:root[data-theme="light"] {
+  --md-sys-color-primary: #006c52;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #82f8cf;
+  --md-sys-color-on-primary-container: #002117;
+  --md-sys-color-secondary: #4c6359;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #cee9dc;
+  --md-sys-color-on-secondary-container: #082018;
+  --md-sys-color-tertiary: #3f6375;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #c3e8fe;
+  --md-sys-color-on-tertiary-container: #001e2b;
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+  --md-sys-color-background: #fbfdf9;
+  --md-sys-color-on-background: #191c1b;
+  --md-sys-color-surface: #fbfdf9;
+  --md-sys-color-on-surface: #191c1b;
+  --md-sys-color-surface-variant: #dbe5de;
+  --md-sys-color-on-surface-variant: #404944;
+  --md-sys-color-outline: #707974;
+  --md-sys-color-outline-variant: #bfc9c3;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-inverse-surface: #2e312f;
+  --md-sys-color-inverse-on-surface: #eff1ee;
+  --md-sys-color-inverse-primary: #64dbb4;
+  --md-sys-color-surface-dim: #d8dbd7;
+  --md-sys-color-surface-bright: #f8faf6;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f2f4f1;
+  --md-sys-color-surface-container: #eceeeb;
+  --md-sys-color-surface-container-high: #e6e9e5;
+  --md-sys-color-surface-container-highest: #e1e3e0
+}
+</style><link rel="stylesheet" href="../assets/material-style.css"/></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">JSPrismarine</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="../modules/_jsprismarine_minecraft.html">@jsprismarine/minecraft</a></li>
+<li><a href="" aria-current="page">PlayerAuthInputData</a></li></ul>
+<h1>Enumeration PlayerAuthInputData</h1></div>
+<section class="tsd-panel tsd-comment">
+<div class="tsd-comment tsd-typography"><p>PlayerAuthInputData, from Mojang's published protocol documentation.</p>
+<p>Generated - do not edit. Change <code>datagen/manifest.json</code> and run <code>pnpm generate</code>.
+Source: Mojang/bedrock-protocol-docs release v1.26.51 (Minecraft 1.26.51, protocol 2193)
+Upstream name: PlayerAuthInputData</p>
+</div></section><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L8">generated/PlayerAuthInputData.ts:8</a></li></ul></aside>
+<section class="tsd-panel-group tsd-index-group">
+<section class="tsd-panel tsd-index-panel">
+<details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h5 class="tsd-index-heading uppercase">Index</h5></summary>
+<div class="tsd-accordion-details">
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="enumeration-members">Enumeration Members<a href="#enumeration-members" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#ascend" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>ASCEND</span></a>
+<a href="#ascend_block" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>ASCEND_<wbr/>BLOCK</span></a>
+<a href="#auto_jumping_in_water" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>AUTO_<wbr/>JUMPING_<wbr/>IN_<wbr/>WATER</span></a>
+<a href="#block_breaking_delay_enabled" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>BLOCK_<wbr/>BREAKING_<wbr/>DELAY_<wbr/>ENABLED</span></a>
+<a href="#change_height" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>CHANGE_<wbr/>HEIGHT</span></a>
+<a href="#client_ack_server_data" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>CLIENT_<wbr/>ACK_<wbr/>SERVER_<wbr/>DATA</span></a>
+<a href="#descend" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DESCEND</span></a>
+<a href="#descend_block" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DESCEND_<wbr/>BLOCK</span></a>
+<a href="#down" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DOWN</span></a>
+<a href="#down_left" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DOWN_<wbr/>LEFT</span></a>
+<a href="#down_right" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DOWN_<wbr/>RIGHT</span></a>
+<a href="#emoting" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>EMOTING</span></a>
+<a href="#handled_teleport" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>HANDLED_<wbr/>TELEPORT</span></a>
+<a href="#horizontal_collision" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>HORIZONTAL_<wbr/>COLLISION</span></a>
+<a href="#internal_update" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>INTERNAL_<wbr/>UPDATE</span></a>
+<a href="#is_hotbar_only_touch" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>IS_<wbr/>HOTBAR_<wbr/>ONLY_<wbr/>TOUCH</span></a>
+<a href="#is_in_client_predicted_vehicle" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>IS_<wbr/>IN_<wbr/>CLIENT_<wbr/>PREDICTED_<wbr/>VEHICLE</span></a>
+<a href="#jump_current_raw" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMP_<wbr/>CURRENT_<wbr/>RAW</span></a>
+<a href="#jump_down" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMP_<wbr/>DOWN</span></a>
+<a href="#jump_pressed_raw" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMP_<wbr/>PRESSED_<wbr/>RAW</span></a>
+<a href="#jump_released_raw" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMP_<wbr/>RELEASED_<wbr/>RAW</span></a>
+<a href="#jumping" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMPING</span></a>
+<a href="#left" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>LEFT</span></a>
+<a href="#missed_swing" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>MISSED_<wbr/>SWING</span></a>
+<a href="#paddling_left" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PADDLING_<wbr/>LEFT</span></a>
+<a href="#paddling_right" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PADDLING_<wbr/>RIGHT</span></a>
+<a href="#perform_block_actions" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PERFORM_<wbr/>BLOCK_<wbr/>ACTIONS</span></a>
+<a href="#perform_item_interaction" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PERFORM_<wbr/>ITEM_<wbr/>INTERACTION</span></a>
+<a href="#perform_item_stack_request" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PERFORM_<wbr/>ITEM_<wbr/>STACK_<wbr/>REQUEST</span></a>
+<a href="#persist_sneak" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PERSIST_<wbr/>SNEAK</span></a>
+<a href="#right" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>RIGHT</span></a>
+<a href="#sneak_current_raw" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>CURRENT_<wbr/>RAW</span></a>
+<a href="#sneak_down" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>DOWN</span></a>
+<a href="#sneak_pressed_raw" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>PRESSED_<wbr/>RAW</span></a>
+<a href="#sneak_released_raw" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>RELEASED_<wbr/>RAW</span></a>
+<a href="#sneak_toggle_down" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>TOGGLE_<wbr/>DOWN</span></a>
+<a href="#sneaking" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAKING</span></a>
+<a href="#sprint_down" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SPRINT_<wbr/>DOWN</span></a>
+<a href="#sprinting" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SPRINTING</span></a>
+<a href="#start_crawling" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>CRAWLING</span></a>
+<a href="#start_flying" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>FLYING</span></a>
+<a href="#start_gliding" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>GLIDING</span></a>
+<a href="#start_jumping" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>JUMPING</span></a>
+<a href="#start_sneaking" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>SNEAKING</span></a>
+<a href="#start_spin_attack" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>SPIN_<wbr/>ATTACK</span></a>
+<a href="#start_sprinting" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>SPRINTING</span></a>
+<a href="#start_swimming" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>SWIMMING</span></a>
+<a href="#start_using_item" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>USING_<wbr/>ITEM</span></a>
+<a href="#stop_crawling" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>CRAWLING</span></a>
+<a href="#stop_flying" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>FLYING</span></a>
+<a href="#stop_gliding" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>GLIDING</span></a>
+<a href="#stop_sneaking" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>SNEAKING</span></a>
+<a href="#stop_spin_attack" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>SPIN_<wbr/>ATTACK</span></a>
+<a href="#stop_sprinting" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>SPRINTING</span></a>
+<a href="#stop_swimming" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>SWIMMING</span></a>
+<a href="#up" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>UP</span></a>
+<a href="#up_left" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>UP_<wbr/>LEFT</span></a>
+<a href="#up_right" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>UP_<wbr/>RIGHT</span></a>
+<a href="#vertical_collision" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>VERTICAL_<wbr/>COLLISION</span></a>
+<a href="#want_down" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>WANT_<wbr/>DOWN</span></a>
+<a href="#want_down_slow" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>WANT_<wbr/>DOWN_<wbr/>SLOW</span></a>
+<a href="#want_up" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>WANT_<wbr/>UP</span></a>
+<a href="#want_up_slow" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>WANT_<wbr/>UP_<wbr/>SLOW</span></a>
+</div></section></div></details></section></section>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Enumeration Members"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="enumeration-members-1">Enumeration Members<a href="#enumeration-members-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="ascend"><span>ASCEND</span><a href="#ascend" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">ASCEND</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">0</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L9">generated/PlayerAuthInputData.ts:9</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="ascend_block"><span>ASCEND_<wbr/>BLOCK</span><a href="#ascend_block" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">ASCEND_BLOCK</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">21</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L29">generated/PlayerAuthInputData.ts:29</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="auto_jumping_in_water"><span>AUTO_<wbr/>JUMPING_<wbr/>IN_<wbr/>WATER</span><a href="#auto_jumping_in_water" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">AUTO_JUMPING_IN_WATER</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">7</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L15">generated/PlayerAuthInputData.ts:15</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="block_breaking_delay_enabled"><span>BLOCK_<wbr/>BREAKING_<wbr/>DELAY_<wbr/>ENABLED</span><a href="#block_breaking_delay_enabled" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">BLOCK_BREAKING_DELAY_ENABLED</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">48</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L56">generated/PlayerAuthInputData.ts:56</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="change_height"><span>CHANGE_<wbr/>HEIGHT</span><a href="#change_height" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">CHANGE_HEIGHT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">5</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L13">generated/PlayerAuthInputData.ts:13</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="client_ack_server_data"><span>CLIENT_<wbr/>ACK_<wbr/>SERVER_<wbr/>DATA</span><a href="#client_ack_server_data" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">CLIENT_ACK_SERVER_DATA</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">44</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L52">generated/PlayerAuthInputData.ts:52</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="descend"><span>DESCEND</span><a href="#descend" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">DESCEND</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">1</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L10">generated/PlayerAuthInputData.ts:10</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="descend_block"><span>DESCEND_<wbr/>BLOCK</span><a href="#descend_block" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">DESCEND_BLOCK</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">22</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L30">generated/PlayerAuthInputData.ts:30</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="down"><span>DOWN</span><a href="#down" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">DOWN</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">11</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L19">generated/PlayerAuthInputData.ts:19</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="down_left"><span>DOWN_<wbr/>LEFT</span><a href="#down_left" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">DOWN_LEFT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">51</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L59">generated/PlayerAuthInputData.ts:59</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="down_right"><span>DOWN_<wbr/>RIGHT</span><a href="#down_right" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">DOWN_RIGHT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">52</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L60">generated/PlayerAuthInputData.ts:60</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="emoting"><span>EMOTING</span><a href="#emoting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">EMOTING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">38</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L46">generated/PlayerAuthInputData.ts:46</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="handled_teleport"><span>HANDLED_<wbr/>TELEPORT</span><a href="#handled_teleport" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">HANDLED_TELEPORT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">37</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L45">generated/PlayerAuthInputData.ts:45</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="horizontal_collision"><span>HORIZONTAL_<wbr/>COLLISION</span><a href="#horizontal_collision" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">HORIZONTAL_COLLISION</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">49</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L57">generated/PlayerAuthInputData.ts:57</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="internal_update"><span>INTERNAL_<wbr/>UPDATE</span><a href="#internal_update" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">INTERNAL_UPDATE</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">65</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L71">generated/PlayerAuthInputData.ts:71</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="is_hotbar_only_touch"><span>IS_<wbr/>HOTBAR_<wbr/>ONLY_<wbr/>TOUCH</span><a href="#is_hotbar_only_touch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">IS_HOTBAR_ONLY_TOUCH</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">58</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L64">generated/PlayerAuthInputData.ts:64</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="is_in_client_predicted_vehicle"><span>IS_<wbr/>IN_<wbr/>CLIENT_<wbr/>PREDICTED_<wbr/>VEHICLE</span><a href="#is_in_client_predicted_vehicle" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">IS_IN_CLIENT_PREDICTED_VEHICLE</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">45</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L53">generated/PlayerAuthInputData.ts:53</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="jump_current_raw"><span>JUMP_<wbr/>CURRENT_<wbr/>RAW</span><a href="#jump_current_raw" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">JUMP_CURRENT_RAW</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">61</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L67">generated/PlayerAuthInputData.ts:67</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="jump_down"><span>JUMP_<wbr/>DOWN</span><a href="#jump_down" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">JUMP_DOWN</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">3</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L11">generated/PlayerAuthInputData.ts:11</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="jump_pressed_raw"><span>JUMP_<wbr/>PRESSED_<wbr/>RAW</span><a href="#jump_pressed_raw" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">JUMP_PRESSED_RAW</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">60</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L66">generated/PlayerAuthInputData.ts:66</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="jump_released_raw"><span>JUMP_<wbr/>RELEASED_<wbr/>RAW</span><a href="#jump_released_raw" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">JUMP_RELEASED_RAW</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">59</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L65">generated/PlayerAuthInputData.ts:65</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="jumping"><span>JUMPING</span><a href="#jumping" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">JUMPING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">6</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L14">generated/PlayerAuthInputData.ts:14</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="left"><span>LEFT</span><a href="#left" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">LEFT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">12</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L20">generated/PlayerAuthInputData.ts:20</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="missed_swing"><span>MISSED_<wbr/>SWING</span><a href="#missed_swing" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">MISSED_SWING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">39</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L47">generated/PlayerAuthInputData.ts:47</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="paddling_left"><span>PADDLING_<wbr/>LEFT</span><a href="#paddling_left" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">PADDLING_LEFT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">46</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L54">generated/PlayerAuthInputData.ts:54</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="paddling_right"><span>PADDLING_<wbr/>RIGHT</span><a href="#paddling_right" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">PADDLING_RIGHT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">47</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L55">generated/PlayerAuthInputData.ts:55</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="perform_block_actions"><span>PERFORM_<wbr/>BLOCK_<wbr/>ACTIONS</span><a href="#perform_block_actions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">PERFORM_BLOCK_ACTIONS</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">35</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L43">generated/PlayerAuthInputData.ts:43</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="perform_item_interaction"><span>PERFORM_<wbr/>ITEM_<wbr/>INTERACTION</span><a href="#perform_item_interaction" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">PERFORM_ITEM_INTERACTION</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">34</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L42">generated/PlayerAuthInputData.ts:42</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="perform_item_stack_request"><span>PERFORM_<wbr/>ITEM_<wbr/>STACK_<wbr/>REQUEST</span><a href="#perform_item_stack_request" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">PERFORM_ITEM_STACK_REQUEST</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">36</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L44">generated/PlayerAuthInputData.ts:44</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="persist_sneak"><span>PERSIST_<wbr/>SNEAK</span><a href="#persist_sneak" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">PERSIST_SNEAK</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">24</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L32">generated/PlayerAuthInputData.ts:32</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="right"><span>RIGHT</span><a href="#right" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">RIGHT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">13</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L21">generated/PlayerAuthInputData.ts:21</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sneak_current_raw"><span>SNEAK_<wbr/>CURRENT_<wbr/>RAW</span><a href="#sneak_current_raw" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">SNEAK_CURRENT_RAW</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">64</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L70">generated/PlayerAuthInputData.ts:70</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sneak_down"><span>SNEAK_<wbr/>DOWN</span><a href="#sneak_down" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">SNEAK_DOWN</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">9</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L17">generated/PlayerAuthInputData.ts:17</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sneak_pressed_raw"><span>SNEAK_<wbr/>PRESSED_<wbr/>RAW</span><a href="#sneak_pressed_raw" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">SNEAK_PRESSED_RAW</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">63</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L69">generated/PlayerAuthInputData.ts:69</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sneak_released_raw"><span>SNEAK_<wbr/>RELEASED_<wbr/>RAW</span><a href="#sneak_released_raw" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">SNEAK_RELEASED_RAW</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">62</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L68">generated/PlayerAuthInputData.ts:68</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sneak_toggle_down"><span>SNEAK_<wbr/>TOGGLE_<wbr/>DOWN</span><a href="#sneak_toggle_down" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">SNEAK_TOGGLE_DOWN</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">23</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L31">generated/PlayerAuthInputData.ts:31</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sneaking"><span>SNEAKING</span><a href="#sneaking" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">SNEAKING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">8</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L16">generated/PlayerAuthInputData.ts:16</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sprint_down"><span>SPRINT_<wbr/>DOWN</span><a href="#sprint_down" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">SPRINT_DOWN</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">4</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L12">generated/PlayerAuthInputData.ts:12</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sprinting"><span>SPRINTING</span><a href="#sprinting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">SPRINTING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">20</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L28">generated/PlayerAuthInputData.ts:28</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start_crawling"><span>START_<wbr/>CRAWLING</span><a href="#start_crawling" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">START_CRAWLING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">40</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L48">generated/PlayerAuthInputData.ts:48</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start_flying"><span>START_<wbr/>FLYING</span><a href="#start_flying" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">START_FLYING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">42</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L50">generated/PlayerAuthInputData.ts:50</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start_gliding"><span>START_<wbr/>GLIDING</span><a href="#start_gliding" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">START_GLIDING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">32</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L40">generated/PlayerAuthInputData.ts:40</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start_jumping"><span>START_<wbr/>JUMPING</span><a href="#start_jumping" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">START_JUMPING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">31</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L39">generated/PlayerAuthInputData.ts:39</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start_sneaking"><span>START_<wbr/>SNEAKING</span><a href="#start_sneaking" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">START_SNEAKING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">27</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L35">generated/PlayerAuthInputData.ts:35</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start_spin_attack"><span>START_<wbr/>SPIN_<wbr/>ATTACK</span><a href="#start_spin_attack" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">START_SPIN_ATTACK</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">56</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L62">generated/PlayerAuthInputData.ts:62</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start_sprinting"><span>START_<wbr/>SPRINTING</span><a href="#start_sprinting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">START_SPRINTING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">25</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L33">generated/PlayerAuthInputData.ts:33</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start_swimming"><span>START_<wbr/>SWIMMING</span><a href="#start_swimming" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">START_SWIMMING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">29</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L37">generated/PlayerAuthInputData.ts:37</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="start_using_item"><span>START_<wbr/>USING_<wbr/>ITEM</span><a href="#start_using_item" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">START_USING_ITEM</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">53</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L61">generated/PlayerAuthInputData.ts:61</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="stop_crawling"><span>STOP_<wbr/>CRAWLING</span><a href="#stop_crawling" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">STOP_CRAWLING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">41</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L49">generated/PlayerAuthInputData.ts:49</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="stop_flying"><span>STOP_<wbr/>FLYING</span><a href="#stop_flying" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">STOP_FLYING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">43</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L51">generated/PlayerAuthInputData.ts:51</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="stop_gliding"><span>STOP_<wbr/>GLIDING</span><a href="#stop_gliding" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">STOP_GLIDING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">33</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L41">generated/PlayerAuthInputData.ts:41</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="stop_sneaking"><span>STOP_<wbr/>SNEAKING</span><a href="#stop_sneaking" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">STOP_SNEAKING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">28</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L36">generated/PlayerAuthInputData.ts:36</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="stop_spin_attack"><span>STOP_<wbr/>SPIN_<wbr/>ATTACK</span><a href="#stop_spin_attack" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">STOP_SPIN_ATTACK</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">57</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L63">generated/PlayerAuthInputData.ts:63</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="stop_sprinting"><span>STOP_<wbr/>SPRINTING</span><a href="#stop_sprinting" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">STOP_SPRINTING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">26</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L34">generated/PlayerAuthInputData.ts:34</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="stop_swimming"><span>STOP_<wbr/>SWIMMING</span><a href="#stop_swimming" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">STOP_SWIMMING</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">30</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L38">generated/PlayerAuthInputData.ts:38</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="up"><span>UP</span><a href="#up" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">UP</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">10</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L18">generated/PlayerAuthInputData.ts:18</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="up_left"><span>UP_<wbr/>LEFT</span><a href="#up_left" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">UP_LEFT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">14</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L22">generated/PlayerAuthInputData.ts:22</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="up_right"><span>UP_<wbr/>RIGHT</span><a href="#up_right" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">UP_RIGHT</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">15</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L23">generated/PlayerAuthInputData.ts:23</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="vertical_collision"><span>VERTICAL_<wbr/>COLLISION</span><a href="#vertical_collision" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">VERTICAL_COLLISION</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">50</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L58">generated/PlayerAuthInputData.ts:58</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="want_down"><span>WANT_<wbr/>DOWN</span><a href="#want_down" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">WANT_DOWN</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">17</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L25">generated/PlayerAuthInputData.ts:25</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="want_down_slow"><span>WANT_<wbr/>DOWN_<wbr/>SLOW</span><a href="#want_down_slow" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">WANT_DOWN_SLOW</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">18</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L26">generated/PlayerAuthInputData.ts:26</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="want_up"><span>WANT_<wbr/>UP</span><a href="#want_up" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">WANT_UP</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">16</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L24">generated/PlayerAuthInputData.ts:24</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="want_up_slow"><span>WANT_<wbr/>UP_<wbr/>SLOW</span><a href="#want_up_slow" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-enum-member">WANT_UP_SLOW</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">19</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/minecraft/src/generated/PlayerAuthInputData.ts#L27">generated/PlayerAuthInputData.ts:27</a></li></ul></aside></section></section></details></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Enumeration Members"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Enumeration Members</summary>
+<div><a href="#ascend"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>ASCEND</span></a><a href="#ascend_block"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>ASCEND_<wbr/>BLOCK</span></a><a href="#auto_jumping_in_water"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>AUTO_<wbr/>JUMPING_<wbr/>IN_<wbr/>WATER</span></a><a href="#block_breaking_delay_enabled"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>BLOCK_<wbr/>BREAKING_<wbr/>DELAY_<wbr/>ENABLED</span></a><a href="#change_height"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>CHANGE_<wbr/>HEIGHT</span></a><a href="#client_ack_server_data"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>CLIENT_<wbr/>ACK_<wbr/>SERVER_<wbr/>DATA</span></a><a href="#descend"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DESCEND</span></a><a href="#descend_block"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DESCEND_<wbr/>BLOCK</span></a><a href="#down"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DOWN</span></a><a href="#down_left"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DOWN_<wbr/>LEFT</span></a><a href="#down_right"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>DOWN_<wbr/>RIGHT</span></a><a href="#emoting"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>EMOTING</span></a><a href="#handled_teleport"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>HANDLED_<wbr/>TELEPORT</span></a><a href="#horizontal_collision"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>HORIZONTAL_<wbr/>COLLISION</span></a><a href="#internal_update"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>INTERNAL_<wbr/>UPDATE</span></a><a href="#is_hotbar_only_touch"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>IS_<wbr/>HOTBAR_<wbr/>ONLY_<wbr/>TOUCH</span></a><a href="#is_in_client_predicted_vehicle"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>IS_<wbr/>IN_<wbr/>CLIENT_<wbr/>PREDICTED_<wbr/>VEHICLE</span></a><a href="#jump_current_raw"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMP_<wbr/>CURRENT_<wbr/>RAW</span></a><a href="#jump_down"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMP_<wbr/>DOWN</span></a><a href="#jump_pressed_raw"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMP_<wbr/>PRESSED_<wbr/>RAW</span></a><a href="#jump_released_raw"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMP_<wbr/>RELEASED_<wbr/>RAW</span></a><a href="#jumping"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>JUMPING</span></a><a href="#left"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>LEFT</span></a><a href="#missed_swing"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>MISSED_<wbr/>SWING</span></a><a href="#paddling_left"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PADDLING_<wbr/>LEFT</span></a><a href="#paddling_right"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PADDLING_<wbr/>RIGHT</span></a><a href="#perform_block_actions"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PERFORM_<wbr/>BLOCK_<wbr/>ACTIONS</span></a><a href="#perform_item_interaction"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PERFORM_<wbr/>ITEM_<wbr/>INTERACTION</span></a><a href="#perform_item_stack_request"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PERFORM_<wbr/>ITEM_<wbr/>STACK_<wbr/>REQUEST</span></a><a href="#persist_sneak"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>PERSIST_<wbr/>SNEAK</span></a><a href="#right"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>RIGHT</span></a><a href="#sneak_current_raw"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>CURRENT_<wbr/>RAW</span></a><a href="#sneak_down"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>DOWN</span></a><a href="#sneak_pressed_raw"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>PRESSED_<wbr/>RAW</span></a><a href="#sneak_released_raw"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>RELEASED_<wbr/>RAW</span></a><a href="#sneak_toggle_down"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAK_<wbr/>TOGGLE_<wbr/>DOWN</span></a><a href="#sneaking"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SNEAKING</span></a><a href="#sprint_down"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SPRINT_<wbr/>DOWN</span></a><a href="#sprinting"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>SPRINTING</span></a><a href="#start_crawling"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>CRAWLING</span></a><a href="#start_flying"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>FLYING</span></a><a href="#start_gliding"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>GLIDING</span></a><a href="#start_jumping"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>JUMPING</span></a><a href="#start_sneaking"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>SNEAKING</span></a><a href="#start_spin_attack"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>SPIN_<wbr/>ATTACK</span></a><a href="#start_sprinting"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>SPRINTING</span></a><a href="#start_swimming"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>SWIMMING</span></a><a href="#start_using_item"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>START_<wbr/>USING_<wbr/>ITEM</span></a><a href="#stop_crawling"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>CRAWLING</span></a><a href="#stop_flying"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>FLYING</span></a><a href="#stop_gliding"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>GLIDING</span></a><a href="#stop_sneaking"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>SNEAKING</span></a><a href="#stop_spin_attack"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>SPIN_<wbr/>ATTACK</span></a><a href="#stop_sprinting"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>SPRINTING</span></a><a href="#stop_swimming"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>STOP_<wbr/>SWIMMING</span></a><a href="#up"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>UP</span></a><a href="#up_left"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>UP_<wbr/>LEFT</span></a><a href="#up_right"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>UP_<wbr/>RIGHT</span></a><a href="#vertical_collision"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>VERTICAL_<wbr/>COLLISION</span></a><a href="#want_down"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>WANT_<wbr/>DOWN</span></a><a href="#want_down_slow"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>WANT_<wbr/>DOWN_<wbr/>SLOW</span></a><a href="#want_up"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>WANT_<wbr/>UP</span></a><a href="#want_up_slow"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Enumeration Member"><use href="../assets/icons.svg#icon-16"></use></svg><span>WANT_<wbr/>UP_<wbr/>SLOW</span></a></div></details></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">JSPrismarine</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a><br>
+            <span id="generation-date"></span>
+            <script>
+                window.GENERATION_DATE = 1792783201403;
+
+                (() => {
+                    
+        const formatter = new Intl.RelativeTimeFormat('en', {
+            numeric: 'auto',
+            style: 'short',
+        });
+
+        const divisions = [
+            { amount: 60, name: 'seconds' },
+            { amount: 60, name: 'minutes' },
+            { amount: 24, name: 'hours' },
+            { amount: 7, name: 'days' },
+            { amount: 4.34524, name: 'weeks' },
+            { amount: 12, name: 'months' },
+            { amount: Number.POSITIVE_INFINITY, name: 'years' }
+        ];
+
+        function formatTimeAgo(date) {
+            let duration = (date - new Date()) / 1000;
+            
+            for (const division of divisions) {
+                if (Math.abs(duration) < division.amount) {
+                    return formatter.format(Math.round(duration), division.name);
+                }
+                duration /= division.amount;
+            }
+        }
+
+        document.getElementById('generation-date').title = new Date(window.GENERATION_DATE).toLocaleString();
+        document.getElementById('generation-date').innerText = `Last modified ${formatTimeAgo(window.GENERATION_DATE)}`;
+    
+                })();
+            </script>
+        </p></footer>
+<div class="overlay"></div><script>
+          try {
+            const generateLinkElement = document.querySelector(".tsd-generator a");
+            const link = document.createElement("a");
+            Object.assign(link, {
+              href: "https://github.com/dmnsgn/typedoc-material-theme",
+              target: "_blank",
+              rel: "noreferrer",
+              innerText: "typedoc-material-theme."
+            });
+            generateLinkElement.insertAdjacentElement("afterend", link);
+            generateLinkElement.insertAdjacentText("afterend", " with ");
+          } catch (error) {
+
+          }
+        </script></body></html>

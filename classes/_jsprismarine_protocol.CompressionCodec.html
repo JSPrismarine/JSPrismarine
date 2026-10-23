@@ -1,0 +1,463 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>CompressionCodec | JSPrismarine</title><meta name="description" content="Documentation for JSPrismarine"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script><style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-sys-color-primary: #64dbb4;
+    --md-sys-color-on-primary: #003829;
+    --md-sys-color-primary-container: #00513d;
+    --md-sys-color-on-primary-container: #82f8cf;
+    --md-sys-color-secondary: #b2ccc0;
+    --md-sys-color-on-secondary: #1e352c;
+    --md-sys-color-secondary-container: #344c42;
+    --md-sys-color-on-secondary-container: #cee9dc;
+    --md-sys-color-tertiary: #a7cce1;
+    --md-sys-color-on-tertiary: #0b3445;
+    --md-sys-color-tertiary-container: #264b5d;
+    --md-sys-color-on-tertiary-container: #c3e8fe;
+    --md-sys-color-error: #ffb4ab;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #93000a;
+    --md-sys-color-on-error-container: #ffb4ab;
+    --md-sys-color-background: #191c1b;
+    --md-sys-color-on-background: #e1e3e0;
+    --md-sys-color-surface: #191c1b;
+    --md-sys-color-on-surface: #e1e3e0;
+    --md-sys-color-surface-variant: #404944;
+    --md-sys-color-on-surface-variant: #bfc9c3;
+    --md-sys-color-outline: #89938d;
+    --md-sys-color-outline-variant: #404944;
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-scrim: #000000;
+    --md-sys-color-inverse-surface: #e1e3e0;
+    --md-sys-color-inverse-on-surface: #2e312f;
+    --md-sys-color-inverse-primary: #006c52;
+    --md-sys-color-surface-dim: #111412;
+    --md-sys-color-surface-bright: #363a38;
+    --md-sys-color-surface-container-lowest: #0b0f0d;
+    --md-sys-color-surface-container-low: #191c1b;
+    --md-sys-color-surface-container: #1d201e;
+    --md-sys-color-surface-container-high: #272b29;
+    --md-sys-color-surface-container-highest: #323633
+  }
+}
+:root[data-theme="dark"] {
+  --md-sys-color-primary: #64dbb4;
+  --md-sys-color-on-primary: #003829;
+  --md-sys-color-primary-container: #00513d;
+  --md-sys-color-on-primary-container: #82f8cf;
+  --md-sys-color-secondary: #b2ccc0;
+  --md-sys-color-on-secondary: #1e352c;
+  --md-sys-color-secondary-container: #344c42;
+  --md-sys-color-on-secondary-container: #cee9dc;
+  --md-sys-color-tertiary: #a7cce1;
+  --md-sys-color-on-tertiary: #0b3445;
+  --md-sys-color-tertiary-container: #264b5d;
+  --md-sys-color-on-tertiary-container: #c3e8fe;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffb4ab;
+  --md-sys-color-background: #191c1b;
+  --md-sys-color-on-background: #e1e3e0;
+  --md-sys-color-surface: #191c1b;
+  --md-sys-color-on-surface: #e1e3e0;
+  --md-sys-color-surface-variant: #404944;
+  --md-sys-color-on-surface-variant: #bfc9c3;
+  --md-sys-color-outline: #89938d;
+  --md-sys-color-outline-variant: #404944;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-inverse-surface: #e1e3e0;
+  --md-sys-color-inverse-on-surface: #2e312f;
+  --md-sys-color-inverse-primary: #006c52;
+  --md-sys-color-surface-dim: #111412;
+  --md-sys-color-surface-bright: #363a38;
+  --md-sys-color-surface-container-lowest: #0b0f0d;
+  --md-sys-color-surface-container-low: #191c1b;
+  --md-sys-color-surface-container: #1d201e;
+  --md-sys-color-surface-container-high: #272b29;
+  --md-sys-color-surface-container-highest: #323633
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --md-sys-color-primary: #006c52;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #82f8cf;
+    --md-sys-color-on-primary-container: #002117;
+    --md-sys-color-secondary: #4c6359;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #cee9dc;
+    --md-sys-color-on-secondary-container: #082018;
+    --md-sys-color-tertiary: #3f6375;
+    --md-sys-color-on-tertiary: #ffffff;
+    --md-sys-color-tertiary-container: #c3e8fe;
+    --md-sys-color-on-tertiary-container: #001e2b;
+    --md-sys-color-error: #ba1a1a;
+    --md-sys-color-on-error: #ffffff;
+    --md-sys-color-error-container: #ffdad6;
+    --md-sys-color-on-error-container: #410002;
+    --md-sys-color-background: #fbfdf9;
+    --md-sys-color-on-background: #191c1b;
+    --md-sys-color-surface: #fbfdf9;
+    --md-sys-color-on-surface: #191c1b;
+    --md-sys-color-surface-variant: #dbe5de;
+    --md-sys-color-on-surface-variant: #404944;
+    --md-sys-color-outline: #707974;
+    --md-sys-color-outline-variant: #bfc9c3;
+    --md-sys-color-shadow: #000000;
+    --md-sys-color-scrim: #000000;
+    --md-sys-color-inverse-surface: #2e312f;
+    --md-sys-color-inverse-on-surface: #eff1ee;
+    --md-sys-color-inverse-primary: #64dbb4;
+    --md-sys-color-surface-dim: #d8dbd7;
+    --md-sys-color-surface-bright: #f8faf6;
+    --md-sys-color-surface-container-lowest: #ffffff;
+    --md-sys-color-surface-container-low: #f2f4f1;
+    --md-sys-color-surface-container: #eceeeb;
+    --md-sys-color-surface-container-high: #e6e9e5;
+    --md-sys-color-surface-container-highest: #e1e3e0
+  }
+}
+:root[data-theme="light"] {
+  --md-sys-color-primary: #006c52;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #82f8cf;
+  --md-sys-color-on-primary-container: #002117;
+  --md-sys-color-secondary: #4c6359;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #cee9dc;
+  --md-sys-color-on-secondary-container: #082018;
+  --md-sys-color-tertiary: #3f6375;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #c3e8fe;
+  --md-sys-color-on-tertiary-container: #001e2b;
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+  --md-sys-color-background: #fbfdf9;
+  --md-sys-color-on-background: #191c1b;
+  --md-sys-color-surface: #fbfdf9;
+  --md-sys-color-on-surface: #191c1b;
+  --md-sys-color-surface-variant: #dbe5de;
+  --md-sys-color-on-surface-variant: #404944;
+  --md-sys-color-outline: #707974;
+  --md-sys-color-outline-variant: #bfc9c3;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-inverse-surface: #2e312f;
+  --md-sys-color-inverse-on-surface: #eff1ee;
+  --md-sys-color-inverse-primary: #64dbb4;
+  --md-sys-color-surface-dim: #d8dbd7;
+  --md-sys-color-surface-bright: #f8faf6;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f2f4f1;
+  --md-sys-color-surface-container: #eceeeb;
+  --md-sys-color-surface-container-high: #e6e9e5;
+  --md-sys-color-surface-container-highest: #e1e3e0
+}
+</style><link rel="stylesheet" href="../assets/material-style.css"/></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar">
+<div class="tsd-toolbar-contents container"><a href="../index.html" class="title">JSPrismarine</a>
+<div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/>
+<ul role="listbox" id="tsd-search-results"></ul>
+<div id="tsd-search-status" aria-live="polite" aria-atomic="true">
+<div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header>
+<div class="container container-main">
+<div class="col-content">
+<div class="tsd-page-title">
+<ul class="tsd-breadcrumb" aria-label="Breadcrumb">
+<li><a href="../modules/_jsprismarine_protocol.html">@jsprismarine/protocol</a></li>
+<li><a href="" aria-current="page">CompressionCodec</a></li></ul>
+<h1>Class CompressionCodec</h1></div>
+<section class="tsd-panel tsd-comment">
+<div class="tsd-comment tsd-typography"><p>The compression half of a batch, and nothing else: no framing, no packet boundaries, no
+session state beyond what <code>NetworkSettings</code> negotiated once.</p>
+<p>An instance is what a connection agreed to. The decompression side is static because a
+batch names its own algorithm in its prefix byte, and a peer is entitled to send an
+uncompressed one at any point - so what we decompress with is read off the wire, not
+assumed from what we negotiated.</p>
+</div></section><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L61">protocol/src/CompressionCodec.ts:61</a></li></ul></aside>
+<section class="tsd-panel-group tsd-index-group">
+<section class="tsd-panel tsd-index-panel">
+<details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h5 class="tsd-index-heading uppercase">Index</h5></summary>
+<div class="tsd-accordion-details">
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="constructors">Constructors<a href="#constructors" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#constructor" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a>
+</div></section>
+<section class="tsd-index-section">
+<h3 class="tsd-index-heading tsd-anchor-link" id="methods">Methods<a href="#methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-index-list"><a href="#algorithmfor" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>algorithm<wbr/>For</span></a>
+<a href="#compress" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>compress</span></a>
+<a href="#compressasync" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>compress<wbr/>Async</span></a>
+<a href="#decompress" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompress</span></a>
+<a href="#decompressasync" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompress<wbr/>Async</span></a>
+<a href="#getalgorithm" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Algorithm</span></a>
+<a href="#shouldcompress" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>should<wbr/>Compress</span></a>
+<a href="#decompress-2" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompress</span></a>
+<a href="#decompressasync-2" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompress<wbr/>Async</span></a>
+<a href="#fromprefix" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>from<wbr/>Prefix</span></a>
+<a href="#toprefix" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>to<wbr/>Prefix</span></a>
+</div></section></div></details></section></section>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="constructors-1">Constructors<a href="#constructors-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="constructor"><span>constructor</span><a href="#constructor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="constructorcompressioncodec"><span class="tsd-signature-keyword">new</span> <span class="tsd-kind-constructor-signature">CompressionCodec</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">settings</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_jsprismarine_protocol.CompressionSettings.html" class="tsd-signature-type tsd-kind-interface">CompressionSettings</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="" class="tsd-signature-type tsd-kind-class">CompressionCodec</a><a href="#constructorcompressioncodec" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">settings</span>: <a href="../interfaces/_jsprismarine_protocol.CompressionSettings.html" class="tsd-signature-type tsd-kind-interface">CompressionSettings</a></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">CompressionCodec</a></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L66">protocol/src/CompressionCodec.ts:66</a></li></ul></aside></div></li></ul></section></section></details>
+<details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
+<section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="algorithmfor"><span>algorithm<wbr/>For</span><a href="#algorithmfor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="algorithmfor-1"><span class="tsd-kind-call-signature">algorithmFor</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">byteLength</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a><a href="#algorithmfor-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>The algorithm this payload will actually go out under, threshold included.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">byteLength</span>: <span class="tsd-signature-type">number</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L101">protocol/src/CompressionCodec.ts:101</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="compress"><span>compress</span><a href="#compress" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="compress-1"><span class="tsd-kind-call-signature">compress</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">payload</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><a href="#compress-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">payload</span>: <span class="tsd-signature-type">Buffer</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Buffer</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L105">protocol/src/CompressionCodec.ts:105</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="compressasync"><span>compress<wbr/>Async</span><a href="#compressasync" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="compressasync-1"><span class="tsd-kind-call-signature">compressAsync</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">payload</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ArrayBufferLike</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><a href="#compressasync-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>The same, on zlib's asynchronous API.</p>
+<p>Node runs that on the libuv thread pool, so the work genuinely leaves the main thread
+rather than merely being deferred on it. Worth the extra await for chunk batches,
+which are the large and frequent ones; small packets cost more in a trip through the
+pool than they do to compress.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">payload</span>: <span class="tsd-signature-type">Buffer</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ArrayBufferLike</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L126">protocol/src/CompressionCodec.ts:126</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="decompress"><span>decompress</span><a href="#decompress" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="decompress-1"><span class="tsd-kind-call-signature">decompress</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">algorithm</span><span class="tsd-signature-symbol">:</span> <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a><span class="tsd-signature-symbol">,</span> <span class="tsd-kind-parameter">payload</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><a href="#decompress-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Reads a batch's prefix byte with maxDecompressedLength already applied.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">algorithm</span>: <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a></span></li>
+<li><span><span class="tsd-kind-parameter">payload</span>: <span class="tsd-signature-type">Buffer</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Buffer</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L174">protocol/src/CompressionCodec.ts:174</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="decompressasync"><span>decompress<wbr/>Async</span><a href="#decompressasync" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="decompressasync-1"><span class="tsd-kind-call-signature">decompressAsync</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">algorithm</span><span class="tsd-signature-symbol">:</span> <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">payload</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ArrayBufferLike</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><a href="#decompressasync-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">algorithm</span>: <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a></span></li>
+<li><span><span class="tsd-kind-parameter">payload</span>: <span class="tsd-signature-type">Buffer</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ArrayBufferLike</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L178">protocol/src/CompressionCodec.ts:178</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getalgorithm"><span>get<wbr/>Algorithm</span><a href="#getalgorithm" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getalgorithm-1"><span class="tsd-kind-call-signature">getAlgorithm</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a><a href="#getalgorithm-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<h4 class="tsd-returns-title">Returns <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L85">protocol/src/CompressionCodec.ts:85</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="shouldcompress"><span>should<wbr/>Compress</span><a href="#shouldcompress" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="shouldcompress-1"><span class="tsd-kind-call-signature">shouldCompress</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">byteLength</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><a href="#shouldcompress-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Whether a payload of this size is worth compressing. Below the threshold deflate
+reliably makes the payload <em>larger</em>, and the peer is told so by the prefix.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">byteLength</span>: <span class="tsd-signature-type">number</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L93">protocol/src/CompressionCodec.ts:93</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="decompress-2"><code class="tsd-tag">Static</code><span>decompress</span><a href="#decompress-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="decompress-3"><span class="tsd-kind-call-signature">decompress</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">algorithm</span><span class="tsd-signature-symbol">:</span> <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">payload</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">maxOutputLength</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><a href="#decompress-3" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">algorithm</span>: <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a></span></li>
+<li><span><span class="tsd-kind-parameter">payload</span>: <span class="tsd-signature-type">Buffer</span></span></li>
+<li><span><span class="tsd-kind-parameter">maxOutputLength</span>: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = DEFAULT_MAX_DECOMPRESSED_LENGTH</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Buffer</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L139">protocol/src/CompressionCodec.ts:139</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="decompressasync-2"><code class="tsd-tag">Static</code><span>decompress<wbr/>Async</span><a href="#decompressasync-2" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="decompressasync-3"><span class="tsd-kind-call-signature">decompressAsync</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">algorithm</span><span class="tsd-signature-symbol">:</span> <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">payload</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">maxOutputLength</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ArrayBufferLike</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><a href="#decompressasync-3" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">algorithm</span>: <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a></span></li>
+<li><span><span class="tsd-kind-parameter">payload</span>: <span class="tsd-signature-type">Buffer</span></span></li>
+<li><span><span class="tsd-kind-parameter">maxOutputLength</span>: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = DEFAULT_MAX_DECOMPRESSED_LENGTH</span></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Buffer</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">ArrayBufferLike</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L156">protocol/src/CompressionCodec.ts:156</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="fromprefix"><code class="tsd-tag">Static</code><span>from<wbr/>Prefix</span><a href="#fromprefix" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="fromprefix-1"><span class="tsd-kind-call-signature">fromPrefix</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">prefix</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a><a href="#fromprefix-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>The algorithm a batch's one byte prefix names, widened to the negotiated form.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">prefix</span>: <span class="tsd-signature-type">number</span></span>
+<div class="tsd-comment tsd-typography"><p>the byte following the batch id.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L76">protocol/src/CompressionCodec.ts:76</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="toprefix"><code class="tsd-tag">Static</code><span>to<wbr/>Prefix</span><a href="#toprefix" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="toprefix-1"><span class="tsd-kind-call-signature">toPrefix</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">algorithm</span><span class="tsd-signature-symbol">:</span> <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><a href="#toprefix-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>The inverse of <a href="#fromprefix" class="tsd-kind-method">fromPrefix</a>: what to write for an algorithm.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">algorithm</span>: <a href="../enums/_jsprismarine_minecraft.PacketCompressionAlgorithm.html" class="tsd-signature-type tsd-kind-enum">PacketCompressionAlgorithm</a></span></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/JSPrismarine/JSPrismarine/blob/e3f2e7d2dd670d7e6c8024aba747c3ec38941344/packages/protocol/src/CompressionCodec.ts#L81">protocol/src/CompressionCodec.ts:81</a></li></ul></aside></div></li></ul></section></section></details></div>
+<div class="col-sidebar">
+<div class="page-menu">
+<div class="tsd-navigation settings">
+<details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>Settings</h3></summary>
+<div class="tsd-accordion-details">
+<div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span>
+<ul id="tsd-filter-options">
+<li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li></ul></div>
+<div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div>
+<details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
+<h3>On This Page</h3></summary>
+<div class="tsd-accordion-details">
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Constructors</summary>
+<div><a href="#constructor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Constructor"><use href="../assets/icons.svg#icon-512"></use></svg><span>constructor</span></a></div></details>
+<details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
+<div><a href="#algorithmfor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>algorithm<wbr/>For</span></a><a href="#compress"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>compress</span></a><a href="#compressasync"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>compress<wbr/>Async</span></a><a href="#decompress"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompress</span></a><a href="#decompressasync"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompress<wbr/>Async</span></a><a href="#getalgorithm"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Algorithm</span></a><a href="#shouldcompress"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>should<wbr/>Compress</span></a><a href="#decompress-2"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompress</span></a><a href="#decompressasync-2"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompress<wbr/>Async</span></a><a href="#fromprefix"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>from<wbr/>Prefix</span></a><a href="#toprefix"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>to<wbr/>Prefix</span></a></div></details></div></details></div>
+<div class="site-menu">
+<nav class="tsd-navigation"><a href="../modules.html">JSPrismarine</a>
+<ul class="tsd-small-nested-navigation" id="tsd-nav-container">
+<li>Loading...</li></ul></nav></div></div></div><footer>
+<p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a><br>
+            <span id="generation-date"></span>
+            <script>
+                window.GENERATION_DATE = 1792783204131;
+
+                (() => {
+                    
+        const formatter = new Intl.RelativeTimeFormat('en', {
+            numeric: 'auto',
+            style: 'short',
+        });
+
+        const divisions = [
+            { amount: 60, name: 'seconds' },
+            { amount: 60, name: 'minutes' },
+            { amount: 24, name: 'hours' },
+            { amount: 7, name: 'days' },
+            { amount: 4.34524, name: 'weeks' },
+            { amount: 12, name: 'months' },
+            { amount: Number.POSITIVE_INFINITY, name: 'years' }
+        ];
+
+        function formatTimeAgo(date) {
+            let duration = (date - new Date()) / 1000;
+            
+            for (const division of divisions) {
+                if (Math.abs(duration) < division.amount) {
+                    return formatter.format(Math.round(duration), division.name);
+                }
+                duration /= division.amount;
+            }
+        }
+
+        document.getElementById('generation-date').title = new Date(window.GENERATION_DATE).toLocaleString();
+        document.getElementById('generation-date').innerText = `Last modified ${formatTimeAgo(window.GENERATION_DATE)}`;
+    
+                })();
+            </script>
+        </p></footer>
+<div class="overlay"></div><script>
+          try {
+            const generateLinkElement = document.querySelector(".tsd-generator a");
+            const link = document.createElement("a");
+            Object.assign(link, {
+              href: "https://github.com/dmnsgn/typedoc-material-theme",
+              target: "_blank",
+              rel: "noreferrer",
+              innerText: "typedoc-material-theme."
+            });
+            generateLinkElement.insertAdjacentElement("afterend", link);
+            generateLinkElement.insertAdjacentText("afterend", " with ");
+          } catch (error) {
+
+          }
+        </script></body></html>
