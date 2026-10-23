@@ -70,7 +70,6 @@
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
-        "@jsprismarine/raknet": "workspace:*",
-        "winston": "3.19.0"
+        "@jsprismarine/raknet": "workspace:*"
     }
 }
