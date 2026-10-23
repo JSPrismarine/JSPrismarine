@@ -71,7 +71,6 @@
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
-        "dotenv": "18.0.1",
         "winston": "3.19.0"
     }
 }
