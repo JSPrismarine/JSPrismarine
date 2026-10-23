@@ -13,7 +13,7 @@
     },
     "scripts": {
         "preinstall": "node scripts/ensure-pnpm.mts",
-        "prepare": "husky || true",
+        "prepare": "node scripts/ensure-submodules.mts && (husky || true)",
         "start": "pnpm --filter ./packages/server run start",
         "dev": "pnpm --filter ./packages/server run dev",
         "clean": "turbo run clean",
