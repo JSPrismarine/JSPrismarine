@@ -121,10 +121,22 @@ While the prerequisites above must be satisfied prior to having your pull reques
 
 ### Git Commit Messages
 
--   Use the present tense ("Add feature" not "Added feature")
--   Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
--   Limit the first line to 72 characters or less
--   Reference issues and pull requests liberally after the first line
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) and are
+checked by commitlint, both in the `commit-msg` hook and in CI, so a message that breaks the
+rules is rejected before it lands. A typical subject looks like this:
+
+```
+feat(labels): sync CodeRabbit labels
+```
+
+-   Start with a lowercase type (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`,
+    `build`, `perf`, `style`, `revert`) and an optional lowercase scope, usually the package.
+-   Write the subject in the imperative mood ("add", not "added" or "adds"), starting with a
+    lowercase letter. Proper names such as `CodeRabbit` keep their capitals.
+-   Leave out the trailing period, and keep the whole first line to 72 characters.
+-   Wrap code in backticks: file names, functions, identifiers and flags, as in
+    ``fix(server): read `.env` with `process.loadEnvFile` ``.
+-   Reference issues and pull requests after the first line, in the body.
 
 ### TypeScript Styleguide
 

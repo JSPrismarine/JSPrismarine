@@ -53,7 +53,7 @@
     "author": "JSPrismarine",
     "contributors": [
         {
-            "name": "Filiph Sandstr\u00f6m",
+            "name": "Filiph Sandström",
             "email": "filiph@hotmail.se",
             "url": "https://github.com/filiphsps"
         },
@@ -73,6 +73,9 @@
         "@changesets/cli": "3.0.3",
         "@changesets/types": "7.0.0",
         "@codecov/vite-plugin": "2.0.1",
+        "@commitlint/cli": "21.2.4",
+        "@commitlint/config-conventional": "21.2.4",
+        "@commitlint/types": "21.2.3",
         "@eslint/js": "9.39.5",
         "@nordcom/prettier": "0.1.1",
         "@turbo/gen": "2.11.10",
