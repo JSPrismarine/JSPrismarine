@@ -644,9 +644,6 @@ importers:
       evt:
         specifier: 2.5.9
         version: 2.5.9
-      fast-jwt:
-        specifier: 6.3.3
-        version: 6.3.3
       heap:
         specifier: 0.2.7
         version: 0.2.7
@@ -657,6 +654,9 @@ importers:
       '@types/terminal-kit':
         specifier: 2.5.7
         version: 2.5.7
+      fast-jwt:
+        specifier: 6.3.3
+        version: 6.3.3
       glob:
         specifier: 13.0.6
         version: 13.0.6
