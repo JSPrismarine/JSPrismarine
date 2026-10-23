@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { parseJSON5 } from 'confbox';
 
 import { PlayerNotFoundError } from '@jsprismarine/errors';
+import Console from '../Console';
 import type { Player, Server, Service } from '../';
 import { withCwd } from '../utils/cwd';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
@@ -206,14 +207,15 @@ export class PermissionManager implements Service {
     /**
      * Check if a player can execute a command.
      *
-     * @param {Player} executer - The player to check.
+     * @param {Player | Console} executer - The player or console to check.
      * @returns {object} An object with an execute method that takes a permission string and returns whether the player can execute the command.
      */
-    public can(executer?: Player) {
+    public can(executer?: Player | Console) {
         const execute = (permission?: string) => {
             if (!executer) throw new Error(`Executer can't be undefined or null`);
 
             if (!permission) return true;
+            if (executer instanceof Console) return true;
             if (executer.isOp()) return true;
             if (executer.getPermissions().includes(permission)) return true;
             if (executer.getPermissions().includes('*')) return true;

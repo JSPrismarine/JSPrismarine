@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import Console from '../Console';
 import { PermissionManager } from './PermissionManager';
 
 describe('permission', () => {
@@ -90,6 +91,12 @@ describe('permission', () => {
                     .not()
                     .execute('namespace.scope.action.subaction')
             ).toBe(false);
+        });
+
+        it('can().execute() should allow the console', () => {
+            const pm = new PermissionManager(null as any);
+
+            expect(pm.can(new Console(null as any)).execute('namespace.scope.action')).toBe(true);
         });
 
         it('can().execute() should handle no permission', () => {
