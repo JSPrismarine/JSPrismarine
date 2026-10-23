@@ -1,5 +1,6 @@
 import { ConfigInvalidDataError } from '@jsprismarine/errors';
-import { parseJSON5, parseYAML, stringifyYAML } from 'confbox';
+import yaml from 'js-yaml';
+import JSON5 from 'json5';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -118,7 +119,7 @@ export class ConfigBuilder {
             case 'json':
                 return JSON.stringify(data, null, 4);
             case 'yaml':
-                return stringifyYAML(data, { indent: 4 });
+                return yaml.dump(data, { indent: 4 });
             default:
                 throw new Error(`Unknown config type ${this.type}!`);
         }
@@ -130,12 +131,12 @@ export class ConfigBuilder {
         switch (this.type) {
             case 'json':
                 try {
-                    return parseJSON5(raw);
+                    return JSON5.parse(raw);
                 } catch {}
                 break;
             case 'yaml':
                 try {
-                    return parseYAML(raw);
+                    return yaml.load(raw) as ConfigData;
                 } catch {}
                 break;
             default:

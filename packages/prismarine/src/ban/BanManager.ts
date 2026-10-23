@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 
-import { parseJSON5 } from 'confbox';
+import JSON5 from 'json5';
 import type Player from '../Player';
 import type Server from '../Server';
 import { withCwd } from '../utils/cwd';
@@ -47,7 +47,7 @@ export default class BanManager {
                 fs.writeFileSync(dir, '[]');
             }
 
-            const banned: BannedPlayerEntry[] = parseJSON5((await fs.promises.readFile(dir)).toString());
+            const banned: BannedPlayerEntry[] = JSON5.parse((await fs.promises.readFile(dir)).toString());
             for (const player of banned) this.banned.set(player.name, player);
         } catch (error: unknown) {
             this.server.getLogger().error(error);
