@@ -122,11 +122,15 @@ export class Vector3 extends Vector2 {
 
     /**
      * Compare an instance of `Vector3` with another.
-     * @param {Vector3} vector - The `Vector3` to compare to.
+     *
+     * The parameter type matches the base declaration because ahead-of-time
+     * compilation only lowers overrides with identical signatures; a plain
+     * `Vector2` is never equal to a `Vector3`.
+     * @param {Vector2} vector - The vector to compare to.
      * @returns {boolean} `true` if they're equal otherwise `false`.
      */
-    public override equals(vector: Vector3): boolean {
-        return this.x === vector.x && this.y === vector.y && this.z === vector.z;
+    public override equals(vector: Vector2): boolean {
+        return vector instanceof Vector3 && this.x === vector.x && this.y === vector.y && this.z === vector.z;
     }
 
     /**
