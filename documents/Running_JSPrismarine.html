@@ -180,6 +180,17 @@
 <pre><code class="bash"><span class="hl-1">    </span><span class="hl-4"># Development</span><br/><span class="hl-1">    </span><span class="hl-0">$</span><span class="hl-1"> </span><span class="hl-2">pnpm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">dev</span><br/><br/><span class="hl-1">    </span><span class="hl-4"># Production (you should probably be using the prebuilt version however)</span><br/><span class="hl-1">    </span><span class="hl-0">$</span><span class="hl-1"> </span><span class="hl-2">pnpm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span><br/><span class="hl-1">    </span><span class="hl-0">$</span><span class="hl-1"> </span><span class="hl-2">pnpm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">start</span>
 </code><button type="button">Copy</button></pre>
 
+<h2 id="4-how-the-development-server-works" class="tsd-anchor-link">4. How the development server works<a href="#4-how-the-development-server-works" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2>
+<p><code>pnpm run dev</code> runs the server from TypeScript source under a small supervisor.
+No build step is needed: every <code>@jsprismarine/*</code> package resolves straight to
+its <code>src/</code>, so an edit in any package takes effect on the next restart.</p>
+<p>The supervisor watches the source of all workspace packages and restarts the
+server gracefully (saving the world first) whenever a file changes. The
+interactive console keeps working across restarts. If the server crashes while
+you are mid-edit, the supervisor stays up and starts it again on your next
+change. Changing the <code>bedrock-data</code> resources or its generator regenerates the
+data before the restart.</p>
+<p><code>pnpm run dev:bun</code> does the same with Bun as the runtime instead of Node.</p>
 </div></div>
 <div class="col-sidebar">
 <div class="page-menu">
@@ -197,7 +208,8 @@
 <ul>
 <li><a href="#1-prerequisites"><span>1. <wbr/>Prerequisites</span></a></li>
 <li><a href="#2-install-dependencies"><span>2. <wbr/>Install dependencies</span></a></li>
-<li><a href="#3-running"><span>3. <wbr/>Running</span></a></li></ul></div></details></div>
+<li><a href="#3-running"><span>3. <wbr/>Running</span></a></li>
+<li><a href="#4-how-the-development-server-works"><span>4. <wbr/>How the development server works</span></a></li></ul></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../modules.html">JSPrismarine</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
@@ -205,7 +217,7 @@
 <p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a><br>
             <span id="generation-date"></span>
             <script>
-                window.GENERATION_DATE = 1792789816105;
+                window.GENERATION_DATE = 1792790471545;
 
                 (() => {
                     
