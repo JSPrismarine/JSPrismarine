@@ -34,7 +34,7 @@ proc command_works {name step} {
     await {issued server command} $step
 }
 
-spawn node ./scripts/dev.mjs
+spawn node ./scripts/dev.mts
 await {listening on port} "initial boot"
 command_works version "console input on first boot"
 
