@@ -32,7 +32,7 @@ import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import type { Config } from './config/Config';
 
 import type { Logger } from '@jsprismarine/logger';
-import { version } from '../package.json' with { type: 'json' };
+import pkg from '../package.json' with { type: 'json' };
 
 /**
  * JSPrismarine's main server class.
@@ -147,7 +147,7 @@ export default class Server extends EventEmitter {
         this.headless = headless;
 
         logger.info(
-            `Starting JSPrismarine server version §ev${version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`
+            `Starting JSPrismarine server version §ev${pkg.version}§r for Minecraft: Bedrock Edition ${Identifiers.MinecraftVersions.at(-1)} (protocol version §e${Identifiers.Protocol}§r)`
         );
 
         this.logger = logger;
@@ -540,7 +540,7 @@ export default class Server extends EventEmitter {
      * ```
      */
     public getVersion(): string {
-        return version;
+        return pkg.version;
     }
 
     /**
