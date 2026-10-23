@@ -1,7 +1,5 @@
-import colorParser from '@jsprismarine/color-parser';
-import { Logger } from '@jsprismarine/logger';
+import { FileTransport, Logger } from '@jsprismarine/logger';
 import { Config, Server } from '@jsprismarine/prismarine';
-import { format, transports } from 'winston';
 
 import path from 'node:path';
 
@@ -34,20 +32,14 @@ if (process.env.NODE_ENV !== 'development')
 
 const config = new Config();
 const logger = new Logger(config.getLogLevel(), [
-    new transports.File({
+    new FileTransport({
         level: 'debug',
-        filename: path.join(process.cwd(), process.env.JSP_DIR || '', 'logs', logFile),
-        format: format.printf(({ level, message, timestamp, namespace }: any) => {
-            return `[${timestamp}] [${level}]${colorParser(
-                `${namespace ? ` [${namespace}]` : ''}: ${message}`
-                // eslint-disable-next-line no-control-regex -- strips ANSI escapes from file logs
-            )}`.replaceAll(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
-        })
+        filename: path.join(process.cwd(), process.env.JSP_DIR || '', 'logs', logFile)
     })
 ]);
 const server = new Server({
     config,
-    logger: logger as any
+    logger
 });
 
 let forceExitTriggered = false;
