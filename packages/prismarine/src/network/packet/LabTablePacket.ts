@@ -35,7 +35,7 @@ export enum LabTableReactionType {
  *
  * Wire layout at protocol 2193: Type as a `LabTableType` byte, Position as a `BlockPos` (three
  * ZigZag varint32), then Reaction as a `LabTableReactionType` byte.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/lab-table-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/lab-table-packet/
  */
 export default class LabTablePacket extends DataPacket {
     public static NetID = Identifiers.LabTablePacket;

@@ -27,7 +27,7 @@ export enum StructureTemplateResponseType {
  * The docs collapse the boolean and the compound into one `unknown` field. Both are written
  * here, following gophertunnel at 2193; with the boolean left out the Response Type byte that
  * follows reads off by one.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/structure-template-data-response-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/structure-template-data-response-packet/
  */
 export default class StructureTemplateDataResponsePacket extends DataPacket {
     public static NetID = Identifiers.StructureTemplateDataResponsePacket;

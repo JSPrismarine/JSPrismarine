@@ -7,9 +7,10 @@ import DataPacket from './DataPacket';
  * The client asking the server to damage an anvil after a use.
  *
  * Wire layout at protocol 2193: Block Position as a `BlockPos` (three ZigZag varint32). The
- * damage amount that older builds carried is gone. The client only sends this when the
- * server runs without the item stack net manager, which this server does.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/anvil-damage-packet/
+ * uint8 damage amount that older builds carried is gone: Mojang's release note ADO:1562428
+ * removed it because the server works the damage out itself. The client only sends this
+ * when the server runs without the item stack net manager, which this server does.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/anvil-damage-packet/
  */
 export default class AnvilDamagePacket extends DataPacket {
     public static NetID = Identifiers.AnvilDamagePacket;

@@ -147,7 +147,7 @@ export const writeStructureSettings = (stream: BinaryStream, settings: Structure
  * Wire layout at protocol 2193: Structure Name as a string, Structure Position as a `BlockPos`
  * (three ZigZag varint32), Structure Settings as a `StructureSettings`, then Requested
  * Operation as a `StructureTemplateRequestOperation` byte.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/structure-template-data-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/structure-template-data-request-packet/
  */
 export default class StructureTemplateDataRequestPacket extends DataPacket {
     public static NetID = Identifiers.StructureTemplateDataRequestPacket;

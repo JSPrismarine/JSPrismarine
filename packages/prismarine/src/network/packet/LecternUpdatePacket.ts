@@ -9,7 +9,7 @@ import DataPacket from './DataPacket';
  * Wire layout at protocol 2193: New page to show as a uint8, Total Pages as a uint8, then
  * Position of Lectern to update as a `BlockPos` (three ZigZag varint32). Dropping the book is
  * no longer part of this packet.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/lectern-update-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/lectern-update-packet/
  */
 export default class LecternUpdatePacket extends DataPacket {
     public static NetID = Identifiers.LecternUpdatePacket;

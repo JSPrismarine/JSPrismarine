@@ -31,7 +31,11 @@ export type BookEditOperation =
  * ReplacePage and AddPage carry Page Index (ZigZag varint32), Page Text, and Photo Name;
  * DeletePage carries Page Index; SwapPages carries Page Index and Swap With Index; Finalize
  * carries Title, Author, and XUID. Strings are varuint32 length prefixed UTF-8.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/book-edit-packet/
+ *
+ * Mojang converted this packet to Cereal before 1.26.51, which is where the varints come
+ * from. The older layout was a uint8 action, a uint8 slot and uint8 page numbers; a 1.26
+ * client does not send that.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/book-edit-packet/
  */
 export default class BookEditPacket extends DataPacket {
     public static NetID = Identifiers.BookEditPacket;
