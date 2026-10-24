@@ -84,17 +84,30 @@ export class LegacySlotChange {
     }
 }
 
-/** The docs' `InventorySourceType`: which inventory an action's slot belongs to. */
+/**
+ * The docs' `InventorySourceType`: which inventory an action's slot belongs to.
+ *
+ * The docs name five: Container Inventory, Global Inventory, World Interaction, Creative
+ * Inventory and Non Implemented Feature TODO. `INVALID` is this server's own, for a source
+ * nothing has been read into yet.
+ */
 export enum ActionSource {
+    /** Not a wire value. Stands for a source that has not been read. */
     INVALID = -1,
+    /** Container Inventory. */
     CONTAINER,
+    /** Global Inventory. */
     GLOBAL,
+    /** World Interaction. */
     WORLD,
+    /** Creative Inventory. */
     CREATIVE,
-    UNTRACKED_INTERACTION_UI = 100,
     /**
+     * Non Implemented Feature TODO.
+     *
      * The 2193 docs page lists this as 4, but that page numbered members without declared
-     * values in order. The 2207 page corrects it to 99999, which is what the client sends.
+     * values in order. The 2207 page corrects it to 99999, which is what gophertunnel reads
+     * and writes at 2193 and what the client sends.
      */
     NON_IMPLEMENTED_TODO = 99999
 }

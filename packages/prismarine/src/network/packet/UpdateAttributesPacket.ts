@@ -8,21 +8,17 @@ import Identifiers from '../Identifiers';
  *
  * Protocol 2193 wire layout, in the field names Mojang's docs use:
  * - Target Runtime ID, a varuint64.
- * - Attribute List, a varuint count followed by one AttributeData per entry. Each entry is
+ * - Attribute List, a varuint32 count followed by one AttributeData per entry. Each entry is
  *   Min Value, Max Value, Current Value, Default Min Value, Default Max Value and Default Value
- *   as little-endian floats, then Name as a varuint-prefixed UTF-8 string, then Modifiers as a
- *   varuint count followed by one AttributeModifier each: Id string, Name string, Amount float,
- *   Operation int32, Operand int32, Is Serializable boolean.
+ *   as little-endian floats, then Name as a hashed_string, then Modifiers as a varuint32 count
+ *   followed by one AttributeModifier each: Id string, Name string, Amount float, Operation
+ *   int32, Operand int32, Is Serializable boolean.
  * - Tick, a PlayerInputTick, which is a varuint64.
  *
- * `Attribute.networkSerialize` writes each entry. It sends the live bounds as the default
- * bounds and always writes an empty Modifiers list. `PlayerSession.sendAttributesFor` fills
- * Tick with the current server tick.
- *
- * The decoder has a known gap. `Attribute.networkDeserialize` reads the Modifiers count and
- * none of the modifier bodies, so decoding a packet whose attribute carries modifiers leaves
- * the stream misaligned at the next attribute or at Tick. The server only sends this packet,
- * so nothing decodes such a packet today.
+ * `Attribute.networkSerialize` writes each entry and `Attribute.networkDeserialize` reads one
+ * back. The server sends the live bounds as the default bounds and an empty Modifiers list,
+ * since it models no timed buffs. `PlayerSession.sendAttributesFor` fills Tick with the
+ * current server tick.
  */
 export default class UpdateAttributesPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAttributesPacket;

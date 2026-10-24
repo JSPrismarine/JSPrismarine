@@ -12,20 +12,28 @@ import DataPacket from './DataPacket';
  * not move a stack into a container it has never been told about - which is what left an item
  * refusing to come off its slot however it was dragged.
  *
+ * Wire order at protocol 2193: `Container Id` (varuint32), `Slots` (a varuint count then one
+ * `NetworkItemStackDescriptor` each), `Full Container Name`, `Storage Item`. Neither of the
+ * last two is an optional here, unlike in `InventorySlotPacket`.
+ *
  * **Bound To:** Client
  */
 export default class InventoryContentPacket extends DataPacket {
     public static NetID = Identifiers.InventoryContentPacket;
 
+    /** `Container Id`: the window these slots belong to. */
     public windowId!: number;
+
+    /** `Slots`: every slot of the container, in order. */
     public items: ContainerEntry[] = [];
 
-    /** Which UI container these slots belong to; the player's own by default. */
+    /** The `Container Name` of `Full Container Name`; the player's own by default. */
     public containerId: number = ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY;
 
-    /** Set only when several containers of one kind are open at once. */
+    /** The `Dynamic ID` of `Full Container Name`, absent unless several of a kind are open. */
     public dynamicId: number | null = null;
 
+    /** Writes the four fields in docs order. */
     public encodePayload(): void {
         this.writeUnsignedVarInt(this.windowId);
 

@@ -67,6 +67,20 @@ describe('network', () => {
                 expect(stream.feof()).toBe(true);
             });
 
+            it('writes the four fields in wire order, with the origin name in lower case', () => {
+                const stream = new BinaryStream();
+                CommandOriginData.networkDeserialize(new BinaryStream(origin('DevConsole'))).networkSerialize(stream);
+
+                expect(stream.getBuffer()).toEqual(origin('devconsole'));
+            });
+
+            it('writes a type it has no name for as the player origin', () => {
+                const stream = new BinaryStream();
+                CommandOriginData.networkDeserialize(new BinaryStream(origin('SomethingNew'))).networkSerialize(stream);
+
+                expect(stream.getBuffer()).toEqual(origin('player'));
+            });
+
             it('numbers the origin types as the 2193 enum does', () => {
                 expect(CommandOriginType.EntityServer).toBe(11);
                 expect(CommandOriginType.Precompiled).toBe(12);

@@ -10,17 +10,27 @@ import DataPacket from './DataPacket';
  * to send the player's own position, which is a floating point one: written through a varint
  * it became whichever block the player happened to be standing in.
  *
+ * Wire order at protocol 2193: `Container Id` (uint8), `Container Type` (uint8), `Position`
+ * (a `BlockPos` of three varint32s), `Target Actor ID` (varint64).
+ *
  * **Bound To:** Client
  */
 export default class ContainerOpenPacket extends DataPacket {
     public static NetID = Identifiers.ContainerOpenPacket;
+
+    /** `Container Id`: the window the client should file this container under. */
     public windowId!: number;
+
+    /** `Container Type`: which screen to draw. */
     public containerType!: number;
 
-    /** Zero for a container an actor carries; only a block's container has a position. */
+    /** `Position`. Zero for a container an actor carries; only a block's has a position. */
     public containerPos: Vector3 = new Vector3(0, 0, 0);
+
+    /** `Target Actor ID`: the actor whose container this is, or -1 for a block's. */
     public containerEntityId!: bigint;
 
+    /** Writes the four fields in docs order. */
     public encodePayload(): void {
         this.writeByte(this.windowId);
         this.writeByte(this.containerType);
@@ -36,6 +46,7 @@ export default class ContainerOpenPacket extends DataPacket {
         this.writeVarLong(this.containerEntityId);
     }
 
+    /** Reads the four fields in docs order. */
     public decodePayload(): void {
         this.windowId = this.readByte();
         this.containerType = this.readByte();

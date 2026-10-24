@@ -30,8 +30,12 @@ const ORIGIN_NAMES: Readonly<Record<string, CommandOriginType>> = {
     executecontext: CommandOriginType.ExecuteContext
 };
 
+/** The name to write for each origin, taken from {@link ORIGIN_NAMES} so the two cannot drift. */
+const ORIGIN_NAME_BY_TYPE = new Map(Object.entries(ORIGIN_NAMES).map(([name, type]) => [type, name]));
+
 /**
- * The "Origin" of a `CommandRequestPacket`, Mojang's `CommandOriginData`.
+ * The "Origin" of a `CommandRequestPacket` and the "Origin Data" a `CommandOutputPacket`
+ * sends back, Mojang's `CommandOriginData`.
  *
  * Wire order at 2193: "Type" string, "UUID" as two uint64 LE halves, "RequestId" string,
  * "PlayerId" int64 LE. "PlayerId" is always present; it is not conditional on the origin.
@@ -60,5 +64,19 @@ export default class CommandOriginData {
         const requestId = NetworkUtil.readString(stream);
         const uniqueEntityId = stream.readLongLE();
         return new CommandOriginData(type, uuid, requestId, uniqueEntityId);
+    }
+
+    /**
+     * Writes one origin to the stream, so that a `CommandOutputPacket` can carry back the
+     * origin its request arrived with.
+     *
+     * "Type" goes out in lower case, the form gophertunnel and Dragonfly send. The reader above
+     * matches a name in any casing.
+     */
+    public networkSerialize(stream: BinaryStream): void {
+        NetworkUtil.writeString(stream, ORIGIN_NAME_BY_TYPE.get(this.type) ?? 'player');
+        this.uuid.networkSerialize(stream);
+        NetworkUtil.writeString(stream, this.requestId);
+        stream.writeLongLE(this.uniqueEntityId);
     }
 }

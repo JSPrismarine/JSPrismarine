@@ -8,13 +8,20 @@ import DataPacket from './DataPacket';
  * Sent both ways: the client says which hotbar slot the player has selected, and the server
  * tells everyone what another player is holding.
  *
- * | Name | Type | Notes |
- * | ---- |:----:|:-----:|
- * | runtimeEntityId | UnsignedVarLong | |
- * | item | ItemStackWrapper | The held stack |
- * | inventorySlot | Byte | Where it lives in the inventory |
- * | hotbarSlot | Byte | Which hotbar slot points at it |
- * | windowId | Byte | The container it came from |
+ * Protocol 2193 wire order. The field names in this class are the ones the rest of the
+ * package uses; the docs' names are in the last column.
+ *
+ * | Name | Type | Docs name |
+ * | ---- |:----:|:---------:|
+ * | runtimeEntityId | varuint64 | Target Runtime ID |
+ * | item | NetworkItemStackDescriptor | Item |
+ * | inventorySlot | uint8 | Slot |
+ * | hotbarSlot | uint8 | Selected Slot |
+ * | windowId | uint8 | Container ID |
+ *
+ * An empty hand is an air stack, not an omission: the descriptor is a fixed set of fields
+ * whatever the id is. See {@link Item.networkSerialize}.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-equipment-packet/
  */
 export default class MobEquipmentPacket extends DataPacket {
     public static NetID = Identifiers.MobEquipmentPacket;

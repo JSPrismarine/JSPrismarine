@@ -5,17 +5,21 @@ import DataPacket from './DataPacket';
 /**
  * Triggers an animation on an actor, in either direction.
  *
- * Protocol 2193 layout: Action as a uint8, Target Actor Runtime ID as a varuint64, Data as a
- * float, then Swing Source as an optional string (presence byte, then the string) naming what
- * caused a swing: "None", "Build", "Mine", "Interact", "Attack", "UseItem", "ThrowItem",
- * "DropItem" or "Event". The action is relayed as the raw byte; the 1.26.50 docs number WakeUp,
- * CriticalHit and MagicCriticalHit as 2, 3 and 4, while the 2207 changelog and other servers
- * use 3, 4 and 5.
+ * Protocol 2193 layout, with the docs' field names: `Action` as a uint8, `Target Actor
+ * Runtime ID` as a varuint64, `Data` as a little-endian float, then `Swing Source` as an
+ * optional string - a presence byte, then the string when it is 0x01 - naming what caused a
+ * swing. A client writes the name in lower case: "none", "build", "mine", "interact",
+ * "attack", "useitem", "throwitem", "dropitem" or "event".
+ *
+ * The action is relayed as the raw byte, and the byte is not the number printed beside the
+ * name on the docs page. That table prints list indices; the values a 2193 client sends are
+ * NoAction 0, Swing 1, WakeUp 3, CriticalHit 4 and MagicCriticalHit 5, which is what the
+ * page's own 2207 changelog corrects them to and what gophertunnel reads at 2193.
  */
 export default class AnimatePacket extends DataPacket {
     public static NetID = Identifiers.AnimatePacket;
 
-    /** Action, as the raw enum byte. Swing is 1. */
+    /** `Action`, as the raw enum byte. Swing is 1. */
     public action!: number;
 
     /** Target Actor Runtime ID. */

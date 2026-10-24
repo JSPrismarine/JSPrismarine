@@ -2,26 +2,26 @@ import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
- * Packet for handling changing the client's view distance.
+ * The radius the server grants, which is the one that binds.
+ *
+ * Protocol 2193 carries a single field, `Chunk Radius`, a ZigZag varint32 counted in chunks. It
+ * answers `RequestChunkRadiusPacket` and may be smaller than what the client asked for. Until it
+ * arrives a retail client discards every `LevelChunkPacket` it is sent.
  *
  * **Bound To:** Client
- *
- * | Name | Type | Notes |
- * | ---- |:----:|:-----:|
- * | Radius | VarInt | The view-distance |
  */
 export default class ChunkRadiusUpdatedPacket extends DataPacket {
     public static NetID = Identifiers.ChunkRadiusUpdatedPacket;
 
-    /**
-     * The view distance as a radius
-     */
+    /** `Chunk Radius`, the granted view distance in chunks. */
     public radius!: number;
 
+    /** Writes `Chunk Radius` as a ZigZag varint32. */
     public encodePayload(): void {
         this.writeVarInt(this.radius);
     }
 
+    /** Reads `Chunk Radius` as a ZigZag varint32. */
     public decodePayload(): void {
         this.radius = this.readVarInt();
     }
