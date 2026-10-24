@@ -21,7 +21,7 @@ const readBack = (buffer: Buffer) => {
         if (stream.readBoolean()) {
             for (let j = 0, n = stream.readUnsignedVarInt(); j < n; j++) {
                 const containerId = stream.readByte();
-                const dynamicId = stream.readBoolean() ? stream.readIntLE() : null;
+                const dynamicId = stream.readBoolean() ? stream.readUnsignedIntLE() : null;
                 const slots = [];
                 for (let k = 0, m = stream.readUnsignedVarInt(); k < m; k++) {
                     slots.push({
@@ -98,7 +98,7 @@ describe('ItemStackResponsePacket', () => {
         ]);
     });
 
-    it('leaves out a stack net id that is not positive, as an absent optional', () => {
+    it('leaves out the stack net id of an empty slot, as an absent optional', () => {
         const packet = new ItemStackResponsePacket();
         packet.responses = [
             {
@@ -160,5 +160,96 @@ describe('ItemStackResponsePacket', () => {
         expect(readBack(encode(packet))).toEqual([
             { result: ItemStackResponseResult.ERROR, requestId: -3, containers: [] }
         ]);
+    });
+
+    it('writes an accepted request that changed nothing as a present, empty container list', () => {
+        // Containers is tied to the result, not to whether there is anything in it. A success
+        // whose presence byte said false read back in the shape of a refusal.
+        const packet = new ItemStackResponsePacket();
+        packet.responses = [{ result: ItemStackResponseResult.OK, requestId: -1, containers: [] }];
+
+        expect(encode(packet)).toEqual(
+            Buffer.from([
+                0x94, // Header: 148.
+                0x01,
+                0x01, // Responses: one.
+                0x00, // Result: Success.
+                0x01, // Client Request Id: -1 as a ZigZag varint32.
+                0x01, // Containers: present.
+                0x00 // Containers: none.
+            ])
+        );
+    });
+
+    it('pins the bytes of one changed slot', () => {
+        const packet = new ItemStackResponsePacket();
+        packet.responses = [
+            {
+                result: ItemStackResponseResult.OK,
+                requestId: -3,
+                containers: [
+                    {
+                        container: { containerId: 12, dynamicId: null },
+                        slots: [{ slot: 3, count: 16, itemStackId: 77, customName: '', durabilityCorrection: 0 }]
+                    }
+                ]
+            }
+        ];
+
+        expect(encode(packet)).toEqual(
+            Buffer.from([
+                0x94, // Header: 148.
+                0x01,
+                0x01, // Responses: one.
+                0x00, // Result: Success.
+                0x05, // Client Request Id: -3 as a ZigZag varint32.
+                0x01, // Containers: present.
+                0x01, // Containers: one.
+                0x0c, // Full Container Name: CombinedHotbarAndInventoryContainer.
+                0x00, // Full Container Name: no Dynamic ID.
+                0x01, // Slots: one.
+                0x03, // Requested Slot.
+                0x03, // Slot.
+                0x10, // Amount: 16.
+                0x01, // Item Stack Net Id: present, because the amount is above zero.
+                0x9a, // Item Stack Net Id: 77 as a ZigZag varint32.
+                0x01,
+                0x00, // Custom Name: Unredacted, empty.
+                0x00, // Custom Name: no Redacted string.
+                0x00 // Durability Correction: 0.
+            ])
+        );
+    });
+
+    it('writes the dynamic id of a container as four unsigned bytes', () => {
+        const packet = new ItemStackResponsePacket();
+        packet.responses = [
+            {
+                result: ItemStackResponseResult.OK,
+                requestId: -1,
+                containers: [{ container: { containerId: 63, dynamicId: 0xfffffffe }, slots: [] }]
+            }
+        ];
+
+        const [response] = readBack(encode(packet));
+        expect(response!.containers[0]!.dynamicId).toBe(0xfffffffe);
+    });
+
+    it('refuses a durability correction that does not fit an int16', () => {
+        const packet = new ItemStackResponsePacket();
+        packet.responses = [
+            {
+                result: ItemStackResponseResult.OK,
+                requestId: -1,
+                containers: [
+                    {
+                        container: { containerId: 12, dynamicId: null },
+                        slots: [{ slot: 0, count: 1, itemStackId: 1, customName: '', durabilityCorrection: 40000 }]
+                    }
+                ]
+            }
+        ];
+
+        expect(() => encode(packet)).toThrow(RangeError);
     });
 });

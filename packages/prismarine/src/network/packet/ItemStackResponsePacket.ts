@@ -9,6 +9,10 @@ import DataPacket from './DataPacket';
 // two of them, and every refusal it makes could be naming one of the rest.
 export { ItemStackResponseResult };
 
+/** The range Durability Correction has to fit: the docs pin it to an int16 on top of its varint encoding. */
+const DURABILITY_CORRECTION_MIN = -32768;
+const DURABILITY_CORRECTION_MAX = 32767;
+
 /**
  * What a slot holds once the request has been applied.
  *
@@ -20,9 +24,9 @@ export { ItemStackResponseResult };
 export interface ItemStackResponseSlotInfo {
     /** Requested Slot and Slot, the slot this answers for, in the client's own numbering. */
     slot: number;
-    /** Amount, a uint8. Zero means the slot is empty and no stack net id follows. */
+    /** Amount, a uint8. Zero means the slot is empty, and then no Item Stack Net Id follows. */
     count: number;
-    /** Item Stack Net Id, written only when positive. */
+    /** Item Stack Net Id, the server's id for the stack. Written whenever Amount is above zero. */
     itemStackId: number;
     /** The Unredacted half of Custom Name. */
     customName: string;
@@ -44,7 +48,7 @@ export interface ItemStackResponse {
     result: ItemStackResponseResult;
     /** Client Request Id, the id of the request this answers. */
     requestId: number;
-    /** Containers, the containers the request changed. */
+    /** Containers, the containers the request changed. Only written when the result is `OK`. */
     containers: ItemStackResponseContainerInfo[];
 }
 
@@ -54,17 +58,19 @@ export interface ItemStackResponse {
  * A rejected request carries no containers - the client already knows what to put back - so
  * only an accepted one describes slots.
  *
- * Wire order at protocol 2193 is Responses, a varuint count then one `ItemStackResponseInfo`
- * each: Result (uint8), Client Request Id (varint32), and Containers as an optional array of
- * `ItemStackResponseContainerInfo`, each a Full Container Name and a varuint counted list of
- * `ItemStackResponseSlotInfo`. A slot is Requested Slot (uint8), Slot (uint8), Amount (uint8),
- * Item Stack Net Id (optional varint32), Custom Name (a string and an optional redacted
- * string), and Durability Correction (varint32).
+ * Wire order at protocol 2193 is `Responses`, a varuint count then one `ItemStackResponseInfo`
+ * each: `Result` (uint8), `Client Request Id` (varint32), and `Containers` as an optional array
+ * of `ItemStackResponseContainerInfo`, each a `Full Container Name` (a uint8 and an optional
+ * uint32 LE `Dynamic ID`) and a varuint counted list of `ItemStackResponseSlotInfo`. A slot is
+ * `Requested Slot` (uint8), `Slot` (uint8), `Amount` (uint8), `Item Stack Net Id` (optional
+ * varint32), `Custom Name` (an `Unredacted` string and an optional `Redacted` string), and
+ * `Durability Correction` (varint32).
  *
- * Three of those are optionals, which 748 did not have: the container list has a presence byte
- * written false, not left out, for a refusal; a slot's stack net id is sent only when it is
- * positive; and a filtered custom name follows the custom name, absent unless the server
- * filtered it. 2168 wrote each of those presence bytes twice; 2193 took the redundant one out.
+ * The two optionals are tied to other fields rather than to whether there is anything to
+ * write. Mojang's 2193 note: `Containers` carries a value exactly when `Result` is `Success`,
+ * so an accepted request that changed nothing still carries an empty list; and `Item Stack
+ * Net Id` carries a value exactly when `Amount` is above zero. The presence byte is written
+ * either way. 2168 wrote each of those presence bytes twice; 2193 took the redundant one out.
  *
  * **Bound To:** Client
  */
@@ -73,22 +79,28 @@ export default class ItemStackResponsePacket extends DataPacket {
 
     public responses: ItemStackResponse[] = [];
 
-    /** Writes Responses in docs order; see the class comment for the layout. */
+    /**
+     * Writes Responses in docs order; see the class comment for the layout.
+     * @throws {RangeError} when a slot's durability correction does not fit an int16.
+     */
     public encodePayload(): void {
         this.writeUnsignedVarInt(this.responses.length);
         for (const response of this.responses) {
             this.writeByte(response.result);
             this.writeVarInt(response.requestId);
 
-            const containers = response.result === ItemStackResponseResult.OK ? response.containers : [];
-            this.writeBoolean(containers.length > 0);
-            if (containers.length === 0) continue;
+            // Containers is present exactly when the request was accepted, even with nothing
+            // in it. A refusal writes the presence byte and stops: leaving the byte out, as 748
+            // did, hands the client the next response's count as it.
+            const accepted = response.result === ItemStackResponseResult.OK;
+            this.writeBoolean(accepted);
+            if (!accepted) continue;
 
-            this.writeUnsignedVarInt(containers.length);
-            for (const container of containers) {
+            this.writeUnsignedVarInt(response.containers.length);
+            for (const container of response.containers) {
                 this.writeByte(container.container.containerId);
                 this.writeBoolean(container.container.dynamicId !== null);
-                if (container.container.dynamicId !== null) this.writeIntLE(container.container.dynamicId);
+                if (container.container.dynamicId !== null) this.writeUnsignedIntLE(container.container.dynamicId);
 
                 this.writeUnsignedVarInt(container.slots.length);
                 for (const slot of container.slots) {
@@ -96,10 +108,23 @@ export default class ItemStackResponsePacket extends DataPacket {
                     this.writeByte(slot.slot);
                     this.writeByte(slot.slot);
                     this.writeByte(slot.count);
-                    this.writeBoolean(slot.itemStackId > 0);
-                    if (slot.itemStackId > 0) this.writeVarInt(slot.itemStackId);
-                    NetworkUtil.writeString(this, slot.customName);
-                    this.writeBoolean(false); // No filtered custom name: nothing here filters.
+
+                    // Item Stack Net Id is present exactly when the slot holds something.
+                    const filled = slot.count > 0;
+                    this.writeBoolean(filled);
+                    if (filled) this.writeVarInt(slot.itemStackId);
+
+                    NetworkUtil.writeString(this, slot.customName); // Custom Name: Unredacted.
+                    this.writeBoolean(false); // Custom Name: no Redacted string, nothing here filters.
+
+                    if (
+                        slot.durabilityCorrection < DURABILITY_CORRECTION_MIN ||
+                        slot.durabilityCorrection > DURABILITY_CORRECTION_MAX
+                    ) {
+                        throw new RangeError(
+                            `Durability correction ${slot.durabilityCorrection} for slot ${slot.slot} does not fit an int16`
+                        );
+                    }
                     this.writeVarInt(slot.durabilityCorrection);
                 }
             }
