@@ -21,6 +21,38 @@ const DIFFICULTIES: Readonly<Record<string, Difficulty>> = {
 /** What the server compresses at when the configured level is unusable. */
 const DEFAULT_PACKET_COMPRESSION_LEVEL = 7;
 
+/**
+ * What each key means, written above it the first time the server adds it to the file.
+ *
+ * Kept beside the keys rather than in a separate document so a key cannot gain a meaning
+ * the file does not explain. The getter JSDoc below says the same things at more length for
+ * code that reads them.
+ */
+const COMMENTS = {
+    'log-level': 'How much the console and the log file say: error, warn, info, verbose, debug or silly.',
+    port: 'The UDP port the server listens on. Bedrock clients look for 19132.',
+    'server-ip': 'The address to listen on. 0.0.0.0 accepts connections on every interface.',
+    'level-name': 'Which entry of `worlds` players join.',
+    worlds: 'Every world the server loads, by name, with its generator, provider and seed.',
+    'max-players': 'How many players may be online at once.',
+    gamemode: 'The default game mode for new players: survival, creative, adventure or spectator.',
+    difficulty: 'How dangerous the monsters are: peaceful, easy, normal or hard.',
+    motd: 'The message shown in the server list.',
+    'view-distance': 'How far players see, in chunks.',
+    'preload-radius': 'How many chunks around spawn to generate before accepting players. 0 skips it.',
+    'chunk-send-budget-ms': 'How long each tick may spend sending chunks, out of its 50 ms.',
+    'proximity-broadcast': 'Whether positional packets only go to players near them. Turn off only to debug.',
+    'entity-tracking-hysteresis': "Chunks past view distance before an entity leaves a player's screen.",
+    'entity-tracking-interval': 'Ticks between entity visibility passes, at least 1.',
+    'online-mode': 'Whether players must be signed in to Xbox Live.',
+    'packet-compression-level': "The zlib level for outgoing batches, from -1 (zlib's default) to 9.",
+    'enable-query': 'Whether to answer the Minecraft and Source query protocols.',
+    'enable-process-title': 'Whether to show the tick rate in the process title. Some terminals redraw slowly.',
+    'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
+    'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
+    'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.'
+} as const satisfies Record<string, string>;
+
 /** Runtime settings that take precedence over values in config.yaml. */
 export interface ConfigOptions {
     /** Port the server listens on. */
@@ -118,47 +150,51 @@ export class Config {
     public constructor({ serverPort }: ConfigOptions = {}) {
         this.serverPortOverride = serverPort;
         this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
-        this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
+        this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info', COMMENTS['log-level']);
     }
 
     /**
      * On enable hook.
+     *
+     * Reads every setting, writing the default and its comment into the file for any key the
+     * file does not have yet. A file from an older version therefore gains the new keys,
+     * explained, without losing anything a person wrote in it.
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
-        this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
-        this.port = this.configBuilder.get('port', 19132);
+        const config = new ConfigBuilder(withCwd(FILE_NAME));
+        this.configBuilder = config;
+        const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
+
+        this.logLevel = read('log-level', isDev ? 'verbose' : 'info');
+        this.port = read('port', 19132);
         if (this.serverPortOverride !== undefined) this.port = this.serverPortOverride;
-        this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0');
-        this.levelName = this.configBuilder.get('level-name', 'world');
-        this.worlds = this.configBuilder.get<Record<string, WorldData>>('worlds', {
+        this.serverIp = read('server-ip', '0.0.0.0');
+        this.levelName = read('level-name', 'world');
+        this.worlds = read<Record<string, WorldData>>('worlds', {
             world: {
                 generator: 'Flat',
                 provider: 'LevelDB',
                 seed: SeedGenerator()
             }
         });
-        this.maxPlayers = this.configBuilder.get('max-players', 20);
-        this.gamemode = this.configBuilder.get('gamemode', 'survival');
-        this.difficulty = this.configBuilder.get('difficulty', 'normal');
-        this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!');
-        this.viewDistance = this.configBuilder.get('view-distance', 10);
-        this.preloadRadius = this.configBuilder.get('preload-radius', 10);
-        this.chunkSendBudgetMs = this.configBuilder.get('chunk-send-budget-ms', 5);
-        this.proximityBroadcast = this.configBuilder.get('proximity-broadcast', true);
-        this.entityTrackingHysteresis = this.configBuilder.get('entity-tracking-hysteresis', 2);
-        this.entityTrackingInterval = this.configBuilder.get('entity-tracking-interval', 4);
-        this.onlineMode = this.configBuilder.get('online-mode', false);
-        this.packetCompressionLevel = this.configBuilder.get(
-            'packet-compression-level',
-            DEFAULT_PACKET_COMPRESSION_LEVEL
-        );
-        this.enableQuery = this.configBuilder.get('enable-query', this.enableQuery);
-        this.enableProcessTitle = this.configBuilder.get('enable-process-title', this.enableProcessTitle);
-        this.enableTicking = this.configBuilder.get('enable-ticking', this.enableTicking);
-        this.logExcludedPackets = this.configBuilder.get('log-excluded-packets', this.logExcludedPackets);
-        this.craftingRecipeLimit = this.configBuilder.get('crafting-recipe-limit', this.craftingRecipeLimit);
+        this.maxPlayers = read('max-players', 20);
+        this.gamemode = read('gamemode', 'survival');
+        this.difficulty = read('difficulty', 'normal');
+        this.motd = read('motd', 'Another JSPrismarine server!');
+        this.viewDistance = read('view-distance', 10);
+        this.preloadRadius = read('preload-radius', 10);
+        this.chunkSendBudgetMs = read('chunk-send-budget-ms', 5);
+        this.proximityBroadcast = read('proximity-broadcast', true);
+        this.entityTrackingHysteresis = read('entity-tracking-hysteresis', 2);
+        this.entityTrackingInterval = read('entity-tracking-interval', 4);
+        this.onlineMode = read('online-mode', false);
+        this.packetCompressionLevel = read('packet-compression-level', DEFAULT_PACKET_COMPRESSION_LEVEL);
+        this.enableQuery = read('enable-query', this.enableQuery);
+        this.enableProcessTitle = read('enable-process-title', this.enableProcessTitle);
+        this.enableTicking = read('enable-ticking', this.enableTicking);
+        this.logExcludedPackets = read('log-excluded-packets', this.logExcludedPackets);
+        this.craftingRecipeLimit = read('crafting-recipe-limit', this.craftingRecipeLimit);
     }
 
     /**

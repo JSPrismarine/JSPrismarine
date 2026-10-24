@@ -36,7 +36,23 @@ it when it is missing.
     $ pnpm run start
 ```
 
-## 4. How the development server works
+## 4. Configuration
+
+The server keeps its settings in `config.yaml` in its working directory
+(`jsp/` during development) and creates the file on first start. Every key is
+written with a comment above it saying what it does.
+
+The file is yours to edit. The server only ever changes the key it is
+writing: your comments, blank lines and the order of the keys stay as they
+are. When a new version adds a setting, the server adds that key and its
+comment to the end of your file and leaves the rest alone, so there is no
+need to regenerate the file after an upgrade.
+
+A file that does not parse stops the server with an error naming the file
+rather than being replaced by the defaults, so a typo costs a restart, not
+the config.
+
+## 5. How the development server works
 
 `pnpm run dev` runs the server from TypeScript source under a small supervisor.
 No build step is needed: every `@jsprismarine/*` package resolves straight to
