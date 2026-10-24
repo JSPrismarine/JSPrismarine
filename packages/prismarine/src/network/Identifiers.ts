@@ -167,6 +167,7 @@ const Identifiers = {
     UpdateAbilitiesPacket: 0xbb,
     ToastRequestPacket: 0xba,
     TickingAreasLoadStatusPacket: 0xb3,
+    PlayerToggleCrafterSlotRequestPacket: 0x132,
     SetPlayerInventoryOptionsPacket: 0x133,
     ServerboundLoadingScreenPacket: 0x138,
     /**
@@ -178,6 +179,7 @@ const Identifiers = {
     ClientMovementPredictionSyncPacket: 0x142,
     UpdateClientOptionsPacket: 0x143,
     PlayerLocationPacket: 0x146,
+    ServerboundPackSettingChangePacket: 0x149,
     SetPlayerFurnaceOptionsPacket: 0x15f,
     RecordStartedPacket: 0x160
 };

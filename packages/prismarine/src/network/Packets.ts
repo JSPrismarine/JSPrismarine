@@ -7,11 +7,13 @@ import AvailableActorIdentifiersPacket from './packet/AvailableActorIdentifiersP
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import BatchPacket from './packet/BatchPacket';
 import BiomeDefinitionListPacket from './packet/BiomeDefinitionListPacket';
+import BookEditPacket from './packet/BookEditPacket';
 import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import ClientCacheBlobStatusPacket from './packet/ClientCacheBlobStatusPacket';
 import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
 import ClientMovementPredictionSyncPacket from './packet/ClientMovementPredictionSyncPacket';
+import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
 import CommandRequestPacket from './packet/CommandRequestPacket';
 import ContainerClosePacket from './packet/ContainerClosePacket';
 import ContainerOpenPacket from './packet/ContainerOpenPacket';
@@ -28,11 +30,13 @@ import ItemComponentPacket from './packet/ItemComponentPacket';
 import ItemStackRequestPacket from './packet/ItemStackRequestPacket';
 import ItemStackResponsePacket from './packet/ItemStackResponsePacket';
 import JigsawStructureDataPacket from './packet/JigsawStructureDataPacket';
+import LecternUpdatePacket from './packet/LecternUpdatePacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import LoginPacket from './packet/LoginPacket';
 import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
 import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
@@ -46,6 +50,7 @@ import PlayerAuthInputPacket from './packet/PlayerAuthInputPacket';
 import PlayerListPacket from './packet/PlayerListPacket';
 import PlayerLocationPacket from './packet/PlayerLocationPacket';
 import PlayerSkinPacket from './packet/PlayerSkinPacket';
+import PlayerToggleCrafterSlotRequestPacket from './packet/PlayerToggleCrafterSlotRequestPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import RequestAbilityPacket from './packet/RequestAbilityPacket';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
@@ -59,6 +64,7 @@ import RespawnPacket from './packet/RespawnPacket';
 import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
 import ServerboundDiagnosticsPacket from './packet/ServerboundDiagnosticsPacket';
 import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPacket';
+import ServerboundPackSettingChangePacket from './packet/ServerboundPackSettingChangePacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetDefaultGametypePacket from './packet/SetDefaultGametypePacket';
@@ -94,11 +100,13 @@ export {
      */
     BatchPacket,
     BiomeDefinitionListPacket,
+    BookEditPacket,
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
     ClientCacheBlobStatusPacket,
     ClientCacheStatusPacket,
     ClientMovementPredictionSyncPacket,
+    CommandBlockUpdatePacket,
     CommandRequestPacket,
     ContainerClosePacket,
     ContainerOpenPacket,
@@ -118,11 +126,13 @@ export {
     ItemStackRequestPacket,
     ItemStackResponsePacket,
     JigsawStructureDataPacket,
+    LecternUpdatePacket,
     LevelChunkPacket,
     LevelSoundEventPacket,
     LoginPacket,
     MobArmorEquipmentPacket,
     MobEquipmentPacket,
+    ModalFormResponsePacket,
     MoveActorAbsolutePacket,
     MovePlayerPacket,
     NetworkChunkPublisherUpdatePacket,
@@ -136,6 +146,7 @@ export {
     PlayerListPacket,
     PlayerLocationPacket,
     PlayerSkinPacket,
+    PlayerToggleCrafterSlotRequestPacket,
     RemoveActorPacket,
     RequestAbilityPacket,
     RequestChunkRadiusPacket,
@@ -149,6 +160,7 @@ export {
     ServerSettingsRequestPacket,
     ServerboundDiagnosticsPacket,
     ServerboundLoadingScreenPacket,
+    ServerboundPackSettingChangePacket,
     SetActorDataPacket,
     SetActorMotionPacket,
     SetDefaultGametypePacket,
