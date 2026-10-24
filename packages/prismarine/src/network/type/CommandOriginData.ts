@@ -16,8 +16,8 @@ import CommandOriginType from './CommandOriginType';
  */
 const ORIGIN_NAMES: Readonly<Record<string, CommandOriginType>> = {
     player: CommandOriginType.Player,
-    commandblock: CommandOriginType.Block,
-    minecartcommandblock: CommandOriginType.MinecartBlock,
+    commandblock: CommandOriginType.CommandBlock,
+    minecartcommandblock: CommandOriginType.MinecartCommandBlock,
     devconsole: CommandOriginType.DevConsole,
     test: CommandOriginType.Test,
     automationplayer: CommandOriginType.AutomationPlayer,

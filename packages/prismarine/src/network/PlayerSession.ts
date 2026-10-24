@@ -44,7 +44,7 @@ import PlayStatusPacket from './packet/PlayStatusPacket';
 import PlayStatus from './type/PlayStatus';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
-import type { RespawnState } from './packet/RespawnPacket';
+import type { PlayerRespawnState } from './packet/RespawnPacket';
 import RespawnPacket from './packet/RespawnPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
@@ -1134,18 +1134,18 @@ export default class PlayerSession {
     /**
      * One of the server's two halves of the respawn exchange.
      *
-     * The order matters and is not obvious. `SERVER_SEARCHING_FOR_SPAWN` goes out the moment
+     * The order matters and is not obvious. `SearchingForSpawn` goes out the moment
      * the player dies, carrying where they will reappear; the client then shows its death
-     * screen. `SERVER_READY_TO_SPAWN` is the *answer* to the client saying it has finished
+     * screen. `ReadyToSpawn` is the *answer* to the client saying it has finished
      * loading, and goes out only then.
      *
      * Sending the second in place of the first leaves the client on "Respawning" for ever:
      * it is waiting to be told where it will come back before it will even offer the button.
      * @param {Vector3} position - Where the player will reappear.
-     * @param {RespawnState} state - Which half of the exchange this is.
+     * @param {PlayerRespawnState} state - Which half of the exchange this is.
      * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
      */
-    public async sendRespawn(position: Vector3, state: RespawnState): Promise<void> {
+    public async sendRespawn(position: Vector3, state: PlayerRespawnState): Promise<void> {
         const packet = new RespawnPacket();
         packet.runtimeEntityId = this.player.getRuntimeId();
         packet.position = position;

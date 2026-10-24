@@ -20,7 +20,7 @@ import { Dimensions } from '../../world/Dimension';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import type DataPacket from '../packet/DataPacket';
-import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
+import RespawnPacket, { PlayerRespawnState } from '../packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import StartGamePacket from '../packet/StartGamePacket';
@@ -200,9 +200,9 @@ describe('ResourcePackClientResponseHandler', () => {
 
         const respawns = packets.filter((packet) => packet instanceof RespawnPacket);
         expect(respawns.map(({ state }) => state)).toEqual([
-            RespawnState.SERVER_SEARCHING_FOR_SPAWN,
-            RespawnState.SERVER_SEARCHING_FOR_SPAWN,
-            RespawnState.SERVER_READY_TO_SPAWN
+            PlayerRespawnState.SearchingForSpawn,
+            PlayerRespawnState.SearchingForSpawn,
+            PlayerRespawnState.ReadyToSpawn
         ]);
         expect(respawns.map(({ runtimeEntityId }) => runtimeEntityId)).toEqual([0n, 0n, 0n]);
         expect(respawns.map(({ position }) => position?.getY())).toEqual([69 + 1.62, 69, 70 + 1.62]);

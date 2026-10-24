@@ -22,7 +22,7 @@ describe('ShowCreditsHandler', () => {
     };
 
     it('logs that the credits finished', () => {
-        expect(run(CreditsState.End)).toEqual([
+        expect(run(CreditsState.Finished)).toEqual([
             'Steve reported the end credits finished. The server never starts them'
         ]);
     });

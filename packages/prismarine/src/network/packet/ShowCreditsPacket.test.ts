@@ -14,14 +14,14 @@ describe('ShowCreditsPacket', () => {
         packet.decode();
 
         expect(packet.playerRuntimeId).toBe(300n);
-        expect(packet.creditsState).toBe(CreditsState.End);
+        expect(packet.creditsState).toBe(CreditsState.Finished);
         expect(packet.feof()).toBe(true);
     });
 
     it('encodes the same bytes back', () => {
         const packet = new ShowCreditsPacket();
         packet.playerRuntimeId = 300n;
-        packet.creditsState = CreditsState.End;
+        packet.creditsState = CreditsState.Finished;
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(encoded);

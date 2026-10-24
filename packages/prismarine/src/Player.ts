@@ -22,7 +22,7 @@ import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
 import PlayerToggleFlightEvent from './events/player/PlayerToggleFlightEvent';
 import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
 import { ChangeDimensionPacket } from './network/Packets';
-import { RespawnState } from './network/packet/RespawnPacket';
+import { PlayerRespawnState } from './network/packet/RespawnPacket';
 import { ActorEvent } from './network/packet/ActorEventPacket';
 import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
@@ -822,7 +822,7 @@ export default class Player extends Human {
         // respawn screen was stuck on "Respawning" - it was still waiting for this.
         await this.getNetworkSession().sendRespawn(
             eyePositionAt(requestedSpawnPosition(await this.getWorld().getSpawnPosition())),
-            RespawnState.SERVER_SEARCHING_FOR_SPAWN
+            PlayerRespawnState.SearchingForSpawn
         );
 
         // The bare translation key, as with the join and leave messages: the client renders
@@ -879,7 +879,7 @@ export default class Player extends Human {
         // runs when the player presses the button, and at that moment the client is still on
         // its death screen and throws away anything it is told about itself. The packet that
         // ends the exchange, and everything that has to survive it, belong to the answer to
-        // the client's own `CLIENT_READY_TO_SPAWN` - see `RespawnHandler`.
+        // the client's own `ClientReadyToSpawn` - see `RespawnHandler`.
         await this.getNetworkSession().sendAttributes();
         await this.getNetworkSession().sendMetadata();
     }

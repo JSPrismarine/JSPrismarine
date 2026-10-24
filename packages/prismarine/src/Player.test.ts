@@ -19,7 +19,7 @@ import type ClientConnection from './network/ClientConnection';
 import { ActorEvent } from './network/packet/ActorEventPacket';
 import ChangeDimensionPacket from './network/packet/ChangeDimensionPacket';
 import RemoveActorPacket from './network/packet/RemoveActorPacket';
-import RespawnPacket, { RespawnState } from './network/packet/RespawnPacket';
+import RespawnPacket, { PlayerRespawnState } from './network/packet/RespawnPacket';
 import SetActorDataPacket from './network/packet/SetActorDataPacket';
 import UpdateAttributesPacket from './network/packet/UpdateAttributesPacket';
 import { createConnectedPlayer } from './network/createConnectedPlayer';
@@ -487,11 +487,11 @@ describe('Player', () => {
 
             const respawns = sent.filter((packet) => packet instanceof RespawnPacket);
             expect(respawns).toHaveLength(1);
-            expect(respawns[0]?.state).toBe(RespawnState.SERVER_SEARCHING_FOR_SPAWN);
+            expect(respawns[0]?.state).toBe(PlayerRespawnState.SearchingForSpawn);
         });
 
         it('sends no respawn packet when the button is pressed', async () => {
-            // That packet is the answer to the client's own `CLIENT_READY_TO_SPAWN`, and
+            // That packet is the answer to the client's own `ClientReadyToSpawn`, and
             // belongs to `RespawnHandler`. Sent here it arrives a step early, and the client
             // never leaves its screen.
             const { player, sent } = fakePlayer({ underwater: true });

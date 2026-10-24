@@ -2,7 +2,7 @@ import type Server from '../../Server';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type RespawnPacket from '../packet/RespawnPacket';
-import { RespawnState } from '../packet/RespawnPacket';
+import { PlayerRespawnState } from '../packet/RespawnPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -11,12 +11,12 @@ import type PacketHandler from './PacketHandler';
  * Three states across two sides. The docs number them `SearchingForSpawn` (0) and
  * `ReadyToSpawn` (1) for the server and `ClientReadyToSpawn` (2) for the client:
  *
- * 1. the player dies, and the server sends `SERVER_SEARCHING_FOR_SPAWN` with where they will
+ * 1. the player dies, and the server sends `SearchingForSpawn` with where they will
  *    reappear - the client will not offer the respawn button until it has this;
- * 2. the player presses it, and the client sends a `RESPAWN` player action, which is where
+ * 2. the player presses it, and the client sends a `Respawn` player action, which is where
  *    the server puts them back together;
- * 3. the client sends `CLIENT_READY_TO_SPAWN` once it has loaded, and the server answers
- *    `SERVER_READY_TO_SPAWN` - which is this, and which is what lets go of the screen.
+ * 3. the client sends `ClientReadyToSpawn` once it has loaded, and the server answers
+ *    `ReadyToSpawn` - which is this, and which is what lets go of the screen.
  *
  * Getting the order wrong is not a small mistake. Sending the third at step one leaves the
  * client on "Respawning" for ever, and sending nothing at step three leaves it there too,
@@ -43,10 +43,10 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
 
         // The other two states are the server's own; a client echoing one back is not asking
         // for anything.
-        if (packet.state !== RespawnState.CLIENT_READY_TO_SPAWN) return;
+        if (packet.state !== PlayerRespawnState.ClientReadyToSpawn) return;
 
         const position = player.isAlive() ? player.getPosition() : await player.getWorld().getSpawnPosition();
-        await session.sendRespawn(position, RespawnState.SERVER_READY_TO_SPAWN);
+        await session.sendRespawn(position, PlayerRespawnState.ReadyToSpawn);
 
         // And then the player, described again from scratch.
         //

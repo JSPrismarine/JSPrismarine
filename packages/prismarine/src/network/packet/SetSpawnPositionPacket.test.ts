@@ -3,7 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
-import SetSpawnPositionPacket, { SpawnType } from './SetSpawnPositionPacket';
+import SetSpawnPositionPacket, { SpawnPositionType } from './SetSpawnPositionPacket';
 
 /**
  * The packet under protocol 2193: header, Spawn Position Type, Block Position, Dimension type,
@@ -46,13 +46,18 @@ describe('network', () => {
     describe('packet', () => {
         describe('SetSpawnPositionPacket', () => {
             it('reads both block positions with a signed y, then stops at the end', () => {
-                const buffer = wireBytes(SpawnType.WORLD_SPAWN, new Vector3(100, -40, -250), 1, new Vector3(3, -64, 5));
+                const buffer = wireBytes(
+                    SpawnPositionType.WorldSpawn,
+                    new Vector3(100, -40, -250),
+                    1,
+                    new Vector3(3, -64, 5)
+                );
                 expect([...buffer]).toEqual(expectedBytes);
 
                 const packet = new SetSpawnPositionPacket(buffer);
                 packet.decode();
 
-                expect(packet.type).toBe(SpawnType.WORLD_SPAWN);
+                expect(packet.type).toBe(SpawnPositionType.WorldSpawn);
                 expect(packet.position.getX()).toBe(100);
                 expect(packet.position.getY()).toBe(-40);
                 expect(packet.position.getZ()).toBe(-250);
@@ -65,7 +70,7 @@ describe('network', () => {
 
             it('writes type, both block positions and the dimension as signed varints', () => {
                 const packet = new SetSpawnPositionPacket();
-                packet.type = SpawnType.WORLD_SPAWN;
+                packet.type = SpawnPositionType.WorldSpawn;
                 packet.position = new Vector3(100, -40, -250);
                 packet.dimension = 1;
                 packet.blockPosition = new Vector3(3, -64, 5);

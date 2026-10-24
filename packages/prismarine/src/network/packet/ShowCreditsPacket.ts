@@ -1,17 +1,12 @@
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
-/**
- * Whether the credits are starting or have finished.
- *
- * The docs give `Credits State` as a bare varint32 without naming its members. These are the
- * two values gophertunnel sends and the vanilla client answers with.
- */
+/** The docs' `CreditsState`: whether the credits are starting or have finished. */
 export enum CreditsState {
     /** Server to client: roll the credits. */
     Start = 0,
     /** Client to server: the player watched them to the end or skipped them. */
-    End = 1
+    Finished = 1
 }
 
 /**

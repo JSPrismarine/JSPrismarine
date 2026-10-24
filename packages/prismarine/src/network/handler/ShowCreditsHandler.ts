@@ -17,7 +17,7 @@ export default class ShowCreditsHandler implements PacketHandler<ShowCreditsPack
 
     /** Logs the credits state the client reported. */
     public handle(packet: ShowCreditsPacket, server: Server, session: PlayerSession): void {
-        const state = packet.creditsState === CreditsState.End ? 'finished' : 'started';
+        const state = packet.creditsState === CreditsState.Finished ? 'finished' : 'started';
 
         server
             .getLogger()

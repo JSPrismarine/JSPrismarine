@@ -24,8 +24,8 @@ const REACH_SLACK = 1;
  * runtime id, which is what a client sends and what PocketMine checks; a packet naming anyone
  * else is dropped. `NpcOpen` is checked the way an attack is, by whether the client has been
  * shown the actor and whether it is within reach, and then recorded as unimplemented.
- * `InteractUpdate` (`MouseOver`) arrives every time the crosshair crosses an actor, and
- * `StopRiding` (`LeaveVehicle`) has no vehicles to leave, so both are ignored. Nothing here
+ * `InteractUpdate` arrives every time the crosshair crosses an actor, and
+ * `StopRiding` has no vehicles to leave, so both are ignored. Nothing here
  * throws: a value no client sends is logged and dropped.
  */
 export default class InteractHandler implements PacketHandler<InteractPacket> {
@@ -35,8 +35,8 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
         const player = session.getPlayer();
 
         switch (packet.action) {
-            case InteractAction.LeaveVehicle:
-            case InteractAction.MouseOver:
+            case InteractAction.StopRiding:
+            case InteractAction.InteractUpdate:
                 return;
 
             case InteractAction.OpenInventory: {
@@ -54,7 +54,7 @@ export default class InteractHandler implements PacketHandler<InteractPacket> {
                 return;
             }
 
-            case InteractAction.OpenNPC: {
+            case InteractAction.NpcOpen: {
                 const target = player.getWorld().getEntity(packet.target);
                 if (target === null || !session.tracks(packet.target)) {
                     server

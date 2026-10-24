@@ -4,17 +4,17 @@ import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
- * What the client did to the target actor, written as a uint8.
+ * The docs' `InteractPacket::Action`: what the client did to the target actor, written as a
+ * uint8.
  *
- * The docs call these Invalid, StopRiding (`LeaveVehicle`), InteractUpdate (`MouseOver`),
- * NpcOpen (`OpenNPC`) and OpenInventory. The 1.26.50 docs page numbers them 1 to 4, but
- * clients send 3 to 6, which is what the page's own 2207 changelog and gophertunnel record.
+ * The 1.26.50 docs page numbers the members 1 to 4, but clients send 3 to 6, which is what
+ * the page's own 2207 changelog and gophertunnel record.
  */
 export enum InteractAction {
     Invalid = 0,
-    LeaveVehicle = 3,
-    MouseOver = 4,
-    OpenNPC = 5,
+    StopRiding = 3,
+    InteractUpdate = 4,
+    NpcOpen = 5,
     OpenInventory = 6
 }
 

@@ -81,8 +81,8 @@ describe('InteractHandler', () => {
         const { opened, logged, server, session } = fakeSession();
         const handler = new InteractHandler();
 
-        await handler.handle(interact(InteractAction.MouseOver, 8n), server, session);
-        await handler.handle(interact(InteractAction.LeaveVehicle, 8n), server, session);
+        await handler.handle(interact(InteractAction.InteractUpdate, 8n), server, session);
+        await handler.handle(interact(InteractAction.StopRiding, 8n), server, session);
 
         expect(opened).toEqual([]);
         expect(logged).toEqual([]);
@@ -91,7 +91,7 @@ describe('InteractHandler', () => {
     it('drops an NPC open for an actor the client has not been shown', async () => {
         const { logged, server, session } = fakeSession({ npcDistance: 1, tracked: false });
 
-        await new InteractHandler().handle(interact(InteractAction.OpenNPC, NPC), server, session);
+        await new InteractHandler().handle(interact(InteractAction.NpcOpen, NPC), server, session);
 
         expect(logged).toEqual([`Dropped an NPC open from tester: actor ${NPC} is not one they have been shown`]);
     });
@@ -99,7 +99,7 @@ describe('InteractHandler', () => {
     it('drops an NPC open for an actor that is not in the world', async () => {
         const { logged, server, session } = fakeSession({ tracked: true });
 
-        await new InteractHandler().handle(interact(InteractAction.OpenNPC, NPC), server, session);
+        await new InteractHandler().handle(interact(InteractAction.NpcOpen, NPC), server, session);
 
         expect(logged).toEqual([`Dropped an NPC open from tester: actor ${NPC} is not one they have been shown`]);
     });
@@ -107,7 +107,7 @@ describe('InteractHandler', () => {
     it('drops an NPC open for an actor out of reach', async () => {
         const { logged, server, session } = fakeSession({ npcDistance: 10, tracked: true });
 
-        await new InteractHandler().handle(interact(InteractAction.OpenNPC, NPC), server, session);
+        await new InteractHandler().handle(interact(InteractAction.NpcOpen, NPC), server, session);
 
         expect(logged).toEqual([`Dropped an NPC open from tester: actor ${NPC} is 10.0 away`]);
     });
@@ -115,7 +115,7 @@ describe('InteractHandler', () => {
     it('records an NPC open within reach as unimplemented', async () => {
         const { logged, server, session } = fakeSession({ npcDistance: 2, tracked: true });
 
-        await new InteractHandler().handle(interact(InteractAction.OpenNPC, NPC), server, session);
+        await new InteractHandler().handle(interact(InteractAction.NpcOpen, NPC), server, session);
 
         expect(logged).toEqual([`tester opened NPC ${NPC}. NPC dialogue is not implemented`]);
     });

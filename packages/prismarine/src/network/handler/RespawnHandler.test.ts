@@ -8,19 +8,19 @@ import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
-import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
+import RespawnPacket, { PlayerRespawnState } from '../packet/RespawnPacket';
 import RespawnHandler from './RespawnHandler';
 
 /**
  * The respawn exchange, and the order its three states go in.
  *
- * `SERVER_SEARCHING_FOR_SPAWN` at the death, `CLIENT_READY_TO_SPAWN` from the client when it
- * has loaded, `SERVER_READY_TO_SPAWN` in answer. The middle one is the only one this handler
+ * `SearchingForSpawn` at the death, `ClientReadyToSpawn` from the client when it
+ * has loaded, `ReadyToSpawn` in answer. The middle one is the only one this handler
  * owns, and the answer to it is what lets go of the client's screen: sent at the wrong moment
  * - or not at all - the player watches "Respawning" for ever.
  */
 const fakeSession = ({ alive = true } = {}) => {
-    const done: Array<{ state?: RespawnState; position?: Vector3; what?: string }> = [];
+    const done: Array<{ state?: PlayerRespawnState; position?: Vector3; what?: string }> = [];
     const dropped: string[] = [];
     const world = stub<World>({ getSpawnPosition: async () => new Vector3(100, 70, 100) });
     const standingAt = new Position(0, 64, 0, world);
@@ -50,7 +50,7 @@ const fakeSession = ({ alive = true } = {}) => {
     };
 };
 
-const respawn = (state: RespawnState, runtimeEntityId = 7n): RespawnPacket =>
+const respawn = (state: PlayerRespawnState, runtimeEntityId = 7n): RespawnPacket =>
     Object.assign(new RespawnPacket(), { state, runtimeEntityId });
 
 describe('RespawnHandler', () => {
@@ -59,9 +59,9 @@ describe('RespawnHandler', () => {
         // a log filling with `RespawnPacket`.
         const { done, session, server, standingAt } = fakeSession();
 
-        await new RespawnHandler().handle(respawn(RespawnState.CLIENT_READY_TO_SPAWN), server, session);
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn), server, session);
 
-        expect(done[0]).toEqual({ state: RespawnState.SERVER_READY_TO_SPAWN, position: standingAt });
+        expect(done[0]).toEqual({ state: PlayerRespawnState.ReadyToSpawn, position: standingAt });
     });
 
     it('names the world spawn while the player is still dead', async () => {
@@ -69,7 +69,7 @@ describe('RespawnHandler', () => {
         // has moved the player yet and the corpse's position is not where they come back.
         const { done, session, server } = fakeSession({ alive: false });
 
-        await new RespawnHandler().handle(respawn(RespawnState.CLIENT_READY_TO_SPAWN), server, session);
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn), server, session);
 
         expect(done[0]?.position).toEqual(new Vector3(100, 70, 100));
     });
@@ -80,7 +80,7 @@ describe('RespawnHandler', () => {
         // while it was still on the death screen was thrown away.
         const { done, session, server } = fakeSession();
 
-        await new RespawnHandler().handle(respawn(RespawnState.CLIENT_READY_TO_SPAWN), server, session);
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn), server, session);
 
         expect(done.map((step) => step.what).filter(Boolean)).toEqual([
             'attributes',
@@ -89,13 +89,13 @@ describe('RespawnHandler', () => {
             'inventory'
         ]);
         // After the answer, never before it.
-        expect(done[0]!.state).toBe(RespawnState.SERVER_READY_TO_SPAWN);
+        expect(done[0]!.state).toBe(PlayerRespawnState.ReadyToSpawn);
     });
 
     it("ignores the states that are the server's to send", async () => {
         const { done, session, server } = fakeSession();
 
-        for (const state of [RespawnState.SERVER_SEARCHING_FOR_SPAWN, RespawnState.SERVER_READY_TO_SPAWN]) {
+        for (const state of [PlayerRespawnState.SearchingForSpawn, PlayerRespawnState.ReadyToSpawn]) {
             await new RespawnHandler().handle(respawn(state), server, session);
         }
 
@@ -105,7 +105,7 @@ describe('RespawnHandler', () => {
     it('drops a respawn for another runtime id', async () => {
         const { done, dropped, session, server } = fakeSession();
 
-        await new RespawnHandler().handle(respawn(RespawnState.CLIENT_READY_TO_SPAWN, 8n), server, session);
+        await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn, 8n), server, session);
 
         expect(done).toHaveLength(0);
         expect(dropped).toHaveLength(1);

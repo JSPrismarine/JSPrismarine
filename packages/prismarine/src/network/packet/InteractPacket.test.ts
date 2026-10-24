@@ -36,7 +36,7 @@ describe('network', () => {
             it('reads action, target and a present position, then stops at the end', () => {
                 const packet = decode(clientBytes(4, 300n, new Vector3(1.5, 64, -3.5)));
 
-                expect(packet.action).toBe(InteractAction.MouseOver);
+                expect(packet.action).toBe(InteractAction.InteractUpdate);
                 expect(packet.target).toBe(300n);
                 expect(packet.position).not.toBeNull();
                 expect(packet.position?.getX()).toBeCloseTo(1.5);
@@ -56,7 +56,7 @@ describe('network', () => {
 
             it('writes the position as an optional: presence byte, then three floats', () => {
                 const packet = new InteractPacket();
-                packet.action = InteractAction.MouseOver;
+                packet.action = InteractAction.InteractUpdate;
                 packet.target = 300n;
                 packet.position = new Vector3(1.5, 64, -3.5);
                 packet.encode();
@@ -85,7 +85,7 @@ describe('network', () => {
 
             it('writes a single zero byte for an absent position, whatever the action', () => {
                 const packet = new InteractPacket();
-                packet.action = InteractAction.MouseOver;
+                packet.action = InteractAction.InteractUpdate;
                 packet.target = 1n;
                 packet.position = null;
                 packet.encode();

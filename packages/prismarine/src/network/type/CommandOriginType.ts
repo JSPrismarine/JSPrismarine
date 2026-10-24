@@ -5,8 +5,8 @@
  */
 enum CommandOriginType {
     Player = 0,
-    Block = 1,
-    MinecartBlock = 2,
+    CommandBlock = 1,
+    MinecartCommandBlock = 2,
     DevConsole = 3,
     Test = 4,
     AutomationPlayer = 5,

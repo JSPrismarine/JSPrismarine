@@ -4,12 +4,11 @@ import type BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
 
 /**
- * How a command block fires, as the `Command Block Mode` varuint32 numbers it. The docs'
- * `CommandBlockMode` enum calls the first member `Normal`; the command block screen calls it
- * Impulse.
+ * The docs' `CommandBlockMode`: how a command block fires, as the `Command Block Mode`
+ * varuint32 numbers it. The command block screen calls `Normal` Impulse.
  */
 export enum CommandBlockMode {
-    Impulse = 0,
+    Normal = 0,
     Repeating = 1,
     Chain = 2
 }

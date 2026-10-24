@@ -3,13 +3,10 @@ import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
-/**
- * Spawn Position Type as a ZigZag varint32. `PLAYER_SPAWN` is PlayerRespawn (0) and
- * `WORLD_SPAWN` is WorldSpawn (1) in the protocol docs.
- */
-export enum SpawnType {
-    PLAYER_SPAWN,
-    WORLD_SPAWN
+/** The docs' `SpawnPositionType`, written as a ZigZag varint32. */
+export enum SpawnPositionType {
+    PlayerRespawn,
+    WorldSpawn
 }
 
 /**
@@ -22,7 +19,7 @@ export enum SpawnType {
 export default class SetSpawnPositionPacket extends DataPacket {
     public static NetID = Identifiers.SetSpawnPositionPacket;
 
-    public type!: SpawnType;
+    public type!: SpawnPositionType;
     public position!: Vector3;
     public dimension!: number;
     public blockPosition!: Vector3;

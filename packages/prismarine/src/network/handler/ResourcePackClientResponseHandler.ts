@@ -1,6 +1,6 @@
 import { Chat, ChatType } from '../../chat/Chat';
-import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
-import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
+import RespawnPacket, { PlayerRespawnState } from '../packet/RespawnPacket';
+import SetSpawnPositionPacket, { SpawnPositionType } from '../packet/SetSpawnPositionPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Generator, getGametypeId } from '@jsprismarine/minecraft';
@@ -40,14 +40,14 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      * None for a player returning to a saved position. What BDS sends then has not been
      * measured, and this server sent none before.
      */
-    private static joinRespawns(player: Player): Array<[Vector3, RespawnState, bigint]> {
+    private static joinRespawns(player: Player): Array<[Vector3, PlayerRespawnState, bigint]> {
         const joinSpawn = player.getJoinSpawn();
         if (joinSpawn === null) return [];
 
         return [
-            [eyePositionAt(joinSpawn.requested), RespawnState.SERVER_SEARCHING_FOR_SPAWN, 0n],
-            [joinSpawn.requested, RespawnState.SERVER_SEARCHING_FOR_SPAWN, 0n],
-            [eyePositionAt(joinSpawn.position), RespawnState.SERVER_READY_TO_SPAWN, 0n]
+            [eyePositionAt(joinSpawn.requested), PlayerRespawnState.SearchingForSpawn, 0n],
+            [joinSpawn.requested, PlayerRespawnState.SearchingForSpawn, 0n],
+            [eyePositionAt(joinSpawn.position), PlayerRespawnState.ReadyToSpawn, 0n]
         ];
     }
 
@@ -162,7 +162,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      * 9. The join message, as the last thing so it lands on a client that can show it.
      *
      * Not sent here, on purpose:
-     * - `CLIENT_READY_TO_SPAWN`. This used to send it, and only a client sends that state.
+     * - `ClientReadyToSpawn`. This used to send it, and only a client sends that state.
      * - `LevelChunk` and `PlayStatus(PlayerSpawn)`. The client discards terrain that arrives
      *   before it has asked for a radius and been answered - see `PlayerSession.setViewDistance`.
      * - The entity spawns. They follow PlayerSpawn, from `announceSpawnIfReady`.
@@ -237,7 +237,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         setSpawnPos.dimension = world.getDimension().id;
         setSpawnPos.position = worldSpawnPos;
         setSpawnPos.blockPosition = setSpawnPos.position;
-        setSpawnPos.type = SpawnType.PLAYER_SPAWN;
+        setSpawnPos.type = SpawnPositionType.PlayerRespawn;
         await connection.sendDataPacket(setSpawnPos);
 
         await player.sendSettings();
