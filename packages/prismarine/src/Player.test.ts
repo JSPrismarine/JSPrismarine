@@ -1,17 +1,29 @@
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
+import { InetAddress } from '@jsprismarine/raknet';
+import type { RakNetSession } from '@jsprismarine/raknet';
 import { describe, expect, it } from 'vitest';
 
+import type Console from './Console';
 import Player from './Player';
+import type Server from './Server';
+import type { Block } from './block/Block';
+import type { Config } from './config/Config';
 import { AttributeIds } from './entity/Attribute';
 import { MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
+import type ClientConnection from './network/ClientConnection';
 import { ActorEvent } from './network/packet/ActorEventPacket';
 import RespawnPacket, { RespawnState } from './network/packet/RespawnPacket';
 import SetActorDataPacket from './network/packet/SetActorDataPacket';
 import UpdateAttributesPacket from './network/packet/UpdateAttributesPacket';
 import { createConnectedPlayer } from './network/createConnectedPlayer';
 import MovementType from './network/type/MovementType';
+import { stub } from './testing/stub.test.helper';
+import UUID from './utils/UUID';
+import type { ChunkScheduler } from './world/ChunkScheduler';
+import type GameRuleManager from './world/GameRuleManager';
 import { Position } from './world/Position';
+import type { World } from './world/World';
 
 /**
  * A player with just enough of a server, world and connection around it to move and tick.
@@ -24,44 +36,45 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
     const actorEvents: number[] = [];
     const actorSounds: number[] = [];
 
-    const server = {
-        on: () => {},
-        post: () => {},
-        emit: async (name: string, event: any) => void events.push([name, event]),
+    const server: Server = stub<Server>({
+        on: () => server,
+        post: () => 0,
+        emit: async (name: string, event: unknown) => void events.push([name, event]),
         getTick: () => 0,
-        getConsole: () => ({ getFormattedUsername: () => 'Console' }),
-        getChunkScheduler: () => ({ add: () => {}, remove: () => {} }),
-        getConfig: () => ({
-            getProximityBroadcast: () => true,
-            getEntityTrackingHysteresis: () => 2,
-            getEntityTrackingInterval: () => 4
-        })
-    };
+        getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),
+        getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
+        getConfig: () =>
+            stub<Config>({
+                getProximityBroadcast: () => true,
+                getEntityTrackingHysteresis: () => 2,
+                getEntityTrackingInterval: () => 4
+            })
+    });
 
-    const world = {
+    const world = stub<World>({
         getName: () => 'test',
         getServer: () => server,
         broadcastMove: async () => {},
         getPlayers: () => [],
         getSpawnPosition: async () => new Vector3(0, 64, 0),
-        getGameRuleManager: () => ({ getGameRule: () => [true, true] }),
-        getBlock: async () => ({ getName: () => (underwater ? 'minecraft:water' : 'minecraft:air') }),
-        sendActorEvent: async (_entity: any, event: number) => void actorEvents.push(event),
-        sendActorSound: async (_entity: any, sound: number) => void actorSounds.push(sound)
-    };
+        getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
+        getBlock: async () => stub<Block>({ getName: () => (underwater ? 'minecraft:water' : 'minecraft:air') }),
+        sendActorEvent: async (_entity, event) => void actorEvents.push(event),
+        sendActorSound: async (_entity, sound) => void actorSounds.push(sound)
+    });
 
-    const connection = {
-        getRakNetSession: () => ({ getAddress: () => ({}) }),
-        sendDataPacket: async (packet: any) => void sent.push(packet),
+    const connection = stub<ClientConnection>({
+        getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
+        sendDataPacket: async (packet) => void sent.push(packet),
         attachPlayerSession: () => {},
         closePlayerSession: async () => {}
-    };
+    });
 
     const player = new Player({
-        position: new Position(0, 64, 0, world as any),
-        address: {} as any,
+        position: new Position(0, 64, 0, world),
+        address: new InetAddress('127.0.0.1', 19132),
         identity: {
-            uuid: {} as any,
+            uuid: UUID.fromRandom(),
             name: 'Tester',
             xuid: '',
             randomId: 0,
@@ -71,10 +84,10 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         }
     });
 
-    createConnectedPlayer({ server: server as any, connection: connection as any, player });
+    createConnectedPlayer({ server, connection, player });
 
     // `update` does nothing for a player who never finished joining.
-    (player as any).connected = true;
+    player['connected'] = true;
 
     return { player, sent, events, actorEvents, actorSounds };
 };
@@ -421,7 +434,7 @@ describe('Player', () => {
 
             const respawns = sent.filter((packet) => packet instanceof RespawnPacket);
             expect(respawns).toHaveLength(1);
-            expect(respawns[0].state).toBe(RespawnState.SERVER_SEARCHING_FOR_SPAWN);
+            expect(respawns[0]?.state).toBe(RespawnState.SERVER_SEARCHING_FOR_SPAWN);
         });
 
         it('sends no respawn packet when the button is pressed', async () => {
@@ -452,7 +465,7 @@ describe('Player', () => {
 
             const packets = sent.filter((packet) => packet instanceof UpdateAttributesPacket);
             expect(packets).toHaveLength(1);
-            expect(packets[0].attributes.map((attribute: any) => attribute.getName()).sort()).toEqual(
+            expect(packets[0]?.attributes.map((attribute) => attribute.getName()).sort()).toEqual(
                 [AttributeIds.PlayerExhaustion, AttributeIds.PlayerSaturation].sort()
             );
         });
