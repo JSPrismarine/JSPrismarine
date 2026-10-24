@@ -44,7 +44,7 @@ export default class Packet extends BinaryStream {
     public writeString(v: string): void {
         const data = Buffer.from(v, 'utf-8');
         this.writeUnsignedShort(data.byteLength);
-        this.write(data as any);
+        this.write(data);
     }
 
     public readAddress(): InetAddress {
