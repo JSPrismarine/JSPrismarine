@@ -12,8 +12,9 @@ Minecraft Bedrock game data exported in a nodejs friendly way.
   `packages/client/tools/capture-server-data.mjs`. The item table and the three payloads a client
   refuses to join without live here.
 - `src/resources/` is a Git submodule, [CloudburstMC/Data](https://github.com/CloudburstMC/Data),
-  pinned to the commit that dumped 1.26.50. Only the creative menu and the actor identifiers are
-  read from it, both through `utils/build.js`.
+  pinned to the commit that dumped 1.26.50. `utils/build.js` reads the creative menu, the actor
+  identifiers, and the two item columns the capture does not record: each item's version and
+  its component NBT.
 - `src/vendor/` is data neither of the two carries, copied from projects that do. See
   [its README](src/vendor/README.md) for the source and license of each file.
 

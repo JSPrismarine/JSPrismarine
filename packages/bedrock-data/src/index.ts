@@ -1,6 +1,7 @@
 import block_definitions_data from './jsp/block_definitions.json';
 import { creative_groups, creativeitems } from './generated/creativeitems';
-import required_item_list from './jsp/required_item_list.json';
+import item_components_data from './generated/item_components.json';
+import item_table_data from './generated/item_table.json';
 import item_tags_data from './vendor/item_tags.json';
 
 export type { CreativeGroupEntry, CreativeItemEntry } from './generated/creativeitems';
@@ -11,6 +12,15 @@ export interface ItemTypeEntry {
     runtime_id: number;
     /** Whether the item is defined by components rather than being one the client already knows. */
     component_based: boolean;
+    /**
+     * `Item Version` as `ItemRegistryPacket` carries it: 0 `Legacy`, 1 `DataDriven`, 2 `None`.
+     *
+     * A `DataDriven` item is one the client builds from {@link item_components}; a Bedrock
+     * Dedicated Server sends 31 vanilla items that way (the bundles, the spears, the trial keys,
+     * the apple). Most vanilla items are `None`, including 44 that are `component_based` and
+     * still travel with an empty compound, such as the arrow, the cake and the music discs.
+     */
+    version: number;
 }
 
 /**
@@ -21,17 +31,36 @@ export interface ItemTypeEntry {
  *
  * Captured from a Bedrock Dedicated Server 1.26.51.1, not taken from a third party: the
  * server sends it as `ItemRegistryPacket`, so a client that can log in can simply record it.
- * `packages/client/tools/capture-server-data.mjs` is that client. It stays under `jsp/` rather
- * than moving to `resources/` because a capture of the version this server targets is the
- * thing nothing else can promise; the submodule's own `runtime_item_states.json` happens to
- * agree with it name for name and number for number, which is how the pin was chosen.
+ * `packages/client/tools/capture-server-data.mjs` is that client, and its output is
+ * `jsp/required_item_list.json`. It stays under `jsp/` rather than moving to `resources/`
+ * because a capture of the version this server targets is the thing nothing else can promise.
+ *
+ * The capture records no `version`. `utils/build.js` takes that one column from the
+ * submodule's `runtime_item_states.json`, a dump of 1.26.50 at the same protocol, and refuses
+ * to generate the table unless the two agree on every name, id and component flag. They do.
  *
  * The version matters more than it looks. Against the 1.21.40 table this has 240 names it did
  * not, and - the part that breaks quietly - **528 items whose number changed**. A server on
  * the old table does not fail; it puts the wrong number on the wire for a quarter of the
  * items it knows, and the client shows something else.
  */
-export const item_table: Record<string, ItemTypeEntry> = required_item_list;
+export const item_table: Record<string, ItemTypeEntry> = item_table_data;
+
+/**
+ * Item name to its `Item Component Data`, as network NBT, for every item that has any.
+ *
+ * A Bedrock Dedicated Server sends 78 vanilla items with a non-empty compound: the 31
+ * `DataDriven` entries of {@link item_table}, which the client cannot build without one, and
+ * 47 foods that are not `component_based` yet carry their `minecraft:food` values anyway. Every
+ * other item travels with the empty compound, and is absent here.
+ *
+ * From the submodule's `item_components.nbt`, a dump of 1.26.50 at the same protocol as the
+ * item table. `utils/build.js` converts each item's compound from the on-disk NBT flavor to the
+ * network one tag by tag, so a server writes the bytes to the wire as they are.
+ */
+export const item_components: Readonly<Record<string, Buffer>> = Object.fromEntries(
+    Object.entries(item_components_data).map(([name, data]) => [name, Buffer.from(data, 'base64')])
+);
 
 /**
  * Item name to numeric id.

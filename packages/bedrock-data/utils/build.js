@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import zlib from 'node:zlib';
 
 /**
  * Binary payloads, turned into JSON so that a bundler can carry them.
@@ -16,9 +17,11 @@ const files = [
 
 const force = process.argv.includes('--force');
 
-const isUpToDate = (source, target) => {
+const isUpToDate = (sources, target) => {
     const generated = fs.statSync(target, { throwIfNoEntry: false });
-    return generated !== undefined && generated.mtimeMs >= fs.statSync(source).mtimeMs;
+    return (
+        generated !== undefined && [sources].flat().every((source) => generated.mtimeMs >= fs.statSync(source).mtimeMs)
+    );
 };
 
 const requireSource = (file) => {
@@ -148,4 +151,200 @@ if (force || !isUpToDate(creativeSource, creativeTarget)) {
             ''
         ].join('\n')
     );
+}
+
+// The item table a Bedrock Dedicated Server 1.26.51.1 sent, with the one column the capture tool
+// does not record: `Item Version`. The submodule's dump of 1.26.50 (same protocol, 2193) has it,
+// so the two are joined here, and the join refuses to produce anything when they disagree on a
+// name, an id or the component flag. A table whose versions came from a different item list
+// than its ids would put the wrong number on the wire without anything noticing.
+const itemListSource = requireSource('jsp/required_item_list.json');
+const itemStatesSource = requireSource('resources/runtime_item_states.json');
+const itemTableTarget = path.resolve('src/generated/item_table.json');
+if (force || !isUpToDate([itemListSource, itemStatesSource], itemTableTarget)) {
+    console.log('Generating item_table.json...');
+    const captured = JSON.parse(fs.readFileSync(itemListSource, 'utf8'));
+    const dumped = JSON.parse(fs.readFileSync(itemStatesSource, 'utf8'));
+
+    const versions = new Map();
+    for (const { name, id, version, componentBased } of dumped) {
+        const entry = captured[name];
+        if (entry === undefined) {
+            throw new Error(`runtime_item_states.json names ${name}, which required_item_list.json does not`);
+        }
+        if (entry.runtime_id !== id || entry.component_based !== componentBased) {
+            throw new Error(`runtime_item_states.json and required_item_list.json disagree on ${name}`);
+        }
+        versions.set(name, version);
+    }
+
+    const table = Object.fromEntries(
+        Object.entries(captured).map(([name, entry]) => {
+            const version = versions.get(name);
+            if (version === undefined) {
+                throw new Error(`required_item_list.json names ${name}, which runtime_item_states.json does not`);
+            }
+            return [name, { ...entry, version }];
+        })
+    );
+
+    fs.writeFileSync(itemTableTarget, JSON.stringify(table, null, 0));
+}
+
+// `Item Component Data` for every item that has any. The submodule holds the components as one
+// gzipped big-endian NBT compound with a child compound per item, which is the on-disk flavor
+// of NBT; the wire wants each item's compound on its own in the network flavor (little endian,
+// varint lengths and integers). The conversion below copies tag by tag without interpreting
+// anything, so an empty list keeps its TAG_End element type and a float stays a float. The
+// result is base64 per item, which a server writes back to the wire verbatim.
+const componentsSource = requireSource('resources/item_components.nbt');
+const componentsTarget = path.resolve('src/generated/item_components.json');
+if (force || !isUpToDate(componentsSource, componentsTarget)) {
+    console.log('Generating item_components.json...');
+    const disk = zlib.gunzipSync(fs.readFileSync(componentsSource));
+
+    const TAG_END = 0;
+    const TAG_BYTE = 1;
+    const TAG_SHORT = 2;
+    const TAG_INT = 3;
+    const TAG_LONG = 4;
+    const TAG_FLOAT = 5;
+    const TAG_DOUBLE = 6;
+    const TAG_BYTE_ARRAY = 7;
+    const TAG_STRING = 8;
+    const TAG_LIST = 9;
+    const TAG_COMPOUND = 10;
+    const TAG_INT_ARRAY = 11;
+    const TAG_LONG_ARRAY = 12;
+
+    let offset = 0;
+    let out = [];
+
+    const take = (length) => {
+        const bytes = disk.subarray(offset, offset + length);
+        offset += length;
+        return bytes;
+    };
+    const readInt = () => {
+        const value = disk.readInt32BE(offset);
+        offset += 4;
+        return value;
+    };
+    const readName = () => {
+        const length = disk.readUInt16BE(offset);
+        offset += 2;
+        return take(length);
+    };
+
+    const emit = (bytes) => out.push(bytes);
+    const emitVarUint = (value) => {
+        const bytes = [];
+        let rest = value >>> 0;
+        while (rest >= 0x80) {
+            bytes.push((rest & 0x7f) | 0x80);
+            rest >>>= 7;
+        }
+        bytes.push(rest);
+        emit(Buffer.from(bytes));
+    };
+    const emitVarInt = (value) => emitVarUint((value << 1) ^ (value >> 31));
+    const emitVarLong = (value) => {
+        const bytes = [];
+        let rest = BigInt.asUintN(64, (value << 1n) ^ (value >> 63n));
+        while (rest >= 0x80n) {
+            bytes.push(Number(rest & 0x7fn) | 0x80);
+            rest >>= 7n;
+        }
+        bytes.push(Number(rest));
+        emit(Buffer.from(bytes));
+    };
+    const emitName = (bytes) => {
+        emitVarUint(bytes.length);
+        emit(bytes);
+    };
+
+    const copyPayload = (type) => {
+        switch (type) {
+            case TAG_BYTE:
+                return emit(take(1));
+            case TAG_SHORT: {
+                const value = Buffer.alloc(2);
+                value.writeInt16LE(disk.readInt16BE(offset));
+                offset += 2;
+                return emit(value);
+            }
+            case TAG_INT:
+                return emitVarInt(readInt());
+            case TAG_LONG: {
+                const value = disk.readBigInt64BE(offset);
+                offset += 8;
+                return emitVarLong(value);
+            }
+            case TAG_FLOAT: {
+                const value = Buffer.alloc(4);
+                value.writeFloatLE(disk.readFloatBE(offset));
+                offset += 4;
+                return emit(value);
+            }
+            case TAG_DOUBLE: {
+                const value = Buffer.alloc(8);
+                value.writeDoubleLE(disk.readDoubleBE(offset));
+                offset += 8;
+                return emit(value);
+            }
+            case TAG_BYTE_ARRAY: {
+                const length = readInt();
+                emitVarInt(length);
+                return emit(take(length));
+            }
+            case TAG_STRING:
+                return emitName(readName());
+            case TAG_LIST: {
+                const elementType = take(1);
+                const length = readInt();
+                emit(elementType);
+                emitVarInt(length);
+                for (let i = 0; i < length; i++) copyPayload(elementType[0]);
+                return;
+            }
+            case TAG_COMPOUND: {
+                for (let child = take(1)[0]; child !== TAG_END; child = take(1)[0]) {
+                    emit(Buffer.from([child]));
+                    emitName(readName());
+                    copyPayload(child);
+                }
+                return emit(Buffer.from([TAG_END]));
+            }
+            case TAG_INT_ARRAY:
+            case TAG_LONG_ARRAY: {
+                const length = readInt();
+                emitVarInt(length);
+                for (let i = 0; i < length; i++) copyPayload(type === TAG_INT_ARRAY ? TAG_INT : TAG_LONG);
+                return;
+            }
+            default:
+                throw new Error(`item_components.nbt: unknown NBT tag ${type} at offset ${offset}`);
+        }
+    };
+
+    if (take(1)[0] !== TAG_COMPOUND) throw new Error('item_components.nbt: the root is not a compound');
+    readName();
+
+    const components = {};
+    for (let child = take(1)[0]; child !== TAG_END; child = take(1)[0]) {
+        if (child !== TAG_COMPOUND)
+            throw new Error(`item_components.nbt: item entry is a tag ${child}, not a compound`);
+        const name = readName().toString('utf8');
+
+        // The root of a network compound is nameless; the item's name is the map key instead.
+        out = [Buffer.from([TAG_COMPOUND, 0])];
+        copyPayload(TAG_COMPOUND);
+        const wire = Buffer.concat(out);
+
+        // Three bytes is the empty compound, which a server can write without being told.
+        if (wire.length > 3) components[name] = wire.toString('base64');
+    }
+    if (offset !== disk.length) throw new Error('item_components.nbt: trailing bytes after the root compound');
+
+    fs.writeFileSync(componentsTarget, JSON.stringify(components, null, 0));
 }
