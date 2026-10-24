@@ -38,3 +38,17 @@ export {
     type TranslatedTemplate
 } from './translate';
 export { createLegacyRandom, largeFeatureSeed, largeFeatureWithSaltSeed, type RandomSource } from './random';
+export {
+    BLOCK_ENTITY_MODIFIER_TYPES,
+    POS_RULE_TEST_TYPES,
+    PROCESSOR_TYPES,
+    RULE_TEST_TYPES,
+    applyProcessors,
+    createProcessor,
+    createProcessorList,
+    parseBlockStateString,
+    type ProcessorBlock,
+    type ProcessorContext,
+    type ProcessorType,
+    type StructureProcessor
+} from './processors';

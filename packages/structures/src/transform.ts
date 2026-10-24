@@ -87,6 +87,19 @@ const ambiguousStates = new Set(
     transformTable.ambiguous.map((entry) => `${entry.identifier}|${entry.transform}|${entry.state}`)
 );
 
+/**
+ * The value domain of each state key a Bedrock identifier declares, or
+ * `undefined` for an identifier no Java block reaches. The domains come from
+ * the same pinned palette the mapping package publishes.
+ */
+export const stateDomainsOf = (
+    identifier: string
+): Readonly<Record<string, readonly (string | number)[]>> | undefined => {
+    const entry = transformTable.identifiers[identifier];
+    if (entry === undefined) return undefined;
+    return Object.fromEntries(entry.keys.map((key, axis) => [key, entry.domains[axis] ?? []]));
+};
+
 /** The transforms a placement applies, mirror first, in the order the table stores them. */
 const transformsOf = (placement: Placement): TransformName[] => {
     const names: TransformName[] = [];
