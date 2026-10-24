@@ -7,7 +7,7 @@ import NetworkStructure from '../NetworkStructure';
  * Wire layout, in docs order: `Int Entries List` (varuint32 count, then per entry
  * `Property Index` as varuint32 and `Data` as varint32), then `Float Entries List` (varuint32
  * count, then per entry `Property Index` as varuint32 and `Data` as float little endian).
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/PropertySyncData.html}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/property-sync-data/}
  */
 export default class PropertySyncData extends NetworkStructure {
     /**
