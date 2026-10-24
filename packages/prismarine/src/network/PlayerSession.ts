@@ -1085,7 +1085,8 @@ export default class PlayerSession {
 
         packet.onGround = player.isOnGround();
 
-        // TODO
+        // The server does not model why a teleport happened, so Teleportation Cause is
+        // Unknown (0) and Source Actor Type is 0.
         if (mode === MovementType.Teleport) {
             packet.teleportCause = 0;
             packet.teleportItemId = 0;
@@ -1371,7 +1372,8 @@ export default class PlayerSession {
         pk.positionY = position.getY();
         pk.positionZ = position.getZ();
 
-        // TODO: motion
+        // Players report their own movement every tick, so the server keeps no velocity for
+        // them and Velocity goes out as zero.
         pk.motionX = 0;
         pk.motionY = 0;
         pk.motionZ = 0;

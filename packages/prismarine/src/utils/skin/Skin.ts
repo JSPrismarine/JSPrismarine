@@ -236,10 +236,9 @@ export default class Skin {
             })
         });
 
-        // TODO: make a class to manage geometry
+        // Geometry Data and Animation Data are opaque JSON documents on the wire: the server
+        // passes them through to other clients and never reads them.
         skin.geometry = decode(jwt.SkinGeometryData);
-
-        // TODO: Most of the times is empty, figure out what is it
         skin.animationData = decode(jwt.SkinAnimationData);
 
         // Read skin boolean properties
