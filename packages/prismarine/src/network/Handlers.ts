@@ -24,7 +24,6 @@ import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitia
 import SetPlayerGametypeHandler from './handler/SetPlayerGametypeHandler';
 import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOptionsHandler';
 import TextHandler from './handler/TextHandler';
-import TickSyncHandler from './handler/TickSyncHandler';
 import TickingAreasLoadStatusHandler from './handler/TickingAreasLoadStatusHandler';
 
 export {
@@ -54,6 +53,5 @@ export {
     SetPlayerGametypeHandler,
     SetPlayerInventoryOptionsHandler,
     TextHandler,
-    TickSyncHandler,
     TickingAreasLoadStatusHandler
 };

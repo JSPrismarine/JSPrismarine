@@ -1,4 +1,3 @@
-import ActorFallPacket from './packet/ActorFallPacket';
 import ActorEventPacket from './packet/ActorEventPacket';
 import AddActorPacket from './packet/AddActorPacket';
 import AddItemActorPacket from './packet/AddItemActorPacket';
@@ -63,7 +62,6 @@ import StartGamePacket from './packet/StartGamePacket';
 import TextPacket from './packet/TextPacket';
 import TickingAreasLoadStatusPacket from './packet/TickingAreasLoadStatusPacket';
 import TakeItemActorPacket from './packet/TakeItemActorPacket';
-import TickSyncPacket from './packet/TickSyncPacket';
 import TransferPacket from './packet/TransferPacket';
 import AdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
@@ -71,7 +69,6 @@ import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import WorldEventPacket from './packet/WorldEventPacket';
 
 export {
-    ActorFallPacket,
     ActorEventPacket,
     AddActorPacket,
     AddItemActorPacket,
@@ -142,7 +139,6 @@ export {
     StartGamePacket,
     TextPacket,
     TakeItemActorPacket,
-    TickSyncPacket,
     TickingAreasLoadStatusPacket,
     TransferPacket,
     UpdateAttributesPacket,
