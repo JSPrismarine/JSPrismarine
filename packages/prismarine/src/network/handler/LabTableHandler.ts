@@ -3,25 +3,44 @@ import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type LabTablePacket from '../packet/LabTablePacket';
 import { LabTableType } from '../packet/LabTablePacket';
+import { blockTargetRejection } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
+
+/** The one block whose screen sends this packet. */
+const LAB_TABLES: ReadonlySet<string> = new Set(['minecraft:lab_table']);
 
 /**
  * A player working the Education Edition chemistry lab table.
  *
- * The action is recorded at debug level and dropped. Known gap: there is no chemistry recipe
- * table, so a combine produces nothing and no `StartReaction` is sent back.
+ * An action whose position is not a lab table within reach in a loaded chunk is dropped at
+ * verbose level. The rest are recorded at debug level and dropped too. Known gap: there is
+ * no chemistry recipe table, so a combine produces nothing and no `StartReaction` is sent
+ * back.
  */
 export default class LabTableHandler implements PacketHandler<LabTablePacket> {
     public static NetID = Identifiers.LabTablePacket;
 
-    /** Logs the action and the table position. */
+    /** Checks the position names a lab table in reach, then logs the action and position. */
     public handle(packet: LabTablePacket, server: Server, session: PlayerSession): void {
+        const player = session.getPlayer();
         const { position } = packet;
+        const where = `${position.getX()}, ${position.getY()}, ${position.getZ()}`;
+
+        const rejection = blockTargetRejection(player, position, LAB_TABLES);
+        if (rejection !== null) {
+            server
+                .getLogger()
+                .verbose(
+                    `Dropped a lab table action from ${player.getName()} at ${where}: ${rejection}`,
+                    'LabTableHandler/handle'
+                );
+            return;
+        }
 
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} ran ${LabTableType[packet.type] ?? packet.type} on the lab table at ${position.getX()}, ${position.getY()}, ${position.getZ()}. Chemistry is not simulated`,
+                `${player.getName()} ran ${LabTableType[packet.type] ?? packet.type} on the lab table at ${where}. Chemistry is not simulated`,
                 'LabTableHandler/handle'
             );
     }

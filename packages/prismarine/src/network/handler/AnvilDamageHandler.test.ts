@@ -1,25 +1,37 @@
 import { describe, expect, it } from 'vitest';
-
-import type { Logger } from '@jsprismarine/logger';
-import type Player from '../../Player';
-import type Server from '../../Server';
-import { stub } from '../../testing/stub.test.helper';
+import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import type PlayerSession from '../PlayerSession';
 import AnvilDamagePacket from '../packet/AnvilDamagePacket';
 import AnvilDamageHandler from './AnvilDamageHandler';
 
+const packetAt = (blockPosition: BlockPosition) => Object.assign(new AnvilDamagePacket(), { blockPosition });
+
 describe('AnvilDamageHandler', () => {
-    it('logs the anvil position', () => {
-        const logged: string[] = [];
-        const server = stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
+    it('logs the position of an anvil in reach, whatever its wear', () => {
+        const { logged, server, session } = sessionNearBlocks({
+            '3,2,2': 'minecraft:anvil',
+            '1,2,2': 'minecraft:damaged_anvil'
         });
-        const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
-        const packet = Object.assign(new AnvilDamagePacket(), { blockPosition: new BlockPosition(-1, 70, 2) });
+        const handler = new AnvilDamageHandler();
 
-        new AnvilDamageHandler().handle(packet, server, session);
+        handler.handle(packetAt(new BlockPosition(3, 2, 2)), server, session);
+        handler.handle(packetAt(new BlockPosition(1, 2, 2)), server, session);
 
-        expect(logged).toEqual(['Steve asked to damage the anvil at -1, 70, 2. Anvils are not modeled']);
+        expect(logged.debug).toEqual([
+            'Steve asked to damage the anvil at 3, 2, 2. Anvils are not modeled',
+            'Steve asked to damage the anvil at 1, 2, 2. Anvils are not modeled'
+        ]);
+        expect(logged.verbose).toEqual([]);
+    });
+
+    it('drops a position that holds no anvil', () => {
+        const { logged, server, session } = sessionNearBlocks({ '1,2,2': 'minecraft:iron_block' });
+
+        new AnvilDamageHandler().handle(packetAt(new BlockPosition(1, 2, 2)), server, session);
+
+        expect(logged.debug).toEqual([]);
+        expect(logged.verbose).toEqual([
+            'Dropped an anvil damage request from Steve at 1, 2, 2: the block there is minecraft:iron_block'
+        ]);
     });
 });

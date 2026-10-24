@@ -1,29 +1,47 @@
-import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
-import type Player from '../../Player';
-import type Server from '../../Server';
-import { stub } from '../../testing/stub.test.helper';
+import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import type PlayerSession from '../PlayerSession';
 import StructureBlockUpdatePacket from '../packet/StructureBlockUpdatePacket';
 import StructureBlockUpdateHandler from './StructureBlockUpdateHandler';
 
+const packetAt = (position: BlockPosition) => {
+    const packet = new StructureBlockUpdatePacket();
+    packet.blockPosition = position;
+    packet.structureData.structureName.unredacted = 'house';
+    return packet;
+};
+
 describe('StructureBlockUpdateHandler', () => {
-    it('logs the structure name and position', () => {
-        const logged: string[] = [];
-        const server = stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-        });
-        const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
+    it('logs the structure name and position of a structure block in reach', () => {
+        const { logged, server, session } = sessionNearBlocks({ '4,1,2': 'minecraft:structure_block' });
 
-        const packet = new StructureBlockUpdatePacket();
-        packet.blockPosition = new BlockPosition(4, 65, -2);
-        packet.structureData.structureName.unredacted = 'house';
+        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
 
-        new StructureBlockUpdateHandler().handle(packet, server, session);
+        expect(logged.debug).toEqual([
+            'Steve set the structure block at 4, 1, 2 to structure "house". Structure blocks are not stored'
+        ]);
+        expect(logged.verbose).toEqual([]);
+    });
 
-        expect(logged).toEqual([
-            'Steve set the structure block at 4, 65, -2 to structure "house". Structure blocks are not stored'
+    it('drops a position that holds no structure block', () => {
+        const { logged, server, session } = sessionNearBlocks({ '4,1,2': 'minecraft:stone' });
+
+        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
+
+        expect(logged.debug).toEqual([]);
+        expect(logged.verbose).toEqual([
+            'Dropped a structure block update from Steve at 4, 1, 2: the block there is minecraft:stone'
+        ]);
+    });
+
+    it('drops a position out of reach without reading the world', () => {
+        const { logged, server, session } = sessionNearBlocks({});
+
+        new StructureBlockUpdateHandler().handle(packetAt(new BlockPosition(5_000_000, 64, 0)), server, session);
+
+        expect(logged.debug).toEqual([]);
+        expect(logged.verbose).toEqual([
+            'Dropped a structure block update from Steve at 5000000, 64, 0: it is 5000000.0 blocks away'
         ]);
     });
 });

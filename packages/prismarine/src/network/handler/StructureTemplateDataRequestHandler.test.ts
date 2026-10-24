@@ -1,30 +1,38 @@
-import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
-import type Player from '../../Player';
-import type Server from '../../Server';
-import { stub } from '../../testing/stub.test.helper';
-import type PlayerSession from '../PlayerSession';
+import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
+import BlockPosition from '../../world/BlockPosition';
 import StructureTemplateDataRequestPacket, {
     StructureTemplateRequestOperation
 } from '../packet/StructureTemplateDataRequestPacket';
 import StructureTemplateDataRequestHandler from './StructureTemplateDataRequestHandler';
 
+const packetAt = (structurePosition: BlockPosition) =>
+    Object.assign(new StructureTemplateDataRequestPacket(), {
+        structureName: 'house',
+        structurePosition,
+        requestedOperation: StructureTemplateRequestOperation.QuerySavedStructure
+    });
+
 describe('StructureTemplateDataRequestHandler', () => {
-    it('logs the structure name and the operation by name', () => {
-        const logged: string[] = [];
-        const server = stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-        });
-        const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
-        const packet = Object.assign(new StructureTemplateDataRequestPacket(), {
-            structureName: 'house',
-            requestedOperation: StructureTemplateRequestOperation.QuerySavedStructure
-        });
+    it('logs the structure name and the operation by name for a structure block in reach', () => {
+        const { logged, server, session } = sessionNearBlocks({ '1,0,1': 'minecraft:structure_block' });
 
-        new StructureTemplateDataRequestHandler().handle(packet, server, session);
+        new StructureTemplateDataRequestHandler().handle(packetAt(new BlockPosition(1, 0, 1)), server, session);
 
-        expect(logged).toEqual([
+        expect(logged.debug).toEqual([
             'Steve requested structure house with operation QuerySavedStructure. The server stores no structure templates'
+        ]);
+        expect(logged.verbose).toEqual([]);
+    });
+
+    it('drops a request whose position holds no structure block', () => {
+        const { logged, server, session } = sessionNearBlocks({});
+
+        new StructureTemplateDataRequestHandler().handle(packetAt(new BlockPosition(1, 0, 1)), server, session);
+
+        expect(logged.debug).toEqual([]);
+        expect(logged.verbose).toEqual([
+            'Dropped a structure template request from Steve at 1, 0, 1: the block there is minecraft:air'
         ]);
     });
 });

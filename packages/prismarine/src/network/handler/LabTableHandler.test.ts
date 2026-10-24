@@ -1,27 +1,32 @@
-import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
-import type Player from '../../Player';
-import type Server from '../../Server';
-import { stub } from '../../testing/stub.test.helper';
+import { sessionNearBlocks } from '../../testing/blockTarget.test.helper';
 import BlockPosition from '../../world/BlockPosition';
-import type PlayerSession from '../PlayerSession';
 import LabTablePacket, { LabTableType } from '../packet/LabTablePacket';
 import LabTableHandler from './LabTableHandler';
 
+const packetAt = (position: BlockPosition) =>
+    Object.assign(new LabTablePacket(), { type: LabTableType.StartCombine, position });
+
 describe('LabTableHandler', () => {
-    it('logs the action by name and the table position', () => {
-        const logged: string[] = [];
-        const server = stub<Server>({
-            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
-        });
-        const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
-        const packet = Object.assign(new LabTablePacket(), {
-            type: LabTableType.StartCombine,
-            position: new BlockPosition(4, 65, -2)
-        });
+    it('logs the action by name and the position of a lab table in reach', () => {
+        const { logged, server, session } = sessionNearBlocks({ '4,1,2': 'minecraft:lab_table' });
 
-        new LabTableHandler().handle(packet, server, session);
+        new LabTableHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
 
-        expect(logged).toEqual(['Steve ran StartCombine on the lab table at 4, 65, -2. Chemistry is not simulated']);
+        expect(logged.debug).toEqual([
+            'Steve ran StartCombine on the lab table at 4, 1, 2. Chemistry is not simulated'
+        ]);
+        expect(logged.verbose).toEqual([]);
+    });
+
+    it('drops a position that holds no lab table', () => {
+        const { logged, server, session } = sessionNearBlocks({ '4,1,2': 'minecraft:crafting_table' });
+
+        new LabTableHandler().handle(packetAt(new BlockPosition(4, 1, 2)), server, session);
+
+        expect(logged.debug).toEqual([]);
+        expect(logged.verbose).toEqual([
+            'Dropped a lab table action from Steve at 4, 1, 2: the block there is minecraft:crafting_table'
+        ]);
     });
 });
