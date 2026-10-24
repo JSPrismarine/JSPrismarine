@@ -4,8 +4,13 @@ import type { SpawnBiome } from '@jsprismarine/minecraft';
 import type { Dimension } from '@jsprismarine/minecraft';
 
 /**
- * Represents the network structure of the spawn settings of a world.
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/SpawnSettings.html}
+ * Where and in which biome a world spawns players (LevelSettings field 1).
+ *
+ * Protocol 2193 wire order:
+ * 0. Spawn Biome Type: int16 LE.
+ * 1. User Defined Biome Name: string.
+ * 2. Dimension: varint32.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.50/types/spawn-settings/}
  */
 export default class SpawnSettings extends NetworkStructure {
     public constructor(
