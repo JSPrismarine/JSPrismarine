@@ -22,6 +22,8 @@ import type {
 } from './CameraInstruction';
 import CameraPreset, { AimAssistTargetMode, CameraAudioListener, ControlScheme } from './CameraPreset';
 import type { CameraAimAssistDefinition, CameraPresetData } from './CameraPreset';
+import CameraSplineDefinition, { CameraSplineType } from './CameraSplineDefinition';
+import type { SplineDefinitionProgressKeyFrame, SplineDefinitionRotationKeyFrame } from './CameraSplineDefinition';
 import { ChunkPos } from './ChunkPos';
 import ClientStoreEntryPointConfig from './ClientStoreEntryPointConfig';
 import { DataItem } from './DataItem';
@@ -71,6 +73,8 @@ export {
     CameraAudioListener,
     CameraInstruction,
     CameraPreset,
+    CameraSplineDefinition,
+    CameraSplineType,
     ChunkPos,
     ClientStoreEntryPointConfig,
     ControlScheme,
@@ -138,5 +142,7 @@ export type {
     PrimitiveShapeDataFields,
     PrimitiveShapeExtraData,
     SerializableCells,
+    SplineDefinitionProgressKeyFrame,
+    SplineDefinitionRotationKeyFrame,
     WorldPosition
 };
