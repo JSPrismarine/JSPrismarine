@@ -8,6 +8,9 @@ type Tree = Record<string, unknown>;
 
 const isTree = (value: unknown): value is Tree => typeof value === 'object' && value !== null;
 
+const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const isUnsafeKey = (key: string): boolean => UNSAFE_KEYS.has(key);
+
 /** Splits `a.b[0].c` into its keys. */
 const keysOf = (path: string): string[] => path.match(/[^.[\]]+/g) ?? [];
 
@@ -33,6 +36,7 @@ const _ = {
     set: (obj: unknown, path: string | string[], value: unknown): unknown => {
         if (!isTree(obj)) return obj;
         const keys = Array.isArray(path) ? path : keysOf(path);
+        if (keys.some(isUnsafeKey)) return obj;
         let current: Tree = obj;
         for (let index = 0; index < keys.length - 1; index++) {
             const key = keys[index]!;
