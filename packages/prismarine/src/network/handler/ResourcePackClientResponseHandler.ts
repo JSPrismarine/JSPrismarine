@@ -17,9 +17,21 @@ import StartGamePacket from '../packet/StartGamePacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import type PacketHandler from './PacketHandler';
 
+/**
+ * Drives the end of the login exchange, from the client's answer about resource packs to the
+ * burst of registries and world state that puts it in a world.
+ */
 export default class ResourcePackClientResponseHandler implements PacketHandler<ResourcePackClientResponsePacket> {
     public static NetID = Identifiers.ResourcePackClientResponsePacket;
 
+    /**
+     * Answers `HaveAllPacks` with the stack and `Completed` with the join.
+     *
+     * Known gap: the other two statuses do nothing. `SendPacks` names the packs in
+     * `Downloading Packs` and expects a `ResourcePackDataInfo` for each, and `Refused` means the
+     * player declined a required pack and should be disconnected. Neither can arrive while
+     * `ResourcePacksInfoPacket` goes out with no packs and `Resource Pack Required` false.
+     */
     public async handle(
         packet: ResourcePackClientResponsePacket,
         server: Server,

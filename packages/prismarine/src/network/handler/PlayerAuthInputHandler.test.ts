@@ -1,6 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
-import { PlayerAuthInputData } from '@jsprismarine/minecraft';
+import { Gametype, PlayerAuthInputData } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
@@ -32,6 +32,8 @@ const fake = () => {
     });
     const player = stub<Player>({
         isOnline: () => true,
+        gamemode: Gametype.SURVIVAL,
+        getName: () => 'tester',
         getPosition: () => new Position(0, 64, 0, world),
         setPosition: vi.fn(
             async ({ position }: { position: Vector3 }) =>
@@ -110,8 +112,8 @@ describe('PlayerAuthInputHandler', () => {
         await new PlayerAuthInputHandler().handle(
             input((packet) => {
                 packet.blockActions = [
-                    { action: PlayerAction.START_BREAK, position: new BlockPosition(1, -20, 2), face: 1 },
-                    { action: PlayerAction.CRACK_BLOCK, position: new BlockPosition(1, -20, 2), face: 1 }
+                    { action: PlayerAction.START_BREAK, position: new BlockPosition(1, 63, 2), face: 1 },
+                    { action: PlayerAction.CRACK_BLOCK, position: new BlockPosition(1, 63, 2), face: 1 }
                 ];
             }),
             server,
@@ -119,7 +121,7 @@ describe('PlayerAuthInputHandler', () => {
         );
 
         // The start swings once and a crack swings again: two hits, both on the block named.
-        expect(calls.filter((call) => call.startsWith('hit'))).toEqual(['hit 1,-20,2 face 1', 'hit 1,-20,2 face 1']);
+        expect(calls.filter((call) => call.startsWith('hit'))).toEqual(['hit 1,63,2 face 1', 'hit 1,63,2 face 1']);
     });
 
     it('does nothing for a player who has not finished joining', async () => {

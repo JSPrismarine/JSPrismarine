@@ -52,7 +52,7 @@ const slot = (slotId: number, containerId = ContainerUiId.COMBINED_HOTBAR_AND_IN
 /** A server whose creative menu is one known item, so a pick can be checked by name. */
 const fakeServer = (creative: Item[], overrides: Partial<Server> = {}) => {
     CreativeInventory.reset();
-    CreativeInventory['items'] = creative;
+    CreativeInventory['entries'] = creative.map((item) => ({ item, group: 0 }));
 
     // A refusal says why it refused, and says it through the logger.
     return stub<Server>({ getLogger: () => stub<Logger>({ debug: () => {} }), ...overrides });
