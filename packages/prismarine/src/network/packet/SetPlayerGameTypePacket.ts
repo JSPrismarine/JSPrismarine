@@ -9,8 +9,8 @@ import DataPacket from './DataPacket';
  * The client sends it when the player picks a game type from the dropdown; the server sends
  * it back so the client shows the game type the server holds.
  */
-export default class SetPlayerGametypePacket extends DataPacket {
-    public static NetID = Identifiers.SetPlayerGametypePacket;
+export default class SetPlayerGameTypePacket extends DataPacket {
+    public static NetID = Identifiers.SetPlayerGameTypePacket;
 
     /** Player Game Type, a `Gametype` value written ZigZag encoded. */
     public gametype!: Gametype;

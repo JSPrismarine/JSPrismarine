@@ -35,16 +35,16 @@ import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
 import RequestNetworkSettingsHandler from './handler/RequestNetworkSettingsHandler';
 import RequestPermissionsHandler from './handler/RequestPermissionsHandler';
 import ResourcePackChunkRequestHandler from './handler/ResourcePackChunkRequestHandler';
-import ResourcePackResponseHandler from './handler/ResourcePackResponseHandler';
+import ResourcePackClientResponseHandler from './handler/ResourcePackClientResponseHandler';
 import RespawnHandler from './handler/RespawnHandler';
 import ServerSettingsRequestHandler from './handler/ServerSettingsRequestHandler';
 import ServerboundDiagnosticsHandler from './handler/ServerboundDiagnosticsHandler';
 import ServerboundLoadingScreenHandler from './handler/ServerboundLoadingScreenHandler';
 import ServerboundPackSettingChangeHandler from './handler/ServerboundPackSettingChangeHandler';
-import SetDefaultGametypeHandler from './handler/SetDefaultGametypeHandler';
+import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
 import SetDifficultyHandler from './handler/SetDifficultyHandler';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
-import SetPlayerGametypeHandler from './handler/SetPlayerGametypeHandler';
+import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOptionsHandler';
 import SubChunkRequestHandler from './handler/SubChunkRequestHandler';
 import TextHandler from './handler/TextHandler';
@@ -89,16 +89,16 @@ export {
     RequestNetworkSettingsHandler,
     RequestPermissionsHandler,
     ResourcePackChunkRequestHandler,
-    ResourcePackResponseHandler,
+    ResourcePackClientResponseHandler,
     RespawnHandler,
     ServerSettingsRequestHandler,
     ServerboundDiagnosticsHandler,
     ServerboundLoadingScreenHandler,
     ServerboundPackSettingChangeHandler,
-    SetDefaultGametypeHandler,
+    SetDefaultGameTypeHandler,
     SetDifficultyHandler,
     SetLocalPlayerAsInitializedHandler,
-    SetPlayerGametypeHandler,
+    SetPlayerGameTypeHandler,
     SetPlayerInventoryOptionsHandler,
     SubChunkRequestHandler,
     TextHandler,

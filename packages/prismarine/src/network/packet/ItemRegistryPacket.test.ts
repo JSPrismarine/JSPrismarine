@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { NetworkUtil } from '../NetworkUtil';
 import Identifiers from '../Identifiers';
-import ItemComponentPacket from './ItemComponentPacket';
+import ItemRegistryPacket from './ItemRegistryPacket';
 
 /** Packet id 162 as a varuint. */
 const HEADER = [0xa2, 0x01];
@@ -29,19 +29,19 @@ const entryBytes = (name: string, runtimeId: number, componentBased: boolean): n
 };
 
 const encode = (): Buffer => {
-    const pk = new ItemComponentPacket();
+    const pk = new ItemRegistryPacket();
     pk.encode();
     return pk.getBuffer();
 };
 
 describe('network', () => {
     describe('packet', () => {
-        describe('ItemComponentPacket', () => {
+        describe('ItemRegistryPacket', () => {
             const entries = Object.entries(ItemTable);
             const buffer = encode();
 
             it('uses the network id the docs give ItemRegistryPacket', () => {
-                expect(ItemComponentPacket.NetID).toBe(Identifiers.ItemComponentPacket);
+                expect(ItemRegistryPacket.NetID).toBe(Identifiers.ItemRegistryPacket);
                 expect([...buffer.subarray(0, 2)]).toEqual(HEADER);
             });
 

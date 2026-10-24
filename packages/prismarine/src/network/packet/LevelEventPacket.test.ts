@@ -2,7 +2,7 @@ import { LevelEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import WorldEventPacket from './WorldEventPacket';
+import LevelEventPacket from './LevelEventPacket';
 
 /**
  * These ids used to live in a second, hand-written copy of the list kept in this file, which
@@ -15,7 +15,7 @@ import WorldEventPacket from './WorldEventPacket';
  */
 describe('network', () => {
     describe('packet', () => {
-        describe('WorldEventPacket', () => {
+        describe('LevelEventPacket', () => {
             it.each([
                 ['PARTICLES_DESTROY_BLOCK', LevelEvent.PARTICLES_DESTROY_BLOCK, 2001],
                 ['PARTICLES_DESTROY_BLOCK_NO_SOUND', LevelEvent.PARTICLES_DESTROY_BLOCK_NO_SOUND, 2021],
@@ -23,13 +23,13 @@ describe('network', () => {
                 ['STOP_BLOCK_CRACKING', LevelEvent.STOP_BLOCK_CRACKING, 3601],
                 ['UPDATE_BLOCK_CRACKING', LevelEvent.UPDATE_BLOCK_CRACKING, 3602]
             ])('sends %s as the id vanilla uses', (_name, event, expected) => {
-                const pk = new WorldEventPacket();
+                const pk = new LevelEventPacket();
                 pk.eventId = event;
                 pk.position = new Vector3(1, 2, 3);
                 pk.data = 0;
                 pk.encode();
 
-                const decoded = new WorldEventPacket();
+                const decoded = new LevelEventPacket();
                 decoded.setReadBuffer(pk.getBuffer());
                 decoded.decode();
 
@@ -38,13 +38,13 @@ describe('network', () => {
 
             it('carries the position it was given', () => {
                 // It used to be left unset, and every event played at the world origin.
-                const pk = new WorldEventPacket();
+                const pk = new LevelEventPacket();
                 pk.eventId = LevelEvent.PARTICLES_DESTROY_BLOCK_NO_SOUND;
                 pk.position = new Vector3(10.5, 64.5, -20.5);
                 pk.data = 0;
                 pk.encode();
 
-                const decoded = new WorldEventPacket();
+                const decoded = new LevelEventPacket();
                 decoded.setReadBuffer(pk.getBuffer());
                 decoded.decode();
 
@@ -57,13 +57,13 @@ describe('network', () => {
                 // Runtime ids are FNV-1a hashes, so roughly half of them are negative. The
                 // client resolves the broken block's material from this number, and a
                 // mangled one leaves it playing stone.
-                const pk = new WorldEventPacket();
+                const pk = new LevelEventPacket();
                 pk.eventId = LevelEvent.PARTICLES_DESTROY_BLOCK_NO_SOUND;
                 pk.position = new Vector3(0, 0, 0);
                 pk.data = -1867554038;
                 pk.encode();
 
-                const decoded = new WorldEventPacket();
+                const decoded = new LevelEventPacket();
                 decoded.setReadBuffer(pk.getBuffer());
                 decoded.decode();
 

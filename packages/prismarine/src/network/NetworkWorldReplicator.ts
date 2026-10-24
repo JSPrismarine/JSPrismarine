@@ -15,7 +15,7 @@ import type { ActorEvent } from './packet/ActorEventPacket';
 import ActorEventPacket from './packet/ActorEventPacket';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
-import WorldEventPacket from './packet/WorldEventPacket';
+import LevelEventPacket from './packet/LevelEventPacket';
 
 /**
  * The actor type a sound is attributed to, where vanilla sends something other than nothing.
@@ -260,7 +260,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
 
     /** @inheritdoc */
     public worldEffect(position: Vector3 | null, effect: LevelEvent, data: number): void {
-        const packet = new WorldEventPacket();
+        const packet = new LevelEventPacket();
         packet.eventId = effect;
         // Without this every event played at the world origin: the sound arrived with no
         // direction to it and the particles were nowhere near the block.

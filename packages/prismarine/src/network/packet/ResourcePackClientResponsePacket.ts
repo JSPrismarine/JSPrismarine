@@ -32,8 +32,8 @@ const ALTERNATIVE_OFFSET = 1;
  * Until protocol 748 the list was written after every alternative; a real server reads the two
  * stray bytes as the next packet.
  */
-export default class ResourcePackResponsePacket extends DataPacket {
-    public static NetID = Identifiers.ResourcePackResponsePacket;
+export default class ResourcePackClientResponsePacket extends DataPacket {
+    public static NetID = Identifiers.ResourcePackClientResponsePacket;
 
     public status!: ResourcePackStatusType;
     public packIds: string[] = [];

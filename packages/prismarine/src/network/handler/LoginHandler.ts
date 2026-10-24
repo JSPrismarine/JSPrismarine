@@ -125,7 +125,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         // `enable` sends nothing. Until the client has `PlayStatus(LoginSuccess)` below it is
         // still logging in, and a retail client handed a game packet in that state drops the
         // connection with `InitialConnection-90`. Nothing but PlayStatus and ResourcePacksInfo
-        // leaves here; the rest waits for `ResourcePackResponseHandler`.
+        // leaves here; the rest waits for `ResourcePackClientResponseHandler`.
         const session = createConnectedPlayer({ server, connection, player });
         try {
             await player.enable();

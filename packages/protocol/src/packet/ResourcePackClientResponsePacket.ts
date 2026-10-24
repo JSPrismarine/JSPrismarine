@@ -4,7 +4,7 @@ import { PacketIdentifier } from '../PacketIdentifier';
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
 /**
- * The client's answer in a `ResourcePackResponsePacket`, numbered one above the wire's
+ * The client's answer in a `ResourcePackClientResponsePacket`, numbered one above the wire's
  * alternative index so that `None` can stand for no answer yet.
  *
  * The docs page is https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/resource-pack-client-response-packet/
@@ -64,7 +64,7 @@ export interface ResourcePackResponse {
  * Until protocol 748 the list was written after every alternative; a real server reads the two
  * stray bytes as the next packet and drops the connection.
  */
-export default class ResourcePackResponsePacket extends NetworkPacket<ResourcePackResponse> {
+export default class ResourcePackClientResponsePacket extends NetworkPacket<ResourcePackResponse> {
     public get id(): number {
         return PacketIdentifier.RESOURCE_PACK_CLIENT_RESPONSE;
     }

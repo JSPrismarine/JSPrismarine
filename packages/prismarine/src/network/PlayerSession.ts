@@ -48,7 +48,7 @@ import type { RespawnState } from './packet/RespawnPacket';
 import RespawnPacket from './packet/RespawnPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
-import SetPlayerGametypePacket from './packet/SetPlayerGametypePacket';
+import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetTimePacket from './packet/SetTimePacket';
 import TextPacket from './packet/TextPacket';
 import UpdateAbilitiesPacket, {
@@ -745,7 +745,7 @@ export default class PlayerSession {
      * @param {Gametype} gamemode - the numeric gamemode ID.
      */
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
-        const packet = new SetPlayerGametypePacket();
+        const packet = new SetPlayerGameTypePacket();
         packet.gametype = gamemode ?? this.player.gamemode;
         await this.connection.sendDataPacket(packet);
     }

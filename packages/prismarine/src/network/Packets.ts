@@ -29,7 +29,7 @@ import InteractPacket from './packet/InteractPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import InventorySlotPacket from './packet/InventorySlotPacket';
 import InventoryTransactionPacket from './packet/InventoryTransactionPacket';
-import ItemComponentPacket from './packet/ItemComponentPacket';
+import ItemRegistryPacket from './packet/ItemRegistryPacket';
 import ItemStackRequestPacket from './packet/ItemStackRequestPacket';
 import ItemStackResponsePacket from './packet/ItemStackResponsePacket';
 import JigsawStructureDataPacket from './packet/JigsawStructureDataPacket';
@@ -61,7 +61,7 @@ import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
 import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
 import RequestPermissionsPacket from './packet/RequestPermissionsPacket';
 import ResourcePackChunkRequestPacket from './packet/ResourcePackChunkRequestPacket';
-import ResourcePackResponsePacket from './packet/ResourcePackResponsePacket';
+import ResourcePackClientResponsePacket from './packet/ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
 import RespawnPacket from './packet/RespawnPacket';
@@ -71,11 +71,11 @@ import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPac
 import ServerboundPackSettingChangePacket from './packet/ServerboundPackSettingChangePacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
-import SetDefaultGametypePacket from './packet/SetDefaultGametypePacket';
+import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
 import SetDifficultyPacket from './packet/SetDifficultyPacket';
 import SetHealthPacket from './packet/SetHealthPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
-import SetPlayerGametypePacket from './packet/SetPlayerGametypePacket';
+import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
 import SetTimePacket from './packet/SetTimePacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
@@ -89,7 +89,7 @@ import AdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import UpdateClientOptionsPacket from './packet/UpdateClientOptionsPacket';
-import WorldEventPacket from './packet/WorldEventPacket';
+import LevelEventPacket from './packet/LevelEventPacket';
 
 export {
     ActorEventPacket,
@@ -130,7 +130,7 @@ export {
     InventoryContentPacket,
     InventorySlotPacket,
     InventoryTransactionPacket,
-    ItemComponentPacket,
+    ItemRegistryPacket,
     ItemStackRequestPacket,
     ItemStackResponsePacket,
     JigsawStructureDataPacket,
@@ -162,7 +162,7 @@ export {
     RequestNetworkSettingsPacket,
     RequestPermissionsPacket,
     ResourcePackChunkRequestPacket,
-    ResourcePackResponsePacket,
+    ResourcePackClientResponsePacket,
     ResourcePackStackPacket,
     ResourcePacksInfoPacket,
     RespawnPacket,
@@ -172,11 +172,11 @@ export {
     ServerboundPackSettingChangePacket,
     SetActorDataPacket,
     SetActorMotionPacket,
-    SetDefaultGametypePacket,
+    SetDefaultGameTypePacket,
     SetDifficultyPacket,
     SetHealthPacket,
     SetLocalPlayerAsInitializedPacket,
-    SetPlayerGametypePacket,
+    SetPlayerGameTypePacket,
     SetPlayerInventoryOptionsPacket,
     SetTimePacket,
     ShowProfilePacket,
@@ -189,5 +189,5 @@ export {
     UpdateAttributesPacket,
     UpdateBlockPacket,
     UpdateClientOptionsPacket,
-    WorldEventPacket
+    LevelEventPacket
 };

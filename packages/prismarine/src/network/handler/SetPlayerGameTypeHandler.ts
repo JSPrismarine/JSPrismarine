@@ -3,7 +3,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import Identifiers from '../Identifiers';
-import type SetPlayerGametypePacket from '../packet/SetPlayerGametypePacket';
+import type SetPlayerGameTypePacket from '../packet/SetPlayerGameTypePacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -13,11 +13,11 @@ import type PacketHandler from './PacketHandler';
  * value that is not a `Gametype`, gets the current game type sent back so the client's
  * dropdown returns to what the server holds.
  */
-export default class SetPlayerGametypeHandler implements PacketHandler<SetPlayerGametypePacket> {
-    public static NetID = Identifiers.SetPlayerGametypePacket;
+export default class SetPlayerGameTypeHandler implements PacketHandler<SetPlayerGameTypePacket> {
+    public static NetID = Identifiers.SetPlayerGameTypePacket;
 
     /** Applies the requested game type, or resends the current one when the request is refused. */
-    public async handle(packet: SetPlayerGametypePacket, server: Server, session: PlayerSession): Promise<void> {
+    public async handle(packet: SetPlayerGameTypePacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
         const allowed = server.getPermissionManager().can(player).execute('minecraft.command.gamemode');
         if (!allowed || Gametype[packet.gametype] === undefined) {
