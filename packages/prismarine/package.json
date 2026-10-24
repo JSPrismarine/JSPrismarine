@@ -62,7 +62,7 @@
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
     "devDependencies": {
-        "@types/node": "24.13.6",
+        "@types/node": "24.19.2",
         "@types/terminal-kit": "2.5.7",
         "fast-jwt": "6.3.5",
         "glob": "13.0.6",
