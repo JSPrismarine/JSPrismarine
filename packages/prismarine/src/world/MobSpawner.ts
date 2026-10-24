@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
-import { allEntities } from '../entity/Entities';
+import { spawnableEntities } from '../entity/Entities';
 import { spawnsMonsters } from '../entity/Difficulty';
-import type { Entity, SpawnableEntityClass } from '../entity/Entity';
+import type { Entity } from '../entity/Entity';
 import { sizeOf } from '../entity/EntitySize';
 import { Mob } from '../entity/Mob';
 import BlockView from '../entity/ai/BlockView';
@@ -195,8 +195,7 @@ export class MobSpawner {
 
     /** Spawns a few of one species around a spot, skipping any that will not fit. */
     private async spawnGroup(species: SpawnEntry, center: Vector3, hostile: boolean): Promise<number> {
-        const Species = allEntities().find((candidate) => candidate.MOB_ID === species.type) as
-            SpawnableEntityClass | undefined;
+        const Species = spawnableEntities().find((candidate) => candidate.MOB_ID === species.type);
         if (!Species) return 0;
 
         // Monsters arrive alone more often than animals do, which is most of what makes a herd of
