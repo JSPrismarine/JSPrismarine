@@ -37,3 +37,4 @@ export {
     type TranslateOptions,
     type TranslatedTemplate
 } from './translate';
+export { createLegacyRandom, largeFeatureSeed, largeFeatureWithSaltSeed, type RandomSource } from './random';
