@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import RecipeRegisterEvent from '../events/crafting/RecipeRegisterEvent';
 import { Item } from '../item/Item';
 import RecipeManager from './RecipeManager';
 import { ShapelessRecipe } from './Recipe';
 import { ItemIngredient } from './RecipeIngredient';
 
 /** A server that records what was emitted, and can cancel it. */
-const fakeServer = (onEmit: (event: string, payload: any) => void = () => {}) =>
-    ({
-        getLogger: () => ({ debug: () => {} }),
-        emit: async (event: string, payload: any) => onEmit(event, payload)
-    }) as any;
+const fakeServer = (onEmit: (event: string, payload: unknown) => void = () => {}) => ({
+    getLogger: () => ({ debug: () => {} }),
+    emit: async (event: string, payload: unknown) => onEmit(event, payload)
+});
 
 const recipe = (id: string, station = 'crafting_table') =>
     new ShapelessRecipe(
@@ -92,7 +92,9 @@ describe('crafting', () => {
         it('announces a registration, and a listener can refuse it', async () => {
             // There is no unregister on purpose - a net id is a position, so removing one
             // would renumber everything after it - so cancelling is how a vanilla recipe goes.
-            const cancel = vi.fn((_event: string, payload: any) => payload.preventDefault());
+            const cancel = vi.fn((_event: string, payload: unknown) => {
+                if (payload instanceof RecipeRegisterEvent) payload.preventDefault();
+            });
             const manager = new RecipeManager(fakeServer(cancel));
 
             await manager.registerRecipe(recipe('a'));
