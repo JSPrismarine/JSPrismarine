@@ -1,0 +1,81 @@
+{
+    "$comment": [
+        "The pinned upstream sources this package's generated data is built from, following the",
+        "pattern of `packages/minecraft/datagen/manifest.json`: every source is a version, a URL",
+        "and a hash, so a build is reproducible and an edition bump is an edit to this file plus",
+        "a refresh of `pack-hashes.json` beside it.",
+        "",
+        "`utils/fetch/fetch-sources.ts` (the `fetch:sources` script) downloads each source into",
+        "`node_modules/.cache/jsprismarine/<source>/<version>/`, verifies the hash before",
+        "unpacking, and skips sources whose verified content is already present. For offline",
+        "work, `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH` and",
+        "`JSP_GEYSER_MAPPINGS_PATH` point at local copies and bypass the download.",
+        "",
+        "Hashes for `bds` and `javaServer` are cross-checked against the research notes in",
+        "`docs/research/bedrock-data-extraction.md` and `docs/research/java-datapacks.md`. The",
+        "two GitHub archive hashes were measured from codeload on 2026-10-24; GitHub does not",
+        "promise byte-stable archives, so if one stops matching, re-verify that the commit is",
+        "unchanged and record the new archive hash."
+    ],
+    "bds": {
+        "$comment": [
+            "The Linux Bedrock Dedicated Server zip, the only publication with features, feature",
+            "rules, structures and worldgen. The CDN resets connections from curl's default",
+            "User-Agent, so the fetcher sends a browser one. Mojang publishes no checksum beyond",
+            "a content-md5 header; the sha256 was measured on download and matches the research",
+            "note and the Bedrock-OSS/BDS-Versions sha1 cross-check."
+        ],
+        "version": "1.26.51.1",
+        "url": "https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-1.26.51.1.zip",
+        "sha256": "ad91d3b824e51ea50b5bb601c295cbd8f543a29b14315c2ad89ff27311e2d860",
+        "sizeInBytes": 94926669
+    },
+    "bedrockSamples": {
+        "$comment": [
+            "Mojang/bedrock-samples, the plain-JSON publication of the vanilla packs plus the",
+            "`metadata/vanilladata_modules` files. Read for the 23 items, the item catalog, the",
+            "shapes and the trade tables the BDS zip stores as undocumented binary MCB. Pinned",
+            "to the commit of the newest release tag; there is no v1.26.51 tag."
+        ],
+        "repo": "Mojang/bedrock-samples",
+        "tag": "v1.26.50.4",
+        "commit": "46ba6ea985fb5a92d79a9419198f10dda14c199d",
+        "url": "https://codeload.github.com/Mojang/bedrock-samples/zip/46ba6ea985fb5a92d79a9419198f10dda14c199d",
+        "sha256": "62859463a2a4c430a70a6f396d89a2a596ae84d4569421f89bd10a3a8f426718"
+    },
+    "javaServer": {
+        "$comment": [
+            "The Java Edition server jar, whose data generator emits the vanilla datapack and the",
+            "reports. The URL and sha1 come from the piston-meta 26.3 package, which is Mojang's",
+            "own checksum; the sha1 is also the object name in the URL. The sha256 was measured",
+            "on download. The jar is kept as a file, not unpacked."
+        ],
+        "version": "26.3",
+        "url": "https://piston-data.mojang.com/v1/objects/33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c/server.jar",
+        "sha1": "33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c",
+        "sha256": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64",
+        "sizeInBytes": 62294556
+    },
+    "geyserMappings": {
+        "$comment": [
+            "GeyserMC/mappings, the MIT one-way Java to Bedrock mapping tables. Pinned to the",
+            "master head resolved on 2026-10-24."
+        ],
+        "repo": "GeyserMC/mappings",
+        "branch": "master",
+        "commit": "81700ab543c1f4e9f9041f58dac4154ecb0d0c8b",
+        "url": "https://codeload.github.com/GeyserMC/mappings/zip/81700ab543c1f4e9f9041f58dac4154ecb0d0c8b",
+        "sha256": "a5605532f1676db3ea2743f3e2ca2be023f4061ed5ffb960c7471fe39e962665"
+    },
+    "cloudburstData": {
+        "$comment": [
+            "Cross-reference only, not fetched here: the CloudburstMC/Data commit the",
+            "`src/resources` submodule pins. `.gitmodules` and the submodule pointer are the",
+            "authority; this entry records the commit so a bump of either shows up in this",
+            "file's history. Keep it in sync with `git submodule status`."
+        ],
+        "repo": "CloudburstMC/Data",
+        "commit": "dee8f65b08496e278cc2b64f304a249c4db99e12",
+        "path": "src/resources"
+    }
+}

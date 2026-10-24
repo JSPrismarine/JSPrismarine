@@ -1,0 +1,12 @@
+{
+    "$schema": "https://turborepo.org/schema.json",
+    "extends": ["//"],
+    "tasks": {
+        "build": {
+            // The generators read the pinned source manifest, so it is an input. The fetched
+            // copies under node_modules/.cache/jsprismarine are deliberately not: the manifest
+            // hash pins their content, and `fetch:sources` (cache: false) keeps them present.
+            "inputs": ["$TURBO_DEFAULT$", "sources.json", "pack-hashes.json"]
+        }
+    }
+}

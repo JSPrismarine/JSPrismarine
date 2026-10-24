@@ -39,6 +39,7 @@
     "scripts": {
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "dump:java": "node utils/java-dump/run.mjs",
+        "fetch:sources": "node utils/fetch/fetch-sources.ts",
         "generate": "node ../../scripts/ensure-submodules.mts && node utils/build.js",
         "build": "pnpm run generate && vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "pnpm run build",
