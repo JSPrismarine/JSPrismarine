@@ -73,6 +73,7 @@ const fakeWorld = (initial: BlockState) => {
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
+        entityChunkIndices: new Map(),
         currentTick: 0,
         blockUpdates: new BlockUpdateScheduler(),
         entities,

@@ -1,4 +1,5 @@
 import type { WorldConfig } from '../../World';
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -7,7 +8,17 @@ import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprism
 import { Database, WriteBatch } from '@jsprismarine/leveldb';
 
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
-import { ChunkTag, decodeChunkKey, encodeChunkKey } from './LevelDBKeys';
+import EntitySerializer from '../../../entity/EntitySerializer';
+import Player from '../../../Player';
+import {
+    ChunkTag,
+    decodeChunkKey,
+    decodeDigest,
+    encodeActorKey,
+    encodeChunkKey,
+    encodeDigest,
+    encodeDigestKey
+} from './LevelDBKeys';
 import { LEVEL_DAT_STORAGE_VERSION, readLevelDat, readLevelName, writeLevelDat, writeLevelName } from './LevelDat';
 import { decodeData3D, encodeData3D, uniformData3D } from './BiomeCodec';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
@@ -15,6 +26,7 @@ import { maxSubChunk, minSubChunk } from '../../Dimension';
 import BaseProvider from '../BaseProvider';
 import Chunk from '../../chunk/Chunk';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
+import type { Entity } from '../../../entity/Entity';
 import type { DimensionDefinition } from '../../Dimension';
 import type { Generator } from '../../Generator';
 import type Server from '../../../Server';
@@ -126,6 +138,14 @@ export default class LevelDB extends BaseProvider {
             chunk.setBlockEntity(blockEntity);
         }
 
+        const digestKey = encodeDigestKey(cx, cz, dimension.id);
+        const digest = database.get(digestKey);
+        if (digest === null) {
+            this.readLegacyEntities(database.get(key(ChunkTag.Entity)), chunk);
+        } else {
+            this.readActorDigest(digest, chunk);
+        }
+
         // Loaded, not changed: a chunk read from disk and never touched must not be written back.
         chunk.markSaved();
         return chunk;
@@ -166,6 +186,8 @@ export default class LevelDB extends BaseProvider {
         } else {
             batch.put(key(ChunkTag.BlockEntity), blockEntities);
         }
+
+        this.writeEntities(database, batch, chunk, key);
 
         database.write(batch);
         chunk.markSaved();
@@ -208,6 +230,157 @@ export default class LevelDB extends BaseProvider {
         }
 
         return count === 0 ? null : stream.getBuffer();
+    }
+
+    // ----------------------------------------------------------------------- entities
+
+    private readActorDigest(digest: Buffer, chunk: Chunk): void {
+        let actorIds: Buffer[];
+        try {
+            actorIds = decodeDigest(digest);
+        } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            this.getServer().getLogger().warn(`Stopped reading chunk actors: ${reason}`);
+            return;
+        }
+
+        for (const actorId of actorIds) {
+            const value = this.requireDatabase().get(encodeActorKey(actorId));
+            if (value === null) {
+                this.getServer()
+                    .getLogger()
+                    .warn(`Missing actor ${actorId.toString('hex')} listed by a chunk digest`);
+                continue;
+            }
+
+            try {
+                chunk.addStoredEntity(this.readActorNbt(value));
+            } catch (error) {
+                const reason = error instanceof Error ? error.message : String(error);
+                this.getServer()
+                    .getLogger()
+                    .warn(`Skipped malformed actor ${actorId.toString('hex')}: ${reason}`);
+            }
+        }
+    }
+
+    /** Reads legacy 0x32 entity data, which is a run of NBT compounds without a count. */
+    private readLegacyEntities(value: Buffer | null, chunk: Chunk): void {
+        if (value === null || value.byteLength === 0) return;
+
+        const stream = new BinaryStream(value);
+        const reader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
+        reader.setUseVarint(false);
+
+        while (stream.getReadIndex() < value.byteLength) {
+            try {
+                chunk.addStoredEntity(reader.parse());
+            } catch (error) {
+                const reason = error instanceof Error ? error.message : String(error);
+                this.getServer().getLogger().warn(`Stopped reading legacy chunk entities: ${reason}`);
+                break;
+            }
+        }
+    }
+
+    private readActorNbt(value: Buffer): NBTTagCompound {
+        const reader = new NBTReader(new BinaryStream(value), ByteOrder.LITTLE_ENDIAN);
+        reader.setUseVarint(false);
+        return reader.parse();
+    }
+
+    private writeEntities(
+        database: Database,
+        batch: WriteBatch,
+        chunk: Chunk,
+        key: (tag: ChunkTag, subChunk?: number) => Buffer
+    ): void {
+        const dimension = chunk.getDimension();
+        const digestKey = encodeDigestKey(chunk.getX(), chunk.getZ(), dimension.id);
+        const existingDigest = database.get(digestKey);
+        const previousActorIds = existingDigest === null ? [] : decodeDigest(existingDigest);
+        const entities = this.getWorld()
+            .getEntities()
+            .filter((entity) => this.belongsToChunk(entity, chunk));
+        const usedActorIds = this.actorIdsInWorld();
+        const actorIds: Buffer[] = [];
+        const actorIdsInChunk = new Set<string>();
+
+        for (const entity of entities) {
+            const nbt = EntitySerializer.toNBT(entity);
+            if (!nbt.has('UniqueID')) {
+                const uniqueId = this.generateActorId(database, usedActorIds);
+                nbt.addValue('UniqueID', new Types.LongVal(uniqueId));
+                entity.persistentNbt = nbt;
+            }
+
+            const actorId = actorIdBytes(nbt.getLong('UniqueID', 0n));
+            const actorIdHex = actorId.toString('hex');
+            if (actorIdsInChunk.has(actorIdHex)) {
+                throw new Error(`Duplicate actor id ${actorIdHex} in chunk ${chunk.getX()},${chunk.getZ()}`);
+            }
+
+            actorIdsInChunk.add(actorIdHex);
+            actorIds.push(actorId);
+            batch.put(encodeActorKey(actorId), this.writeActorNbt(nbt));
+        }
+
+        const actorIdsStillInWorld = this.actorIdsInWorld();
+        for (const actorId of previousActorIds) {
+            const actorIdHex = actorId.toString('hex');
+            if (actorIdsInChunk.has(actorIdHex) || actorIdsStillInWorld.has(actorIdHex)) continue;
+
+            batch.del(encodeActorKey(actorId));
+        }
+
+        batch.del(key(ChunkTag.Entity));
+        if (actorIds.length === 0) {
+            batch.del(digestKey);
+            batch.del(key(ChunkTag.ActorDigestVersion));
+        } else {
+            batch.put(digestKey, encodeDigest(actorIds));
+            batch.put(key(ChunkTag.ActorDigestVersion), Buffer.from([0]));
+        }
+    }
+
+    private belongsToChunk(entity: Entity, chunk: Chunk): boolean {
+        if (entity instanceof Player) return false;
+
+        const position = entity.getPosition();
+        return Math.floor(position.getX() / 16) === chunk.getX() && Math.floor(position.getZ() / 16) === chunk.getZ();
+    }
+
+    private actorIdsInWorld(): Set<string> {
+        const actorIds = new Set<string>();
+        for (const entity of this.getWorld().getEntities()) {
+            if (entity instanceof Player || !entity.persistentNbt?.has('UniqueID')) continue;
+
+            actorIds.add(actorIdBytes(entity.persistentNbt.getLong('UniqueID', 0n)).toString('hex'));
+        }
+
+        return actorIds;
+    }
+
+    private generateActorId(database: Database, usedActorIds: Set<string>): bigint {
+        for (let attempt = 0; attempt < 32; attempt++) {
+            const uniqueId = randomBytes(8).readBigInt64LE(0);
+            const actorId = actorIdBytes(uniqueId);
+            const actorIdHex = actorId.toString('hex');
+            if (usedActorIds.has(actorIdHex) || database.get(encodeActorKey(actorId)) !== null) continue;
+
+            usedActorIds.add(actorIdHex);
+            return uniqueId;
+        }
+
+        throw new Error('Could not allocate a unique actor id after 32 attempts');
+    }
+
+    private writeActorNbt(nbt: NBTTagCompound): Buffer {
+        const stream = new BinaryStream();
+        const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+        writer.setUseVarint(false);
+        writer.writeCompound(nbt);
+        return stream.getBuffer();
     }
 
     // ------------------------------------------------------------ level metadata
@@ -283,3 +456,9 @@ export default class LevelDB extends BaseProvider {
 }
 
 const versionList = (): Set<Types.NumberVal> => new Set([1, 21, 40, 0, 0].map((part) => new Types.NumberVal(part)));
+
+const actorIdBytes = (uniqueId: bigint): Buffer => {
+    const actorId = Buffer.allocUnsafe(8);
+    actorId.writeBigInt64LE(uniqueId);
+    return actorId;
+};

@@ -14,6 +14,7 @@ import Player from '../Player';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
 import { spawnableEntities } from '../entity/Entities';
+import EntitySerializer from '../entity/EntitySerializer';
 import { Item as ItemEntity } from '../entity/other/Item';
 import type { Entity } from '../entity/Entity';
 import { Mob } from '../entity/Mob';
@@ -168,6 +169,7 @@ export class World implements Service {
     private name: string;
 
     private readonly entities: Map<bigint, Entity> = new Map();
+    private readonly entityChunkIndices = new Map<bigint, bigint>();
 
     /** Where everything is, bucketed once a tick so mobs can ask who they are touching. */
     private readonly entityGrid = new EntityGrid();
@@ -479,11 +481,39 @@ export class World implements Service {
         // Try - catch for provider errors
         const chunk = await this.provider.readChunk(x, z, this.seed, this.generator, this.config);
         this.chunks.set(index, chunk);
+        this.markEntitiesInChunkChanged(chunk);
 
+        await this.createStoredEntities(chunk);
         await this.createGeneratedEntities(chunk);
 
         // TODO: event here, eg onChunkLoad
         return chunk;
+    }
+
+    /** Restores the actor NBT the provider read for this chunk. */
+    private async createStoredEntities(chunk: Chunk): Promise<void> {
+        for (const nbt of chunk.takeStoredEntities()) {
+            if (nbt.getString('identifier', '') === 'minecraft:player') continue;
+
+            const entity = EntitySerializer.fromNBT(nbt, this);
+            const legacyEntity = this.getEntities().find((candidate) => this.isLegacyEntity(candidate, entity));
+            if (legacyEntity) await this.removeEntity(legacyEntity);
+
+            if (entity instanceof Mob) entity.setPersistent();
+            await this.addEntity(entity);
+        }
+    }
+
+    private isLegacyEntity(candidate: Entity, stored: Entity): boolean {
+        if (candidate.persistentNbt !== null || candidate.getType() !== stored.getType()) return false;
+
+        const candidatePosition = candidate.getPosition();
+        const storedPosition = stored.getPosition();
+        return (
+            Math.fround(candidatePosition.getX()) === Math.fround(storedPosition.getX()) &&
+            Math.fround(candidatePosition.getY()) === Math.fround(storedPosition.getY()) &&
+            Math.fround(candidatePosition.getZ()) === Math.fround(storedPosition.getZ())
+        );
     }
 
     /**
@@ -1010,6 +1040,7 @@ export class World implements Service {
     public async addEntity(entity: Entity): Promise<void> {
         this.entities.set(entity.getRuntimeId(), entity);
         if (entity instanceof Player) this.players.set(entity.getRuntimeId(), entity);
+        this.markEntityChunkChanged(entity);
 
         // Reported once the maps hold it, so that whoever works out who should see what is
         // looking at the world as it now is - the arrival included.
@@ -1021,6 +1052,11 @@ export class World implements Service {
      * @param {Entity} entity - The entity to remove.
      */
     public async removeEntity(entity: Entity): Promise<void> {
+        const runtimeId = entity.getRuntimeId();
+        const chunkIndex = this.entityChunkIndices.get(runtimeId);
+        if (chunkIndex !== undefined) this.chunks.get(chunkIndex)?.markChanged();
+        this.entityChunkIndices.delete(runtimeId);
+
         this.entities.delete(entity.getRuntimeId());
         this.players.delete(entity.getRuntimeId());
 
@@ -1080,7 +1116,37 @@ export class World implements Service {
      * @param {Entity} entity - The entity that moved.
      */
     public async broadcastMove(entity: Entity): Promise<void> {
+        this.markEntityChunkChanged(entity);
         this.changes.entityMoved(entity);
+    }
+
+    private markEntityChunkChanged(entity: Entity): void {
+        if (entity instanceof Player) return;
+
+        const runtimeId = entity.getRuntimeId();
+        const position = entity.getPosition();
+        const nextChunkIndex = Chunk.packXZ(Math.floor(position.getX() / 16), Math.floor(position.getZ() / 16));
+        const previousChunkIndex = this.entityChunkIndices.get(runtimeId);
+
+        if (previousChunkIndex !== undefined && previousChunkIndex !== nextChunkIndex) {
+            this.chunks.get(previousChunkIndex)?.markChanged();
+        }
+        this.chunks.get(nextChunkIndex)?.markChanged();
+        this.entityChunkIndices.set(runtimeId, nextChunkIndex);
+    }
+
+    private markEntitiesInChunkChanged(chunk: Chunk): void {
+        for (const entity of this.entities.values()) {
+            if (entity instanceof Player) continue;
+
+            const position = entity.getPosition();
+            if (
+                Math.floor(position.getX() / 16) === chunk.getX() &&
+                Math.floor(position.getZ() / 16) === chunk.getZ()
+            ) {
+                chunk.markChanged();
+            }
+        }
     }
 
     /** Sends every player the movement that happened this tick, as one batch each. */
