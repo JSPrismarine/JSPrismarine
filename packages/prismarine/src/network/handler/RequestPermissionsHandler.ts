@@ -6,22 +6,64 @@ import type RequestPermissionsPacket from '../packet/RequestPermissionsPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
- * A request to change a player's permission level.
+ * An operator's request to change another player's permission level.
  *
- * The request is recorded at debug level and no level changes. Known gap: the server's
- * permission model is command-based (`isOp` and permission strings) and has no per-player
- * `PlayerPermissionLevel` to update or to broadcast back in `UpdateAbilitiesPacket`.
+ * The docs allow this packet from operators and hosts only. The server's permission model is
+ * the op list, so `Operator` makes the target an op and `Member` or `Visitor` removes them;
+ * `PermissionManager.setOp` runs `PlayerToggleOperatorEvent` and broadcasts the target's new
+ * abilities. `Custom` levels and their flag set have no counterpart here, so that request,
+ * one from a non-operator, or one for a player who is not online, is answered by resending
+ * the abilities the server holds so the requester's client reverts.
  */
 export default class RequestPermissionsHandler implements PacketHandler<RequestPermissionsPacket> {
     public static NetID = Identifiers.RequestPermissionsPacket;
 
-    /** Logs the target and the requested level. */
-    public handle(packet: RequestPermissionsPacket, server: Server, session: PlayerSession): void {
-        server
-            .getLogger()
-            .debug(
-                `${session.getPlayer().getName()} asked to set player ${packet.targetPlayerUniqueId} to permission level ${PlayerPermissionLevel[packet.playerPermissionLevel] ?? packet.playerPermissionLevel} (custom flags 0x${packet.customPermissionFlags.toString(16)}). Permission levels are not modeled, so nothing changed`,
-                'RequestPermissionsHandler/handle'
-            );
+    /** Applies the level through the op list, or resends the current abilities when refused. */
+    public async handle(packet: RequestPermissionsPacket, server: Server, session: PlayerSession): Promise<void> {
+        const requester = session.getPlayer();
+        const level = PlayerPermissionLevel[packet.playerPermissionLevel] ?? packet.playerPermissionLevel;
+        const target = server
+            .getSessionManager()
+            .getAllPlayers()
+            .find((player) => player.getRuntimeId() === packet.targetPlayerUniqueId);
+
+        if (!requester.isOp()) {
+            server
+                .getLogger()
+                .debug(
+                    `${requester.getName()} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level} without being an operator`,
+                    'RequestPermissionsHandler/handle'
+                );
+            await session.sendAbilities();
+            return;
+        }
+
+        if (!target) {
+            server
+                .getLogger()
+                .debug(
+                    `${requester.getName()} asked to set player ${packet.targetPlayerUniqueId} to permission level ${level}, but no such player is online`,
+                    'RequestPermissionsHandler/handle'
+                );
+            return;
+        }
+
+        switch (packet.playerPermissionLevel) {
+            case PlayerPermissionLevel.OPERATOR:
+                await server.getPermissionManager().setOp(target.getName(), true);
+                return;
+            case PlayerPermissionLevel.MEMBER:
+            case PlayerPermissionLevel.VISITOR:
+                await server.getPermissionManager().setOp(target.getName(), false);
+                return;
+            default:
+                server
+                    .getLogger()
+                    .debug(
+                        `${requester.getName()} asked to set ${target.getName()} to permission level ${level} (custom flags 0x${packet.customPermissionFlags.toString(16)}). Only Member and Operator are modeled, so the current abilities were sent back`,
+                        'RequestPermissionsHandler/handle'
+                    );
+                await session.sendAbilities(target);
+        }
     }
 }
