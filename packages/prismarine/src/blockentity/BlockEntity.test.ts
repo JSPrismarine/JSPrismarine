@@ -1,5 +1,5 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 
 import { BlockEntityRegistry } from './BlockEntityRegistry';
 import { Chest, Furnace, Sign } from './BlockEntities';
@@ -101,7 +101,8 @@ describe('blockentity', () => {
                 root.addValue('Items', new Set([item]));
             });
 
-            const chest = BlockEntityRegistry.fromNBT(source) as Chest;
+            const chest = BlockEntityRegistry.fromNBT(source);
+            assert(chest instanceof Chest);
 
             expect(chest.getItems().size).toBe(1);
             expect(chest.isEmpty()).toBe(false);
@@ -126,7 +127,8 @@ describe('blockentity', () => {
                     root.addValue('BurnTime', new Types.ShortVal(120));
                     root.addValue('CookTime', new Types.ShortVal(45));
                 })
-            ) as Furnace;
+            );
+            assert(furnace instanceof Furnace);
 
             expect(furnace.getBurnTime()).toBe(120);
             expect(furnace.getCookTime()).toBe(45);
@@ -140,7 +142,8 @@ describe('blockentity', () => {
             const front = new NBTTagCompound('FrontText');
             front.addChild(component);
 
-            const sign = BlockEntityRegistry.fromNBT(nbt('Sign', 0, 64, 0, (root) => root.addChild(front))) as Sign;
+            const sign = BlockEntityRegistry.fromNBT(nbt('Sign', 0, 64, 0, (root) => root.addChild(front)));
+            assert(sign instanceof Sign);
 
             expect(sign.getText()).toBe('line one\nline two');
             expect(sign.getLines()).toEqual(['line one', 'line two']);
@@ -150,7 +153,8 @@ describe('blockentity', () => {
             // Worlds predating 1.19.80 have no front and back faces.
             const sign = BlockEntityRegistry.fromNBT(
                 nbt('Sign', 0, 64, 0, (root) => root.addValue('Text', new Types.StringVal('older')))
-            ) as Sign;
+            );
+            assert(sign instanceof Sign);
 
             expect(sign.getText()).toBe('older');
         });
@@ -161,10 +165,14 @@ describe('blockentity', () => {
                     root.addValue('pairx', new Types.NumberVal(5));
                     root.addValue('pairz', new Types.NumberVal(8));
                 })
-            ) as Chest;
+            );
+            assert(chest instanceof Chest);
 
             expect(chest.getPairPosition()).toEqual({ x: 5, z: 8 });
-            expect((BlockEntityRegistry.fromNBT(nbt('Chest')) as Chest).getPairPosition()).toBeNull();
+
+            const unpaired = BlockEntityRegistry.fromNBT(nbt('Chest'));
+            assert(unpaired instanceof Chest);
+            expect(unpaired.getPairPosition()).toBeNull();
         });
 
         it('reads whether a piston may push it', () => {
