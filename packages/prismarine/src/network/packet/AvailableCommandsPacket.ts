@@ -3,6 +3,7 @@ import Identifiers from '../Identifiers';
 import type CommandData from '../type/CommandData';
 import type { CommandEnum } from '../type/CommandEnum';
 import type CommandEnumConstraint from '../type/CommandEnumConstraint';
+import { CommandParameterTypeFlag } from '../type/CommandParameter';
 import DataPacket from './DataPacket';
 
 /**
@@ -18,21 +19,12 @@ const commandPermissionToString = (level: number): string =>
 
 /**
  * AvailableCommandsPacket is sent by the server to the client to provide information about available commands.
- * @TODO: Argument types are not implemented.
+ *
+ * Parameter type ids and flag bits come from `CommandParameter.ts`, the one place they are
+ * defined, so the words this packet writes cannot drift from the ones the parameters carry.
  */
 export default class AvailableCommandsPacket extends DataPacket {
     public static NetID = Identifiers.AvailableCommandsPacket;
-
-    public ARG_FLAG_VALID = 0x100000;
-    public ARG_FLAG_INT = 1;
-    public ARG_FLAG_FLOAT = 3;
-    public ARG_TYPE_WILDCARD_INT = 5;
-    public ARG_TYPE_STRING = 56;
-    public ARG_TYPE_INT_POSITION = 64;
-    public ARG_TYPE_POSITION = 65;
-    public ARG_FLAG_ENUM = 0x200000;
-    public ARG_FLAG_POSTFIX = 0x1000000;
-    public ARG_FLAG_SOFT_ENUM = 0x4000000;
 
     public commandData: CommandData[] = [];
     public hardcodedEnums: CommandEnum[] = [];
@@ -113,11 +105,13 @@ export default class AvailableCommandsPacket extends DataPacket {
 
         this.writeUnsignedVarInt(this.commandData.length);
         this.commandData.forEach((data: CommandData) => {
-            this.writeCommandData(data, enumIndexes, postfixIndexes);
+            this.writeCommandData(data, enumIndexes, softEnumIndexes, postfixIndexes);
         });
 
-        this.writeUnsignedVarInt(this.softEnums.length);
-        this.softEnums.forEach((_enum: CommandEnum) => {
+        // The collected list, not `this.softEnums`: a soft enum that only a parameter refers to
+        // was given an index above, and the client needs an entry at that index.
+        this.writeUnsignedVarInt(softEnums.length);
+        softEnums.forEach((_enum: CommandEnum) => {
             this.writeSoftEnum(_enum);
         });
 
@@ -157,6 +151,7 @@ export default class AvailableCommandsPacket extends DataPacket {
     private writeCommandData(
         data: CommandData,
         enumIndexes: Map<string, number>,
+        softEnumIndexes: Map<string, number>,
         postfixIndexes: Map<string, number>
     ): void {
         NetworkUtil.writeString(this, data.commandName);
@@ -191,14 +186,20 @@ export default class AvailableCommandsPacket extends DataPacket {
             overload.forEach((parameter) => {
                 NetworkUtil.writeString(this, parameter.paramName);
 
+                // An enum parameter's word is the enum's index in its own table: soft enums are
+                // numbered separately from the hard ones, so a soft enum looked up in the hard
+                // table pointed the client at whichever hard enum shared its position.
                 let type: number = parameter.paramType;
                 if (parameter.enum !== null) {
-                    const index = enumIndexes.get(parameter.enum.name) ?? 0;
                     type = parameter.enum.soft
-                        ? this.ARG_FLAG_SOFT_ENUM | this.ARG_FLAG_VALID | index
-                        : this.ARG_FLAG_ENUM | this.ARG_FLAG_VALID | index;
+                        ? CommandParameterTypeFlag.SoftEnum |
+                          CommandParameterTypeFlag.Valid |
+                          (softEnumIndexes.get(parameter.enum.name) ?? 0)
+                        : CommandParameterTypeFlag.Enum |
+                          CommandParameterTypeFlag.Valid |
+                          (enumIndexes.get(parameter.enum.name) ?? 0);
                 } else if (parameter.postfix !== null) {
-                    type = this.ARG_FLAG_POSTFIX | (postfixIndexes.get(parameter.postfix) ?? 0);
+                    type = CommandParameterTypeFlag.Postfix | (postfixIndexes.get(parameter.postfix) ?? 0);
                 }
 
                 this.writeUnsignedIntLE(type >>> 0);
