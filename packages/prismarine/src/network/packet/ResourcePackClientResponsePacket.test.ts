@@ -7,6 +7,9 @@ import ResourcePackClientResponsePacket from './ResourcePackClientResponsePacket
 /** The packet id header, a varuint32 holding 8 with both subclient ids zero. */
 const HEADER = 0x08;
 
+/** `Response` for `Cancel`: alternative 0, then its 6 byte `Response Type`. */
+const CANCEL = [0x00, 0x06, ...Buffer.from('cancel', 'utf8')];
+
 /** `Response` for `DownloadingFinished`: alternative 2, then its 19 byte `Response Type`. */
 const DOWNLOADING_FINISHED = [0x02, 0x13, ...Buffer.from('downloadingfinished', 'utf8')];
 
@@ -44,6 +47,10 @@ describe('network', () => {
                 expect(ResourcePackClientResponsePacket.NetID).toBe(HEADER);
             });
 
+            it('encodes Refused as alternative 0 with its name and nothing else', () => {
+                expect(encode(ResourcePackStatusType.Refused)).toEqual([HEADER, ...CANCEL]);
+            });
+
             it('encodes HaveAllPacks as alternative 2 with its name and nothing else', () => {
                 expect(encode(ResourcePackStatusType.HaveAllPacks)).toEqual([HEADER, ...DOWNLOADING_FINISHED]);
             });
@@ -73,6 +80,14 @@ describe('network', () => {
                 expect(() => new ResourcePackClientResponsePacket().encode()).toThrow(
                     'No resource pack response alternative for status undefined'
                 );
+            });
+
+            it('decodes Refused to its end', () => {
+                const pk = decode([HEADER, ...CANCEL]);
+
+                expect(pk.status).toBe(ResourcePackStatusType.Refused);
+                expect(pk.packIds).toEqual([]);
+                expect(pk.feof()).toBe(true);
             });
 
             it('decodes HaveAllPacks to its end', () => {

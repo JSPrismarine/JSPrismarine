@@ -29,8 +29,15 @@ const ALTERNATIVE_OFFSET = 1;
  * `Downloading` continues with `Downloading Packs`, a varuint32 count followed by that many
  * strings. The status is {@link ResourcePackStatusType}, which is the alternative index plus one.
  *
- * Until protocol 748 the list was written after every alternative; a real server reads the two
- * stray bytes as the next packet.
+ * The schema types `Response Type` as an int8 and caps `Downloading Packs` at 65535 entries,
+ * which reads like a one byte status and a uint16 count. That is the layout before protocol
+ * 2193. Since the Cereal conversion the bytes are the ones above: a 1.26.51 client's
+ * `DownloadingFinished` is `02 13` followed by the 19 bytes of `downloadingfinished`, and
+ * gophertunnel at protocol 2193 writes the same. Until protocol 748 the list was written after
+ * every alternative; a real server reads the two stray bytes as the next packet.
+ *
+ * **Bound To:** Server
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-client-response-packet/
  */
 export default class ResourcePackClientResponsePacket extends DataPacket {
     public static NetID = Identifiers.ResourcePackClientResponsePacket;

@@ -3,7 +3,7 @@ import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
-import { Generator, getGametypeId } from '@jsprismarine/minecraft';
+import { DisconnectReason, Generator, getGametypeId } from '@jsprismarine/minecraft';
 import type { Player, PlayerSession } from '../../';
 import { eyePositionAt } from '../../entity/Human';
 import type Server from '../../Server';
@@ -52,25 +52,90 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
     }
 
     /**
-     * Answers `HaveAllPacks` with the stack and `Completed` with the join.
+     * Sessions whose join has started, so a repeated `Completed` cannot start it again.
      *
-     * Known gap: the other two statuses do nothing. `SendPacks` names the packs in
-     * `Downloading Packs` and expects a `ResourcePackDataInfo` for each, and `Refused` means the
-     * player declined a required pack and should be disconnected. Neither can arrive while
-     * `ResourcePacksInfoPacket` goes out with no packs and `Resource Pack Required` false.
+     * Kept here rather than on the session because this handler is the only reader. A
+     * `WeakSet` entry goes away with the session, so nothing has to clear it on disconnect.
+     */
+    private readonly joined = new WeakSet<PlayerSession>();
+
+    /**
+     * Answers each status and drops anything else.
+     *
+     * `HaveAllPacks` gets the pack stack and `Completed` starts the join, each at most once
+     * per session. A client that repeats either after its join started is logged and ignored:
+     * a second burst would announce the player to everyone again and fire a second
+     * `playerSpawn`. `Completed` is accepted without a `HaveAllPacks` before it, since the
+     * client is the one that knows whether it has the stack.
+     *
+     * `Refused` is the player declining the packs and `SendPacks` asks the server to send the
+     * ones in `Downloading Packs`. The server offers no packs, so neither can come from a
+     * client that read `ResourcePacksInfoPacket`. Both end the connection with a resource pack
+     * reason, which is what a vanilla server does for a refusal, instead of leaving the client
+     * on the loading screen until RakNet times it out. Once the server serves packs, `SendPacks`
+     * has to answer with one `ResourcePackDataInfoPacket` per requested id instead.
+     *
+     * A status outside the four, which `decodePayload` never produces but a caller can set, is
+     * logged at debug level and dropped.
      */
     public async handle(
         packet: ResourcePackClientResponsePacket,
         server: Server,
         session: PlayerSession
     ): Promise<void> {
-        if (packet.status === ResourcePackStatusType.HaveAllPacks) {
-            const resourcePackStack = new ResourcePackStackPacket();
-            resourcePackStack.texturePackRequired = false;
-            resourcePackStack.experimentsAlreadyEnabled = false;
-            await session.getConnection().sendDataPacket(resourcePackStack);
-        } else if (packet.status === ResourcePackStatusType.Completed) {
-            await this.sendJoinBurst(server, session);
+        const player = session.getPlayer();
+        const logger = server.getLogger();
+
+        switch (packet.status) {
+            case ResourcePackStatusType.Refused:
+                await player.kick('Declined the resource packs', DisconnectReason.RESOURCE_PACK_PROBLEM);
+                return;
+
+            case ResourcePackStatusType.SendPacks:
+                logger.debug(
+                    `${player.getName()} asked for ${packet.packIds.length} resource pack(s); the server offers none`,
+                    'ResourcePackClientResponseHandler/handle'
+                );
+                await player.kick(
+                    'Asked for resource packs this server does not have',
+                    DisconnectReason.RESOURCE_PACK_PROBLEM
+                );
+                return;
+
+            case ResourcePackStatusType.HaveAllPacks: {
+                if (this.joined.has(session)) {
+                    logger.debug(
+                        `${player.getName()} said it had all packs after its join started; dropped`,
+                        'ResourcePackClientResponseHandler/handle'
+                    );
+                    return;
+                }
+
+                const resourcePackStack = new ResourcePackStackPacket();
+                resourcePackStack.texturePackRequired = false;
+                resourcePackStack.experimentsAlreadyEnabled = false;
+                await session.getConnection().sendDataPacket(resourcePackStack);
+                return;
+            }
+
+            case ResourcePackStatusType.Completed:
+                if (this.joined.has(session)) {
+                    logger.debug(
+                        `${player.getName()} completed the resource packs twice; the second was dropped`,
+                        'ResourcePackClientResponseHandler/handle'
+                    );
+                    return;
+                }
+
+                this.joined.add(session);
+                await this.sendJoinBurst(server, session);
+                return;
+
+            default:
+                logger.debug(
+                    `Dropped a resource pack response with unknown status ${packet.status} from ${player.getName()}`,
+                    'ResourcePackClientResponseHandler/handle'
+                );
         }
     }
 

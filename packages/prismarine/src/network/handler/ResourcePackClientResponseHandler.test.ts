@@ -1,6 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype } from '@jsprismarine/minecraft';
+import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -44,6 +44,8 @@ const harness = ({
     const sent: string[] = [];
     const packets: DataPacket[] = [];
     const record = (name: string) => async () => void sent.push(name);
+    const kick = vi.fn(async (_reason: string, _code?: DisconnectReason) => {});
+    const debug = vi.fn((_message: string, _context?: string) => {});
 
     const world = stub<World>({
         getTicks: () => 6000,
@@ -67,7 +69,8 @@ const harness = ({
         pitch: 0,
         yaw: 0,
         sendSettings: record('Settings'),
-        getJoinSpawn: () => joinSpawn
+        getJoinSpawn: () => joinSpawn,
+        kick
     });
 
     const connection = stub<ClientConnection>({
@@ -93,7 +96,7 @@ const harness = ({
 
     const emit = vi.fn(async (_name: string, _event: unknown) => {});
     const server = stub<Server>({
-        getLogger: () => stub<Logger>({ info: () => {} }),
+        getLogger: () => stub<Logger>({ info: () => {}, debug }),
         getConfig: () => stub<Config>({ getGamemode: () => 'survival', getDifficulty: () => 1 }),
         getTick: () => 100,
         getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),
@@ -104,10 +107,11 @@ const harness = ({
         emit
     });
 
-    return { sent, packets, emit, server, session };
+    return { sent, packets, emit, kick, debug, server, session };
 };
 
-const response = (status: ResourcePackStatusType) => Object.assign(new ResourcePackClientResponsePacket(), { status });
+const response = (status: ResourcePackStatusType, packIds: string[] = []) =>
+    Object.assign(new ResourcePackClientResponsePacket(), { status, packIds });
 
 describe('ResourcePackClientResponseHandler', () => {
     it('answers "have all packs" with the pack stack and nothing else', async () => {
@@ -235,6 +239,84 @@ describe('ResourcePackClientResponseHandler', () => {
         expect(emit).toHaveBeenCalledOnce();
         expect(emit.mock.calls[0]?.[0]).toBe('chat');
         expect(sent.at(-1)).toBe('InventoryContent');
+    });
+
+    it('kicks a player that refuses the packs, with the resource pack reason', async () => {
+        const { sent, kick, server, session } = harness();
+
+        await new ResourcePackClientResponseHandler().handle(response(ResourcePackStatusType.Refused), server, session);
+
+        expect(kick).toHaveBeenCalledOnce();
+        expect(kick.mock.calls[0]?.[1]).toBe(DisconnectReason.RESOURCE_PACK_PROBLEM);
+        expect(sent).toEqual([]);
+    });
+
+    it('kicks a player that asks for packs, since the server offers none', async () => {
+        // A `ResourcePackDataInfo` per pack is the answer once the server serves packs. Until
+        // then a client waiting for one would sit on the loading screen until RakNet times out.
+        const { sent, kick, debug, server, session } = harness();
+
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.SendPacks, ['a_1.0.0', 'b_2.0.0']),
+            server,
+            session
+        );
+
+        expect(kick).toHaveBeenCalledOnce();
+        expect(kick.mock.calls[0]?.[1]).toBe(DisconnectReason.RESOURCE_PACK_PROBLEM);
+        expect(debug.mock.calls[0]?.[0]).toContain('2 resource pack(s)');
+        expect(sent).toEqual([]);
+    });
+
+    it('drops a status outside the four without sending or kicking', async () => {
+        // `decodePayload` rejects a fifth alternative, so this only reaches the handler from a
+        // caller setting the field. Numeric enums accept any number.
+        const unknown: number = 9;
+        const { sent, kick, emit, debug, server, session } = harness();
+
+        await new ResourcePackClientResponseHandler().handle(response(unknown), server, session);
+
+        expect(sent).toEqual([]);
+        expect(kick).not.toHaveBeenCalled();
+        expect(emit).not.toHaveBeenCalled();
+        expect(debug).toHaveBeenCalledOnce();
+    });
+
+    it('starts the join once, however many times the client says it completed', async () => {
+        const { sent, emit, server, session } = harness();
+        const handler = new ResourcePackClientResponseHandler();
+
+        await handler.handle(response(ResourcePackStatusType.Completed), server, session);
+        const afterFirst = [...sent];
+        await handler.handle(response(ResourcePackStatusType.Completed), server, session);
+
+        expect(sent).toEqual(afterFirst);
+        expect(emit).toHaveBeenCalledOnce();
+    });
+
+    it('sends no second pack stack once the join has started', async () => {
+        const { sent, server, session } = harness();
+        const handler = new ResourcePackClientResponseHandler();
+
+        await handler.handle(response(ResourcePackStatusType.Completed), server, session);
+        const afterJoin = [...sent];
+        await handler.handle(response(ResourcePackStatusType.HaveAllPacks), server, session);
+
+        expect(sent).toEqual(afterJoin);
+    });
+
+    it('keeps the join per session', async () => {
+        // The guard is keyed on the session, not on the handler: a second player joining
+        // through the same handler instance still gets its burst.
+        const first = harness();
+        const second = harness();
+        const handler = new ResourcePackClientResponseHandler();
+
+        await handler.handle(response(ResourcePackStatusType.Completed), first.server, first.session);
+        await handler.handle(response(ResourcePackStatusType.Completed), second.server, second.session);
+
+        expect(second.sent).toEqual(first.sent);
+        expect(second.sent).toContain('StartGamePacket');
     });
 
     it('sends nothing when a subscriber cancels the spawn', async () => {
