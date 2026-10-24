@@ -72,6 +72,8 @@ const variantOf = (type: TextType): BodyVariant => {
  * "Player Name" (`sourceName`) then "Message"; MessageAndParams (2) carries "Message" then a
  * "Parameter List" of varuint count and strings. Then "Sender's XUID", "Platform Id", and
  * "Filtered Message" as an optional: a presence boolean, then the string only when present.
+ * Older protocols wrote the type first, no variant index, and the filtered string
+ * unconditionally; gophertunnel and PocketMine moved to this layout for 1.26.
  */
 export default class TextPacket extends NetworkPacket<Text> {
     public get id(): number {

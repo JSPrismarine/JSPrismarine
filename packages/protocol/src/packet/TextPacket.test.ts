@@ -115,6 +115,25 @@ describe('TextPacket', () => {
             expect(TextType.JsonAnnouncement).toBe(11);
         });
 
+        it('writes a Popup and a JukeboxPopup with a Parameter List, like Translation', () => {
+            for (const type of [TextType.Popup, TextType.JukeboxPopup]) {
+                const buffer = encode({ ...raw, type, message: 'm', parameters: ['p'] });
+
+                expect([...buffer]).toEqual([
+                    HEADER,
+                    0x00,
+                    0x02,
+                    type,
+                    ...str('m'),
+                    0x01,
+                    ...str('p'),
+                    0x00,
+                    0x00,
+                    0x00
+                ]);
+            }
+        });
+
         it('writes a Whisper and an Announcement with a Player Name, like Chat', () => {
             for (const type of [TextType.Whisper, TextType.Announcement]) {
                 const buffer = encode({ ...chat, type, sourceName: 'S', message: 'm' });
@@ -177,6 +196,34 @@ describe('TextPacket', () => {
             expect(data).toEqual(raw);
             expect('sourceName' in data).toBe(false);
             expect('parameters' in data).toBe(false);
+            expect(stream.feof()).toBe(true);
+        });
+
+        it('reads a Chat the way a client sends one: its own name as the author, nothing filtered', () => {
+            const stream = new NetworkBinaryStream(
+                Buffer.from([
+                    HEADER,
+                    0x00, // Localize?: false
+                    0x01, // Body: AuthorAndMessage
+                    0x01, // Message Type: chat
+                    ...str('runner'), // Player Name
+                    ...str('hello'), // Message
+                    ...str('2535428504464321'), // Sender's XUID
+                    ...str(''), // Platform Id
+                    0x00 // Filtered Message: absent
+                ])
+            );
+            const data = new TextPacket().deserialize(stream);
+
+            expect(data).toEqual({
+                type: TextType.Chat,
+                needsTranslation: false,
+                sourceName: 'runner',
+                message: 'hello',
+                xuid: '2535428504464321',
+                platformChatId: '',
+                filtered: ''
+            });
             expect(stream.feof()).toBe(true);
         });
 
