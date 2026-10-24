@@ -5,6 +5,7 @@ import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Block } from '../../block/Block';
 import type { BlockEntity } from '../../blockentity/BlockEntity';
 import { Dimensions, maxSubChunk, maxY, minSubChunk, subChunkCount } from '../Dimension';
@@ -37,6 +38,9 @@ export default class Chunk {
      * its contents travel together, and a chunk that was never loaded cannot lose them.
      */
     private readonly blockEntities: Map<number, BlockEntity> = new Map();
+
+    /** Entity NBT read from disk, waiting for the world to restore it. */
+    private readonly storedEntities: NBTTagCompound[] = [];
 
     /**
      * Mobs world generation put here, waiting for a world to create them in.
@@ -97,6 +101,21 @@ export default class Chunk {
      */
     public markSaved(): void {
         this.hasChanged = false;
+    }
+
+    /** Marks this chunk dirty when a non-block change needs to be written. */
+    public markChanged(): void {
+        this.hasChanged = true;
+    }
+
+    /** Holds an actor read from disk until the world can create it. */
+    public addStoredEntity(entity: NBTTagCompound): void {
+        this.storedEntities.push(entity);
+    }
+
+    /** Hands off actors read from disk and forgets them. */
+    public takeStoredEntities(): NBTTagCompound[] {
+        return this.storedEntities.splice(0, this.storedEntities.length);
     }
 
     public getDimension(): DimensionDefinition {

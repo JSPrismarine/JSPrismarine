@@ -53,6 +53,7 @@ const harness = (worldPath: string, name = 'testworld') => {
         getName: () => name,
         getSeed: () => 1234,
         getDimension: () => Dimensions.Overworld,
+        getEntities: () => [],
         getServer: () => server
     });
 

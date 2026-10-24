@@ -19,6 +19,8 @@ const worldLoading = (chunk: Chunk) => {
     const added: Entity[] = [];
 
     const world: World = Object.assign(Object.create(World.prototype), {
+        entities: new Map(),
+        entityChunkIndices: new Map(),
         chunks: new Map(),
         seed: 1,
         generator: {},
