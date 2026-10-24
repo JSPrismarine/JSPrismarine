@@ -1,5 +1,5 @@
 import type { BlockLightProperties, BlockLightView } from './BlockLightView';
-import { CHUNK_SIZE, chunkOf, columnKeyOf } from './coordinates';
+import { CHUNK_COLUMN_COUNT, CHUNK_SIZE, chunkOf, columnKeyOf, heightmapIndexOf } from './coordinates';
 import { LightQueue } from './LightQueue';
 import { LightSection, MAX_LIGHT_LEVEL } from './LightSection';
 
@@ -30,17 +30,34 @@ export interface LightFlushResult extends LightQueueDepth {
     readonly processed: number;
 }
 
+/** The block light layer, which floods out of emitting blocks. */
+const BLOCK_LAYER = 0;
+/** The sky light layer, which floods down from the open sky. */
+const SKY_LAYER = 1;
+
+type LightLayer = typeof BLOCK_LAYER | typeof SKY_LAYER;
+
 interface LightColumn {
+    /**
+     * For each of the 256 block columns, one past the y of the highest block with a dampening
+     * above 0. Everything at or above it has sky light 15 and is not stored.
+     */
+    readonly heightmap: Int32Array;
     readonly blockSections: Map<number, LightSection>;
+    readonly skySections: Map<number, LightSection>;
 }
 
+/** The six neighbor offsets, the four horizontal ones first so a loop can stop after them. */
+const HORIZONTAL_DIRECTIONS = 4;
+const ALL_DIRECTIONS = 6;
 const OFFSET_X = [-1, 1, 0, 0, 0, 0] as const;
-const OFFSET_Y = [0, 0, -1, 1, 0, 0] as const;
-const OFFSET_Z = [0, 0, 0, 0, -1, 1] as const;
+const OFFSET_Z = [0, 0, -1, 1, 0, 0] as const;
+const OFFSET_Y = [0, 0, 0, 0, -1, 1] as const;
 
 /**
- * The server's internal light model: a block light layer that floods out of emitters, kept current
- * as blocks change and advanced in bounded steps so a tick cannot stall.
+ * The server's internal light model: a block light layer that floods out of emitters and a sky
+ * light layer that falls from the open sky, both kept current as blocks change and both advanced in
+ * bounded steps so a tick cannot stall.
  *
  * These levels never reach a player. The Bedrock protocol has no light packet and neither
  * `LevelChunkPacket` nor `SubChunkPacket` carries light arrays, so the connected client computes
@@ -60,8 +77,8 @@ const OFFSET_Z = [0, 0, 0, 0, -1, 1] as const;
  */
 export class LightEngine {
     private readonly columns = new Map<number, LightColumn>();
-    private readonly blockIncrease = new LightQueue();
-    private readonly blockDecrease = new LightQueue();
+    private readonly increaseQueues = [new LightQueue(), new LightQueue()] as const;
+    private readonly decreaseQueues = [new LightQueue(), new LightQueue()] as const;
     private readonly awaitingChunks = new Set<number>();
 
     public constructor(private readonly view: BlockLightView) {}
@@ -82,13 +99,29 @@ export class LightEngine {
     public getBlockLight(x: number, y: number, z: number): number {
         const column = this.columnAt(x, z);
 
-        return column === undefined ? 0 : this.readBlockLight(column, x, y, z);
+        return column === undefined ? 0 : this.read(BLOCK_LAYER, column, x, y, z);
     }
 
     /**
-     * Takes a chunk into the light model and computes its light from scratch: every emitter in the
-     * column becomes a source, and the border light of each loaded neighbor is re-seeded so light
-     * that stopped at the chunk's edge while it was absent flows in.
+     * The sky light at a world position, 0 to 15, before the time of day and the weather scale it.
+     * The daylight cycle multiplies this number; it does not change it.
+     * @param {number} x - World x.
+     * @param {number} y - World y.
+     * @param {number} z - World z.
+     * @returns {number} The level, 0 in a dimension with no sky and 0 for a position in a column the
+     * engine has not been told about.
+     */
+    public getSkyLight(x: number, y: number, z: number): number {
+        if (!this.view.hasSkyLight) return 0;
+        const column = this.columnAt(x, z);
+
+        return column === undefined ? 0 : this.read(SKY_LAYER, column, x, y, z);
+    }
+
+    /**
+     * Takes a chunk into the light model and computes its light from scratch: it builds the sky
+     * heightmap, makes every emitter in the column a source, and re-seeds across the border of each
+     * loaded neighbor so light that stopped at the chunk's edge while it was absent flows in.
      *
      * Calling this for a chunk the engine already holds discards that chunk's stored light and
      * computes it again, which is how a caller forces a full recompute.
@@ -99,14 +132,26 @@ export class LightEngine {
         const key = columnKeyOf(chunkX, chunkZ);
         this.awaitingChunks.delete(key);
 
-        const column: LightColumn = { blockSections: new Map() };
+        const column: LightColumn = {
+            heightmap: new Int32Array(CHUNK_COLUMN_COUNT).fill(this.view.minY),
+            blockSections: new Map(),
+            skySections: new Map()
+        };
         this.columns.set(key, column);
 
         const baseX = chunkX * CHUNK_SIZE;
         const baseZ = chunkZ * CHUNK_SIZE;
         for (let localX = 0; localX < CHUNK_SIZE; localX++) {
             for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
-                this.seedColumn(column, baseX + localX, baseZ + localZ);
+                this.scanColumn(column, baseX + localX, baseZ + localZ);
+            }
+        }
+
+        if (this.view.hasSkyLight) {
+            for (let localX = 0; localX < CHUNK_SIZE; localX++) {
+                for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
+                    this.seedSkySources(baseX + localX, baseZ + localZ);
+                }
             }
         }
 
@@ -125,8 +170,12 @@ export class LightEngine {
     }
 
     /**
-     * Queues the smallest piece of work that makes the light correct again after one block changed.
-     * Nothing is computed here; {@link LightEngine.flush} does the computing.
+     * Queues the smallest piece of work that makes both layers correct again after one block
+     * changed. Nothing is computed here; {@link LightEngine.flush} does the computing.
+     *
+     * The sky layer is patched rather than rebuilt: the column's heightmap entry moves only when
+     * the change was at or above the highest light-blocking block, and the only scan is the walk
+     * down the column that finds the next blocker after the top one is broken.
      *
      * A change that alters neither emission nor dampening queues nothing, so a server can call this
      * for every block change without filtering first.
@@ -148,13 +197,8 @@ export class LightEngine {
         const column = this.columnAt(x, z);
         if (column === undefined) return;
 
-        const previous = this.readBlockLight(column, x, y, z);
-        const emission = Math.min(newState.lightEmission, MAX_LIGHT_LEVEL);
-        this.writeBlockLight(column, x, y, z, emission);
-
-        if (previous > emission) this.blockDecrease.push(x, y, z, previous);
-        if (emission > 0) this.blockIncrease.push(x, y, z);
-        this.pushNeighbors(this.blockIncrease, x, y, z);
+        this.changeBlockLight(column, x, y, z, newState);
+        if (this.view.hasSkyLight) this.changeSkyLight(column, x, y, z, oldState, newState);
     }
 
     /**
@@ -176,8 +220,10 @@ export class LightEngine {
 
         let processed = 0;
         while (processed < budget) {
-            if (this.blockDecrease.size > 0) this.stepBlockDecrease();
-            else if (this.blockIncrease.size > 0) this.stepBlockIncrease();
+            if (this.decreaseQueues[BLOCK_LAYER].size > 0) this.stepDecrease(BLOCK_LAYER);
+            else if (this.decreaseQueues[SKY_LAYER].size > 0) this.stepDecrease(SKY_LAYER);
+            else if (this.increaseQueues[BLOCK_LAYER].size > 0) this.stepIncrease(BLOCK_LAYER);
+            else if (this.increaseQueues[SKY_LAYER].size > 0) this.stepIncrease(SKY_LAYER);
             else break;
 
             processed++;
@@ -187,42 +233,107 @@ export class LightEngine {
     }
 
     private get queuedNodes(): number {
-        return this.blockDecrease.size + this.blockIncrease.size;
+        return (
+            this.decreaseQueues[BLOCK_LAYER].size +
+            this.decreaseQueues[SKY_LAYER].size +
+            this.increaseQueues[BLOCK_LAYER].size +
+            this.increaseQueues[SKY_LAYER].size
+        );
     }
 
     private columnAt(x: number, z: number): LightColumn | undefined {
         return this.columns.get(columnKeyOf(chunkOf(x), chunkOf(z)));
     }
 
-    private readBlockLight(column: LightColumn, x: number, y: number, z: number): number {
-        const section = column.blockSections.get(y >> 4);
+    private heightAt(column: LightColumn, x: number, z: number): number {
+        return column.heightmap[heightmapIndexOf(x & 15, z & 15)]!;
+    }
+
+    private read(layer: LightLayer, column: LightColumn, x: number, y: number, z: number): number {
+        if (layer === SKY_LAYER) {
+            if (!this.view.hasSkyLight) return 0;
+            if (y >= this.heightAt(column, x, z)) return MAX_LIGHT_LEVEL;
+        }
+
+        const sections = layer === SKY_LAYER ? column.skySections : column.blockSections;
+        const section = sections.get(y >> 4);
 
         return section === undefined ? 0 : section.get(x & 15, y & 15, z & 15);
     }
 
-    private writeBlockLight(column: LightColumn, x: number, y: number, z: number, level: number): void {
+    private write(layer: LightLayer, column: LightColumn, x: number, y: number, z: number, level: number): void {
+        // Sky light at or above the heightmap is a constant 15 that is never stored, so a write
+        // there would be either redundant or a bug; drop it either way.
+        if (layer === SKY_LAYER && y >= this.heightAt(column, x, z)) return;
+
+        const sections = layer === SKY_LAYER ? column.skySections : column.blockSections;
         const sectionY = y >> 4;
-        let section = column.blockSections.get(sectionY);
+        let section = sections.get(sectionY);
         if (section === undefined) {
             if (level === 0) return;
             section = new LightSection();
-            column.blockSections.set(sectionY, section);
+            sections.set(sectionY, section);
         }
 
         section.set(x & 15, y & 15, z & 15, level);
     }
 
-    private seedColumn(column: LightColumn, x: number, z: number): void {
-        for (let y = this.view.minY; y < this.view.maxY; y++) {
-            const block = this.view.blockAt(x, y, z);
-            if (block === undefined || block.lightEmission <= 0) continue;
-
-            const emission = Math.min(block.lightEmission, MAX_LIGHT_LEVEL);
-            this.writeBlockLight(column, x, y, z, emission);
-            this.blockIncrease.push(x, y, z);
-        }
+    /** The level a block holds on its own: its emission for block light, nothing for sky light. */
+    private sourceLevel(layer: LightLayer, block: BlockLightProperties): number {
+        return layer === SKY_LAYER ? 0 : Math.min(block.lightEmission, MAX_LIGHT_LEVEL);
     }
 
+    /** One downward walk of a block column: records the heightmap entry and seeds every emitter. */
+    private scanColumn(column: LightColumn, x: number, z: number): void {
+        let height = this.view.minY;
+
+        for (let y = this.view.maxY - 1; y >= this.view.minY; y--) {
+            const block = this.view.blockAt(x, y, z);
+            if (block === undefined) continue;
+
+            if (height === this.view.minY && block.lightDampening > 0) height = y + 1;
+
+            if (block.lightEmission > 0) {
+                this.write(BLOCK_LAYER, column, x, y, z, this.sourceLevel(BLOCK_LAYER, block));
+                this.increaseQueues[BLOCK_LAYER].push(x, y, z);
+            }
+        }
+
+        column.heightmap[heightmapIndexOf(x & 15, z & 15)] = height;
+    }
+
+    /**
+     * Queues the sky sources of one block column.
+     *
+     * Everything at or above the heightmap holds 15, but only two kinds of cell have anywhere to
+     * send it: the cell at the heightmap, which lights the column below, and the cells facing a
+     * horizontal neighbor whose own heightmap is higher, which light that neighbor sideways. The
+     * seed range is therefore the column's own height up to the tallest of its four neighbors, which
+     * is the local relief rather than the height of the world.
+     */
+    private seedSkySources(x: number, z: number): void {
+        const column = this.columnAt(x, z);
+        if (column === undefined) return;
+
+        const height = this.heightAt(column, x, z);
+        let top = height + 1;
+        for (let direction = 0; direction < HORIZONTAL_DIRECTIONS; direction++) {
+            const neighborX = x + OFFSET_X[direction]!;
+            const neighborZ = z + OFFSET_Z[direction]!;
+            const neighbor = this.columnAt(neighborX, neighborZ);
+            if (neighbor === undefined) continue;
+
+            const neighborHeight = this.heightAt(neighbor, neighborX, neighborZ);
+            if (neighborHeight > top) top = neighborHeight;
+        }
+
+        for (let y = height; y < top; y++) this.increaseQueues[SKY_LAYER].push(x, y, z);
+    }
+
+    /**
+     * Re-seeds the four border planes of a chunk that just loaded, from the neighbor's side, so the
+     * light already standing next to the chunk flows into it.
+     */
     private seedNeighborBorders(chunkX: number, chunkZ: number): void {
         const baseX = chunkX * CHUNK_SIZE;
         const baseZ = chunkZ * CHUNK_SIZE;
@@ -241,75 +352,161 @@ export class LightEngine {
         for (let x = fromX; x <= toX; x++) {
             for (let z = fromZ; z <= toZ; z++) {
                 for (let y = this.view.minY; y < this.view.maxY; y++) {
-                    if (this.readBlockLight(column, x, y, z) > 1) this.blockIncrease.push(x, y, z);
+                    if (this.read(BLOCK_LAYER, column, x, y, z) > 1) {
+                        this.increaseQueues[BLOCK_LAYER].push(x, y, z);
+                    }
                 }
+
+                if (this.view.hasSkyLight) this.seedSkySources(x, z);
             }
         }
     }
 
-    private pushNeighbors(queue: LightQueue, x: number, y: number, z: number): void {
-        for (let direction = 0; direction < 6; direction++) {
+    private changeBlockLight(
+        column: LightColumn,
+        x: number,
+        y: number,
+        z: number,
+        newState: BlockLightProperties
+    ): void {
+        const previous = this.read(BLOCK_LAYER, column, x, y, z);
+        const emission = Math.min(newState.lightEmission, MAX_LIGHT_LEVEL);
+        this.write(BLOCK_LAYER, column, x, y, z, emission);
+
+        if (previous > emission) this.decreaseQueues[BLOCK_LAYER].push(x, y, z, previous);
+        if (emission > 0) this.increaseQueues[BLOCK_LAYER].push(x, y, z);
+        this.pushNeighbors(BLOCK_LAYER, x, y, z);
+    }
+
+    private changeSkyLight(
+        column: LightColumn,
+        x: number,
+        y: number,
+        z: number,
+        oldState: BlockLightProperties,
+        newState: BlockLightProperties
+    ): void {
+        const index = heightmapIndexOf(x & 15, z & 15);
+        const oldHeight = column.heightmap[index]!;
+        const newHeight = this.heightAfterChange(
+            x,
+            y,
+            z,
+            oldHeight,
+            oldState.lightDampening > 0,
+            newState.lightDampening > 0
+        );
+
+        if (newHeight > oldHeight) {
+            // The column lost its open sky between the old height and the new blocker. Those cells
+            // read 15 a moment ago, so every level they fed has to come down before the sky light
+            // that reaches them through the new blocker can fill them in again.
+            column.heightmap[index] = newHeight;
+            for (let gapY = oldHeight; gapY < newHeight; gapY++) {
+                this.write(SKY_LAYER, column, x, gapY, z, 0);
+                this.decreaseQueues[SKY_LAYER].push(x, gapY, z, MAX_LIGHT_LEVEL);
+            }
+        } else if (newHeight < oldHeight) {
+            column.heightmap[index] = newHeight;
+        } else if (y < oldHeight) {
+            const previous = this.read(SKY_LAYER, column, x, y, z);
+            this.write(SKY_LAYER, column, x, y, z, 0);
+            if (previous > 0) this.decreaseQueues[SKY_LAYER].push(x, y, z, previous);
+        }
+
+        if (newHeight === oldHeight) this.increaseQueues[SKY_LAYER].push(x, y, z);
+        else this.seedSkySources(x, z);
+        this.pushNeighbors(SKY_LAYER, x, y, z);
+    }
+
+    /**
+     * Where the column's heightmap entry lands after a block changed. The only case that costs a
+     * scan is breaking the top blocker, which walks down to the next one.
+     */
+    private heightAfterChange(
+        x: number,
+        y: number,
+        z: number,
+        height: number,
+        wasBlocking: boolean,
+        isBlocking: boolean
+    ): number {
+        if (isBlocking) return y >= height ? y + 1 : height;
+        if (!wasBlocking || y !== height - 1) return height;
+
+        for (let scan = y - 1; scan >= this.view.minY; scan--) {
+            const block = this.view.blockAt(x, scan, z);
+            if (block !== undefined && block.lightDampening > 0) return scan + 1;
+        }
+
+        return this.view.minY;
+    }
+
+    private pushNeighbors(layer: LightLayer, x: number, y: number, z: number): void {
+        for (let direction = 0; direction < ALL_DIRECTIONS; direction++) {
             const neighborY = y + OFFSET_Y[direction]!;
             if (neighborY < this.view.minY || neighborY >= this.view.maxY) continue;
 
-            queue.push(x + OFFSET_X[direction]!, neighborY, z + OFFSET_Z[direction]!);
+            this.increaseQueues[layer].push(x + OFFSET_X[direction]!, neighborY, z + OFFSET_Z[direction]!);
         }
     }
 
-    private stepBlockIncrease(): void {
-        const node = this.blockIncrease.shift();
+    private stepIncrease(layer: LightLayer): void {
+        const node = this.increaseQueues[layer].shift();
         if (node === undefined) return;
 
         const { x, y, z } = node;
         const column = this.columnAt(x, z);
         if (column === undefined) return;
 
-        const level = this.readBlockLight(column, x, y, z);
+        const level = this.read(layer, column, x, y, z);
         if (level <= 1) return;
 
-        for (let direction = 0; direction < 6; direction++) {
+        for (let direction = 0; direction < ALL_DIRECTIONS; direction++) {
             const neighborX = x + OFFSET_X[direction]!;
             const neighborY = y + OFFSET_Y[direction]!;
             const neighborZ = z + OFFSET_Z[direction]!;
-            const block = this.neighborBlock(neighborX, neighborY, neighborZ);
+            const block = this.crossable(neighborX, neighborY, neighborZ);
             if (block === undefined) continue;
 
             const target = level - Math.max(1, block.lightDampening);
             if (target <= 0) continue;
 
             const neighborColumn = this.columnAt(neighborX, neighborZ)!;
-            if (this.readBlockLight(neighborColumn, neighborX, neighborY, neighborZ) >= target) continue;
+            if (this.read(layer, neighborColumn, neighborX, neighborY, neighborZ) >= target) continue;
 
-            this.writeBlockLight(neighborColumn, neighborX, neighborY, neighborZ, target);
-            this.blockIncrease.push(neighborX, neighborY, neighborZ);
+            this.write(layer, neighborColumn, neighborX, neighborY, neighborZ, target);
+            this.increaseQueues[layer].push(neighborX, neighborY, neighborZ);
         }
     }
 
-    private stepBlockDecrease(): void {
-        const node = this.blockDecrease.shift();
+    private stepDecrease(layer: LightLayer): void {
+        const node = this.decreaseQueues[layer].shift();
         if (node === undefined) return;
 
         const { x, y, z, level: removed } = node;
-        for (let direction = 0; direction < 6; direction++) {
+        for (let direction = 0; direction < ALL_DIRECTIONS; direction++) {
             const neighborX = x + OFFSET_X[direction]!;
             const neighborY = y + OFFSET_Y[direction]!;
             const neighborZ = z + OFFSET_Z[direction]!;
-            const block = this.neighborBlock(neighborX, neighborY, neighborZ);
+            const block = this.crossable(neighborX, neighborY, neighborZ);
             if (block === undefined) continue;
 
             const neighborColumn = this.columnAt(neighborX, neighborZ)!;
-            const neighborLevel = this.readBlockLight(neighborColumn, neighborX, neighborY, neighborZ);
+            const neighborLevel = this.read(layer, neighborColumn, neighborX, neighborY, neighborZ);
             if (neighborLevel === 0) continue;
 
             if (neighborLevel >= removed) {
-                this.blockIncrease.push(neighborX, neighborY, neighborZ);
+                // The neighbor is at least as bright as what went away, so it is lit by something
+                // else and becomes the front of the re-propagation.
+                this.increaseQueues[layer].push(neighborX, neighborY, neighborZ);
                 continue;
             }
 
-            const emission = Math.min(block.lightEmission, MAX_LIGHT_LEVEL);
-            this.writeBlockLight(neighborColumn, neighborX, neighborY, neighborZ, emission);
-            this.blockDecrease.push(neighborX, neighborY, neighborZ, neighborLevel);
-            if (emission > 0) this.blockIncrease.push(neighborX, neighborY, neighborZ);
+            const source = this.sourceLevel(layer, block);
+            this.write(layer, neighborColumn, neighborX, neighborY, neighborZ, source);
+            this.decreaseQueues[layer].push(neighborX, neighborY, neighborZ, neighborLevel);
+            if (source > 0) this.increaseQueues[layer].push(neighborX, neighborY, neighborZ);
         }
     }
 
@@ -317,9 +514,10 @@ export class LightEngine {
      * The block a propagation step may cross into, or `undefined` when it may not: outside the
      * dimension, in a chunk the view has not loaded, or in a column the engine does not hold. The
      * last two cases record the column so the step runs when the chunk arrives, which is what keeps
-     * an unloaded neighbor from behaving like a wall.
+     * an unloaded neighbor from behaving like a wall: the light next to the border keeps its level
+     * instead of being darkened against an imaginary surface.
      */
-    private neighborBlock(x: number, y: number, z: number): BlockLightProperties | undefined {
+    private crossable(x: number, y: number, z: number): BlockLightProperties | undefined {
         if (y < this.view.minY || y >= this.view.maxY) return undefined;
 
         const key = columnKeyOf(chunkOf(x), chunkOf(z));
