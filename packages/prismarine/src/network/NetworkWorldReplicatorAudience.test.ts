@@ -1,7 +1,11 @@
+import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
+import type Player from '../Player';
 import type Server from '../Server';
+import type { Config } from '../config/Config';
+import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
@@ -13,28 +17,34 @@ import { NetworkWorldReplicator } from './NetworkWorldReplicator';
  * rather than through the packets built on top of it.
  */
 
-/** A player standing `chunksEast` chunks from the origin. */
-const playerAt = (chunksEast: number, viewDistance = 10) => ({
-    getPosition: () => new Vector3(chunksEast * 16 + 8, 64, 8),
-    isOnline: () => true,
-    viewDistance
-});
+/**
+ * A player standing `chunksEast` chunks from the origin.
+ *
+ * The position's world is a placeholder: the replicator only reads the player's coordinates,
+ * and the world it checks is the one on the position passed to `getViewers`.
+ */
+const playerAt = (chunksEast: number, { viewDistance = 10, online = true } = {}) =>
+    stub<Player>({
+        getPosition: () => new Position(chunksEast * 16 + 8, 64, 8, stub<World>()),
+        isOnline: () => online,
+        viewDistance
+    });
 
-const fakeWorld = ({ players = [] as any[], proximity = true } = {}) => {
+const fakeWorld = ({ players = [], proximity = true }: { players?: Player[]; proximity?: boolean } = {}) => {
     const logged: string[] = [];
 
     // Only what the audience question actually reads of a world: who is in it, and its name
     // for the cross-world complaint. Deciding who receives something is the replicator's, so
     // that is the code under test.
-    const world = {
+    const world = stub<World>({
         getName: () => 'test',
         getPlayers: () => players.filter((player) => player.isOnline())
-    } as unknown as World;
+    });
 
-    const server = {
-        getConfig: () => ({ getProximityBroadcast: () => proximity }),
-        getLogger: () => ({ verbose: (message: string) => void logged.push(message) })
-    } as unknown as Server;
+    const server = stub<Server>({
+        getConfig: () => stub<Config>({ getProximityBroadcast: () => proximity }),
+        getLogger: () => stub<Logger>({ verbose: (message: string) => void logged.push(message) })
+    });
 
     return { world, replicator: new NetworkWorldReplicator(world, server), logged };
 };
@@ -70,12 +80,12 @@ describe('network', () => {
             const other = playerAt(4);
             const { replicator } = fakeWorld({ players: [near, other] });
 
-            expect(replicator.getViewers(here, { exclude: near as any })).toEqual([other]);
-            expect(replicator.getViewers(here, { exclude: [near, other] as any })).toEqual([]);
+            expect(replicator.getViewers(here, { exclude: near })).toEqual([other]);
+            expect(replicator.getViewers(here, { exclude: [near, other] })).toEqual([]);
         });
 
         it('leaves out players who are not online', () => {
-            const { replicator } = fakeWorld({ players: [{ ...playerAt(3), isOnline: () => false }] });
+            const { replicator } = fakeWorld({ players: [playerAt(3, { online: false })] });
 
             expect(replicator.getViewers(here)).toEqual([]);
         });
@@ -121,7 +131,7 @@ describe('network', () => {
                 const near = playerAt(3);
                 const { replicator } = fakeWorld({ players: [near], proximity: false });
 
-                expect(replicator.getViewers(here, { exclude: near as any })).toEqual([]);
+                expect(replicator.getViewers(here, { exclude: near })).toEqual([]);
             });
         });
     });
