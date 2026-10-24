@@ -1,5 +1,22 @@
-import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { ArgumentCommandNode } from '@jsprismarine/brigadier';
+import type { ArgumentType, CommandDispatcher } from '@jsprismarine/brigadier';
+import {
+    ArgumentCommandNode,
+    argument as brigadierArgument,
+    literal as brigadierLiteral
+} from '@jsprismarine/brigadier';
+import type { CommandExecutor } from './CommandExecutor';
+
+/**
+ * Starts a literal node whose callbacks receive the command source as a `CommandExecutor`.
+ * Prefer this over brigadier's `literal`, which leaves the source untyped.
+ */
+export const literal = (name: string) => brigadierLiteral<CommandExecutor>(name);
+
+/**
+ * Starts an argument node whose callbacks receive the command source as a `CommandExecutor`.
+ * Prefer this over brigadier's `argument`, which leaves the source untyped.
+ */
+export const argument = <T>(name: string, type: ArgumentType<T>) => brigadierArgument<CommandExecutor, T>(name, type);
 
 export interface CommandProps {
     id: string;
@@ -43,9 +60,9 @@ export class Command {
     /**
      * Register the command.
      */
-    public async register(_dispatcher: CommandDispatcher<any>): Promise<void> {}
+    public async register(_dispatcher: CommandDispatcher<CommandExecutor>): Promise<void> {}
 
-    public usage(dispatcher: CommandDispatcher<any>): string {
+    public usage(dispatcher: CommandDispatcher<CommandExecutor>): string {
         // TODO: Improve this, it's not really accurate right now.
         return Array.from(dispatcher.findNode([this.name])?.getChildren() || [])
             .map((child) => {

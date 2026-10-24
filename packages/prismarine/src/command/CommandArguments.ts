@@ -1,23 +1,59 @@
-import type { CommandContext, StringReader } from '@jsprismarine/brigadier';
+import type {
+    ArgumentType,
+    CommandContext,
+    CommandContextBuilder,
+    StringReader,
+    SuggestionsBuilder
+} from '@jsprismarine/brigadier';
 import { Suggestions } from '@jsprismarine/brigadier';
 import CommandParameter, { CommandParameterFlags, CommandParameterType } from '../network/type/CommandParameter';
 
 import { Vector3 } from '@jsprismarine/math';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
-import type Player from '../Player';
 import type Server from '../Server';
+// Imported straight from its module rather than through the barrel; see `CommandManager.ts`.
+import { Entity } from '../entity/Entity';
 import { CommandEnum } from '../network/type/CommandEnum';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
+import type { CommandExecutor } from './CommandExecutor';
+
+/**
+ * What an argument may read while the command is still being parsed. The dispatcher hands over
+ * its context builder, so only the source is known at this point.
+ */
+export type CommandParseContext = Pick<CommandContextBuilder<CommandExecutor>, 'getSource'>;
 
 export abstract class CommandArgument {
     public getReadableType(): string {
         return '';
     }
-    public getParameters(server: Server): Set<CommandParameter> | undefined {
+    public getParameters(_server: Server): Set<CommandParameter> | undefined {
         return new Set();
     }
 }
+
+/**
+ * Anything an argument node can hold: a prismarine argument, which can describe itself to the
+ * client, or one of brigadier's built-in types, which cannot.
+ */
+export type CommandArgumentType = CommandArgument | ArgumentType<unknown>;
+
+/**
+ * Whether an argument node holds a prismarine argument rather than a brigadier built-in type.
+ */
+export const isCommandArgument = (type: CommandArgumentType): type is CommandArgument => 'getParameters' in type;
+
+/**
+ * Reads a string argument out of an executed command.
+ *
+ * @throws Error when the argument parsed to something other than a string.
+ */
+export const getString = (context: CommandContext<CommandExecutor>, name: string): string => {
+    const value: unknown = context.getArgument(name);
+    if (typeof value !== 'string') throw new Error(`Argument "${name}" is not a string`);
+    return value;
+};
 
 export class CommandArgumentGamemode implements CommandArgument {
     private name: string;
@@ -32,10 +68,10 @@ export class CommandArgumentGamemode implements CommandArgument {
         this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, _context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandParseContext) {
         return getGametypeName(getGametypeId(reader.readString()));
     }
-    public async listSuggestions(_context: any, _builder: any) {
+    public async listSuggestions<S>(_context: CommandContext<S>, _builder: SuggestionsBuilder) {
         // TODO
         return Suggestions.empty();
     }
@@ -78,7 +114,7 @@ export class CommandArgumentMob implements CommandArgument {
         this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, _context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandParseContext) {
         let str = '';
         while (reader.canRead()) {
             const pos = reader.getCursor();
@@ -93,7 +129,7 @@ export class CommandArgumentMob implements CommandArgument {
 
         return str;
     }
-    public async listSuggestions(_context: any, _builder: any) {
+    public async listSuggestions<S>(_context: CommandContext<S>, _builder: SuggestionsBuilder) {
         // TODO
         return Suggestions.empty();
     }
@@ -134,7 +170,24 @@ export class CommandArgumentEntity implements CommandArgument {
         this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, context: CommandContext<Player>) {
+    /**
+     * Reads the entities a parsed entity argument matched.
+     *
+     * @throws Error when the argument holds anything other than entities.
+     */
+    public static getEntities(context: CommandContext<CommandExecutor>, name: string): Entity[] {
+        const value: unknown = context.getArgument(name);
+        if (!Array.isArray(value) || !value.every((entity) => entity instanceof Entity))
+            throw new Error(`Argument "${name}" is not a list of entities`);
+        return value;
+    }
+
+    /**
+     * @returns The matched entities. An exact player name that is not online, or a selector
+     * that matches nothing, gives an empty list.
+     * @throws Error when a selector is used from the console, which stands in no world.
+     */
+    public parse(reader: StringReader, context: CommandParseContext): Entity[] {
         let player = '';
         while (reader.canRead()) {
             const pos = reader.getCursor();
@@ -147,19 +200,23 @@ export class CommandArgumentEntity implements CommandArgument {
             player += char;
         }
 
-        if (player.startsWith('@'))
+        const source = context.getSource();
+        if (player.startsWith('@')) {
+            if (!(source instanceof Entity)) throw new Error(`Target selectors need a player as the source`);
             try {
                 return ParseTargetSelector({
                     input: player,
-                    source: context.getSource(),
-                    entities: context.getSource().getWorld().getEntities()
+                    source,
+                    entities: source.getWorld().getEntities()
                 });
             } catch (error: unknown) {
-                if (!(error as any).message.includes('no results')) throw error;
+                if (!(error instanceof Error && error.message.includes('no results'))) throw error;
                 return [];
             }
+        }
 
-        return [context.getSource().getServer().getSessionManager().getPlayerByExactName(player)]; // TODO: by name not exact
+        const match = source.getServer().getSessionManager().getPlayerByExactName(player); // TODO: by name not exact
+        return match ? [match] : [];
     }
 
     public getReadableType(): string {
@@ -202,10 +259,22 @@ export class CommandArgumentPosition implements CommandArgument {
     }
 
     /**
+     * Reads the position a parsed position argument holds.
+     *
+     * @throws Error when the argument holds anything other than a position.
+     */
+    public static getPosition(context: CommandContext<CommandExecutor>, name: string): Vector3 {
+        const value: unknown = context.getArgument(name);
+        if (!(value instanceof Vector3)) throw new Error(`Argument "${name}" is not a position`);
+        return value;
+    }
+
+    /**
      * @returns A fresh vector per invocation, so concurrent executions cannot overwrite
      * each other's coordinates.
+     * @throws Error when a relative coordinate is used from the console, which stands nowhere.
      */
-    public parse(reader: StringReader, context: CommandContext<Player>): Vector3 {
+    public parse(reader: StringReader, context: CommandParseContext): Vector3 {
         const getPos = () => {
             let pos = '';
             while (reader.canRead()) {
@@ -221,12 +290,14 @@ export class CommandArgumentPosition implements CommandArgument {
             return pos;
         };
 
-        const axis = (type: 'x' | 'y' | 'z') =>
-            ParseTildeCaretNotation({
-                input: getPos(),
-                source: context.getSource(),
-                type
-            });
+        const source = context.getSource();
+        const axis = (type: 'x' | 'y' | 'z') => {
+            const input = getPos();
+            if (source instanceof Entity) return ParseTildeCaretNotation({ input, source, type });
+            if (input.startsWith('~') || input.startsWith('^'))
+                throw new Error(`Relative coordinate "${input}" needs a player as the source`);
+            return Number.parseFloat(input);
+        };
 
         // Read in order: each call consumes from the reader, so the arguments have to be
         // evaluated left to right rather than left to a constructor's argument order.
@@ -269,7 +340,7 @@ export class CommandArgumentCommand implements CommandArgument {
         this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, _context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandParseContext) {
         const command = reader.readString();
 
         return command;
@@ -305,7 +376,7 @@ export class BooleanArgumentCommand implements CommandArgument {
         this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, _context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandParseContext) {
         const boolean = reader.readString();
 
         if (boolean === 'true') return true;
@@ -346,7 +417,7 @@ export class PlayerArgumentCommand implements CommandArgument {
         this.postfix = data?.postfix ?? null;
     }
 
-    public parse(reader: StringReader, _context: CommandContext<Player>) {
+    public parse(reader: StringReader, _context: CommandParseContext) {
         const player = reader.readString();
         return player;
     }
