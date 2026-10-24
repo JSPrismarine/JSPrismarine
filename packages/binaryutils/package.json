@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/binaryutils",
-    "version": "0.15.2",
+    "version": "0.15.3",
     "description": "Basic binary data managing tool written in TypeScript.",
     "sideEffects": false,
     "publishConfig": {
