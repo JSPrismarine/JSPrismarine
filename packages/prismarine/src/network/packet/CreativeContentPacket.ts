@@ -7,7 +7,7 @@ import DataPacket from './DataPacket';
  * Which tab of the creative menu a group belongs to.
  *
  * Mirrors `CreativeItemCategory`. Only `ITEMS` is used here, because nothing in this server's
- * data says which tab an entry belongs in - see {@link CreativeContentPacket.groups}.
+ * data says which tab an entry belongs in. See {@link CreativeContentPacket.groups}.
  */
 export enum CreativeCategory {
     ALL,
@@ -30,17 +30,19 @@ export interface CreativeGroup {
 /**
  * The contents of the creative menu.
  *
- * At 2168 the menu is two lists rather than one: the **groups** that head it, and then the
- * items, each naming the group it sits under by index. The order of both lists is the order
- * the client renders them in - it no longer imposes one of its own.
+ * Two lists, in the order the client renders them. Groups come first: each
+ * `CreativeGroupInfoPayload` is a Creative Category byte, a Name string and a Group Icon Item
+ * written as a `NetworkItemInstanceDescriptor`. Entries follow: each `CreativeItemEntryPayload`
+ * is a one-based Creative Net Id varuint32, the Item Instance as a
+ * `NetworkItemInstanceDescriptor`, and a Group Index varuint32 into the groups list.
  *
- * Every item has to belong to a group. An item that belongs to no particular group points at
- * an *anonymous* group, which is one with an empty name; the client draws its members loose,
- * without a heading. This server has no group data at all - `creativeitems.json` carries a
- * name and nothing else - so it sends a single anonymous group and puts everything in it.
+ * Every entry has to point at a group that exists. A group with an empty Name is anonymous:
+ * the client draws its members loose, without a heading. This server has no group data, so it
+ * sends one anonymous group and files every entry under index 0.
  *
- * TODO: BDS behavior packs carry `menu_category` per item, with both the tab and the group
- * name. Extracting it would give this the real headings.
+ * Known gap: BDS behavior packs carry a `menu_category` per item with both the tab and the
+ * group name. This server's `creativeitems.json` carries neither, so every entry sits in the
+ * one anonymous group and the menu shows no headings.
  *
  * **Bound To:** Client
  */
@@ -76,10 +78,10 @@ export default class CreativeContentPacket extends DataPacket {
         }
 
         this.writeUnsignedVarInt(this.items.length);
-        for (let i = 0; i < this.items.length; ++i) {
-            this.writeUnsignedVarInt(i + 1); // Creative net id, one-based.
-            this.items[i]!.networkSerializeWithoutStackId(this);
-            this.writeUnsignedVarInt(0); // The group it sits under.
+        for (const [i, item] of this.items.entries()) {
+            this.writeUnsignedVarInt(i + 1); // Creative Net Id, one-based.
+            item.networkSerializeWithoutStackId(this);
+            this.writeUnsignedVarInt(0); // Group Index: the one anonymous group.
         }
     }
 
@@ -93,9 +95,9 @@ export default class CreativeContentPacket extends DataPacket {
 
         const count = this.readUnsignedVarInt();
         for (let i = 0; i < count; i++) {
-            this.readUnsignedVarInt(); // Creative net id.
+            this.readUnsignedVarInt(); // Creative Net Id.
             this.items.push(Item.networkDeserializeWithoutStackId(this));
-            this.readUnsignedVarInt(); // Group index.
+            this.readUnsignedVarInt(); // Group Index.
         }
     }
 }
