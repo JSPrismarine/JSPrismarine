@@ -153,7 +153,7 @@ describe('block subclasses survive construction', () => {
         // Stone has said `cobblestone` since it was written; the base `[this]` was answering.
         const server: any = { getBlockManager: () => ({ getBlock: (name: string) => ({ getName: () => name }) }) };
 
-        const drops = new Stone().getDropsForCompatibleTool(null as any, server);
+        const drops = new Stone().getDropsForCompatibleTool(null, server);
 
         expect(drops.map((drop: any) => drop.getName())).toEqual(['minecraft:cobblestone']);
     });
