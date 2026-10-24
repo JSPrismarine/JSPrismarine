@@ -1,87 +1,42 @@
-import yaml from 'js-yaml';
-import JSON5 from 'json5';
 import fs from 'node:fs';
 import path from 'node:path';
 
-/** Anything a path can descend into: a plain object or an array. */
-const isTree = (value: unknown): value is object => typeof value === 'object' && value !== null;
+import { CONFIG_FORMATS, parseConfigDocument } from './ConfigDocument';
+import type { ConfigDocument, ConfigFormat, ConfigPath } from './ConfigDocument';
 
-const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
-const isUnsafeKey = (key: string): boolean => UNSAFE_KEYS.has(key);
-
-/** Splits `a.b[0].c` into its keys. */
-const keysOf = (path: string): string[] => path.match(/[^.[\]]+/g) ?? [];
-
-const walk = (root: unknown, keys: string[]): unknown => {
-    let current: unknown = root;
-    for (const key of keys) {
-        if (!isTree(current)) return undefined;
-        current = Reflect.get(current, key);
-    }
-    return current;
-};
-
-/**
- * Minimal path helpers over nested config data. A dotted key is tried literally first,
- * so `get(data, 'server-ip')` and a key that happens to contain a dot both still work.
- */
-const _ = {
-    get: (obj: unknown, path: string, defaultValue?: unknown): unknown => {
-        const literal = path.split(/[,[\]]+/).filter(Boolean);
-        const result = walk(obj, literal) ?? walk(obj, keysOf(path));
-        return result === undefined || result === obj ? defaultValue : result;
-    },
-    set: <O extends object>(obj: O, path: string | string[], value: unknown): O => {
-        const keys = Array.isArray(path) ? path : keysOf(path);
-        if (keys.some(isUnsafeKey)) return obj;
-        let current: object = obj;
-        for (const [index, key] of keys.slice(0, -1).entries()) {
-            const hasOwn = Object.hasOwn(current, key);
-            const next = hasOwn ? Reflect.get(current, key) : undefined;
-
-            if (hasOwn && isTree(next)) {
-                current = next;
-                continue;
-            }
-
-            const created: object = /^\d+$/.test(keys[index + 1] ?? '') ? [] : Object.create(null);
-            Reflect.set(current, key, created);
-            current = created;
-        }
-        const last = keys.at(-1);
-        if (last !== undefined && !isUnsafeKey(last)) Reflect.set(current, last, value);
-        return obj;
-    },
-    has: (obj: unknown, key: string): boolean => {
-        const [head, ...rest] = key.split('.');
-        if (!isTree(obj) || head === undefined) return false;
-        if (rest.length > 0) return _.has(Reflect.get(obj, head), rest.join('.'));
-        return Object.hasOwn(obj, key);
-    },
-    del: (obj: unknown, path: string | string[]): boolean => {
-        const keys = Array.isArray(path) ? path : keysOf(path);
-        if (keys.some(isUnsafeKey)) return false;
-        const parent = walk(obj, keys.slice(0, -1));
-        const last = keys.at(-1);
-        if (isTree(parent) && last !== undefined) Reflect.deleteProperty(parent, last);
-        return true;
-    }
-};
-
-/** What a freshly created file of each format contains. */
-const TypeDefaults = {
-    json: '{}',
-    yaml: ' '
-};
-
-type ConfigType = keyof typeof TypeDefaults;
-
-const isConfigType = (ext: string): ext is ConfigType => Object.hasOwn(TypeDefaults, ext);
-
+/** What a whole config file holds once parsed: a map from key to whatever the file says. */
 export type ConfigData = Record<string, unknown>;
 
-/** Whether parsed file content is a key-value object rather than a scalar, a list or nothing. */
-const isConfigData = (value: unknown): value is ConfigData => isTree(value) && !Array.isArray(value);
+/** What a freshly created file of each format contains: valid, and empty. */
+const EMPTY_FILE: Readonly<Record<ConfigFormat, string>> = {
+    json: '{}\n',
+    yaml: ''
+};
+
+const isConfigFormat = (ext: string): ext is ConfigFormat => CONFIG_FORMATS.some((format) => format === ext);
+
+/** Keys that would reach into an object's prototype rather than its own data. */
+const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
+/** Splits `a.b[0].c` into its segments, list indices as numbers. */
+const segmentsOf = (key: string): ConfigPath =>
+    (key.match(/[^.[\]]+/g) ?? []).map((segment) => (/^\d+$/.test(segment) ? Number(segment) : segment));
+
+/**
+ * Where a key points in a document.
+ *
+ * The key is tried literally first, so `server-ip` and a key that happens to contain a dot
+ * both still work; only when the file has no such top-level key is it read as a path.
+ *
+ * @returns The path, or `undefined` for a key that names nothing or reaches into a prototype.
+ */
+const pathOf = (document: ConfigDocument, key: string): ConfigPath | undefined => {
+    if (document.has([key])) return [key];
+    const segments = segmentsOf(key);
+    if (segments.length === 0) return undefined;
+    if (segments.some((segment) => typeof segment === 'string' && UNSAFE_KEYS.has(segment))) return undefined;
+    return segments;
+};
 
 /**
  * Whether a stored value is the same kind of thing as the default it stands in for: the same
@@ -94,28 +49,33 @@ const sameKindAs = <T>(value: unknown, defaults: T): value is T =>
     (value === null) === (defaults === null);
 
 /**
- * General config-file handler.
+ * A config file on disk, read and written one key at a time.
+ *
+ * Every write goes through a {@link ConfigDocument}, so comments and blank lines in the file
+ * survive, and a key written for the first time can carry a comment that explains it. The
+ * format follows the file extension: `.yaml` or `.json`, where the JSON may hold `//` and
+ * `/* *\/` comments and trailing commas.
  */
 export class ConfigBuilder {
-    private type: ConfigType;
-    private path: string;
+    private readonly format: ConfigFormat;
+    private readonly path: string;
 
     /**
-     * Config constructor.
+     * Opens the file, creating it and its directory when they do not exist yet.
+     *
      * @throws Error when the file extension is not one of the supported formats.
      */
     public constructor(filePath: string) {
-        const pathSplitted = path.parse(filePath);
-        const ext = pathSplitted.ext.slice(1).toLowerCase();
+        const parsed = path.parse(filePath);
+        const ext = parsed.ext.slice(1).toLowerCase();
 
-        if (!isConfigType(ext)) {
-            throw new Error(`Unsupported config type. (Supported types: ${Object.keys(TypeDefaults).join(', ')})`);
+        if (!isConfigFormat(ext)) {
+            throw new Error(`Unsupported config type. (Supported types: ${CONFIG_FORMATS.join(', ')})`);
         }
-        this.type = ext;
+        this.format = ext;
 
-        // Create the config directory if it doesn't exist.
-        if (!fs.existsSync(pathSplitted.dir)) fs.mkdirSync(pathSplitted.dir, { recursive: true });
-        if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, TypeDefaults[this.type], 'utf8');
+        if (!fs.existsSync(parsed.dir)) fs.mkdirSync(parsed.dir, { recursive: true });
+        if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, EMPTY_FILE[this.format], 'utf8');
 
         this.path = filePath;
     }
@@ -134,50 +94,28 @@ export class ConfigBuilder {
      *
      * @returns {'yaml' | 'json'} either `yaml` or `json`
      */
-    public getType(): ConfigType {
-        return this.type;
-    }
-
-    private setFileData(data: ConfigData = {}) {
-        fs.writeFileSync(this.path, this.stringify(data));
-    }
-
-    private stringify(data: ConfigData = {}) {
-        // FIXME: This overwrites comments in the file.
-        switch (this.type) {
-            case 'json':
-                return JSON.stringify(data, null, 4);
-            case 'yaml':
-                return yaml.dump(data, { indent: 4 });
-            default:
-                throw new Error(`Unknown config type ${this.type}!`);
-        }
+    public getType(): ConfigFormat {
+        return this.format;
     }
 
     /**
-     * Reads and parses the file. Anything that is not a key-value object, including an empty
-     * or unparsable file, reads as `{}` so that defaults written afterwards are kept.
+     * Reads the file as a document.
+     *
+     * A file that does not parse is an error, named after the file, rather than an empty
+     * config: writing defaults over a file with a typo in it would erase the rest of it.
      */
-    private getFileData(): ConfigData {
+    private read(): ConfigDocument {
         const raw = fs.readFileSync(this.path, 'utf8');
-        let parsed: unknown;
-
-        switch (this.type) {
-            case 'json':
-                try {
-                    parsed = JSON5.parse(raw);
-                } catch {}
-                break;
-            case 'yaml':
-                try {
-                    parsed = yaml.load(raw);
-                } catch {}
-                break;
-            default:
-                throw new Error(`Unknown config type: ${this.type}!`);
+        try {
+            return parseConfigDocument(this.format, raw);
+        } catch (error: unknown) {
+            const detail = error instanceof Error ? error.message : String(error);
+            throw new Error(`Cannot read ${this.path}: ${detail}`, { cause: error });
         }
+    }
 
-        return isConfigData(parsed) ? parsed : {};
+    private write(document: ConfigDocument): void {
+        fs.writeFileSync(this.path, document.toString(), 'utf8');
     }
 
     /**
@@ -188,8 +126,9 @@ export class ConfigBuilder {
      *
      * @param key - the config key
      * @param defaults - the value to use, and persist, when the key is missing
+     * @param comment - written above the key in the file when the default is persisted
      */
-    public get<T>(key: string, defaults: T): T;
+    public get<T>(key: string, defaults: T, comment?: string): T;
     /**
      * Get a config value from a key, or `undefined` when the key is absent.
      *
@@ -197,13 +136,17 @@ export class ConfigBuilder {
      */
     public get(key: string): unknown;
     /** Shared body of the two `get` overloads above; only they are callable. */
-    public get<T>(key: string, defaults?: T): unknown {
-        const data = this.getFileData();
-        const stored = _.get(data, key);
+    public get<T>(key: string, defaults?: T, comment?: string): unknown {
+        const document = this.read();
+        const target = pathOf(document, key);
+        const stored = target === undefined ? undefined : document.get(target);
         if (defaults === undefined) return stored;
 
         if (stored === undefined) {
-            this.setFileData(_.set(data, key, defaults));
+            if (target !== undefined) {
+                document.set(target, defaults, comment);
+                this.write(document);
+            }
             return defaults;
         }
 
@@ -213,14 +156,19 @@ export class ConfigBuilder {
     /**
      * Sets a key - value pair in config.
      *
+     * @param key - the config key
+     * @param value - the value to store
+     * @param comment - written above the key when the key is new; an existing key keeps its own
      * @returns true if the value was set successfully
      */
-    public set(key: string, value: unknown) {
-        const data = this.getFileData();
-        const newData = _.set(data, key, value);
+    public set(key: string, value: unknown, comment?: string): boolean {
+        const document = this.read();
+        const target = pathOf(document, key);
+        if (target === undefined) return false;
 
         try {
-            this.setFileData(newData);
+            document.set(target, value, comment);
+            this.write(document);
             return true;
         } catch {
             return false;
@@ -234,26 +182,23 @@ export class ConfigBuilder {
      * @returns true if the config contains that key
      */
     public has(key: string): boolean {
-        const data = this.getFileData();
-        const result = _.has(data, key);
-        return result;
+        const document = this.read();
+        const target = pathOf(document, key);
+        return target !== undefined && document.has(target);
     }
 
     /**
-     * Delete a config value.
+     * Delete a config value, and the comment above it.
      *
      * @param key - the config key
-     * @returns true if the deletion was successful
+     * @returns true if the key was there to delete
      */
     public del(key: string): boolean {
-        const data = this.getFileData();
+        const document = this.read();
+        const target = pathOf(document, key);
+        if (target === undefined || !document.delete(target)) return false;
 
-        // It mutates the object, we
-        // don't need to define a new
-        // variable.
-        const isSuccessful = _.del(data, key);
-
-        this.setFileData(data);
-        return isSuccessful;
+        this.write(document);
+        return true;
     }
 }
