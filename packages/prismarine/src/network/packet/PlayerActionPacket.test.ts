@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
-import PlayerActionPacket, { PlayerAction } from './PlayerActionPacket';
+import PlayerActionPacket, { PlayerActionType } from './PlayerActionPacket';
 
 /**
  * The packet as the client writes it under protocol 2193: header, Player Runtime ID as a
@@ -55,7 +55,7 @@ describe('network', () => {
                 const packet = new PlayerActionPacket(
                     clientBytes(
                         300n,
-                        PlayerAction.START_CRAWLING,
+                        PlayerActionType.StartCrawling,
                         new BlockPosition(10, -3, -7),
                         new BlockPosition(10, -2, -7),
                         4
@@ -64,7 +64,7 @@ describe('network', () => {
                 packet.decode();
 
                 expect(packet.runtimeEntityId).toBe(300n);
-                expect(packet.action).toBe(PlayerAction.START_CRAWLING);
+                expect(packet.action).toBe(PlayerActionType.StartCrawling);
                 expect(packet.blockPosition.getX()).toBe(10);
                 expect(packet.blockPosition.getY()).toBe(-3);
                 expect(packet.blockPosition.getZ()).toBe(-7);
@@ -78,7 +78,7 @@ describe('network', () => {
             it('writes the fields in docs order with every coordinate ZigZag encoded', () => {
                 const packet = new PlayerActionPacket();
                 packet.runtimeEntityId = 300n;
-                packet.action = PlayerAction.START_CRAWLING;
+                packet.action = PlayerActionType.StartCrawling;
                 packet.blockPosition = new BlockPosition(10, -3, -7);
                 packet.resultPosition = new BlockPosition(10, -2, -7);
                 packet.blockFace = 4;
@@ -88,7 +88,7 @@ describe('network', () => {
                 expect([...packet.getBuffer()]).toEqual([
                     ...clientBytes(
                         300n,
-                        PlayerAction.START_CRAWLING,
+                        PlayerActionType.StartCrawling,
                         new BlockPosition(10, -3, -7),
                         new BlockPosition(10, -2, -7),
                         4

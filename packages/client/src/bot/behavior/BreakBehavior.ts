@@ -35,9 +35,9 @@ export default class BreakBehavior implements Behavior {
         };
 
         for (const action of [
-            PlayerActionType.START_BREAK,
-            PlayerActionType.CRACK_BLOCK,
-            PlayerActionType.STOP_BREAK
+            PlayerActionType.StartDestroyBlock,
+            PlayerActionType.CrackBlock,
+            PlayerActionType.StopDestroyBlock
         ]) {
             await context.send(
                 new PlayerActionPacket({

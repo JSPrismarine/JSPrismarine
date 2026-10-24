@@ -95,7 +95,7 @@ describe('MovePlayer', () => {
 describe('PlayerAction', () => {
     const data = {
         runtimeEntityId: 42n,
-        action: PlayerActionType.START_BREAK,
+        action: PlayerActionType.StartDestroyBlock,
         blockPosition: { x: -12, y: 70, z: 34 },
         resultPosition: { x: -12, y: 70, z: 34 },
         blockFace: 1
@@ -106,7 +106,7 @@ describe('PlayerAction', () => {
         server.decode();
 
         expect(server.runtimeEntityId).toBe(data.runtimeEntityId);
-        expect(server.action).toBe(PlayerActionType.START_BREAK);
+        expect(server.action).toBe(PlayerActionType.StartDestroyBlock);
         expect(server.blockPosition.getX()).toBe(-12);
         expect(server.blockPosition.getY()).toBe(70);
         expect(server.blockPosition.getZ()).toBe(34);

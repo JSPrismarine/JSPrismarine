@@ -6,7 +6,7 @@ import { CREATIVE_REACH } from '../../entity/Combat';
 import type BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
 import type PlayerActionPacket from '../packet/PlayerActionPacket';
-import { PlayerAction } from '../packet/PlayerActionPacket';
+import { PlayerActionType } from '../packet/PlayerActionPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -16,12 +16,12 @@ import type PacketHandler from './PacketHandler';
  * taken for a position the player is standing nowhere near.
  */
 const BLOCK_ACTIONS: ReadonlySet<number> = new Set([
-    PlayerAction.START_BREAK,
-    PlayerAction.CONTINUE_DESTROY_BLOCK,
-    PlayerAction.ABORT_BREAK,
-    PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK,
-    PlayerAction.STOP_BREAK,
-    PlayerAction.CRACK_BLOCK
+    PlayerActionType.StartDestroyBlock,
+    PlayerActionType.ContinueDestroyBlock,
+    PlayerActionType.AbortDestroyBlock,
+    PlayerActionType.CreativeDestroyBlock,
+    PlayerActionType.StopDestroyBlock,
+    PlayerActionType.CrackBlock
 ]);
 
 /**
@@ -34,12 +34,12 @@ const BLOCK_ACTIONS: ReadonlySet<number> = new Set([
  * before {@link PlayerActionHandler.handleAction} would sound or break anything on its say-so.
  */
 const INPUT_ONLY_ACTIONS: ReadonlySet<number> = new Set([
-    PlayerAction.START_BREAK,
-    PlayerAction.ABORT_BREAK,
-    PlayerAction.STOP_BREAK,
-    PlayerAction.CRACK_BLOCK,
-    PlayerAction.PREDICT_DESTROY_BLOCK,
-    PlayerAction.CONTINUE_DESTROY_BLOCK
+    PlayerActionType.StartDestroyBlock,
+    PlayerActionType.AbortDestroyBlock,
+    PlayerActionType.StopDestroyBlock,
+    PlayerActionType.CrackBlock,
+    PlayerActionType.PredictDestroyBlock,
+    PlayerActionType.ContinueDestroyBlock
 ]);
 
 /**
@@ -98,7 +98,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
 
     /**
      * Acts on one action.
-     * @param {number} action - a {@link PlayerAction}.
+     * @param {number} action - a {@link PlayerActionType}.
      * @param {BlockPosition} blockPosition - the block it concerns, or the origin for those that concern none.
      * @param {number} blockFace - the face of that block.
      * @param {Server} server - the server.
@@ -138,8 +138,8 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // animation simply starts again on the new one - it does *not* mean a block
             // broke, which is what it used to be treated as, sounding a full break for every
             // block merely swept over.
-            case PlayerAction.START_BREAK:
-            case PlayerAction.CONTINUE_DESTROY_BLOCK: {
+            case PlayerActionType.StartDestroyBlock:
+            case PlayerActionType.ContinueDestroyBlock: {
                 // The only action here that needs the block. Reading it up front, as this
                 // used to, meant every jump, sprint and sneak - which carry no block position
                 // and so ask for (0, 0, 0) - loaded, and on a fresh world generated, the
@@ -170,7 +170,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 return;
             }
 
-            case PlayerAction.ABORT_BREAK: {
+            case PlayerActionType.AbortDestroyBlock: {
                 await world.sendWorldEvent(blockPosition, LevelEvent.STOP_BLOCK_CRACKING, 0);
                 return;
             }
@@ -179,7 +179,7 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // here, without the InventoryTransaction survival sends. Handling only that
             // transaction left creative silent, and - worse - left the block standing in the
             // server's copy of the world, gone only on the screen of whoever broke it.
-            case PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK: {
+            case PlayerActionType.CreativeDestroyBlock: {
                 // Creative's route, and creative's alone. A survival client that sends this
                 // action breaks the block outright: no break time, no tool, and none of the
                 // `InventoryTransaction` accounting the survival route goes through.
@@ -200,41 +200,41 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // The end of a survival break. The InventoryTransaction that comes with it is
             // what carries the block, so there is nothing to do here - and `breakBlock` would
             // ignore a second attempt anyway.
-            case PlayerAction.STOP_BREAK: {
+            case PlayerActionType.StopDestroyBlock: {
                 return;
             }
 
             // Every swing after the first. The client sends one per punch for as long as the
             // button is held, and each is a hit to be heard - this is the sound of digging.
-            case PlayerAction.CRACK_BLOCK: {
+            case PlayerActionType.CrackBlock: {
                 await world.hitBlock(blockPosition, blockFace);
                 return;
             }
 
-            case PlayerAction.RESPAWN: {
+            case PlayerActionType.Respawn: {
                 await player.respawn();
                 return;
             }
 
-            case PlayerAction.JUMP: {
+            case PlayerActionType.StartJump: {
                 player.addJumpExhaustion();
                 return;
             }
 
-            case PlayerAction.START_SPRINT: {
+            case PlayerActionType.StartSprinting: {
                 await player.setSprinting(true);
                 return;
             }
-            case PlayerAction.STOP_SPRINT: {
+            case PlayerActionType.StopSprinting: {
                 await player.setSprinting(false);
                 return;
             }
 
-            case PlayerAction.START_SNEAK: {
+            case PlayerActionType.StartSneaking: {
                 await player.setSneaking(true);
                 return;
             }
-            case PlayerAction.STOP_SNEAK: {
+            case PlayerActionType.StopSneaking: {
                 await player.setSneaking(false);
                 return;
             }
@@ -242,11 +242,11 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // The docs expect an `UpdateAbilitiesPacket` back, accepting or refusing the
             // toggle. `setFlying` sends one either way: the new abilities when the player may
             // fly, the old ones when they may not.
-            case PlayerAction.START_FLYING: {
+            case PlayerActionType.StartFlying: {
                 await player.setFlying(true);
                 return;
             }
-            case PlayerAction.STOP_FLYING: {
+            case PlayerActionType.StopFlying: {
                 await player.setFlying(false);
                 return;
             }
@@ -257,25 +257,25 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // `SetActorDataPacket` flag for most) wait on that state existing. A client-side
             // prediction of a break never arrives: `StartGamePacket` sends `Server
             // Authoritative Block Breaking` as false. `DenyDestroyBlock` is EDU only.
-            case PlayerAction.DIMENSION_CHANGE_ACK:
-            case PlayerAction.START_SWIMMING:
-            case PlayerAction.STOP_SWIMMING:
-            case PlayerAction.START_GLIDE:
-            case PlayerAction.STOP_GLIDE:
-            case PlayerAction.START_CRAWLING:
-            case PlayerAction.STOP_CRAWLING:
-            case PlayerAction.START_SLEEPING:
-            case PlayerAction.STOP_SLEEPING:
-            case PlayerAction.START_SPIN_ATTACK:
-            case PlayerAction.STOP_SPIN_ATTACK:
-            case PlayerAction.START_ITEM_USE_ON:
-            case PlayerAction.STOP_ITEM_USE_ON:
-            case PlayerAction.START_USING_ITEM:
-            case PlayerAction.MISSED_SWING:
-            case PlayerAction.HANDLED_TELEPORT:
-            case PlayerAction.INTERNAL_UPDATE:
-            case PlayerAction.BUILD_DENIED:
-            case PlayerAction.PREDICT_DESTROY_BLOCK: {
+            case PlayerActionType.ChangeDimensionAck:
+            case PlayerActionType.StartSwimming:
+            case PlayerActionType.StopSwimming:
+            case PlayerActionType.StartGliding:
+            case PlayerActionType.StopGliding:
+            case PlayerActionType.StartCrawling:
+            case PlayerActionType.StopCrawling:
+            case PlayerActionType.StartSleeping:
+            case PlayerActionType.StopSleeping:
+            case PlayerActionType.StartSpinAttack:
+            case PlayerActionType.StopSpinAttack:
+            case PlayerActionType.StartItemUseOn:
+            case PlayerActionType.StopItemUseOn:
+            case PlayerActionType.StartUsingItem:
+            case PlayerActionType.MissedSwing:
+            case PlayerActionType.HandledTeleport:
+            case PlayerActionType.InternalUpdate:
+            case PlayerActionType.DenyDestroyBlock:
+            case PlayerActionType.PredictDestroyBlock: {
                 return;
             }
 

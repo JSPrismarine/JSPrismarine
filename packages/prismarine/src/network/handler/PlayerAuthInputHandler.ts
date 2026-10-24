@@ -9,7 +9,7 @@ import InventoryTransactionPacket, { TransactionType } from '../packet/Inventory
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import type PlayerAuthInputPacket from '../packet/PlayerAuthInputPacket';
 import { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
-import { PlayerAction } from '../packet/PlayerActionPacket';
+import { PlayerActionType } from '../packet/PlayerActionPacket';
 import InventoryTransactionHandler from './InventoryTransactionHandler';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
 import { applyClientMovement } from './MovePlayerHandler';
@@ -23,12 +23,12 @@ import PlayerActionHandler from './PlayerActionHandler';
  * server authoritative movement they are bits in the input, and the actions they map to are
  * the same ones, so they are handled by the same code.
  */
-const FLAG_ACTIONS: ReadonlyArray<readonly [PlayerAuthInputData, PlayerAction]> = [
-    [PlayerAuthInputData.START_JUMPING, PlayerAction.JUMP],
-    [PlayerAuthInputData.START_SPRINTING, PlayerAction.START_SPRINT],
-    [PlayerAuthInputData.STOP_SPRINTING, PlayerAction.STOP_SPRINT],
-    [PlayerAuthInputData.START_SNEAKING, PlayerAction.START_SNEAK],
-    [PlayerAuthInputData.STOP_SNEAKING, PlayerAction.STOP_SNEAK]
+const FLAG_ACTIONS: ReadonlyArray<readonly [PlayerAuthInputData, PlayerActionType]> = [
+    [PlayerAuthInputData.START_JUMPING, PlayerActionType.StartJump],
+    [PlayerAuthInputData.START_SPRINTING, PlayerActionType.StartSprinting],
+    [PlayerAuthInputData.STOP_SPRINTING, PlayerActionType.StopSprinting],
+    [PlayerAuthInputData.START_SNEAKING, PlayerActionType.StartSneaking],
+    [PlayerAuthInputData.STOP_SNEAKING, PlayerActionType.StopSneaking]
 ];
 
 /**
@@ -40,12 +40,12 @@ const FLAG_ACTIONS: ReadonlyArray<readonly [PlayerAuthInputData, PlayerAction]> 
  * packet of its own and is not accepted from here.
  */
 const BLOCK_ACTIONS: ReadonlySet<number> = new Set([
-    PlayerAction.START_BREAK,
-    PlayerAction.ABORT_BREAK,
-    PlayerAction.STOP_BREAK,
-    PlayerAction.CRACK_BLOCK,
-    PlayerAction.PREDICT_DESTROY_BLOCK,
-    PlayerAction.CONTINUE_DESTROY_BLOCK
+    PlayerActionType.StartDestroyBlock,
+    PlayerActionType.AbortDestroyBlock,
+    PlayerActionType.StopDestroyBlock,
+    PlayerActionType.CrackBlock,
+    PlayerActionType.PredictDestroyBlock,
+    PlayerActionType.ContinueDestroyBlock
 ]);
 
 /** Where an action that concerns no block says it happened. */

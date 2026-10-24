@@ -10,7 +10,7 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PlayerActionPacket, { PlayerAction } from '../packet/PlayerActionPacket';
+import PlayerActionPacket, { PlayerActionType } from '../packet/PlayerActionPacket';
 import PlayerActionHandler from './PlayerActionHandler';
 
 const SELF = 7n;
@@ -89,7 +89,7 @@ describe('PlayerActionHandler', () => {
             const { broken, server, session } = fakeSession(Gametype.CREATIVE);
 
             await new PlayerActionHandler().handleAction(
-                PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK,
+                PlayerActionType.CreativeDestroyBlock,
                 new BlockPosition(1, 2, 0),
                 0,
                 server,
@@ -103,7 +103,7 @@ describe('PlayerActionHandler', () => {
             const { broken, server, session } = fakeSession(Gametype.SURVIVAL);
 
             await new PlayerActionHandler().handleAction(
-                PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK,
+                PlayerActionType.CreativeDestroyBlock,
                 new BlockPosition(1, 2, 0),
                 0,
                 server,
@@ -117,8 +117,8 @@ describe('PlayerActionHandler', () => {
             const { broken, hit, server, session } = fakeSession(Gametype.CREATIVE);
             const handler = new PlayerActionHandler();
 
-            await handler.handleAction(PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK, FAR_AWAY, 0, server, session);
-            await handler.handleAction(PlayerAction.CRACK_BLOCK, FAR_AWAY, 0, server, session);
+            await handler.handleAction(PlayerActionType.CreativeDestroyBlock, FAR_AWAY, 0, server, session);
+            await handler.handleAction(PlayerActionType.CrackBlock, FAR_AWAY, 0, server, session);
 
             expect(broken).toEqual([]);
             expect(hit).toEqual([]);
@@ -129,8 +129,8 @@ describe('PlayerActionHandler', () => {
             const handler = new PlayerActionHandler();
             const nearby = new BlockPosition(1, 0, 0);
 
-            await handler.handleAction(PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK, nearby, 0, server, session);
-            await handler.handleAction(PlayerAction.CRACK_BLOCK, nearby, 0, server, session);
+            await handler.handleAction(PlayerActionType.CreativeDestroyBlock, nearby, 0, server, session);
+            await handler.handleAction(PlayerActionType.CrackBlock, nearby, 0, server, session);
 
             expect(broken).toEqual([]);
             expect(hit).toEqual([]);
@@ -139,7 +139,7 @@ describe('PlayerActionHandler', () => {
         it('still takes an action that carries no block, which arrives at the origin', async () => {
             const { sprinting, server, session } = fakeSession(Gametype.SURVIVAL);
 
-            await new PlayerActionHandler().handleAction(PlayerAction.START_SPRINT, NOWHERE, 0, server, session);
+            await new PlayerActionHandler().handleAction(PlayerActionType.StartSprinting, NOWHERE, 0, server, session);
 
             expect(sprinting).toEqual([true]);
         });
@@ -148,8 +148,8 @@ describe('PlayerActionHandler', () => {
             const { flying, server, session } = fakeSession(Gametype.CREATIVE);
             const handler = new PlayerActionHandler();
 
-            await handler.handleAction(PlayerAction.START_FLYING, NOWHERE, 0, server, session);
-            await handler.handleAction(PlayerAction.STOP_FLYING, NOWHERE, 0, server, session);
+            await handler.handleAction(PlayerActionType.StartFlying, NOWHERE, 0, server, session);
+            await handler.handleAction(PlayerActionType.StopFlying, NOWHERE, 0, server, session);
 
             expect(flying).toEqual([true, false]);
         });
@@ -159,14 +159,14 @@ describe('PlayerActionHandler', () => {
             const handler = new PlayerActionHandler();
 
             for (const action of [
-                PlayerAction.DIMENSION_CHANGE_ACK,
-                PlayerAction.START_SWIMMING,
-                PlayerAction.STOP_SWIMMING,
-                PlayerAction.START_GLIDE,
-                PlayerAction.STOP_GLIDE,
-                PlayerAction.START_SPIN_ATTACK,
-                PlayerAction.STOP_SPIN_ATTACK,
-                PlayerAction.MISSED_SWING
+                PlayerActionType.ChangeDimensionAck,
+                PlayerActionType.StartSwimming,
+                PlayerActionType.StopSwimming,
+                PlayerActionType.StartGliding,
+                PlayerActionType.StopGliding,
+                PlayerActionType.StartSpinAttack,
+                PlayerActionType.StopSpinAttack,
+                PlayerActionType.MissedSwing
             ]) {
                 await handler.handleAction(action, NOWHERE, 0, server, session);
             }
@@ -187,7 +187,7 @@ describe('PlayerActionHandler', () => {
         it('acts on a packet that names the sender', async () => {
             const { flying, logged, server, session } = fakeSession(Gametype.CREATIVE);
 
-            await new PlayerActionHandler().handle(packet(SELF, PlayerAction.START_FLYING), server, session);
+            await new PlayerActionHandler().handle(packet(SELF, PlayerActionType.StartFlying), server, session);
 
             expect(flying).toEqual([true]);
             expect(logged).toEqual([]);
@@ -196,11 +196,11 @@ describe('PlayerActionHandler', () => {
         it('drops a packet whose runtime id is not the sender', async () => {
             const { flying, logged, server, session } = fakeSession(Gametype.CREATIVE);
 
-            await new PlayerActionHandler().handle(packet(8n, PlayerAction.START_FLYING), server, session);
+            await new PlayerActionHandler().handle(packet(8n, PlayerActionType.StartFlying), server, session);
 
             expect(flying).toEqual([]);
             expect(logged).toEqual([
-                `Dropped action ${PlayerAction.START_FLYING} from tester: it names runtime id 8, not their own`
+                `Dropped action ${PlayerActionType.StartFlying} from tester: it names runtime id 8, not their own`
             ]);
         });
 
@@ -208,13 +208,17 @@ describe('PlayerActionHandler', () => {
             const { hit, logged, server, session } = fakeSession(Gametype.SURVIVAL);
             const nearby = new BlockPosition(1, 0, 0);
 
-            await new PlayerActionHandler().handle(packet(SELF, PlayerAction.START_BREAK, nearby), server, session);
-            await new PlayerActionHandler().handle(packet(SELF, PlayerAction.CRACK_BLOCK, nearby), server, session);
+            await new PlayerActionHandler().handle(
+                packet(SELF, PlayerActionType.StartDestroyBlock, nearby),
+                server,
+                session
+            );
+            await new PlayerActionHandler().handle(packet(SELF, PlayerActionType.CrackBlock, nearby), server, session);
 
             expect(hit).toEqual([]);
             expect(logged).toEqual([
-                `Ignored action ${PlayerAction.START_BREAK} from tester: block actions arrive in PlayerAuthInputPacket`,
-                `Ignored action ${PlayerAction.CRACK_BLOCK} from tester: block actions arrive in PlayerAuthInputPacket`
+                `Ignored action ${PlayerActionType.StartDestroyBlock} from tester: block actions arrive in PlayerAuthInputPacket`,
+                `Ignored action ${PlayerActionType.CrackBlock} from tester: block actions arrive in PlayerAuthInputPacket`
             ]);
         });
 
@@ -222,7 +226,7 @@ describe('PlayerActionHandler', () => {
             const { broken, server, session } = fakeSession(Gametype.CREATIVE);
 
             await new PlayerActionHandler().handle(
-                packet(SELF, PlayerAction.CREATIVE_PLAYER_DESTROY_BLOCK, new BlockPosition(1, 2, 0)),
+                packet(SELF, PlayerActionType.CreativeDestroyBlock, new BlockPosition(1, 2, 0)),
                 server,
                 session
             );

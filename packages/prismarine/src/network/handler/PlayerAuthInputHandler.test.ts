@@ -12,7 +12,7 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import { HandSlot, UseItemAction } from '../packet/InventoryTransactionPacket';
-import { PlayerAction } from '../packet/PlayerActionPacket';
+import { PlayerActionType } from '../packet/PlayerActionPacket';
 import PlayerAuthInputPacket, { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
 import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandler';
 
@@ -72,8 +72,8 @@ const input = (configure: (packet: PlayerAuthInputPacket) => void = () => {}): P
 const breaking = (packet: PlayerAuthInputPacket): void => {
     packet.inputData.add(PlayerAuthInputData.PERFORM_BLOCK_ACTIONS);
     packet.blockActions = [
-        { action: PlayerAction.START_BREAK, position: new BlockPosition(1, 63, 2), face: 1 },
-        { action: PlayerAction.CRACK_BLOCK, position: new BlockPosition(1, 63, 2), face: 1 }
+        { action: PlayerActionType.StartDestroyBlock, position: new BlockPosition(1, 63, 2), face: 1 },
+        { action: PlayerActionType.CrackBlock, position: new BlockPosition(1, 63, 2), face: 1 }
     ];
 };
 
@@ -289,19 +289,21 @@ describe('PlayerAuthInputHandler', () => {
         it('carries a block action the field may not hold', async () => {
             await dropped((packet) => {
                 packet.inputData.add(PlayerAuthInputData.PERFORM_BLOCK_ACTIONS);
-                packet.blockActions = [{ action: PlayerAction.RESPAWN, position: new BlockPosition(0, 0, 0), face: 0 }];
-            }, `block action ${PlayerAction.RESPAWN} is not one the input may carry`);
+                packet.blockActions = [
+                    { action: PlayerActionType.Respawn, position: new BlockPosition(0, 0, 0), face: 0 }
+                ];
+            }, `block action ${PlayerActionType.Respawn} is not one the input may carry`);
         });
     });
 
     it('finds nothing wrong with the six block actions the docs list', () => {
         for (const action of [
-            PlayerAction.START_BREAK,
-            PlayerAction.ABORT_BREAK,
-            PlayerAction.STOP_BREAK,
-            PlayerAction.CRACK_BLOCK,
-            PlayerAction.PREDICT_DESTROY_BLOCK,
-            PlayerAction.CONTINUE_DESTROY_BLOCK
+            PlayerActionType.StartDestroyBlock,
+            PlayerActionType.AbortDestroyBlock,
+            PlayerActionType.StopDestroyBlock,
+            PlayerActionType.CrackBlock,
+            PlayerActionType.PredictDestroyBlock,
+            PlayerActionType.ContinueDestroyBlock
         ]) {
             const packet = input((packet) => {
                 packet.blockActions = [{ action, position: new BlockPosition(0, 0, 0), face: 0 }];

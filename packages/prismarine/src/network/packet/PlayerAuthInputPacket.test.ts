@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
 import { HandSlot, UseItemAction } from './InventoryTransactionPacket';
-import { PlayerAction } from './PlayerActionPacket';
+import { PlayerActionType } from './PlayerActionPacket';
 import PlayerAuthInputPacket, {
     ClientPlayMode,
     INPUT_FLAG_COUNT,
@@ -142,12 +142,12 @@ describe('PlayerAuthInputPacket', () => {
                 out.writeBoolean(false); // No Item Stack Request.
                 out.writeBoolean(true); // Player Block Actions.
                 out.writeUnsignedVarInt(2);
-                out.writeVarInt(PlayerAction.START_BREAK);
+                out.writeVarInt(PlayerActionType.StartDestroyBlock);
                 out.writeVarInt(5); // Position, signed: a block below y=0 must survive.
                 out.writeVarInt(-12);
                 out.writeVarInt(-7);
                 out.writeVarInt(1); // Facing.
-                out.writeVarInt(PlayerAction.STOP_BREAK); // Carries the default position and facing.
+                out.writeVarInt(PlayerActionType.StopDestroyBlock); // Carries the default position and facing.
                 out.writeVarInt(0);
                 out.writeVarInt(0);
                 out.writeVarInt(0);
@@ -158,9 +158,9 @@ describe('PlayerAuthInputPacket', () => {
         );
 
         expect(packet.blockActions).toHaveLength(2);
-        expect(packet.blockActions![0]).toMatchObject({ action: PlayerAction.START_BREAK, face: 1 });
+        expect(packet.blockActions![0]).toMatchObject({ action: PlayerActionType.StartDestroyBlock, face: 1 });
         expect(packet.blockActions![0]!.position.getY()).toBe(-12);
-        expect(packet.blockActions![1]!.action).toBe(PlayerAction.STOP_BREAK);
+        expect(packet.blockActions![1]!.action).toBe(PlayerActionType.StopDestroyBlock);
         expect(packet.feof()).toBe(true);
     });
 
@@ -305,7 +305,7 @@ describe('PlayerAuthInputPacket', () => {
         packet.inputMode = InputMode.Mouse;
         packet.interactionModel = NewInteractionModel.Classic;
         packet.tick = 99n;
-        packet.blockActions = [{ action: PlayerAction.CRACK_BLOCK, position: new BlockPosition(1, -5, 2), face: 4 }];
+        packet.blockActions = [{ action: PlayerActionType.CrackBlock, position: new BlockPosition(1, -5, 2), face: 4 }];
         packet.vehicleRotation = { x: 1, y: 2 };
         packet.predictedVehicle = -77n;
         packet.encode();

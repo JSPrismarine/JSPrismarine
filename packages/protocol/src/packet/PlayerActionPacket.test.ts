@@ -42,7 +42,7 @@ const expectedBytes = [
 
 const sample: PlayerActionData = {
     runtimeEntityId: 300n,
-    action: PlayerActionType.START_CRAWLING,
+    action: PlayerActionType.StartCrawling,
     blockPosition: { x: 10, y: -3, z: -7 },
     resultPosition: { x: 10, y: -2, z: -7 },
     blockFace: 4

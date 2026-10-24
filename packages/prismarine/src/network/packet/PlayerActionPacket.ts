@@ -4,50 +4,52 @@ import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
- * The Action field of `PlayerActionPacket`, numbered as the 1.26.50 client writes it.
+ * The docs' `PlayerActionType`, the Action field of `PlayerActionPacket`, numbered as the
+ * 1.26.51 client writes it. Member names are the docs' names; `GetUpdatedBlock`, `DropItem`,
+ * `ChangeSkin`, `SetEnchantmentSeed` and `InteractBlock` are values the docs leave unnamed.
  * Values 36 and 39 (`Count`) are not named in the docs and are left out.
  */
-export enum PlayerAction {
-    START_BREAK,
-    ABORT_BREAK,
-    STOP_BREAK,
-    GET_UPDATED_BLOCK,
-    DROP_ITEM,
-    START_SLEEPING,
-    STOP_SLEEPING,
-    RESPAWN,
-    JUMP,
-    START_SPRINT,
-    STOP_SPRINT,
-    START_SNEAK,
-    STOP_SNEAK,
-    CREATIVE_PLAYER_DESTROY_BLOCK,
-    DIMENSION_CHANGE_ACK,
-    START_GLIDE,
-    STOP_GLIDE,
-    BUILD_DENIED,
-    CRACK_BLOCK,
-    CHANGE_SKIN,
-    SET_ENCHANTMENT_SEED,
-    START_SWIMMING,
-    STOP_SWIMMING,
-    START_SPIN_ATTACK,
-    STOP_SPIN_ATTACK,
-    INTERACT_BLOCK,
-    PREDICT_DESTROY_BLOCK,
-    CONTINUE_DESTROY_BLOCK,
-    START_ITEM_USE_ON,
-    STOP_ITEM_USE_ON,
-    HANDLED_TELEPORT = 30,
+export enum PlayerActionType {
+    StartDestroyBlock,
+    AbortDestroyBlock,
+    StopDestroyBlock,
+    GetUpdatedBlock,
+    DropItem,
+    StartSleeping,
+    StopSleeping,
+    Respawn,
+    StartJump,
+    StartSprinting,
+    StopSprinting,
+    StartSneaking,
+    StopSneaking,
+    CreativeDestroyBlock,
+    ChangeDimensionAck,
+    StartGliding,
+    StopGliding,
+    DenyDestroyBlock,
+    CrackBlock,
+    ChangeSkin,
+    SetEnchantmentSeed,
+    StartSwimming,
+    StopSwimming,
+    StartSpinAttack,
+    StopSpinAttack,
+    InteractBlock,
+    PredictDestroyBlock,
+    ContinueDestroyBlock,
+    StartItemUseOn,
+    StopItemUseOn,
+    HandledTeleport = 30,
     /** The client swung at nothing. */
-    MISSED_SWING = 31,
-    START_CRAWLING = 32,
-    STOP_CRAWLING = 33,
-    START_FLYING = 34,
-    STOP_FLYING = 35,
-    START_USING_ITEM = 37,
+    MissedSwing = 31,
+    StartCrawling = 32,
+    StopCrawling = 33,
+    StartFlying = 34,
+    StopFlying = 35,
+    StartUsingItem = 37,
     /** Reserved by the client for its own bookkeeping; carries no gameplay meaning. */
-    INTERNAL_UPDATE = 38
+    InternalUpdate = 38
 }
 
 /**
