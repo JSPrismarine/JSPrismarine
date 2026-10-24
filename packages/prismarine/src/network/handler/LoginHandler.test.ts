@@ -18,6 +18,7 @@ import Identifiers from '../Identifiers';
 import type DataPacket from '../packet/DataPacket';
 import LoginPacket from '../packet/LoginPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
+import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import PlayStatusType from '../type/PlayStatusType';
 import LoginHandler from './LoginHandler';
 
@@ -132,6 +133,42 @@ describe('network', () => {
                 await new LoginHandler().handle(pk, server, quiet);
 
                 expect(sent).toEqual(['PlayStatusPacket', 'ResourcePacksInfoPacket']);
+            });
+
+            it('sends the ResourcePacksInfo a server with no packs sends', async () => {
+                // No packs are configurable yet, so the packet is the fixed one a Bedrock
+                // Dedicated Server sends for a world with no packs and no template: every
+                // flag off, an all-zero template uuid with an empty version, and a zero count.
+                const pk = new LoginPacket();
+                pk.displayName = 'runner';
+                pk.identity = IDENTITY;
+                pk.protocol = Identifiers.Protocol;
+
+                const sent: DataPacket[] = [];
+                const quiet = stub<ClientConnection>({
+                    getRakNetSession: () =>
+                        stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    attachPlayerSession: vi.fn(),
+                    closePlayerSession: async () => {},
+                    disconnect: async () => {}
+                });
+
+                await new LoginHandler().handle(pk, server, quiet);
+
+                const info = sent.find((packet) => packet instanceof ResourcePacksInfoPacket);
+                assert(info instanceof ResourcePacksInfoPacket);
+                info.encode();
+                expect([...info.getBuffer()]).toEqual([
+                    0x06, // packet id header
+                    0x00, // Resource Pack Required
+                    0x00, // Has Addon Packs
+                    0x00, // Has Scripts
+                    0x00, // Force Disable Vibrant Visuals
+                    ...Array.from({ length: 16 }, () => 0x00), // World Template Id And Version: an all-zero uuid
+                    0x00, // and an empty version
+                    0x00 // Resource Packs count, a varuint32
+                ]);
             });
 
             it('handle with banned without reason', async () => {
