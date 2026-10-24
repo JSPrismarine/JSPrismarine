@@ -2,8 +2,11 @@ import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
 
 /**
- * Represents a newtork serialized ability layer.
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/SerializedAbilitiesData__SerializedLayer.html}
+ * One "SerializedAbilitiesDataSerializedLayer" entry of a `SerializedAbilitiesData`.
+ *
+ * Wire order, all little-endian: "SerializedLayer" uint16, "AbilitiesSet" uint32,
+ * "AbilityValues" uint32, "FlySpeed" float, "VerticalFlySpeed" float, "WalkSpeed" float.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/update-abilities-packet/}
  */
 export default class SerializedAbilityLayer extends NetworkStructure {
     public constructor(
@@ -11,6 +14,7 @@ export default class SerializedAbilityLayer extends NetworkStructure {
         public abilitiesSet: number,
         public abilityValues: number,
         public flySpeed: number,
+        public verticalFlySpeed: number,
         public walkSpeed: number
     ) {
         super();
@@ -21,6 +25,7 @@ export default class SerializedAbilityLayer extends NetworkStructure {
         stream.writeUnsignedIntLE(this.abilitiesSet);
         stream.writeUnsignedIntLE(this.abilityValues);
         stream.writeFloatLE(this.flySpeed);
+        stream.writeFloatLE(this.verticalFlySpeed);
         stream.writeFloatLE(this.walkSpeed);
     }
 
@@ -29,6 +34,7 @@ export default class SerializedAbilityLayer extends NetworkStructure {
         this.abilitiesSet = stream.readUnsignedIntLE();
         this.abilityValues = stream.readUnsignedIntLE();
         this.flySpeed = stream.readFloatLE();
+        this.verticalFlySpeed = stream.readFloatLE();
         this.walkSpeed = stream.readFloatLE();
     }
 }

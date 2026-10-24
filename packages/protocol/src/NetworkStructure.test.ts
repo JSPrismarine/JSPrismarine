@@ -28,7 +28,7 @@ describe('NetworkStructure.deserialize', () => {
 
     it('returns an instance that can serialize itself again', () => {
         const stream = new NetworkBinaryStream();
-        new SerializedAbilityLayer(1, 2, 3, 0.05, 0.1).serialize(stream);
+        new SerializedAbilityLayer(1, 2, 3, 0.05, 1, 0.1).serialize(stream);
 
         const layer = SerializedAbilityLayer.deserialize(new NetworkBinaryStream(stream.getBuffer()));
         const again = new NetworkBinaryStream();
