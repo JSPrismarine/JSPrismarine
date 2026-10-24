@@ -27,11 +27,13 @@ export default class SetActorMotionPacket extends DataPacket {
     public motion!: Vector3;
 
     /**
-     * The server tick this was decided on.
+     * `Tick`, a `PlayerInputTick`.
      *
-     * Carried by every entity packet at this protocol version - see `UpdateAttributesPacket` and
-     * `SetActorDataPacket`, which trail it the same way. The client uses it to order what it
-     * receives against its own prediction.
+     * The docs: "If this packet is referring to the player or a client predicted vehicle they
+     * are in control of, this should be the most recently processed PlayerInputTick from their
+     * PlayerAuthInputPacket. Otherwise zero." The client rewinds to that tick, applies the
+     * velocity and replays its predictions since. The server's own tick counter is not in the
+     * client's history and must not go here.
      */
     public tick: bigint = 0n;
 

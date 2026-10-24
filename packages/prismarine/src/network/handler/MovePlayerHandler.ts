@@ -19,6 +19,15 @@ export interface ClientMovement {
 }
 
 /**
+ * The `Position Mode` values the docs allow on a packet sent to the server.
+ *
+ * "When sent to the server this is always 'Normal' except when in a vehicle then it's
+ * 'OnlyHeadRot'." `MovementType` calls the second one `Pitch`. Respawn and Teleport are the
+ * server's to send; a client asking for either is asking to be moved without walking there.
+ */
+const CLIENT_MODES: ReadonlySet<MovementType> = new Set([MovementType.Normal, MovementType.Pitch]);
+
+/**
  * Applies a position the client reported, and shows the move to everyone who can see it.
  *
  * One function for the two packets that carry one: `MovePlayerPacket`, which the bot harness
@@ -69,15 +78,39 @@ export const applyClientMovement = async (
 };
 
 /**
- * The client authoritative movement packet.
+ * The client authoritative movement packet, which at protocol 2193 is client-bound only.
  *
- * A real client has not sent one since 1.21.80; the bot harness still does, because it is
- * the smaller packet and the server does not mind. Both end up in {@link applyClientMovement}.
+ * The docs: "it is only intended as a client-bound packet", and a real client has not sent
+ * one since 1.21.80. The bot harness still does, because it is the smaller packet and the
+ * server does not simulate movement anyway. So the packet is still read, but only on the
+ * docs' own terms for a server-bound one: `Player Runtime ID` "is always the id of the sending
+ * player" and `Position Mode` is Normal or OnlyHeadRot. Anything else is dropped at debug
+ * level, and `Teleport Data` is never read: the modes that carry it are not accepted.
+ *
+ * What is accepted ends up in {@link applyClientMovement}, the same as a `PlayerAuthInputPacket`.
  */
 export default class MovePlayerHandler implements PacketHandler<MovePlayerPacket> {
     public static NetID = Identifiers.MovePlayerPacket;
 
     public async handle(packet: MovePlayerPacket, server: Server, session: PlayerSession): Promise<void> {
+        const player = session.getPlayer();
+
+        if (packet.runtimeEntityId !== player.getRuntimeId()) {
+            server
+                .getLogger()
+                .debug(`${player.getName()} sent a MovePlayer for runtime id ${packet.runtimeEntityId}, dropped`);
+            return;
+        }
+
+        if (!CLIENT_MODES.has(packet.mode)) {
+            server.getLogger().debug(`${player.getName()} sent a MovePlayer in mode ${packet.mode}, dropped`);
+            return;
+        }
+
+        // `Tick` is the docs' `PlayerInputTick`, the same one a `PlayerAuthInputPacket` carries.
+        // Recorded before the move is applied, so a reset for this very move echoes it.
+        session.recordInputTick(packet.tick);
+
         await applyClientMovement(server, session, {
             position: packet.position,
             pitch: packet.pitch,

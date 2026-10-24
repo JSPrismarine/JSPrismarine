@@ -1004,13 +1004,17 @@ export default class PlayerSession {
      * The only way to shove a player. Their position is theirs - the server stores what it is
      * told - so setting it from here is overruled by the next movement packet and read as
      * rubber-banding. A velocity is a request the client is happy to honor.
+     *
+     * The `Tick` is the client's last input tick, as the docs ask for a packet about the
+     * player: the client rewinds to that tick, applies the velocity and replays what it
+     * predicted since. See {@link PlayerSession.recordInputTick}.
      * @param {Vector3} motion - Blocks per tick, in each axis.
      */
     public async sendMotion(motion: Vector3): Promise<void> {
         const packet = new SetActorMotionPacket();
         packet.runtimeEntityId = this.player.getRuntimeId();
         packet.motion = motion;
-        packet.tick = BigInt(this.player.getServer().getTick());
+        packet.tick = this.lastInputTick;
         await this.connection.sendDataPacket(packet);
     }
 
@@ -1113,6 +1117,12 @@ export default class PlayerSession {
      * Named for what it does. It was `broadcastMove`, which reads as a fan-out and is not
      * one - the fan-out is `World.broadcastMove`, and having both made it easy to write the
      * wrong one.
+     *
+     * For this client's own player the packet is a server-initiated move: a teleport, a
+     * respawn, or a reset after a canceled move event. Its `Tick` is the client's last input
+     * tick, as the docs ask, so the client rewinds to it and replays its predictions from
+     * there. For any other player the packet is what this client sees of them, and the tick is
+     * zero because it relates to none of this client's inputs.
      * @param {Player} player - The player that moved.
      * @param {MovementType} [mode=MovementType.Normal] - What produced the movement.
      */
@@ -1136,8 +1146,9 @@ export default class PlayerSession {
             packet.teleportItemId = 0;
         }
 
-        packet.ridingEntityRuntimeId = BigInt(0);
-        packet.tick = BigInt(this.player.getServer().getTick());
+        // "If client bound this has no meaning", so it is always zero here.
+        packet.ridingEntityRuntimeId = 0n;
+        packet.tick = player === this.player ? this.lastInputTick : 0n;
         await this.send(packet);
     }
 
