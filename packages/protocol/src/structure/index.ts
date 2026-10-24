@@ -11,6 +11,7 @@ import DimensionDefinition from './DimensionDefinition';
 import EduSharedUriResource from './EduSharedUriResource';
 import type { EduSharedUriResourceData } from './EduSharedUriResource';
 import Experiments from './Experiments';
+import FullContainerName from './FullContainerName';
 import ItemData, { ItemVersion } from './ItemData';
 import ItemInstanceUserData from './ItemInstanceUserData';
 import type { ItemInstanceUserDataConfig } from './ItemInstanceUserData';
@@ -42,6 +43,7 @@ export {
     DimensionDefinition,
     EduSharedUriResource,
     Experiments,
+    FullContainerName,
     ItemData,
     ItemInstanceUserData,
     ItemVersion,
