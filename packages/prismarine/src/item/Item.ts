@@ -15,7 +15,7 @@ export interface ItemProps {
 
 export class Item {
     private id: number;
-    private networkId: number;
+    private networkId: number | undefined;
     private name: string;
     public meta = 0;
     public durability: number = this.getMaxDurability();
@@ -32,7 +32,7 @@ export class Item {
         // wire came back as one item however many the client said it held.
         if (count) this.count = count;
 
-        this.networkId = (ItemIdMap as any)[name] as number;
+        this.networkId = ItemIdMap[name];
     }
 
     public getName(): string {
