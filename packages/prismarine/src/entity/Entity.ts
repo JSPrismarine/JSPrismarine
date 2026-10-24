@@ -770,6 +770,8 @@ export class Entity {
      * @param {number} [options.yaw] - The yaw.
      * @param {number} [options.headYaw] - The head yaw.
      * @returns {Promise<void>} A promise that resolves when the position is set.
+     * @throws {RangeError} When a coordinate is NaN or infinite. The entity stays where it was,
+     * since a position like that cannot be encoded for the client anyway.
      * @remarks A bare `Vector3` is taken to mean the same world the entity is already in;
      * moving between worlds goes through the world change on `Player`, not through here.
      */
@@ -784,6 +786,10 @@ export class Entity {
         yaw?: number;
         headYaw?: number;
     }): Promise<void> {
+        const coordinates = [position.getX(), position.getY(), position.getZ()];
+        if (!coordinates.every(Number.isFinite))
+            throw new RangeError(`Cannot move ${this.getName()} to a non-finite position (${coordinates.join(', ')})`);
+
         this.pitch = pitch;
         this.yaw = yaw;
         this.headYaw = headYaw;
