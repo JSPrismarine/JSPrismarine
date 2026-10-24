@@ -1,7 +1,9 @@
+import { loadDatapack } from './datapack';
 import type { Diagnostic } from './diagnostics';
 import { DiagnosticCollector } from './diagnostics';
 import type { FormatVersion } from './formatVersion';
 import { parseVersion } from './formatVersion';
+import type { JavaRegistryId } from './javaRegistries';
 import { parseLenientJson } from './lenientJson';
 import { parseManifest } from './manifest';
 import type { RegistryId } from './registries';
@@ -15,7 +17,7 @@ import { structuralValidator } from './validation';
 export interface Definition {
     /** The identifier the definition is registered under; a pack-relative path for the path-addressed registries. */
     identifier: string;
-    registry: RegistryId;
+    registry: RegistryId | JavaRegistryId;
     /** The name of the pack the winning definition came from. */
     pack: string;
     /** The pack-relative path of the file. */
@@ -27,7 +29,10 @@ export interface Definition {
 }
 
 /** The composed result of a load: per registry, identifier to winning definition. */
-export type Definitions = Readonly<Record<RegistryId, ReadonlyMap<string, Definition>>>;
+export type Definitions = Readonly<Record<RegistryId | JavaRegistryId, ReadonlyMap<string, Definition>>>;
+
+/** The mutable registries the loaders fill while a stack composes. */
+export type DefinitionRegistries = Record<RegistryId | JavaRegistryId, Map<string, Definition>>;
 
 /** Options for {@link load}. */
 export interface LoadOptions {
@@ -72,7 +77,7 @@ const decoder = new TextDecoder();
 export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult => {
     const validator = options.validator ?? structuralValidator;
     const collector = new DiagnosticCollector();
-    const registries: Record<RegistryId, Map<string, Definition>> = {
+    const registries: DefinitionRegistries = {
         blocks: new Map(),
         items: new Map(),
         entities: new Map(),
@@ -83,10 +88,23 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
         biomes: new Map(),
         features: new Map(),
         featureRules: new Map(),
-        itemCatalog: new Map()
+        itemCatalog: new Map(),
+        lootTablesJava: new Map(),
+        recipesJava: new Map(),
+        advancements: new Map(),
+        tags: new Map(),
+        enchantments: new Map(),
+        damageTypes: new Map(),
+        predicates: new Map(),
+        itemModifiers: new Map()
     };
 
     for (const source of stack) {
+        if (source.kind === 'datapack') {
+            loadDatapack(source.path, registries, validator, collector);
+            continue;
+        }
+
         const sourceDiagnostics: Diagnostic[] = [];
         const packs = expandSource(source, sourceDiagnostics);
         for (const diagnostic of sourceDiagnostics) collector.add(diagnostic);
@@ -143,7 +161,7 @@ const loadManifest = (
 
 /** Parses, validates and registers one definition file; the latest pack wins by identifier. */
 const loadDefinitionFile = (
-    registries: Record<RegistryId, Map<string, Definition>>,
+    registries: DefinitionRegistries,
     pack: string,
     path: string,
     bytes: Uint8Array,
