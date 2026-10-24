@@ -2,6 +2,7 @@ import ActorLink from './ActorLink';
 import BlockPos from './BlockPos';
 import { ChunkPos } from './ChunkPos';
 import { DataItem } from './DataItem';
+import DimensionDefinition from './DimensionDefinition';
 import EduSharedUriResource from './EduSharedUriResource';
 import type { EduSharedUriResourceData } from './EduSharedUriResource';
 import Experiments from './Experiments';
@@ -26,6 +27,7 @@ export {
     BlockPos,
     ChunkPos,
     DataItem,
+    DimensionDefinition,
     EduSharedUriResource,
     Experiments,
     ItemData,
