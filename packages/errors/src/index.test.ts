@@ -3,23 +3,22 @@ import { describe, expect, it } from 'vitest';
 import * as AllFromErrors from './';
 
 const { ErrorKind: _errorKind, Error: _error, ...Errors } = AllFromErrors;
-const keys = Object.keys(Errors) as Array<keyof typeof Errors>;
 
 describe('errors', () => {
-    for (const key of keys) {
+    for (const [key, ErrorClass] of Object.entries(Errors)) {
         describe(key, () => {
             it('should have correct name', () => {
-                const error = new Errors[key]();
+                const error = new ErrorClass();
                 expect(error.name).toBe(key);
             });
 
             it('should have a message', () => {
-                const error = new Errors[key]();
+                const error = new ErrorClass();
                 expect(error.message).not.toBe('');
             });
 
             it('should have a code', () => {
-                const error = new Errors[key]();
+                const error = new ErrorClass();
                 expect(error.code).not.toBe('');
             });
         });
