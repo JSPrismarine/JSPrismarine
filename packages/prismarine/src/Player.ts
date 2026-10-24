@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype, getGametypeId } from '@jsprismarine/minecraft';
+import { DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { CHAT_TEXT_TYPE, Chat, ChatType } from './chat/Chat';
@@ -437,9 +437,11 @@ export default class Player extends Human {
      * player count for as long as the process ran, because the pings kept the session from
      * ever timing out.
      * @param {string} [reason='unknown reason'] - Shown to the client.
+     * @param {DisconnectReason} [code=DisconnectReason.KICKED] - The code the client shows
+     * beside the reason. `Server.shutdown` passes `SHUTDOWN`.
      */
-    public async kick(reason = 'unknown reason'): Promise<void> {
-        await this.getNetworkSession().getConnection().disconnect(reason, false);
+    public async kick(reason = 'unknown reason', code: DisconnectReason = DisconnectReason.KICKED): Promise<void> {
+        await this.getNetworkSession().getConnection().disconnect(reason, false, code);
         this.server.getLogger().verbose(`Player with id §b${this.getRuntimeId()}§r was kicked: ${reason}`);
     }
 

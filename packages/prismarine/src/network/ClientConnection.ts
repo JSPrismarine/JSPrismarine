@@ -2,6 +2,7 @@ import type { PlayerSession } from '../';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { RakNetSession } from '@jsprismarine/raknet';
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import assert from 'assert';
 import MinecraftSession from './MinecraftSession';
 import { DisconnectPacket } from './Packets';
@@ -62,14 +63,21 @@ export default class ClientConnection extends MinecraftSession {
     /**
      * The one way out: tells the client why, releases the player, and hangs up on RakNet.
      *
-     * Awaitable because the caller may be about to close the socket - `kickAllPlayers` runs
-     * immediately before `RakNetListener.kill` - and a goodbye that has not been framed yet
-     * when the socket goes is a goodbye nobody receives.
+     * Awaitable because the caller may be about to close the socket. `Server.shutdown` kicks
+     * everyone immediately before `RakNetListener.kill`, and a goodbye that has not been
+     * framed yet when the socket goes is a goodbye nobody receives.
      * @param reason - shown to the client unless `hideReason`.
      * @param hideReason - send the disconnect screen with no message on it.
+     * @param code - the `DisconnectReason` the client maps to its disconnect screen's error
+     * code. Every server-initiated disconnect used to leave it at `UNKNOWN`.
      */
-    public async disconnect(reason = 'disconnect.disconnected', hideReason = true): Promise<void> {
+    public async disconnect(
+        reason = 'disconnect.disconnected',
+        hideReason = true,
+        code: DisconnectReason = DisconnectReason.DISCONNECTED
+    ): Promise<void> {
         const packet = new DisconnectPacket();
+        packet.reason = code;
         packet.skipMessage = hideReason;
         packet.message = reason;
 
