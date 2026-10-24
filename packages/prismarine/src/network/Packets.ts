@@ -81,6 +81,7 @@ import SetTimePacket from './packet/SetTimePacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
 import StartGamePacket from './packet/StartGamePacket';
 import SubChunkRequestPacket from './packet/SubChunkRequestPacket';
+import SubClientLoginPacket from './packet/SubClientLoginPacket';
 import TextPacket from './packet/TextPacket';
 import TickingAreasLoadStatusPacket from './packet/TickingAreasLoadStatusPacket';
 import TakeItemActorPacket from './packet/TakeItemActorPacket';
@@ -182,6 +183,7 @@ export {
     ShowProfilePacket,
     StartGamePacket,
     SubChunkRequestPacket,
+    SubClientLoginPacket,
     TextPacket,
     TakeItemActorPacket,
     TickingAreasLoadStatusPacket,

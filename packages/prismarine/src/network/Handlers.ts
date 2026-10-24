@@ -47,6 +47,7 @@ import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitia
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOptionsHandler';
 import SubChunkRequestHandler from './handler/SubChunkRequestHandler';
+import SubClientLoginHandler from './handler/SubClientLoginHandler';
 import TextHandler from './handler/TextHandler';
 import TickingAreasLoadStatusHandler from './handler/TickingAreasLoadStatusHandler';
 import UpdateClientOptionsHandler from './handler/UpdateClientOptionsHandler';
@@ -101,6 +102,7 @@ export {
     SetPlayerGameTypeHandler,
     SetPlayerInventoryOptionsHandler,
     SubChunkRequestHandler,
+    SubClientLoginHandler,
     TextHandler,
     TickingAreasLoadStatusHandler,
     UpdateClientOptionsHandler

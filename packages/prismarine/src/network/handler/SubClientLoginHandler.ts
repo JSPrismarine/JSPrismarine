@@ -10,8 +10,9 @@ import type PacketHandler from './PacketHandler';
  * The attempt is recorded at debug level and dropped. Known gap: the server binds one player
  * to one connection, so there is nowhere to put a sub-client. Granting one would need the
  * session to hold several players and every outgoing packet to carry the right sub-client id
- * in its header. The client stays on the split screen waiting screen until the player backs
- * out of it.
+ * in its header. Answering the sub-client with `PlayStatus(LoginFailed_ServerFullSubClient)`
+ * would also need the header's sender sub-client id, which `DataPacket` reads but does not
+ * expose. The client stays on the split screen waiting screen until the player backs out of it.
  */
 export default class SubClientLoginHandler implements PacketHandler<SubClientLoginPacket> {
     public static NetID = Identifiers.SubClientLoginPacket;
