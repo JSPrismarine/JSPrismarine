@@ -140,4 +140,4 @@ export const decodeDigest = (value: Buffer): Buffer[] => {
     return Array.from({ length: value.byteLength / 8 }, (_, i) => value.subarray(i * 8, i * 8 + 8));
 };
 
-export const encodeDigest = (uniqueIds: readonly Buffer[]): Buffer => Buffer.concat(uniqueIds as Buffer[]);
+export const encodeDigest = (uniqueIds: readonly Buffer[]): Buffer => Buffer.concat(uniqueIds);
