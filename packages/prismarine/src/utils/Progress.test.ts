@@ -5,7 +5,7 @@ import Progress from './Progress';
 /** Captures what would have been written to a terminal. */
 const fakeStream = () => {
     const written: string[] = [];
-    return { written, stream: { write: (chunk: string) => written.push(chunk) } as any };
+    return { written, stream: { write: (chunk: string) => written.push(chunk) } };
 };
 
 describe('utils', () => {
