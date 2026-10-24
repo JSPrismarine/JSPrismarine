@@ -16,6 +16,7 @@ export class SimpleCommandExceptionType implements CommandExceptionType {
 
     public constructor(message: Message) {
         this.message = message;
+        (Error as any).captureStackTrace?.(this, SimpleCommandExceptionType);
     }
 
     public create(): CommandSyntaxException {
@@ -36,22 +37,15 @@ export class DynamicCommandExceptionType implements CommandExceptionType {
 
     public constructor(fn: (...args: any[]) => Message) {
         this.fn = fn;
-    }
-
-    /**
-     * Calls the message factory with the arguments spelled out: the built-in factories take
-     * at most two, and positional calls lower where spread arguments do not.
-     */
-    private message(args: any[]): Message {
-        return this.fn(args[0], args[1], args[2]);
+        (Error as any).captureStackTrace?.(this, DynamicCommandExceptionType);
     }
 
     public create(...args: any[]): CommandSyntaxException {
-        return new CommandSyntaxException(this, this.message(args));
+        return new CommandSyntaxException(this, this.fn(...args));
     }
 
     public createWithContext(reader: ImmutableStringReader, ...args: any[]): CommandSyntaxException {
-        return new CommandSyntaxException(this, this.message(args), reader.getString(), reader.getCursor());
+        return new CommandSyntaxException(this, this.fn(...args), reader.getString(), reader.getCursor());
     }
 }
 
@@ -212,6 +206,7 @@ export default class CommandSyntaxException extends Error {
 
     public constructor(type: CommandExceptionType, message: Message, input: string | null = null, cursor = -1) {
         super(message.getString());
+        (Error as any).captureStackTrace?.(this, CommandSyntaxException);
         this.type = type;
         this.__message = message;
         this.input = input;

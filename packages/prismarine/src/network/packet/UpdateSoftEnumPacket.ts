@@ -5,14 +5,6 @@ import DataPacket from './DataPacket';
 export default class UpdateSoftEnumPacket extends DataPacket {
     public static NetID = Identifiers.UpdateSoftEnumPacket;
 
-    public override getId(): number {
-        return UpdateSoftEnumPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'UpdateSoftEnumPacket';
-    }
-
     public TYPE_ADD = 0;
     public TYPE_REMOVE = 1;
     public TYPE_SET = 2;

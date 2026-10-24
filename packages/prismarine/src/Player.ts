@@ -518,7 +518,7 @@ export default class Player extends Human {
     }
 
     public async setGamemode(mode?: Gametype): Promise<void> {
-        if (mode === undefined || mode === null) mode = this.gamemode;
+        mode ??= this.gamemode;
 
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.server.post(['playerSetGamemode', event]);

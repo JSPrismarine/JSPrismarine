@@ -8,14 +8,6 @@ import DataPacket from './DataPacket';
 export default class AddPlayerPacket extends DataPacket {
     public static NetID = Identifiers.AddPlayerPacket;
 
-    public override getId(): number {
-        return AddPlayerPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'AddPlayerPacket';
-    }
-
     public uuid!: UUID;
     public name!: string;
     public uniqueEntityId!: bigint;

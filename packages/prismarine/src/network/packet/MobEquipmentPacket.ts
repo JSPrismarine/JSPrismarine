@@ -19,14 +19,6 @@ import DataPacket from './DataPacket';
 export default class MobEquipmentPacket extends DataPacket {
     public static NetID = Identifiers.MobEquipmentPacket;
 
-    public override getId(): number {
-        return MobEquipmentPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'MobEquipmentPacket';
-    }
-
     public runtimeEntityId!: bigint;
     public item!: Item;
     public inventorySlot!: number;

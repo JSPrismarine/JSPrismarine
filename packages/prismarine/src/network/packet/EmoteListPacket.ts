@@ -5,14 +5,6 @@ import DataPacket from './DataPacket';
 export default class EmoteListPacket extends DataPacket {
     public static NetID = Identifiers.EmoteListPacket;
 
-    public override getId(): number {
-        return EmoteListPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'EmoteListPacket';
-    }
-
     public runtimeId!: number;
     public emoteIds: Set<UUID> = new Set();
 

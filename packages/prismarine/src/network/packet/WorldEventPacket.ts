@@ -18,14 +18,6 @@ import DataPacket from './DataPacket';
 export default class WorldEventPacket extends DataPacket {
     public static NetID = Identifiers.WorldEventPacket;
 
-    public override getId(): number {
-        return WorldEventPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'WorldEventPacket';
-    }
-
     public eventId!: LevelEvent;
     public position!: Vector3 | null;
     public data!: number;

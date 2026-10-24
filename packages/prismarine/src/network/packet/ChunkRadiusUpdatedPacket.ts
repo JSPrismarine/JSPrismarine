@@ -13,14 +13,6 @@ import DataPacket from './DataPacket';
 export default class ChunkRadiusUpdatedPacket extends DataPacket {
     public static NetID = Identifiers.ChunkRadiusUpdatedPacket;
 
-    public override getId(): number {
-        return ChunkRadiusUpdatedPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'ChunkRadiusUpdatedPacket';
-    }
-
     /**
      * The view distance as a radius
      */

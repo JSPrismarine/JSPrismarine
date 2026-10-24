@@ -11,14 +11,6 @@ export enum InteractAction {
 export default class InteractPacket extends DataPacket {
     public static NetID = Identifiers.InteractPacket;
 
-    public override getId(): number {
-        return InteractPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'InteractPacket';
-    }
-
     public action!: number;
     public target!: bigint;
 

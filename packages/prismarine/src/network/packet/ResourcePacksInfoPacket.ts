@@ -16,14 +16,6 @@ import DataPacket from './DataPacket';
 export default class ResourcePacksInfoPacket extends DataPacket {
     public static NetID = Identifiers.ResourcePacksInfoPacket;
 
-    public override getId(): number {
-        return ResourcePacksInfoPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'ResourcePacksInfoPacket';
-    }
-
     public resourcePackRequired!: boolean;
     public hasAddonPacks!: boolean;
     public hasScripts!: boolean;

@@ -42,6 +42,10 @@ export class BlockState {
      * A stable textual form, properties in alphabetical order: `minecraft:oak_log[pillar_axis=y]`.
      * Used as the cache key for runtime ids and in log messages.
      */
+    public get [Symbol.toStringTag](): string {
+        return `BlockState(${this.toString()})`;
+    }
+
     public toString(): string {
         const keys = Object.keys(this.properties).sort();
         if (keys.length === 0) return this.name;

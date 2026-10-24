@@ -13,14 +13,6 @@ import DataPacket from './DataPacket';
 export default class StartGamePacket extends DataPacket {
     public static NetID = Identifiers.StartGamePacket;
 
-    public override getId(): number {
-        return StartGamePacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'StartGamePacket';
-    }
-
     public entityId!: bigint;
     public runtimeEntityId!: bigint;
     public gamemode!: number;

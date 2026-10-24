@@ -14,10 +14,6 @@ const SHOVE = 0.4;
 export default class Egg extends Projectile {
     public static MOB_ID = 'minecraft:egg';
 
-    public override getType(): string {
-        return Egg.MOB_ID;
-    }
-
     protected override get gravity(): number {
         return GRAVITY;
     }
@@ -26,11 +22,7 @@ export default class Egg extends Projectile {
         return DRAG;
     }
 
-    protected override hit(target: Entity): Promise<boolean> {
-        return this.hitAsync(target);
-    }
-
-    private async hitAsync(target: Entity): Promise<boolean> {
+    protected override async hit(target: Entity): Promise<boolean> {
         return this.shoveAndVanish(target, SHOVE);
     }
 }

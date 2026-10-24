@@ -21,14 +21,6 @@ import DataPacket from './DataPacket';
 export default class BiomeDefinitionListPacket extends DataPacket {
     public static NetID = Identifiers.BiomeDefinitionListPacket;
 
-    public override getId(): number {
-        return BiomeDefinitionListPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'BiomeDefinitionListPacket';
-    }
-
     /** The definitions as the network carries them. Defaults to vanilla's. */
     public definitions: Buffer = biome_definitions_network;
 

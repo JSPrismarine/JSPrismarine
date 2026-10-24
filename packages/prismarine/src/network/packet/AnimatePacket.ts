@@ -21,14 +21,6 @@ import DataPacket from './DataPacket';
 export default class AnimatePacket extends DataPacket {
     public static NetID = Identifiers.AnimatePacket;
 
-    public override getId(): number {
-        return AnimatePacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'AnimatePacket';
-    }
-
     public action!: number;
     public runtimeEntityId!: bigint;
 

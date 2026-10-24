@@ -39,14 +39,6 @@ const categoryOf = (type: TextType): TextCategory => {
 export default class TextPacket extends DataPacket {
     public static NetID = Identifiers.TextPacket;
 
-    public override getId(): number {
-        return TextPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'TextPacket';
-    }
-
     /**
      * The type of the chat message.
      * Eg. Chat, Announcement, Json, etc.

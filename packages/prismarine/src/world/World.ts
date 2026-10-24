@@ -1273,7 +1273,7 @@ export class World implements Service {
                 // FIXME: This overwrites comments in the file.
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`),
                 JSON.stringify(data, null, 4),
-                'utf8'
+                { encoding: 'utf8', flush: true }
             );
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save player data`);

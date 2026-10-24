@@ -30,7 +30,7 @@ export abstract class BlockEntity {
     }
 
     public getId(): string {
-        return BlockEntity.ID;
+        return (this.constructor as typeof BlockEntity).ID;
     }
 
     public getPosition(): Vector3 {

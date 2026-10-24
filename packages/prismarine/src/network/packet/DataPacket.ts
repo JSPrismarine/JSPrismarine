@@ -59,12 +59,8 @@ export default class DataPacket extends BinaryStream {
         return super.getBuffer();
     }
 
-    /**
-     * The packet's network id. Every packet class overrides this with its own `NetID`;
-     * the base class has no id of its own.
-     */
     public getId(): number {
-        return DataPacket.NetID;
+        return (this.constructor as typeof DataPacket).NetID;
     }
 
     public getEncoded(): boolean {
@@ -77,7 +73,7 @@ export default class DataPacket extends BinaryStream {
      * @returns The packet's name
      */
     public getName(): string {
-        return 'DataPacket';
+        return this.constructor.name;
     }
 
     public decode(): void {

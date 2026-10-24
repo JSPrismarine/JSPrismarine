@@ -14,14 +14,6 @@ import DataPacket from './DataPacket';
  */
 export default class ContainerOpenPacket extends DataPacket {
     public static NetID = Identifiers.ContainerOpenPacket;
-
-    public override getId(): number {
-        return ContainerOpenPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'ContainerOpenPacket';
-    }
     public windowId!: number;
     public containerType!: number;
 

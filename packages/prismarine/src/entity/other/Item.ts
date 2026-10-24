@@ -54,10 +54,6 @@ const BODY_HEIGHT = 1.8;
 
 export class Item extends Entity {
     public static MOB_ID = 'minecraft:item';
-
-    public override getType(): string {
-        return Item.MOB_ID;
-    }
     private item?: ContainerEntry;
 
     /** Downward speed. Zero once it has settled, which is also how it knows it has. */

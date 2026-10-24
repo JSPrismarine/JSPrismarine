@@ -52,7 +52,7 @@ export class Vector3 extends Vector2 {
      * @returns {this} A new instance of the concrete class.
      */
     protected create(x: number, y: number, z: number): this {
-        return new Vector3(x, y, z) as this;
+        return new (this.constructor as new (x: number, y: number, z: number) => this)(x, y, z);
     }
 
     /**

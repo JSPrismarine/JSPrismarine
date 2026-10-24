@@ -6,14 +6,6 @@ import DataPacket from './DataPacket';
 export default class PlayerSkinPacket extends DataPacket {
     public static NetID = Identifiers.PlayerSkinPacket;
 
-    public override getId(): number {
-        return PlayerSkinPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'PlayerSkinPacket';
-    }
-
     public uuid!: UUID;
     public newSkinName!: string;
     public oldSkinName!: string;

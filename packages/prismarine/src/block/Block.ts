@@ -71,6 +71,9 @@ export class Block {
         this.networkId = (BlockIdMap as any)[parentName ?? name] as number;
     }
 
+    public get [Symbol.toStringTag]() {
+        return `Block(${this.toString()})`;
+    }
     public toString() {
         return this.name;
     }

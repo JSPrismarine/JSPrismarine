@@ -37,10 +37,6 @@ const MAX_FALL = 512;
 export default class FallingBlock extends Entity {
     public static MOB_ID = 'minecraft:falling_block';
 
-    public override getType(): string {
-        return FallingBlock.MOB_ID;
-    }
-
     /** The block this is, and will become again when it lands. */
     private readonly blockName: string;
 

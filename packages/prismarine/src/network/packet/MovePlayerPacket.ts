@@ -7,14 +7,6 @@ import DataPacket from './DataPacket';
 export default class MovePlayerPacket extends DataPacket {
     public static NetID = Identifiers.MovePlayerPacket;
 
-    public override getId(): number {
-        return MovePlayerPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'MovePlayerPacket';
-    }
-
     public runtimeEntityId!: bigint;
 
     public position!: Vector3;

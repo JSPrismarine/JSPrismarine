@@ -62,14 +62,6 @@ export interface AuthInputItemUse {
 export default class PlayerAuthInputPacket extends DataPacket {
     public static NetID = Identifiers.PlayerAuthInputPacket;
 
-    public override getId(): number {
-        return PlayerAuthInputPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'PlayerAuthInputPacket';
-    }
-
     public pitch = 0;
     public yaw = 0;
     /** The client's predicted position at the end of the tick. */

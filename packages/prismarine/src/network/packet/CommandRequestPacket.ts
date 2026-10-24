@@ -6,14 +6,6 @@ import DataPacket from './DataPacket';
 export default class CommandRequestPacket extends DataPacket {
     public static NetID = Identifiers.CommandRequestPacket;
 
-    public override getId(): number {
-        return CommandRequestPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'CommandRequestPacket';
-    }
-
     public commandName!: string;
     public commandOriginData!: CommandOriginData | null;
     public internal!: boolean;

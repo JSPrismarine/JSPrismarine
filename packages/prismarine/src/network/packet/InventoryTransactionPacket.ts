@@ -183,14 +183,6 @@ export interface RelaseItemData extends TransactionData {
 export default class InventoryTransactionPacket extends DataPacket {
     public static NetID = Identifiers.InventoryTransactionPacket;
 
-    public override getId(): number {
-        return InventoryTransactionPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'InventoryTransactionPacket';
-    }
-
     public legacyRequestId!: number;
     public legacySlotChanges!: LegacySlotChange[];
 

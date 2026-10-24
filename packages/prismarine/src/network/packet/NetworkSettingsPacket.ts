@@ -15,14 +15,6 @@ export enum CompressionThreshold {
 export default class NetworkSettingsPacket extends DataPacket {
     public static NetID = Identifiers.NetworkSettingsPacket;
 
-    public override getId(): number {
-        return NetworkSettingsPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'NetworkSettingsPacket';
-    }
-
     public compressionThreshold!: number;
     public compressionAlgorithm!: number;
 

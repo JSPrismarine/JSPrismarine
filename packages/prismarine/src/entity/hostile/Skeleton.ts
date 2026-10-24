@@ -10,10 +10,6 @@ const BOW = new Item({ id: 0, name: 'minecraft:bow' });
 export default class Skeleton extends Mob {
     public static MOB_ID = 'minecraft:skeleton';
 
-    public override getType(): string {
-        return Skeleton.MOB_ID;
-    }
-
     public constructor(options: { position: Position; pitch?: number; yaw?: number; headYaw?: number }) {
         super(options);
 

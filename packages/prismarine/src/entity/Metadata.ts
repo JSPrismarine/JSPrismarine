@@ -54,21 +54,6 @@ export enum FlagType {
     VECTOR
 }
 
-/** The enum member's name for an error message, spelled out because enums only index by constants. */
-const FLAG_TYPE_NAMES: Record<number, string> = {
-    [FlagType.BYTE]: 'BYTE',
-    [FlagType.SHORT]: 'SHORT',
-    [FlagType.INT]: 'INT',
-    [FlagType.FLOAT]: 'FLOAT',
-    [FlagType.STRING]: 'STRING',
-    [FlagType.ITEM]: 'ITEM',
-    [FlagType.POSITION]: 'POSITION',
-    [FlagType.LONG]: 'LONG',
-    [FlagType.VECTOR]: 'VECTOR'
-};
-
-const flagTypeName = (type: FlagType): string => FLAG_TYPE_NAMES[type] ?? String(type);
-
 /**
  * How long an entity can stay underwater, in ticks - fifteen seconds, as in vanilla.
  */
@@ -248,7 +233,9 @@ export class MetadataWriter {
                     // `ITEM` is the remaining one, and it carries an NBT compound this has no
                     // writer for. Named rather than numbered, because a number here cost an
                     // afternoon.
-                    throw new Error(`Metadata type ${flagTypeName(value[0])} (${value[0]}) cannot be written yet`);
+                    throw new Error(
+                        `Metadata type ${FlagType[value[0]] ?? value[0]} (${value[0]}) cannot be written yet`
+                    );
             }
         }
     }
