@@ -37,7 +37,8 @@
         "lint:biome": "biome lint .",
         "format:biome": "biome lint --write .",
         "package:scriptc": "scriptc build ./packages/server/src/Server.ts --npm-static auto --out ./dist/prismarine-scriptc",
-        "package:scriptc:coverage": "scriptc coverage ./packages/server/src/Server.ts"
+        "package:scriptc:coverage": "scriptc coverage ./packages/server/src/Server.ts",
+        "lint:jsdoc": "node scripts/check-jsdoc.mts"
     },
     "repository": {
         "type": "git",
