@@ -1,5 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
+import * as Handlers from '../Handlers';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
@@ -30,5 +31,10 @@ describe('ShowCreditsHandler', () => {
         expect(run(CreditsState.Start)).toEqual([
             'Steve reported the end credits started. The server never starts them'
         ]);
+    });
+
+    it('is registered for packet 0x4b', () => {
+        expect(Handlers.ShowCreditsHandler).toBe(ShowCreditsHandler);
+        expect(ShowCreditsHandler.NetID).toBe(0x4b);
     });
 });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import * as Packets from '../Packets';
 import UUID from '../../utils/UUID';
 import ShowStoreOfferPacket, { ShowStoreOfferRedirectType } from './ShowStoreOfferPacket';
 
@@ -27,5 +28,10 @@ describe('ShowStoreOfferPacket', () => {
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(encoded);
+    });
+
+    it('is registered for packet 0x5b', () => {
+        expect(Packets.ShowStoreOfferPacket).toBe(ShowStoreOfferPacket);
+        expect(ShowStoreOfferPacket.NetID).toBe(0x5b);
     });
 });

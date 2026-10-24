@@ -1,5 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
+import * as Handlers from '../Handlers';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
@@ -28,5 +29,10 @@ describe('NpcRequestHandler', () => {
 
     it('falls back to the raw number for a request type it does not know', () => {
         expect(run(99)).toEqual(['Steve sent 99 to NPC 7, which the server has no NPCs to apply']);
+    });
+
+    it('is registered for packet 0x62', () => {
+        expect(Handlers.NpcRequestHandler).toBe(NpcRequestHandler);
+        expect(NpcRequestHandler.NetID).toBe(0x62);
     });
 });

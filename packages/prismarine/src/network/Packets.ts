@@ -41,13 +41,16 @@ import LoginPacket from './packet/LoginPacket';
 import MapInfoRequestPacket from './packet/MapInfoRequestPacket';
 import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
 import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
 import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
 import NetworkStackLatencyPacket from './packet/NetworkStackLatencyPacket';
+import NpcRequestPacket from './packet/NpcRequestPacket';
 import OnScreenTextureAnimationPacket from './packet/OnScreenTextureAnimationPacket';
 import PacketViolationWarningPacket from './packet/PacketViolationWarningPacket';
+import PhotoTransferPacket from './packet/PhotoTransferPacket';
 import PlaySoundPacket from './packet/PlaySoundPacket';
 import PlayStatusPacket from './packet/PlayStatusPacket';
 import PlayerActionPacket from './packet/PlayerActionPacket';
@@ -56,6 +59,7 @@ import PlayerListPacket from './packet/PlayerListPacket';
 import PlayerLocationPacket from './packet/PlayerLocationPacket';
 import PlayerSkinPacket from './packet/PlayerSkinPacket';
 import PlayerToggleCrafterSlotRequestPacket from './packet/PlayerToggleCrafterSlotRequestPacket';
+import PurchaseReceiptPacket from './packet/PurchaseReceiptPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import RequestAbilityPacket from './packet/RequestAbilityPacket';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
@@ -80,7 +84,10 @@ import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitiali
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
 import SetTimePacket from './packet/SetTimePacket';
+import SetTitlePacket from './packet/SetTitlePacket';
+import ShowCreditsPacket from './packet/ShowCreditsPacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
+import ShowStoreOfferPacket from './packet/ShowStoreOfferPacket';
 import StartGamePacket from './packet/StartGamePacket';
 import SubChunkRequestPacket from './packet/SubChunkRequestPacket';
 import SubClientLoginPacket from './packet/SubClientLoginPacket';
@@ -146,13 +153,16 @@ export {
     MapInfoRequestPacket,
     MobArmorEquipmentPacket,
     MobEquipmentPacket,
+    ModalFormRequestPacket,
     ModalFormResponsePacket,
     MoveActorAbsolutePacket,
     MovePlayerPacket,
     NetworkChunkPublisherUpdatePacket,
     NetworkStackLatencyPacket,
+    NpcRequestPacket,
     OnScreenTextureAnimationPacket,
     PacketViolationWarningPacket,
+    PhotoTransferPacket,
     PlaySoundPacket,
     PlayStatusPacket,
     PlayerActionPacket,
@@ -161,6 +171,7 @@ export {
     PlayerLocationPacket,
     PlayerSkinPacket,
     PlayerToggleCrafterSlotRequestPacket,
+    PurchaseReceiptPacket,
     RemoveActorPacket,
     RequestAbilityPacket,
     RequestChunkRadiusPacket,
@@ -185,7 +196,10 @@ export {
     SetPlayerGameTypePacket,
     SetPlayerInventoryOptionsPacket,
     SetTimePacket,
+    SetTitlePacket,
+    ShowCreditsPacket,
     ShowProfilePacket,
+    ShowStoreOfferPacket,
     StartGamePacket,
     SubChunkRequestPacket,
     SubClientLoginPacket,

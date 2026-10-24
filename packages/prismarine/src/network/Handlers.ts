@@ -24,12 +24,15 @@ import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
 import MovePlayerHandler from './handler/MovePlayerHandler';
 import NetworkStackLatencyHandler from './handler/NetworkStackLatencyHandler';
+import NpcRequestHandler from './handler/NpcRequestHandler';
 import PacketViolationWarningHandler from './handler/PacketViolationWarningHandler';
+import PhotoTransferHandler from './handler/PhotoTransferHandler';
 import PlayerActionHandler from './handler/PlayerActionHandler';
 import PlayerAuthInputHandler from './handler/PlayerAuthInputHandler';
 import PlayerLocationHandler from './handler/PlayerLocationHandler';
 import PlayerSkinHandler from './handler/PlayerSkinHandler';
 import PlayerToggleCrafterSlotRequestHandler from './handler/PlayerToggleCrafterSlotRequestHandler';
+import PurchaseReceiptHandler from './handler/PurchaseReceiptHandler';
 import RequestAbilityHandler from './handler/RequestAbilityHandler';
 import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
 import RequestNetworkSettingsHandler from './handler/RequestNetworkSettingsHandler';
@@ -47,6 +50,7 @@ import SetDifficultyHandler from './handler/SetDifficultyHandler';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOptionsHandler';
+import ShowCreditsHandler from './handler/ShowCreditsHandler';
 import SubChunkRequestHandler from './handler/SubChunkRequestHandler';
 import SubClientLoginHandler from './handler/SubClientLoginHandler';
 import TextHandler from './handler/TextHandler';
@@ -80,12 +84,15 @@ export {
     ModalFormResponseHandler,
     MovePlayerHandler,
     NetworkStackLatencyHandler,
+    NpcRequestHandler,
     PacketViolationWarningHandler,
+    PhotoTransferHandler,
     PlayerActionHandler,
     PlayerAuthInputHandler,
     PlayerLocationHandler,
     PlayerSkinHandler,
     PlayerToggleCrafterSlotRequestHandler,
+    PurchaseReceiptHandler,
     RequestAbilityHandler,
     RequestChunkRadiusHandler,
     RequestNetworkSettingsHandler,
@@ -103,6 +110,7 @@ export {
     SetLocalPlayerAsInitializedHandler,
     SetPlayerGameTypeHandler,
     SetPlayerInventoryOptionsHandler,
+    ShowCreditsHandler,
     SubChunkRequestHandler,
     SubClientLoginHandler,
     TextHandler,
