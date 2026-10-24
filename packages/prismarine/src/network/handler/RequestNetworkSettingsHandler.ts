@@ -6,7 +6,7 @@ import type PreLoginPacketHandler from './PreLoginPacketHandler';
 import type ClientConnection from '../ClientConnection';
 import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
-import PlayStatusType from '../type/PlayStatusType';
+import PlayStatus from '../type/PlayStatus';
 
 export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<RequestNetworkSettingsPacket> {
     public static NetID = Identifiers.RequestNetworkSettingsPacket;
@@ -58,7 +58,7 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
             );
 
         const playStatus = new PlayStatusPacket();
-        playStatus.status = outdatedClient ? PlayStatusType.LoginFailedClient : PlayStatusType.LoginFailedServer;
+        playStatus.status = outdatedClient ? PlayStatus.LoginFailed_ClientOld : PlayStatus.LoginFailed_ServerOld;
         await connection.sendDataPacket(playStatus, false);
 
         await connection.disconnect(

@@ -20,7 +20,7 @@ import type DataPacket from '../packet/DataPacket';
 import LoginPacket from '../packet/LoginPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
-import PlayStatusType from '../type/PlayStatusType';
+import PlayStatus from '../type/PlayStatus';
 import LoginHandler from './LoginHandler';
 
 /** A well-formed client identity; every real login carries one. */
@@ -273,7 +273,7 @@ describe('network', () => {
 
                 const [status] = sent;
                 assert(status instanceof PlayStatusPacket);
-                expect(status.status).toBe(PlayStatusType.LoginFailedClient);
+                expect(status.status).toBe(PlayStatus.LoginFailed_ClientOld);
                 expect(sent).toHaveLength(1);
                 expect(disconnect).toHaveBeenCalledWith(
                     `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}`,
@@ -310,7 +310,7 @@ describe('network', () => {
                 const [status] = sent;
                 expect(status).toBeInstanceOf(PlayStatusPacket);
                 assert(status instanceof PlayStatusPacket);
-                expect(status.status).toBe(PlayStatusType.LoginFailedServerFull);
+                expect(status.status).toBe(PlayStatus.LoginFailed_ServerFullSubClient);
                 expect(disconnect).toHaveBeenCalledWith('Server is full!', false, DisconnectReason.SERVER_FULL);
                 expect(connection.attachPlayerSession).not.toHaveBeenCalled();
             });
@@ -330,7 +330,7 @@ describe('network', () => {
 
                 const [status] = sent;
                 assert(status instanceof PlayStatusPacket);
-                expect(status.status).toBe(PlayStatusType.LoginFailedServer);
+                expect(status.status).toBe(PlayStatus.LoginFailed_ServerOld);
                 expect(sent).toHaveLength(1);
                 expect(disconnect).toHaveBeenCalledWith('Outdated server!', false, DisconnectReason.OUTDATED_SERVER);
             });

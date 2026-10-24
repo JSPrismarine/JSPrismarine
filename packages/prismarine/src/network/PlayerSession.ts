@@ -41,7 +41,7 @@ import MovePlayerPacket from './packet/MovePlayerPacket';
 import type { ChunkCoord } from './packet/NetworkChunkPublisherUpdatePacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
 import PlayStatusPacket from './packet/PlayStatusPacket';
-import PlayStatusType from './type/PlayStatusType';
+import PlayStatus from './type/PlayStatus';
 import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/PlayerListPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import type { RespawnState } from './packet/RespawnPacket';
@@ -992,7 +992,7 @@ export default class PlayerSession {
         if (this.loadingChunks.size > 0 || this.chunkSendQueue.length > 0) return;
 
         this.spawnChunksPending = false;
-        await this.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.sendPlayStatus(PlayStatus.PlayerSpawn);
         await this.reconcileTrackedEntities();
     }
 
@@ -1563,7 +1563,7 @@ export default class PlayerSession {
     }
 
     /** Sends a `PlayStatus` to this player's client. */
-    public async sendPlayStatus(status: PlayStatusType): Promise<void> {
+    public async sendPlayStatus(status: PlayStatus): Promise<void> {
         const pk = new PlayStatusPacket();
         pk.status = status;
         await this.connection.sendDataPacket(pk, true);

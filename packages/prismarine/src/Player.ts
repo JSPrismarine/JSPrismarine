@@ -27,7 +27,7 @@ import { ActorEvent } from './network/packet/ActorEventPacket';
 import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import PositionMode from './network/type/PositionMode';
-import PlayStatusType from './network/type/PlayStatusType';
+import PlayStatus from './network/type/PlayStatus';
 import TextPacketType from './network/type/TextPacketType';
 import type Device from './utils/Device';
 import Timer from './utils/Timer';
@@ -429,20 +429,20 @@ export default class Player extends Human {
         await world.addEntity(this);
 
         await changeDimension(Dimension.OVERWORLD);
-        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await session.sendPlayStatus(PlayStatus.PlayerSpawn);
         await changeDimension(Dimension.NETHER);
-        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await session.sendPlayStatus(PlayStatus.PlayerSpawn);
 
         await this.sendInitialSpawnChunks();
 
         await changeDimension(Dimension.NETHER);
-        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await session.sendPlayStatus(PlayStatus.PlayerSpawn);
         await changeDimension(Dimension.OVERWORLD);
-        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await session.sendPlayStatus(PlayStatus.PlayerSpawn);
 
         await this.getNetworkSession().clearChunks();
         await this.getNetworkSession().needNewChunks();
-        await this.getNetworkSession().sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await this.getNetworkSession().sendPlayStatus(PlayStatus.PlayerSpawn);
     }
 
     public isOnline(): boolean {

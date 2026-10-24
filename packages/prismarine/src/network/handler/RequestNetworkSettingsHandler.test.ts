@@ -11,7 +11,7 @@ import type DataPacket from '../packet/DataPacket';
 import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
 import RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
-import PlayStatusType from '../type/PlayStatusType';
+import PlayStatus from '../type/PlayStatus';
 import RequestNetworkSettingsHandler from './RequestNetworkSettingsHandler';
 
 /**
@@ -79,7 +79,7 @@ describe('RequestNetworkSettingsHandler', () => {
         expect(sent).toHaveLength(1);
         const { packet, comp } = sent[0]!;
         expect(packet).toBeInstanceOf(PlayStatusPacket);
-        expect(packet).toMatchObject({ status: PlayStatusType.LoginFailedClient });
+        expect(packet).toMatchObject({ status: PlayStatus.LoginFailed_ClientOld });
         // Compression was never agreed, so a prefixed batch would be read as garbage.
         expect(comp).toBe(false);
         // The status first, so the client has a screen to put the reason on.
@@ -98,7 +98,7 @@ describe('RequestNetworkSettingsHandler', () => {
         await new RequestNetworkSettingsHandler().handle(request(Identifiers.Protocol + 10), server, connection);
 
         expect(sent).toHaveLength(1);
-        expect(sent[0]!.packet).toMatchObject({ status: PlayStatusType.LoginFailedServer });
+        expect(sent[0]!.packet).toMatchObject({ status: PlayStatus.LoginFailed_ServerOld });
         expect(disconnect).toHaveBeenCalledWith('Outdated server!', false, DisconnectReason.OUTDATED_SERVER);
     });
 

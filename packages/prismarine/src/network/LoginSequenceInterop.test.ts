@@ -22,7 +22,7 @@ import ServerRequestNetworkSettingsPacket from './packet/RequestNetworkSettingsP
 import ServerResourcePackClientResponsePacket from './packet/ResourcePackClientResponsePacket';
 import ServerResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ServerResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
-import PlayStatusType from './type/PlayStatusType';
+import ServerPlayStatus from './type/PlayStatus';
 import ResourcePackStatusType from './type/ResourcePackStatusType';
 
 import type DataPacket from './packet/DataPacket';
@@ -133,12 +133,12 @@ describe('login sequence interop', () => {
     describe('PlayStatus', () => {
         it('agrees byte for byte and both sides read the whole packet', () => {
             const server = new ServerPlayStatusPacket();
-            server.status = PlayStatusType.PlayerSpawn;
+            server.status = ServerPlayStatus.PlayerSpawn;
             const bytes = serverBytes(server);
 
             expect(clientBytes(new PlayStatusPacket({ status: PlayStatus.PlayerSpawn }))).toEqual(bytes);
             expect(readAsClient(new PlayStatusPacket(), bytes).status).toBe(PlayStatus.PlayerSpawn);
-            expect(readAsServer(new ServerPlayStatusPacket(), bytes).status).toBe(PlayStatusType.PlayerSpawn);
+            expect(readAsServer(new ServerPlayStatusPacket(), bytes).status).toBe(ServerPlayStatus.PlayerSpawn);
         });
     });
 

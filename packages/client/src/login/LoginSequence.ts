@@ -226,13 +226,13 @@ export default class LoginSequence {
 
             // The refusals. Each is terminal and each is worth its own words: "login failed"
             // on its own sends people looking in the wrong place.
-            case PlayStatus.LoginFailedClient:
+            case PlayStatus.LoginFailed_ClientOld:
                 this.fail(new Error('The server refused the login: this client is out of date'));
                 break;
-            case PlayStatus.LoginFailedServer:
+            case PlayStatus.LoginFailed_ServerOld:
                 this.fail(new Error('The server refused the login: the server is out of date'));
                 break;
-            case PlayStatus.LoginFailedServerFull:
+            case PlayStatus.LoginFailed_ServerFullSubClient:
                 this.fail(new Error('The server refused the login: the server is full'));
                 break;
             default:

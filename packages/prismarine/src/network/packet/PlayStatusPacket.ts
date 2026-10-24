@@ -1,7 +1,7 @@
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
-import type PlayStatusType from '../type/PlayStatusType';
+import type PlayStatus from '../type/PlayStatus';
 
 /**
  * Tells the client how its login went, and later that the world is ready for it to spawn.
@@ -13,7 +13,7 @@ export default class PlayStatusPacket extends DataPacket {
     public static NetID = Identifiers.PlayStatusPacket;
 
     /** The `Status` field. */
-    public status!: PlayStatusType;
+    public status!: PlayStatus;
 
     /** Writes `Status` as a big-endian int32. */
     public encodePayload(): void {

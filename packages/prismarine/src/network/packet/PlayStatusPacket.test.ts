@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
-import PlayStatusType from '../type/PlayStatusType';
+import PlayStatus from '../type/PlayStatus';
 import PlayStatusPacket from './PlayStatusPacket';
 
 describe('network', () => {
@@ -9,7 +9,7 @@ describe('network', () => {
         describe('PlayStatusPacket', () => {
             it('writes the status as a big-endian int32 and nothing else', () => {
                 const pk = new PlayStatusPacket();
-                pk.status = PlayStatusType.PlayerSpawn;
+                pk.status = PlayStatus.PlayerSpawn;
                 pk.encode();
 
                 const payload = pk.getBuffer().subarray(1); // drop the packet id header
@@ -22,21 +22,21 @@ describe('network', () => {
                 pk.setReadBuffer(Buffer.from([0x02, 0x00, 0x00, 0x00, 0x07]));
                 pk.decode();
 
-                expect(pk.status).toBe(PlayStatusType.LoginFailedServerFull);
+                expect(pk.status).toBe(PlayStatus.LoginFailed_ServerFullSubClient);
                 expect(pk.feof()).toBe(true);
             });
 
             it('numbers the statuses as the protocol 2193 docs list them', () => {
-                expect(PlayStatusType.LoginSuccess).toBe(0);
-                expect(PlayStatusType.LoginFailedClient).toBe(1);
-                expect(PlayStatusType.LoginFailedServer).toBe(2);
-                expect(PlayStatusType.PlayerSpawn).toBe(3);
-                expect(PlayStatusType.LoginFailedInvalidTenant).toBe(4);
-                expect(PlayStatusType.LoginFailedVanillaEdu).toBe(5);
-                expect(PlayStatusType.LoginFailedEduVanilla).toBe(6);
-                expect(PlayStatusType.LoginFailedServerFull).toBe(7);
-                expect(PlayStatusType.LoginFailedEditorVanilla).toBe(8);
-                expect(PlayStatusType.LoginFailedVanillaEditor).toBe(9);
+                expect(PlayStatus.LoginSuccess).toBe(0);
+                expect(PlayStatus.LoginFailed_ClientOld).toBe(1);
+                expect(PlayStatus.LoginFailed_ServerOld).toBe(2);
+                expect(PlayStatus.PlayerSpawn).toBe(3);
+                expect(PlayStatus.LoginFailed_InvalidTenant).toBe(4);
+                expect(PlayStatus.LoginFailed_EditionMismatchEduToVanilla).toBe(5);
+                expect(PlayStatus.LoginFailed_EditionMismatchVanillaToEdu).toBe(6);
+                expect(PlayStatus.LoginFailed_ServerFullSubClient).toBe(7);
+                expect(PlayStatus.LoginFailed_EditorMismatchEditorToVanilla).toBe(8);
+                expect(PlayStatus.LoginFailed_EditorMismatchVanillaToEditor).toBe(9);
             });
 
             it('uses the network id the client expects', () => {

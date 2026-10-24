@@ -9,7 +9,7 @@ import Identifiers from '../Identifiers';
 import { PlayStatusPacket } from '../Packets';
 import type LoginPacket from '../packet/LoginPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
-import PlayStatusType from '../type/PlayStatusType';
+import PlayStatus from '../type/PlayStatus';
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
 
 export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> {
@@ -56,7 +56,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         // carries the matching reason and hangs up. Without it the connection stayed open.
         if (packet.protocol !== Identifiers.Protocol) {
             const outdatedClient = packet.protocol < Identifiers.Protocol;
-            playStatus.status = outdatedClient ? PlayStatusType.LoginFailedClient : PlayStatusType.LoginFailedServer;
+            playStatus.status = outdatedClient ? PlayStatus.LoginFailed_ClientOld : PlayStatus.LoginFailed_ServerOld;
             await connection.sendDataPacket(playStatus, true);
             await connection.disconnect(
                 outdatedClient
@@ -72,7 +72,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         // the server building a player it would only tear down again. The disconnect that
         // follows carries `ServerFull` and hangs up.
         if (server.getSessionManager().getAllPlayers().length >= server.getConfig().getMaxPlayers()) {
-            playStatus.status = PlayStatusType.LoginFailedServerFull;
+            playStatus.status = PlayStatus.LoginFailed_ServerFullSubClient;
             await connection.sendDataPacket(playStatus, true);
             await connection.disconnect('Server is full!', false, DisconnectReason.SERVER_FULL);
             return;
@@ -153,7 +153,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
             throw error;
         }
 
-        await session.sendPlayStatus(PlayStatusType.LoginSuccess);
+        await session.sendPlayStatus(PlayStatus.LoginSuccess);
 
         // Finalize connection handshake
         const resourcePacksInfo = new ResourcePacksInfoPacket();

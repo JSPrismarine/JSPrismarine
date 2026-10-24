@@ -4,31 +4,20 @@ import { PacketIdentifier } from '../PacketIdentifier';
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
 /**
- * The `PlayStatus` enum carried by `PlayStatusPacket`, numbered as the protocol 2193 docs list
- * them. Member names follow gophertunnel; the comment on each gives the docs name, so compare
- * by value when the two disagree.
+ * The docs' `PlayStatus` enum, the `Status` of a `PlayStatusPacket`, with the docs' member
+ * names and the values the protocol 2193 docs list.
  */
 export enum PlayStatus {
-    /** Docs: `LoginSuccess`. */
     LoginSuccess,
-    /** Docs: `LoginFailed_ClientOld`. */
-    LoginFailedClient,
-    /** Docs: `LoginFailed_ServerOld`. */
-    LoginFailedServer,
-    /** Docs: `PlayerSpawn`. */
+    LoginFailed_ClientOld,
+    LoginFailed_ServerOld,
     PlayerSpawn,
-    /** Docs: `LoginFailed_InvalidTenant`. */
-    LoginFailedInvalidTenant,
-    /** Docs: `LoginFailed_EditionMismatchEduToVanilla`. */
-    LoginFailedVanillaEdu,
-    /** Docs: `LoginFailed_EditionMismatchVanillaToEdu`. */
-    LoginFailedEduVanilla,
-    /** Docs: `LoginFailed_ServerFullSubClient`. */
-    LoginFailedServerFull,
-    /** Docs: `LoginFailed_EditorMismatchEditorToVanilla`. */
-    LoginFailedEditorVanilla,
-    /** Docs: `LoginFailed_EditorMismatchVanillaToEditor`. */
-    LoginFailedVanillaEditor
+    LoginFailed_InvalidTenant,
+    LoginFailed_EditionMismatchEduToVanilla,
+    LoginFailed_EditionMismatchVanillaToEdu,
+    LoginFailed_ServerFullSubClient,
+    LoginFailed_EditorMismatchEditorToVanilla,
+    LoginFailed_EditorMismatchVanillaToEditor
 }
 
 /** The one field of `PlayStatusPacket`. */

@@ -14,7 +14,7 @@ describe('PlayStatusPacket', () => {
         const stream = new NetworkBinaryStream(Buffer.from([0x02, 0x00, 0x00, 0x00, 0x07]));
         const data = new PlayStatusPacket().deserialize(stream);
 
-        expect(data).toEqual({ status: PlayStatus.LoginFailedServerFull });
+        expect(data).toEqual({ status: PlayStatus.LoginFailed_ServerFullSubClient });
         expect(stream.feof()).toBe(true);
     });
 });
