@@ -60,7 +60,7 @@ describe('network', () => {
 
                     writeActionType(out, ItemStackRequestActionType.PLACE);
                     out.writeByte(64); // Count.
-                    writeSlot(out, slot(0, 99)); // From the menu, not a real container.
+                    writeSlot(out, slot(0, ContainerUiId.CREATED_OUTPUT)); // The container a creative pick is taken from.
                     writeSlot(out, slot(3)); // Into the fourth inventory slot.
                 },
                 2
