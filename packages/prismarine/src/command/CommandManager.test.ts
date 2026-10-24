@@ -136,6 +136,26 @@ describe('command', () => {
             expect(orphaned).toEqual([]);
         });
 
+        it('should list each command once, with the overloads of every branch', async () => {
+            // The client keys commands by name. One entry per top-level argument node, which
+            // is what the tree walk used to produce, sent `/tp` four times and left the client
+            // with whichever copy it read last.
+            const commandManager = new CommandManager(server);
+            await commandManager.enable();
+
+            const list = commandManager.getCommandsList();
+            const names = list.map(([name]) => name);
+            expect(new Set(names).size).toBe(names.length);
+
+            const overloadsOf = (name: string) => list.find(([literal]) => literal === name)?.[2];
+            // `/tp <destination>`, `/tp <victim>`, `/tp <victim> <destination>` twice over.
+            expect(overloadsOf('tp')).toHaveLength(4);
+            // Bare `/time`, then `/time <action> <value>`.
+            expect(overloadsOf('time')?.map((overload) => overload.length)).toEqual([0, 2]);
+            // `/list` runs bare and takes nothing else.
+            expect(overloadsOf('list')).toEqual([[]]);
+        });
+
         it('should dispatch /gamerule to its executor', async () => {
             // The executor refuses non-player sources, and that refusal reaching the
             // console proves the dispatcher found the command under the name `/help` lists.

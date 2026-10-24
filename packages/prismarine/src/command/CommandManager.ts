@@ -28,8 +28,8 @@ import * as Commands from './Commands';
 export type CommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandExecutor>['getChild']>>;
 
 /**
- * A registered command variant: its name, its node, and each overload's arguments in input
- * order. A command that runs without arguments lists no overloads.
+ * A registered command: its name, its node, and each overload's arguments in input order. A
+ * command that runs without arguments has an empty overload for that form.
  */
 export type CommandListEntry = [name: string, node: CommandTreeNode, overloads: CommandArgumentType[][]];
 
@@ -141,7 +141,7 @@ export class CommandManager implements Service {
     }
 
     /**
-     * Get a list of all command variants.
+     * Get a list of all registered commands with the overloads the command tree spells out.
      *
      * @remarks
      * This is EXCLUDING legacy commands.
@@ -170,15 +170,16 @@ export class CommandManager implements Service {
             return result;
         };
 
-        const res = Array.from(this.dispatcher.getRoot().getChildren()).flatMap((command) => {
-            const branches: CommandArgumentType[][][] = [];
-            if (command.getCommand()) branches.push([]);
-
+        const res = Array.from(this.dispatcher.getRoot().getChildren()).map((command): CommandListEntry => {
+            // One entry per command, whatever the tree's shape. This used to return one entry
+            // per top-level argument node, so `/tp` reached the client four times over and the
+            // client, which keys commands by name, kept whichever copy it read last.
+            const overloads: CommandArgumentType[][] = command.getCommand() ? [[]] : [];
             for (const node of command.getChildren()) {
-                for (const branch of parseNode(node)) branches.push(traverse(branch));
+                for (const branch of parseNode(node)) overloads.push(...traverse(branch));
             }
 
-            return branches.map((branch): CommandListEntry => [command.getName(), command, branch]);
+            return [command.getName(), command, overloads];
         });
 
         res.toString = () => {
@@ -186,15 +187,13 @@ export class CommandManager implements Service {
                 .map((item) => {
                     if (!item[2].length) return `/${item[0]}`;
                     return item[2]
-                        .map(
-                            (entries) =>
-                                `/${item[0]} ${entries
-                                    .map((argument) =>
-                                        isCommandArgument(argument)
-                                            ? argument.getReadableType()
-                                            : argument.constructor.name
-                                    )
-                                    .join(' ')}`
+                        .map((entries) =>
+                            [
+                                `/${item[0]}`,
+                                ...entries.map((argument) =>
+                                    isCommandArgument(argument) ? argument.getReadableType() : argument.constructor.name
+                                )
+                            ].join(' ')
                         )
                         .join(`\n`);
                 })
