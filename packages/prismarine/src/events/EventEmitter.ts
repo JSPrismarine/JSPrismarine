@@ -150,7 +150,7 @@ export class EventEmitter {
         id: K,
         callback: (event: T extends readonly [K, infer U] ? U : never) => void
     ): this {
-        this.registry.add(id, callback as Listener);
+        this.registry.add(id, callback);
         return this;
     }
 
@@ -158,7 +158,7 @@ export class EventEmitter {
         id: K,
         callback: (event: T extends readonly [K, infer U] ? U : never) => void
     ): this {
-        this.registry.addOnce(id, callback as Listener);
+        this.registry.addOnce(id, callback);
         return this;
     }
 
@@ -166,7 +166,7 @@ export class EventEmitter {
         id: K,
         callback: (event: T extends readonly [K, infer U] ? U : never) => void
     ): this {
-        this.registry.remove(id, callback as Listener);
+        this.registry.remove(id, callback);
         return this;
     }
 
