@@ -2,6 +2,10 @@ import { getGametypeName } from '@jsprismarine/minecraft';
 import Player from '../Player';
 import type { Entity } from '../entity/Entity';
 
+const SORTS = ['nearest', 'furthest', 'random', 'arbitrary'] as const;
+type Sort = (typeof SORTS)[number];
+const isSort = (value: string): value is Sort => SORTS.some((sort) => sort === value);
+
 /**
  * Parse target selector argument.
  *
@@ -41,7 +45,7 @@ const ParseTargetSelector = ({
     const str = input.slice(1, input.length);
 
     // Type is always after the `a` symbol and always before the optional arguments
-    const type: 'a' | 'e' | 'p' | 'r' | 's' = str.split('[')[0] as any;
+    const type = str.split('[')[0];
 
     // Parse comma-separated arguments in the following format:
     // [arg=val,arg2=val2,arg3=val3]
@@ -55,7 +59,7 @@ const ParseTargetSelector = ({
 
     // Filters
     let limit = Number.MAX_SAFE_INTEGER,
-        sort: 'nearest' | 'furthest' | 'random' | 'arbitrary';
+        sort: Sort;
 
     // Apply filters based on type
     switch (type) {
@@ -110,18 +114,18 @@ const ParseTargetSelector = ({
                     (entity) =>
                         entity instanceof Player &&
                         (filter.reverse
-                            ? getGametypeName((entity as Player).gamemode).toLowerCase() !== filter.value.toLowerCase()
-                            : getGametypeName((entity as Player).gamemode).toLowerCase() === filter.value.toLowerCase())
+                            ? getGametypeName(entity.gamemode).toLowerCase() !== filter.value.toLowerCase()
+                            : getGametypeName(entity.gamemode).toLowerCase() === filter.value.toLowerCase())
                 );
                 break;
 
             case 'sort':
-                sort = filter.value as any;
+                if (isSort(filter.value)) sort = filter.value;
                 break;
 
             case 'c': // Bedrock
             case 'limit': // Java
-                limit = Number.parseInt(filter.value as any, 10);
+                limit = Number.parseInt(filter.value, 10);
                 break;
 
             default:
