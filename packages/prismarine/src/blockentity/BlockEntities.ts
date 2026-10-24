@@ -19,7 +19,7 @@ import { BlockEntity, clone } from './BlockEntity';
 /** A container's items, kept as written until the server has an inventory model to put them in. */
 abstract class Container extends BlockEntity {
     public getItems(): Set<NBTTagCompound> {
-        return (this.extra.getList('Items', false) as Set<NBTTagCompound> | null) ?? new Set();
+        return (this.extra.getList('Items', false) as Set<NBTTagCompound> | null) ?? new Set<NBTTagCompound>();
     }
 
     public isEmpty(): boolean {
@@ -35,6 +35,10 @@ abstract class Container extends BlockEntity {
 
 export class Chest extends Container {
     public static override readonly ID = 'Chest';
+
+    public override getId(): string {
+        return Chest.ID;
+    }
 
     public static fromNBT(nbt: NBTTagCompound): Chest {
         const { position, extra } = this.takeCommon(nbt);
@@ -52,6 +56,10 @@ export class Chest extends Container {
 export class Barrel extends Container {
     public static override readonly ID = 'Barrel';
 
+    public override getId(): string {
+        return Barrel.ID;
+    }
+
     public static fromNBT(nbt: NBTTagCompound): Barrel {
         const { position, extra } = this.takeCommon(nbt);
         return new Barrel(position, extra);
@@ -60,6 +68,10 @@ export class Barrel extends Container {
 
 export class ShulkerBox extends Container {
     public static override readonly ID = 'ShulkerBox';
+
+    public override getId(): string {
+        return ShulkerBox.ID;
+    }
 
     public static fromNBT(nbt: NBTTagCompound): ShulkerBox {
         const { position, extra } = this.takeCommon(nbt);
@@ -70,6 +82,10 @@ export class ShulkerBox extends Container {
 export class Hopper extends Container {
     public static override readonly ID = 'Hopper';
 
+    public override getId(): string {
+        return Hopper.ID;
+    }
+
     public static fromNBT(nbt: NBTTagCompound): Hopper {
         const { position, extra } = this.takeCommon(nbt);
         return new Hopper(position, extra);
@@ -78,6 +94,10 @@ export class Hopper extends Container {
 
 export class Furnace extends Container {
     public static override readonly ID = 'Furnace';
+
+    public override getId(): string {
+        return Furnace.ID;
+    }
 
     private burnTime: number;
     private cookTime: number;
@@ -128,6 +148,10 @@ export class Furnace extends Container {
 export class Sign extends BlockEntity {
     public static override readonly ID = 'Sign';
 
+    public override getId(): string {
+        return Sign.ID;
+    }
+
     private readonly frontText: string;
     private readonly backText: string;
 
@@ -170,6 +194,10 @@ const faceText = (face: NBTTagCompound | null): string | null => {
 export class Skull extends BlockEntity {
     public static override readonly ID = 'Skull';
 
+    public override getId(): string {
+        return Skull.ID;
+    }
+
     public static fromNBT(nbt: NBTTagCompound): Skull {
         const { position, extra } = this.takeCommon(nbt);
         return new Skull(position, extra);
@@ -187,6 +215,10 @@ export class Skull extends BlockEntity {
 export class Bed extends BlockEntity {
     public static override readonly ID = 'Bed';
 
+    public override getId(): string {
+        return Bed.ID;
+    }
+
     public static fromNBT(nbt: NBTTagCompound): Bed {
         const { position, extra } = this.takeCommon(nbt);
         return new Bed(position, extra);
@@ -200,6 +232,10 @@ export class Bed extends BlockEntity {
 export class Banner extends BlockEntity {
     public static override readonly ID = 'Banner';
 
+    public override getId(): string {
+        return Banner.ID;
+    }
+
     public static fromNBT(nbt: NBTTagCompound): Banner {
         const { position, extra } = this.takeCommon(nbt);
         return new Banner(position, extra);
@@ -211,12 +247,16 @@ export class Banner extends BlockEntity {
 
     /** The layered pattern compounds, kept as written. */
     public getPatterns(): Set<NBTTagCompound> {
-        return (this.extra.getList('Patterns', false) as Set<NBTTagCompound> | null) ?? new Set();
+        return (this.extra.getList('Patterns', false) as Set<NBTTagCompound> | null) ?? new Set<NBTTagCompound>();
     }
 }
 
 export class ItemFrame extends BlockEntity {
     public static override readonly ID = 'ItemFrame';
+
+    public override getId(): string {
+        return ItemFrame.ID;
+    }
 
     public static fromNBT(nbt: NBTTagCompound): ItemFrame {
         const { position, extra } = this.takeCommon(nbt);
@@ -234,6 +274,10 @@ export class ItemFrame extends BlockEntity {
 
 export class MobSpawner extends BlockEntity {
     public static override readonly ID = 'MobSpawner';
+
+    public override getId(): string {
+        return MobSpawner.ID;
+    }
 
     public static fromNBT(nbt: NBTTagCompound): MobSpawner {
         const { position, extra } = this.takeCommon(nbt);

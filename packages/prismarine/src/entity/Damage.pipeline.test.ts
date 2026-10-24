@@ -19,6 +19,10 @@ import { Entity } from './Entity';
 class Dummy extends Entity {
     public static override MOB_ID = 'jsprismarine:dummy';
 
+    public override getType(): string {
+        return Dummy.MOB_ID;
+    }
+
     public shoves: Array<{ x: number; z: number; strength: number }> = [];
     public armorPoints = 0;
     public armorToughness = 0;

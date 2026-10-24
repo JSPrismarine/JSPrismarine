@@ -20,6 +20,10 @@ export const EYE_HEIGHT = 1.62;
  */
 export default class Human extends Entity {
     public static MOB_ID = 'minecraft:player';
+
+    public override getType(): string {
+        return Human.MOB_ID;
+    }
     protected inventory = new HumanInventory();
 
     /** What is sitting in the crafting slots, whether the inventory's four or a table's nine. */

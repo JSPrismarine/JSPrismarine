@@ -310,7 +310,7 @@ export class Mob extends Entity {
 
     /** This mob's goals, built on first use. */
     public getGoals(): GoalSelector {
-        this.brain ??= this.createGoals();
+        if (this.brain === undefined || this.brain === null) this.brain = this.createGoals();
         return this.brain;
     }
 

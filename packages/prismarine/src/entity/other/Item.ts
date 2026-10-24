@@ -1,3 +1,4 @@
+import type Player from '../../Player';
 import type { Vector3 } from '@jsprismarine/math';
 import { ActorEvent } from '@jsprismarine/minecraft';
 import type ContainerEntry from '../../inventory/ContainerEntry';
@@ -53,6 +54,10 @@ const BODY_HEIGHT = 1.8;
 
 export class Item extends Entity {
     public static MOB_ID = 'minecraft:item';
+
+    public override getType(): string {
+        return Item.MOB_ID;
+    }
     private item?: ContainerEntry;
 
     /** Downward speed. Zero once it has settled, which is also how it knows it has. */
@@ -272,7 +277,7 @@ export class Item extends Entity {
      * @param {object} player - the candidate, asked only for where it is and where its feet are.
      * @returns {boolean} whether the stack is within reach.
      */
-    private reaches(player: { getPosition: () => Vector3; getFeetY: () => number }): boolean {
+    private reaches(player: Player): boolean {
         const position = this.getPosition();
         const eyes = player.getPosition();
 

@@ -18,6 +18,10 @@ const SHOVE = 0.4;
 export default class Snowball extends Projectile {
     public static MOB_ID = 'minecraft:snowball';
 
+    public override getType(): string {
+        return Snowball.MOB_ID;
+    }
+
     protected override get gravity(): number {
         return GRAVITY;
     }
@@ -26,7 +30,11 @@ export default class Snowball extends Projectile {
         return DRAG;
     }
 
-    protected override async hit(target: Entity): Promise<boolean> {
+    protected override hit(target: Entity): Promise<boolean> {
+        return this.hitAsync(target);
+    }
+
+    private async hitAsync(target: Entity): Promise<boolean> {
         return this.shoveAndVanish(target, SHOVE);
     }
 }

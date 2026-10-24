@@ -27,6 +27,10 @@ const STUCK_TICKS = 1200;
 export default class Arrow extends Projectile {
     public static MOB_ID = 'minecraft:arrow';
 
+    public override getType(): string {
+        return Arrow.MOB_ID;
+    }
+
     /** Set when it strikes something solid, after which it stops being a projectile. */
     private stuck = false;
     private stuckTicks = 0;
@@ -65,7 +69,11 @@ export default class Arrow extends Projectile {
     }
 
     /** What it does to something it catches. */
-    protected override async hit(target: Entity): Promise<boolean> {
+    protected override hit(target: Entity): Promise<boolean> {
+        return this.hitAsync(target);
+    }
+
+    private async hitAsync(target: Entity): Promise<boolean> {
         const speed = Math.hypot(this.velocity.getX(), this.velocity.getY(), this.velocity.getZ());
 
         // At least one, so a nearly-spent arrow still stings rather than passing through for free.

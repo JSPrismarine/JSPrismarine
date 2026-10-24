@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import * as Entities from './Entities';
+import { allEntities } from './Entities';
 import { DEFAULT_SIZE, ENTITY_SIZES, sizeOf } from './EntitySize';
 import { EYE_HEIGHT } from './Human';
 
@@ -12,7 +12,7 @@ describe('entity sizes', () => {
         //
         // It would also have caught `minecraft:sliverfish`, which sat misspelt in the class for
         // long enough that the client had never once been told what a silverfish was.
-        const missing = Object.values(Entities)
+        const missing = allEntities()
             .map((entity) => (entity as { MOB_ID?: string }).MOB_ID)
             .filter((type): type is string => typeof type === 'string')
             .filter((type) => !(type in ENTITY_SIZES));

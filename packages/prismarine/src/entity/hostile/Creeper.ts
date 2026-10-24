@@ -6,6 +6,10 @@ import SwellGoal from '../ai/goals/SwellGoal';
 export default class Creeper extends Mob {
     public static MOB_ID = 'minecraft:creeper';
 
+    public override getType(): string {
+        return Creeper.MOB_ID;
+    }
+
     /**
      * A hostile mob whose attack is a timer rather than a swing.
      *

@@ -5,6 +5,10 @@ import type GoalSelector from '../ai/GoalSelector';
 export default class IronGolem extends Mob {
     public static MOB_ID = 'minecraft:iron_golem';
 
+    public override getType(): string {
+        return IronGolem.MOB_ID;
+    }
+
     /**
      * It guards, rather than mills about.
      *

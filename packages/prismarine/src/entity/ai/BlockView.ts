@@ -95,7 +95,7 @@ const factsFor = (runtimeId: number): BlockFacts => {
         top,
         passable: top === 0,
         liquid: name !== undefined && LIQUID_NAMES.has(name),
-        harm: (name !== undefined && HAZARDS.get(name)) || null,
+        harm: name !== undefined ? (HAZARDS.get(name) ?? null) : null,
         softFall: name !== undefined && BREAKS_A_FALL.has(name)
     };
 

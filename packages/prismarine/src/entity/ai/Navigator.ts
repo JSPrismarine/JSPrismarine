@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import Heap from 'heap';
+import { BinaryHeap } from '../../utils/BinaryHeap';
 import type BlockView from './BlockView';
 
 /**
@@ -132,7 +132,7 @@ export const findPath = (
     // on the tick thread, for every mob that wants to go somewhere. Enough of them at once and the
     // tick itself starts running late, which is visible as mobs stuttering however smooth their
     // movement model is.
-    const open = new Heap<Node>((a, b) => a.f - b.f);
+    const open = new BinaryHeap<Node>((a, b) => a.f - b.f);
     open.push(start);
 
     const bestCost = new Map<string, number>([[key(startX, startY, startZ), 0]]);
