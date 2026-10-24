@@ -1274,8 +1274,9 @@ export class World implements Service {
         return {};
     }
     public async saveLevelData(): Promise<void> {
+        const spawn = await this.getSpawnPosition();
         const data = {
-            spawn: await this.getSpawnPosition(),
+            spawn,
             gameRules: Array.from(this.getGameRuleManager().getGameRules()),
             entities: this.getEntities()
                 .filter((entity) => !(entity instanceof Player))
@@ -1300,6 +1301,13 @@ export class World implements Service {
             await writeJsonFile(file, document);
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save level data`);
+            this.server.getLogger().error(error);
+        }
+
+        try {
+            this.provider.saveLevelData({ x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() });
+        } catch (error: unknown) {
+            this.server.getLogger().error(`Failed to save provider level data`);
             this.server.getLogger().error(error);
         }
     }

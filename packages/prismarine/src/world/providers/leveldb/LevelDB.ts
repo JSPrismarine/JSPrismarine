@@ -417,7 +417,7 @@ export default class LevelDB extends BaseProvider {
     }
 
     /** Writes the level metadata back, called when the world saves. */
-    public saveLevelData(spawn: { x: number; y: number; z: number }): void {
+    public override saveLevelData(spawn: { x: number; y: number; z: number }): void {
         const existing = readLevelDat(this.getPath());
         const root = existing?.root ?? this.buildLevelDat(this.getWorld().getName());
 

@@ -68,4 +68,7 @@ export default abstract class BaseProvider implements Provider {
      * @param chunk - the chunk data.
      */
     public abstract writeChunk(chunk: Chunk): Promise<void>;
+
+    /** Persists provider-specific world metadata when the format supports it. */
+    public saveLevelData(_spawn: { x: number; y: number; z: number }): void {}
 }

@@ -24,4 +24,7 @@ export default interface Provider extends Service {
      * @param chunk - chunk x
      */
     writeChunk(chunk: Chunk): Promise<void>;
+
+    /** Persists provider-specific world metadata, such as the spawn position. */
+    saveLevelData?(spawn: { x: number; y: number; z: number }): void;
 }
