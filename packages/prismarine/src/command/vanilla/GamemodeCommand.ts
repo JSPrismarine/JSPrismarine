@@ -1,13 +1,12 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, literal } from '@jsprismarine/brigadier';
 import type { Gametype } from '@jsprismarine/minecraft';
 import { getGametypeId } from '@jsprismarine/minecraft';
 import Player from '../../Player';
 import { Chat } from '../../chat/Chat';
 import type { Entity } from '../../entity/Entity';
 import ChatEvent from '../../events/chat/ChatEvent';
-import { Command } from '../Command';
-import { CommandArgumentEntity, CommandArgumentGamemode } from '../CommandArguments';
+import { Command, argument, literal } from '../Command';
+import { CommandArgumentEntity, CommandArgumentGamemode, getString } from '../CommandArguments';
 import type { CommandExecutor } from '../CommandExecutor';
 
 /**
@@ -29,18 +28,6 @@ export default class GamemodeCommand extends Command {
      * and, for the no-argument form issued from the console, the console itself.
      */
     private async setGamemode(source: CommandExecutor, target: Entity | CommandExecutor, gamemode: string) {
-        if (!(target as any)) {
-            const event = new ChatEvent(
-                new Chat({
-                    sender: source,
-                    message: `Player is not online!`,
-                    channel: `*.player.${source.getName()}`
-                })
-            );
-            await source.getServer().emit('chat', event);
-            return;
-        }
-
         if (!(target instanceof Player)) {
             const event = new ChatEvent(
                 new Chat({
@@ -57,17 +44,17 @@ export default class GamemodeCommand extends Command {
         await target.setGamemode(getGametypeId(gamemode));
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('gamemode').then(
                 argument('gamemode', new CommandArgumentGamemode())
                     .then(
                         argument('player', new CommandArgumentEntity({ name: 'player', optional: true })).executes(
                             async (context) => {
-                                const source = context.getSource() as Player;
-                                const targets = context.getArgument('player') as Player[];
+                                const source = context.getSource();
+                                const targets = CommandArgumentEntity.getEntities(context, 'player');
 
-                                const gamemode = context.getArgument('gamemode') as string;
+                                const gamemode = getString(context, 'gamemode');
 
                                 if (!targets.length) throw new Error(`Cannot find player`);
 
@@ -78,8 +65,8 @@ export default class GamemodeCommand extends Command {
                         )
                     )
                     .executes(async (context) => {
-                        const source = context.getSource() as Player;
-                        const gamemode = context.getArgument('gamemode') as string;
+                        const source = context.getSource();
+                        const gamemode = getString(context, 'gamemode');
 
                         await this.setGamemode(source, source, gamemode);
                     })

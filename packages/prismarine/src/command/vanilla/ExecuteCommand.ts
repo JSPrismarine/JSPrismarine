@@ -1,9 +1,9 @@
-import { CommandArgumentCommand, CommandArgumentEntity } from '../CommandArguments';
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, greedyString, literal } from '@jsprismarine/brigadier';
+import { greedyString } from '@jsprismarine/brigadier';
 
-import { Command } from '../Command';
-import type Player from '../../Player';
+import { Command, argument, literal } from '../Command';
+import { CommandArgumentCommand, CommandArgumentEntity, getString } from '../CommandArguments';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class ExecuteCommand extends Command {
     public constructor() {
@@ -14,16 +14,16 @@ export default class ExecuteCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('execute')
                 .then(
                     argument('player', new CommandArgumentEntity()).then(
                         argument('command', new CommandArgumentCommand())
                             .executes(async (context) => {
-                                const source = context.getSource() as Player;
-                                const targets = context.getArgument('player') as Player[];
-                                const command = context.getArgument('command') as string;
+                                const source = context.getSource();
+                                const targets = CommandArgumentEntity.getEntities(context, 'player');
+                                const command = getString(context, 'command');
                                 await Promise.all(
                                     targets.map(async (target) =>
                                         source.getServer().getCommandManager().dispatchCommand(source, target, command)
@@ -32,10 +32,10 @@ export default class ExecuteCommand extends Command {
                             })
                             .then(
                                 argument('arguments', greedyString()).executes(async (context) => {
-                                    const source = context.getSource() as Player;
-                                    const targets = context.getArgument('player') as Player[];
-                                    const command = context.getArgument('command') as string;
-                                    const args = context.getArgument('arguments') as string;
+                                    const source = context.getSource();
+                                    const targets = CommandArgumentEntity.getEntities(context, 'player');
+                                    const command = getString(context, 'command');
+                                    const args = getString(context, 'arguments');
 
                                     await Promise.all(
                                         targets.map(async (target) =>
@@ -52,15 +52,15 @@ export default class ExecuteCommand extends Command {
                 .then(
                     argument('command', new CommandArgumentCommand())
                         .executes(async (context) => {
-                            const source = context.getSource() as Player;
-                            const command = context.getArgument('command') as string;
+                            const source = context.getSource();
+                            const command = getString(context, 'command');
                             await source.getServer().getCommandManager().dispatchCommand(source, source, command);
                         })
                         .then(
                             argument('arguments', greedyString()).executes(async (context) => {
-                                const source = context.getSource() as Player;
-                                const command = context.getArgument('command') as string;
-                                const args = context.getArgument('arguments') as string;
+                                const source = context.getSource();
+                                const command = getString(context, 'command');
+                                const args = getString(context, 'arguments');
                                 await source
                                     .getServer()
                                     .getCommandManager()
