@@ -102,7 +102,7 @@ const TAIL = Buffer.from([
     ...EMPTY_COMPOUND,
     ...CHECKSUM,
     ...NIL_UUID, // World Template ID
-    0x01, // Server Enabled ClientSide Generation
+    0x00, // Server Enabled ClientSide Generation
     0x01, // BlockNetworkIds Are Hashes
     0x00, // NetworkPermissions: Server Auth Sound Enabled
     0x00, // Server Configuration Join Info: absent
@@ -168,7 +168,7 @@ describe('StartGamePacket', () => {
 
         expect(data.blockNetworkIdsAreHashes).toBe(true);
         expect(data.enableItemStackNetManager).toBe(true);
-        expect(data.clientSideGeneration).toBe(true);
+        expect(data.clientSideGeneration).toBe(false);
         expect(data.serverAuthoritativeSound).toBe(false);
         expect(data.serverJoinInformation).toBeUndefined();
         expect(data.forceExperimentalGameplay).toBeUndefined();
