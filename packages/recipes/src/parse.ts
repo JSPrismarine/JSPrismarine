@@ -34,6 +34,24 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isStringArray = (value: unknown): value is readonly string[] =>
     Array.isArray(value) && value.every((entry) => typeof entry === 'string');
 
+/**
+ * Trims the all-space rows and columns off a shaped pattern, which is what
+ * Java's `ShapedRecipePattern.shrink` does when the recipe is loaded. Without
+ * it the seven vanilla recipes whose pattern is written with padding columns,
+ * `spyglass` and `mace` among them, would never match: the crafting input
+ * arrives cropped, so a padded pattern is wider than any grid it can see.
+ */
+const shrinkPattern = (rows: readonly string[]): readonly string[] => {
+    const filled = (row: string): boolean => row.trim().length > 0;
+    const top = rows.findIndex(filled);
+    if (top === -1) return [];
+    const bottom = rows.length - [...rows].reverse().findIndex(filled);
+    const body = rows.slice(top, bottom);
+    const left = Math.min(...body.map((row) => row.length - row.trimStart().length));
+    const right = Math.max(...body.map((row) => row.trimEnd().length));
+    return body.map((row) => row.slice(left, right));
+};
+
 /** Java caps a transmute recipe's `material_count` at this range. */
 const TRANSMUTE_MATERIAL_COUNT_LIMIT: IntRange = { min: 1, max: 8 };
 /** Java caps a book cloning recipe's `allowed_generations` at this range. */
@@ -157,14 +175,17 @@ class RecipeReader {
 
     /** Reads the shaped `pattern` and `key` pair into a row-major cell grid. */
     public pattern(): ShapedPattern | undefined {
-        const rows = this.source['pattern'];
-        if (!isStringArray(rows)) return this.error('pattern', 'expected a list of row strings');
-        const first = rows[0];
+        const declared = this.source['pattern'];
+        if (!isStringArray(declared)) return this.error('pattern', 'expected a list of row strings');
+        const first = declared[0];
         if (first === undefined) return this.error('pattern', 'a pattern needs at least one row');
-        const width = first.length;
-        if (width === 0) return this.error('pattern', 'a pattern row cannot be empty');
-        if (rows.some((row) => row.length !== width))
+        if (first.length === 0) return this.error('pattern', 'a pattern row cannot be empty');
+        if (declared.some((row) => row.length !== first.length))
             return this.error('pattern', 'every pattern row has to be the same length');
+
+        const rows = shrinkPattern(declared);
+        const width = rows[0]?.length ?? 0;
+        if (width === 0) return this.error('pattern', 'a pattern needs at least one filled cell');
 
         const key = this.source['key'];
         if (!isRecord(key)) return this.error('key', 'expected an object mapping pattern symbols to ingredients');
@@ -196,7 +217,7 @@ class RecipeReader {
             }
         }
         for (const symbol of ingredients.keys())
-            if (!rows.some((row) => row.includes(symbol)))
+            if (!declared.some((row) => row.includes(symbol)))
                 this.warn('key', `the key defines the symbol ${symbol}, which the pattern never uses`);
 
         if (this.failed) return undefined;
