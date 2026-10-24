@@ -64,7 +64,7 @@
         "tsx": "4.23.15",
         "typescript": "7.0.2",
         "vite": "8.3.3",
-        "vitest": "5.0.1"
+        "vitest": "5.0.5"
     },
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
