@@ -132,7 +132,6 @@ describe('a fleet against a real server', () => {
         // A fleet that gives up on the first rejection cannot answer "how many of five
         // hundred got in", which is usually the question.
         const fleet = newFleet({ namePrefix: 'Unreachable', count: 2, loginTimeoutMs: 400 });
-        (fleet as any).options = { ...(fleet as any).options };
         for (const bot of fleet.getBots()) {
             vi.spyOn(bot.getClient(), 'connect').mockRejectedValue(new Error('Connection refused: the server is full'));
         }
