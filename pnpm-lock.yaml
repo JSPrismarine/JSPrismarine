@@ -547,6 +547,9 @@ importers:
       '@jsprismarine/bedrock-data':
         specifier: workspace:*
         version: link:../bedrock-data
+      '@jsprismarine/packs':
+        specifier: workspace:*
+        version: link:../packs
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2
