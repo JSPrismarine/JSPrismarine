@@ -3,6 +3,10 @@ import LiteralMessage from './LiteralMessage';
 import ParseResults from './ParseResults';
 import StringReader from './StringReader';
 import { DefaultType } from './arguments/ArgumentType';
+import BoolArgumentType from './arguments/BoolArgumentType';
+import FloatArgumentType from './arguments/FloatArgumentType';
+import IntegerArgumentType from './arguments/IntegerArgumentType';
+import StringArgumentType, { StringType } from './arguments/StringArgumentType';
 import LiteralArgumentBuilder, { literal } from './builder/LiteralArgumentBuilder';
 import RequiredArgumentBuilder, { argument } from './builder/RequiredArgumentBuilder';
 import CommandContext from './context/CommandContext';
@@ -25,11 +29,14 @@ const { word, string, greedyString, bool, integer, float } = DefaultType;
 
 export {
     ArgumentCommandNode,
+    BoolArgumentType,
     CommandContext,
     CommandContextBuilder,
     CommandDispatcher,
     CommandSyntaxException,
     DynamicCommandExceptionType,
+    FloatArgumentType,
+    IntegerArgumentType,
     LiteralArgumentBuilder,
     LiteralCommandNode,
     LiteralMessage,
@@ -39,8 +46,10 @@ export {
     RequiredArgumentBuilder,
     RootCommandNode,
     SimpleCommandExceptionType,
+    StringArgumentType,
     StringRange,
     StringReader,
+    StringType,
     Suggestion,
     Suggestions,
     SuggestionsBuilder,
