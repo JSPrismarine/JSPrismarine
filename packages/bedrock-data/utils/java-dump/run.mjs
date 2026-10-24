@@ -13,10 +13,11 @@ import { fileURLToPath } from 'node:url';
  * only things run against them are `javac` and the dumper itself.
  */
 
-// The Java Edition pin. A parallel slice adds a shared source manifest; until the merge moves
-// them there, every pinned value lives in this block.
-const JAVA_VERSION = '26.3';
-const SERVER_JAR_SHA1 = '33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c';
+// The Java Edition pin comes from the shared source manifest, so a version bump edits
+// sources.json once and this script follows.
+const sources = JSON.parse(fs.readFileSync(new URL('../../sources.json', import.meta.url), 'utf8'));
+const JAVA_VERSION = sources.javaServer.version;
+const SERVER_JAR_SHA1 = sources.javaServer.sha1;
 const VERSION_MANIFEST_URL = 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json';
 // The jar needs class files the dumper compiles against; the 26.3 manifest declares Java 25.
 const REQUIRED_JDK_MAJOR = 25;
