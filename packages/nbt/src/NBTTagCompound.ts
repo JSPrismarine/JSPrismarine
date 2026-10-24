@@ -12,6 +12,18 @@ import NumberVal from './types/NumberVal';
 import ShortVal from './types/ShortVal';
 import StringVal from './types/StringVal';
 
+type NumberTag = ByteVal | ShortVal | NumberVal | FloatVal | DoubleVal;
+
+function isNumberTag(value: unknown): value is NumberTag {
+    return (
+        value instanceof ByteVal ||
+        value instanceof ShortVal ||
+        value instanceof NumberVal ||
+        value instanceof FloatVal ||
+        value instanceof DoubleVal
+    );
+}
+
 export default class NBTTagCompound {
     private name: string | null;
     public readonly children: Map<string, any> = new Map();
@@ -85,31 +97,42 @@ export default class NBTTagCompound {
     }
 
     public getByte(name: string, defaultValue: number): number {
-        return this.children.has(name) ? (this.children.get(name) as ByteVal).getValue() : defaultValue;
+        return this.numberAt(name, defaultValue);
     }
 
     public getShort(name: string, defaultValue: number): number {
-        return this.children.has(name) ? (this.children.get(name) as ShortVal).getValue() : defaultValue;
+        return this.numberAt(name, defaultValue);
     }
 
     public getNumber(name: string, defaultValue: number): number {
-        return this.children.has(name) ? (this.children.get(name) as NumberVal).getValue() : defaultValue;
+        return this.numberAt(name, defaultValue);
     }
 
     public getLong(name: string, defaultValue: bigint): bigint {
-        return this.children.has(name) ? (this.children.get(name) as LongVal).getValue() : defaultValue;
+        const value = this.children.get(name);
+        return value instanceof LongVal ? value.getValue() : defaultValue;
     }
 
     public getFloat(name: string, defaultValue: number): number {
-        return this.children.has(name) ? (this.children.get(name) as FloatVal).getValue() : defaultValue;
+        return this.numberAt(name, defaultValue);
     }
 
     public getDouble(name: string, defaultValue: number): number {
-        return this.children.has(name) ? (this.children.get(name) as DoubleVal).getValue() : defaultValue;
+        return this.numberAt(name, defaultValue);
     }
 
     public getString(name: string, defaultValue: string): string {
-        return this.children.has(name) ? (this.children.get(name) as StringVal).getValue() : defaultValue;
+        const value = this.children.get(name);
+        return value instanceof StringVal ? value.getValue() : defaultValue;
+    }
+
+    // The numeric getters accept any number-valued tag, not only the one matching the
+    // getter's name. Bedrock stores some tags with a different width than the vanilla
+    // layout documents (`ItemRotation` is a float read through `getByte`), and callers
+    // depend on that leniency.
+    private numberAt(name: string, defaultValue: number): number {
+        const value = this.children.get(name);
+        return isNumberTag(value) ? value.getValue() : defaultValue;
     }
 
     public remove(key: string): boolean {
