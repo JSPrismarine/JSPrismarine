@@ -15,7 +15,7 @@ import {
     isAllowed,
     WATER_BLOCKS
 } from './entity/Environment';
-import Human from './entity/Human';
+import Human, { eyePositionAt } from './entity/Human';
 import { FlagType, MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
 import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
@@ -36,6 +36,8 @@ import type Skin from './utils/skin/Skin';
 import type { World } from './world/';
 import { GameRules } from './world/GameRuleManager';
 import type { Position } from './world/Position';
+import { requestedSpawnPosition } from './world/SpawnPlacement';
+import type { PlayerSpawn } from './world/SpawnPlacement';
 import CoordinateUtils from './world/CoordinateUtils';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
 
@@ -164,6 +166,21 @@ export default class Player extends Human {
     private sentAir = MAX_AIR_TICKS;
     private sentBreathing = true;
 
+    /**
+     * Where this player was placed on joining, when they had no saved position.
+     *
+     * Kept for the join packets: a Bedrock Dedicated Server reports the requested spot in
+     * `StartGame` and the final one in the `Respawn` that releases the client.
+     */
+    private joinSpawn: PlayerSpawn | null = null;
+
+    /**
+     * Where this player was placed on joining, or null when they came back to a saved position.
+     */
+    public getJoinSpawn(): PlayerSpawn | null {
+        return this.joinSpawn;
+    }
+
     public platformChatId = ''; // TODO: read this value from Login
     public device: Device | null = null;
 
@@ -238,14 +255,24 @@ export default class Player extends Human {
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
         this.gamemode = getGametypeId(playerData.gamemode || this.server.getConfig().getGamemode());
 
+        // A returning player goes back where they were; a new one is placed the way BDS
+        // places them, which may not be the spawn point itself.
+        let position: Vector3;
+        if (playerData.position) {
+            this.joinSpawn = null;
+            position = Vector3.fromObject(playerData.position);
+        } else {
+            const placed = await this.getWorld().placePlayerSpawn();
+            this.joinSpawn = placed;
+            position = eyePositionAt(placed.position);
+        }
+
         // Not broadcast: `StartGame` carries the position, so the client has no use for a
         // `MovePlayer` here. Awaited, where it was not, because the move this used to send went
         // out after `PlayStatus(LoginSuccess)` had already been written.
         await this.setPosition(
             {
-                position: playerData.position
-                    ? Vector3.fromObject(playerData.position)
-                    : await this.getWorld().getSpawnPosition(),
+                position,
                 pitch: playerData.position?.pitch || 0,
                 yaw: playerData.position?.yaw || 0,
                 headYaw: playerData.position?.headYaw || 0,
@@ -764,7 +791,7 @@ export default class Player extends Human {
         // the respawn button until it knows, which is why a death screen that never became a
         // respawn screen was stuck on "Respawning" - it was still waiting for this.
         await this.getNetworkSession().sendRespawn(
-            await this.getWorld().getSpawnPosition(),
+            eyePositionAt(requestedSpawnPosition(await this.getWorld().getSpawnPosition())),
             RespawnState.SERVER_SEARCHING_FOR_SPAWN
         );
 
@@ -813,7 +840,7 @@ export default class Player extends Human {
             this.flying = false;
 
             await this.setPosition({
-                position: await this.getWorld().getSpawnPosition(),
+                position: eyePositionAt((await this.getWorld().placePlayerSpawn()).position),
                 type: MovementType.Reset
             });
         }

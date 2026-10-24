@@ -181,6 +181,49 @@ describe('logging into a real server', () => {
         expect(server!.getSessionManager().has(token)).toBe(false);
     }, 40_000);
 
+    it('places a new player the way a Bedrock Dedicated Server does', async () => {
+        const client = newClient('PlacedTester');
+        const respawns: Array<{ x: number; y: number; z: number; state: number; runtimeId: number }> = [];
+        client.getSession().on('raw', ({ id, buffer }: { id: number; buffer: Buffer }) => {
+            if (id !== 0x2d) return;
+            // Respawn: three little endian floats, the state byte, then the runtime id varint.
+            respawns.push({
+                x: buffer.readFloatLE(1),
+                y: buffer.readFloatLE(5),
+                z: buffer.readFloatLE(9),
+                state: buffer[13]!,
+                runtimeId: buffer[14]!
+            });
+        });
+
+        const startGame = await client.connect();
+        const spawn = await server!.getWorldManager().getDefaultWorld().getSpawnPosition();
+        const requested = { x: spawn.getX() + 0.5, y: spawn.getY() + 1, z: spawn.getZ() + 0.5 };
+
+        // StartGame says where the spawn point asked for: the block center, one block above the
+        // stored height, at eye level.
+        expect(startGame.position.x).toBeCloseTo(requested.x);
+        expect(startGame.position.y).toBeCloseTo(requested.y + 1.62, 4);
+        expect(startGame.position.z).toBeCloseTo(requested.z);
+
+        // Searching at the eyes, searching at the feet, then ready: three distinct packets with
+        // runtime id 0, which is what BDS 1.26.52 sends.
+        expect(respawns.map(({ state }) => state)).toEqual([0, 0, 1]);
+        expect(respawns.map(({ runtimeId }) => runtimeId)).toEqual([0, 0, 0]);
+        expect(respawns[0]!.y).toBeCloseTo(requested.y + 1.62, 4);
+        expect(respawns[1]!.y).toBeCloseTo(requested.y, 4);
+
+        const player = server!
+            .getSessionManager()
+            .getAllPlayers()
+            .find((candidate: any) => candidate.getName() === 'PlacedTester');
+        const ready = respawns[2]!;
+        // The server keeps the player where the ready packet said.
+        expect(player!.getPosition().getX()).toBeCloseTo(ready.x);
+        expect(player!.getPosition().getY()).toBeCloseTo(ready.y, 4);
+        expect(player!.getPosition().getZ()).toBeCloseTo(ready.z);
+    }, 40_000);
+
     it('refuses a protocol version the server does not speak', async () => {
         const client = newClient('VersionTester');
 
