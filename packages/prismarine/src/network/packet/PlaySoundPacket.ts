@@ -60,8 +60,6 @@ export enum SoundName {
     BLOCK_FALSE_PERMISSIONS = 'block.false_permissions',
     BLOCK_FURNACE_LIT = 'block.furnace.lit',
     BLOCK_GRINDSTONE_USE = 'block.grindstone.use'
-
-    // TODO: complete
 }
 
 /**

@@ -13,7 +13,11 @@ export const DEFAULT_COMPRESSION_LEVEL = 7;
 export default class BatchPacket extends DataPacket {
     public static NetID = 0xfe;
 
-    public compressed = true; //  TODO: better solution
+    /**
+     * Whether the payload is deflated behind the algorithm prefix byte. Callers set it from
+     * the connection's negotiated state: nothing is compressed before `NetworkSettings`.
+     */
+    public compressed = true;
     private payload = new BinaryStream();
 
     /**
