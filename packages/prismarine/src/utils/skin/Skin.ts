@@ -1,5 +1,6 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { NetworkUtil } from '../../network/NetworkUtil';
+import UUID from '../UUID';
 import SkinAnimation from './SkinAnimation';
 import SkinCape from './SkinCape';
 import SkinImage from './SkinImage';
@@ -67,6 +68,93 @@ const text = (value: unknown): string => (typeof value === 'string' ? value : ''
 
 /** The same, for the fields that arrive base64 encoded. */
 const decode = (value: unknown): string => Buffer.from(text(value), 'base64').toString();
+
+/**
+ * The persona piece types protocol 2193 numbers, in wire order. The index is the id.
+ *
+ * From gophertunnel's `protocol/skin.go` (`PieceTypeUnknown` through `PieceTypeUnsupported`).
+ * A piece type the client data names and this list does not is sent as `unknown`.
+ */
+const PIECE_TYPES = [
+    'unknown',
+    'skeleton',
+    'body',
+    'skin',
+    'bottom',
+    'feet',
+    'dress',
+    'top',
+    'high_pants',
+    'hands',
+    'outerwear',
+    'facial_hair',
+    'mouth',
+    'eyes',
+    'hair',
+    'hood',
+    'back',
+    'face_accessory',
+    'head',
+    'legs',
+    'left_leg',
+    'right_leg',
+    'arms',
+    'left_arm',
+    'right_arm',
+    'capes',
+    'classic_skin',
+    'emote',
+    'unsupported'
+] as const;
+
+const PIECE_TYPE_IDS: ReadonlyMap<string, number> = new Map(PIECE_TYPES.map((name, id) => [name, id]));
+
+/** Every tint carries this many colors on the wire, whatever the client data listed. */
+const TINT_COLORS = 4;
+
+/**
+ * The wire name of a persona piece type.
+ *
+ * The client data calls a piece `persona_eyes`; the wire calls it `eyes`. The hands are the
+ * one irregular case: `persona_hand` in the client data, `hands` on the wire.
+ */
+const pieceWireType = (pieceType: string): string =>
+    pieceType === 'persona_hand' ? 'hands' : pieceType.replace(/^persona_/, '');
+
+/**
+ * A pack id as the UUID the wire carries, or the zero UUID when it is not one.
+ *
+ * `UUID.fromString` throws on anything but 32 hex digits, and a thrown skin takes the whole
+ * player list with it, so an empty or malformed pack id is sent as all zeroes instead.
+ */
+const packIdToUuid = (packId: string): UUID =>
+    /^[0-9a-fA-F]{32}$/.test(packId.trim().replaceAll('-', '')) ? UUID.fromString(packId) : new UUID();
+
+/**
+ * A client-data color as the ARGB integer the wire carries.
+ *
+ * Tint colors arrive as `#aarrggbb` (`#ffa12722`) and the skin color as `#rrggbb`
+ * (`#b37b62`), which is opaque. `#0` is no color. Anything that is not parseable hex is sent
+ * as zero, which is what a Bedrock Dedicated Server puts on the wire for a skin that carries no
+ * color - it tints nothing.
+ */
+const colorToArgb = (color: string): number => {
+    const hex = color.replace(/^#/, '');
+    if (!/^[0-9a-fA-F]{1,8}$/.test(hex)) return 0;
+
+    const value = Number.parseInt(hex, 16);
+    return (hex.length === 6 ? 0xff_00_00_00 | value : value) | 0;
+};
+
+/**
+ * Writes an ARGB color the way gophertunnel's `BEARGB` does.
+ *
+ * It packs `A | R<<8 | G<<16 | B<<24` and writes that big endian, so the bytes on the wire
+ * are B, G, R, A. Writing the ARGB integer little endian produces the same four bytes.
+ */
+const writeColor = (stream: BinaryStream, argb: number): void => {
+    stream.writeIntLE(argb);
+};
 
 export default class Skin {
     private id!: string;
@@ -192,10 +280,16 @@ export default class Skin {
      * - The animation, persona-piece and tint counts were fixed 32-bit little-endian ints;
      *   they are unsigned varints, like every other list.
      * - The arm size was a string; it is a single byte (`slim` 0, `wide` 1).
-     * - The skin color was a string; it is a big-endian ARGB uint32.
+     * - The skin color was a string; it is four bytes, B, G, R, A.
      * - The tail was missing two fields the client reads: `trusted`, sent as the string
      *   `"true"`/`"false"`, and a profile hash string. Without them the entry after this one
      *   in the player list is read from the wrong place, and the client drops the join.
+     *
+     * The persona branch was missed by that pass and found the same way, by a 1.26.51 client
+     * with a character-creator skin dropping the join with `InitialConnection-90` (#2582).
+     * A piece's type and pack id went out as strings; the type is a uint32 and the pack id a
+     * 16-byte UUID. A tint's colors went out as a counted list of strings; they are exactly
+     * four colors of four bytes each, with no count, under the piece's short wire name.
      */
     public networkSerialize(stream: BinaryStream): void {
         NetworkUtil.writeString(stream, this.getId());
@@ -224,25 +318,28 @@ export default class Skin {
         NetworkUtil.writeString(stream, this.getCape().getId());
         NetworkUtil.writeString(stream, this.getFullId());
         stream.writeByte(this.getArmSize() === 'slim' ? 0 : 1);
-        stream.writeInt(Skin.colorToArgb(this.getColor())); // Big-endian ARGB.
+        writeColor(stream, colorToArgb(this.getColor()));
 
-        // Hack to keep less useless data in software
+        // Persona data is only kept for a persona skin.
         if (this.isPersona()) {
-            stream.writeUnsignedVarInt(this.getPersonaData().getPieces().size);
-            for (const personaPiece of this.getPersonaData().getPieces()) {
-                NetworkUtil.writeString(stream, personaPiece.getPieceId());
-                NetworkUtil.writeString(stream, personaPiece.getPieceType());
-                NetworkUtil.writeString(stream, personaPiece.getPackId());
-                stream.writeBoolean(personaPiece.isDefault());
-                NetworkUtil.writeString(stream, personaPiece.getProductId());
+            const persona = this.getPersonaData();
+
+            stream.writeUnsignedVarInt(persona.getPieces().size);
+            for (const piece of persona.getPieces()) {
+                NetworkUtil.writeString(stream, piece.getPieceId());
+                stream.writeUnsignedIntLE(PIECE_TYPE_IDS.get(pieceWireType(piece.getPieceType())) ?? 0);
+                packIdToUuid(piece.getPackId()).networkSerialize(stream);
+                stream.writeBoolean(piece.isDefault());
+                NetworkUtil.writeString(stream, piece.getProductId());
             }
 
-            stream.writeUnsignedVarInt(this.getPersonaData().getTintColors().size);
-            for (const tint of this.getPersonaData().getTintColors()) {
-                NetworkUtil.writeString(stream, tint.getPieceType());
-                stream.writeUnsignedVarInt(tint.getColors().length);
-                for (const color of tint.getColors()) {
-                    NetworkUtil.writeString(stream, color);
+            // Four colors per tint, no count. A tint the client data gave fewer is padded
+            // with no color; one it gave more is cut to four.
+            stream.writeUnsignedVarInt(persona.getTintColors().size);
+            for (const tint of persona.getTintColors()) {
+                NetworkUtil.writeString(stream, pieceWireType(tint.getPieceType()));
+                for (let index = 0; index < TINT_COLORS; index++) {
+                    writeColor(stream, colorToArgb(tint.getColors()[index] ?? '#0'));
                 }
             }
         } else {
@@ -260,23 +357,6 @@ export default class Skin {
         // encoder; a self-made offline skin is not trusted and hashes to nothing.
         NetworkUtil.writeString(stream, 'false');
         NetworkUtil.writeString(stream, '');
-    }
-
-    /**
-     * A skin color string as the big-endian ARGB integer the wire carries.
-     *
-     * The client data gives it as `#rrggbbaa`, or `#0` when there is none. Anything that is
-     * not parseable hex is sent as zero, which is what a Bedrock Dedicated Server puts on the
-     * wire for a skin that carries no color - it tints nothing.
-     */
-    private static colorToArgb(color: string): number {
-        const hex = color.replace(/^#/, '');
-        if (!/^[0-9a-fA-F]+$/.test(hex)) return 0;
-
-        // `#rrggbbaa` on the client, ARGB on the wire.
-        const rgba = Number.parseInt(hex.padStart(8, '0').slice(0, 8), 16);
-        const [r, g, b, a] = [(rgba >>> 24) & 0xff, (rgba >>> 16) & 0xff, (rgba >>> 8) & 0xff, rgba & 0xff];
-        return (a << 24) | (r << 16) | (g << 8) | b | 0;
     }
 
     public getId(): string {
