@@ -1,5 +1,6 @@
 import type { DiagnosticSeverity } from './diagnostics';
 import { parseFilter, FilterParseError } from './filters';
+import type { JavaRegistryId } from './javaRegistries';
 import type { RegistryId } from './registries';
 
 /** One finding a validator reports about a single definition file. */
@@ -11,7 +12,7 @@ export interface ValidationFinding {
 
 /** A definition file as handed to a validator, before composition. */
 export interface DefinitionFile {
-    registry: RegistryId;
+    registry: RegistryId | JavaRegistryId;
     /** The pack-relative path of the file. */
     path: string;
     data: unknown;
@@ -101,12 +102,86 @@ const SHAPES: Record<RegistryId, Shape> = {
     itemCatalog: { requiresFormatVersion: true, requiresWrapper: true }
 };
 
+interface JavaShape {
+    /** Root keys that must be present with the given container or primitive type. */
+    required?: Readonly<Record<string, 'object' | 'array' | 'string' | 'number'>>;
+    /** Root keys that must have the given type when present. */
+    optional?: Readonly<Record<string, 'object' | 'array' | 'string' | 'number'>>;
+    /** Whether a root array is also a valid file, as it is for predicates and item modifiers. */
+    allowsArrayRoot?: boolean;
+}
+
+const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
+    lootTablesJava: { optional: { pools: 'array', type: 'string' } },
+    recipesJava: { required: { type: 'string' } },
+    advancements: { required: { criteria: 'object' } },
+    tags: { required: { values: 'array' } },
+    enchantments: {
+        optional: { effects: 'object', weight: 'number', max_level: 'number', slots: 'array' }
+    },
+    damageTypes: { required: { message_id: 'string', scaling: 'string', exhaustion: 'number' } },
+    predicates: { allowsArrayRoot: true, optional: { condition: 'string' } },
+    itemModifiers: { allowsArrayRoot: true, optional: { type: 'string' } }
+};
+
+const matchesType = (value: unknown, type: 'object' | 'array' | 'string' | 'number'): boolean => {
+    if (type === 'object') return isRecord(value);
+    if (type === 'array') return Array.isArray(value);
+    return typeof value === type;
+};
+
+const isJavaRegistry = (registry: RegistryId | JavaRegistryId): registry is JavaRegistryId => registry in JAVA_SHAPES;
+
+/** Structural checks for one Java datapack definition: required keys and container types. */
+const validateJavaDefinition = (registry: JavaRegistryId, data: unknown): ValidationFinding[] => {
+    const shape = JAVA_SHAPES[registry];
+    const findings: ValidationFinding[] = [];
+
+    if (shape.allowsArrayRoot && Array.isArray(data)) return findings;
+    if (!isRecord(data)) {
+        return [
+            {
+                severity: 'error',
+                code: 'definition.not-an-object',
+                message: shape.allowsArrayRoot
+                    ? 'the file is not a JSON object or array'
+                    : 'the file is not a JSON object'
+            }
+        ];
+    }
+
+    for (const [key, type] of Object.entries(shape.required ?? {})) {
+        if (!matchesType(data[key], type))
+            findings.push({
+                severity: 'error',
+                code: 'definition.missing-key',
+                message: `${key} must be ${aType(type)}`
+            });
+    }
+    for (const [key, type] of Object.entries(shape.optional ?? {})) {
+        if (data[key] !== undefined && !matchesType(data[key], type))
+            findings.push({
+                severity: 'error',
+                code: 'definition.missing-key',
+                message: `${key} must be ${aType(type)}`
+            });
+    }
+
+    return findings;
+};
+
+const aType = (type: 'object' | 'array' | 'string' | 'number'): string =>
+    type === 'object' ? 'an object' : type === 'array' ? 'an array' : `a ${type}`;
+
 /**
  * The structural validator this slice ships: required keys and container
- * types per registry. Unknown root keys are warnings, so unrecognized content
- * loads anyway; missing required structure is an error.
+ * types per registry, for Bedrock and Java registries alike. Unknown root
+ * keys are warnings, so unrecognized content loads anyway; missing required
+ * structure is an error.
  */
 export const structuralValidator: DefinitionValidator = ({ registry, data }) => {
+    if (isJavaRegistry(registry)) return validateJavaDefinition(registry, data);
+
     const findings: ValidationFinding[] = [];
     const shape = SHAPES[registry];
 
