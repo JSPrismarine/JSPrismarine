@@ -37,14 +37,14 @@ import DataPacket from './DataPacket';
  * | Block Properties | UnsignedVarInt count, then Block Name (String) + Block Definition (network NBT) | Data driven vanilla blocks, then plugin blocks |
  * | Multiplayer Correlation Id | String | Empty |
  * | Enable Item Stack Net Manager | Boolean | true |
- * | Server Version | String | First entry of `Identifiers.MinecraftVersions` |
+ * | Server Version | String | Last entry of `Identifiers.MinecraftVersions` |
  * | Player Property Data | Network NBT compound | Empty |
  * | Server Block Type Registry Checksum | LUnsignedLong | 0 |
  * | World Template ID | UUID | Nil |
  * | Server Enabled ClientSide Generation | Boolean | false |
  * | BlockNetworkIds Are Hashes | Boolean | true |
  * | NetworkPermissions | Server Auth Sound Enabled (Boolean) | false |
- * | Server Configuration Join Info | Optional | Absent, a single false byte |
+ * | Server Configuration Join Info | Optional | Present and empty: true, then false for each of gathering, clientStoreEntryPoint, presence |
  * | Server Telemetry Data | Server Id, Scenario Id, World Id, Owner Id (String) | `serverIdentifier`, `scenarioIdentifier`, `worldIdentifier`, empty |
  *
  * LevelSettings, in wire order: Seed (LUnsignedLong), Spawn Settings (Spawn Biome Type LShort,
@@ -117,8 +117,8 @@ export default class StartGamePacket extends DataPacket {
         // Seed is a uint64. A negative seed goes out as its two's complement bytes.
         this.writeUnsignedLongLE(BigInt.asUintN(64, BigInt(this.seed)));
 
-        this.writeUnsignedShortLE(0x00); // Spawn Biome Type: Default
-        NetworkUtil.writeString(this, 'plains'); // User Defined Biome Name
+        this.writeShortLE(0); // Spawn Biome Type: Default
+        NetworkUtil.writeString(this, 'minecraft:plains'); // User Defined Biome Name
         this.writeVarInt(this.dimension); // Dimension
 
         this.writeVarInt(this.generator); // Generator Type
@@ -184,10 +184,12 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(0); // Emote Chat Muted
         NetworkUtil.writeString(this, '*'); // Base Game Version
 
-        this.writeUnsignedIntLE(0); // Limited World Width
-        this.writeUnsignedIntLE(0); // Limited World Depth
+        // Limited World Width and Depth only mean something to the Legacy generator, but a
+        // dedicated server sends 16 and 16 for every world.
+        this.writeIntLE(16);
+        this.writeIntLE(16);
 
-        this.writeBoolean(true); // Nether Type: the new nether
+        this.writeBoolean(false); // Nether Type: false, as a dedicated server sends it
 
         NetworkUtil.writeString(this, ''); // Edu Shared Uri Resource: Button Name
         NetworkUtil.writeString(this, ''); // Edu Shared Uri Resource: Link Uri
@@ -245,7 +247,8 @@ export default class StartGamePacket extends DataPacket {
         NetworkUtil.writeString(this, ''); // Multiplayer Correlation Id
         this.writeBoolean(true); // Enable Item Stack Net Manager
 
-        NetworkUtil.writeString(this, Identifiers.MinecraftVersions[0] ?? ''); // Server Version
+        // Server Version: the newest version this server speaks, for Mojang's telemetry.
+        NetworkUtil.writeString(this, Identifiers.MinecraftVersions.at(-1) ?? '');
 
         // Player Property Data: an empty network NBT compound.
         const properties = new BinaryStream();
@@ -273,7 +276,12 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeByte(0); // NetworkPermissions: Server Auth Sound Enabled
 
-        this.writeBoolean(false); // Server Configuration Join Info: absent
+        // Server Configuration Join Info: present, with none of its three optional parts. A
+        // dedicated server with no gathering, store entry point or presence sends exactly this.
+        this.writeBoolean(true);
+        this.writeBoolean(false); // gathering
+        this.writeBoolean(false); // clientStoreEntryPoint
+        this.writeBoolean(false); // presence
 
         // Server Telemetry Data.
         NetworkUtil.writeString(this, this.serverIdentifier); // Server Id

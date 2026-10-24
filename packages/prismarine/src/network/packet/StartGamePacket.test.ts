@@ -81,7 +81,7 @@ const HEAD = Buffer.from([
     ...SEED,
     0x00, // Spawn Biome Type: Default as an int16
     0x00,
-    ...string('plains'), // User Defined Biome Name
+    ...string('minecraft:plains'), // User Defined Biome Name
     0x00, // Dimension: Overworld
     0x04, // Generator Type: Flat (2) zigzag encoded
     0x04, // Game Type (world default): 2 zigzag encoded
@@ -100,14 +100,17 @@ const CHECKSUM = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 const TAIL = Buffer.from([
     ...string(''), // Multiplayer Correlation Id
     0x01, // Enable Item Stack Net Manager
-    ...string('1.26.50'), // Server Version, the first entry of `Identifiers.MinecraftVersions`
+    ...string('1.26.51'), // Server Version, the last entry of `Identifiers.MinecraftVersions`
     ...EMPTY_COMPOUND,
     ...CHECKSUM,
     ...NIL_UUID, // World Template ID
     0x00, // Server Enabled ClientSide Generation
     0x01, // BlockNetworkIds Are Hashes
     0x00, // NetworkPermissions: Server Auth Sound Enabled
-    0x00, // Server Configuration Join Info: absent
+    0x01, // Server Configuration Join Info: present
+    0x00, // with no gathering,
+    0x00, // no client store entry point,
+    0x00, // and no presence
     ...string('JSPrismarine'), // Server Telemetry Data: Server Id
     ...string('scenario'), // Scenario Id
     ...string('world-id'), // World Id
@@ -152,7 +155,7 @@ describe('StartGamePacket', () => {
         expect(data.levelId).toBe('level-id');
         expect(data.levelName).toBe('A world');
         expect(data.currentTick).toBe(1234n);
-        expect(data.serverVersion).toBe('1.26.50');
+        expect(data.serverVersion).toBe('1.26.51');
         expect(data.serverId).toBe('JSPrismarine');
         expect(data.scenarioId).toBe('scenario');
         expect(data.worldId).toBe('world-id');
@@ -167,14 +170,14 @@ describe('StartGamePacket', () => {
         expect(data.enchantmentSeed).toBe(0);
     });
 
-    it('declares hashed block ids, the item stack net manager, and no join information', () => {
+    it('declares hashed block ids, the item stack net manager, and empty join information', () => {
         const { data } = decode(build());
 
         expect(data.blockNetworkIdsAreHashes).toBe(true);
         expect(data.enableItemStackNetManager).toBe(true);
         expect(data.clientSideGeneration).toBe(false);
         expect(data.serverAuthoritativeSound).toBe(false);
-        expect(data.serverJoinInformation).toBeUndefined();
+        expect(data.serverJoinInformation).toEqual({});
         expect(data.forceExperimentalGameplay).toBeUndefined();
         expect(data.playerPermissions).toBe(1);
         expect(data.worldTemplateId).toEqual({ mostSignificantBits: 0n, leastSignificantBits: 0n });
@@ -204,6 +207,18 @@ describe('StartGamePacket', () => {
         expect(data.blockProperties).toEqual(
             block_definitions.map((block) => ({ name: block.name, definition: block.definition }))
         );
+    });
+
+    it('fills the level settings a dedicated server fills the same way for every world', () => {
+        const { data } = decode(build());
+
+        expect(data.spawnBiomeType).toBe(0);
+        expect(data.userDefinedBiomeName).toBe('minecraft:plains');
+        expect(data.newNether).toBe(false);
+        expect(data.limitedWorldWidth).toBe(16);
+        expect(data.limitedWorldDepth).toBe(16);
+        expect(data.baseGameVersion).toBe('*');
+        expect(data.templateContentIdentity).toBe('00000000-0000-0000-0000-000000000000');
     });
 
     it('reports a generated world as Overworld unless told otherwise', () => {
